@@ -46,13 +46,12 @@ from pydantic.error_wrappers import ErrorWrapper
 import validators
 
 from nomad import utils, config, infrastructure, search, datamodel, metainfo, parsing, client
-from nomad.config.models import CELERY_WORKER_ROUTING
 from nomad.datamodel.datamodel import RFC3161Timestamp
 from nomad.files import (
     RawPathInfo, PathObject, UploadFiles, PublicUploadFiles, StagingUploadFiles,
     create_tmp_dir, is_safe_relative_path)
 from nomad.processing.base import (
-    Proc, process, process_local, ProcessStatus, ProcessFailure, ProcessAlreadyRunning, worker_hostname)
+    Proc, process, process_local, ProcessStatus, ProcessFailure, ProcessAlreadyRunning)
 from nomad.parsing import Parser
 from nomad.parsing.parsers import parser_dict, match_parser
 from nomad.normalizing import normalizers
@@ -68,7 +67,7 @@ from nomad.app.v1.routers.metainfo import store_package_definition
 from nomad.search import update_metadata as es_update_metadata
 
 section_metadata = datamodel.EntryArchive.metadata.name
-section_workflow = datamodel.EntryArchive.workflow.name
+section_workflow = datamodel.EntryArchive.workflow2.name
 section_results = datamodel.EntryArchive.results.name
 
 
@@ -935,9 +934,7 @@ class Entry(Proc):
             entry_archive = archive[self.entry_id]
             entry_archive_dict = {section_metadata: serialise_container(entry_archive[section_metadata])}
             if section_workflow in entry_archive:
-                for workflow in entry_archive[section_workflow]:
-                    entry_archive_dict.setdefault(section_workflow, [])
-                    entry_archive_dict[section_workflow].append(workflow.to_dict())
+                entry_archive_dict[section_workflow] = entry_archive[section_workflow].to_dict()
             if section_results in entry_archive:
                 entry_archive_dict[section_results] = serialise_container(entry_archive[section_results])
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
@@ -1173,7 +1170,7 @@ class Entry(Proc):
     def _create_minimal_failed_archive(self) -> EntryArchive:
         return EntryArchive(
             m_context=self.upload.archive_context,
-            metadata=self._parser_results.metadata,
+            metadata=self._parser_results.metadata if self._parser_results else None,
             processing_logs=self._filtered_processing_logs())
 
     def parent(self) -> 'Upload':
@@ -1631,14 +1628,6 @@ class Upload(Proc):
             assert settings.rematch_published or settings.reprocess_existing_entries, (  # pylint: disable=no-member
                 'Settings do no allow reprocessing of a published upload')
 
-        # TODO remove after worker_hostnames are handled correctly
-        if config.celery.routing == CELERY_WORKER_ROUTING:
-            if self.worker_hostname is None:
-                self.worker_hostname = worker_hostname
-                Entry._get_collection().update_many(
-                    {'upload_id': self.upload_id},
-                    {'$set': {'worker_hostname': self.worker_hostname}})
-
         # All looks ok, process
         updated_files = self.update_files(file_operations, only_updated_files)
         self.match_all(settings, path_filter, updated_files)
@@ -1943,7 +1932,6 @@ class Upload(Proc):
                         Entry._get_collection().update_many(
                             {'_id': {'$in': processing_entries}},
                             {'$set': Entry.reset_pymongo_update(
-                                worker_hostname=self.worker_hostname,
                                 process_status=ProcessStatus.FAILURE,
                                 errors=['process aborted'])})
 
@@ -2021,6 +2009,7 @@ class Upload(Proc):
                     self.set_last_status_message(f'Parsing level {next_level}')
                     with utils.timer(logger, 'processes triggered'):
                         for entry in next_entries:
+                            entry.worker_hostname = self.worker_hostname
                             entry.process_entry()
                     return True
             return False

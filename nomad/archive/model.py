@@ -86,12 +86,12 @@ class RequestConfig(BaseModel):
         References can be resolved using `resolved`.
         The `*` is a shortcut of `plain`.
         ''')
-    include: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_]+$', description='''
+    include: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_\d]+$', description='''
         A list of patterns to match the quantities and subsections of the current section.
         The quantities/sections that match the include patterns AND do not match the include patterns are included.
         Only one of `include` and `exclude` can be set.
         ''')
-    exclude: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_]+$', description='''
+    exclude: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_\d]+$', description='''
         A list of patterns to match the quantities and subsections of the current section.
         The quantities/sections that match the include patterns AND do not match the include patterns are included.
         Only one of `include` and `exclude` can be set.

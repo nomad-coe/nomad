@@ -10,7 +10,7 @@ produced *input* and *output* data that are *linked* through *tasks* that have b
 performed . This often is also referred to as *data provenance* or *provenance graph*.
 
 The following shows the overall abstract schema for *worklows* that can be found
-in `nomad.datamodel.metainfo.workflow2` (blue):
+in `nomad.datamodel.metainfo.workflow` (blue):
 
 ![workflow schema](../assets/workflow-schema.png)
 

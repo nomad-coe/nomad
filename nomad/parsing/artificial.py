@@ -73,7 +73,7 @@ class TemplateParser(Parser):
         template_json = json.load(open(mainfile, 'r'))
         loaded_archive = EntryArchive.m_from_dict(template_json)
         archive.m_add_sub_section(EntryArchive.run, loaded_archive.run[0])
-        archive.m_add_sub_section(EntryArchive.workflow, loaded_archive.workflow[0])
+        archive.m_add_sub_section(EntryArchive.workflow2, loaded_archive.workflow2)
 
         if 'warning' in mainfile:
             logger.warn('a test warning.')

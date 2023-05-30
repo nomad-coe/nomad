@@ -473,7 +473,7 @@ class Proc(Document):
         priority = config.celery.priorities.get('%s.%s' % (cls_name, func_name), 1)
 
         logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_name)
-        logger.debug('calling process function', queue=queue, priority=priority)
+        logger.info('calling process function', queue=queue, priority=priority, worker_hostname=self.worker_hostname)
 
         return proc_task.apply_async(
             args=[cls_name, self_id, func_name, args, kwargs],

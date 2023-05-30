@@ -102,9 +102,8 @@
         }
     ],
 UNPARSABLE
-    "workflow": [
-        {
-            "type": "geometry_optimization"
-        }
-    ]
+    "workflow2": {
+        "m_def": "nomad.datamodel.metainfo.simulation.workflow.GeometryOptimization",
+        "name": "Geometry Optimization"
+    }
 }

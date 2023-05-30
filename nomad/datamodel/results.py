@@ -26,8 +26,8 @@ from nomad import config
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.simulation.system import Atoms, System as SystemRun
-from nomad.datamodel.metainfo.workflow import (
-    EquationOfState,
+from nomad.datamodel.metainfo.simulation.workflow import (
+    EquationOfStateResults,
     EOSFit,
     RadialDistributionFunction as RDFWorkflow,
     RadialDistributionFunctionValues,
@@ -35,7 +35,6 @@ from nomad.datamodel.metainfo.workflow import (
     MeanSquaredDisplacementValues,
     DiffusionConstantValues
 )
-from nomad.datamodel.metainfo.workflow2 import Workflow as WorkflowNew
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_type,
@@ -73,10 +72,11 @@ from nomad.datamodel.metainfo.simulation.method import (
     GW as GWMethod, BSE as BSEMethod, HubbardKanamoriModel as HubbardKanamori,
     AtomParameters, DMFT as DMFTMethod, BasisSet, BasisSetContainer,
 )  # noqa
-from nomad.datamodel.metainfo.workflow import (
+from nomad.datamodel.metainfo.simulation.workflow import (
     GeometryOptimization as MGeometryOptimization,
-    MolecularDynamics as MMolecularDynamics,
-    Thermodynamics, IntegrationParameters
+    GeometryOptimizationMethod,
+    GeometryOptimizationResults,
+    ThermodynamicsResults, MolecularDynamicsMethod
 )  # noqa
 
 
@@ -1827,7 +1827,10 @@ class Method(MSection):
         ],
     )
 
-    workflow_name = WorkflowNew.name.m_copy()
+    # TODO error in registering quantity if Workflow.name.m_copy()
+    workflow_name = Quantity(
+        type=str
+    )
     workflow_name.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default')
@@ -1841,9 +1844,9 @@ class MolecularDynamics(MSection):
         Methodology for molecular dynamics.
         """,
     )
-    time_step = IntegrationParameters.integration_timestep.m_copy()
+    time_step = MolecularDynamicsMethod.integration_timestep.m_copy()
     time_step.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
-    ensemble_type = MMolecularDynamics.thermodynamic_ensemble.m_copy()
+    ensemble_type = MolecularDynamicsMethod.thermodynamic_ensemble.m_copy()
     ensemble_type.m_annotations["elasticsearch"] = Elasticsearch(material_entry_type)
 
 
@@ -2047,14 +2050,14 @@ class HeatCapacityConstantVolume(MSection):
         '''
     )
     heat_capacities = Quantity(
-        type=Thermodynamics.heat_capacity_c_v,
+        type=ThermodynamicsResults.heat_capacity_c_v,
         shape=[],
         description='''
         Specific heat capacity values at constant volume.
         ''',
     )
     temperatures = Quantity(
-        type=Thermodynamics.temperature,
+        type=ThermodynamicsResults.temperature,
         description='''
         The temperatures at which heat capacities are calculated.
         ''',
@@ -2069,14 +2072,14 @@ class EnergyFreeHelmholtz(MSection):
         '''
     )
     energies = Quantity(
-        type=Thermodynamics.vibrational_free_energy_at_constant_volume,
+        type=ThermodynamicsResults.vibrational_free_energy_at_constant_volume,
         shape=[],
         description='''
         The Helmholtz free energies per atom at constant volume.
         ''',
     )
     temperatures = Quantity(
-        type=Thermodynamics.temperature,
+        type=ThermodynamicsResults.temperature,
         description='''
         The temperatures at which Helmholtz free energies are calculated.
         ''',
@@ -2119,8 +2122,8 @@ class EnergyVolumeCurve(MSection):
             Elasticsearch(suggestion='default')
         ],
     )
-    volumes = Quantity(type=EquationOfState.volumes)
-    energies_raw = Quantity(type=EquationOfState.energies)
+    volumes = Quantity(type=EquationOfStateResults.volumes)
+    energies_raw = Quantity(type=EquationOfStateResults.energies)
     energies_fit = Quantity(type=EOSFit.fitted_energies)
 
 
@@ -2200,7 +2203,7 @@ class GeometryOptimization(MSection):
         ''',
     )
     energies = Quantity(
-        type=MGeometryOptimization.energies,
+        type=GeometryOptimizationResults.energies,
         description='''
         List of energy_total values gathered from the single configuration
         calculations that are a part of the optimization trajectory.
@@ -2212,16 +2215,16 @@ class GeometryOptimization(MSection):
         Contains the optimized geometry that is the result of a geometry optimization.
         ''',
     )
-    type = MGeometryOptimization.type.m_copy()
-    convergence_tolerance_energy_difference = MGeometryOptimization.convergence_tolerance_energy_difference.m_copy()
+    type = MGeometryOptimization.name.m_copy()
+    convergence_tolerance_energy_difference = GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
     convergence_tolerance_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    convergence_tolerance_force_maximum = MGeometryOptimization.convergence_tolerance_force_maximum.m_copy()
+    convergence_tolerance_force_maximum = GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
     convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    final_force_maximum = MGeometryOptimization.final_force_maximum.m_copy()
+    final_force_maximum = GeometryOptimizationResults.final_force_maximum.m_copy()
     final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    final_energy_difference = MGeometryOptimization.final_energy_difference.m_copy()
+    final_energy_difference = GeometryOptimizationResults.final_energy_difference.m_copy()
     final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    final_displacement_maximum = MGeometryOptimization.final_displacement_maximum.m_copy()
+    final_displacement_maximum = GeometryOptimizationResults.final_displacement_maximum.m_copy()
     final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
 
 

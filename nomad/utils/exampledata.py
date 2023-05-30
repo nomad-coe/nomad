@@ -307,14 +307,14 @@ class ExampleData:
             upload_id=upload_id, entry_id='test_entry_id_%d' % id, domain='dft', **kwargs)
 
 
-def create_entry_archive(metadata: dict = None, results: dict = None, run: dict = None, workflows: List = None):
+def create_entry_archive(metadata: dict = None, results: dict = None, run: dict = None, workflow: dict = None):
     '''Creates an entry archive out of python objects.
 
     Args:
         metadata: The archive metadata
         results: The archive results
         run: The archive run
-        workflows: List of archive workflows
+        workflow: The archive workflow
     '''
     entry = EntryArchive()
     if metadata:
@@ -326,9 +326,8 @@ def create_entry_archive(metadata: dict = None, results: dict = None, run: dict 
     if run:
         entry_run = Run.m_from_dict(run)
         entry.m_add_sub_section(EntryArchive.run, entry_run)
-    if workflows:
-        for workflow in workflows:
-            entry_workflow = Workflow.m_from_dict(workflow)
-            entry.m_add_sub_section(EntryArchive.workflow, entry_workflow)
+    if workflow:
+        entry_workflow = Workflow.m_from_dict(workflow)
+        entry.m_add_sub_section(EntryArchive.workflow2, entry_workflow)
 
     return entry

@@ -15,20 +15,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
+import copy
 import dataclasses
 import functools
-from typing import cast, Union, Dict, Tuple, Any
+from typing import cast, Union, Dict, Tuple
 
 from cachetools.func import lru_cache
 from fastapi import HTTPException
 
 from nomad import utils
-from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference, QuantityReference
-from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict
-from .query import ArchiveQueryError, _to_son, _query_archive_key_pattern, _extract_key_and_index, \
-    _extract_child
-from ..datamodel.context import parse_path
+from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference, QuantityReference, SectionReference, \
+    Package
+from .query import ArchiveQueryError, _to_son, _query_archive_key_pattern, _extract_key_and_index, _extract_child
+from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict, serialise_container
+from ..datamodel.context import parse_path, ServerContext
 
 
 class RequiredValidationError(Exception):
@@ -76,8 +78,12 @@ class RequiredReferencedArchive:
     path_prefix: str = None
     result_root: dict = None
     ref_result_root: dict = None
-    archive_root: ArchiveDict = None
+    archive_root: ArchiveDict | dict = None
     visited_paths: set = dataclasses.field(default_factory=lambda: set())
+    definition: Definition = None
+
+    def replace(self, **kwargs):
+        return dataclasses.replace(self, **kwargs)
 
 
 class RequiredReader:
@@ -127,87 +133,93 @@ class RequiredReader:
             self.root_section_def = root_section_def
 
         self.resolve_inplace = resolve_inplace
-        self.required = self.validate(required, is_root=True)
+        self.required = copy.deepcopy(required)
+
+        if isinstance(self.required, dict) and (
+                global_config := self.required.pop('resolve-inplace', None)) is not None:
+            if not isinstance(global_config, bool):
+                raise RequiredValidationError('resolve-inplace is not a bool', ['resolve-inplace'])
+            self.resolve_inplace = global_config
 
         # store user information that will be used to retrieve references using the same authentication
         self.user = user
 
-    def validate(
-            self, required: Union[str, dict], definition: Definition = None,
-            loc: list = None, is_root: bool = False) -> dict:
-        '''
-        Validates the required specification of this instance. It will replace all
-        string directives with dicts. Those will have keys `_def` and `_directive`. It
-        will add a key `_def` to all dicts. The `_def` will be the respective metainfo
-        definition. It will also add key `_ref`. It will be None or contain a
-        Reference instance, if the definition is a reference target.
-
-        This method will raise an exception (:class:`RequiredValidationError`) to denote
-        any mismatches between the required specification and the metainfo, also, to denote
-        misused directives, bad structure, etc.
-
-        raises:
-            - RequiredValidationError
-        '''
-        if is_root and isinstance(required, dict):
-            resolve_inplace = required.get('resolve-inplace', None)
-            if isinstance(resolve_inplace, bool):
-                self.resolve_inplace = resolve_inplace
-            elif resolve_inplace is not None:
-                raise RequiredValidationError('resolve-inplace is not a bool', ['resolve-inplace'])
-
-        if definition is None:
-            definition = self.root_section_def
-        if loc is None:
-            loc = []
-
-        # replace definition with the target definition, if its reference or subsection
-        reference = None
-        if isinstance(definition, Quantity):
-            if isinstance(definition.type, Reference):
-                reference = definition.type
-                if isinstance(definition.type, QuantityReference):
-                    definition = definition.type.target_quantity_def.m_resolved()
-                else:
-                    definition = definition.type.target_section_def.m_resolved()
-        elif isinstance(definition, SubSection):
-            definition = definition.sub_section.m_resolved()
-
-        is_directive = isinstance(required, str)
-        if not isinstance(definition, Section) and not is_directive:
-            raise RequiredValidationError(
-                f'{definition.name} is not a section or reference', loc)
-
-        if is_directive:
-            # TODO support 'exclude'
-            if required == 'exclude':
-                raise RequiredValidationError('exclude is not supported yet', loc)
-            if required not in ['*', 'include', 'exclude', 'include-resolved']:
-                raise RequiredValidationError(f'{required} is not a valid directive', loc)
-            return dict(_def=definition, _directive=required, _ref=reference)
-
-        result: Dict[str, Any] = dict(_def=definition, _ref=reference)
-        for key, value in cast(dict, required).items():
-            if key == 'resolve-inplace':
-                continue
-
-            loc.append(key)
-            try:
-                prop, index = _parse_required_key(key)
-            except Exception:
-                raise RequiredValidationError(f'invalid key format {key}', loc)
-            if prop == '*':
-                # TODO support wildcards
-                raise RequiredValidationError('wildcard (*) keys are not supported yet', loc)
-            try:
-                prop_def = cast(Section, definition).all_properties[prop]
-            except KeyError:
-                raise RequiredValidationError(f'{definition.name} has not property {prop}', loc)
-            result[key] = self.validate(value, prop_def, loc)
-            result[key].update(_prop=prop, _index=index)
-            loc.pop()
-
-        return result
+    # def validate(
+    #         self, required: Union[str, dict], definition: Definition = None,
+    #         loc: list = None, is_root: bool = False) -> dict:
+    #     '''
+    #     Validates the required specification of this instance. It will replace all
+    #     string directives with dicts. Those will have keys `_def` and `_directive`. It
+    #     will add a key `_def` to all dicts. The `_def` will be the respective metainfo
+    #     definition. It will also add key `_ref`. It will be None or contain a
+    #     Reference instance, if the definition is a reference target.
+    #
+    #     This method will raise an exception (:class:`RequiredValidationError`) to denote
+    #     any mismatches between the required specification and the metainfo, also, to denote
+    #     misused directives, bad structure, etc.
+    #
+    #     raises:
+    #         - RequiredValidationError
+    #     '''
+    #     if is_root and isinstance(required, dict):
+    #         resolve_inplace = required.get('resolve-inplace', None)
+    #         if isinstance(resolve_inplace, bool):
+    #             self.resolve_inplace = resolve_inplace
+    #         elif resolve_inplace is not None:
+    #             raise RequiredValidationError('resolve-inplace is not a bool', ['resolve-inplace'])
+    #
+    #     if definition is None:
+    #         definition = self.root_section_def
+    #     if loc is None:
+    #         loc = []
+    #
+    #     # replace definition with the target definition, if its reference or subsection
+    #     reference = None
+    #     if isinstance(definition, Quantity):
+    #         if isinstance(definition.type, Reference):
+    #             reference = definition.type
+    #             if isinstance(definition.type, QuantityReference):
+    #                 definition = definition.type.target_quantity_def.m_resolved()
+    #             else:
+    #                 definition = definition.type.target_section_def.m_resolved()
+    #     elif isinstance(definition, SubSection):
+    #         definition = definition.sub_section.m_resolved()
+    #
+    #     is_directive = isinstance(required, str)
+    #     if not isinstance(definition, Section) and not is_directive:
+    #         raise RequiredValidationError(
+    #             f'{definition.name} is not a section or reference', loc)
+    #
+    #     if is_directive:
+    #         # TODO support 'exclude'
+    #         if required == 'exclude':
+    #             raise RequiredValidationError('exclude is not supported yet', loc)
+    #         if required not in ['*', 'include', 'exclude', 'include-resolved']:
+    #             raise RequiredValidationError(f'{required} is not a valid directive', loc)
+    #         return dict(_def=definition, _directive=required, _ref=reference)
+    #
+    #     result: Dict[str, Any] = dict(_def=definition, _ref=reference)
+    #     for key, value in cast(dict, required).items():
+    #         if key == 'resolve-inplace':
+    #             continue
+    #
+    #         loc.append(key)
+    #         try:
+    #             prop, index = _parse_required_key(key)
+    #         except Exception:
+    #             raise RequiredValidationError(f'invalid key format {key}', loc)
+    #         if prop == '*':
+    #             # TODO support wildcards
+    #             raise RequiredValidationError('wildcard (*) keys are not supported yet', loc)
+    #         try:
+    #             prop_def = cast(Section, definition).all_properties[prop]
+    #         except KeyError:
+    #             raise RequiredValidationError(f'{definition.name} has not property {prop}', loc)
+    #         result[key] = self.validate(value, prop_def, loc)
+    #         result[key].update(_prop=prop, _index=index)
+    #         loc.pop()
+    #
+    #     return result
 
     def read(self, archive_reader: ArchiveReader, entry_id: str, upload_id: str) -> dict:
         '''
@@ -219,15 +231,15 @@ class RequiredReader:
         result_root: dict = {}
         ref_result_root: dict = {}
 
-        dataset = RequiredReferencedArchive(entry_id, upload_id, '', result_root, ref_result_root, archive_root)
+        dataset = RequiredReferencedArchive(
+            entry_id, upload_id, '', result_root, ref_result_root, archive_root, set(), self.root_section_def)
 
         result = self._apply_required(self.required, archive_root, dataset)
         result_root.update(**cast(dict, result))
 
         ref_result_root = {k: v for k, v in ref_result_root.items() if v}
         for value in ref_result_root.values():
-            if 'm_def' not in value:
-                value['m_def'] = 'nomad.datamodel.EntryArchive'
+            value.setdefault('m_def', 'nomad.datamodel.EntryArchive')
 
         result_root.update({'m_ref_archives': ref_result_root})
 
@@ -241,24 +253,32 @@ class RequiredReader:
             return _to_son(archive[definition.name])
 
         # it's a section ref
-        section_def = cast(Section, definition)
         archive = _to_son(archive)
-        result = {}
+
+        if 'm_def' in archive:
+            section_def = self._resolve_definition(
+                dataset.upload_id, archive['m_def'].split('@')[0], dataset.archive_root)
+            result = {'m_def': archive['m_def']}
+        else:
+            section_def = cast(Section, definition)
+            result = {}
+
         for prop, value in archive.items():
-            prop_def = section_def.all_properties[prop]
+            if (prop_def := section_def.all_properties.get(prop)) is None:
+                continue
             if isinstance(prop_def, SubSection):
                 def handle_item(v):
                     return self._resolve_refs(prop_def.sub_section.m_resolved(), v, dataset)
-            elif isinstance(prop_def.type, Reference):
-                if isinstance(prop_def.type, QuantityReference):
-                    target_def = prop_def.type.target_quantity_def.m_resolved()
+            elif isinstance(prop_type := prop_def.type, Reference):
+                if isinstance(prop_type, QuantityReference):
+                    target_def = prop_type.target_quantity_def.m_resolved()
                 else:
-                    target_def = prop_def.type.target_section_def.m_resolved()
+                    target_def = prop_type.target_section_def.m_resolved()
 
-                required = dict(_directive='include-resolved', _def=target_def, _ref=prop_def.type)
+                child_dataset = dataset.replace(definition=target_def)
 
                 def handle_item(v):
-                    return self._resolve_ref(required, v, dataset)
+                    return self._resolve_ref('include-resolved', v, child_dataset)
             else:
                 result[prop] = value.to_list() if isinstance(value, ArchiveList) else value
                 continue
@@ -273,7 +293,7 @@ class RequiredReader:
 
         return result
 
-    def _resolve_ref(self, required: dict, path: str, dataset: RequiredReferencedArchive) -> Union[dict, str]:
+    def _resolve_ref(self, required: dict | str, path: str, dataset: RequiredReferencedArchive) -> dict | str:
         # The archive item is a reference, the required is still a dict, the references
         # This is a simplified version of the metainfo implementation (m_resolve).
         # It implements the same semantics, but does not apply checks.
@@ -316,30 +336,24 @@ class RequiredReader:
                 return path
 
             other_path = f'../uploads/{upload_id}/archive/{entry_id}'
-            other_dataset = RequiredReferencedArchive(
+            other_dataset = dataset.replace(
                 entry_id=entry_id, upload_id=upload_id, path_prefix=f'{other_path}#',
-                visited_paths=dataset.visited_paths.copy(), ref_result_root=dataset.ref_result_root)
-
-            # add the path to the visited paths
-            other_dataset.visited_paths.add(new_path)
+                visited_paths=dataset.visited_paths.union({new_path}), archive_root=other_archive
+            )
 
             if self.resolve_inplace:
-                other_dataset.result_root = dataset.result_root
-                other_dataset.archive_root = other_archive
-
                 # need to resolve it again to get relative position correctly
-                return self._resolve_ref_local(required, fragment, other_dataset, False)
+                return self._resolve_ref_local(
+                    required, fragment, other_dataset.replace(result_root=dataset.result_root), False)
 
             # if not resolved inplace
             # need to create a new path in the result to make sure data does not overlap
             if other_path not in dataset.ref_result_root:
                 dataset.ref_result_root[other_path] = {}
 
-            other_dataset.result_root = dataset.ref_result_root[other_path]
-            other_dataset.archive_root = other_archive
-
             # need to resolve it again to get relative position correctly
-            return self._resolve_ref_local(required, fragment, other_dataset, False)
+            return self._resolve_ref_local(
+                required, fragment, other_dataset.replace(result_root=dataset.ref_result_root[other_path]), False)
 
         # it appears to be a remote reference, won't try to resolve it
         if self.resolve_inplace:
@@ -348,7 +362,7 @@ class RequiredReader:
         # simply return the intact path if not required to resolve in-place
         return path
 
-    def _resolve_ref_local(self, required: dict, path: str, dataset: RequiredReferencedArchive, same_entry: bool):
+    def _resolve_ref_local(self, required: dict | str, path: str, dataset: RequiredReferencedArchive, same_entry: bool):
         '''
         On enter, path must be relative to the archive root.
         '''
@@ -362,7 +376,7 @@ class RequiredReader:
             raise ArchiveError('could not resolve reference')
 
         # apply required to resolved archive_item
-        if isinstance(required['_def'], Quantity):
+        if isinstance(required, str) and isinstance(dataset.definition, Quantity):
             resolved_result = _to_son(resolved)
         else:
             resolved_result = self._apply_required(required, resolved, dataset)  # type: ignore
@@ -391,42 +405,85 @@ class RequiredReader:
 
         return path if same_entry else f'{dataset.path_prefix}{path}'
 
+    @staticmethod
+    def _unwrap_reference(definition):
+        if isinstance(definition, Quantity):
+            if isinstance(def_type := definition.type, Reference):
+                if isinstance(def_type, QuantityReference):
+                    definition = def_type.target_quantity_def.m_resolved()
+                else:
+                    definition = def_type.target_section_def.m_resolved()
+        elif isinstance(definition, SubSection):
+            definition = definition.sub_section.m_resolved()
+        return definition
+
+    def _resolve_definition(self, upload_id, definition: str, archive_root):
+        context = None
+        if upload_id:
+            from nomad.app.v1.routers.uploads import get_upload_with_read_access
+            context = ServerContext(get_upload_with_read_access(upload_id, self.user, include_others=True))
+
+        if definition is not None and definition.startswith(('#/', '/')):
+            # appears to be a local definition
+            root_definitions = serialise_container(archive_root['definitions'])
+            custom_def_package: Package = Package.m_from_dict(root_definitions, m_context=context)
+            custom_def_package.init_metainfo()
+            root_path: list = [v for v in definition.split('/') if v not in ('', '#', 'definitions')]
+            return custom_def_package.m_resolve('/'.join(root_path))
+
+        proxy = SectionReference.deserialize(None, None, definition)
+        proxy.m_proxy_context = context
+        return self._unwrap_reference(proxy.section_cls.m_def)
+
     def _apply_required(
-            self, required: dict, archive_item: Union[dict, str],
+            self, required: dict | str, archive_item: Union[dict, str],
             dataset: RequiredReferencedArchive) -> Union[Dict, str]:
         if archive_item is None:
             return None  # type: ignore
 
-        directive = required.get('_directive')
-        if directive is not None:
+        archive_item = _to_son(archive_item)
+        result: dict = {}
+
+        if isinstance(archive_item, dict) and 'm_def' in archive_item:
+            dataset = dataset.replace(definition=self._resolve_definition(
+                dataset.upload_id, archive_item['m_def'].split('@')[0], dataset.archive_root))
+            result['m_def'] = archive_item['m_def']
+
+        if (directive := required if isinstance(required, str) else None) is not None:
             if directive == 'include-resolved':
                 if isinstance(archive_item, str):
-                    return self._resolve_ref(required, archive_item, dataset)
+                    return self._resolve_ref(directive, archive_item, dataset)
 
-                return self._resolve_refs(required['_def'], archive_item, dataset)
+                return self._resolve_refs(dataset.definition, archive_item, dataset)
 
             if directive in ['*', 'include']:
-                return _to_son(archive_item)
+                return archive_item
 
             raise ArchiveQueryError(f'unknown directive {required}')
 
         if isinstance(archive_item, str):
             return self._resolve_ref(required, archive_item, dataset)
 
-        result: dict = {}
-        for key, val in required.items():
-            if key.startswith('_'):
-                continue
+        assert isinstance(required, dict)
 
-            prop, index = val['_prop'], val['_index']
+        for key, val in required.items():
+            try:
+                prop, index = _parse_required_key(key)
+            except Exception:
+                raise HTTPException(422, detail=[dict(msg=f'invalid required key', loc=[key])])
+
+            if (prop_def := dataset.definition.all_properties.get(prop)) is None:
+                raise HTTPException(
+                    422, detail=[dict(msg=f'{dataset.definition.name} has no property {prop}', loc=[key])])
+
+            prop_def = self._unwrap_reference(prop_def)
 
             try:
-                archive_child = _extract_child(archive_item, prop, index)
-
-                if isinstance(archive_child, (ArchiveList, list)):
-                    result[prop] = [self._apply_required(val, item, dataset) for item in archive_child]
+                if isinstance(archive_child := _extract_child(archive_item, prop, index), (ArchiveList, list)):
+                    result[prop] = [self._apply_required(
+                        val, item, dataset.replace(definition=prop_def)) for item in archive_child]
                 else:
-                    result[prop] = self._apply_required(val, archive_child, dataset)
+                    result[prop] = self._apply_required(val, archive_child, dataset.replace(definition=prop_def))
             except ArchiveError as e:
                 # We continue just logging the error. Unresolvable references
                 # will appear as unset references in the returned archive.

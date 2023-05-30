@@ -179,6 +179,7 @@ reprocess:
 process:
   reuseParser: true
   indexMaterials: true
+  rfc3161_skip_published: false
 
 datacite:
   enabled: false

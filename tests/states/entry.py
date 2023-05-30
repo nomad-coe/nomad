@@ -254,9 +254,9 @@ def bulk_modulus():
                     },
                 }
             },
-            workflows=[
-                {
-                    'type': 'equation_of_state',
+            workflow={
+                'm_def': 'nomad.datamodel.metainfo.simulation.workflow.EquationOfState',
+                'results': {
                     'calculation_result_ref': '/run/0/calculation/0',
                     'calculations_ref': ['/run/0/calculation/0'],
                     'equation_of_state': {
@@ -269,7 +269,7 @@ def bulk_modulus():
                         }]
                     }
                 }
-            ]
+            }
         )
     )
 
@@ -332,14 +332,17 @@ def trajectory():
                     'volume': 0,
                 }]
             },
-            workflows=[
-                {
-                    'type': 'molecular_dynamics',
+            workflow={
+                'm_def': 'nomad.datamodel.metainfo.simulation.workflow.MolecularDynamics',
+                'results': {
                     'calculation_result_ref': '/run/0/calculation/0',
                     'calculations_ref': ['/run/0/calculation/0'],
-                    'molecular_dynamics': {'time_step': 1e-15, 'ensemble_type': 'NVT'},
+                },
+                'method': {
+                    'integration_timestep': 1e-15,
+                    'thermodynamic_ensemble': 'NVT',
                 }
-            ]
+            }
         )
     )
 
@@ -387,9 +390,9 @@ def dos_phonon():
                     }],
                 }]
             },
-            workflows=[
-                {
-                    'type': 'phonon',
+            workflow={
+                'm_def': 'nomad.datamodel.metainfo.simulation.workflow.Phonon',
+                'results': {
                     'calculation_result_ref': '/run/0/calculation/0',
                     'calculations_ref': ['/run/0/calculation/0'],
                     'thermodynamics': {
@@ -398,7 +401,7 @@ def dos_phonon():
                         'temperature': [0, 100]
                     },
                 }
-            ]
+            }
         )
     )
 

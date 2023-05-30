@@ -1,7 +1,7 @@
 definitions:
   sections:
-    GeometryOptimization:
-      base_section: nomad.datamodel.metainfo.workflow2.Workflow
+    GeometryOptimizationWorkflow:
+      base_section: nomad.datamodel.metainfo.workflow.Workflow
       quantities:
         threshold:
           type: float
@@ -9,7 +9,7 @@ definitions:
         final_calculation:
           type: nomad.datamodel.metainfo.simulation.calculation.Calculation
 workflow2:
-  m_def: GeometryOptimization
+  m_def: GeometryOptimizationWorkflow
   final_calculation: '#/run/0/calculation/-1'
   threshold: 0.029
   name: GeometryOpt

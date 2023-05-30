@@ -47,22 +47,25 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies,
     RadiusOfGyration, RadiusOfGyrationValues)
-from nomad.datamodel.metainfo.workflow import (
+from nomad.datamodel.metainfo.simulation.workflow import (
     DiffusionConstantValues,
-    IntegrationParameters,
+    MolecularDynamicsMethod,
     MeanSquaredDisplacement,
     MeanSquaredDisplacementValues,
     MolecularDynamicsResults,
     RadialDistributionFunction,
     RadialDistributionFunctionValues,
-    Workflow,
+    SinglePoint,
     GeometryOptimization,
+    GeometryOptimizationMethod,
     Elastic,
+    ElasticResults,
     MolecularDynamics,
     EquationOfState,
-    EOSFit
+    EquationOfStateResults,
+    EOSFit,
 )
-from nomad.datamodel.metainfo.workflow2 import (
+from nomad.datamodel.metainfo.workflow import (
     Link, TaskReference
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
@@ -159,8 +162,7 @@ def get_template_dft() -> EntryArchive:
         free=EnergyEntry(value=-1.5936767191492225e-18),
         total=EnergyEntry(value=-1.5935696296699573e-18),
         total_t0=EnergyEntry(value=-3.2126683561907e-22))
-    workflow = template.m_create(Workflow)
-    workflow.type = 'geometry_optimization'
+    template.workflow2 = GeometryOptimization()
     return template
 
 
@@ -193,6 +195,7 @@ def get_template_excited() -> EntryArchive:
         free=EnergyEntry(value=-1.5936767191492225e-18),
         total=EnergyEntry(value=-1.5935696296699573e-18),
         total_t0=EnergyEntry(value=-3.2126683561907e-22))
+    template.workflow2 = SinglePoint()
     return template
 
 
@@ -708,6 +711,7 @@ def projection() -> EntryArchive:
     scc = run.m_create(Calculation)
     scc.system_ref = system
     scc.method_ref = method
+    template.workflow2 = SinglePoint()
     return run_normalize(template)
 
 
@@ -765,8 +769,7 @@ def dmft() -> EntryArchive:
     scc = run.m_create(Calculation)
     scc.system_ref = system
     scc.method_ref = method_dmft
-    workflow = template.m_create(Workflow)
-    workflow.type = 'single_point'
+    template.workflow2 = SinglePoint()
     return run_normalize(template)
 
 
@@ -778,31 +781,36 @@ def eels() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def mechanical() -> EntryArchive:
+def mechanical_elastic() -> EntryArchive:
     '''Entry with mechanical properties.'''
     template = get_template_dft()
 
     # Elastic workflow
-    workflow = template.m_create(Workflow)
-    workflow.type = 'elastic'
-    workflow.elastic = Elastic(
+    template.workflow2 = Elastic()
+    template.workflow2.results = ElasticResults(
         shear_modulus_hill=10000,
         shear_modulus_reuss=10000,
         shear_modulus_voigt=10000,
     )
 
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def mechanical_eos() -> EntryArchive:
+    '''Entry with mechanical properties.'''
+    template = get_template_dft()
+
     # EOS workflow
-    workflow = template.m_create(Workflow)
-    workflow.type = 'equation_of_state'
-    equation_of_state = EquationOfState(
+    template.workflow2 = EquationOfState()
+    template.workflow2.results = EquationOfStateResults(
         volumes=np.linspace(0, 10, 10) * ureg.angstrom ** 3,
         energies=np.linspace(0, 10, 10) * ureg.electron_volt,
     )
-    eos_fit = equation_of_state.m_create(EOSFit)
+    eos_fit = template.workflow2.results.m_create(EOSFit)
     eos_fit.function_name = 'murnaghan'
     eos_fit.fitted_energies = np.linspace(0, 10, 10) * ureg.electron_volt
     eos_fit.bulk_modulus = 10000
-    workflow.equation_of_state = equation_of_state
 
     return run_normalize(template)
 
@@ -962,13 +970,12 @@ def geometry_optimization() -> EntryArchive:
     scc2.method_ref = run.method[0]
     run.m_add_sub_section(Run.system, sys1)
     run.m_add_sub_section(Run.system, sys2)
-    workflow = template.m_create(Workflow)
-    workflow.type = 'geometry_optimization'
-    workflow.geometry_optimization = GeometryOptimization(
-        convergence_tolerance_energy_difference=1e-3 * ureg.electron_volt,
-        convergence_tolerance_force_maximum=1e-11 * ureg.newton,
-        convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
-        method='bfgs')
+    template.workflow2 = GeometryOptimization(
+        method=GeometryOptimizationMethod(
+            convergence_tolerance_energy_difference=1e-3 * ureg.electron_volt,
+            convergence_tolerance_force_maximum=1e-11 * ureg.newton,
+            convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
+            method='bfgs'))
     return run_normalize(template)
 
 
@@ -1007,10 +1014,6 @@ def molecular_dynamics() -> EntryArchive:
         run.m_add_sub_section(Run.calculation, calc)
 
     # Create workflow
-    workflow = template.m_create(Workflow)
-    workflow.type = 'molecular_dynamics'
-    workflow.calculation_result_ref = calcs[-1]
-    workflow.calculations_ref = calcs
     diff_values = DiffusionConstantValues(
         value=2.1,
         error_type='Pearson correlation coefficient',
@@ -1046,14 +1049,16 @@ def molecular_dynamics() -> EntryArchive:
         radial_distribution_functions=[rdf],
         mean_squared_displacements=[msd],
     )
-    md = MolecularDynamics(
+    method = MolecularDynamicsMethod(
         thermodynamic_ensemble='NVT',
-        integration_parameters=IntegrationParameters(
-            integration_timestep=0.5 * ureg('fs'),
-        ),
-        results=results
+        integration_timestep=0.5 * ureg('fs'),
     )
-    workflow.molecular_dynamics = md
+    md = MolecularDynamics(
+        results=results, method=method
+    )
+    results.calculation_result_ref = calcs[-1]
+    results.calculations_ref = calcs
+    template.workflow2 = md
 
     return run_normalize(template)
 

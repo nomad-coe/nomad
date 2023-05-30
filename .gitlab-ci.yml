@@ -338,6 +338,24 @@ deploy prod util:
     - when: manual
       allow_failure: true
 
+deploy prod process:
+  stage: deploy
+  before_script:
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
+  script:
+    - helm dependency update ops/kubernetes/nomad
+    - helm upgrade nomad-process-v1 ops/kubernetes/nomad
+      --install
+      --values ops/kubernetes/deployments/prod-process-values.yaml
+      --set image.tag=${DOCKER_TAG}
+      --set roll=true
+      --timeout=15m
+      --wait
+  rules:
+    - when: manual
+      allow_failure: true
+
 deploy prod develop:
   stage: deploy
   environment:

@@ -380,13 +380,13 @@ def _parse_key(key: str | None) -> tuple:
         return None, None
 
     # A[1]
-    if matches := re.match(r'^([a-zA-z_]+)\[(-?\d+)]$', key):
+    if matches := re.match(r'^([a-zA-z_\d]+)\[(-?\d+)]$', key):
         name = matches.group(1)
         start = int(matches.group(2))
         return name, (start,)
 
     # A[1:], A[:1], A[1:2]
-    if matches := re.match(r'^([a-zA-z_]+)\[(-?\d+)?:(-?\d+)?]$', key):
+    if matches := re.match(r'^([a-zA-z_\d]+)\[(-?\d+)?:(-?\d+)?]$', key):
         name = matches.group(1)
         start = int(matches.group(2)) if matches.group(2) else 0
         end = int(matches.group(3)) if matches.group(3) else None
@@ -563,6 +563,10 @@ class GeneralReader:
             self.required_query, self.global_config = _parse_required(required_query, self.__class__)
 
         self.errors: dict = {}
+
+    def _populate_error_list(self, container):
+        if self.errors:
+            container.setdefault(Token.ERROR, {}).update({k: list(v) for k, v in self.errors.items()})
 
     def __enter__(self):
         return self
@@ -953,8 +957,7 @@ class MongoReader(GeneralReader):
             reader=self
         ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
 
         return response
 
@@ -1179,6 +1182,9 @@ class UploadReader(MongoReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         # if it is a string, no access
         if isinstance(target_upload := self.retrieve_upload(upload_id), dict):
@@ -1198,8 +1204,13 @@ class UploadReader(MongoReader):
                 reader=self
             ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        # if there is a global root, it is a sub-query, no need to clear it
+        # if there is no global root, it is a top-level query, clear it
+        # mainly to make the reader reentrant, although one reader should not be used multiple times
+        if not has_global_root:
+            self.global_root = None
 
         return response
 
@@ -1223,6 +1234,9 @@ class DatasetReader(MongoReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         # if it is a string, no access
         if isinstance(target_dataset := self.retrieve_dataset(dataset_id), dict):
@@ -1243,8 +1257,10 @@ class DatasetReader(MongoReader):
                 reader=self
             ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
 
         return response
 
@@ -1268,6 +1284,9 @@ class EntryReader(MongoReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         # if it is a string, no access
         if isinstance(target_entry := self.retrieve_entry(entry_id), dict):
@@ -1287,8 +1306,10 @@ class EntryReader(MongoReader):
                 reader=self
             ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
 
         return response
 
@@ -1312,6 +1333,9 @@ class UserReader(MongoReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         if user_id == 'me':
             user_id = self.user.user_id
@@ -1341,8 +1365,10 @@ class UserReader(MongoReader):
             reader=self
         ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
 
         return response
 
@@ -1353,6 +1379,9 @@ class FileSystemReader(GeneralReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         try:
             upload: Upload = get_upload_with_read_access(upload_id, self.user, include_others=True)
@@ -1373,8 +1402,10 @@ class FileSystemReader(GeneralReader):
                 reader=self
             ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
 
         return response
 
@@ -1502,6 +1533,9 @@ class ArchiveReader(GeneralReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         self._walk(ArchiveNode(
             upload_id=metadata['upload_id'],
@@ -1517,8 +1551,10 @@ class ArchiveReader(GeneralReader):
             reader=self
         ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
 
         return response
 
@@ -1639,12 +1675,18 @@ class ArchiveReader(GeneralReader):
             return
 
         for key in serialise_container(node.archive):
+            if key == Token.DEF:
+                continue
+
             if config.if_include(key) and (omit_keys is None or all(not k.startswith(key) for k in omit_keys)):
                 child_definition = node.definition.all_properties.get(key, None)
 
                 if child_definition is None:
                     self._log(f'Definition {key} is not found.')
                     continue
+
+                if isinstance(child_definition, SubSection):
+                    child_definition = child_definition.sub_section
 
                 child_node = node.replace(
                     archive=node.archive[key],
@@ -1789,6 +1831,9 @@ class DefinitionReader(GeneralReader):
 
         if self.global_root is None:
             self.global_root = response
+            has_global_root: bool = False
+        else:
+            has_global_root = True
 
         self._walk(ArchiveNode(
             upload_id='__NONE__',
@@ -1804,8 +1849,10 @@ class DefinitionReader(GeneralReader):
             reader=self
         ), self.required_query, self.global_config)
 
-        if self.errors:
-            response.setdefault(Token.ERROR, {}).update(self.errors)
+        self._populate_error_list(response)
+
+        if not has_global_root:
+            self.global_root = None
 
         return response
 

@@ -20,10 +20,10 @@ import numpy as np
 from ase import Atoms
 from nptyping import NDArray
 
-from nomad.datamodel import ArchiveSection, EntryArchive
+from nomad.datamodel.data import ArchiveSection
 from nomad.metainfo import MSection, SubSection, Section, Quantity, MEnum, Reference, derived
 from nomad.datamodel.metainfo.common import FastAccess
-from nomad.datamodel.metainfo.workflow2 import Workflow, Link, Task
+from nomad.datamodel.metainfo.workflow import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import (
     Method, XCFunctional, BasisSetContainer, GW as GWMethodology,
@@ -79,21 +79,50 @@ class SimulationWorkflowResults(ArchiveSection):
         shape=[],
         description='''
         Reference to calculation result. In the case of serial workflows, this corresponds
-        to the final step in the simulation. For the parallel case, it refers to the original system.
+        to the final step in the simulation. For the parallel case, it refers to the reference calculation.
         ''',
         categories=[FastAccess])
 
+    n_calculations = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of calculations in workflow.
+        ''')
+
+    calculations_ref = Quantity(
+        type=Reference(Calculation.m_def),
+        shape=['n_calculations'],
+        description='''
+        List of references to each calculation section in the simulation.
+        ''')
+
     def normalize(self, archive, logger):
-        pass
+        calculations = []
+        try:
+            calculations = archive.run[0].calculation
+        except Exception:
+            return
+
+        if not calculations:
+            return
+
+        if not self.calculation_result_ref:
+            self.calculation_result_ref = calculations[-1]
+
+        if not self.calculations_ref:
+            self.calculations_ref = calculations
 
 
 class SimulationWorkflow(Workflow):
 
     method = SubSection(sub_section=SimulationWorkflowMethod)
 
-    results = SubSection(sub_section=SimulationWorkflowResults)
+    results = SubSection(sub_section=SimulationWorkflowResults, categories=[FastAccess])
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
         self._calculations: List[Calculation] = []
         self._systems: List[System] = []
         self._methods: List[Method] = []
@@ -104,36 +133,6 @@ class SimulationWorkflow(Workflow):
         except Exception:
             logger.warning('System, method and calculation required for normalization.')
             pass
-
-        # Metadata entry_type and entry_name normalization for simulations
-        if archive.metadata.entry_type is None:
-            workflow = archive.workflow2
-            workflow_name = workflow.name
-            if workflow_name is None:
-                workflow_name = workflow.m_def.name
-
-            tag = ''
-            if archive.results.method.simulation:
-                tag = 'simulation'
-
-            # Populate entry_type
-            try:
-                method_name = archive.results.method.method_name
-                program_name = archive.results.method.simulation.program_name
-                if workflow_name == 'SinglePoint' and method_name:
-                    archive.metadata.entry_type = f'{program_name} {method_name} {workflow_name}'
-                else:
-                    archive.metadata.entry_type = f'{program_name} {workflow_name}'
-            except Exception:
-                archive.metadata.entry_type = workflow_name
-            type_tag = f'{archive.metadata.entry_type} {tag}'
-
-            # Populate entry_name
-            material = archive.results.material
-            if material and material.chemical_formula_descriptive:
-                archive.metadata.entry_name = f'{material.chemical_formula_descriptive} {type_tag}'
-            else:
-                archive.metadata.entry_name = f'{type_tag}'
 
         if not self._calculations or not self._systems:
             return
@@ -542,7 +541,7 @@ class SinglePoint(SimulationWorkflow):
 
     results = SubSection(sub_section=SinglePointResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.tasks:
@@ -620,12 +619,11 @@ class SinglePoint(SimulationWorkflow):
         if not self.results.spectra and last_calc.spectra:
             self.results.spectra = last_calc.spectra
 
-        if not self.results.calculation_result_ref:
-            self.results.calculation_result_ref = last_calc
+        SimulationWorkflowResults.normalize(self.results, archive, logger)
 
 
 class ParallelSimulation(SimulationWorkflow):
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.tasks:
@@ -747,6 +745,13 @@ class GeometryOptimizationMethod(SimulationWorkflowMethod):
         Maximum number of optimization steps.
         ''')
 
+    save_frequency = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        The number of optimization steps between saving the calculation.
+        ''')
+
 
 class GeometryOptimizationResults(SimulationWorkflowResults):
 
@@ -854,7 +859,7 @@ class GeometryOptimization(SerialSimulation):
 
             return 'atomic'
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -899,17 +904,20 @@ class GeometryOptimization(SerialSimulation):
                         max_force = np.max(np.linalg.norm(forces.magnitude, axis=1))
                         self.results.final_force_maximum = max_force * forces.units
 
-        if not self.results.final_displacement_maximum:
+        if not self.results.final_displacement_maximum and self._systems:
             def get_atoms_positions(index):
                 system = self._systems[index]
-                if system.atoms.positions is None:
+                if not system.atoms or system.atoms.positions is None or system.atoms.lattice_vectors is None:
                     return
-                atoms = Atoms(
-                    positions=system.atoms.positions.magnitude,
-                    cell=system.atoms.lattice_vectors.magnitude if system.atoms.lattice_vectors is not None else None,
-                    pbc=system.atoms.periodic)
-                atoms.wrap()
-                return atoms.get_positions()
+                try:
+                    atoms = Atoms(
+                        positions=system.atoms.positions.magnitude,
+                        cell=system.atoms.lattice_vectors.magnitude,
+                        pbc=system.atoms.periodic)
+                    atoms.wrap()
+                    return atoms.get_positions()
+                except Exception:
+                    return
 
             n_systems = len(self._systems)
             a_pos = get_atoms_positions(n_systems - 1)
@@ -945,8 +953,7 @@ class GeometryOptimization(SerialSimulation):
             if criteria:
                 self.results.is_converged_geometry = True in criteria
 
-        if not self.results.calculation_result_ref and self._calculations:
-            self.results.calculation_result_ref = self._calculations[-1]
+        SimulationWorkflowResults.normalize(self.results, archive, logger)
 
 
 class ThermostatParameters(MSection):
@@ -1728,7 +1735,7 @@ class MolecularDynamics(SerialSimulation):
 
     results = SubSection(sub_section=MolecularDynamicsResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
 
         super().normalize(archive, logger)
 
@@ -1743,30 +1750,7 @@ class MolecularDynamics(SerialSimulation):
         if self.results.trajectory is None and self._systems:
             self.results.trajectory = self._systems
 
-        def set_thermo_property(name):
-            values = []
-            quantity = None
-            for calc in self._calculations:
-                try:
-                    quantity = getattr(calc, name)
-                    if quantity is not None:
-                        values.append(quantity.magnitude if hasattr(quantity, 'magnitude') else quantity)
-                except Exception:
-                    pass
-            if len(values) == 0:
-                return
-
-            unit = quantity.units if hasattr(quantity, 'units') else 1.0
-            setattr(self.results, name, np.array(values) * unit)
-
-        if self.results.temperature is None:
-            set_thermo_property('temperature')
-
-        if self.results.pressure is None:
-            set_thermo_property('pressure')
-
-        if not self.results.calculation_result_ref and self._calculations:
-            self.results.calculation_result_ref = self._calculations[-1]
+        SimulationWorkflowResults.normalize(self.results, archive, logger)
 
 
 class PhononMethod(SimulationWorkflowMethod):
@@ -1889,7 +1873,7 @@ class Phonon(ParallelSimulation):
 
     results = SubSection(sub_section=PhononResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
 
         super().normalize(archive, logger)
 
@@ -1904,6 +1888,8 @@ class Phonon(ParallelSimulation):
             self.results = PhononResults()
             self.outputs.append(Link(name=_workflow_results_name, section=self.results))
 
+        ThermodynamicsResults.normalize(self.results, archive, logger)
+
         last_calc = self._calculations[-1]
 
         if not self.results.n_imaginary_frequencies:
@@ -1913,8 +1899,7 @@ class Phonon(ParallelSimulation):
                 n_imaginary += np.count_nonzero(np.array(freq) < 0)
             self.results.n_imaginary_frequencies = n_imaginary
 
-        if not self.results.calculation_result_ref:
-            self.results.calculation_result_ref = last_calc
+        SimulationWorkflowResults.normalize(self.results, archive, logger)
 
         if not self.results.dos:
             self.results.dos = last_calc.dos_phonon
@@ -2315,7 +2300,7 @@ class Elastic(ParallelSimulation):
 
         return max_error
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -2332,8 +2317,7 @@ class Elastic(ParallelSimulation):
         if self.method.fitting_error_maximum is None:
             self.method.fitting_error_maximum = self._get_maximum_fit_error()
 
-        if not self.results.calculation_result_ref and self._calculations:
-            self.results.calculation_result_ref = self._calculations[-1]
+        SimulationWorkflowResults.normalize(self.results, archive, logger)
 
 
 class ThermodynamicsMethod(SimulationWorkflowMethod):
@@ -2347,7 +2331,7 @@ class Thermodynamics(SerialSimulation):
 
     results = SubSection(sub_section=ThermodynamicsResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -2431,7 +2415,7 @@ class GW(SerialSimulation):
 
     results = SubSection(sub_section=GWResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -2447,6 +2431,25 @@ class GW(SerialSimulation):
             # link results also to last task
             if self.tasks:
                 self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+
+        if len(self.tasks) != 2:
+            logger.error('Expected two tasks.')
+            return
+
+        dft_task = self.tasks[0]
+        gw_task = self.tasks[1]
+
+        for name, section in self.results.m_def.all_quantities.items():
+            calc_name = '_'.join(name.split('_')[:-1])
+            if calc_name in ['dos', 'band_structure']:
+                calc_name = f'{calc_name}_electronic'
+            calc_section = []
+            if 'dft' in name:
+                calc_section = getattr(dft_task.outputs[-1].section, calc_name)
+            elif 'gw' in name:
+                calc_section = getattr(gw_task.outputs[-1].section, calc_name)
+            if calc_section:
+                self.results.m_set(section, calc_section)
 
 
 class PhotonPolarizationResults(SimulationWorkflowResults):
@@ -2476,7 +2479,7 @@ class PhotonPolarization(ParallelSimulation):
 
     results = SubSection(sub_section=PhotonPolarizationResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -2536,7 +2539,7 @@ class ParticleHoleExcitations(SerialSimulation):
 
     results = SubSection(sub_section=ParticleHoleExcitationsResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -2661,7 +2664,7 @@ class EquationOfState(ParallelSimulation):
 
     results = SubSection(sub_section=EquationOfStateResults)
 
-    def normalize(self, archive: EntryArchive, logger):
+    def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
@@ -2675,13 +2678,13 @@ class EquationOfState(ParallelSimulation):
         if not self._calculations:
             return
 
-        if not self.results.energies:
+        if self.results.energies is None:
             try:
                 self.results.energies = [calc.energy.total.value.magnitude for calc in self._calculations]
             except Exception:
                 pass
 
-        if not self.results.volumes:
+        if self.results.volumes is None:
             try:
                 self.results.volumes = []
                 for system in self._systems:

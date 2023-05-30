@@ -49,6 +49,6 @@ from nomad.datamodel import EntryArchive
 from nomad.metainfo import units
 
 archive = EntryArchive.m_from_dict(response_json['data']['archive'])
-result = archive.workflow[0].calculation_result_ref
+result = archive.workflow.results.calculation_result_ref
 print(result.system_ref.chemical_composition)
 print(result.energy.total.value.to(units('eV')))

@@ -42,16 +42,16 @@ def test_eels(eels):
     assert spectroscopy_data.n_values == spectroscopy_data.count.shape[0] == spectroscopy_data.energy.shape[0]
 
 
-def test_bulk_modulus(mechanical):
-    bulk_modulus = mechanical.results.properties.mechanical.bulk_modulus
+def test_bulk_modulus(mechanical_eos):
+    bulk_modulus = mechanical_eos.results.properties.mechanical.bulk_modulus
     assert len(bulk_modulus) == 1
     modulus = bulk_modulus[0]
     assert modulus.type == 'murnaghan'
     assert modulus.value.magnitude == pytest.approx(10000)
 
 
-def test_shear_modulus(mechanical):
-    shear_modulus = mechanical.results.properties.mechanical.shear_modulus
+def test_shear_modulus(mechanical_elastic):
+    shear_modulus = mechanical_elastic.results.properties.mechanical.shear_modulus
     assert len(shear_modulus) == 3
     modulus_voigt_reuss_hill = shear_modulus[0]
     assert modulus_voigt_reuss_hill.type == 'voigt_reuss_hill_average'
@@ -64,8 +64,8 @@ def test_shear_modulus(mechanical):
     assert modulus_reuss_hill.value.magnitude == 10000
 
 
-def test_energy_volume_curve(mechanical):
-    ev = mechanical.results.properties.mechanical.energy_volume_curve
+def test_energy_volume_curve(mechanical_eos):
+    ev = mechanical_eos.results.properties.mechanical.energy_volume_curve
     assert len(ev) == 2
     ev_raw = ev[0]
     assert ev_raw.type == 'raw'

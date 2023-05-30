@@ -38,35 +38,22 @@ def workflow_archive():
 def test_no_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/parsers/vasp_outcar/OUTCAR_broken')
-    assert not vasp_archive.workflow[0].calculations_ref
+    assert not vasp_archive.workflow2.results.calculations_ref
 
 
 def test_single_point_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/normalizers/workflow/vasp/vasprun.xml.static')
-    sec_workflow = vasp_archive.workflow[0]
-    assert sec_workflow.type == 'single_point'
-    assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow.single_point.method == 'DFT'
-    assert sec_workflow.single_point.n_scf_steps == 9
-    assert sec_workflow.single_point.final_scf_energy_difference > 0
-    assert sec_workflow.single_point.with_density_of_states
-    assert not sec_workflow.single_point.with_bandstructure
-    assert sec_workflow.single_point.with_eigenvalues
-    assert not sec_workflow.single_point.with_volumetric_data
-    assert not sec_workflow.single_point.with_spectra
-    assert sec_workflow.single_point.is_converged
-    sec_workflow2 = vasp_archive.workflow2
-    assert sec_workflow2.method.method == 'DFT'
-    assert sec_workflow2.results.n_scf_steps == 9
-    assert sec_workflow2.results.final_scf_energy_difference > 0
-    assert sec_workflow2.results.dos is not None
-    assert sec_workflow2.results.band_structure is None
-    assert sec_workflow2.results.eigenvalues is not None
-    assert sec_workflow2.results.density_charge is None
-    assert sec_workflow2.results.spectra is None
-    assert sec_workflow2.results.is_converged
+    sec_workflow = vasp_archive.workflow2
+    assert sec_workflow.method.method == 'DFT'
+    assert sec_workflow.results.n_scf_steps == 9
+    assert sec_workflow.results.final_scf_energy_difference > 0
+    assert sec_workflow.results.dos is not None
+    assert sec_workflow.results.band_structure is None
+    assert sec_workflow.results.eigenvalues is not None
+    assert sec_workflow.results.density_charge is None
+    assert sec_workflow.results.spectra is None
+    assert sec_workflow.results.is_converged
 
 
 def test_gw_workflow(gw_workflow):
@@ -96,52 +83,30 @@ def test_gw_workflow(gw_workflow):
 def test_geometry_optimization_workflow(workflow_archive):
     vasp_archive = workflow_archive(
         'parsers/vasp', 'tests/data/normalizers/workflow/vasp/vasprun.xml')
-    sec_workflow = vasp_archive.workflow[0]
+    sec_workflow = vasp_archive.workflow2
+    assert sec_workflow.method.type == 'cell_shape'
+    assert sec_workflow.results.calculation_result_ref.m_def.name == 'Calculation'
+    assert sec_workflow.results.final_energy_difference > 0.0
+    assert sec_workflow.results.optimization_steps == 3
+    assert sec_workflow.results.final_force_maximum > 0.0
+    assert sec_workflow.results.is_converged_geometry
 
-    assert sec_workflow.type == 'geometry_optimization'
-    assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow.geometry_optimization.type == 'cell_shape'
-    assert sec_workflow.geometry_optimization.final_energy_difference > 0.0
-    assert sec_workflow.geometry_optimization.optimization_steps == 3
-    assert sec_workflow.geometry_optimization.final_force_maximum > 0.0
-    assert sec_workflow.geometry_optimization.is_converged_geometry
-
-    task = sec_workflow.task
-    assert len(task) == len(sec_workflow.calculations_ref) + 1
-    assert task[1].input_calculation == sec_workflow.calculations_ref[0]
-    assert task[-1].output_workflow == sec_workflow
-
-    sec_workflow2 = vasp_archive.workflow2
-    assert sec_workflow2.method.type == 'cell_shape'
-    assert sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow2.results.final_energy_difference > 0.0
-    assert sec_workflow2.results.optimization_steps == 3
-    assert sec_workflow2.results.final_force_maximum > 0.0
-    assert sec_workflow2.results.is_converged_geometry
+    tasks = sec_workflow.tasks
+    assert len(tasks) == len(vasp_archive.run[0].calculation)
+    assert tasks[0].inputs[0].section == vasp_archive.run[0].system[0]
+    assert tasks[-1].outputs[0].section == vasp_archive.run[0].calculation[-1]
 
 
 def test_elastic_workflow(workflow_archive):
     elastic_archive = workflow_archive(
         'parsers/elastic', "tests/data/normalizers/workflow/elastic/INFO_ElaStic")
-    sec_workflow = elastic_archive.workflow[0]
-
-    assert sec_workflow.type == 'elastic'
-    assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow.elastic.calculation_method == 'energy'
-    assert sec_workflow.elastic.elastic_constants_order == 2
-    assert sec_workflow.elastic.is_mechanically_stable
-    assert sec_workflow.elastic.fitting_error_maximum > 0.0
-    assert sec_workflow.elastic.strain_maximum > 0.0
-
-    sec_workflow2 = elastic_archive.workflow2
-    sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
-    sec_workflow2.method.calculation_method == 'energy'
-    sec_workflow2.method.elastic_constants_order == 2
-    sec_workflow2.results.is_mechanically_stable
-    sec_workflow2.method.fitting_error_maximum > 0.0
-    sec_workflow2.method.strain_maximum > 0.0
+    sec_workflow = elastic_archive.workflow2
+    sec_workflow.results.calculation_result_ref.m_def.name == 'Calculation'
+    sec_workflow.method.calculation_method == 'energy'
+    sec_workflow.method.elastic_constants_order == 2
+    sec_workflow.results.is_mechanically_stable
+    sec_workflow.method.fitting_error_maximum > 0.0
+    sec_workflow.method.strain_maximum > 0.0
 
 
 def test_phonon_workflow(workflow_archive):
@@ -149,50 +114,32 @@ def test_phonon_workflow(workflow_archive):
         'parsers/phonopy',
         'tests/data/normalizers/workflow/phonopy/phonopy-FHI-aims-displacement-01/control.in')
 
-    sec_workflow = phonopy_archive.workflow[0]
-    assert sec_workflow.type == 'phonon'
-    assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow.phonon.force_calculator == 'fhi-aims'
-    assert sec_workflow.phonon.mesh_density > 0.0
-    assert sec_workflow.phonon.n_imaginary_frequencies > 0
-    assert not sec_workflow.phonon.random_displacements
-    assert not sec_workflow.phonon.with_non_analytic_correction
-    assert not sec_workflow.phonon.with_grueneisen_parameters
-
-    sec_workflow2 = phonopy_archive.workflow2
-    assert sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow2.method.force_calculator == 'fhi-aims'
-    assert sec_workflow2.method.mesh_density > 0.0
-    assert sec_workflow2.results.n_imaginary_frequencies > 0
-    assert not sec_workflow2.method.random_displacements
-    assert not sec_workflow2.method.with_non_analytic_correction
-    assert not sec_workflow2.method.with_grueneisen_parameters
+    sec_workflow = phonopy_archive.workflow2
+    assert sec_workflow.results.calculation_result_ref.m_def.name == 'Calculation'
+    assert sec_workflow.method.force_calculator == 'fhi-aims'
+    assert sec_workflow.method.mesh_density > 0.0
+    assert sec_workflow.results.n_imaginary_frequencies > 0
+    assert not sec_workflow.method.random_displacements
+    assert not sec_workflow.method.with_non_analytic_correction
+    assert not sec_workflow.method.with_grueneisen_parameters
 
 
 def test_molecular_dynamics_workflow(workflow_archive):
     lammmps_archive = workflow_archive(
         'parsers/lammps', 'tests/data/normalizers/workflow/lammps/log.lammps')
 
-    sec_workflow = lammmps_archive.workflow[0]
-    assert sec_workflow.type == 'molecular_dynamics'
-    assert sec_workflow.calculations_ref is not None
-    assert sec_workflow.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow.molecular_dynamics.finished_normally
-    assert sec_workflow.molecular_dynamics.with_trajectory
-
-    sec_workflow2 = lammmps_archive.workflow2
-    sec_workflow2.results.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow2.results.finished_normally
-    assert sec_workflow2.results.trajectory
+    sec_workflow = lammmps_archive.workflow2
+    sec_workflow.results.calculation_result_ref.m_def.name == 'Calculation'
+    assert sec_workflow.results.finished_normally
+    assert sec_workflow.results.trajectory
 
 
 def test_rdf_and_msd(workflow_archive):
     archive = workflow_archive(
         'parsers/lammps', 'tests/data/parsers/lammps/hexane_cyclohexane/log.hexane_cyclohexane_nvt')
 
-    sec_workflow2 = archive.workflow2
-    section_md = sec_workflow2.results
+    sec_workflow = archive.workflow2
+    section_md = sec_workflow.results
 
     assert section_md.radial_distribution_functions[0].type == 'molecular'
     assert section_md.radial_distribution_functions[0].n_smooth == 2
@@ -279,8 +226,8 @@ def test_radius_of_gyration(workflow_archive):
     assert sec_rgvals.value.magnitude == approx(5.036762961380965e-10)
     assert sec_rgvals.value.units == 'meter'
 
-    sec_workflow2 = archive.workflow2
-    sec_rg = sec_workflow2.results.radius_of_gyration[0]
+    sec_workflow = archive.workflow2
+    sec_rg = sec_workflow.results.radius_of_gyration[0]
     frame = 4
 
     assert sec_rg.type == 'molecular'
@@ -290,7 +237,7 @@ def test_radius_of_gyration(workflow_archive):
     assert sec_rg.value[frame].units == 'meter'
 
     frame = 1
-    sec_rg = sec_workflow2.results.radius_of_gyration[0]
+    sec_rg = sec_workflow.results.radius_of_gyration[0]
     sec_calc = archive.run[0].calculation[1]
 
     assert sec_rg.type == 'molecular'
