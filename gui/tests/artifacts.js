@@ -7449,7 +7449,7 @@ window.nomadArtifacts = {
                 "name": "starting_method_ref",
                 "description": "Links the current section method to a section method containing the starting\nparameters.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -7464,7 +7464,7 @@ window.nomadArtifacts = {
                 "name": "core_method_ref",
                 "description": "Links the current section method to a section method containing the core settings.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -7491,7 +7491,7 @@ window.nomadArtifacts = {
                 "name": "methods_ref",
                 "description": "Links the section method to other method sections. For instance, one calculation\nis a perturbation performed using a self-consistent field (SCF) calculation as\nstarting point, or a simulated system is partitioned in regions with different but\nconnected Hamiltonians (e.g., QM/MM, or a region treated via Kohn-Sham DFT\nembedded into a region treated via orbital-free DFT).",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -8434,7 +8434,7 @@ window.nomadArtifacts = {
                 "name": "sub_system_ref",
                 "description": "Links the current section system to a sub system.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -8449,7 +8449,7 @@ window.nomadArtifacts = {
                 "name": "systems_ref",
                 "description": "Links the current section system to other section systems. Such a link is\nnecessary for example between the supercell and the reference unit cell in a phonon\ncalculation. The relationship should be described by kind and the referred section\nsystem is given by value. An external url can also be provided in place of value.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -8515,7 +8515,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/1/section_definitions/1"
               },
@@ -8541,7 +8541,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "prototype",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/1/section_definitions/3",
                 "repeats": true
@@ -8552,7 +8552,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "springer_material",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/1/section_definitions/4",
                 "repeats": true
@@ -8563,7 +8563,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/1/section_definitions/2",
                 "repeats": true
@@ -9019,7 +9019,7 @@ window.nomadArtifacts = {
                 "name": "total",
                 "description": "Contains the value and information regarding the total energy of the system.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/4"
               },
@@ -9556,7 +9556,7 @@ window.nomadArtifacts = {
             "name": "BandGapDeprecated",
             "description": "Base class for breaking up circular dependencies between BandGap, Dos, and BandStructure.",
             "base_sections": [
-              "/packages/16/section_definitions/1"
+              "/packages/17/section_definitions/1"
             ],
             "quantities": [
               {
@@ -10261,7 +10261,7 @@ window.nomadArtifacts = {
             "name": "ElectronicStructureProvenance",
             "description": "\n    ",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/17/section_definitions/0"
             ],
             "quantities": [
               {
@@ -11287,7 +11287,7 @@ window.nomadArtifacts = {
                 "name": "system_ref",
                 "description": "Links the calculation to a section system.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -11302,7 +11302,7 @@ window.nomadArtifacts = {
                 "name": "method_ref",
                 "description": "Links the calculation to a section method.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -11317,7 +11317,7 @@ window.nomadArtifacts = {
                 "name": "starting_calculation_ref",
                 "description": "Links the current section calculation to the starting calculation.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -11344,7 +11344,7 @@ window.nomadArtifacts = {
                 "name": "calculations_ref",
                 "description": "Links the current section calculation to other section calculations. Such a link\nis necessary for example if the referenced calculation is a self-consistent\ncalculation that serves as a starting point or a calculation is part of a domain\ndecomposed simulation that needs to be connected.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -11511,7 +11511,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/2/section_definitions/5"
               },
@@ -12011,7 +12011,7 @@ window.nomadArtifacts = {
                 "name": "starting_run_ref",
                 "description": "Links the current section run to a section run containing the calculations from\nwhich the current section starts.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -12038,7 +12038,7 @@ window.nomadArtifacts = {
                 "name": "runs_ref",
                 "description": "Links the the current section to other run sections. Such a link is necessary for\nexample for workflows that may contain a series of runs.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -13320,7 +13320,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "species",
-                "sub_section": "/packages/20/section_definitions/0",
+                "sub_section": "/packages/21/section_definitions/0",
                 "repeats": true
               },
               {
@@ -16511,7 +16511,7 @@ window.nomadArtifacts = {
             "name": "MDProvenance",
             "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/17/section_definitions/0"
             ],
             "sub_sections": [
               {
@@ -16531,7 +16531,7 @@ window.nomadArtifacts = {
             "name": "MDPropertySection",
             "description": "\n        Base class for referring to molecular dynamics properties.\n        ",
             "base_sections": [
-              "/packages/16/section_definitions/1"
+              "/packages/17/section_definitions/1"
             ],
             "sub_sections": [
               {
@@ -16919,7 +16919,7 @@ window.nomadArtifacts = {
                 "description": "Specific heat capacity values at constant volume.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/15/quantities/5"
+                  "type_data": "/packages/19/section_definitions/15/quantities/5"
                 },
                 "shape": []
               },
@@ -16931,7 +16931,7 @@ window.nomadArtifacts = {
                 "description": "The temperatures at which heat capacities are calculated.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/15/quantities/1"
+                  "type_data": "/packages/19/section_definitions/15/quantities/1"
                 }
               }
             ]
@@ -16951,7 +16951,7 @@ window.nomadArtifacts = {
                 "description": "The Helmholtz free energies per atom at constant volume.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/15/quantities/7"
+                  "type_data": "/packages/19/section_definitions/15/quantities/7"
                 },
                 "shape": []
               },
@@ -16963,7 +16963,7 @@ window.nomadArtifacts = {
                 "description": "The temperatures at which Helmholtz free energies are calculated.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/15/quantities/1"
+                  "type_data": "/packages/19/section_definitions/15/quantities/1"
                 }
               }
             ]
@@ -17050,7 +17050,7 @@ window.nomadArtifacts = {
                 "name": "volumes",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/7/quantities/1"
+                  "type_data": "/packages/19/section_definitions/7/quantities/1"
                 }
               },
               {
@@ -17060,7 +17060,7 @@ window.nomadArtifacts = {
                 "name": "energies_raw",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/7/quantities/2"
+                  "type_data": "/packages/19/section_definitions/7/quantities/2"
                 }
               },
               {
@@ -17070,7 +17070,7 @@ window.nomadArtifacts = {
                 "name": "energies_fit",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/6/quantities/1"
+                  "type_data": "/packages/19/section_definitions/6/quantities/1"
                 }
               }
             ]
@@ -17207,7 +17207,7 @@ window.nomadArtifacts = {
                 "description": "List of energy_total values gathered from the single configuration\ncalculations that are a part of the optimization trajectory.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/9/quantities/10"
+                  "type_data": "/packages/19/section_definitions/9/quantities/10"
                 }
               },
               {
@@ -55841,7 +55841,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "lab_id",
-                "description": "An ID string that is unique at least for the lab that produced this\ndata. Will be generated automatically upon saving if name, users and institute\nis filled.",
+                "description": "An ID string that is unique at least for the lab that produced this\ndata.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -55916,987 +55916,6 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 3,
             "m_parent_sub_section": "section_definitions",
-            "name": "Entity",
-            "description": "A ELN base section that can be used for chemicals.",
-            "base_sections": [
-              "/packages/8/section_definitions/1"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Activity",
-            "description": "A generic abstract base section for ELNs that provides a few commonly used for laboratory activities, e.g. processes, characterizations, measurements, etc.",
-            "base_sections": [
-              "/packages/8/section_definitions/1"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "DateTimeEditQuantity",
-                      "label": "Starting Time"
-                    }
-                  ]
-                },
-                "name": "datetime",
-                "description": "The date and time when this activity was started.",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "DateTimeEditQuantity",
-                      "label": "Ending Time"
-                    }
-                  ]
-                },
-                "name": "end_time",
-                "description": "The date and time when this activity was done.",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "method",
-                "description": "A short consistent handle for the applied method.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "location",
-                "description": "location of the experiment.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
-            "m_parent_sub_section": "section_definitions",
-            "name": "ElementalComposition",
-            "description": "A section for describing the elemental composition of a system, i.e. the element and its atomic fraction.",
-            "more": {
-              "label_quantity": "element"
-            },
-            "base_sections": [
-              "/packages/15/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "AutocompleteEditQuantity"
-                    }
-                  ]
-                },
-                "name": "element",
-                "description": "The symbol of the element, e.g. 'Pb'.",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "H",
-                    "He",
-                    "Li",
-                    "Be",
-                    "B",
-                    "C",
-                    "N",
-                    "O",
-                    "F",
-                    "Ne",
-                    "Na",
-                    "Mg",
-                    "Al",
-                    "Si",
-                    "P",
-                    "S",
-                    "Cl",
-                    "Ar",
-                    "K",
-                    "Ca",
-                    "Sc",
-                    "Ti",
-                    "V",
-                    "Cr",
-                    "Mn",
-                    "Fe",
-                    "Co",
-                    "Ni",
-                    "Cu",
-                    "Zn",
-                    "Ga",
-                    "Ge",
-                    "As",
-                    "Se",
-                    "Br",
-                    "Kr",
-                    "Rb",
-                    "Sr",
-                    "Y",
-                    "Zr",
-                    "Nb",
-                    "Mo",
-                    "Tc",
-                    "Ru",
-                    "Rh",
-                    "Pd",
-                    "Ag",
-                    "Cd",
-                    "In",
-                    "Sn",
-                    "Sb",
-                    "Te",
-                    "I",
-                    "Xe",
-                    "Cs",
-                    "Ba",
-                    "La",
-                    "Ce",
-                    "Pr",
-                    "Nd",
-                    "Pm",
-                    "Sm",
-                    "Eu",
-                    "Gd",
-                    "Tb",
-                    "Dy",
-                    "Ho",
-                    "Er",
-                    "Tm",
-                    "Yb",
-                    "Lu",
-                    "Hf",
-                    "Ta",
-                    "W",
-                    "Re",
-                    "Os",
-                    "Ir",
-                    "Pt",
-                    "Au",
-                    "Hg",
-                    "Tl",
-                    "Pb",
-                    "Bi",
-                    "Po",
-                    "At",
-                    "Rn",
-                    "Fr",
-                    "Ra",
-                    "Ac",
-                    "Th",
-                    "Pa",
-                    "U",
-                    "Np",
-                    "Pu",
-                    "Am",
-                    "Cm",
-                    "Bk",
-                    "Cf",
-                    "Es",
-                    "Fm",
-                    "Md",
-                    "No",
-                    "Lr",
-                    "Rf",
-                    "Db",
-                    "Sg",
-                    "Bh",
-                    "Hs",
-                    "Mt",
-                    "Ds",
-                    "Rg",
-                    "Cn",
-                    "Nh",
-                    "Fl",
-                    "Mc",
-                    "Lv",
-                    "Ts",
-                    "Og"
-                  ]
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "NumberEditQuantity"
-                    }
-                  ]
-                },
-                "name": "atomic_fraction",
-                "description": "The atomic fraction of the element in the system it is contained within.\nPer definition a positive value less than or equal to 1.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "NumberEditQuantity"
-                    }
-                  ]
-                },
-                "name": "mass_fraction",
-                "description": "The mass fraction of the element in the system it is contained within.\nPer definition a positive value less than or equal to 1.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
-            "m_parent_sub_section": "section_definitions",
-            "name": "System",
-            "description": "A base class for any system of materials which is investigated or used to construct other systems.",
-            "base_sections": [
-              "/packages/8/section_definitions/3"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "elemental_composition",
-                "description": "A list of all the elements found in the system together and their respective\natomic fraction within the system.",
-                "sub_section": "/packages/8/section_definitions/5",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Instrument",
-            "description": "A ELN base section that can be used for instruments.",
-            "base_sections": [
-              "/packages/8/section_definitions/1"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Process",
-            "description": "A ELN base section that can be used for processes.",
-            "base_sections": [
-              "/packages/8/section_definitions/4"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Measurement",
-            "description": "A ELN base section that can be used for measurements.",
-            "base_sections": [
-              "/packages/8/section_definitions/4"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 10,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Component",
-            "description": "A section for describing a component and its role in an ensemble.",
-            "base_sections": [
-              "/packages/15/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity",
-                      "label": "Component name"
-                    }
-                  ]
-                },
-                "name": "name",
-                "description": "A short name for the component.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "ReferenceEditQuantity"
-                    }
-                  ]
-                },
-                "name": "system",
-                "description": "A reference to the component system.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/8/section_definitions/6"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "NumberEditQuantity",
-                      "defaultDisplayUnit": "mg"
-                    }
-                  ]
-                },
-                "name": "mass",
-                "description": "The mass of the component.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "unit": "kilogram"
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 11,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Ensemble",
-            "description": "A base class for an ensemble of material systems. Each component of the ensemble is of a (sub)type of `System`.",
-            "base_sections": [
-              "/packages/8/section_definitions/6"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "components",
-                "description": "A list of all the components of the ensemble containing a name, reference to the\nsystem section and mass of that component.",
-                "sub_section": "/packages/8/section_definitions/10",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 12,
-            "m_parent_sub_section": "section_definitions",
-            "name": "CASExperimentalProperty",
-            "description": "A section for experimental properties retrieved from the CAS API.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "name",
-                "description": "CAS experimental property name.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "property",
-                "description": "CAS experimental property.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "sourceNumber",
-                "description": "CAS experimental property source.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 13,
-            "m_parent_sub_section": "section_definitions",
-            "name": "CASPropertyCitation",
-            "description": "A section for citations of the experimental properties retrieved from the CAS API.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "docUri",
-                "description": "CAS property citation document uri.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "sourceNumber",
-                "more": {
-                  "decription": "CAS property citation source number."
-                },
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "source",
-                "description": "CAS property citation source.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 14,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Substance",
-            "description": "A base section for any substance defined in the ELN.",
-            "base_sections": [
-              "/packages/8/section_definitions/6"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity",
-                      "label": "Substance name"
-                    }
-                  ]
-                },
-                "name": "name",
-                "description": "The name of the substance entry.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity",
-                      "label": "Substance ID"
-                    }
-                  ]
-                },
-                "name": "lab_id",
-                "description": "A human human readable substance ID that is at least unique for the lab.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity",
-                      "label": "CAS uri"
-                    }
-                  ]
-                },
-                "name": "cas_uri",
-                "description": "CAS uri",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity",
-                      "label": "CAS number"
-                    }
-                  ]
-                },
-                "name": "cas_number",
-                "description": "CAS number.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity",
-                      "label": "CAS name"
-                    }
-                  ]
-                },
-                "name": "cas_name",
-                "description": "CAS name.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "FileEditQuantity"
-                    }
-                  ],
-                  "browser": [
-                    {
-                      "adaptor": "RawFileAdaptor"
-                    }
-                  ]
-                },
-                "name": "image",
-                "description": "CAS image.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "inchi",
-                "description": "CAS inchi.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "inchi_key",
-                "description": "CAS inchi key.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "smile",
-                "description": "CAS smile.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "canonical_smile",
-                "description": "CAS canonical smile.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "molecular_formula",
-                "description": "CAS molecular formula.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 11,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "NumberEditQuantity"
-                    }
-                  ]
-                },
-                "name": "molecular_mass",
-                "description": "CAS molecular mass.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "unit": "dalton"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 12,
-                "m_parent_sub_section": "quantities",
-                "name": "cas_synonyms",
-                "description": "CAS synonyms.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 13,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "RichTextEditQuantity",
-                      "label": "Detailed substance description"
-                    }
-                  ]
-                },
-                "name": "description",
-                "description": "A field for adding additional information about the substance that is not captured\nby the other quantities and subsections.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              }
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "cas_experimental_properties",
-                "sub_section": "/packages/8/section_definitions/12",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "sub_sections",
-                "name": "cas_property_citations",
-                "sub_section": "/packages/8/section_definitions/13",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 15,
-            "m_parent_sub_section": "section_definitions",
-            "name": "SampleID",
-            "description": "A ELN base section that can be used for sample IDs. If the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nquantities are provided, the sample_id will be automatically created as a combination\nof these four quantities.",
-            "base_sections": [
-              "/packages/15/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "institute",
-                "description": "Alias/short name of the home institute of the owner, i.e. *HZB*.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "sample_owner",
-                "description": "Name or alias of the process operator, e.g. jmp",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "DateTimeEditQuantity"
-                    }
-                  ]
-                },
-                "name": "creation_datetime",
-                "description": "Creation date of the sample.",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "sample_short_name",
-                "description": "A short name of the sample (the identifier scribed on the smaple,\nor in the sample container), e.g. 4001-8, YAG-2-34.\nThis is to be managed and decided internally by the labs,\nalthough we recomend to avoid the following characters on it: \"_\", \"/\", \"\" and \".\"",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "sample_id",
-                "description": "Full sample id. Ideally a human readable sample id convention,\nwhich is simple, understandable and still having chances of becoming unique.\nIf the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nare provided, this will be formed automatically by joining these components by an underscore (_).\nSpaces in any of the individual components will be replaced with hyphens (-).\nAn example would be hzb_oah_20200602_4001-08",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 16,
-            "m_parent_sub_section": "section_definitions",
-            "name": "PublicationReference",
-            "description": "A ELN base section that can be used for references.",
-            "base_sections": [
-              "/packages/15/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "EnumEditQuantity",
-                      "props": {
-                        "suggestions": []
-                      }
-                    }
-                  ]
-                },
-                "name": "DOI_number",
-                "description": "The DOI number referring to the published paper or dataset where the data can be found.\nExamples:\n10.1021/jp5126624\n10.1016/j.electacta.2017.06.032",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "publication_authors",
-                "description": "The authors of the publication.\nIf several authors, end with et al. If the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "publication_date",
-                "description": "Publication date.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "journal",
-                "description": "Name of the journal where the data is published.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "publication_title",
-                "description": "Title of the publication.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 17,
-            "m_parent_sub_section": "section_definitions",
             "name": "ElnWithFormulaBaseSection",
             "description": "A generic abstract base section for ELNs that provides a few commonly used for items with a chemical formula, e.g. chemicals or samples.",
             "base_sections": [
@@ -56925,27 +55944,27 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 18,
+            "m_parent_index": 4,
             "m_parent_sub_section": "section_definitions",
             "name": "Chemical",
             "description": "A ELN base section that can be used for chemicals.",
             "base_sections": [
-              "/packages/8/section_definitions/17"
+              "/packages/8/section_definitions/3"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 19,
+            "m_parent_index": 5,
             "m_parent_sub_section": "section_definitions",
             "name": "Sample",
             "description": "A ELN base section that can be used for samples.",
             "base_sections": [
-              "/packages/8/section_definitions/17"
+              "/packages/8/section_definitions/3"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 20,
+            "m_parent_index": 6,
             "m_parent_sub_section": "section_definitions",
             "name": "ElnWithStructureFile",
             "description": "A base section for for parsing crystal structure files, e.g. `.cif`, and populating the Material section in Results.",
@@ -56975,7 +55994,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 21,
+            "m_parent_index": 7,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellDefinition",
             "base_sections": [
@@ -57060,7 +56079,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 22,
+            "m_parent_index": 8,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellLayer",
             "base_sections": [
@@ -57147,7 +56166,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 23,
+            "m_parent_index": 9,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellBaseSectionWithOptoelectronicProperties",
             "base_sections": [
@@ -57178,7 +56197,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 24,
+            "m_parent_index": 10,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJV",
             "more": {
@@ -57463,11 +56482,11 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 25,
+            "m_parent_index": 11,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJVCurve",
             "base_sections": [
-              "/packages/8/section_definitions/24"
+              "/packages/8/section_definitions/10"
             ],
             "quantities": [
               {
@@ -57539,7 +56558,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 26,
+            "m_parent_index": 12,
             "m_parent_sub_section": "section_definitions",
             "m_annotations": {
               "eln": [
@@ -60646,7 +59665,7 @@ window.nomadArtifacts = {
                 "name": "nomad_data_schema",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/21/section_definitions/3"
+                  "type_data": "/packages/22/section_definitions/3"
                 }
               }
             ],
@@ -62594,7 +61613,7 @@ window.nomadArtifacts = {
                 },
                 "name": "optimade",
                 "description": "Metadata used for the optimade API.",
-                "sub_section": "/packages/20/section_definitions/1"
+                "sub_section": "/packages/21/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -62704,9 +61723,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "workflow",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/34",
+                "sub_section": "/packages/19/section_definitions/34",
                 "repeats": true
               },
               {
@@ -62714,7 +61733,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "workflow2",
-                "sub_section": "/packages/19/section_definitions/3"
+                "sub_section": "/packages/20/section_definitions/3"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -62727,7 +61746,7 @@ window.nomadArtifacts = {
                 },
                 "name": "metadata",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/13/section_definitions/5"
               },
@@ -62742,7 +61761,7 @@ window.nomadArtifacts = {
                 },
                 "name": "results",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "sub_section": "/packages/5/section_definitions/61"
               },
@@ -62759,7 +61778,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "definitions",
-                "sub_section": "/packages/21/section_definitions/4"
+                "sub_section": "/packages/22/section_definitions/4"
               }
             ]
           }
@@ -63146,6 +62165,1148 @@ window.nomadArtifacts = {
         "m_def": "nomad.metainfo.metainfo.Package",
         "m_parent_index": 16,
         "m_parent_sub_section": "packages",
+        "name": "nomad.datamodel.metainfo.basesections",
+        "section_definitions": [
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 0,
+            "m_parent_sub_section": "section_definitions",
+            "name": "BaseSection",
+            "description": "A generic abstract base section that provides a few commonly used properties. If you inherit from this section, but do not need some quantities, list those\nquantities in the `eln.hide` annotation of your inheriting section definition.\n\nBesides predefining some quantities, these base sections will add some metadata\nto NOMAD's search. A particular example are `tags`, if you define a string\nor enum quantity in your sections named `tags`, its values will be searchable.",
+            "links": [
+              "http://purl.obolibrary.org/obo/BFO_0000001"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Short name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "A short human readable and descriptive name.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity"
+                    }
+                  ]
+                },
+                "name": "datetime",
+                "description": "The date and time associated with this section.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "ID"
+                    }
+                  ]
+                },
+                "name": "lab_id",
+                "description": "An ID string that is unique at least for the lab that produced this\ndata.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "RichTextEditQuantity"
+                    }
+                  ]
+                },
+                "name": "description",
+                "description": "Any information that cannot be captured in the other fields.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Entity",
+            "description": "An object that persists, endures, or continues to exist through time while maintaining its identity.",
+            "links": [
+              "http://purl.obolibrary.org/obo/BFO_0000002"
+            ],
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 2,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Activity",
+            "description": "An action that has a temporal extension and for some time depends on some entity.",
+            "links": [
+              "http://purl.obolibrary.org/obo/BFO_0000015"
+            ],
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity",
+                      "label": "Starting Time"
+                    }
+                  ]
+                },
+                "name": "datetime",
+                "description": "The date and time when this activity was started.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity",
+                      "label": "Ending Time"
+                    }
+                  ]
+                },
+                "name": "end_time",
+                "description": "The date and time when this activity was done.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "method",
+                "description": "A short consistent handle for the applied method.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "location",
+                "description": "location of the experiment.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ElementalComposition",
+            "description": "A section for describing the elemental composition of a system, i.e. the element and its atomic fraction.",
+            "more": {
+              "label_quantity": "element"
+            },
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "AutocompleteEditQuantity"
+                    }
+                  ]
+                },
+                "name": "element",
+                "description": "The symbol of the element, e.g. 'Pb'.",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "H",
+                    "He",
+                    "Li",
+                    "Be",
+                    "B",
+                    "C",
+                    "N",
+                    "O",
+                    "F",
+                    "Ne",
+                    "Na",
+                    "Mg",
+                    "Al",
+                    "Si",
+                    "P",
+                    "S",
+                    "Cl",
+                    "Ar",
+                    "K",
+                    "Ca",
+                    "Sc",
+                    "Ti",
+                    "V",
+                    "Cr",
+                    "Mn",
+                    "Fe",
+                    "Co",
+                    "Ni",
+                    "Cu",
+                    "Zn",
+                    "Ga",
+                    "Ge",
+                    "As",
+                    "Se",
+                    "Br",
+                    "Kr",
+                    "Rb",
+                    "Sr",
+                    "Y",
+                    "Zr",
+                    "Nb",
+                    "Mo",
+                    "Tc",
+                    "Ru",
+                    "Rh",
+                    "Pd",
+                    "Ag",
+                    "Cd",
+                    "In",
+                    "Sn",
+                    "Sb",
+                    "Te",
+                    "I",
+                    "Xe",
+                    "Cs",
+                    "Ba",
+                    "La",
+                    "Ce",
+                    "Pr",
+                    "Nd",
+                    "Pm",
+                    "Sm",
+                    "Eu",
+                    "Gd",
+                    "Tb",
+                    "Dy",
+                    "Ho",
+                    "Er",
+                    "Tm",
+                    "Yb",
+                    "Lu",
+                    "Hf",
+                    "Ta",
+                    "W",
+                    "Re",
+                    "Os",
+                    "Ir",
+                    "Pt",
+                    "Au",
+                    "Hg",
+                    "Tl",
+                    "Pb",
+                    "Bi",
+                    "Po",
+                    "At",
+                    "Rn",
+                    "Fr",
+                    "Ra",
+                    "Ac",
+                    "Th",
+                    "Pa",
+                    "U",
+                    "Np",
+                    "Pu",
+                    "Am",
+                    "Cm",
+                    "Bk",
+                    "Cf",
+                    "Es",
+                    "Fm",
+                    "Md",
+                    "No",
+                    "Lr",
+                    "Rf",
+                    "Db",
+                    "Sg",
+                    "Bh",
+                    "Hs",
+                    "Mt",
+                    "Ds",
+                    "Rg",
+                    "Cn",
+                    "Nh",
+                    "Fl",
+                    "Mc",
+                    "Lv",
+                    "Ts",
+                    "Og"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity"
+                    }
+                  ]
+                },
+                "name": "atomic_fraction",
+                "description": "The atomic fraction of the element in the system it is contained within.\nPer definition a positive value less than or equal to 1.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity"
+                    }
+                  ]
+                },
+                "name": "mass_fraction",
+                "description": "The mass fraction of the element in the system it is contained within.\nPer definition a positive value less than or equal to 1.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
+            "name": "System",
+            "description": "A base section for any system of materials which is investigated or used to construct other systems.",
+            "base_sections": [
+              "/packages/16/section_definitions/1"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "elemental_composition",
+                "description": "A list of all the elements found in the system together and their respective\natomic fraction within the system.",
+                "sub_section": "/packages/16/section_definitions/3",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 5,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Instrument",
+            "description": "A base section that can be used for instruments.",
+            "base_sections": [
+              "/packages/16/section_definitions/1"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 6,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Process",
+            "description": "A planned process which results in physical changes in a specified input material. [ obi : prs obi : mc obi : fg obi : jf obi : bp ]\n\nSynonyms:\n - preparative method\n - sample preparation\n - sample preparative method\n - material transformations",
+            "links": [
+              "http://purl.obolibrary.org/obo/OBI_0000094"
+            ],
+            "base_sections": [
+              "/packages/16/section_definitions/2"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 7,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Measurement",
+            "description": "A planned process with the objective to produce information about the material entity that is the evaluant, by physically examining it or its proxies. [ obi : pppb ]",
+            "links": [
+              "http://purl.obolibrary.org/obo/OBI_0000070"
+            ],
+            "base_sections": [
+              "/packages/16/section_definitions/2"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 8,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SynthesisMethod",
+            "description": "A method used to synthesise a sample.",
+            "links": [
+              "http://purl.obolibrary.org/obo/CHMO_0001301"
+            ],
+            "base_sections": [
+              "/packages/16/section_definitions/6"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 9,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Component",
+            "description": "A section for describing a component and its role in an ensemble.",
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Component name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "A short name for the component.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity"
+                    }
+                  ]
+                },
+                "name": "system",
+                "description": "A reference to the component system.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/16/section_definitions/4"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity",
+                      "defaultDisplayUnit": "mg"
+                    }
+                  ]
+                },
+                "name": "mass",
+                "description": "The mass of the component.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "kilogram"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 10,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Ensemble",
+            "description": "A base section for an ensemble of material systems. Each component of the ensemble is of a (sub)type of `System`.",
+            "base_sections": [
+              "/packages/16/section_definitions/4"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "components",
+                "description": "A list of all the components of the ensemble containing a name, reference to the\nsystem section and mass of that component.",
+                "sub_section": "/packages/16/section_definitions/9",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 11,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Substance",
+            "description": "A base section for any elemental, molecular of single phase substance.",
+            "links": [
+              "http://purl.obolibrary.org/obo/CHEBI_23367"
+            ],
+            "base_sections": [
+              "/packages/16/section_definitions/4"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Substance name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "The name of the substance entry.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Substance ID"
+                    }
+                  ]
+                },
+                "name": "lab_id",
+                "description": "A human human readable substance ID that is at least unique for the lab.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "molecular_formula",
+                "description": "Molecular formula.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "RichTextEditQuantity",
+                      "label": "Detailed substance description"
+                    }
+                  ]
+                },
+                "name": "description",
+                "description": "A field for adding additional information about the substance that is not captured\nby the other quantities and subsections.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 12,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CASExperimentalProperty",
+            "description": "A section for experimental properties retrieved from the CAS API.",
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "name",
+                "description": "CAS experimental property name.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "property",
+                "description": "CAS experimental property.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "sourceNumber",
+                "description": "CAS experimental property source.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 13,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CASPropertyCitation",
+            "description": "A section for citations of the experimental properties retrieved from the CAS API.",
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "docUri",
+                "description": "CAS property citation document uri.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "sourceNumber",
+                "more": {
+                  "decription": "CAS property citation source number."
+                },
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "source",
+                "description": "CAS property citation source.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 14,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CASSubstance",
+            "description": "A base section for any Substance with a CAS number.",
+            "base_sections": [
+              "/packages/16/section_definitions/11"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "CAS uri"
+                    }
+                  ]
+                },
+                "name": "cas_uri",
+                "description": "CAS uri",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "CAS number"
+                    }
+                  ]
+                },
+                "name": "cas_number",
+                "description": "CAS number.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "CAS name"
+                    }
+                  ]
+                },
+                "name": "cas_name",
+                "description": "CAS name.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "FileEditQuantity"
+                    }
+                  ],
+                  "browser": [
+                    {
+                      "adaptor": "RawFileAdaptor"
+                    }
+                  ]
+                },
+                "name": "image",
+                "description": "CAS image.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "inchi",
+                "description": "CAS inchi.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "inchi_key",
+                "description": "CAS inchi key.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "smile",
+                "description": "CAS smile.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "canonical_smile",
+                "description": "CAS canonical smile.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "molecular_formula",
+                "description": "CAS molecular formula.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity"
+                    }
+                  ]
+                },
+                "name": "molecular_mass",
+                "description": "CAS molecular mass.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "dalton"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "cas_synonyms",
+                "description": "CAS synonyms.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "cas_experimental_properties",
+                "sub_section": "/packages/16/section_definitions/12",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "cas_property_citations",
+                "sub_section": "/packages/16/section_definitions/13",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 15,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SampleID",
+            "description": "A base section that can be used for sample IDs. If the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nquantities are provided, the sample_id will be automatically created as a combination\nof these four quantities.",
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "institute",
+                "description": "Alias/short name of the home institute of the owner, i.e. *HZB*.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "sample_owner",
+                "description": "Name or alias of the process operator, e.g. jmp",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity"
+                    }
+                  ]
+                },
+                "name": "creation_datetime",
+                "description": "Creation date of the sample.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "sample_short_name",
+                "description": "A short name of the sample (the identifier scribed on the smaple,\nor in the sample container), e.g. 4001-8, YAG-2-34.\nThis is to be managed and decided internally by the labs,\nalthough we recomend to avoid the following characters on it: \"_\", \"/\", \"\" and \".\"",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "sample_id",
+                "description": "Full sample id. Ideally a human readable sample id convention,\nwhich is simple, understandable and still having chances of becoming unique.\nIf the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nare provided, this will be formed automatically by joining these components by an underscore (_).\nSpaces in any of the individual components will be replaced with hyphens (-).\nAn example would be hzb_oah_20200602_4001-08",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 16,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PublicationReference",
+            "description": "A base section that can be used for references.",
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "EnumEditQuantity",
+                      "props": {
+                        "suggestions": []
+                      }
+                    }
+                  ]
+                },
+                "name": "DOI_number",
+                "description": "The DOI number referring to the published paper or dataset where the data can be found.\nExamples:\n10.1021/jp5126624\n10.1016/j.electacta.2017.06.032",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "publication_authors",
+                "description": "The authors of the publication.\nIf several authors, end with et al. If the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "publication_date",
+                "description": "Publication date.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "journal",
+                "description": "Name of the journal where the data is published.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "publication_title",
+                "description": "Title of the publication.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "m_def": "nomad.metainfo.metainfo.Package",
+        "m_parent_index": 17,
+        "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.common",
         "section_definitions": [
           {
@@ -63186,7 +63347,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/16/section_definitions/0",
+                "sub_section": "/packages/17/section_definitions/0",
                 "repeats": false
               }
             ]
@@ -63204,7 +63365,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 17,
+        "m_parent_index": 18,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.simulation.workflow",
         "section_definitions": [
@@ -63233,7 +63394,7 @@ window.nomadArtifacts = {
                 "name": "calculation_result_ref",
                 "description": "Reference to calculation result. In the case of serial workflows, this corresponds\nto the final step in the simulation. For the parallel case, it refers to the original system.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -63249,7 +63410,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SimulationWorkflow",
             "base_sections": [
-              "/packages/19/section_definitions/3"
+              "/packages/20/section_definitions/3"
             ],
             "sub_sections": [
               {
@@ -63257,14 +63418,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/0"
+                "sub_section": "/packages/18/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/1"
+                "sub_section": "/packages/18/section_definitions/1"
               }
             ]
           },
@@ -63391,7 +63552,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "decomposition",
-                "sub_section": "/packages/17/section_definitions/3",
+                "sub_section": "/packages/18/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -63402,7 +63563,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ThermodynamicsResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -63653,7 +63814,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "stability",
-                "sub_section": "/packages/17/section_definitions/4",
+                "sub_section": "/packages/18/section_definitions/4",
                 "repeats": false
               }
             ]
@@ -63664,7 +63825,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SinglePointResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -63808,7 +63969,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SinglePointMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -63831,7 +63992,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SinglePoint",
             "base_sections": [
-              "/packages/17/section_definitions/2"
+              "/packages/18/section_definitions/2"
             ],
             "sub_sections": [
               {
@@ -63839,14 +64000,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/7"
+                "sub_section": "/packages/18/section_definitions/7"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/6"
+                "sub_section": "/packages/18/section_definitions/6"
               }
             ]
           },
@@ -63856,7 +64017,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ParallelSimulation",
             "base_sections": [
-              "/packages/17/section_definitions/2"
+              "/packages/18/section_definitions/2"
             ]
           },
           {
@@ -63865,7 +64026,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SerialSimulation",
             "base_sections": [
-              "/packages/17/section_definitions/2"
+              "/packages/18/section_definitions/2"
             ]
           },
           {
@@ -63874,7 +64035,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimizationMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -63978,7 +64139,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimizationResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -64081,7 +64242,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimization",
             "base_sections": [
-              "/packages/17/section_definitions/10"
+              "/packages/18/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -64089,14 +64250,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/11"
+                "sub_section": "/packages/18/section_definitions/11"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/12"
+                "sub_section": "/packages/18/section_definitions/12"
               }
             ]
           },
@@ -64266,7 +64427,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamicsMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -64386,7 +64547,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermostat_parameters",
-                "sub_section": "/packages/17/section_definitions/14",
+                "sub_section": "/packages/18/section_definitions/14",
                 "repeats": false
               },
               {
@@ -64394,7 +64555,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "barostat_parameters",
-                "sub_section": "/packages/17/section_definitions/15",
+                "sub_section": "/packages/18/section_definitions/15",
                 "repeats": false
               }
             ]
@@ -64463,7 +64624,7 @@ window.nomadArtifacts = {
             "name": "RadialDistributionFunctionValues",
             "description": "Section containing information regarding the values of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/17/section_definitions/17"
+              "/packages/18/section_definitions/17"
             ],
             "quantities": [
               {
@@ -64581,7 +64742,7 @@ window.nomadArtifacts = {
             "name": "RadialDistributionFunction",
             "description": "Section containing information about the calculation of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/17/section_definitions/19"
+              "/packages/18/section_definitions/19"
             ],
             "sub_sections": [
               {
@@ -64589,7 +64750,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_function_values",
-                "sub_section": "/packages/17/section_definitions/18",
+                "sub_section": "/packages/18/section_definitions/18",
                 "repeats": true
               }
             ]
@@ -64721,7 +64882,7 @@ window.nomadArtifacts = {
             "name": "RadiusOfGyration",
             "description": "Section containing information about the calculation of radius of gyration (Rg).",
             "base_sections": [
-              "/packages/17/section_definitions/21"
+              "/packages/18/section_definitions/21"
             ],
             "quantities": [
               {
@@ -64843,7 +65004,7 @@ window.nomadArtifacts = {
             "name": "MeanSquaredDisplacementValues",
             "description": "Section containing information regarding the values of a mean squared displacements (msds).",
             "base_sections": [
-              "/packages/17/section_definitions/24"
+              "/packages/18/section_definitions/24"
             ],
             "quantities": [
               {
@@ -64897,7 +65058,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "diffusion_constant",
-                "sub_section": "/packages/17/section_definitions/23",
+                "sub_section": "/packages/18/section_definitions/23",
                 "repeats": false
               }
             ]
@@ -64968,7 +65129,7 @@ window.nomadArtifacts = {
             "name": "MeanSquaredDisplacement",
             "description": "Section containing information about a calculation of any mean squared displacements (msds).",
             "base_sections": [
-              "/packages/17/section_definitions/26"
+              "/packages/18/section_definitions/26"
             ],
             "sub_sections": [
               {
@@ -64976,7 +65137,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacement_values",
-                "sub_section": "/packages/17/section_definitions/25",
+                "sub_section": "/packages/18/section_definitions/25",
                 "repeats": true
               }
             ]
@@ -64987,7 +65148,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamicsResults",
             "base_sections": [
-              "/packages/17/section_definitions/5"
+              "/packages/18/section_definitions/5"
             ],
             "quantities": [
               {
@@ -65035,7 +65196,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_functions",
-                "sub_section": "/packages/17/section_definitions/20",
+                "sub_section": "/packages/18/section_definitions/20",
                 "repeats": true
               },
               {
@@ -65043,7 +65204,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/17/section_definitions/22",
+                "sub_section": "/packages/18/section_definitions/22",
                 "repeats": true
               },
               {
@@ -65051,7 +65212,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacements",
-                "sub_section": "/packages/17/section_definitions/27",
+                "sub_section": "/packages/18/section_definitions/27",
                 "repeats": true
               }
             ]
@@ -65062,7 +65223,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamics",
             "base_sections": [
-              "/packages/17/section_definitions/10"
+              "/packages/18/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -65070,14 +65231,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/16"
+                "sub_section": "/packages/18/section_definitions/16"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/28"
+                "sub_section": "/packages/18/section_definitions/28"
               }
             ]
           },
@@ -65087,7 +65248,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PhononMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -65159,7 +65320,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PhononResults",
             "base_sections": [
-              "/packages/17/section_definitions/5"
+              "/packages/18/section_definitions/5"
             ],
             "quantities": [
               {
@@ -65307,7 +65468,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Phonon",
             "base_sections": [
-              "/packages/17/section_definitions/9"
+              "/packages/18/section_definitions/9"
             ],
             "sub_sections": [
               {
@@ -65315,14 +65476,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/30"
+                "sub_section": "/packages/18/section_definitions/30"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/31"
+                "sub_section": "/packages/18/section_definitions/31"
               }
             ]
           },
@@ -65431,7 +65592,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ElasticMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -65502,7 +65663,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ElasticResults",
             "base_sections": [
-              "/packages/17/section_definitions/5"
+              "/packages/18/section_definitions/5"
             ],
             "quantities": [
               {
@@ -65887,7 +66048,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "strain_diagrams",
-                "sub_section": "/packages/17/section_definitions/33",
+                "sub_section": "/packages/18/section_definitions/33",
                 "repeats": true
               }
             ]
@@ -65898,7 +66059,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Elastic",
             "base_sections": [
-              "/packages/17/section_definitions/9"
+              "/packages/18/section_definitions/9"
             ],
             "sub_sections": [
               {
@@ -65906,14 +66067,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/34"
+                "sub_section": "/packages/18/section_definitions/34"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/35"
+                "sub_section": "/packages/18/section_definitions/35"
               }
             ]
           },
@@ -65923,7 +66084,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ThermodynamicsMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ]
           },
           {
@@ -65932,7 +66093,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Thermodynamics",
             "base_sections": [
-              "/packages/17/section_definitions/10"
+              "/packages/18/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -65940,14 +66101,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/37"
+                "sub_section": "/packages/18/section_definitions/37"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/5"
+                "sub_section": "/packages/18/section_definitions/5"
               }
             ]
           },
@@ -65957,7 +66118,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GWResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -66052,7 +66213,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GWMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -66096,7 +66257,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "GW",
             "base_sections": [
-              "/packages/17/section_definitions/10"
+              "/packages/18/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -66104,14 +66265,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/40"
+                "sub_section": "/packages/18/section_definitions/40"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/39"
+                "sub_section": "/packages/18/section_definitions/39"
               }
             ]
           },
@@ -66121,7 +66282,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarizationResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -66157,7 +66318,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarizationMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ]
           },
           {
@@ -66166,7 +66327,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarization",
             "base_sections": [
-              "/packages/17/section_definitions/9"
+              "/packages/18/section_definitions/9"
             ],
             "sub_sections": [
               {
@@ -66174,14 +66335,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/43"
+                "sub_section": "/packages/18/section_definitions/43"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/42"
+                "sub_section": "/packages/18/section_definitions/42"
               }
             ]
           },
@@ -66191,7 +66352,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ParticleHoleExcitationsResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -66245,7 +66406,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectra",
-                "sub_section": "/packages/17/section_definitions/42",
+                "sub_section": "/packages/18/section_definitions/42",
                 "repeats": true
               }
             ]
@@ -66256,7 +66417,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ParticleHoleExcitationsMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ]
           },
           {
@@ -66265,7 +66426,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ParticleHoleExcitations",
             "base_sections": [
-              "/packages/17/section_definitions/10"
+              "/packages/18/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -66273,14 +66434,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/46"
+                "sub_section": "/packages/18/section_definitions/46"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/45"
+                "sub_section": "/packages/18/section_definitions/45"
               }
             ]
           },
@@ -66290,7 +66451,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateMethod",
             "base_sections": [
-              "/packages/17/section_definitions/0"
+              "/packages/18/section_definitions/0"
             ],
             "quantities": [
               {
@@ -66412,7 +66573,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateResults",
             "base_sections": [
-              "/packages/17/section_definitions/1"
+              "/packages/18/section_definitions/1"
             ],
             "quantities": [
               {
@@ -66464,7 +66625,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eos_fit",
-                "sub_section": "/packages/17/section_definitions/49",
+                "sub_section": "/packages/18/section_definitions/49",
                 "repeats": true
               }
             ]
@@ -66475,7 +66636,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfState",
             "base_sections": [
-              "/packages/17/section_definitions/9"
+              "/packages/18/section_definitions/9"
             ],
             "sub_sections": [
               {
@@ -66483,14 +66644,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/17/section_definitions/48"
+                "sub_section": "/packages/18/section_definitions/48"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/17/section_definitions/50"
+                "sub_section": "/packages/18/section_definitions/50"
               }
             ]
           }
@@ -66498,7 +66659,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 18,
+        "m_parent_index": 19,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.workflow",
         "section_definitions": [
@@ -67245,7 +67406,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eos_fit",
-                "sub_section": "/packages/18/section_definitions/6",
+                "sub_section": "/packages/19/section_definitions/6",
                 "repeats": true
               }
             ]
@@ -68291,7 +68452,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "strain_diagrams",
-                "sub_section": "/packages/18/section_definitions/11",
+                "sub_section": "/packages/19/section_definitions/11",
                 "repeats": true
               }
             ]
@@ -68419,7 +68580,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "decomposition",
-                "sub_section": "/packages/18/section_definitions/13",
+                "sub_section": "/packages/19/section_definitions/13",
                 "repeats": true
               }
             ]
@@ -68664,7 +68825,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "stability",
-                "sub_section": "/packages/18/section_definitions/14",
+                "sub_section": "/packages/19/section_definitions/14",
                 "repeats": false
               }
             ]
@@ -68928,7 +69089,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermostat_parameters",
-                "sub_section": "/packages/18/section_definitions/16",
+                "sub_section": "/packages/19/section_definitions/16",
                 "repeats": false
               },
               {
@@ -68936,7 +69097,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "barostat_parameters",
-                "sub_section": "/packages/18/section_definitions/17",
+                "sub_section": "/packages/19/section_definitions/17",
                 "repeats": false
               }
             ]
@@ -68953,7 +69114,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_functions",
-                "sub_section": "/packages/18/section_definitions/25",
+                "sub_section": "/packages/19/section_definitions/25",
                 "repeats": true
               },
               {
@@ -68961,7 +69122,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacements",
-                "sub_section": "/packages/18/section_definitions/30",
+                "sub_section": "/packages/19/section_definitions/30",
                 "repeats": true
               }
             ]
@@ -69038,7 +69199,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "integration_parameters",
-                "sub_section": "/packages/18/section_definitions/18",
+                "sub_section": "/packages/19/section_definitions/18",
                 "repeats": false
               },
               {
@@ -69046,7 +69207,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
-                "sub_section": "/packages/18/section_definitions/19",
+                "sub_section": "/packages/19/section_definitions/19",
                 "repeats": false
               }
             ]
@@ -69249,7 +69410,7 @@ window.nomadArtifacts = {
             "name": "RadialDistributionFunctionValues",
             "description": "Section containing information regarding the values of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/18/section_definitions/22"
+              "/packages/19/section_definitions/22"
             ],
             "quantities": [
               {
@@ -69290,7 +69451,7 @@ window.nomadArtifacts = {
             "name": "RadialDistributionFunction",
             "description": "Section containing information about the calculation of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/18/section_definitions/23"
+              "/packages/19/section_definitions/23"
             ],
             "sub_sections": [
               {
@@ -69298,7 +69459,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_function_values",
-                "sub_section": "/packages/18/section_definitions/24",
+                "sub_section": "/packages/19/section_definitions/24",
                 "repeats": true
               }
             ]
@@ -69473,7 +69634,7 @@ window.nomadArtifacts = {
             "name": "MeanSquaredDisplacementValues",
             "description": "Section containing information regarding the values of a mean squared displacements (msds).",
             "base_sections": [
-              "/packages/18/section_definitions/26"
+              "/packages/19/section_definitions/26"
             ],
             "quantities": [
               {
@@ -69527,7 +69688,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "diffusion_constant",
-                "sub_section": "/packages/18/section_definitions/28",
+                "sub_section": "/packages/19/section_definitions/28",
                 "repeats": false
               }
             ]
@@ -69539,7 +69700,7 @@ window.nomadArtifacts = {
             "name": "MeanSquaredDisplacement",
             "description": "Section containing information about a calculation of any mean squared displacements (msds).",
             "base_sections": [
-              "/packages/18/section_definitions/27"
+              "/packages/19/section_definitions/27"
             ],
             "sub_sections": [
               {
@@ -69547,7 +69708,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacement_values",
-                "sub_section": "/packages/18/section_definitions/29",
+                "sub_section": "/packages/19/section_definitions/29",
                 "repeats": true
               }
             ]
@@ -69738,7 +69899,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the input workflow.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/18/section_definitions/34"
+                  "type_data": "/packages/19/section_definitions/34"
                 },
                 "shape": []
               },
@@ -69750,7 +69911,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the output workflow.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/18/section_definitions/34"
+                  "type_data": "/packages/19/section_definitions/34"
                 },
                 "shape": []
               },
@@ -69858,7 +70019,7 @@ window.nomadArtifacts = {
                 "name": "calculation_result_ref",
                 "description": "Reference to calculation result. In the case of geometry_optimization and\nmolecular dynamics, this corresponds to the final step in the simulation. For the\nrest of the workflow types, it refers to the original system.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -69899,7 +70060,7 @@ window.nomadArtifacts = {
                 "name": "run_ref",
                 "description": "Links the section workflow to the section run that contains the calculations.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
@@ -69926,11 +70087,11 @@ window.nomadArtifacts = {
                 "name": "workflows_ref",
                 "description": "Links the the current section to other workflow sections. Such a link is necessary\nfor example between an Debye model that uses a the poisson ratio calculated\nfrom an elastic workflow.",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/18/section_definitions/34"
+                  "type_data": "/packages/19/section_definitions/34"
                 },
                 "shape": [
                   "n_references"
@@ -69943,7 +70104,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "task",
-                "sub_section": "/packages/18/section_definitions/33",
+                "sub_section": "/packages/19/section_definitions/33",
                 "repeats": true
               },
               {
@@ -69952,9 +70113,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "single_point",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/32",
+                "sub_section": "/packages/19/section_definitions/32",
                 "repeats": false
               },
               {
@@ -69963,9 +70124,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/31",
+                "sub_section": "/packages/19/section_definitions/31",
                 "repeats": false
               },
               {
@@ -69974,9 +70135,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "geometry_optimization",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/9",
+                "sub_section": "/packages/19/section_definitions/9",
                 "repeats": false
               },
               {
@@ -69985,9 +70146,9 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "phonon",
                 "categories": [
-                  "/packages/16/category_definitions/0"
+                  "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/10",
+                "sub_section": "/packages/19/section_definitions/10",
                 "repeats": false
               },
               {
@@ -69995,7 +70156,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "elastic",
-                "sub_section": "/packages/18/section_definitions/12",
+                "sub_section": "/packages/19/section_definitions/12",
                 "repeats": false
               },
               {
@@ -70003,7 +70164,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "molecular_dynamics",
-                "sub_section": "/packages/18/section_definitions/20",
+                "sub_section": "/packages/19/section_definitions/20",
                 "repeats": false
               },
               {
@@ -70011,7 +70172,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "debye_model",
-                "sub_section": "/packages/18/section_definitions/8",
+                "sub_section": "/packages/19/section_definitions/8",
                 "repeats": false
               },
               {
@@ -70019,7 +70180,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "equation_of_state",
-                "sub_section": "/packages/18/section_definitions/7",
+                "sub_section": "/packages/19/section_definitions/7",
                 "repeats": false
               },
               {
@@ -70027,7 +70188,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "nudged_elastic_band",
-                "sub_section": "/packages/18/section_definitions/5",
+                "sub_section": "/packages/19/section_definitions/5",
                 "repeats": false
               },
               {
@@ -70035,7 +70196,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "convex_hull",
-                "sub_section": "/packages/18/section_definitions/4",
+                "sub_section": "/packages/19/section_definitions/4",
                 "repeats": false
               },
               {
@@ -70043,7 +70204,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "adsorption",
-                "sub_section": "/packages/18/section_definitions/3",
+                "sub_section": "/packages/19/section_definitions/3",
                 "repeats": false
               },
               {
@@ -70051,7 +70212,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
                 "name": "magnetic_ordering",
-                "sub_section": "/packages/18/section_definitions/2",
+                "sub_section": "/packages/19/section_definitions/2",
                 "repeats": false
               },
               {
@@ -70059,7 +70220,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
                 "name": "raman",
-                "sub_section": "/packages/18/section_definitions/1",
+                "sub_section": "/packages/19/section_definitions/1",
                 "repeats": false
               },
               {
@@ -70067,7 +70228,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
                 "name": "interface",
-                "sub_section": "/packages/18/section_definitions/0",
+                "sub_section": "/packages/19/section_definitions/0",
                 "repeats": false
               },
               {
@@ -70075,7 +70236,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 15,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermodynamics",
-                "sub_section": "/packages/18/section_definitions/15",
+                "sub_section": "/packages/19/section_definitions/15",
                 "repeats": false
               }
             ]
@@ -70084,7 +70245,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 19,
+        "m_parent_index": 20,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.workflow2",
         "section_definitions": [
@@ -70176,7 +70337,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "inputs",
                 "description": "All the links to sections that represent the inputs for this task.",
-                "sub_section": "/packages/19/section_definitions/0",
+                "sub_section": "/packages/20/section_definitions/0",
                 "repeats": true
               },
               {
@@ -70185,7 +70346,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "outputs",
                 "description": "All the links to sections that represent the outputs for this task.",
-                "sub_section": "/packages/19/section_definitions/0",
+                "sub_section": "/packages/20/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -70197,7 +70358,7 @@ window.nomadArtifacts = {
             "name": "TaskReference",
             "description": "A proxy section that can be used to compose a workflow of tasks that are contained in a different entry or workflow.",
             "base_sections": [
-              "/packages/19/section_definitions/1"
+              "/packages/20/section_definitions/1"
             ],
             "quantities": [
               {
@@ -70215,7 +70376,7 @@ window.nomadArtifacts = {
                 "description": "A reference to the task that this section is a proxy for.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/19/section_definitions/1"
+                  "type_data": "/packages/20/section_definitions/1"
                 }
               }
             ]
@@ -70230,7 +70391,7 @@ window.nomadArtifacts = {
               "/packages/15/category_definitions/5"
             ],
             "base_sections": [
-              "/packages/19/section_definitions/1",
+              "/packages/20/section_definitions/1",
               "/packages/15/section_definitions/1"
             ],
             "sub_sections": [
@@ -70240,7 +70401,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "tasks",
                 "description": "The tasks of this workflow as a repeating sub section. Use TaskReference if tasks cannot be contained.",
-                "sub_section": "/packages/19/section_definitions/1",
+                "sub_section": "/packages/20/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -70249,7 +70410,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 20,
+        "m_parent_index": 21,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.optimade",
         "section_definitions": [
@@ -70955,7 +71116,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "species",
-                "sub_section": "/packages/20/section_definitions/0",
+                "sub_section": "/packages/21/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -70964,7 +71125,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 21,
+        "m_parent_index": 22,
         "m_parent_sub_section": "packages",
         "name": "nomad.metainfo.metainfo",
         "section_definitions": [
@@ -71030,7 +71191,7 @@ window.nomadArtifacts = {
                 "description": "All metainfo definitions can be put into one or more `categories`.\nCategories allow to organize the definitions themselves. It is different from\nsections, which organize the data (e.g. quantity values) and not the definitions\nof data (e.g. quantities definitions). See :ref:`metainfo-categories` for more\ndetails.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/21/section_definitions/5"
+                  "type_data": "/packages/22/section_definitions/5"
                 },
                 "shape": [
                   "0..*"
@@ -71107,7 +71268,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "attributes",
                 "description": "The attributes that can further qualify property values.",
-                "sub_section": "/packages/21/section_definitions/1",
+                "sub_section": "/packages/22/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -71119,7 +71280,7 @@ window.nomadArtifacts = {
             "name": "Attribute",
             "description": "Attributes can be used to qualify all properties (subsections and quantities) with simple scalar values.",
             "base_sections": [
-              "/packages/21/section_definitions/0"
+              "/packages/22/section_definitions/0"
             ],
             "constraints": [
               "is_primitive"
@@ -71159,7 +71320,7 @@ window.nomadArtifacts = {
             "name": "Property",
             "description": "A common base-class for section properties: subsections and quantities.",
             "base_sections": [
-              "/packages/21/section_definitions/0"
+              "/packages/22/section_definitions/0"
             ]
           },
           {
@@ -71169,7 +71330,7 @@ window.nomadArtifacts = {
             "name": "Section",
             "description": "Instances of the class :class:`Section` are created by writing Python classes that extend :class:`MSection` like this:\n\n.. code-block:: python\n\n    class SectionName(BaseSection):\n        ''' Section description '''\n        m_def = Section(**section_attributes)\n\n        quantity_name = Quantity(**quantity_attributes)\n        sub_section_name = SubSection(**sub_section_attributes)\n\nWe call such classes *section classes*. They are not the *section definition*, but just\nrepresentation of it in Python syntax. The *section definition* (in instance of :class:`Section`)\nwill be created for each of these classes and stored in the ``m_def`` property. See\n:ref:`metainfo-reflection` for more details.\n\nMost of the attributes for a :class:`Section` instance will be set automatically from\nthe section class:",
             "base_sections": [
-              "/packages/21/section_definitions/0"
+              "/packages/22/section_definitions/0"
             ],
             "constraints": [
               "resolved_base_sections",
@@ -71183,7 +71344,7 @@ window.nomadArtifacts = {
                 "name": "base_sections",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/21/section_definitions/3"
+                  "type_data": "/packages/22/section_definitions/3"
                 },
                 "shape": [
                   "0..*"
@@ -71197,7 +71358,7 @@ window.nomadArtifacts = {
                 "name": "extending_sections",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/21/section_definitions/3"
+                  "type_data": "/packages/22/section_definitions/3"
                 },
                 "shape": [
                   "0..*"
@@ -71222,7 +71383,7 @@ window.nomadArtifacts = {
                 "name": "inheriting_sections",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/21/section_definitions/3"
+                  "type_data": "/packages/22/section_definitions/3"
                 },
                 "shape": [
                   "0..*"
@@ -71399,7 +71560,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quantities",
-                "sub_section": "/packages/21/section_definitions/6",
+                "sub_section": "/packages/22/section_definitions/6",
                 "repeats": true
               },
               {
@@ -71407,7 +71568,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "sub_sections",
-                "sub_section": "/packages/21/section_definitions/7",
+                "sub_section": "/packages/22/section_definitions/7",
                 "repeats": true
               },
               {
@@ -71421,7 +71582,7 @@ window.nomadArtifacts = {
                   "inner_sections",
                   "sections"
                 ],
-                "sub_section": "/packages/21/section_definitions/3",
+                "sub_section": "/packages/22/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -71433,7 +71594,7 @@ window.nomadArtifacts = {
             "name": "Package",
             "description": "Packages organize metainfo definitions alongside Python modules Each Python module with metainfo Definition (explicitly or implicitly) has a member\n``m_package`` with an instance of this class. Definitions (categories, sections) in\nPython modules are automatically added to the module's :class:`Package`.\nPackages are not nested and rather have the fully qualified Python module name as\nname.\n\nThis allows to inspect all definitions in a Python module and automatically puts\nmodule name and docstring as :class:`Package` name and description.\n\nBesides the regular :class:`Definition` attributes, packages can have the following\nattributes:",
             "base_sections": [
-              "/packages/21/section_definitions/0"
+              "/packages/22/section_definitions/0"
             ],
             "quantities": [
               {
@@ -71472,7 +71633,7 @@ window.nomadArtifacts = {
                   "section_defs",
                   "sections"
                 ],
-                "sub_section": "/packages/21/section_definitions/3",
+                "sub_section": "/packages/22/section_definitions/3",
                 "repeats": true
               },
               {
@@ -71484,7 +71645,7 @@ window.nomadArtifacts = {
                 "aliases": [
                   "category_defs"
                 ],
-                "sub_section": "/packages/21/section_definitions/5",
+                "sub_section": "/packages/22/section_definitions/5",
                 "repeats": true
               }
             ]
@@ -71496,7 +71657,7 @@ window.nomadArtifacts = {
             "name": "Category",
             "description": "Categories allow to organize metainfo definitions (not metainfo data like sections do) Each definition, including categories themselves, can belong to a set of categories.\nCategories therefore form a hierarchy of concepts that definitions can belong to, i.e.\nthey form a `is a` relationship.",
             "base_sections": [
-              "/packages/21/section_definitions/0"
+              "/packages/22/section_definitions/0"
             ]
           },
           {
@@ -71506,7 +71667,7 @@ window.nomadArtifacts = {
             "name": "Quantity",
             "description": "To define quantities, instantiate :class:`Quantity` as a class attribute values in a `section classes`. The name of a quantity is automatically taken from its `section class`\nattribute. You can provide all other attributes to the constructor with keyword arguments\n\nSee :ref:`metainfo-sections` to learn about `section classes`.\nIn Python terms, ``Quantity`` is a descriptor. Descriptors define how to get and\nset attributes in a Python object. This allows us to use sections like regular\nPython objects and quantity like regular Python attributes.\n\nEach quantity must define a basic data type and a shape. The values of a quantity must\nfulfil the given type. The default shape is a single value. Quantities can also have\nphysical units. Units are applied to all values.",
             "base_sections": [
-              "/packages/21/section_definitions/2"
+              "/packages/22/section_definitions/2"
             ],
             "constraints": [
               "dimensions",
@@ -71658,7 +71819,7 @@ window.nomadArtifacts = {
             "name": "SubSection",
             "description": "Like quantities, subsections are defined in a `section class` as attributes of this class. Unlike quantities, each subsection definition becomes a property of\nthe corresponding `section definition` (parent). A subsection definition references\nanother `section definition` as the subsection (child). As a consequence, parent\n`section instances` can contain child `section instances` as subsections.\n\nContrary to the old NOMAD metainfo, we distinguish between subsection the section\nand subsection the property. This allows to use on child `section definition` as\nsubsection of many parent `section definitions`.",
             "base_sections": [
-              "/packages/21/section_definitions/2"
+              "/packages/22/section_definitions/2"
             ],
             "constraints": [
               "has_sub_section"
@@ -71677,7 +71838,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/21/section_definitions/3"
+                  "type_data": "/packages/22/section_definitions/3"
                 }
               },
               {
@@ -71720,7 +71881,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "packages",
                 "description": "Packages in this environment.",
-                "sub_section": "/packages/21/section_definitions/4",
+                "sub_section": "/packages/22/section_definitions/4",
                 "repeats": true
               }
             ]

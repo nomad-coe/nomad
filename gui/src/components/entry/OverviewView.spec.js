@@ -188,7 +188,7 @@ function expectQuantityToBe(name, label, value, root = screen) {
 test('eln overview as a reviewer', async () => {
   await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
   await act(async () => render(
-    <EntryContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+    <EntryContext entryId="bC7byHvWJp62Sn9uiuJUB38MT5j-">
       <OverviewView />
     </EntryContext>
   ))
@@ -348,7 +348,9 @@ test.each([
   // Wait until the initial load is done by checking one of the card titles
   await screen2.findByTitle('Save entry')
 
-  const saveButton2 = screen2.getByTitle('Save entry').closest('button')
+  // Weird jest problem: sometimes we find multiple hits for 'Save entry'.
+  // Workaround: take the first one in the list.
+  const saveButton2 = screen2.queryAllByTitle('Save entry')[0].closest('button')
   expect(saveButton2).toBeInTheDocument()
   expect(saveButton2).toBeDisabled()
 
