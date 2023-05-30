@@ -165,7 +165,7 @@ plugins = Plugins(options={
         python_package='electronicparsers.exciting',
         mainfile_name_re=r'^.*.OUT(\.[^/]*)?$',
         mainfile_contents_re=(r'EXCITING.*started[\s\S]+?All units are atomic ')),
-    'parsers/fhiaims': Parser(
+    'parsers/fhi-aims': Parser(
         python_package='electronicparsers.fhiaims',
         mainfile_contents_re=(
             r'^(.*\n)*'
