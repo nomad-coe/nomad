@@ -188,7 +188,7 @@ function expectQuantityToBe(name, label, value, root = screen) {
 test('eln overview as a reviewer', async () => {
   await startAPI('tests.states.entry.eln', 'tests/data/entry/eln-reviewer', 'ttester', 'password')
   await act(async () => render(
-    <EntryContext entryId={'bC7byHvWJp62Sn9uiuJUB38MT5j-'}>
+    <EntryContext entryId="bC7byHvWJp62Sn9uiuJUB38MT5j-">
       <OverviewView />
     </EntryContext>
   ))
