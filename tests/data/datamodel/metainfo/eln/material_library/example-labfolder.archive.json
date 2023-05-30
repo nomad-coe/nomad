@@ -4,6 +4,6 @@
         "labfolder_email": "email",
         "password": "password",
         "project_url": "project_url#?projectIds=1",
-        "elements": [{"id": "1", "version_id": "1", "type": "TEXT"}, {"id": "1", "version_id": "1", "type": "FILE"}, {"id": "1", "version_id": "1", "type": "TABLE"}, {"id": "1", "version_id": "1", "type": "WELL_PLATE"}, {"id": "1", "version_id": "1", "type": "DATA"}, {"id": "1", "version_id": "1", "type": "IMAGE"}]
+        "entries": [{"id": "1", "version_id": "1", "type": "TEXT"}, {"id": "1", "version_id": "1", "type": "FILE"}, {"id": "1", "version_id": "1", "type": "TABLE"}, {"id": "1", "version_id": "1", "type": "WELL_PLATE"}, {"id": "1", "version_id": "1", "type": "DATA"}, {"id": "1", "version_id": "1", "type": "IMAGE"}]
     }
 }
