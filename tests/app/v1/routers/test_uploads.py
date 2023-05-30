@@ -913,7 +913,7 @@ def test_get_upload_raw_path(
         id='unpublished-aux-file'),
     pytest.param(
         'test_user', 'id_published', 'test_content/subdir/test_entry_01/mainfile.json', {'include_entry_info': True},
-        200, None, {'name': 'mainfile.json', 'size': 3237, 'entry_id': 'id_01', 'parser_name': 'parsers/vasp'}, None,
+        200, None, {'name': 'mainfile.json', 'size': 3231, 'entry_id': 'id_01', 'parser_name': 'parsers/vasp'}, None,
         id='published-main-file'),
     pytest.param(
         'other_test_user', 'id_unpublished', 'test_content/id_unpublished_1', {},

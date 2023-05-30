@@ -352,7 +352,6 @@ class Normalize(NomadSettings):
             DosNormalizer='nomad.normalizing.dos.DosNormalizer',
             BandStructureNormalizer='nomad.normalizing.band_structure.BandStructureNormalizer',
             WorkflowNormalizer='nomad.normalizing.workflow.WorkflowNormalizer',
-            Workflow2Normalizer='nomad.normalizing.workflow2.WorkflowNormalizer',
             ResultsNormalizer='nomad.normalizing.results.ResultsNormalizer',
             MetainfoNormalizer='nomad.normalizing.metainfo.MetainfoNormalizer'
         )

@@ -24,6 +24,7 @@ data:
     process:
       reuse_parser: {{ .Values.process.reuseParser }}
       index_materials: {{ .Values.process.indexMaterials }}
+      rfc3161_skip_published: {{ .Values.process.rfc3161_skip_published }}
     reprocess:
       rematch_published: {{ .Values.reprocess.rematchPublished }}
       reprocess_existing_entries: {{ .Values.reprocess.reprocessExistingEntries }}
@@ -63,8 +64,13 @@ data:
       bulk_timeout: {{ .Values.elastic.bulkTimeout }}
       bulk_size: {{ .Values.elastic.bulkSize }}
       entries_per_material_cap: {{ .Values.elastic.entriesPerMaterialCap }}
+      {{ if .Values.elastic.dbname }}
+      entries_index: "{{ .Values.elastic.dbname }}_entries_v1"
+      materials_index: "{{ .Values.elastic.dbname }}_materials_v1"
+      {{ else }}
       entries_index: "{{ .Values.dbname }}_entries_v1"
       materials_index: "{{ .Values.dbname }}_materials_v1"
+      {{ end }}
     mongo:
       host: "{{ .Values.mongo.host }}"
       port: {{ .Values.mongo.port }}

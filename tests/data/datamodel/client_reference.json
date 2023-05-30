@@ -20,13 +20,11 @@
             ]
         }
     ],
-    "workflow": [
-        {
-            "type": "geometry_optimization",
+    "workflow2": {
+        "m_def": "nomad.datamodel.metainfo.simulation.workflow.GeometryOptimization",
+    	"results": {
             "calculation_result_ref": "/run/0/calculation/0",
-            "geometry_optimization": {
-                "final_energy_difference": 4.13754846285984e-25
-            }
-        }
-    ]
+            "final_energy_difference": 4.13754846285984e-25
+	    }
+    }
 }

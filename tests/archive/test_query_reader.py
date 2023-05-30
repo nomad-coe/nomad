@@ -61,6 +61,8 @@ def assert_dict(d1, d2):
         del d1[GeneralReader.__CACHE__]
     if 'pagination' in d1:
         del d1['pagination']
+    if 'm_def' in d1:
+        del d1['m_def']
     assert set(d1.keys()) == set(d2.keys())
     for k, v in d1.items():
         if isinstance(v, dict):
@@ -553,17 +555,17 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'upload_files_server_path': 'id_published_with_ref',
         'm_raw': {
             'mainfile_for_id_02': {
-                'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
             'mainfile_for_id_03': {
-                'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
             'mainfile_for_id_04': {
-                'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
             'mainfile_for_id_05': {
-                'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
             'mainfile_for_id_06': {
-                'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
             'mainfile_for_id_01': {
-                'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+                'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
                 'm_entries': {
                     'process_running': False, 'current_process': None,
                     'process_status': 'SUCCESS', 'last_status_message': None,
@@ -734,12 +736,12 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'm_request': {
                 'directive': 'resolved',
                 'resolve_inplace': True,
-                'include': ['workflow']
+                'include': ['workflow2']
             },
         }
     }, result={'m_uploads': {'id_published_with_ref': {'m_entries': {'id_01': {'m_archive': {
-        'workflow': [{
-            'calculation_result_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/calculation/1'}],
+        'workflow2': {
+            'results': {'calculation_result_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/calculation/1'}},
         'run': [{
             'calculation': [
                 None, {
@@ -763,20 +765,20 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                         'H']},
                 'symmetry': [{
                     'space_group_number': 221}]}]}]}}}}},
-        'm_archive': {'workflow': [
-            {'workflows_ref': ['m_uploads/id_published_with_ref/m_entries/id_01/m_archive/workflow/0']}]}})
+        'm_archive': {'workflow2': {'tasks': [
+            {'task': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/workflow2'}]}}})
     __entry_print('plain entry reader, resolve to root', {
         'm_archive': {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_inplace': False,
-                'include': ['workflow']
+                'include': ['workflow2']
             },
         }
     }, result={
         'm_uploads': {'id_published_with_ref': {'m_entries': {'id_01': {'m_archive': {
-            'workflow': [{
-                'calculation_result_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/calculation/1'}],
+            'workflow2': {
+                'results': {'calculation_result_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/calculation/1'}},
             'run': [{
                 'calculation': [
                     None, {
@@ -800,8 +802,8 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                             'H']},
                     'symmetry': [{
                         'space_group_number': 221}]}]}]}}}}},
-        'm_archive': {'workflow': [{
-            'workflows_ref': ['m_uploads/id_published_with_ref/m_entries/id_01/m_archive/workflow/0']}]}})
+        'm_archive': {'workflow2': {
+            'tasks': [{'task': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/workflow2'}]}}})
     # __entry_print('plain entry reader, resolve inplace', {
     #     'm_archive': {
     #         'workflow[0]': {
@@ -900,12 +902,12 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'directive': 'plain',
         },
     }, result={
-        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3237, 'access': 'unpublished'}})
+        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'}})
 
     __fs_print('go to entry', {
         'm_request': {
@@ -913,7 +915,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         },
     }, result={
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -923,7 +925,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
                 'entry_metadata': None}},
         'mainfile_for_id_02': {
-            'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -933,7 +935,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
                 'entry_metadata': None}},
         'mainfile_for_id_03': {
-            'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -943,7 +945,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
                 'entry_metadata': None}},
         'mainfile_for_id_04': {
-            'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -953,7 +955,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
                 'entry_metadata': None}},
         'mainfile_for_id_05': {
-            'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -963,7 +965,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
                 'entry_metadata': None}},
         'mainfile_for_id_06': {
-            'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -983,13 +985,13 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             },
         }
     }, result={
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -1017,13 +1019,13 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             }
         }
     }, result={
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3237, 'access': 'unpublished',
+            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
             'm_entries': {
                 'upload_id': {
                     'process_running': False, 'current_process': 'process_upload',
@@ -1054,11 +1056,11 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             }
         }
     }, result={
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3237, 'access': 'unpublished'},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
         'mainfile_for_id_01': {'m_entries': {
             'upload_id': {
                 'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
@@ -1312,18 +1314,27 @@ def example_data_with_reference(elastic_function, raw_files_module, mongo_functi
     data.create_upload(upload_id='id_published_with_ref', upload_name='name_published', published=False)
 
     ref_list = [
-        {'calculation_result_ref': '/run/0/calculation/1'},  # plain direct reference
-        {'calculation_result_ref': '#/run/0/calculation/1'},  # new-style reference
-        {'workflows_ref': ['../entries/id_01/archive#/workflow/0']},  # reference to another archive
-        {'workflows_ref': ['../entries/id_05/archive#/workflow/0']},  # circular reference
-        {'workflows_ref': ['../entries/id_04/archive#/workflow/0']},  # circular reference
-        {'workflows_ref': ['https://another.domain/entries/id_03/archive#/workflow/0']}  # remote reference
+        {'results': {'calculation_result_ref': '/run/0/calculation/1'}},  # plain direct reference
+        {'results': {'calculation_result_ref': '#/run/0/calculation/1'}},  # new-style reference
+        {'tasks': [{
+            'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+            'task': '../entries/id_01/archive#/workflow2'}]},  # reference to another archive
+        {'tasks': [{
+            'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+            'task': '../entries/id_05/archive#/workflow2'}]},  # circular reference
+        {'tasks': [{
+            'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+            'task': '../entries/id_04/archive#/workflow2'}]},  # circular reference
+        {'tasks': [{
+            'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+            'task': 'https://another.domain/entries/id_03/archive#/workflow2'}]}  # remote reference
     ]
 
     del json_dict['results']
 
     for index, ref in enumerate(ref_list):
-        json_dict['workflow'][0] = ref
+        ref['m_def'] = 'nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow'
+        json_dict['workflow2'] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
             entry_id=f'id_{index + 1:02d}',
@@ -1417,9 +1428,10 @@ def json_dict():
                 ]
             }
         ],
-        "workflow": [
-            {
+        "workflow2": {
+            "m_def": "nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow",
+            "results": {
                 "calculation_result_ref": "/run/0/calculation/1"
             }
-        ]
+        }
     }

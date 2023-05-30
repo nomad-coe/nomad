@@ -45,7 +45,6 @@ from .data import EntryData, ArchiveSection, User, user_reference, author_refere
 from .optimade import OptimadeEntry  # noqa
 from .metainfo.simulation.run import Run  # noqa
 from .metainfo.workflow import Workflow  # noqa
-from .metainfo.workflow2 import Workflow as Workflow2  # noqa
 from .metainfo.measurements import Measurement  # noqa
 from .metainfo.tabulartree import TabularTree  # noqa
 
@@ -923,8 +922,8 @@ class EntryArchive(ArchiveSection):
 
     data = SubSection(sub_section=EntryData)
 
-    workflow = SubSection(sub_section=Workflow, repeats=True, categories=[FastAccess])
-    workflow2 = SubSection(sub_section=Workflow2)
+    workflow2 = SubSection(sub_section=Workflow, categories=[FastAccess])
+
     metadata = SubSection(
         sub_section=EntryMetadata, categories=[FastAccess],
         a_elasticsearch=Elasticsearch())

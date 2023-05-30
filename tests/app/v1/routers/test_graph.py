@@ -21,6 +21,7 @@ import pytest
 from nomad.archive.query_reader import EntryReader
 from nomad.datamodel import EntryArchive
 from nomad.utils.exampledata import ExampleData
+from tests.archive.test_archive import assert_dict
 
 
 # try:
@@ -182,11 +183,12 @@ def example_archive():
                 ]
             }
         ],
-        "workflow": [
-            {
+        "workflow2": {
+            "m_def": "nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow",
+            "results": {
                 "calculation_result_ref": "/run/0/calculation/1"
             }
-        ]
+        }
     }
     archive = EntryArchive.m_from_dict(json_dict)
     assert archive.run is not None
@@ -339,11 +341,9 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
     pytest.param('*', False, id='include-all-alias'),
     # pytest.param({'metadata': '*'}, False, id='include-sub-section'),
     # pytest.param({'metadata': {'entry_id': '*'}}, False, id='include-quantity'),
-    pytest.param({
-        'workflow': {'calculation_result_ref': {'energy': {'total': '*'}}}
-    }, None, id='resolve-with-required'),
-    pytest.param({'workflow': {'calculation_result_ref': 'include-resolved'}}, False, id='resolve-with-directive'),
-    pytest.param({'workflow': 'include-resolved', 'results': 'include-resolved'}, False, id='include-resolved'),
+    pytest.param({'workflow2': {'results': {'calculation_result_ref': {'energy': {'total': '*'}}}}}, None, id='resolve-with-required'),
+    pytest.param({'workflow2': {'results': {'calculation_result_ref': 'include-resolved'}}}, False, id='resolve-with-directive'),
+    pytest.param({'workflow2': 'include-resolved', 'results': 'include-resolved'}, False, id='include-resolved'),
     pytest.param({
         'results': {
             'properties': {
@@ -371,7 +371,7 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
     if error:
         assert 'm_errors' in results['m_archive']
     elif required in ('include', '*'):
-        assert example_archive.m_to_dict() == results['m_archive']
+        assert_dict(example_archive.m_to_dict(), results['m_archive'])
     else:
         full_archive = example_archive.m_to_dict()
         assert isinstance(required, dict)
@@ -390,6 +390,7 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
                 for i in range(len(a)):
                     assert_equal(a[i], b[i])
             elif isinstance(a, dict):
+                a.pop('m_def', None)
                 assert set(a.keys()) == set(b.keys())
                 for key in a.keys():
                     assert_equal(a[key], b[key])

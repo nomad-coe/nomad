@@ -32,6 +32,7 @@ from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
+from nomad.datamodel.metainfo.simulation.workflow import ThermodynamicsResults
 from nomad.normalizing.common import structures_2d
 from nomad.datamodel.results import (
     BandGap,
@@ -188,6 +189,34 @@ class ResultsNormalizer(Normalizer):
         ).material()
 
         results.method = MethodNormalizer(self.entry_archive, repr_system, results.material, logger).method()
+
+        # set entry type based on method and material
+        workflow = self.entry_archive.workflow2
+        if workflow is not None:
+
+            workflow_name = workflow.name if workflow.name else workflow.m_def.name
+
+            tag = ''
+            if results.method.simulation:
+                tag = 'simulation'
+
+            try:
+                method_name = results.method.method_name
+                program_name = results.method.simulation.program_name
+                if workflow_name == 'SinglePoint' and method_name:
+                    self.entry_archive.metadata.entry_type = f'{program_name} {method_name} {workflow_name}'
+                else:
+                    self.entry_archive.metadata.entry_type = f'{program_name} {workflow_name}'
+            except Exception:
+                self.entry_archive.metadata.entry_type = workflow_name
+            type_tag = f'{self.entry_archive.metadata.entry_type} {tag}'
+
+            # Populate entry_name
+            material = results.material
+            if material and material.chemical_formula_descriptive:
+                self.entry_archive.metadata.entry_name = f'{material.chemical_formula_descriptive} {type_tag}'
+            else:
+                self.entry_archive.metadata.entry_name = f'{type_tag}'
 
     def resolve_band_gap(self, path: list[str]) -> Union[List[BandGap], None]:
         """Extract all band gaps from the given `path` and return them in a list along
@@ -387,7 +416,14 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of temperatures.
           - There is a non-empty array of energies.
         """
-        path = ["workflow", "thermodynamics"]
+        workflow = self.entry_archive.workflow2
+        if workflow is None or not hasattr(workflow, 'results'):
+            return None
+        if not isinstance(workflow.results, ThermodynamicsResults):
+            return None
+
+        path = ["workflow2", "results"]
+
         for thermo_prop in traverse_reversed(self.entry_archive, path):
             temperatures = thermo_prop.temperature
             energies = thermo_prop.vibrational_free_energy_at_constant_volume
@@ -407,7 +443,13 @@ class ResultsNormalizer(Normalizer):
           - There is a non-empty array of temperatures.
           - There is a non-empty array of energies.
         """
-        path = ["workflow", "thermodynamics"]
+        workflow = self.entry_archive.workflow2
+        if workflow is None or not hasattr(workflow, 'results'):
+            return None
+        if not isinstance(workflow.results, ThermodynamicsResults):
+            return None
+
+        path = ["workflow2", "results"]
         for thermo_prop in traverse_reversed(self.entry_archive, path):
             temperatures = thermo_prop.temperature
             heat_capacities = thermo_prop.heat_capacity_c_v
@@ -423,24 +465,23 @@ class ResultsNormalizer(Normalizer):
         """Populates both geometry optimization methodology and calculated
         properties based on the first found geometry optimization workflow.
         """
-        path = ["workflow"]
+        path = ["workflow2"]
         for workflow in traverse_reversed(self.entry_archive, path):
             # Check validity
-            if workflow.type == "geometry_optimization" and workflow.calculations_ref:
-
+            if workflow.m_def.name == 'GeometryOptimization':
                 geo_opt = GeometryOptimization()
-                geo_opt_wf = workflow.geometry_optimization
-                geo_opt.trajectory = workflow.calculations_ref
-                geo_opt.system_optimized = workflow.calculation_result_ref.system_ref
-                if geo_opt_wf is not None:
-                    geo_opt.type = geo_opt_wf.type
-                    geo_opt.convergence_tolerance_energy_difference = geo_opt_wf.convergence_tolerance_energy_difference
-                    geo_opt.convergence_tolerance_force_maximum = geo_opt_wf.convergence_tolerance_force_maximum
-                    if geo_opt_wf.energies is not None:
-                        geo_opt.energies = geo_opt_wf
-                    geo_opt.final_energy_difference = geo_opt_wf.final_energy_difference
-                    geo_opt.final_force_maximum = geo_opt_wf.final_force_maximum
-                    geo_opt.final_displacement_maximum = geo_opt_wf.final_displacement_maximum
+                if workflow.results:
+                    geo_opt.trajectory = workflow.results.calculations_ref
+                    if workflow.results.calculation_result_ref:
+                        geo_opt.system_optimized = workflow.results.calculation_result_ref.system_ref
+                    geo_opt.energies = workflow.results
+                    geo_opt.final_energy_difference = workflow.results.final_energy_difference
+                    geo_opt.final_force_maximum = workflow.results.final_force_maximum
+                    geo_opt.final_displacement_maximum = workflow.results.final_displacement_maximum
+                if workflow.method is not None:
+                    geo_opt.type = workflow.method.type
+                    geo_opt.convergence_tolerance_energy_difference = workflow.method.convergence_tolerance_energy_difference
+                    geo_opt.convergence_tolerance_force_maximum = workflow.method.convergence_tolerance_force_maximum
                 return geo_opt
 
         return None
@@ -448,13 +489,12 @@ class ResultsNormalizer(Normalizer):
     def get_md_provenance(self, workflow: Workflow) -> Optional[MolecularDynamics]:
         """Retrieves the MD provenance from the given workflow.
         """
-        md_wf = workflow.molecular_dynamics
         md = None
-        if md_wf is not None:
+        if workflow.m_def.name == 'MolecularDynamics':
             try:
                 md = MolecularDynamics()
-                md.time_step = md_wf.integration_parameters.integration_timestep
-                md.ensemble_type = md_wf.thermodynamic_ensemble
+                md.time_step = workflow.method.integration_timestep
+                md.ensemble_type = workflow.method.thermodynamic_ensemble
             except Exception:
                 pass
         return md
@@ -462,11 +502,11 @@ class ResultsNormalizer(Normalizer):
     def trajectory(self) -> List[Trajectory]:
         """Returns a list of trajectories.
         """
-        path = ["workflow"]
+        path = ["workflow2"]
         trajs = []
         for workflow in traverse_reversed(self.entry_archive, path):
             # Check validity
-            if workflow.type == "molecular_dynamics":
+            if workflow.m_def.name == "MolecularDynamics":
                 traj = Trajectory()
                 md = self.get_md_provenance(workflow)
                 if md:
@@ -483,7 +523,9 @@ class ResultsNormalizer(Normalizer):
                 potential_energy = []
                 potential_energy_time = []
 
-                calculations_ref = workflow.calculations_ref if workflow.calculations_ref else []
+                calculations_ref = []
+                if workflow.results and workflow.results.calculations_ref:
+                    calculations_ref = workflow.results.calculations_ref
                 for calc in calculations_ref:
                     time = calc.time
                     if time is not None:
@@ -523,7 +565,11 @@ class ResultsNormalizer(Normalizer):
     def rdf(self) -> List[RadialDistributionFunction]:
         """Returns a list of radial distribution functions.
         """
-        path = ["workflow", "molecular_dynamics", "results", "radial_distribution_functions"]
+        workflow = self.entry_archive.workflow2
+        if workflow is None or workflow.m_def.name != 'MolecularDynamics':
+            return None
+
+        path = ["workflow2", "results", "radial_distribution_functions"]
         rdfs = []
         for rdf_workflow in traverse_reversed(self.entry_archive, path):
             rdf_values = rdf_workflow.radial_distribution_function_values
@@ -553,22 +599,23 @@ class ResultsNormalizer(Normalizer):
     def rg(self) -> List[RadiusOfGyration]:
         """Returns a list of Radius of gyration trajectories.
         """
-        path_workflow = ["workflow"]
+        path_workflow = ["workflow2"]
         rgs: List[RadiusOfGyration] = []
         for workflow in traverse_reversed(self.entry_archive, path_workflow):
 
             # Check validity
-            if workflow.type == "molecular_dynamics":
+            if workflow.m_def.name == "MolecularDynamics" and workflow.results:
+                results = workflow.results
                 md = self.get_md_provenance(workflow)
-                if workflow.calculations_ref and workflow.calculations_ref[0].radius_of_gyration:
-                    for rg_index, rg in enumerate(workflow.calculations_ref[0].radius_of_gyration):
+                if results.calculations_ref and results.calculations_ref[0].radius_of_gyration:
+                    for rg_index, rg in enumerate(results.calculations_ref[0].radius_of_gyration):
                         for rg_values_index, __ in enumerate(rg.radius_of_gyration_values):
                             rg_results = RadiusOfGyration()
                             rg_value = []
                             rg_time = []
                             if md:
                                 rg_results.provenance = MDProvenance(molecular_dynamics=md)
-                            for calc in workflow.calculations_ref:
+                            for calc in results.calculations_ref:
                                 sec_rg = calc.radius_of_gyration[rg_index]
                                 rg_results.kind = sec_rg.kind
                                 time = calc.time
@@ -587,7 +634,11 @@ class ResultsNormalizer(Normalizer):
     def msd(self) -> List[MeanSquaredDisplacement]:
         """Returns a list of mean squared displacements.
         """
-        path = ["workflow", "molecular_dynamics", "results", "mean_squared_displacements"]
+        workflow = self.entry_archive.workflow2
+        if workflow is None or workflow.m_def.name != 'MolecularDynamics':
+            return None
+
+        path = ["workflow2", "results", "mean_squared_displacements"]
         msds = []
         for msd_workflow in traverse_reversed(self.entry_archive, path):
             msd_values = msd_workflow.mean_squared_displacement_values
@@ -820,120 +871,119 @@ class ResultsNormalizer(Normalizer):
     def energy_volume_curves(self) -> List[EnergyVolumeCurve]:
         """Returns a list containing the found EnergyVolumeCurves.
         """
-        workflows = self.entry_archive.workflow
-        ev_curves = []
-        for workflow in workflows:
-            # Equation of state must be present
-            equation_of_state = workflow.equation_of_state
-            if not equation_of_state:
-                continue
+        workflow = self.entry_archive.workflow2
+        ev_curves: List[EnergyVolumeCurve] = []
+        # workflow must be equation of state
+        if workflow is None or workflow.m_def.name != 'EquationOfState' or workflow.results is None:
+            return ev_curves
 
-            # Volumes must be present
-            volumes = equation_of_state.volumes
-            if not valid_array(volumes):
-                self.logger.warning("missing eos volumes")
-                continue
+        # Volumes must be present
+        volumes = workflow.results.volumes
+        if not valid_array(volumes):
+            self.logger.warning("missing eos volumes")
+            return ev_curves
 
-            # Raw EV curve
-            energies_raw = equation_of_state.energies
-            if valid_array(energies_raw):
+        # Raw EV curve
+        energies_raw = workflow.results.energies
+        if valid_array(energies_raw):
+            ev_curves.append(EnergyVolumeCurve(
+                type="raw",
+                volumes=workflow.results,
+                energies_raw=workflow.results,
+            ))
+        else:
+            self.logger.warning("missing eos energies")
+
+        # Fitted EV curves
+        fits = workflow.results.eos_fit
+        if not fits:
+            return ev_curves
+        for fit in fits:
+            energies_fitted = fit.fitted_energies
+            function_name = fit.function_name
+            if valid_array(energies_fitted):
                 ev_curves.append(EnergyVolumeCurve(
-                    type="raw",
-                    volumes=equation_of_state,
-                    energies_raw=equation_of_state,
+                    type=function_name,
+                    volumes=workflow.results,
+                    energies_fit=fit,
                 ))
-            else:
-                self.logger.warning("missing eos energies")
-
-            # Fitted EV curves
-            fits = equation_of_state.eos_fit
-            if not fits:
-                continue
-            for fit in fits:
-                energies_fitted = fit.fitted_energies
-                function_name = fit.function_name
-                if valid_array(energies_fitted):
-                    ev_curves.append(EnergyVolumeCurve(
-                        type=function_name,
-                        volumes=equation_of_state,
-                        energies_fit=fit,
-                    ))
 
         return ev_curves
 
     def bulk_modulus(self) -> List[BulkModulus]:
         """Returns a list containing the found BulkModulus.
         """
-        workflows = self.entry_archive.workflow
-        bulk_modulus = []
-        for workflow in workflows:
-            # From elastic workflow
-            elastic = workflow.elastic
-            if elastic:
-                bulk_modulus_vrh = elastic.bulk_modulus_hill
-                if bulk_modulus_vrh:
-                    bulk_modulus.append(BulkModulus(
-                        type="voigt_reuss_hill_average",
-                        value=bulk_modulus_vrh,
-                    ))
-                bulk_modulus_voigt = elastic.bulk_modulus_voigt
-                if bulk_modulus_voigt:
-                    bulk_modulus.append(BulkModulus(
-                        type="voigt_average",
-                        value=bulk_modulus_voigt,
-                    ))
-                bulk_modulus_reuss = elastic.bulk_modulus_reuss
-                if bulk_modulus_reuss:
-                    bulk_modulus.append(BulkModulus(
-                        type="reuss_average",
-                        value=bulk_modulus_reuss,
-                    ))
+        workflow = self.entry_archive.workflow2
+        bulk_modulus: List[BulkModulus] = []
+        if workflow is None or not hasattr(workflow, 'results') or workflow.results is None:
+            return bulk_modulus
 
-            # From energy-volume curve fit
-            equation_of_state = workflow.equation_of_state
-            if equation_of_state:
-                fits = equation_of_state.eos_fit
-                if not fits:
-                    continue
-                for fit in fits:
-                    modulus = fit.bulk_modulus
-                    function_name = fit.function_name
-                    if modulus is not None and function_name:
-                        bulk_modulus.append(BulkModulus(
-                            type=function_name,
-                            value=modulus,
-                        ))
-                    else:
-                        self.logger.warning("missing eos fitted energies and/or function name")
+        if workflow.m_def.name == 'Elastic':
+            bulk_modulus_vrh = workflow.results.bulk_modulus_hill
+            if bulk_modulus_vrh:
+                bulk_modulus.append(BulkModulus(
+                    type="voigt_reuss_hill_average",
+                    value=bulk_modulus_vrh,
+                ))
+            bulk_modulus_voigt = workflow.results.bulk_modulus_voigt
+            if bulk_modulus_voigt:
+                bulk_modulus.append(BulkModulus(
+                    type="voigt_average",
+                    value=bulk_modulus_voigt,
+                ))
+            bulk_modulus_reuss = workflow.results.bulk_modulus_reuss
+            if bulk_modulus_reuss:
+                bulk_modulus.append(BulkModulus(
+                    type="reuss_average",
+                    value=bulk_modulus_reuss,
+                ))
+
+        if workflow.m_def.name == 'EquationOfState':
+            fits = workflow.results.eos_fit
+            if not fits:
+                return bulk_modulus
+
+            for fit in fits:
+                modulus = fit.bulk_modulus
+                function_name = fit.function_name
+                if modulus is not None and function_name:
+                    bulk_modulus.append(BulkModulus(
+                        type=function_name,
+                        value=modulus,
+                    ))
+                else:
+                    self.logger.warning("missing eos fitted energies and/or function name")
 
         return bulk_modulus
 
     def shear_modulus(self) -> List[ShearModulus]:
         """Returns a list containing the found ShearModulus.
         """
-        workflows = self.entry_archive.workflow
-        shear_modulus = []
-        for workflow in workflows:
-            # From elastic workflow
-            elastic = workflow.elastic
-            if elastic:
-                shear_modulus_vrh = elastic.shear_modulus_hill
-                if shear_modulus_vrh:
-                    shear_modulus.append(ShearModulus(
-                        type="voigt_reuss_hill_average",
-                        value=shear_modulus_vrh,
-                    ))
-                shear_modulus_voigt = elastic.shear_modulus_voigt
-                if shear_modulus_voigt:
-                    shear_modulus.append(ShearModulus(
-                        type="voigt_average",
-                        value=shear_modulus_voigt,
-                    ))
-                shear_modulus_reuss = elastic.shear_modulus_reuss
-                if shear_modulus_reuss:
-                    shear_modulus.append(ShearModulus(
-                        type="reuss_average",
-                        value=shear_modulus_reuss,
-                    ))
+        workflow = self.entry_archive.workflow2
+        shear_modulus: List[ShearModulus] = []
+        if workflow is None or not hasattr(workflow, 'results') or workflow.results is None:
+            return shear_modulus
+
+        if workflow.m_def.name != 'Elastic':
+            return shear_modulus
+
+        shear_modulus_vrh = workflow.results.shear_modulus_hill
+        if shear_modulus_vrh:
+            shear_modulus.append(ShearModulus(
+                type="voigt_reuss_hill_average",
+                value=shear_modulus_vrh,
+            ))
+        shear_modulus_voigt = workflow.results.shear_modulus_voigt
+        if shear_modulus_voigt:
+            shear_modulus.append(ShearModulus(
+                type="voigt_average",
+                value=shear_modulus_voigt,
+            ))
+        shear_modulus_reuss = workflow.results.shear_modulus_reuss
+        if shear_modulus_reuss:
+            shear_modulus.append(ShearModulus(
+                type="reuss_average",
+                value=shear_modulus_reuss,
+            ))
 
         return shear_modulus
