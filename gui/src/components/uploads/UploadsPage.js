@@ -33,6 +33,7 @@ import Page from '../Page'
 import { useErrors } from '../errors'
 import PublicIcon from '@material-ui/icons/Public'
 import UploaderIcon from '@material-ui/icons/AccountCircle'
+import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import DetailsIcon from '@material-ui/icons/ArrowForward'
 import { UploadButton } from '../nav/Routes'
 import {
@@ -151,13 +152,16 @@ const columns = [
 addColumnDefaults(columns, {align: 'left'})
 
 const Published = React.memo(function Published({upload}) {
+  const hasMultipleAuthors = upload.coauthors.length > 0
   if (upload.published) {
     return <Tooltip title="published upload">
       <PublicIcon color="primary" role='published-upload-icon'/>
     </Tooltip>
   } else {
     return <Tooltip title="this upload is not yet published">
-      <UploaderIcon color="error" role='unpublished-upload-icon'/>
+      {hasMultipleAuthors ? <SharedIcon color="error" />
+      : <UploaderIcon color="error" />
+       }
     </Tooltip>
   }
 })
