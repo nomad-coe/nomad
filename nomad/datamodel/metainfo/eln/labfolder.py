@@ -71,13 +71,38 @@ class LabfolderElement(MSection):
         pass
 
 
+class LabfolderEntry(MSection):
+    m_def = Section(label_quantity='title')
+
+    id = Quantity(type=str, description='Labfolder entry id')
+    version_id = Quantity(type=str)
+    author_id = Quantity(type=str)
+    project_id = Quantity(type=str)
+    version_date = Quantity(type=Datetime)
+    creation_date = Quantity(type=Datetime)
+    custom_dates = Quantity(type=Datetime, shape=['*'])
+    tags = Quantity(type=str, shape=['*'])
+    title = Quantity(type=str, description='Labfolder entry title')
+    hidden = Quantity(type=bool)
+    editable = Quantity(type=bool)
+
+    elements = SubSection(sub_section=LabfolderElement, repeats=True)
+
+    def download_files(self, labfolder_api_method, archive, logger):
+        pass
+
+    def post_process(self, labfolder_api_method, archive, logger, res_data={}):
+        pass
+
+
 class LabfolderTextElement(LabfolderElement):
     content = Quantity(
         type=str, description='The text based content of this element',
         a_browser=dict(value_component='HtmlValue'))
 
     def post_process(self, *args, **kwargs):
-        self.content = clean_html(self.content)
+        if self.content:
+            self.content = clean_html(self.content)
 
 
 class LabfolderFileElement(LabfolderElement):
@@ -237,24 +262,12 @@ class LabfolderProject(EntryData):
         type=bool,
         a_eln=dict(component='BoolEditQuantity'))
 
-    id = Quantity(type=str)
-    version_id = Quantity(type=str)
-    author_id = Quantity(type=str)
-    project_id = Quantity(type=str)
-    version_date = Quantity(type=Datetime)
-    creation_date = Quantity(type=Datetime)
-    custom_dates = Quantity(type=Datetime, shape=['*'])
-    tags = Quantity(type=str, shape=['*'])
-    title = Quantity(type=str)
-    hidden = Quantity(type=bool)
-    editable = Quantity(type=bool)
-
-    elements = SubSection(sub_section=LabfolderElement, repeats=True)
+    entries = SubSection(sub_section=LabfolderEntry, repeats=True)
 
     def _labfolder_api_method(self, method, url, msg='cannot do labfolder api request', **kwargs):
         response = method(
             f'{self._api_base_url}{url}',
-            headers=self._headers, **kwargs)
+            headers=self._headers, timeout=5, **kwargs)
 
         if response.status_code >= 400:
             self.logger.error(
@@ -305,8 +318,7 @@ class LabfolderProject(EntryData):
     def normalize(self, archive, logger):
         super(LabfolderProject, self).normalize(archive, logger)
         self.logger = logger
-
-        if not self.elements:
+        if not self.entries:
             self.resync_labfolder_repository = True
 
         if self.resync_labfolder_repository:
@@ -320,38 +332,41 @@ class LabfolderProject(EntryData):
                 logger.error('cannot parse project ids from url', exc_info=e)
                 raise LabfolderImportError()
 
-            data = self._labfolder_api_method(
+            entries = self._labfolder_api_method(
                 requests.get, f'/entries?project_ids={",".join(project_ids)}'
             ).json()
 
-            elements = data[0]['elements']
-            del data[0]['elements']
-
-            try:
-                self.m_update_from_dict(data[0])
-            except Exception as e:
-                logger.error('cannot update archive with labfolder data', exc_info=e)
-                raise LabfolderImportError()
-
             # remove potential old content
-            self.elements.clear()
+            self.entries.clear()
 
-            for element in elements:
-                element_type = element['type']
+            for entry in entries:
+                elements = entry['elements']
+                del entry['elements']
 
-                if element_type not in _element_type_path_mapping:
-                    logger.warn('unknown element type', data=dict(element_type=element_type))
-                    continue
+                nomad_entry = LabfolderEntry()
+                try:
+                    nomad_entry.m_update_from_dict(entry)
+                except Exception as e:
+                    logger.error('cannot update archive with labfolder data', exc_info=e)
+                    raise LabfolderImportError()
 
-                data = self._labfolder_api_method(
-                    requests.get,
-                    f'/elements/{_element_type_path_mapping[element_type]}/{element["id"]}/version/{element["version_id"]}'
-                ).json()
-                nomad_element = _element_type_section_mapping[element_type]()
+                for element in elements:
+                    element_type = element['type']
 
-                nomad_element.m_update_from_dict(data)
-                nomad_element.post_process(self._labfolder_api_method, archive, logger, res_data=data)
-                self.elements.append(nomad_element)
+                    if element_type not in _element_type_path_mapping:
+                        logger.warn('unknown element type', data=dict(element_type=element_type))
+                        continue
+
+                    data = self._labfolder_api_method(
+                        requests.get,
+                        f'/elements/{_element_type_path_mapping[element_type]}/{element["id"]}/version/{element["version_id"]}'
+                    ).json()
+                    nomad_element = _element_type_section_mapping[element_type]()
+
+                    nomad_element.m_update_from_dict(data)
+                    nomad_element.post_process(self._labfolder_api_method, archive, logger, res_data=data)
+                    nomad_entry.elements.append(nomad_element)
+                self.entries.append(nomad_entry)
 
             # Resetting Token and Logging out: Invalidating all access tokens
             self.resync_labfolder_repository = False

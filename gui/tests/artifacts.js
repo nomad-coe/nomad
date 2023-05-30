@@ -59382,6 +59382,145 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 3,
             "m_parent_sub_section": "section_definitions",
+            "name": "LabfolderEntry",
+            "more": {
+              "label_quantity": "title"
+            },
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "id",
+                "description": "Labfolder entry id",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "version_id",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "author_id",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "project_id",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "version_date",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "creation_date",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "custom_dates",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "tags",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "name": "title",
+                "description": "Labfolder entry title",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "name": "hidden",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "bool"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "editable",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "bool"
+                }
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "elements",
+                "sub_section": "/packages/11/section_definitions/2",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
             "name": "LabfolderTextElement",
             "base_sections": [
               "/packages/11/section_definitions/2"
@@ -59407,7 +59546,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
+            "m_parent_index": 5,
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderFileElement",
             "base_sections": [
@@ -59468,7 +59607,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
+            "m_parent_index": 6,
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderImageElement",
             "base_sections": [
@@ -59590,7 +59729,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
+            "m_parent_index": 7,
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderTableElement",
             "base_sections": [
@@ -59628,7 +59767,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
+            "m_parent_index": 8,
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderDataElement",
             "base_sections": [
@@ -59689,7 +59828,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
+            "m_parent_index": 9,
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderWellPlateElement",
             "base_sections": [
@@ -59743,7 +59882,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
+            "m_parent_index": 10,
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderProject",
             "label": "Labfolder Project Import",
@@ -59824,122 +59963,6 @@ window.nomadArtifacts = {
                   "type_kind": "python",
                   "type_data": "bool"
                 }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "id",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "name": "version_id",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "name": "author_id",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
-                "m_parent_sub_section": "quantities",
-                "name": "project_id",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
-                "m_parent_sub_section": "quantities",
-                "name": "version_date",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
-                "m_parent_sub_section": "quantities",
-                "name": "creation_date",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
-                "m_parent_sub_section": "quantities",
-                "name": "custom_dates",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 11,
-                "m_parent_sub_section": "quantities",
-                "name": "tags",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": [
-                  "*"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 12,
-                "m_parent_sub_section": "quantities",
-                "name": "title",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 13,
-                "m_parent_sub_section": "quantities",
-                "name": "hidden",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "bool"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 14,
-                "m_parent_sub_section": "quantities",
-                "name": "editable",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "bool"
-                }
               }
             ],
             "sub_sections": [
@@ -59947,8 +59970,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
-                "name": "elements",
-                "sub_section": "/packages/11/section_definitions/2",
+                "name": "entries",
+                "sub_section": "/packages/11/section_definitions/3",
                 "repeats": true
               }
             ]

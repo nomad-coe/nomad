@@ -39,7 +39,7 @@ def test_labfolder_integration(mongo, monkeypatch, test_user):
     # assert archive
     assert test_archive.metadata.entry_type == 'LabfolderProject'
     assert test_archive.data.project_url is not None
-    assert len(test_archive.data.elements) == 6
+    assert len(test_archive.data.entries) == 6
 
 
 @pytest.mark.parametrize('status_code,project_url,labfolder_email,password,element_data,response_data', [
@@ -198,7 +198,7 @@ def test_labfolder_detailed(mongo, monkeypatch, test_user, status_code, project_
 
     if status_code is 200:
         labfolder_instance.normalize(test_archive, logger=logger)
-        assert len(labfolder_instance.elements) is 1
+        assert len(labfolder_instance.entries) is 1
         assert labfolder_instance.labfolder_email is None
         assert labfolder_instance.password is None
 
@@ -207,7 +207,7 @@ def test_labfolder_detailed(mongo, monkeypatch, test_user, status_code, project_
             assert archive_data.get('password', None) is None
             assert archive_data.get('labfolder_email', None) is None
 
-        parsed_data = labfolder_instance.elements[0].m_to_dict()
+        parsed_data = labfolder_instance.entries[0].elements[0].m_to_dict()
         del parsed_data['m_def']
         if parsed_data['element_type'] is not 'DATA':
             assert json.dumps(parsed_data, sort_keys=True) == json.dumps(response_data, sort_keys=True)
