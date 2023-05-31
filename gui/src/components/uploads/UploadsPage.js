@@ -338,7 +338,14 @@ export function UploadsPage() {
   }, [data, user])
 
   // boolean to disable the Delete button if any of the upload's main author is not the current user
-  const disableDeleteButton = useMemo(() => Array.from(selected).some((id) => !currentUserUploadsMap[id]), [selected, currentUserUploadsMap])
+  const disableDeleteButton = useMemo(() => {
+    if (selected === 'all' && data) {
+      return data.data.some(({upload_id}) => !currentUserUploadsMap[upload_id])
+    } else {
+      return Array.from(selected).some((id) => !currentUserUploadsMap[id])
+    }
+  }, [data, selected, currentUserUploadsMap])
+
   const selectedCount = useMemo(() => selected === 'all' ? unpublished.pagination.total : selected?.size, [selected, unpublished])
   const deleteUploads = useCallback(() => {
     const promises = selectedUploads.map(upload_id => api.delete(`uploads/${upload_id}`))
