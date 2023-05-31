@@ -207,7 +207,7 @@ const CreateEntry = React.memo((props) => {
     setOpen(false)
   }, [getTemplateFromDefinition, deploymentUrl, uploadId])
 
-  const filtersLocked = useMemo(() => ({entry_type: ['Schema']}), [])
+  const filtersLocked = useMemo(() => ({'section_defs.definition_qualified_name': ['nomad.metainfo.metainfo.Definition']}), [])
 
   const handleChangeTab = (event) => {
     setSchemaType(event.target.value)

@@ -287,6 +287,7 @@ const DataStore = React.memo(({children}) => {
         metadataApiData: undefined, // ReadOnly - fetched by the store
         archive: undefined, // Modifiable object - fetched by the store, but the object *content* can be changed when editing.
         archiveApiData: undefined, // Modifiable object - fetched by the store, but the "archive" key is the same object as above, i.e. modifiable.
+        originalDefinition: undefined, // original definition defined by user obtained from raw file
 
         // ReadOnly - Derived or managed by the store
         exists: true,
@@ -417,6 +418,17 @@ const DataStore = React.memo(({children}) => {
           `/entries/${entryId}/archive/query`, {required}, {returnRequest: true, jsonResponse: true})
         const archive = archiveApiData?.response?.data?.archive
         if (archive) {
+          const fileName = archive.metadata.mainfile
+          const isYaml = fileName.endsWith('yaml') || fileName.endsWith('yml')
+          const isJson = fileName.endsWith('json')
+          if (isYaml || isJson) {
+            const content = await api.get(`/uploads/${archive.metadata.upload_id}/raw/${fileName}`,
+              {decompress: true, ignore_mime_type: true}, {transformResponse: []})
+            const rawArchive = isYaml ? YAML.parse(content) : isJson ? JSON.parse(content) : {}
+            if ('definitions' in rawArchive) {
+              dataToUpdate.originalDefinition = rawArchive.definitions
+            }
+          }
           archive.processing_logs = undefined
           if (archive.metadata?.upload_id) {
             dataToUpdate.uploadId = archive.metadata.upload_id
@@ -481,7 +493,7 @@ const DataStore = React.memo(({children}) => {
    * Used to save the archive and trigger a store refresh.
    */
   function saveArchive(deploymentUrl, entryId) {
-    const {uploadId, metadata, archive, archiveVersion} = getEntry(deploymentUrl, entryId)
+    const {uploadId, metadata, archive, archiveVersion, originalDefinition} = getEntry(deploymentUrl, entryId)
     const {mainfile} = metadata
     if (uploadId) {
       const separatorIndex = mainfile.lastIndexOf('/')
@@ -491,6 +503,11 @@ const DataStore = React.memo(({children}) => {
       delete newArchive.metadata
       delete newArchive.results
       delete newArchive.processing_logs
+      delete newArchive.m_ref_archives
+
+      if (originalDefinition) {
+        newArchive.definitions = originalDefinition
+      }
 
       const config = {}
       let stringifiedArchive
