@@ -86,7 +86,7 @@ class NORTH(NomadSettings):
             'jupyter': NORTHTool(
                 short_description='Basic jupyter run with an empty notebook or on given notebook file.',
                 description='### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.',
-                image='jupyter/datascience-notebook:lab-3.6.2',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:latest',
                 path_prefix='tree',
                 mount_path='/home/jovyan',
                 icon='jupyter_logo.svg',
