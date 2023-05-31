@@ -153,7 +153,7 @@ const Details = React.memo(({data}) => {
   const globalMetainfo = useGlobalMetainfo()
   const dataStore = useDataStore()
   const {useFiltersLockedState} = useSearchContext()
-  const filtersLocked = useFiltersLockedState(['section_defs.definition_qualified_name', 'entry_type'])
+  const filtersLocked = useFiltersLockedState(['section_defs.definition_qualified_name'])
   const [sections, setSections] = useState()
 
   const {selected, onSelectedChanged} = useContext(searchDialogContext)
@@ -163,7 +163,7 @@ const Details = React.memo(({data}) => {
       fetch()
     }
     async function fetch() {
-      if (filtersLocked.entry_type?.has('Schema')) {
+      if (filtersLocked['section_defs.definition_qualified_name']?.has('nomad.metainfo.metainfo.Definition')) {
         const schemas = await getSchemaInfo(globalMetainfo, entry_id)
         setSections(schemas)
       } else {

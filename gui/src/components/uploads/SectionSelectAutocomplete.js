@@ -195,7 +195,7 @@ function SectionSelectAutocomplete(props) {
   }, [onError])
 
   const loadSections = useCallback((value, updateInputValue = false) => {
-    if (filtersLocked.entry_type?.includes('Schema')) {
+    if (filtersLocked['section_defs.definition_qualified_name']?.includes('nomad.metainfo.metainfo.Definition')) {
       getSchemaInfo(globalMetainfo, value.entry_id)
         .then(sections => setSection(sections, value, updateInputValue))
     } else {

@@ -124,7 +124,7 @@ export const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, 
         </DialogContent>
         <DialogActions >
           <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
-          <Button onClick={() => handleDelete()}>
+          <Button onClick={() => handleDelete()} data-testid={'delete-dialog-delete-button'}>
             {deleteFolders
             ? `${brokenEntries.length > 0 ? 'Delete anyway' : 'Delete'} ${pluralize('entry', count, true)} and the ${pluralize('folder', count, false)}`
             : `${brokenEntries.length > 0 ? 'Delete anyway' : 'Delete'} ${pluralize('entry', count, true)}`}
@@ -134,9 +134,9 @@ export const DeleteEntriesButton = React.memo(({tooltip, disabled, buttonProps, 
     </React.Fragment> : null)
 })
 DeleteEntriesButton.propTypes = {
-  selectedEntries: PropTypes.object.isRequired,
-  selectedCount: PropTypes.number.isRequired,
-  setSelected: PropTypes.func.isRequired,
+  selectedEntries: PropTypes.object,
+  selectedCount: PropTypes.number,
+  setSelected: PropTypes.func,
   tooltip: PropTypes.string,
   disabled: PropTypes.bool,
   buttonProps: PropTypes.object,

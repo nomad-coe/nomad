@@ -142,6 +142,7 @@ export const ArchiveSaveButton = React.memo(function ArchiveSaveButton(props) {
   const handleReload = useCallback(() => {
     reload()
     setOpenErrorDialog(false)
+    setDisabled(false)
   }, [reload])
 
   return <React.Fragment>

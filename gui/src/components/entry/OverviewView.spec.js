@@ -341,7 +341,9 @@ test.each([
   const deleteButton1 = screen1.getByTitle('Delete entry').closest('button')
   expect(deleteButton1).toBeEnabled()
   await userEvent.click(deleteButton1)
-  const deleteMainfileButton = await screen1.findByRole('button', {name: 'Delete 1 entry'})
+  const deleteMainfileButton = await screen1.getByTestId('delete-dialog-delete-button').closest('button')
+
+  await waitForGUI(1000)
 
   const screen2 = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
 
@@ -384,7 +386,7 @@ test.each([
   await startAPI(state, snapshot, username, password)
 
   // Let's first render the initial state and see that the value is correct
-  render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
+  const {rerender} = render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
   const input = await screen.findByDisplayValue('ELN example sample')
 
   // Clear old value and insert new one. For some reason clearing the input with
@@ -400,8 +402,7 @@ test.each([
   await waitForGUI(2000)
 
   // Clear screen, re-render and see if value has changed
-  cleanup()
-  render(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
+  rerender(<EntryContext entryId={entryId}><OverviewView /></EntryContext>)
   await screen.findByDisplayValue(newValue)
 
   // Wait for the last API calls (e.g. reference card) to finish being recorded.
