@@ -279,20 +279,21 @@ deploy prod staging:
   before_script:
     - mkdir ~/.kube/
     - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
   script:
     - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
-    - docker tag ${CI_REGISTRY_IMAGE}:staging
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:staging
     - docker push ${CI_REGISTRY_IMAGE}:staging
     - helm dependency update ops/kubernetes/nomad
     - helm upgrade nomad-staging-v1 ops/kubernetes/nomad
       --install
       --values ops/kubernetes/deployments/prod-staging-values.yaml
-      --set image.tag=${DOCKER_TAG}
+      --set image.tag=staging
       --set roll=true
       --timeout=15m
       --wait
     - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:staging
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       nomad client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
     - when: manual
