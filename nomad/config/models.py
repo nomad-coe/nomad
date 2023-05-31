@@ -318,6 +318,8 @@ class Elastic(NomadSettings):
     entries_per_material_cap = 1000
     entries_index = 'nomad_entries_v1'
     materials_index = 'nomad_materials_v1'
+    username: Optional[str]
+    password: Optional[str]
 
 
 class Keycloak(NomadSettings):
@@ -335,6 +337,8 @@ class Mongo(NomadSettings):
     host: str = Field('localhost', description='The name of the host that runs mongodb.')
     port: int = Field(27017, description='The port to connect with mongodb.')
     db_name: str = Field('nomad_v1', description='The used mongodb database name.')
+    username: Optional[str]
+    password: Optional[str]
 
 
 class Logstash(NomadSettings):

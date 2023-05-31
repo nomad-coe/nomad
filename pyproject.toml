@@ -73,7 +73,7 @@ infrastructure = [
     'celery[redis]==5.2.7',
     'asgiref~=3.5',
     'mongoengine>=0.20',
-    'pymongo==3.12.1',
+    'pymongo==4.3.3',
     'itsdangerous>=2.1.2',
     'passlib==1.7.4',
     'python-logstash==0.4.6',
