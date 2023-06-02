@@ -195,7 +195,7 @@ def nginx_conf(prefix, host, port, server):
 
 @ops.command(help='Updates the AFLOW prototype information using the latest online version and writes the results to a python module in the given FILEPATH.')
 @click.argument('FILEPATH', nargs=1, type=str)
-@click.option('--matches-only', is_flag=True, help='Only update the match information that depends on the symmetry analysis settings. Will not perform and online update.')
+@click.option('--matches-only', is_flag=True, help='Only update the match information that depends on the symmetry analysis settings. Will not perform an online update.')
 @click.pass_context
 def prototypes_update(ctx, filepath, matches_only):
     from nomad.cli.aflow import update_prototypes
