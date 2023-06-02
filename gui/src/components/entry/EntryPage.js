@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 import React, { useMemo, useRef } from 'react'
-import { Tab, Tabs } from '@material-ui/core'
+import PropTypes from 'prop-types'
+import { makeStyles, Tab, Tabs } from '@material-ui/core'
 import { trimEnd } from 'lodash'
 import OverviewView from './OverviewView'
 import ArchiveEntryView from './ArchiveEntryView'
@@ -24,7 +25,54 @@ import ArchiveLogView from './ArchiveLogView'
 import BrowseEntryFilesView from './BrowseEntryFilesView'
 import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom'
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
-import { EntryContext } from './EntryContext'
+import { EntryContext, useEntryStore } from './EntryContext'
+import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline'
+
+const useStyles = makeStyles(theme => ({
+  errorLogs: {
+    color: theme.palette.error.main
+  },
+  errorIcon: {
+    verticalAlign: 'middle',
+    paddingRight: 10
+  }
+}))
+
+function EntryTabs({tab, onChange}) {
+  const {metadata} = useEntryStore()
+  const styles = useStyles()
+  const entryHasProcessingError = metadata?.processing_errors.length > 0
+
+  const renderLogsTabLabel = () => {
+    if (entryHasProcessingError) {
+      return (
+        <div className={styles.errorLogs}>
+          <ErrorOutlineIcon className={styles.errorIcon} />
+          Logs
+        </div>
+      )
+    }
+    return 'Logs'
+  }
+
+  return <Tabs
+      value={tab}
+      onChange={onChange}
+      indicatorColor="primary"
+      textColor="primary"
+      variant="fullWidth"
+    >
+      <Tab label="Overview" value="overview" />
+      <Tab label="Files" value="files" />
+      <Tab label="Data" value="data"/>
+      <Tab label={renderLogsTabLabel()} value="logs" />
+    </Tabs>
+}
+
+EntryTabs.propTypes = {
+  tab: PropTypes.string,
+  onChange: PropTypes.func
+}
 
 export const help = `
 The *overview* tab gives you an insightful overview about the most prominent
@@ -76,18 +124,7 @@ const EntryPage = React.memo(() => {
   }, [entryId, defaultUrls, urls])
 
   return <EntryContext entryId={entryId}>
-    <Tabs
-      value={tab}
-      onChange={handleChange}
-      indicatorColor="primary"
-      textColor="primary"
-      variant="fullWidth"
-    >
-      <Tab label="Overview" value="overview" />
-      <Tab label="Files" value="files" />
-      <Tab label="Data" value="data"/>
-      <Tab label="Logs" value="logs"/>
-    </Tabs>
+    <EntryTabs tab={tab} onChange={handleChange} />
     <CacheSwitch>
       <CacheRoute path={`${path}`} exact render={() => <OverviewView/>} />
       <CacheRoute when="always" path={`${path}/files`} render={() => <BrowseEntryFilesView />} />
