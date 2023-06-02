@@ -27,8 +27,8 @@ const NexusCard = React.memo(function NexusCard({index}) {
     return null
   }
   return (
-    <Card style={{height: 500}}>
-      <H5Web upload_id={index.upload_id} filename={index.mainfile}/>
+    <Card style={{height: 500, overflowY: "scroll"}}>
+      <H5Web upload_id={index.upload_id} filename={index.mainfile} initialPath="/"/>
     </Card>
   )
 })
