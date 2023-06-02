@@ -27,7 +27,6 @@ import { apiBase } from '../../config'
 import { parseCifStructures } from 'crystcif-parse'
 import Structure from '../visualization/Structure'
 import { isWaitingForUpdateTestId } from '../../utils'
-import H5Web from '../visualization/H5Web'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
@@ -98,13 +97,7 @@ const viewerPDF = {
     />
   }
 }
-const viewerHDF5 = {
-  name: 'hdf5',
-  fileExtensions: ['hdf5', 'hd5', 'nxs'],
-  maxSizeAutoPreview: 10e6,
-  width: 'fit-content',
-  render: ({uploadId, path}) => <H5Web upload_id={uploadId} filename={path}/>
-}
+
 const viewerCif = {
   name: 'cif',
   fileExtensions: ['cif'],
@@ -130,7 +123,7 @@ const viewerCif = {
     )
   }
 }
-export const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHDF5, viewerCif]
+export const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerCif]
 
 const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()

@@ -21,6 +21,8 @@ import h5py
 from fastapi.testclient import TestClient
 
 from nomad.app import h5grove_app
+from nomad.utils.exampledata import ExampleData
+from nomad.files import StagingUploadFiles
 from nomad import config
 
 
@@ -30,10 +32,37 @@ def h5grove_api(raw_files):
     return TestClient(h5grove_app.app, base_url='http://testserver/')
 
 
-def test_h5grove(client, h5grove_api):
-    file_name = "test.h5"
-    file_path = f"{config.fs.staging}{os.sep}{file_name}"
+@pytest.fixture
+def upload_id():
+    return "nexus_test_upload"
+
+
+@pytest.fixture
+def example_data_nxs(test_user, upload_id):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id)
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id="nexus_test_entry"
+    )
+    data.save(with_files=False, with_mongo=True)
+
+
+@pytest.mark.parametrize('user, status_code, file_name', [
+    pytest.param('invalid', 401, "test.h5", id='invalid-credentials'),
+    pytest.param(None, 401, "test.h5", id='no-credentials'),
+    pytest.param('test_user', 404, "some_other.h5", id='file-not-found'),
+    pytest.param('test_user', 200, "test.h5", id='file-in-published'),  # TODO: Implement fetching from published upload
+    pytest.param('test_user', 200, "test.h5", id='file-in-staging')
+])
+def test_h5grove(h5grove_api, upload_id, proc_infra, example_data_nxs, test_auth_dict, user, status_code, file_name):
+    user_auth, _ = test_auth_dict[user]
+    test_file = "test.h5"
+    file_path = f"{StagingUploadFiles(upload_id=upload_id, create=True)._raw_dir}{os.sep}{test_file}"
     h5file = h5py.File(file_path, "w")
     h5file.create_dataset("entry", data="test")
     h5file.close()
-    assert h5grove_api.get(f"/data/?file={file_name}&path=/entry").content == b'"test"'
+    resp = h5grove_api.get(f"/data/?file={file_name}&path=/entry&upload_id={upload_id}", headers=user_auth)
+    assert resp.status_code == status_code
+    if status_code == 200:
+        assert resp.content == b'"test"'

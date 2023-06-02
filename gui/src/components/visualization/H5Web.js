@@ -1,52 +1,63 @@
 import React, { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { appBase } from '../../config'
-import { App, H5GroveProvider } from '@h5web/app'
+import { H5GroveProvider, App } from '@h5web/app'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
 
 import '@h5web/lib/dist/styles.css'
 import '@h5web/app/dist/styles.css'
+import { makeStyles } from '@material-ui/core'
 
-const H5Web = (props) => {
+const useH5WebStyles = makeStyles(theme => ({
+  visualizerContainer: {
+    color: theme.palette.primary.main
+  }
+}))
+
+const H5Web = ({upload_id, filename, initialPath, explorerOpen}) => {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [filepath, setFilepath] = useState(false)
-  const {upload_id, filename} = props
-  const authParams = {}
-  if (api.keycloak) {
-    authParams.token = api.keycloak.token
-  }
+
+  const styles = useH5WebStyles()
 
   useEffect(() => {
-    if (filename.includes('.yaml') || filename.includes('.yml')) {
-      api.get(`/uploads/${upload_id}/raw/${filename}`)
-        .then(data => {
-          const fname = data.match(/output:[ \t]*(.*nxs)/i)?.[1]
-          setFilepath(upload_id.substring(0, 2) + '/' + upload_id + '/raw/' + fname)
-        })
-        .catch(raiseError)
-    } else {
-      setFilepath(upload_id.substring(0, 2) + '/' + upload_id + '/raw/' + filename)
+    if (filename && upload_id) {
+      if (filename.includes('.yaml') || filename.includes('.yml')) {
+        api.get(`/uploads/${upload_id}/raw/${filename}`)
+          .then(data => {
+            const fname = data.match(/output:[ \t]*(.*nxs)/i)?.[1]
+            setFilepath(fname)
+          })
+          .catch(raiseError)
+      } else {
+        setFilepath(filename)
+      }
     }
   }, [filepath, api, filename, upload_id, raiseError])
 
   if (filepath) {
     return (
+      <div className={styles.visualizerContainer} key={initialPath}>
       <H5GroveProvider
         url={appBase + '/h5grove/'}
         filepath={filepath}
-        axiosParams={{file: filepath, upload_id: upload_id, ...authParams}}
+        axiosConfig={{params: {file: filepath, upload_id: upload_id}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
       >
-        <App />
+        <App initialPath={initialPath} explorerOpen={explorerOpen}/>
+
       </H5GroveProvider>
+      </div>
     )
   }
   return 'Loading...'
 }
 H5Web.propTypes = {
   upload_id: PropTypes.string.isRequired,
-  filename: PropTypes.string.isRequired
+  filename: PropTypes.string.isRequired,
+  initialPath: PropTypes.string.isRequired,
+  explorerOpen: PropTypes.bool
 }
 
 export default H5Web

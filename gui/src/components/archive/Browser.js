@@ -26,6 +26,7 @@ import { ErrorHandler } from '../ErrorHandler'
 import { useDataStore } from '../DataStore'
 import { useApi } from '../api'
 import NavigateIcon from '@material-ui/icons/ArrowRight'
+import H5Web from '../visualization/H5Web'
 
 function escapeBadPathChars(s) {
   return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
@@ -131,6 +132,17 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
 
   const { api } = useApi()
 
+  const [hdf5Path, setHdf5Path] = useState(null)
+  const [hdf5Filename, setHdf5Filename] = useState(null)
+
+  const checkHdf5Path = (m_nx_data_path) => {
+    if (typeof m_nx_data_path !== 'undefined') {
+      setHdf5Path(m_nx_data_path)
+    } else {
+      setHdf5Path(null)
+    }
+  }
+
   useLayoutEffect(() => {
     function update() {
       const height = window.innerHeight - outerRef.current.getBoundingClientRect().top - 24
@@ -163,6 +175,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     const segments = ['root'].concat(path.substring(url.length).split('/').filter(segment => segment))
     const oldLanes = lanes.current
     const newLanes = []
+
     for (let index = 0; index < segments.length; index++) {
       const segment = unescapeBadPathChars(segments[index])
       const prev = index === 0 ? null : newLanes[index - 1]
@@ -188,6 +201,11 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           oldLanes.slice(index).forEach(oldLane => oldLane.adaptor?.cleanup())
         }
         newLaneCreated = true
+
+        if (typeof adaptor?.obj?.metadata?.mainfile !== 'undefined') {
+          setHdf5Filename(adaptor?.obj?.metadata?.mainfile)
+        }
+
         // Set or create the lane adaptor
         if (!prev) {
           // The root lane - use provided adaptor
@@ -196,11 +214,13 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           // Non-root lane - create adaptor
           try {
             lane.adaptor = await prev.adaptor.itemAdaptor(segment)
+            checkHdf5Path(lane.adaptor?.obj?.m_attributes?.m_nx_data_path)
           } catch (error) {
             console.log(error)
             lane.error = `The item "${segment}" could not be found.`
           }
         }
+
         // initialize the adaptor
         if (lane.adaptor) {
           try {
@@ -212,8 +232,10 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           }
         }
       }
+
       if (prev) {
         prev.next = lane
+        checkHdf5Path(lane.adaptor?.obj?.m_attributes?.m_nx_data_path)
       }
       newLanes.push(lane)
       if (lane.error) {
@@ -274,19 +296,28 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
 
   return <browserContext.Provider value={contextValue}>
     {form}
-    <Card>
-      <CardContent>
-        <div className={classes.root} ref={rootRef} >
-          <div className={classes.lanesContainer} ref={outerRef} >
-            <div className={classes.lanes} ref={innerRef} >
+      <Grid container direction="row" spacing={2}>
+        <Grid item md={((hdf5Path && hdf5Filename) ? 8 : 12)}>
+        <Card>
+          <CardContent>
+        <div className={classes.root} ref={rootRef}>
+          <div className={classes.lanesContainer} ref={outerRef}>
+            <div className={classes.lanes} ref={innerRef}>
               {lanes.current && lanes.current.map((lane, index) => (
                 <Lane key={`lane${index}`} lane={lane} />
               ))}
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+        </Card>
+        </Grid>
+        {hdf5Path && hdf5Filename && adaptor?.obj?.metadata?.upload_id && <Grid item md={4} style={{visibility: (hdf5Path == null ? "hidden" : "visible")}}>
+          <Card>
+            <H5Web upload_id={adaptor?.obj?.metadata?.upload_id} filename={hdf5Filename} initialPath={(hdf5Path)} explorerOpen={false}/>
+          </Card>
+        </Grid>}
+      </Grid>
   </browserContext.Provider>
 })
 Browser.propTypes = ({
