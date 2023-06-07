@@ -19,7 +19,7 @@ recursive-include dependencies/parsers/database/databaseparsers *.py nomad_plugi
 include dependencies/parsers/eelsdb/README.md
 recursive-include dependencies/parsers/eelsdb/eelsdbparser *.py nomad_plugin.yaml
 include dependencies/parsers/electronic/README.md
-recursive-include dependencies/parsers/electronic/electronicparsers *.py nomad_plugin.yaml
+recursive-include dependencies/parsers/electronic/electronicparsers *.py *.json nomad_plugin.yaml
 include dependencies/parsers/nexus/README.md
 recursive-include dependencies/parsers/nexus/nexusutils *.py
 include dependencies/parsers/nexus/nexusutils/dataconverter/readers/hall/enum_map.json
