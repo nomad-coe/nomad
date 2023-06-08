@@ -1,0 +1,23 @@
+{
+    "data": {
+        "m_def": "../upload/raw/schema.archive.yaml#/definitions/section_definitions/3",
+        "name": "ELN example sample",
+        "lab_id": "001",
+        "tags": [
+            "project"
+        ],
+        "substrate_type": "SLG",
+        "processes": {
+            "pvd_evaporation": {
+                "datetime": "2022-05-10T07:20:00+00:00",
+                "data_file": "PVDProcess.csv"
+            },
+            "hotplate_annealing": {
+                "datetime": "2022-05-10T07:22:00+00:00",
+                "set_temperature": 373.15,
+                "duration": 60
+            }
+        },
+        "description": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>"
+    }
+}

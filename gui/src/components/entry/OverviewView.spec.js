@@ -213,17 +213,12 @@ test('eln overview as a reviewer', async () => {
   expectQuantityToBe('lab_id', 'lab id', '001', within(cardSample))
   expectQuantityToBe('description', 'description', undefined, within(cardSample))
   expectQuantityToBe('tags', 'tags', 'project', within(cardSample))
-  expectQuantityToBe('chemicals', 'chemicals', ['../upload/raw/Copper_II_Selenide.archive.json#data', '../upload/raw/Tin_II_Selenide.archive.json#data', '../upload/raw/Zinc_Selenide.archive.json#data'], within(cardSample))
   expectQuantityToBe('substrate_type', 'substrate type', 'SLG', within(cardSample))
   expectQuantityToBe('substrate_thickness', 'substrate thickness', undefined, within(cardSample))
   expectQuantityToBe('sample_is_from_collaboration', 'sample is from collaboration', undefined, within(cardSample))
 
   expect(within(cardPvdEvaporation).getByText('PvdEvaporation')).toBeVisible()
-  expectQuantityToBe('instrument', 'instrument', '../upload/raw/PVD-P.archive.json#data', within(cardPvdEvaporation))
   expectQuantityToBe('data_file', 'data file', 'PVDProcess.csv', within(cardPvdEvaporation))
-  expectQuantityToBe('time', 'time', ['0', '1', '2', '3', '4', 'and 9642 more items'], within(cardPvdEvaporation))
-  expectQuantityToBe('chamber_pressure', 'chamber pressure', ['0.00313', '0.00315', '0.00313', '0.00313', '0.00314', 'and 9642 more items'], within(cardPvdEvaporation))
-  expectQuantityToBe('substrate_temperature', 'substrate temperature', ['32.4132', '32.4141', '32.416', '32.4175', '32.4181', 'and 9642 more items'], within(cardPvdEvaporation))
 
   // Test if the plot is there
   expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
@@ -311,7 +306,7 @@ test.each([
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '373.15', 'K')
 
   // Wait for the last API calls (e.g. reference card) to finish being recorded.
-  await waitForGUI(10000)
+  await waitForGUI(5000)
 
   closeAPI()
 })
