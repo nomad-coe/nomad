@@ -26,6 +26,7 @@ import Browser, { Item, Content, Adaptor, browserContext, laneContext, Title, Co
 import { useApi } from '../api'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
+import FileCopyIcon from '@material-ui/icons/FileCopy'
 import CreateNewFolderIcon from '@material-ui/icons/CreateNewFolder'
 import DeleteIcon from '@material-ui/icons/Delete'
 import NavigateIcon from '@material-ui/icons/ArrowForward'
@@ -245,6 +246,7 @@ function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedI
   const [openConfirmDeleteDirDialog, setOpenConfirmDeleteDirDialog] = useState(false)
   const [openCreateDirDialog, setOpenCreateDirDialog] = useState(false)
   const [openCopyMoveDialog, setOpenCopyMoveDialog] = useState(false)
+  const [openDuplicateDialog, setOpenDuplicateDialog] = useState(false)
   const [fileName, setFileName] = useState('')
   const copyFileName = useRef()
   const createDirName = useRef()
@@ -300,6 +302,7 @@ function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedI
 
   const handleCopyMoveFile = (e) => {
     setOpenCopyMoveDialog(false)
+    setOpenDuplicateDialog(false)
     api.put(`/uploads/${uploadId}/raw/${encodedPath}?copy_or_move=${e.moveFile}&copy_or_move_source_path=${fileName}&file_name=${copyFileName.current.value}`)
       .then(response => dataStore.updateUpload(deploymentUrl, uploadId, {upload: response.data}))
       .catch(error => raiseError(error))
@@ -348,6 +351,32 @@ function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedI
             tooltip={path}
             actions={
               <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
+                <Grid item>
+                  <IconButton size="small" onClick={() => setOpenDuplicateDialog(true)} disabled={!editable || fileName === ""}>
+                    <Tooltip title="duplicate file">
+                      <FileCopyIcon />
+                    </Tooltip>
+                  </IconButton>
+                  <Dialog
+                      open={openDuplicateDialog}
+                      onClose={() => setOpenDuplicateDialog(false)}
+                    >
+                      <DialogContent>
+                        <DialogContentText>Duplicate <b>{fileName}</b>:</DialogContentText>
+                        <TextField
+                          fullWidth
+                          placeholder='Provide a name'
+                          autoFocus
+                          inputRef={copyFileName}
+                          defaultValue={`(Copy) ${fileName.split('/').splice(-1)}`}
+                        />
+                      </DialogContent>
+                      <DialogActions>
+                        <Button onClick={() => setOpenDuplicateDialog(false)}>Cancel</Button>
+                        <Button onClick={(e) => handleCopyMoveFile({...e, moveFile: 'copy'})}>Duplicate</Button>
+                      </DialogActions>
+                    </Dialog>
+                </Grid>
                 <Grid item>
                   <IconButton size="small" onClick={() => browser.invalidateLanesFromIndex(lane.index)}>
                     <Tooltip title="reload directory contents">
@@ -458,14 +487,16 @@ function RawDirectoryContent({deploymentUrl, uploadId, path, title, highlightedI
           <Compartment>
             {
               lane.adaptor.data.directory_metadata.map(element => (
-                <Item
-                  icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
-                  itemKey={element.name} key={urlJoin(path, element.name)}
-                  highlighted={element.name === highlightedItem}
-                  chip={element.parser_name && element.parser_name.replace('parsers/', '').replace('archive', 'nomad')}
-                >
-                  {element.name}
-                </Item>
+                <span key={element.name} onClick={() => setFileName(element.name)}>
+                  <Item
+                    icon={element.is_file ? (element.parser_name ? RecognizedFileIcon : FileIcon) : FolderIcon}
+                    itemKey={element.name} key={urlJoin(path, element.name)}
+                    highlighted={element.name === highlightedItem}
+                    chip={element.parser_name && element.parser_name.replace('parsers/', '').replace('archive', 'nomad')}
+                  >
+                    {element.name}
+                  </Item>
+                </span>
               ))
             }
           </Compartment>
