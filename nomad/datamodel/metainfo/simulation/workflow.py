@@ -18,9 +18,12 @@
 from typing import List
 import numpy as np
 from ase import Atoms
+from ase.eos import EquationOfState as aseEOS
 from nptyping import NDArray
 
+from nomad.atomutils import get_volume
 from nomad.datamodel.data import ArchiveSection
+from nomad.units import ureg
 from nomad.metainfo import MSection, SubSection, Section, Quantity, MEnum, Reference, derived
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.datamodel.metainfo.workflow import Workflow, Link, Task
@@ -2686,10 +2689,40 @@ class EquationOfState(ParallelSimulation):
 
         if self.results.volumes is None:
             try:
-                self.results.volumes = []
+                volumes = []
+                unit = 1
                 for system in self._systems:
-                    cell = system.atoms.simulation_cell
-                    if cell:
-                        self.results.volumes.append(np.dot(cell[0], np.cross(cell[1], cell[2])))
+                    if system.atoms.lattice_vectors is not None:
+                        cell = system.atoms.lattice_vectors.magnitude
+                        unit = system.atoms.lattice_vectors.units
+                        volumes.append(get_volume(cell))
+                self.results.volumes = np.array(volumes) * unit ** 3
             except Exception:
                 pass
+
+        if not self.results.eos_fit:
+            function_name_map = {
+                'birch_murnaghan': 'birchmurnaghan', 'pourier_tarantola': 'pouriertarantola',
+                'vinet': 'vinet', 'murnaghan': 'murnaghan', 'birch_euler': 'birch'
+            }
+            if self.results.volumes is not None and self.results.energies is not None:
+                # convert to ase units in order for function optimization to work
+                volumes = self.results.volumes.to('angstrom ** 3').magnitude
+                energies = self.results.energies.to('eV').magnitude
+                for function_name, ase_name in function_name_map.items():
+                    try:
+                        eos = aseEOS(volumes, energies, ase_name)
+                        eos.fit()
+                        fitted_energies = eos.func(volumes, *eos.eos_parameters)
+                        rms_error = np.sqrt(np.mean((fitted_energies - energies) ** 2))
+                        eos_fit = EOSFit(
+                            function_name=function_name,
+                            fitted_energies=fitted_energies * ureg.eV,
+                            bulk_modulus=eos.B * ureg.eV / ureg.angstrom ** 3,
+                            equilibrium_volume=eos.v0 * ureg.angstrom ** 3,
+                            equilibrium_energy=eos.e0 * ureg.eV,
+                            rms_error=rms_error
+                        )
+                        self.results.eos_fit.append(eos_fit)
+                    except Exception:
+                        self.logger.warning('EOS fit not succesful.')
