@@ -1330,8 +1330,8 @@ function resolveInternalRefSingle(url, data) {
       if (current.repeats && current.m_def) {
       } else {
         let index = parseInt(segment)
-        if (index < 0) index = current.length - index
-          current = current[index]
+        if (index < 0) index = current.length + index
+        current = current[index]
       }
     }
   }

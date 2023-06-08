@@ -171,7 +171,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
     computingForUrl.current = url
     const rootPath = url.endsWith('/') ? url.substring(0, url.length - 1) : url
-    const path = pathname?.replace(/\/(\d*)(\/|$)/g, ":$1/").replace(/\/$/, "")
+    const path = pathname?.replace(/\/(-?\d*)(\/|$)/g, ":$1/").replace(/\/$/, "")
     const segments = ['root'].concat(path.substring(url.length).split('/').filter(segment => segment))
     const oldLanes = lanes.current
     const newLanes = []
@@ -496,10 +496,16 @@ ItemButton.propTypes = {
   icon: PropTypes.node
 }
 
-export function Item({children, itemKey, disabled, highlighted, icon, actions, chip}) {
+export function Item({children, itemKey, length, disabled, highlighted, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useLane()
-  const selected = lane.next && lane.next.key
+  let selected = lane.next && lane.next.key
+  let [label, index] = selected ? selected.split(':') : []
+  if (index && length) {
+    index = parseInt(index)
+    if (index < 0) index = index + length
+    selected = `${label}:${index}`
+  }
   const isSelected = itemKey && (selected === itemKey || selected?.replace(':', '/') === itemKey)
   if (disabled) {
     return <Grid
@@ -555,6 +561,7 @@ Item.propTypes = ({
     PropTypes.node
   ]).isRequired,
   itemKey: PropTypes.string,
+  length: PropTypes.number,
   disabled: PropTypes.bool,
   highlighted: PropTypes.bool,
   icon: PropTypes.elementType,
