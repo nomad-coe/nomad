@@ -493,10 +493,12 @@ class ArchiveAdaptor extends Adaptor {
 
 class SectionAdaptor extends ArchiveAdaptor {
   async itemAdaptor(key) {
-    const [name, index] = key.split(':')
+    let [name, index] = key.split(':')
     let urlSuffix = index ? `${name}/${index}` : name
     const property = this.def._properties[name] || (name === 'm_attributes' && this.def.attributes.find(attr => attr.name === index))
     let value = this.obj[name] === undefined || this.obj[name] === null ? property?.default : this.obj[name]
+    index = parseInt(index)
+    if (index < 0) index = index + value.length
     if (property.m_def === QuantityMDef && quantityUsesFullStorage(property)) {
       value = value[index]
     }
@@ -541,8 +543,24 @@ class SectionAdaptor extends ArchiveAdaptor {
           const resolvedUrl = resolveNomadUrl(reference, this.parsedObjUrl)
           if (resolvedUrl.type === refType.archive) {
             const {archive} = await this.dataStore.getEntryAsync(resolvedUrl.deploymentUrl, resolvedUrl.entryId, false, '*')
-            const resolvedDef = property.type._referencedDefinition
             const resolvedObj = resolveInternalRef('/' + (resolvedUrl.path || ''), archive)
+            let resolvedDef
+            if (resolvedObj.m_def) {
+              // the custom definition is present anyway
+              resolvedDef = property.type._referencedDefinition
+            } else {
+              const metainfo = await this.dataStore.getMetainfoAsync(systemMetainfoUrl)
+              try {
+                resolvedDef = metainfo.getEntryArchiveDefinition()
+                for (const item of resolvedUrl.path.split('/')) {
+                  if (item.match(/^-?\d+$/) || item === '') continue
+                  resolvedDef = resolvedDef._properties[item]
+                  if (resolvedDef.sub_section) resolvedDef = resolvedDef.sub_section
+                }
+              } catch {
+                resolvedDef = property.type._referencedDefinition
+              }
+            }
             return this.adaptorFactory(resolvedUrl, resolvedObj, resolvedDef)
           }
           throw new Error('Unhandled reference type')
@@ -1252,7 +1270,7 @@ export function PropertyValuesList({label, values, actions, nTop, nBottom, pageS
   const showSelected = !open && (selected === label || selected?.startsWith(label + ':'))
 
   const item = (index, item) => {
-    return <Item key={index} itemKey={`${label}/${index}`}>
+    return <Item key={index} itemKey={`${label}/${index}`} length={values.length}>
       <Box display="flex" flexDirection="row" flexGrow={1}>
         <Box component="span" marginLeft={2}>
           {item && typeof item === 'object'
