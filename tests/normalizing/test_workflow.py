@@ -17,9 +17,16 @@
 #
 
 import pytest
+from ase.io import Trajectory
+from nomad.units import ureg
 
 import tests
 from .conftest import run_normalize
+from nomad.datamodel import EntryArchive
+from nomad.datamodel.metainfo.simulation.run import Run, Program
+from nomad.datamodel.metainfo.simulation.calculation import Calculation, Energy, EnergyEntry
+from nomad.datamodel.metainfo.simulation.system import System, Atoms
+from nomad.datamodel.metainfo.simulation.workflow import EquationOfState
 
 
 def approx(value, abs=0, rel=1e-6):
@@ -244,3 +251,41 @@ def test_radius_of_gyration(workflow_archive):
     assert sec_rg.label == 'Protein_chain_X-index_0'
     assert sec_rg.value[frame].magnitude == approx(5.036762961380965e-10)
     assert sec_rg.value[frame].units == 'meter'
+
+
+def parse_trajectory(filename):
+    # TODO implement parser for ase trajectory
+    trajectory = Trajectory(filename)
+
+    archive = EntryArchive()
+
+    run = Run(program=Program(name='ASE'))
+    for frame in trajectory:
+        calc = Calculation(energy=Energy(total=EnergyEntry(value=frame.get_potential_energy() * ureg.eV)))
+        system = System(atoms=Atoms(
+            positions=frame.get_positions() * ureg.angstrom,
+            labels=frame.get_chemical_symbols(),
+            lattice_vectors=frame.get_cell().array * ureg.angstrom,
+            periodic=frame.pbc
+        ))
+        run.calculation.append(calc)
+        run.system.append(system)
+
+    archive.run.append(run)
+
+    archive.workflow2 = EquationOfState()
+    run_normalize(archive)
+
+    return archive
+
+
+def test_eos_workflow():
+    archive = parse_trajectory('tests/data/normalizers/workflow/eos/Cu.traj')
+
+    eos_fit = archive.workflow2.results.eos_fit
+    assert len(eos_fit) == 5
+    assert eos_fit[0].fitted_energies[1].to('eV').magnitude == approx(-0.00636507)
+    assert eos_fit[1].function_name == 'pourier_tarantola'
+    assert eos_fit[2].equilibrium_volume.to('angstrom**3').magnitude == approx(11.565388081047471)
+    assert eos_fit[3].equilibrium_energy.to('eV').magnitude == approx(-0.007035923370513912)
+    assert eos_fit[4].rms_error == approx(1.408202378222592e-07)
