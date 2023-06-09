@@ -46,7 +46,7 @@ This branch can be pushed to the repo, and then later may be merged to the relev
 
 Nomad is based on python modules from the NOMAD-coe project.
 This includes parsers, python-common and the meta-info. These modules are maintained as
-their own GITLab/git repositories. To clone and initialize them run:
+their own GITLab/git repositories. To clone and initialize these modules, run:
 
 ```sh
 git submodule update --init
@@ -60,7 +60,7 @@ You should work in a Python virtual environment.
 
 #### pyenv
 The nomad code currently targets python 3.9. If your host machine has an older version installed,
-you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.9 in parallel to your
+you can use [pyenv](https://github.com/pyenv/pyenv) to use python 3.9 in parallel with your
 system's python.
 
 #### virtualenv
@@ -104,7 +104,7 @@ unix/linux systems. It can be installed on MacOS with homebrew:
 brew install libmagic
 ```
 
-If you are using an Mac with Apple Silicon, we recommend to use rosetta, homebrew
+If you are using a Mac with Apple Silicon, we recommend that you use rosetta, homebrew
 for Intel, and install and use an Intel based Python. The second answer in this
 [Stackoverflow post](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook)
 describes how to use both the Apple and Intel homebrew simultaneously.
@@ -141,14 +141,14 @@ and nomad itself.
     ```
 
     Next we install the `nomad` package itself (including all extras). The `-e`
-    option will install the NOMAD with symbolic links allowing you to change
+    option will install NOMAD with symbolic links that allow you to change
     the code without having to reinstall after each change.
 
     ```sh
     pip install -e .[parsing,infrastructure,dev]
     ```
 
-    If pip tries to use and compile sources and this creates errors, it can be told to prefer binary version:
+   If pip tries to use and compile sources that create errors, it can be told to prefer the binary version:
 
     ```sh
     pip install -e .[parsing,infrastructure,dev] --prefer-binary
@@ -161,7 +161,7 @@ and nomad itself.
     ```
 
     This file includes some of the server details that are needed so that the
-    GUI can make the initial connection properly. If you e.g. change the server
+    GUI can make the initial connection properly. If for example you change the server
     address in your NOMAD configuration file, it will be necessary to regenerate
     this .env file. In production this file will be overridden.
 
@@ -184,7 +184,7 @@ To run NOMAD, some 3rd party services are needed
 - rabbitmq: a task queue used to distribute work in a cluster
 
 All 3rd party services should be run via *docker-compose* (see below).
-Keep in mind the *docker-compose* configures all services in a way that mirror
+Keep in mind that *docker-compose* configures all services in a way that mirrors
 the configuration of the python code in `nomad/config.py` and the gui config in
 `gui/.env.development`.
 
@@ -236,7 +236,7 @@ keycloak:
 ```
 
 You might also want to exclude some of the default plugins, or only include the plugins
-you'll need. Especially plugins that slower start-up and import times due to instantiation
+you'll need. Especially plugins with slower start-up and import times due to instantiation
 of large schemas (e.g. nexus create couple thousand definitions for 70+ applications) can
 often be excluded.
 
@@ -274,12 +274,7 @@ To run the worker directly with celery, do (from the root)
 celery -A nomad.processing worker -l info
 ```
 
-Before you can run the gui, make sure that generated the GUI artifacts:
-```sh
-./scripts/generate_gui_artifacts.sh
-```
-
-If you run the gui on its own (e.g. with react dev server below), you also have to have
+If you run the gui on its own (e.g. with react dev server below), you also need to start
 the app manually. The gui and its dependencies run on [node](https://nodejs.org) and
 the [yarn](https://yarnpkg.com/) dependency manager. Read their documentation on how to
 install them for your platform.
@@ -323,7 +318,7 @@ npm install -g configurable-http-proxy
 ```
 
 The JupyterHUB is a separate application. You can run the JuypterHUB similar
-tp the other part.
+to the other part.
 
 ```sh
 nomad admin run hub
@@ -348,7 +343,7 @@ rm -rf site && mkdocs build && mv site nomad/app/static/docs
 ```
 
 You need to have the infrastructure partially running: elastic, rabbitmq.
-The rest should be mocked or provided by the tests. Make sure that you do no run any
+The rest should be mocked or provided by the tests. Make sure that you do not run any
 worker, as they will fight for tasks in the queue.
 ```sh
 cd ops/docker-compose/infrastructure
@@ -359,7 +354,7 @@ pytest -svx tests
 
 We use pylint, pycodestyle, and mypy to ensure code quality. To run those:
 ```sh
-nomad dev qa --skip-test
+nomad dev qa --skip-tests
 ```
 
 To run all tests and code qa:
@@ -411,7 +406,7 @@ These utilities can usually be placed into the following categories:
    \*.spec.js files, you should formalize these common tests into a
    `expect*`-function and place it in a relevant conftest.js file.
 
-Often you components will need to communicate with the API during tests. One
+Often your components will need to communicate with the API during tests. One
 should generally avoid using manually created mocks for the API traffic, and
 instead prefer using API responses that originate from an actual API call
 during testing. Manually created mocks require a lot of manual work in creating
@@ -503,7 +498,7 @@ When you wish to record API traffic for offline testing, or to perform
 integration tests, you will need to have a server running with the correct
 configuration. To do this, follow these steps:
 
-1. Have the docker infrastructure running: `docker compose up`
+1. Have the docker infrastructure running: `docker-compose up`
 
 2. Have the `nomad appworker` running with the config found in
     `gui/tests/nomad.yaml`. This can be achieved e.g. with the command: `export
@@ -555,7 +550,7 @@ storage available.
 
 ## Setup your IDE
 
-The documentation section for development guidelines (see below) details how the code is organized,
+The documentation section for development guidelines (see below) provide details on how the code is organized,
 tested, formatted, and documented. To help you meet these guidelines, we recommend to
 use a proper IDE for development and ditch any VIM/Emacs (mal-)practices.
 
@@ -583,7 +578,7 @@ your own launch configs in `.vscode/launch.json` (also in .gitignore).
 The settings expect that you have installed a python environment at `.pyenv` as
 described in this tutorial (see above).
 
-We also provide developers a vscode extension which is designed to support nomad schema language.
+We also provide developers with a vscode extension that is designed to support nomad schema language.
 One can generate the extension using the following command after nomad installation
 
 ```sh
