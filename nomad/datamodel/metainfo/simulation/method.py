@@ -243,6 +243,9 @@ class Scf(MSection):
         description='''
         The code-specific tag indicating the precision used
         for the self-consistent cycle.
+
+        Supported codes (with hyperlinks to the relevant documentation):
+        - `Orca`
         ''')
 
     n_max_iteration = Quantity(
@@ -534,13 +537,6 @@ class AtomParameters(MSection):
         unit='coulomb',
         description='''
         Values of the charge corresponding to each orbital.
-        ''')
-
-    pseudopotential_name = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        Name identifying the pseudopotential used.
         ''')
 
     hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def)
@@ -984,6 +980,11 @@ class BasisSetContainer(MSection):
         description='''
         The code-specific tag indicating the precision used
         for the basis set and meshes of numerical routines.
+
+        Supported codes (with hyperlinks to the relevant documentation):
+        - [`VASP`](https://www.vasp.at/wiki/index.php/PREC)
+        - `FHI-aims`
+        - [`CASTEP`](http://www.tcm.phy.cam.ac.uk/castep/documentation/WebHelp/CASTEP.html#modules/castep/tskcastepsetelecquality.htm?Highlight=ultra-fine)
         '''
     )
 

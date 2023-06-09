@@ -2930,7 +2930,7 @@ window.nomadArtifacts = {
     },
     "results.method.simulation.precision.native_tier": {
       "name": "native_tier",
-      "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.",
+      "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.\n\nSupported codes (with hyperlinks to the relevant documentation):\n- [`VASP`](https://www.vasp.at/wiki/index.php/PREC)\n- `FHI-aims`\n- [`CASTEP`](http://www.tcm.phy.cam.ac.uk/castep/documentation/WebHelp/CASTEP.html#modules/castep/tskcastepsetelecquality.htm?Highlight=ultra-fine)",
       "type": {
         "type_kind": "python",
         "type_data": "str"
@@ -4812,7 +4812,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "native_tier",
-                "description": "The code-specific tag indicating the precision used\nfor the self-consistent cycle.",
+                "description": "The code-specific tag indicating the precision used\nfor the self-consistent cycle.\n\nSupported codes (with hyperlinks to the relevant documentation):\n- `Orca`",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -5998,7 +5998,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "native_tier",
-                "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.",
+                "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.\n\nSupported codes (with hyperlinks to the relevant documentation):\n- [`VASP`](https://www.vasp.at/wiki/index.php/PREC)\n- `FHI-aims`\n- [`CASTEP`](http://www.tcm.phy.cam.ac.uk/castep/documentation/WebHelp/CASTEP.html#modules/castep/tskcastepsetelecquality.htm?Highlight=ultra-fine)",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -16169,7 +16169,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "native_tier",
-                "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.",
+                "description": "The code-specific tag indicating the precision used\nfor the basis set and meshes of numerical routines.\n\nSupported codes (with hyperlinks to the relevant documentation):\n- [`VASP`](https://www.vasp.at/wiki/index.php/PREC)\n- `FHI-aims`\n- [`CASTEP`](http://www.tcm.phy.cam.ac.uk/castep/documentation/WebHelp/CASTEP.html#modules/castep/tskcastepsetelecquality.htm?Highlight=ultra-fine)",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
