@@ -1463,7 +1463,7 @@ class DFT(MSection):
         Methodology for a DFT calculation.
         '''
     )
-    basis_set_type = Quantity(  # TODO: deprecate after reaprsing
+    basis_set_type = Quantity(  # TODO: deprecate after reparsing
         type=MEnum(basis_set_types),
         default=unavailable,
         description='The used basis set functions.',

@@ -200,20 +200,12 @@ class MethodNormalizer():
                     continue
                 for basis_set in electrons_representation.basis_set or []:
                     for orbital in basis_set.orbital or []:
-                        if orbital.type == 'APW' and not compound_type:
-                            compound_type = 'APW'
-                            small_compound_type = 'APW'
-                        elif orbital.type == 'LAPW' and not compound_type:
-                            compound_type = 'LAPW'
-                            small_compound_type = 'LAPW'
-                        elif orbital.type in ['APW', 'LAPW']\
-                                and compound_type in ['APW', 'LAPW']\
-                                and orbital.type != compound_type:
-                            compound_type = '(L)APW'
-                            small_compound_type = '(L)APW'
-                        elif orbital.type == 'LO' and 'lo' == compound_type[-2:]:
+                        if not compound_type:
+                            compound_type = orbital.type
+                        elif compound_type[:6] != '(L)APW' and orbital.type in ['APW', 'LAPW']:
+                            compound_type = re.sub(r'L?APW', '(L)APW', compound_type)
+                        elif orbital.type == 'LO' and 'lo' != compound_type[-2:]:
                             compound_type += '+lo'
-                            small_compound_type += '+lo'
                 sec_method.electrons_representation[em_index].type = compound_type\
                     if compound_type else None
                 em_index += 1
