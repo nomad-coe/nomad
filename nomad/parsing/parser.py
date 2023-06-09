@@ -409,7 +409,8 @@ class MatchingParserInterface(MatchingParser):
         if is_mainfile:
             try:
                 # try to resolve mainfile keys from parser
-                mainfile_keys = self.mainfile_parser.get_mainfile_keys(filename)
+                mainfile_keys = self.mainfile_parser.get_mainfile_keys(
+                    filename=filename, decoded_buffer=decoded_buffer)
                 self.creates_children = True
                 return mainfile_keys
             except Exception:
