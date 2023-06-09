@@ -284,20 +284,22 @@ class MethodNormalizer():
             if k_line_density := self.calc_k_line_density(k_lattices, grid):
                 if not simulation.precision.k_line_density:
                     simulation.precision.k_line_density = k_line_density
-            for em in self.run.m_xpath('method[-1].electrons_representation') or []:
-                try:
-                    if 'wavefunction' in em['scope']:
-                        simulation.precision.basis_set = em['type']
-                        simulation.precision.native_tier = em['native_tier']
-                        for bs in em['basis_set']:
-                            if 'cutoff' in bs.keys() and 'type' in bs.keys():
-                                simulation.precision.planewave_cutoff = bs['cutoff']
-                                break
-                            elif 'cutoff_fractional' in bs.keys() and 'type' in bs.keys():
-                                simulation.precision.apw_cutoff = bs['cutoff_fractional']
-                                break
-                except (TypeError, AttributeError, KeyError):
-                    pass
+
+            for em_index, em in enumerate(er := getattr(methods[-1], 'electrons_representation', [])):
+                if (nt := getattr(em, 'native_tier')) is not None:
+                    try:
+                        er[em_index].native_tier = f"{self.run.program.name} - {nt}"
+                    except AttributeError:
+                        pass
+                if 'wavefunction' in getattr(em, 'scope', []):
+                    simulation.precision.basis_set = getattr(em, 'type')
+                    simulation.precision.native_tier = getattr(em, 'native_tier')
+                    for bs in getattr(em, 'basis_set', []):
+                        if getattr(bs, 'type') is not None:
+                            # only one of either will be set
+                            simulation.precision.planewave_cutoff = getattr(bs, 'cutoff')
+                            simulation.precision.apw_cutoff = getattr(bs, 'cutoff_fractional')
+                            break
 
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name

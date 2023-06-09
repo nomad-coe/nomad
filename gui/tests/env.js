@@ -133,32 +133,28 @@ window.nomadEnv = {
                 "label": "Program name",
                 "align": "left"
               },
-              "results.method.simulation.dft.basis_set_name": {
-                "label": "Basis set name",
-                "align": "left"
-              },
               "results.method.simulation.dft.xc_functional_type": {
                 "label": "XC Functional Type",
                 "align": "left"
               },
               "results.method.simulation.precision.apw_cutoff": {
-                "label": "APW cutoff",
+                "label": "APW Cutoff",
                 "align": "left"
               },
               "results.method.simulation.precision.basis_set": {
-                "label": "Basis set",
+                "label": "Basis Set",
                 "align": "left"
               },
               "results.method.simulation.precision.k_line_density": {
-                "label": "K-line density",
+                "label": "k-line Density",
                 "align": "left"
               },
               "results.method.simulation.precision.native_tier": {
-                "label": "Native tier",
+                "label": "Code-specific tier",
                 "align": "left"
               },
               "results.method.simulation.precision.planewave_cutoff": {
-                "label": "Plane wave cutoff",
+                "label": "Plane-wave cutoff",
                 "align": "left"
               },
               "results.material.structural_type": {
@@ -402,32 +398,28 @@ window.nomadEnv = {
                 "label": "Authors",
                 "align": "left"
               },
-              "results.method.simulation.dft.basis_set_name": {
-                "label": "Basis set name",
-                "align": "left"
-              },
               "results.method.simulation.dft.xc_functional_type": {
                 "label": "XC Functional Type",
                 "align": "left"
               },
               "results.method.simulation.precision.apw_cutoff": {
-                "label": "APW cutoff",
+                "label": "APW Cutoff",
                 "align": "left"
               },
               "results.method.simulation.precision.basis_set": {
-                "label": "Basis set",
+                "label": "Basis Set",
                 "align": "left"
               },
               "results.method.simulation.precision.k_line_density": {
-                "label": "K-line density",
+                "label": "k-line Density",
                 "align": "left"
               },
               "results.method.simulation.precision.native_tier": {
-                "label": "Native tier",
+                "label": "Code-specific tier",
                 "align": "left"
               },
               "results.method.simulation.precision.planewave_cutoff": {
-                "label": "Plane wave cutoff",
+                "label": "Plane-wave cutoff",
                 "align": "left"
               },
               "results.material.structural_type": {

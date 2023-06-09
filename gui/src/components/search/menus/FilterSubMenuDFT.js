@@ -71,14 +71,6 @@ const FilterSubMenuDFT = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.method.simulation.dft.basis_set_type"
-          visible={visible}
-          xs={12}
-          disableSearch
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputField
           quantity="results.method.simulation.dft.core_electron_treatment"
           visible={visible}
           disableSearch
