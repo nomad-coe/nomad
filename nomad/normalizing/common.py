@@ -150,7 +150,7 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
     cell.volume = volume
     mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers()) * ureg.kg
     cell.mass_density = None if volume == 0 else mass / volume
-    number_of_atoms = atoms.get_number_of_atoms()
+    number_of_atoms = len(atoms)
     cell.atomic_density = None if volume == 0 else number_of_atoms / volume
 
     return cell
@@ -223,9 +223,9 @@ def ase_atoms_from_nomad_atoms(system: NOMADAtoms) -> Atoms:
         ase.Atoms instance.
     '''
     return Atoms(
-        positions=system.positions.to(ureg.angstrom),
+        positions=system.positions.to(ureg.angstrom).magnitude,
         numbers=system.species,
-        cell=system.lattice_vectors.to(ureg.angstrom),
+        cell=system.lattice_vectors.to(ureg.angstrom).magnitude,
         pbc=system.periodic
     )
 
@@ -246,9 +246,9 @@ def ase_atoms_from_structure(system: Structure) -> Atoms:
     symbols = [symbol_map[x] for x in system.species_at_sites]
 
     return Atoms(
-        positions=system.cartesian_site_positions.to(ureg.angstrom),
+        positions=system.cartesian_site_positions.to(ureg.angstrom).magnitude,
         symbols=symbols,
-        cell=system.lattice_vectors.to(ureg.angstrom),
+        cell=system.lattice_vectors.to(ureg.angstrom).magnitude,
         pbc=np.array(system.dimension_types, dtype=bool)
     )
 
