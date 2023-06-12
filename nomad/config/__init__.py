@@ -201,7 +201,7 @@ plugins = Plugins(options={
         mainfile_contents_re=r'M O L C A S'),
     'parsers/mopac': Parser(
         python_package='electronicparsers.mopac',
-        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z]*)\s*\*\*\s*',
+        mainfile_contents_re=r'\s*\*\*\s*MOPAC\s*([0-9a-zA-Z\.]*)\s*\*\*\s*',
         mainfile_mime_re=r'text/.*',),
     'parsers/nwchem': Parser(
         python_package='electronicparsers.nwchem',
