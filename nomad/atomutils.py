@@ -1157,7 +1157,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     atom_names = sec_atoms.get('labels')
     model_atom_parameters = sec_method.get('atom_parameters')
     atom_types = [atom.label for atom in model_atom_parameters] if model_atom_parameters else atom_names
-    atom_resindex = np.arange(n_atoms)
+    atom_resindex = cast(List[int], np.arange(n_atoms))
     atoms_segindices = np.empty(n_atoms)
     atom_segids = np.array(range(n_atoms), dtype='object')
     molecule_groups = sec_atoms_group
@@ -1212,7 +1212,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     resnames = residue_data[4]
     res_index_counter = 0
     for i_residue, res_n_atoms in enumerate(residue_n_atoms):
-        atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue
+        atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue  # type: ignore
         res_index_counter += res_n_atoms
     residue_molnums = np.array(range(n_residues))
     mol_index_counter = 0

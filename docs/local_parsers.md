@@ -1,6 +1,6 @@
 # Run NOMAD parser locally
 
-If you install `nomad-lab[parsing]`, you can use the NOMAD parsers locally on your computer.
+If you install `nomad-lab`, you can use the NOMAD parsers locally on your computer.
 To use the NOMAD parsers from the command line, you can use the parse CLI command. The parse command will automatically
 match the right parser to your code output file and run the parser. There are two output formats, `--show-metadata` (a
 JSON representation of the basic metadata) and `--show-archive` (a JSON representation of the full parse results).
@@ -14,7 +14,7 @@ This will give you the parse results as metainfo objects to conveniently analyze
 See metainfo for more details on how to use the metainfo in Python.
 
 ```python
-# requires: nomad-lab[parsing,infrastructure]
+# requires: nomad-lab
 import sys
 from nomad.client import parse, normalize_all
 

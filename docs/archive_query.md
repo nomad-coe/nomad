@@ -208,3 +208,14 @@ The following arguments are acceptable for `ArchiveQuery`.
 - `retry` : `int` In the case of server errors, the fetch process is automatically retried every `sleep_time` seconds.
   This argument limits the maximum times of retry.
 - `sleep_time` : `float` The interval of fetch retry.
+
+
+## The complete example
+
+!!! attention
+    This examples uses the new `workflow2` workflow system. This is still under development
+    and this example might not yet produce results on the public nomad data.
+
+```python
+--8<-- "examples/archive/archive_query.py"
+```

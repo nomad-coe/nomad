@@ -57,7 +57,7 @@ def run_async(func, *args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
 
 
-def _collect(required, parent_section: mi.Section, parent_path: str = None) -> set:
+def _collect(required, parent_section: mi.Section = None, parent_path: str = None) -> set:
     '''
     Flatten required quantities for uncoupled query
     '''
@@ -72,12 +72,18 @@ def _collect(required, parent_section: mi.Section, parent_path: str = None) -> s
         definition_name = key.split('[')[0]
 
         # validate definition name
-        definition = parent_section.all_properties.get(definition_name)
-        if definition is None:
-            raise KeyError(f'{definition_name} is not a property of {parent_section}.')
+        definition = None
+        if parent_section:
+            definition = parent_section.all_properties.get(definition_name)
 
         if parent_path:
             definition_name = f'{parent_path}.{definition_name}'
+
+        if not definition:
+            # We have to stop here because we cannot further statically analyze the
+            # required. We have to assume the remainder is based on a polymorphic subsection,
+            # and we cannot know the exact subsection type.
+            return quantities
 
         quantities.add(definition_name)
 
