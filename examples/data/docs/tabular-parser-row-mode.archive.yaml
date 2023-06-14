@@ -13,8 +13,7 @@ definitions:
           m_annotations:
             tabular_parser:
               comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
-              mode: row # Setting mode to row signals that for each row in the sheet_name (provided in quantity)
-              target_sub_section: # This is the reference to where the targeted (sub-)section lies within this example schema file
+              row_sections: # This is the reference to where the targeted (sub-)section lies within this example schema file
                 - My_Subsection/My_Section
       sub_sections:
         My_Subsection:
