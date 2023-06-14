@@ -10,7 +10,8 @@ definitions:
                     m_annotations:
                         tabular_parser:
                             comment: '#'
-                            mode: entry
+                            entry_sections:
+                                - root
                 my_quantity_1:
                     type: str
                     m_annotations:

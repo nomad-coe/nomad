@@ -45,13 +45,13 @@ NOMAD's upload page:
 
 ## Tabular Annotations
 In order to import your data from a `.csv` or `Excel` file, NOMAD provides three distinct (and separate) ways, that
-with each comes unique options for importing and interacting with your data. To better understand how to use
-NOMAD parsers to import your data, three commented sample schemas are presented below. Also, each section follows
-and extends a general example explained thereafter.
+with each comes unique options for importing and interacting with your data. In order to better understand how to use
+NOMAD tabular parser to import your data, follow three sections below. In each section you
+can find a commented sample schema with a step-by-step guide on how to import your tabular data.
 
 Two main components of any tabular parser schema are:
 1) implementing the correct base-section(s), and
-2) providing a `data_file` `Quantity` with the correct `m_annotations` (only exception for the entry mode). 
+2) providing a `data_file` `Quantity` with the correct `m_annotations`. 
 
 Please bear in mind that the schema files should 1) follow the NOMAD naming convention
 (i.e. `My_Name.archive.yaml`), and 2) be accompanied by your data file in order for NOMAD to parse them.
@@ -82,13 +82,23 @@ choice.
 Important notes:
 
 - `shape: ['*']` under `My_Quantity` is essential to parse the entire column of the data file.
-- The `data_file` Quantity can have any arbitrary name (e.g. `xlsx_file`) and can be referenced within the `tabular_parser`
-annotation of other sections which are of type `TableData` via `path_to_data_file` in  (please see [Tabular Parser](#tabular-parser) section)
+- The `data_file` `Quantity` can have any arbitrary name (e.g. `xlsx_file`)
 - `My_Quantity` can also be defined within another subsection (see next sample schema)
+- Use `column_sections` to specify which sub_section(s) is to be filled in this mode. `Leaving this field empty`
+causes the parser to parse the entire schema under column mode.
 
 ```yaml
 --8<-- "examples/data/docs/tabular-parser-col-mode.archive.yaml"
 ```
+
+<b>Step-by-step guide to import your data using column-mode:</b>
+
+After writing your schema file, you can create a new upload in NOMAD (or use an existing upload),
+and upload both your `schema file` and the `excel/csv` file together (or zipped) to your NOMAD project. In the
+`Overview` page of your NOMAD upload, you should be able to see a new entry created and appended to the `Process data`
+section. Go to the entry page, click on `DATA` tab (on top of the screen) and in the `Entry` lane, your data
+is populated under the `data` sub_section.
+
 #### Row-mode Sample:
 The sample schema provided below, creates separate instances of a repeated section from each row of an excel file
 (`row mode`). For example, suppose in an excel sheet, you have the information for a chemical product
@@ -102,14 +112,26 @@ Important notes:
 
 - This schema demonstrates how to import data within a subsection of another subsection, meaning the
 targeted quantity should not necessarily go into the main `quantites`.
-- Setting `mode` to `row` signals that for each row in the sheet_name (provided in `My_Quantity`),
+- Setting `row_sections` signals that for each row in the sheet_name (provided in `My_Quantity`),
 one instance of the corresponding (sub-)section (in this example, `My_Subsection` sub-section as it has the `repeats`
 option set to true), will be appended. Please bear in mind that if this mode is selected, then all other quantities
-should exist in the same sheet_name.
+in this sub_section, should exist in the same sheet_name.
+- Leaving `row_sections` empty causes the parser to parse the entire schema using <b>column mode</b>!
+
 
 ```yaml
 --8<-- "examples/data/docs/tabular-parser-row-mode.archive.yaml"
 ```
+
+<b>Step-by-step guide to import your data using row-mode:</b>
+
+After writing your schema file, you can create a new upload in NOMAD (or use an existing upload),
+and upload both your `schema file` and the `excel/csv` file together (or zipped) to your NOMAD project. In the
+`Overview` page of your NOMAD upload, you should be able to see as many new sub-sections created and appended
+to the repeating section as there are rows in your `excel/csv` file.
+Go to the entry page of the new entries, click on `DATA` tab (on top of the screen) and in the `Entry` lane,
+your data is populated under the `data` sub_section.
+
 #### Entry-mode Sample:
 The following sample schema creates one entry for each row of an excel file (`entry mode`).
 For example, suppose in an excel sheet, you have the information for a chemical product (e.g. `name` in one column),
@@ -119,11 +141,52 @@ following schema by substituting `My_Quantity` with any appropriate name (e.g. `
 
 Important note:
 
-- For entry mode, the convention for reading data from csv/excel file is to provide only the column name and the
-data are assumed to exist in the first sheet
+- To create new entries based on your entire schema, set `entry_sections` to `- root`. Otherwise, you can
+provide the relative path of specific sub_section(s) in your schema to create new entries.
+- Leaving `entry_sections` empty causes the parser to parse the entire schema using <b>column mode</b>!
+
 
 ```yaml
 --8<-- "examples/data/docs/tabular-parser-entry-mode.archive.yaml"
+```
+
+<b>Step-by-step guide to import your data using entry-mode:</b>
+
+After writing your schema file, you can create a new upload in NOMAD (or use an existing upload),
+and upload both your `schema file` and the `excel/csv` file together (or zipped) to your NOMAD project. In the
+`Overview` page of your NOMAD upload, you should be able to see as many new entries created and appended
+to the `Process data` section as there are rows in your `excel/csv` file.
+Go to the entry page of the new entries, click on `DATA` tab (on top of the screen) and in the `Entry` lane,
+your data is populated under the `data` sub_section.
+
+<b>Advanced options to use/set in tabular parser:</b>
+
+- If you want to populate your schema from multiple `excel/csv` files, you can
+define multiple data_file `Quantity`s annotated with `tabular_parser` in the root level of your schema 
+(root level of your schema is where you inherit from `TableData` class under `base_sections`).
+Each individual data_file quantity can now contain a list of sub_sections which are expected to be filled
+using one- or all of the modes mentioned above. Check the `MyOverallSchema` section in
+`Complex Schema` example below. It contains 2 data_file quantities that each one, contains separate instructions
+to populate different parts of the schema. `data_file_1` is responsible to fill `MyColSubsection` while `data_file_2`
+fills all sub_sections listed in `row_sections` and `entry_sections`.
+
+- When using the entry mode, you can create a custom `Quantity` to hold a reference to each new entries
+generated by the parser. Check the `MyEntrySubsection` section in the `Complex Schema` example below.
+The `refs_quantity` is a `ReferenceEditQuantiy` with type `#/MyEntry` which tells the parser to
+populate this quantity with a reference to the fresh entry of type `MyEntry`. Also, you may use
+`tabular_pattern` annotation to explicitly set the name of the fresh entries.
+
+- If you have multiple columns with exact same name in your `excel/csv` file, you can parse them using row mode.
+For this, define a repeating sub_section that handles your data in different rows and inside each row, define another
+repeating sub_section that contains your repeating columns. Check `MySpecialRowSubsection` section in the
+`Complex Schema` example below. `data_file_2` contains a repeating column called `row_quantity_2` and
+we want to create a section out of each row and each column. This is done by
+creating one row of type `MySpecialRowSubsection` and populate
+`MyRowQuantity3` quantity from `row_quantity_3` column in the `csv` file, and appending each column of
+`row_quantity_2` to `MyRowQuantity2`.
+
+```yaml
+--8<-- "examples/data/docs/tabular-parser-complex.archive.yaml"
 ```
 
 Here are all parameters for the two annotations `Tabular Parser` and `Tabular`.

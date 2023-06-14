@@ -19,7 +19,6 @@
 import pytest
 import os
 import os.path
-import pandas as pd
 import re
 import datetime
 
@@ -27,7 +26,6 @@ from nomad import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.context import ClientContext
 from nomad.utils import generate_entry_id, strip
-from nomad.parsing.tabular import TabularDataParser
 from nomad.parsing.parser import ArchiveParser
 from tests.normalizing.conftest import run_normalize
 from nomad.processing import Upload, Entry
@@ -43,93 +41,6 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
               tabular:
                 name: {header_name}'''
     return re.sub(r'\n\s*\n', '\n', base_case)
-
-
-@pytest.mark.parametrize('schema,content', [
-    pytest.param(
-        strip('''
-            definitions:
-                sections:
-                    MyTable:
-                        base_section: nomad.parsing.tabular.TableRow
-                        quantities:
-                            header_0:
-                                type: str
-                            header_1:
-                                type: str
-        '''),
-        strip('''
-            header_0,header_1
-            0_0,0_1
-            1_0,1_1
-        '''), id='simple'),
-    pytest.param(
-        strip('''
-            definitions:
-                sections:
-                    MyTable:
-                        base_section: nomad.parsing.tabular.TableRow
-                        quantities:
-                            header_0:
-                                type: str
-                            quantity:
-                                type: str
-                                m_annotations:
-                                    tabular:
-                                        name: header_1
-                        sub_sections:
-                            my_sub_section:
-                                sub_section: MySubSection
-                    MySubSection:
-                        quantities:
-                            quantity:
-                                type: str
-        '''),
-        strip('''
-            header_0,header_1,my_sub_section.quantity
-            0_0,0_1,0_2
-            1_0,1_1,1_2
-        '''), id='nested'),
-    pytest.param(
-        strip('''
-            definitions:
-                sections:
-                    MyTable:
-                        base_section: nomad.parsing.tabular.TableRow
-                        quantities:
-                            header_0:
-                                type: np.float64
-                            header_1:
-                                type: np.float64
-                                unit: s
-                                m_annotations:
-                                    tabular:
-                                        unit: ms
-        '''),
-        strip('''
-            header_0,header_1
-            0.0,0.1
-            1.0,1.1
-        '''), id='units')
-])
-def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
-    mainfile, schema_file = get_files(schema, content)
-    data = pd.read_csv(mainfile)
-    parser = TabularDataParser()
-    keys = parser.is_mainfile(mainfile, 'text/application', bytes(), '')
-
-    assert isinstance(keys, list)
-    assert len(keys) == data.shape[0]
-
-    upload_id = 'test_upload'
-    context = get_context(upload_id, schema_file)
-    main_archive, child_archives = get_archives(context, mainfile, upload_id, keys)
-    parser.parse(mainfile, main_archive, None, child_archives)
-    main_archive.metadata.upload_id = upload_id
-
-    assert main_archive.data is not None
-    for child_archive in child_archives.values():
-        child_archive.data is not None
 
 
 @pytest.mark.parametrize('schema', [
@@ -159,7 +70,7 @@ def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
                 m_def: My_schema
                 process:
                     data_file: Test.xlsx
-        '''), id='w/o_sheetName_rowMode'),
+        '''), id='w/o_sheetName_colMode'),
     pytest.param(
         strip('''
             definitions:
@@ -186,7 +97,7 @@ def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
                 m_def: My_schema
                 process:
                     data_file: Test.xlsx
-        '''), id='w_sheetName_rowMode'),
+        '''), id='w_sheetName_colMode'),
     pytest.param(
         strip('''
             definitions:
@@ -222,7 +133,7 @@ def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
                 m_def: My_schema
                 process:
                     data_file: Test.xlsx
-        '''), id='w_sheetName_colMode'),
+        '''), id='w_sheetName_colMode_multy_quantities'),
     pytest.param(
         strip('''
             definitions:
@@ -236,8 +147,7 @@ def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
                                 m_annotations:
                                     tabular_parser:
                                         comment: '#'
-                                        mode: row
-                                        target_sub_section:
+                                        row_sections:
                                             - test_subsection
                         sub_sections:
                             test_subsection:
@@ -268,81 +178,61 @@ def test_tabular_entry_mode_original(raw_files, monkeypatch, schema, content):
             name: 'testing_mixed_mode'
             sections:
                 MyColumnMode:
-                  base_sections:
-                    - nomad.parsing.tabular.TableData
-                    - nomad.datamodel.data.EntryData
-                  quantities:
-                    data_file:
-                      type: str
-                      default: datafile.xlsx
-                      m_annotations:
-                        tabular_parser:
-                          comment: '#'
-                          mode: column
-                    my_quantity_1:
-                      type: np.float64
-                      shape: ['*']
-                      m_annotations:
-                        tabular:
-                          name: sheet_4/Header 1
-                  sub_sections:
-                    MyColumnModeSubsection:
-                      section:
-                        quantities:
-                          my_quantity_2:
-                            type: str
+                    quantities:
+                        my_quantity_1:
+                            type: np.float64
                             shape: ['*']
                             m_annotations:
-                              tabular:
-                                name: sheet_4/Header 2
-                          my_quantity_3:
-                            type: str
-                            shape: ['*']
-                            m_annotations:
-                              tabular:
-                                name: sheet_4/Header 3
+                                tabular:
+                                    name: sheet_4/Header 1
+                    sub_sections:
+                        MyColumnModeSubsection:
+                            section:
+                                quantities:
+                                    my_quantity_2:
+                                        type: str
+                                        shape: ['*']
+                                        m_annotations:
+                                            tabular:
+                                                name: sheet_4/Header 2
+                                    my_quantity_3:
+                                        type: str
+                                        shape: ['*']
+                                        m_annotations:
+                                            tabular:
+                                                name: sheet_4/Header 3
                 MyRowMode:
-                  base_sections:
-                    - nomad.parsing.tabular.TableData
-                  quantities:
-                    data_file:
-                      type: str
-                      default: datafile.xlsx
-                      m_annotations:
-                        tabular_parser:
-                          comment: '#'
-                          mode: row
-                          target_sub_section:
-                            - MyRowModeSubsection
-                  sub_sections:
-                    MyRowModeSubsection:
-                      repeats: true
-                      section:
-                        quantities:
-                          my_quantity_4:
-                            type: str
-                            m_annotations:
-                              tabular:
-                                name: sheet_4/Header 4
+                    sub_sections:
+                        MyRowModeSubsection:
+                            repeats: true
+                            section:
+                                quantities:
+                                    my_quantity_4:
+                                        type: str
+                                        m_annotations:
+                                            tabular:
+                                                name: sheet_4/Header 4
                 MyMixedMode:
-                  base_sections:
-                    - nomad.parsing.tabular.TableData
-                    - nomad.datamodel.data.EntryData
-                  quantities:
-                    data_file:
-                      type: str
-                      default: datafile.xlsx
-                      m_annotations:
-                        tabular_parser:
-                          mode: root
-                  sub_sections:
-                    MySubsection1:
-                      repeats: true
-                      section: '#/MyRowMode'
-                    MySubsection2:
-                      repeats: true
-                      section:
-                        base_section: '#/MyColumnMode'
+                    base_sections:
+                        - nomad.parsing.tabular.TableData
+                    quantities:
+                        data_file:
+                            type: str
+                            default: datafile.xlsx
+                            m_annotations:
+                                tabular_parser:
+                                    comment: '#'
+                                    column_sections:
+                                        - MySubsection1
+                                    row_sections:
+                                        - MySubsection2
+                    sub_sections:
+                        MySubsection1:
+                            section: '#/MyColumnMode'
+                        MySubsection2:
+                            repeats: true
+                            section:
+                                base_section: '#/MyRowMode'
         data:
             m_def: MyMixedMode
             data_file: Test.xlsx
@@ -377,10 +267,11 @@ def test_tabular_complex_schema(raw_files, monkeypatch, schema):
                 assert my_subsection['my_quantity_1'] == f'q1_d{data_index}_r{row_index}'
                 assert my_subsection['my_quantity_2'] == f'q2_d{data_index}_r{row_index}'
     elif 'testing_mixed_mode' in schema:
-        assert len(main_archive.data.MySubsection1[0].MyRowModeSubsection) == 3
-        assert len(main_archive.data.MySubsection2[0].my_quantity_1) == 3
-        assert len(main_archive.data.MySubsection2[0].MyColumnModeSubsection.my_quantity_2) == 3
-        assert len(main_archive.data.MySubsection2[0].MyColumnModeSubsection.my_quantity_3) == 3
+        assert len(main_archive.data.MySubsection2) == 3
+        assert main_archive.data.MySubsection2[0].MyRowModeSubsection[0].my_quantity_4 == 'my_str1'
+        assert len(main_archive.data.MySubsection1.my_quantity_1) == 3
+        assert len(main_archive.data.MySubsection1.MyColumnModeSubsection.my_quantity_2) == 3
+        assert len(main_archive.data.MySubsection1.MyColumnModeSubsection.my_quantity_3) == 3
 
 
 def test_tabular_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra):
@@ -507,8 +398,7 @@ def test_tabular_row_mode(raw_files, monkeypatch, test_case, section_placeholder
           m_annotations:
             tabular_parser:
               comment: '#'
-              mode: row
-              target_sub_section:
+              row_sections:
                 <target_sub_section_placeholder>
       sub_sections:
         <sub_sections_placeholder>
@@ -567,7 +457,6 @@ data:
                               m_annotations:
                                 tabular_parser:
                                   comment: '#'
-                                  mode: column
                             header_0:
                                 type: str
                             header_1:
@@ -596,8 +485,7 @@ data:
                                 m_annotations:
                                     tabular_parser:
                                         comment: '#'
-                                        mode: row
-                                        target_sub_section:
+                                        row_sections:
                                             - MySubsection
                         sub_sections:
                             MySubsection:
@@ -638,8 +526,7 @@ data:
                   default: 'placeholder'
                   m_annotations:
                     tabular_parser:
-                      mode: row
-                      target_sub_section:
+                      row_sections:
                       - subsection_1
               sub_sections:
                 subsection_1:
@@ -698,64 +585,6 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
         assert main_archive.data.subsection_1[1].subsection_1[0].header_0 == '1_0'
 
 
-@pytest.mark.parametrize('schema,content,missing', [
-    pytest.param(
-        strip('''
-            definitions:
-                sections:
-                    MyTable:
-                        base_section: nomad.parsing.tabular.TableRow
-                        quantities:
-                            header_0:
-                                type: str
-                            header_1:
-                                type: str
-        '''),
-        strip('''
-            header_0,header_1
-            a,
-            ,b
-        '''),
-        ['header_1', 'header_0'],
-        id='missing string'
-    ),
-    pytest.param(
-        strip('''
-            definitions:
-                sections:
-                    MyTable:
-                        base_section: nomad.parsing.tabular.TableRow
-                        quantities:
-                            header_0:
-                                type: float
-                            header_1:
-                                type: float
-        '''),
-        strip('''
-            header_0,header_1
-            1,
-            ,2
-        '''),
-        ['header_1', 'header_0'],
-        id='missing float'
-    )
-])
-def test_missing_data(raw_files, monkeypatch, schema, content, missing):
-    '''Tests that missing data is handled correctly. Pandas by default
-    interprets missing numeric values as NaN, which are incompatible with
-    metainfo.
-    '''
-    mainfile, schema_file = get_files(schema, content)
-    upload_id = 'test_upload'
-    parser = TabularDataParser()
-    context = get_context(upload_id, schema_file)
-    keys = parser.is_mainfile(mainfile, 'text/application', bytes(), '')
-    main_archive, child_archives = get_archives(context, mainfile, upload_id, keys)
-    parser.parse(mainfile, main_archive, None, child_archives)
-    for key, quantity in zip(keys, missing):
-        assert getattr(child_archives[key].data, quantity) is None
-
-
 @pytest.mark.parametrize('schema,content', [
     pytest.param(
         strip('''
@@ -770,8 +599,7 @@ def test_missing_data(raw_files, monkeypatch, schema, content, missing):
                             m_annotations:
                                 tabular_parser:
                                     comment: '#'
-                                    mode: row
-                                    target_sub_section:
+                                    row_sections:
                                         - MySubsection
                     sub_sections:
                         MySubsection:
@@ -808,8 +636,7 @@ def test_missing_data(raw_files, monkeypatch, schema, content, missing):
                             m_annotations:
                                 tabular_parser:
                                     comment: '#'
-                                    mode: row
-                                    target_sub_section:
+                                    row_sections:
                                         - MySubsection
                     sub_sections:
                         MySubsection:

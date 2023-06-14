@@ -1,0 +1,104 @@
+definitions:
+  name: Complex Schema
+  sections:
+    MyEntry: # MyEntry section has only one quantity `MyEntryQuantity`
+      quantities:
+        MyEntryQuantity:
+          type: str
+          m_annotations:
+            tabular:
+              name: entry_quantity
+    MyColumn: # MyColumn section has only one quantity `MyColumnQuantity`
+      quantities:
+        MyColumnQuantity:
+          type: np.float64
+          shape: ['*']
+          m_annotations:
+            tabular:
+              name: column_quantity
+    MyRow: # MyColumn section has only one quantity `MyRowQuantity`
+      sub_sections:
+        MyRowCollection:
+          repeats: true
+          section:
+            quantities:
+              MyRowQuantity:
+                type: str
+                m_annotations:
+                  tabular:
+                    name: row_quantity
+    MyOverallSchema: # root level my the schema (inheriting from the `TableData` class)
+      base_sections:
+        - nomad.parsing.tabular.TableData
+      m_annotations:
+        eln:
+      quantities:
+        data_file_1: # This data file quantity is responsible to fill the `MyColSubsection` subsection
+        # as denoted in the column_sections.
+          type: str
+          m_annotations:
+            tabular_parser:
+              sep: ','  
+              comment: '#'
+              column_sections: # list of subsections to be parsed by data_file_1 in column mode
+                - MyColSubsection
+        data_file_2: # This data file quantity is responsible to fill the `MyRowSubsection`,
+        # `MySpecialRowSubsection`, and `MyEntrySubsection` subsections as
+        # denoted by both entry_sections and row_sections.
+          type: str
+          m_annotations:
+            tabular_parser:
+              sep: ','  
+              comment: '#'
+              target_sub_section: # list of subsections to be parsed by data_file_2 in row mode
+                - MyRowSubsection/MyRowCollection
+                - MySpecialRowSubsection
+              entry_sections: # list of subsections to be parsed by data_file_2 in entry mode
+                - MyEntrySubsection
+        MyRootQuantity: # This quantity lives in the root level which is parsed in the column mode
+          type: str
+          shape: ['*']
+          m_annotations:
+            tabular:
+              name: root_quantity
+      sub_sections: 
+        MyColSubsection:
+          section: '#/MyColumn'
+        MyRowSubsection:
+          section: '#/MyRow'
+        MyEntrySubsection:
+          repeats: true
+          section:
+            quantities: # A quantiy for the entry_section that holds a reference to the
+            # entries created by the parser
+              refs_quantity:
+                type: '#/MyEntry'
+                m_annotations:
+                  eln:
+                    component: ReferenceEditQuantity
+                  tabular_pattern: # use this option to define the names of the new entries created
+                  # with parser
+                    name: my_entry
+        MySpecialRowSubsection:
+          repeats: true
+          section:
+            quantities:
+              MyRowQuantity3:
+                type: str
+                m_annotations:
+                  tabular:
+                    name: row_quantity_3
+            sub_sections:
+              MyRowCollection2:
+                repeats: true
+                section:
+                  quantities:
+                    MyRowQuantity2:
+                      type: str
+                      m_annotations:
+                        tabular:
+                          name: row_quantity_2
+data:
+  m_def: MyOverallSchema # instantiating the root level of the schema
+  data_file_1: data_file_1.csv # 
+  data_file_2: data_file_2.csv

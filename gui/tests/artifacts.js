@@ -61890,6 +61890,7 @@ window.nomadArtifacts = {
             "m_parent_index": 2,
             "m_parent_sub_section": "section_definitions",
             "name": "TableData",
+            "description": "",
             "base_sections": [
               "/packages/15/section_definitions/0"
             ],

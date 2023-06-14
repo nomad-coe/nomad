@@ -29,7 +29,6 @@ from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, Matching
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
 
-
 try:
     # these packages are not available without parsing extra, which is ok, if the
     # parsers are only initialized to load their metainfo definitions

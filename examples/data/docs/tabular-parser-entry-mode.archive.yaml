@@ -6,12 +6,21 @@ definitions:
   sections:
     Tabular_Parser:
       base_sections:
-        - nomad.parsing.tabular.TableRow # To create entries from each row in the excel file
-        # the base section should inherit from `nomad.parsing.tabular.TableRow`. For this specific case,
-        # the datafile should be accompanied
+        - nomad.parsing.tabular.TableData # To create entries from each row in the excel file
+        # the base section should inherit from `nomad.parsing.tabular.TableData`.
       quantities:
-        My_Quantity:
+        data_file:
+          type: str
+          m_annotations:
+            tabular_parser:
+              comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
+              entry_sections: # This is the reference to where the targeted (sub-)section lies within this example schema file
+                - root
+        My_quantity:
           type: str
           m_annotations:
             tabular:
-              name: My_Column
+              name: My_Sheet/My_Column
+data:
+  m_def: Tabular_Parser # this is a reference to the section definition above
+  data_file: tabular-parser-entry-mode.xlsx # name of the excel/csv file to be uploaded along with this schema yaml file

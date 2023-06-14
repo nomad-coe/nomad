@@ -18,7 +18,24 @@
 
 import pytest
 
+from nomad import files
+from nomad.processing import Upload, Entry, ProcessStatus
 from tests.normalizing.conftest import run_processing
+
+
+def _create_upload(upload_id, user_id, file_paths=None):
+    if file_paths is None:
+        file_paths = []
+    upload = Upload(
+        upload_id=upload_id,
+        main_author=user_id)
+    upload.save()
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    for file_path in file_paths:
+        upload.staging_upload_files.add_rawfiles(file_path)
+    upload.process_upload()
+    upload.block_until_complete()
+    return upload
 
 
 @pytest.mark.parametrize('mainfile, assert_xpaths', [
@@ -39,7 +56,6 @@ def test_eln(mainfile, assert_xpaths, raw_files, no_warn):
     pytest.param('tabular-parser-col-mode.archive.yaml', ['data.My_Quantity'], id='col_mode'),
     pytest.param('tabular-parser-row-mode.archive.yaml', ['data.My_Subsection.My_Section[4].My_Quantity'],
                  id='row_mode'),
-    pytest.param('tabular-parser-entry-mode.archive.yaml', [], id='entry_mode'),
 ])
 def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
     mainfile_directory = 'examples/data/docs'
@@ -47,3 +63,23 @@ def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
 
     for xpath in assert_xpaths:
         assert archive.m_xpath(xpath) is not None
+
+
+@pytest.mark.parametrize('test_files', [
+    pytest.param([
+        'examples/data/docs/tabular-parser-entry-mode.archive.yaml',
+        'examples/data/docs/tabular-parser-entry-mode.xlsx'
+    ], id='simple_entry_mode'),
+    pytest.param([
+        'examples/data/docs/tabular-parser-complex.archive.yaml',
+        'examples/data/docs/data_file_1.csv',
+        'examples/data/docs/data_file_2.csv'
+    ], id='complex_entry_mode')
+])
+def test_sample_entry_mode(test_files, mongo, test_user, raw_files, monkeypatch, proc_infra):
+    upload = _create_upload('test_upload_id', test_user.user_id, test_files)
+    assert upload is not None
+    assert upload.processed_entries_count == 6
+
+    for entry in Entry.objects(upload_id='test_upload_id'):
+        assert entry.process_status == ProcessStatus.SUCCESS
