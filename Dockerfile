@@ -27,6 +27,7 @@
 FROM node:16.15 AS base_node
 FROM python:3.9-slim AS base_python
 
+
 # ================================================================================
 # Built the GUI in the gui build image
 # ================================================================================
@@ -122,8 +123,11 @@ RUN ./scripts/generate_example_uploads.sh
 # Copy the built gui code
 COPY --from=dev_node /app/gui/build nomad/app/static/gui
 
+# Set up the version as a build argument (default: '0.0')
+ARG SETUPTOOLS_SCM_PRETEND_VERSION='0.0'
+
 # Build documentation
-RUN --mount=source=.git,target=.git,type=bind pip install ".[parsing,infrastructure,dev]"
+RUN pip install ".[parsing,infrastructure,dev]"
 
 RUN ./scripts/generate_docs_artifacts.sh \
  && mkdocs build \
@@ -131,10 +135,7 @@ RUN ./scripts/generate_docs_artifacts.sh \
  && cp -r site/* nomad/app/static/docs
 
 # Build the python source distribution package
-# We change the git_describe_command to not contain --dirty, as we know this git will be
-# unintentially dirty.
-RUN echo "git_describe_command = \"git describe --tags --long --match \\\"*[0-9]*\\\"\"" >> pyproject.toml
-RUN --mount=source=.git,target=.git,type=bind python -m build --sdist
+RUN python -m build --sdist
 
 # (Re)install the full packages docs included
 RUN pip install dist/nomad-lab-*.tar.gz
