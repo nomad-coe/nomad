@@ -75,6 +75,7 @@ emmet-core==0.48.4        # via -r requirements.txt, mp-api
 entrypoints==0.4          # via -r requirements.txt, ipyparallel, jupyter-client, jupyterhub, numcodecs
 escapism==1.0.1           # via -r requirements.txt, dockerspawner
 essential-generators==1.0  # via nomad-lab (pyproject.toml)
+et-xmlfile==1.1.0         # via -r requirements.txt, openpyxl
 exceptiongroup==1.1.1     # via -r requirements.txt, cattrs
 executing==0.10.0         # via devtools
 fastapi==0.92.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -187,6 +188,7 @@ numexpr==2.8.4            # via -r requirements.txt, hyperspy
 numpy==1.22.4             # via -r requirements.txt, ase, biopython, cftime, dask, griddataformats, gsd, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, imageio, matid (dependencies/matid/pyproject.toml), matplotlib, mdanalysis, mdtraj, mrcfile, netcdf4, nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-dos-fingerprints (dependencies/nomad-dos-fingerprints/pyproject.toml), nomad-lab (pyproject.toml), nptyping, numba, numcodecs, numexpr, pandas, phonopy, pymatgen, pyscf, pywavelets, radioactivedecay, scikit-image, scikit-learn, scipy, sparse, spglib, tifffile, xarray, zarr
 oauthenticator==15.1.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 oauthlib==3.2.2           # via -r requirements.txt, jupyterhub
+openpyxl==3.1.2           # via -r requirements.txt, nomad-lab (pyproject.toml)
 optimade[mongo]==0.22.1   # via -r requirements.txt, nomad-lab (pyproject.toml)
 orjson==3.6.0             # via -r requirements.txt, h5grove, nomad-lab (pyproject.toml)
 packaging==23.0           # via -r requirements.txt, build, dask, docker, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, matplotlib, mdanalysis, mkdocs, mongomock, nbconvert, pint, scikit-image, sphinx

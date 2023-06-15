@@ -46,7 +46,8 @@ dependencies = [
     'pymatgen==2023.2.28',
     'bitarray>=2.3.5',
     'scikit-learn==1.0.2',
-    'toposort'
+    'toposort',
+    'openpyxl>=3.0.0'
 ]
 
 [project.urls]
