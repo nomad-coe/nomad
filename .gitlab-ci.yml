@@ -59,10 +59,13 @@ build:
   before_script:
     - docker --version
     - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+    - pip install --upgrade setuptools_scm
+    - export SETUPTOOLS_SCM_PRETEND_VERSION=$(python -m setuptools_scm)
+    - echo "SETUPTOOLS_SCM_PRETEND_VERSION=$SETUPTOOLS_SCM_PRETEND_VERSION"
   script:
-    - docker build -t ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} .
-    - docker build --target dev_node -t ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}  .
-    - docker build --target dev_python -t ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}  .
+    - docker build --build-arg SETUPTOOLS_SCM_PRETEND_VERSION -t ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} .
+    - docker build --build-arg SETUPTOOLS_SCM_PRETEND_VERSION --target dev_node -t ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}  .
+    - docker build --build-arg SETUPTOOLS_SCM_PRETEND_VERSION --target dev_python -t ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}  .
     - docker push ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
     - docker push ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}
     - docker push ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
