@@ -14686,7 +14686,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 24,
                 "m_parent_sub_section": "quantities",
                 "name": "atoms_ref",
-                "description": "Reference to an atomistic structure that is associated with this\nsystem'.",
+                "description": "Reference to an atomistic structure that is associated with this\nsystem.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/1/section_definitions/1"
@@ -14714,7 +14714,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 26,
                 "m_parent_sub_section": "quantities",
                 "name": "indices",
-                "description": "Indices of the atoms belonging to this group. These indices refer to\nthe original system. Each row represents a new instance.",
+                "description": "Indices of the atoms belonging to this group. These indices refer to the\nsystem specified in atoms_ref. Each row represents a new instance.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int64"
@@ -14731,7 +14731,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms",
-                "description": "The atomistic structure that is associated with this\nsystem'.",
+                "description": "The atomistic structure that is associated with this\nsystem.",
                 "sub_section": "/packages/1/section_definitions/1",
                 "repeats": false
               },

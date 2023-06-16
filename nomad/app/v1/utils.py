@@ -234,7 +234,7 @@ def browser_download_headers(filename: str, media_type: str = 'application/octet
     filename = filename.replace('"', '\\"')
     return {
         'Content-Type': media_type,
-        'Content-Disposition': f'attatchment; filename="{filename}"'}
+        'Content-Disposition': f'attachment; filename="{filename}"'}
 
 
 def update_url_query_arguments(original_url: str, **kwargs) -> str:

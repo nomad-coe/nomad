@@ -16,12 +16,13 @@
 # limitations under the License.
 #
 from typing import Union, Dict, List
-from io import StringIO
+from io import StringIO, BytesIO
 from collections import OrderedDict
 from enum import Enum
 
+import numpy as np
 from fastapi import APIRouter, Depends, Path, Query, status, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 import ase.io
 import ase.build
 from MDAnalysis.lib.util import NamedStream
@@ -29,9 +30,10 @@ from MDAnalysis.coordinates.PDB import PDBWriter
 
 from nomad.units import ureg
 from nomad.utils import strip, deep_get, query_list_to_dict
+from nomad.atomutils import Formula
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms, mda_universe_from_nomad_atoms
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
-from .entries import answer_entry_archive_request, _bad_id_response
+from .entries import answer_entry_archive_request
 
 from .auth import create_user_dependency
 from ..utils import create_responses
@@ -39,20 +41,139 @@ from ..models import User, HTTPExceptionModel
 
 router = APIRouter()
 default_tag = 'systems'
-format_list: List[dict] = [
-    {
+
+
+def write_pdb(atoms: NOMADAtoms, entry_id: str = None, formula: str = None) -> str:
+    '''For writing a PDB file.'''
+
+    # Add custom title that contains the entry id.
+    lines = []
+    if entry_id is not None:
+        lines.append(f'TITLE     NOMAD ENTRY ID: {entry_id}\n')
+
+    # PDB files do not contain a field for the full lattice vectors and the PBC.
+    # To work around this, they are stored as REMARKs. The info on full lattice
+    # vectors and pbc are used by the the GUI visualizer.
+    lattice_vectors = atoms.lattice_vectors
+    pbc = atoms.periodic
+    if lattice_vectors is not None:
+        cell = lattice_vectors.to(ureg.angstrom).magnitude
+        lines.append('REMARK 285 LATTICE VECTORS\n')
+        lines.append(f'REMARK 285  A: {cell[0, 0]:.3f}, {cell[0, 1]:.3f}, {cell[0, 2]:.3f}\n')
+        lines.append(f'REMARK 285  B: {cell[1, 0]:.3f}, {cell[1, 1]:.3f}, {cell[1, 2]:.3f}\n')
+        lines.append(f'REMARK 285  C: {cell[2, 0]:.3f}, {cell[2, 1]:.3f}, {cell[2, 2]:.3f}\n')
+    else:
+        lines.append('REMARK 285 UNITARY VALUES FOR THE UNIT CELL SET BECAUSE UNIT CELL INFORMATION\n')
+        lines.append('REMARK 285 WAS MISSING. PROTEIN DATA BANK CONVENTIONS REQUIRE THAT CRYST1\n')
+        lines.append('REMARK 285 RECORD IS INCLUDED, BUT THE VALUES ON THIS RECORD ARE MEANINGLESS.\n')
+    if pbc is not None:
+        pbc = ['TRUE' if x else 'FALSE' for x in pbc]
+        lines.append(f'REMARK 285 PBC (A, B, C): {pbc[0]}, {pbc[1]}, {pbc[2]}\n')
+
+    mda_string_stream = StringIO()
+    mda_named_stream = NamedStream(mda_string_stream, f'temp.{format}', close=False, reset=False)
+    writer = PDBWriter(mda_named_stream, remarks='')
+    universe = mda_universe_from_nomad_atoms(atoms)
+    writer.write(universe)
+    writer.close()
+
+    # We skip the title line that is written by MDA (cannot be disabled otherwise)
+    mda_string_stream.seek(0)
+    for line in mda_string_stream.readlines():
+        if not line.startswith(('REMARK', 'TITLE')):
+            lines.append(line)
+
+    content = "".join(lines)
+    return content
+
+
+def write_cif(atoms: NOMADAtoms, entry_id: str = None, formula: str = None) -> str:
+    '''For writing a CIF file.'''
+    # The ASE CIF writer expects a BytesIO, unlike other formats supported by ASE.
+    byte_stream = BytesIO()
+    atoms = ase_atoms_from_nomad_atoms(atoms)
+    ase.io.write(byte_stream, atoms, format='cif')
+    byte_stream.seek(0)
+    content = ''
+    if entry_id is not None:
+        content = f'# NOMAD ENTRY ID: {entry_id}\n'
+    content += byte_stream.read().decode('utf-8')
+    content = content.replace('data_image0', f'data_{formula}')
+    return content
+
+
+def write_xyz(atoms: NOMADAtoms, entry_id: str, formula: str = None) -> str:
+    '''For writing an XYZ file.'''
+    stream = StringIO()
+    atoms = ase_atoms_from_nomad_atoms(atoms)
+    ase.io.write(stream, atoms, format='xyz')
+    stream.seek(0)
+    content = stream.read()
+    if entry_id is not None:
+        content = content.replace('"\n', f'" nomad_entry_id=\"{entry_id}\"\n', 1)
+    return content
+
+
+class FormatFeature(str, Enum):
+    '''Contains features that are relevant for the different file formats used to
+    serialize atomic configurations.
+    '''
+    NO_UNIT_CELL = 'Cartesian positions without unit cell'
+    LATTICE_VECTORS = 'Full lattice vectors'
+    PBC = 'Periodic boundary conditions (PBC)'
+
+
+format_map: Dict[str, dict] = OrderedDict({
+    'cif': {
+        'label': 'cif',
+        'description': 'Crystallographic Information File',
+        'extension': 'cif',
+        'features': {
+            FormatFeature.PBC: False,
+            FormatFeature.LATTICE_VECTORS: False,
+            FormatFeature.NO_UNIT_CELL: True
+        },
+        'mime_type': 'chemical/x-cif',
+        'writer': write_cif
+    },
+    'xyz': {
+        'label': 'xyz',
+        'description': '''XYZ file. The comment line contains information that
+        complies with the extended XYZ specification.''',
+        'extension': 'xyz',
+        'features': {
+            FormatFeature.PBC: True,
+            FormatFeature.LATTICE_VECTORS: True,
+            FormatFeature.NO_UNIT_CELL: True
+        },
+        'mime_type': 'chemical/x-xyz',
+        'writer': write_xyz
+    },
+    'pdb': {
         'label': 'pdb',
-        'description': 'Protein Data Bank file',
+        'description': '''Protein Data Bank file. Note that valid PDB files
+        require a CRYST1 record, while certains systems in NOMAD may not have a
+        unit cell associated with them. In this case the returned structure file
+        will contain a dummy CRYST1 record in order to load the atomic
+        positions.''',
+        'features': {
+            FormatFeature.PBC: False,
+            FormatFeature.LATTICE_VECTORS: False,
+            FormatFeature.NO_UNIT_CELL: False
+        },
         'extension': 'pdb',
         'mime_type': 'chemical/x-pdb',
-        'reader': 'mdanalysis',
-    }
-]
-format_map: Dict[str, dict] = OrderedDict()
-for fmt in format_list:
-    format_map[fmt['label']] = fmt
+        'writer': write_pdb
+    },
+})
 
-format_description = "\n".join([f' - `{format["label"]}`: {format["description"]}' for format in format_map.values()])
+format_description = "\n".join([f'- `{format["label"]}`: {format["description"]}' for format in format_map.values()])
+format_features_list = []
+format_features_list.append('|'.join(['Format'] + [feature.value for feature in FormatFeature]))
+format_features_list.append('|'.join([':---'] + [':---:'] * (len(FormatFeature))))
+for format in format_map.values():
+    format_features_list.append('|'.join([format['label']] + ['&#9745;' if format['features'][feature.value] else '&#9744;' for feature in FormatFeature]))
+format_features = "\n".join(format_features_list)
 
 
 class TempFormatEnum(str, Enum):
@@ -61,14 +182,26 @@ class TempFormatEnum(str, Enum):
 
 FormatEnum = TempFormatEnum("FormatEnum", {format: format for format in format_map.keys()})  # type: ignore
 
-_bad_path_response = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('The given path in the archive was not found.')}
 
-_system_file_response = 200, {
+_file_response = status.HTTP_200_OK, {
     'content': {'application/octet-stream': {}},
     'description': strip('''
-        A byte stream with system file contents. The content length is not known in advance.
+        A byte stream with file contents. The content length is not known in advance.
+        The final mime-type may be more specific depending on the format.
+    ''')}
+
+_not_found_response = status.HTTP_404_NOT_FOUND, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Could not find data for given entry id and path. Check that the
+        arguments are correct and that you are authorized to access the data.
+    ''')}
+
+_serialization_error_response = status.HTTP_500_INTERNAL_SERVER_ERROR, {
+    'model': HTTPExceptionModel,
+    'description': strip('''
+        Could not serialize the system information in the given format. The
+        information may be invalid or incomplete for this format.
     ''')}
 
 
@@ -78,8 +211,8 @@ _system_file_response = 200, {
     summary=strip('''
     Build and retrieve an atomistic structure file from data within an entry.
     '''),
-    response_class=StreamingResponse,
-    responses=create_responses(_bad_id_response, _bad_path_response, _system_file_response))
+    response_class=Response,
+    responses=create_responses(_file_response, _not_found_response, _serialization_error_response))
 async def get_entry_raw_file(
         entry_id: str = Path(..., description='The unique entry id of the entry to retrieve archive data from.'),
         path: str = Query(
@@ -87,24 +220,30 @@ async def get_entry_raw_file(
             example="run/0/system/0",
             description=strip('''
             Path to a NOMAD System inside the archive. The targeted path should
-            point to a system in `nomad.datamodel.simulation.system` or
-            `nomad.results.material.topology`. The following path types are
-            supported:
+            point to a system in `run.system` or `results.material.topology`.
+            The following path types are supported:
 
-            - `run/0/system/0`: Path to system in `run`
-            - `results/material/topology/0`: Path to system in `results`
+            - `run/0/system/0`: Path to system in `run.system`
+            - `results/material/topology/0`: Path to system in `results.material.topology`
             - `run/0/system/-1`: Negative indices are supported.''')
         ),
         format: FormatEnum = Query(  # type: ignore
-            default='pdb',
-            description=f'The file format for the system. The following formats are supported:\n{format_description}'
+            default='cif',
+            description=f'''The file format for the system. The following formats are supported:
+
+{format_description}
+
+Here is a brief rundown of the different features each format supports:
+
+{format_features}'''
         ),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Build and retrieve a structure file containing an atomistic system stored
-    within an entry. The file is streamed and will contain atomic positions,
-    labels and the simulation cell together with periodicity if the file format
-    supports them.
+    within an entry. Note that some formats are more restricted and cannot fully
+    describe certains kinds of systems. For examples some entries within NOMAD
+    do not contain a unit cell (e.g. molecules), whereas some formats require it
+    to be present.
     '''
     # Remove prefix
     for prefix in ['#/']:
@@ -125,76 +264,77 @@ async def get_entry_raw_file(
         except Exception:
             pass
         i += 1
-    query_list.append('atoms')
+
+    # We extract both atoms and atoms_ref
+    value = {'atoms': '*'}
+    if 'topology' in path:
+        value['atoms_ref'] = 'include-resolved'
+        value['indices'] = '*'
 
     # Fetch the specific part of the archive. If path not found, raise exception
-    required = query_list_to_dict(query_list, '*')
-    required['resolve-inplace'] = False
+    required = query_list_to_dict(query_list, value)
+    required['resolve-inplace'] = True
     query = {'entry_id': entry_id}
-    archive = answer_entry_archive_request(query, required=required, user=user)['data']['archive']
-    # The returned archive contains a single section when an index has been
-    # specified, and thus we have to set all original indices to zero when
-    # extracting the data
-    result_dict = deep_get(archive, *[0 if isinstance(x, int) else x for x in query_list])
-
-    # Transform the system into ase atoms, catch any errors
-    format_info = format_map[format]
-    stringio = StringIO()
-
     try:
-        atoms = NOMADAtoms.m_from_dict(result_dict)
-        if format_info['reader'] == 'ase':
-            atoms = ase_atoms_from_nomad_atoms(atoms)
-            ase_format_map = {
-                'pdb': 'proteindatabank'
-            }
-            ase_format = ase_format_map[format]
-            ase.io.write(stringio, atoms, ase_format)
-        elif format_info['reader'] == 'mdanalysis':
-            # For some reason NamedStream tries to close the stream: here we disable
-            # closing. The memory will be freed when stringio goes out of scope.
-            stringio.close = lambda: None  # type: ignore[assignment]
-            namedstream = NamedStream(stringio, f'temp.{format}', close=False, reset=False)
-            globals()[f'write_{format}'](atoms, namedstream)
-        else:
-            raise ValueError("No reader for filetype.")
+        archive = answer_entry_archive_request(query, required=required, user=user)['data']['archive']
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Could not serialize the system system information in the given format. The information may be invalid or incomplete for this format.'
+            status_code=_not_found_response[0],
+            detail=_not_found_response[1]['description']
         ) from e
 
-    # Stream the system file from the in-memory object. A single system
-    # should fit easily into memory.
-    stringio.seek(0)
-    return StreamingResponse(
-        stringio,
+    # The returned archive contains a single section when an index has been
+    # specified, and thus we have to set all original indices to zero when
+    # extracting the data.
+    try:
+        result_dict = deep_get(archive, *[0 if isinstance(x, int) else x for x in query_list])
+    except Exception as e:
+        raise HTTPException(
+            status_code=_not_found_response[0],
+            detail='The given path does not exist in the archive.'
+        ) from e
+
+    # Extract the atoms: they can be given under 'atoms' or 'atoms_ref'
+    atoms = result_dict.get('atoms', result_dict.get('atoms_ref'))
+    formula = None
+
+    # Write file into stream in memory
+    format_info = format_map[format]
+    try:
+        atoms = NOMADAtoms.m_from_dict(atoms)
+
+        # Use indices to strip down the atoms to include. When the system has
+        # several representative indices, the first one is returned.
+        if indices := result_dict.get('indices'):
+            indices = np.array(indices)
+            if len(indices.shape) == 2:
+                indices = indices[0]
+            if atoms.atomic_numbers is not None:
+                atoms.atomic_numbers = atoms.atomic_numbers[indices]
+            if atoms.positions is not None:
+                atoms.positions = atoms.positions[indices]
+            if atoms.species is not None:
+                atoms.species = atoms.species[indices]
+            if atoms.labels is not None:
+                atoms.labels = np.array(atoms.labels)[indices].tolist()
+
+        try:
+            formula = Formula(''.join(atoms.labels)).format('iupac')
+        except Exception:
+            pass
+
+        content = format_info['writer'](atoms, entry_id, formula)
+    except Exception as e:
+        raise HTTPException(
+            status_code=_serialization_error_response[0],
+            detail=_serialization_error_response[1]['description']
+        ) from e
+
+    # Return the contents of the stream. A simple Response is used instead of
+    # StreamingResponse since the content is already in memory and it is not
+    # very big
+    return Response(
+        content=content,
         media_type=format_info['mime_type'],
-        headers={'Content-Disposition': f'filename=system.{format_info["extension"]}'}
+        headers={'Content-Disposition': f'attachment; filename="{formula or "system"}.{format_info["extension"]}"'}
     )
-
-
-def write_pdb(atoms: NOMADAtoms, stream: Union[StringIO, NamedStream]) -> None:
-    '''For writing a PDB file.'''
-    writer = PDBWriter(stream)
-    writer.TITLE('')
-
-    # PDB files do not contain a field for the full lattice vectors and
-    # the PBC. To work around this, they are stored as REMARKs.
-    remarks = []
-    lattice_vectors = atoms.lattice_vectors
-    pbc = atoms.periodic
-    if lattice_vectors is not None:
-        cell = lattice_vectors.to(ureg.angstrom).magnitude
-        remarks.append('LATTICE VECTORS')
-        remarks.append(f' A: {cell[0, 0]:.3f}, {cell[0, 1]:.3f}, {cell[0, 2]:.3f}')
-        remarks.append(f' B: {cell[1, 0]:.3f}, {cell[1, 1]:.3f}, {cell[1, 2]:.3f}')
-        remarks.append(f' C: {cell[2, 0]:.3f}, {cell[2, 1]:.3f}, {cell[2, 2]:.3f}')
-    if pbc is not None:
-        pbc = ['TRUE' if x else 'FALSE' for x in pbc]
-        remarks.append(f'PBC (A, B, C): {pbc[0]}, {pbc[1]}, {pbc[2]}')
-    if remarks:
-        writer.REMARK(*remarks)
-
-    universe = mda_universe_from_nomad_atoms(atoms)
-    writer.write(universe)

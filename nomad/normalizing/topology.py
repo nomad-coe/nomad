@@ -122,6 +122,7 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
         symbols = chemical_symbols[atomic_numbers]
 
         if system.indices is not None:
+            system.atoms_ref = atoms
             total_mass = atomutils.get_summed_atomic_mass(atomic_numbers)
             total_atoms = len(atomic_numbers)
             symbols = symbols[system.indices[0]]

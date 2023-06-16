@@ -1222,7 +1222,7 @@ class System(MSection):
     atoms = SubSection(
         description='''
         The atomistic structure that is associated with this
-        system'.
+        system.
         ''',
         sub_section=Atoms.m_def,
         repeats=False
@@ -1231,7 +1231,7 @@ class System(MSection):
         type=Atoms,
         description='''
         Reference to an atomistic structure that is associated with this
-        system'.
+        system.
         ''',
     )
     n_atoms = Quantity(
@@ -1246,8 +1246,8 @@ class System(MSection):
         type=np.int64,
         shape=['*', '*'],
         description='''
-        Indices of the atoms belonging to this group. These indices refer to
-        the original system. Each row represents a new instance.
+        Indices of the atoms belonging to this group. These indices refer to the
+        system specified in atoms_ref. Each row represents a new instance.
         '''
     )
     elemental_composition = SubSection(
