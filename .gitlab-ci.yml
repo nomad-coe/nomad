@@ -69,6 +69,14 @@ build:
     - docker push ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
     - docker push ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}
     - docker push ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  after_script:
+    - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG} bash -c 'cat dist/`ls dist`' > nomad-lab.tar.gz
+    - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG} cat tests/data/parsers/vasp/vasp.xml > vasp.xml
+  artifacts:
+    paths:
+      - nomad-lab.tar.gz
+      - vasp.xml
+    expire_in: 1 hour
   rules:
     - when: on_success
 
@@ -186,6 +194,18 @@ python tests:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
+
+
+install tests:
+  stage: test
+  image: python:3.9
+  script:
+    - pip install --upgrade pip
+    - pip install nomad-lab.tar.gz
+    - python -c 'import nomad.cli'
+    - python -c 'from nomad.client import ArchiveQuery'
+    - python -m nomad.cli parse vasp.xml
+
 
 gui tests:
   stage: test

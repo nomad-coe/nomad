@@ -20,7 +20,7 @@ from ase.dft.kpoints import monkhorst_pack, get_monkhorst_pack_size_and_offset
 from collections import OrderedDict
 import re
 import numpy as np
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection
@@ -339,7 +339,7 @@ class MethodNormalizer():
             return eos_dict.hash()
 
     def calc_k_line_density(self, k_lattices: List[List[float]],
-                            nks: List[int]) -> Union[float, None]:
+                            nks: List[int]) -> Optional[float]:
         '''
         Compute the lowest k_line_density value:
         k_line_density (for a uniformly spaced grid) is the number of k-points per reciprocal length unit
@@ -354,8 +354,10 @@ class MethodNormalizer():
         # Compute k_line_density
         struc_type = self.material.structural_type
         if struc_type == 'bulk':
-            return min([nk / (np.linalg.norm(k_lattice))
-                        for k_lattice, nk in zip(k_lattices, nks)])
+            return min([  # type: ignore
+                nk / (np.linalg.norm(k_lattice))
+                for k_lattice, nk in zip(k_lattices, nks)
+            ])
         else:
             return None
 
@@ -426,7 +428,7 @@ class DFTMethod(ElectronicMethod):
         simulation.dft.hubbard_kanamori_model = hubbard_kanamori_models if len(hubbard_kanamori_models) else None
         return simulation
 
-    def basis_set_type(self, repr_method: MethodRun) -> Union[str, None]:
+    def basis_set_type(self, repr_method: MethodRun) -> Optional[str]:
         name = None
         for em in repr_method.electrons_representation or []:
             if em.scope:
@@ -462,7 +464,7 @@ class DFTMethod(ElectronicMethod):
                 name = '(L)APW+lo'
         return name
 
-    def basis_set_name(self) -> Union[str, None]:
+    def basis_set_name(self) -> Optional[str]:
         try:
             name = self._repr_method.basis_set[0].name
         except Exception:
@@ -653,7 +655,7 @@ class DFTMethod(ElectronicMethod):
             treatment = core_electron_treatments.get(code_name, config.services.unavailable_value)
         return treatment
 
-    def xc_functional_names(self, method_xc_functional: Section) -> Union[List[str], None]:
+    def xc_functional_names(self, method_xc_functional: Section) -> Optional[List[str]]:
         if self._repr_method:
             functionals = set()
             try:
@@ -665,7 +667,7 @@ class DFTMethod(ElectronicMethod):
                 return sorted(functionals)
         return None
 
-    def xc_functional_type(self, xc_functionals: Union[list[str], None],
+    def xc_functional_type(self, xc_functionals: Optional[list[str]],
                            abbrev_mapping: dict[str, str] = xc_treatments) -> str:
         '''Assign the rung on Jacob\'s Ladder based on a set of libxc names.
         The exact name mapping (libxc -> NOMAD) is set in `abbrev_mapping`.'''

@@ -18,8 +18,6 @@
 from typing import Tuple, Any
 import sys
 import json
-from collections import defaultdict
-from pint.converters import ScaleConverter
 import os
 import click
 
@@ -419,6 +417,8 @@ def example_data(username: str):
 
 
 def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
+    from pint.converters import ScaleConverter
+    from collections import defaultdict
     from nomad.units import ureg
 
     # TODO: Check that all units are unambiguously defined, and that there are

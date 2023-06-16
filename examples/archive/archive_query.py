@@ -1,7 +1,3 @@
-'''
-A simple example used in the NOMAD webinar API tutorial
-'''
-
 from nomad.client import ArchiveQuery
 from nomad.metainfo import units
 
@@ -14,18 +10,26 @@ query = ArchiveQuery(
         }
     },
     required={
-        'workflow': {
-            'calculation_result_ref': {
-                'energy': '*',
-                'system_ref': {
-                    'chemical_composition_reduced': '*'
+        'workflow2': {
+            'results': {
+                'calculation_result_ref': {
+                    'energy': '*',
+                    'system_ref': {
+                        'chemical_composition_reduced': '*'
+                    }
                 }
             }
         }
     })
 
 for result in query.download(100):
-    calc = result.workflow[0].calculation_result_ref
+    calc = None
+    if result.workflow2.results:
+        calc = result.workflow2.results.calculation_result_ref
+
+    if not calc or not calc.system_ref:
+        continue
+
     formula = calc.system_ref.chemical_composition_reduced
     if calc.energy.total:
         total_energy = calc.energy.total.value.to(units.eV)

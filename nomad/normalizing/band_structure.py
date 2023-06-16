@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from typing import cast
 from nptyping import NDArray
 import numpy as np
 import ase
@@ -136,7 +137,7 @@ class BandStructureNormalizer(Normalizer):
             float: Euclidian distance of the two points in k-space in SI units.
         """
         k_point_displacement = np.dot(reciprocal_cell, point1 - point2)
-        k_point_distance = np.linalg.norm(k_point_displacement)
+        k_point_distance = cast(float, np.linalg.norm(k_point_displacement))
 
         return k_point_distance
 

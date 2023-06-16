@@ -26,7 +26,7 @@ import re
 from matid import SymmetryAnalyzer, Classifier  # pylint: disable=import-error
 from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D  # pylint: disable=import-error
 
-from nomad import atomutils, archive
+from nomad import atomutils
 from nomad.atomutils import Formula
 from nomad.units import ureg
 from nomad import utils, config
@@ -456,6 +456,12 @@ class SystemNormalizer(SystemBasedNormalizer):
 
 def query_springer_data(normalized_formula: str, space_group_number: int) -> Dict[str, Any]:
     ''' Queries a msgpack database for springer-related quantities. '''
+    try:
+        from nomad import archive
+    except ModuleNotFoundError:
+        # Skip springer data, if the infrastructure dependencies are not available
+        return {}
+
     if config.normalize.springer_db_path is None:
         return {}
 

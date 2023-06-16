@@ -147,7 +147,34 @@ export function PlotExamples() {
   const [plots, setPlots] = useState(pvdExamples.concat(processExamples))
   const [keys, setKeys] = useState(pvdExamples.concat(processExamples).map((example, index) => `plot${index}-0`))
 
-  const pvdSectionDef = useMemo(() => metainfo ? getSection(metainfo, 'nomad.datamodel.metainfo.eln.material_library', 'PVDEvaporation') : undefined, [metainfo])
+  const pvdSectionDef = useMemo(() => ({
+    name: 'PVDEvaporation',
+    _properties: {
+      name: {
+        m_def: 'nomad.metainfo.metainfo.Quantity'
+      },
+      process_time: {
+        m_def: 'nomad.metainfo.metainfo.Quantity',
+        unit: 'second',
+        shape: ['*']
+      },
+      set_substrate_temperature: {
+        m_def: 'nomad.metainfo.metainfo.Quantity',
+        unit: 'kelvin',
+        shape: ['*']
+      },
+      substrate_temperature: {
+        m_def: 'nomad.metainfo.metainfo.Quantity',
+        unit: 'kelvin',
+        shape: ['*']
+      },
+      chamber_pressure: {
+        m_def: 'nomad.metainfo.metainfo.Quantity',
+        unit: 'pascal',
+        shape: ['*']
+      }
+    }
+  }), [])
   const archiveSectionDef = useMemo(() => metainfo ? getSection(metainfo, 'nomad.datamodel.data', 'ArchiveSection') : undefined, [metainfo])
 
   if (archiveSectionDef) {

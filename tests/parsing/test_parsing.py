@@ -121,7 +121,7 @@ def assert_parser_dir_unchanged(previous_wd, current_wd):
     assert previous_wd == current_wd
 
 
-def run_singular_parser(parser_name, mainfile):
+def run_singular_parser(parser_name, mainfile) -> EntryArchive:
     ''' Runs a singular parser (a parser which creates no child entries) and adds metadata. '''
     parser = parser_dict[parser_name]
     assert not parser.creates_children

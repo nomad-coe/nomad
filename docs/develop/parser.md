@@ -317,9 +317,9 @@ nomad parser tests/data/example.out
 ```
 
 ## Developing an existing parser
-To refine an existing parser, you should install all parsers:
+To refine an existing parser, you should install the parser via the `nomad-lab` package:
 ```sh
-pip install nomad-lab[parsing]
+pip install nomad-lab
 ```
 
 Close the parser project on top:

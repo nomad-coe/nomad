@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from typing import TYPE_CHECKING
 import datetime
 import re
 from typing import (
@@ -29,9 +30,10 @@ from ase.data import (
     atomic_numbers,
     atomic_masses,
 )
-from structlog.stdlib import (
-    BoundLogger,
-)
+if TYPE_CHECKING:
+    from structlog.stdlib import (
+        BoundLogger,
+    )
 
 from nomad import (
     utils,
@@ -97,14 +99,14 @@ class BaseSection(ArchiveSection):
         a_eln=dict(component='RichTextEditQuantity'),
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `BaseSection` class.
 
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(BaseSection, self).normalize(archive, logger)
 
@@ -193,14 +195,14 @@ class Activity(BaseSection):
         a_eln=dict(component='StringEditQuantity'),
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `Activity` class.
 
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(Activity, self).normalize(archive, logger)
 
@@ -244,7 +246,7 @@ class ElementalComposition(ArchiveSection):
         a_eln=dict(component='NumberEditQuantity'),
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `ElementalComposition` class. Will add a
         results.material subsection if none exists. Will append the element to the
@@ -256,7 +258,7 @@ class ElementalComposition(ArchiveSection):
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(ElementalComposition, self).normalize(archive, logger)
 
@@ -304,7 +306,7 @@ class System(Entity):
         repeats=True,
     )
 
-    def _fill_fractions(self, archive, logger: BoundLogger) -> None:
+    def _fill_fractions(self, archive, logger: 'BoundLogger') -> None:
         '''
         Private method for attempting to fill missing fractions (atomic or mass) in the
         `ElementalComposition` objects listed in elemental_composition.
@@ -317,7 +319,7 @@ class System(Entity):
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
 
         Raises:
             ValueError: If an unknown element is present.
@@ -362,7 +364,7 @@ class System(Entity):
                 self.elemental_composition[index].atomic_fraction = atomic_fraction
                 self.elemental_composition[index].normalize(archive, logger)
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `System` class. Will attempt to fill mass fractions or
         atomic fractions if left blank.
@@ -370,7 +372,7 @@ class System(Entity):
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(System, self).normalize(archive, logger)
 
@@ -382,14 +384,14 @@ class Instrument(Entity):
     '''
     A base section that can be used for instruments.
     '''
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `Instrument` class.
 
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(Instrument, self).normalize(archive, logger)
 
@@ -455,7 +457,7 @@ class Component(ArchiveSection):
         a_eln=dict(component='NumberEditQuantity', defaultDisplayUnit='mg'),
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `Component` class. If none is set, the normalizer
         will set the name of the component to be that of the referenced system if it has
@@ -464,7 +466,7 @@ class Component(ArchiveSection):
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(Component, self).normalize(archive, logger)
         if self.name is None and self.system is not None:
@@ -552,7 +554,7 @@ class Ensemble(System):
         return [ElementalComposition(element=symbol, atomic_fraction=atomic_fraction)
                 for atomic_fraction, symbol in zip(atomic_fractions, elements)]
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `Ensemble` class. If the elemental composition list is
         empty, the normalizer will iterate over the components and extract all the
@@ -565,7 +567,7 @@ class Ensemble(System):
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         if logger is None:
             logger = utils.get_logger(__name__)
@@ -629,7 +631,7 @@ class Substance(System):
         ),
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer method for the `Substance` class.
         This method will populate the results.material section and the elemental
@@ -637,7 +639,7 @@ class Substance(System):
 
         Args:
             archive (EntryArchive): The archive that is being normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(Substance, self).normalize(archive, logger)
         if logger is None:
@@ -773,7 +775,7 @@ class CASSubstance(Substance):
         description='CAS synonyms.',
     )
 
-    def _populate_from_cas(self, archive, logger: BoundLogger) -> None:
+    def _populate_from_cas(self, archive, logger: 'BoundLogger') -> None:
         '''
         Private method for populating the attributes from a call to the CAS API using
         the `cas_number`.
@@ -782,7 +784,7 @@ class CASSubstance(Substance):
 
         Args:
             archive (EntryArchive): The archive that is being normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         import httpx
         response = httpx.get(
@@ -855,7 +857,7 @@ class CASSubstance(Substance):
             logger.warn(
                 f"Unexpected response code: {response.status_code} from CAS API call.")
 
-    def _cas_search_unique(self, search: str, archive, logger: BoundLogger) -> bool:
+    def _cas_search_unique(self, search: str, archive, logger: 'BoundLogger') -> bool:
         '''
         Private method for performing a search of the CAS API and populating the
         attributes with the CAS number of any unique search result.
@@ -863,7 +865,7 @@ class CASSubstance(Substance):
         Args:
             search (str): The string to search the CAS API with.
             archive (EntryArchive): The archive that is being normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
 
         Returns:
             bool: Whether the search found a unique result.
@@ -891,7 +893,7 @@ class CASSubstance(Substance):
                 return False
         return False
 
-    def _find_cas(self, archive, logger: BoundLogger) -> None:
+    def _find_cas(self, archive, logger: 'BoundLogger') -> None:
         '''
         Private method for finding the CAS number using the filled attributes in the
         following order:
@@ -905,7 +907,7 @@ class CASSubstance(Substance):
 
         Args:
             archive (EntryArchive): The archive that is being normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         for key in (
                 self.cas_name,
@@ -917,7 +919,7 @@ class CASSubstance(Substance):
             if key and self._cas_search_unique(key, archive, logger):
                 return
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer method for the `CASSubstance` class.
         This method will attempt to get data on the substance instance from the CAS API:
@@ -933,7 +935,7 @@ class CASSubstance(Substance):
 
         Args:
             archive (EntryArchive): The archive that is being normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(CASSubstance, self).normalize(archive, logger)
         if logger is None:
@@ -990,7 +992,7 @@ class SampleID(ArchiveSection):
         a_eln=dict(component='StringEditQuantity'),
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `SampleID` class.
         If sample owner is not filled the field will be filled by the first two letters of
@@ -1008,7 +1010,7 @@ class SampleID(ArchiveSection):
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(SampleID, self).normalize(archive, logger)
 
@@ -1128,14 +1130,14 @@ class PublicationReference(ArchiveSection):
         """,
     )
 
-    def normalize(self, archive, logger: BoundLogger) -> None:
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
         The normalizer for the `PublicationReference` class.
 
         Args:
             archive (EntryArchive): The archive containing the section that is being
             normalized.
-            logger (BoundLogger): A structlog logger.
+            logger ('BoundLogger'): A structlog logger.
         '''
         super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata

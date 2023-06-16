@@ -17,9 +17,10 @@
 #
 
 import click
-from nomad import config
+
+from nomad import config, utils
+
 from .admin import admin
-from nomad import utils
 
 
 @admin.group(help='Run a nomad service locally (outside docker).')

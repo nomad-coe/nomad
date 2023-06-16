@@ -30,8 +30,7 @@ from string import ascii_uppercase
 from functools import reduce
 from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable, TYPE_CHECKING
 import logging
-from nptyping import NDArray
-
+from nptyping import NDArray, Int
 import numpy as np
 from scipy import sparse
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
@@ -988,7 +987,7 @@ class Formula():
 
 
 def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
-                          atom_resindex: List[int] = None, residue_segindex: List[int] = None,
+                          atom_resindex: NDArray[Int] = None, residue_segindex: NDArray[Int] = None,
                           flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False):
     '''Create a blank Universe
 
@@ -1212,7 +1211,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     resnames = residue_data[4]
     res_index_counter = 0
     for i_residue, res_n_atoms in enumerate(residue_n_atoms):
-        atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue
+        atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue  # type: ignore
         res_index_counter += res_n_atoms
     residue_molnums = np.array(range(n_residues))
     mol_index_counter = 0
@@ -1263,8 +1262,9 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 
     # create the Universe
     metainfo_universe = create_empty_universe(
-        n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments, atom_resindex=atom_resindex,
-        residue_segindex=residue_segindex, flag_trajectory=True, flag_velocities=True)
+        n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments,
+        atom_resindex=atom_resindex, residue_segindex=residue_segindex, flag_trajectory=True,
+        flag_velocities=True)
 
     # set the positions and velocities
     for frame_ind, frame in enumerate(metainfo_universe.trajectory):
