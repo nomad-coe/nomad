@@ -52,6 +52,7 @@ import DialogLink from '../utils/DialogLink'
 import UploadName from './UploadName'
 import DeletingReferencesTable from './DeletingReferencesTable'
 import UploadProgressDialog from './UploadProgressDialog'
+import UploadSearchMenu from './UploadSearchMenu'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -397,6 +398,7 @@ function UploadOverview(props) {
           </WithButton>
         </Grid>
         <Grid>
+          <IconButton disableRipple><UploadSearchMenu uploadId={uploadId}/></IconButton>
           <EditMembersDialog disabled={!isWriter}/>
           <Download
             component={IconButton} tooltip="Download files"
