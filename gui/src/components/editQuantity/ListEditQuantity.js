@@ -33,7 +33,11 @@ const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, 
 
   const handleChange = useCallback((item, index) => {
     if (onChange) {
-      let newValue = [
+      let newValue = Array.isArray(item) ? [
+        ...(renderValue.slice(0, index)),
+        ...item,
+        ...(renderValue.slice(index + 1))
+      ] : [
         ...(renderValue.slice(0, index)),
         item,
         ...(renderValue.slice(index + 1))
