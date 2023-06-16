@@ -50,18 +50,25 @@ const FileEditQuantity = React.memo(props => {
   const dropedFiles = useRef([])
   const [uploading, setUploading] = useState(null)
 
-  const uploadFile = useCallback((file, overwrite = false) => {
+  const uploadFile = useCallback((files, overwrite = false) => {
     const mainfilePathSegments = metadata.mainfile.split('/')
     const mainfileDir = mainfilePathSegments.slice(0, mainfilePathSegments.length - 1).join('/')
     const mainfileDirEncoded = mainfileDir.split('/').map(segment => encodeURIComponent(segment)).join('/')
-    const fullPath = mainfileDir ? mainfileDir + '/' + file.name : file.name
+    let fullPaths = files.map((file) => mainfileDir ? mainfileDir + '/' + file.name : file.name)
 
     const formData = new FormData() // eslint-disable-line no-undef
-    formData.append('file', file)
+    if (quantityDef.shape.length > 0) {
+      files.forEach((file) => {
+        formData.append('file', file)
+      })
+    } else {
+      formData.append('file', files[0])
+      fullPaths = fullPaths[0]
+    }
 
     return new Promise((resolve, reject) => {
       api.put(
-        `/uploads/${uploadId}/raw/${mainfileDirEncoded}?wait_for_processing=true&overwrite_if_exists=${overwrite}`,
+        `/uploads/${uploadId}/raw/${mainfileDirEncoded}?overwrite_if_exists=${overwrite}`,
         formData, {
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -69,13 +76,13 @@ const FileEditQuantity = React.memo(props => {
           }
         }
       )
-        .then(response => resolve({response, fullPath}))
+        .then(response => resolve({response, fullPaths}))
         .catch(error => reject(error))
         .finally(() => {
           setUploading(null)
         })
     })
-  }, [api, uploadId, metadata])
+  }, [api, uploadId, metadata, quantityDef])
 
   const handleDropFiles = useCallback(files => {
     if (!files?.[0]?.name) {
@@ -83,9 +90,9 @@ const FileEditQuantity = React.memo(props => {
     }
 
     dropedFiles.current = files
-    uploadFile(files[0]).then(({response, fullPath}) => {
+    uploadFile(files).then(({response, fullPaths}) => {
       if (onChange) {
-        onChange(fullPath)
+        onChange(fullPaths)
       }
     }).catch(error => {
       if (error.apiMessage === "The provided path already exists and overwrite_if_exists is set to False.") {
@@ -111,10 +118,10 @@ const FileEditQuantity = React.memo(props => {
       return
     }
 
-    uploadFile(files[0], true)
-      .then(({response, fullPath}) => {
+    uploadFile(files, true)
+      .then(({response, fullPaths}) => {
         if (onChange) {
-          onChange(fullPath)
+          onChange(fullPaths)
         }
       })
       .catch(error => {
