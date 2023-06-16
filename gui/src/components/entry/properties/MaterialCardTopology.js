@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { isEmpty } from 'lodash'
 import { PropertyCard } from './PropertyCard'
@@ -23,7 +23,6 @@ import { Tab, Tabs, Typography, Box } from '@material-ui/core'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import { getTopology } from '../../visualization/Structure'
 import StructureNGL from '../../visualization/StructureNGL'
-// import { DownloadSystemButton } from '../../visualization/StructureBase'
 import { FloatableNoReparent } from '../../visualization/Floatable'
 import NoData from '../../visualization/NoData'
 import TreeView from '@material-ui/lab/TreeView'
@@ -66,24 +65,7 @@ const MaterialCardTopology = React.memo(({index, archive}) => {
   const [topologyTree, topologyMap] = useMemo(() => getTopology(index, archive), [index, archive])
   const [selected, setSelected] = useState(topologyTree.system_id)
   const [tab, setTab] = useState(0)
-  const [structure, setStructure] = useState()
   const [float, setFloat] = useState(false)
-
-  // Used to resolve the path to the structure for the given topology item
-  const resolveStructure = useCallback((top, topologyMap) => {
-    return top.atoms_ref ? top.atoms_ref.slice(0, -6) : (top.atoms
-      ? top.system_id
-      : resolveStructure(topologyMap[top.parent_system], topologyMap))
-  }, [])
-
-  // When archive is loaded, this effect handles changes in visualizing the
-  // selected system
-  useEffect(() => {
-    if (!archive) return
-    const top = topologyMap[selected]
-    const structure = resolveStructure(top, topologyMap)
-    setStructure(structure)
-  }, [archive, selected, topologyMap, resolveStructure])
 
   // Handle tab change
   const handleTabChange = useCallback((event, value) => {
@@ -112,11 +94,14 @@ const MaterialCardTopology = React.memo(({index, archive}) => {
               <Box flex="0 0 8px"/>
               <Box flex="1 1 67%">
                 <StructureNGL
-                  data={structure}
-                  topologyTree={topologyTree}
                   topologyMap={topologyMap}
                   entryId={index.entry_id}
-                  selection={selected}
+                  // Only once archive is loaded, the data for 'atoms' and
+                  // 'atoms_ref' will be present. Until that we can't load the
+                  // visualization as the topology can't tell which system to
+                  // load. TODO: Maybe the indices etc. could be stored in ES to
+                  // allow the structure to be loaded once metadata is ready?
+                  selected={archive ? selected : undefined}
                   onFullscreen={handleFloat}
                 />
               </Box>
@@ -218,7 +203,7 @@ const useTopologyItemStyles = makeStyles({
     '$expanded > &': {
       fontWeight: props.theme.typography.fontWeightRegular
     },
-    paddingLeft: props.theme.spacing(props.level),
+    paddingLeft: props.theme.spacing(0.75 * props.level),
     boxSizing: 'border-box'
   }),
   group: (props) => ({marginLeft: 0}),
@@ -227,7 +212,8 @@ const useTopologyItemStyles = makeStyles({
   selected: (props) => ({}),
   label: (props) => ({
     fontWeight: 'inherit',
-    color: 'inherit'
+    color: 'inherit',
+    paddingLeft: 0
   }),
   row: (props) => ({
     display: 'flex',
@@ -289,9 +275,6 @@ const TopologyItem = React.memo(({node, level, selected}) => {
             )}
           </Typography>
         </div>
-        {/* {node.atoms_ref &&
-          <DownloadSystemButton path={node.atoms_ref} color={isSelected ? 'inherit' : 'default'}/>
-        } */}
       </div>
     }
     classes={{

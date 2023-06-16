@@ -33,7 +33,7 @@ import * as THREE from 'three'
 import { withErrorHandler } from '../ErrorHandler'
 import { useAsyncError } from '../../hooks'
 import { useApi } from '../api'
-import { parseNomadUrl } from '../../utils'
+import { download, parseNomadUrl } from '../../utils'
 
 const useStyles = makeStyles((theme) => ({
   canvas: {
@@ -47,11 +47,9 @@ const useStyles = makeStyles((theme) => ({
   }
 }))
 const StructureNGL = React.memo(({
-  data,
-  topologyTree,
   topologyMap,
   entryId,
-  selection,
+  selected,
   sizeLimit,
   onFullscreen,
   ...rest
@@ -83,6 +81,8 @@ const StructureNGL = React.memo(({
   const selectionRef = useRef()
   const { api } = useApi()
   const asyncError = useAsyncError()
+  const {entryId: newEntryId, path} = getSystemAPIQuery(selected, entryId, topologyMap)
+  const system = topologyMap?.[selected]
 
   // Fetch the number of atoms
   const nAtoms = useMemo(() => {
@@ -106,7 +106,7 @@ const StructureNGL = React.memo(({
 
   // Updated the list of the species for the currently shown system
   useEffect(() => {
-    const elements = topologyMap[selection]?.elements
+    const elements = system?.elements
     let species
     if (elements) {
       try {
@@ -125,7 +125,7 @@ const StructureNGL = React.memo(({
       }
     }
     setSpecies(species)
-  }, [selection, topologyMap])
+  }, [system])
 
   // Forces a three.js render
   const render = useCallback(() => {
@@ -229,18 +229,7 @@ const StructureNGL = React.memo(({
     if (!stageRef.current) return
     const imgData = await stageRef.current.makeImage()
     try {
-      const link = document.createElement('a')
-      link.style.display = "none"
-      document.body.appendChild(link)
-      const url = window.URL.createObjectURL(imgData)
-      const filename = name + ".png"
-      link.href = url
-      link.download = filename
-      link.click()
-      document.body.removeChild(link)
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url)
-      }, 0)
+      download(name + ".png", imgData)
     } catch (e) {
     }
   }, [])
@@ -271,20 +260,12 @@ const StructureNGL = React.memo(({
    * later in the event queue allows the component to perform state updates
    * (e.g. loading placeholder) while the viewer is loading.
    */
-  const loadComponent = useCallback(async (entryId, data, topologyMap) => {
+  const loadComponent = useCallback(async (system, entryId, path, componentKey, topologyMap) => {
     // Load the structure if not already cached
     const format = 'pdb'
-    let component = componentsRef.current[data]
+    let component = componentsRef.current[componentKey]
     if (!component) {
-      // The path may be a reference that points to some other entry as well,
-      // here it is resolved
-      let path = data
-      if (!data.startsWith('results')) {
-        const nomadUrl = parseNomadUrl(data)
-        entryId = nomadUrl.entryId || entryId
-        path = nomadUrl.path
-      }
-      const system = await api.get(
+      const systemResponse = await api.get(
         `systems/${entryId}`,
         {path: path, format},
         {responseType: 'blob'}
@@ -293,19 +274,23 @@ const StructureNGL = React.memo(({
       // PDB files (or any other file formats supported by NGL) cannot contain
       // both the full lattice vectors and the PBC. These are, however, needed
       // for the proper visualization of the system. To work around this, they
-      // are stored as a REMARK and read here.
-      const header = await system.slice([0], [251]).text()
+      // are stored as a REMARK 285 and read here.
+      const header = await systemResponse.slice([0], [280]).text()
       let pbc = [true, true, true]
       let a, b, c
       const regexFloat = /[+-]?\d+(\.\d+)?/g
       for (const value of header.split('\n')) {
-        if (value.startsWith("REMARK      A:")) {
-          a = value.match(regexFloat).map((v) => parseFloat(v))
-        } else if (value.startsWith("REMARK      B:")) {
-          b = value.match(regexFloat).map((v) => parseFloat(v))
-        } else if (value.startsWith("REMARK      C:")) {
-          c = value.match(regexFloat).map((v) => parseFloat(v))
-        } else if (value.startsWith("REMARK     PBC")) {
+        const aPrefix = 'REMARK 285  A:'
+        const bPrefix = 'REMARK 285  B:'
+        const cPrefix = 'REMARK 285  C:'
+        const pbcPrefix = 'REMARK 285 PBC'
+        if (value.startsWith(aPrefix)) {
+          a = value.slice(aPrefix.length).match(regexFloat).map((v) => parseFloat(v))
+        } else if (value.startsWith(bPrefix)) {
+          b = value.slice(bPrefix.length).match(regexFloat).map((v) => parseFloat(v))
+        } else if (value.startsWith(cPrefix)) {
+          c = value.slice(cPrefix.length).match(regexFloat).map((v) => parseFloat(v))
+        } else if (value.startsWith(pbcPrefix)) {
           const regex = /TRUE|FALSE/g
           pbc = value.match(regex)?.map((v) => v === 'TRUE')
         }
@@ -313,18 +298,18 @@ const StructureNGL = React.memo(({
 
       // Load file
       component = await stageRef.current.loadFile(
-        system,
+        systemResponse,
         {ext: format, defaultRepresentation: false}
       )
 
-      // Find the root topology item for this data.
-      let root
-      for (const [key, top] of Object.entries(topologyMap)) {
-        if (key === data || top.atoms_ref?.slice(0, -6) === data) {
-          root = key
-          break
-        }
+      // Find the 'root' system for the selected item. The root system contains
+      // information about the cell and periodic boundary conditions.
+      function getRoot(top) {
+        return ((top.atoms_ref || top.atoms) && isNil(top.indices))
+          ? top
+          : getRoot(topologyMap[top.parent_system])
       }
+      const root = getRoot(system)
 
       // Recursively add a new representation for each child that does not have
       // it's own component
@@ -359,7 +344,7 @@ const StructureNGL = React.memo(({
           if (!child.atoms) addRepresentation(child)
         }
       }
-      addRepresentation(topologyMap[root])
+      addRepresentation(root)
 
       // The file formats supported by NGL don't include the true lattice
       // vectors, only the shape of the cell. If the lattive vectors aren't
@@ -375,7 +360,7 @@ const StructureNGL = React.memo(({
         a = new THREE.Vector3().fromArray(a)
         b = new THREE.Vector3().fromArray(b)
         c = new THREE.Vector3().fromArray(c)
-        const metaCell = topologyMap[root]?.cell
+        const metaCell = root?.cell
         component.addRepresentation('unitcell', {opacity: 0})
 
         // If some of the basis vectors are collapsed, we need to create
@@ -440,58 +425,61 @@ const StructureNGL = React.memo(({
       }
     }
     componentRef.current = component
-    componentsRef.current[data] = component
+    componentsRef.current[componentKey] = component
   // We dont want this effect to react to 'wrap'
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, wrapPositions])
 
   // Called whenever the system changes. Loads the structure asynchronously.
   useEffect(() => {
-    setLoading(true)
+    const componentKey = `${newEntryId}/${path}`
+    if (isNil(componentsRef.current[componentKey])) {
+      setLoading(true)
+    }
     readyRef.current = false
     setReady(false)
-    setNoData(data === false)
-    if (!data) return
+    setNoData(path === false)
+    if (!path) return
 
     // For large systems we ask the user for permission
     if (!accepted) return
 
     // Remember to catch since react error boundaries do not automatically catch
     // from async calls.
-    loadComponent(entryId, data, topologyMap)
+    loadComponent(system, newEntryId, path, componentKey, topologyMap)
       .catch(asyncError)
       .finally(() => {
         // Hide other components that have been loaded
-        for (const [name, component] of Object.entries(componentsRef.current)) {
-          component.setVisibility(name === data)
+        for (const [key, component] of Object.entries(componentsRef.current)) {
+          component.setVisibility(key === componentKey)
         }
         setReady(true)
         readyRef.current = true
       })
-  }, [entryId, data, topologyTree, topologyMap, api, asyncError, loadComponent, accepted])
+  }, [system, newEntryId, path, topologyMap, api, asyncError, loadComponent, accepted])
 
   // React to selection
   useEffect(() => {
     if (!ready || !readyRef.current) return
 
     // Resolve how the selected topology should be visualized.
-    const topSelection = topologyMap[selection]
-    const topParent = topologyMap[selection].parent_system
+    const topSelection = system
+    const topParent = system.parent_system
     const structuralType = topSelection.structural_type
     const isMonomer = structuralType === 'monomer'
     const isMolecule = structuralType === 'molecule'
     const isGroup = structuralType === 'group' || topSelection.label === 'subsystem'
-    const independent = topSelection.atoms || topSelection.atoms_ref || isMolecule || isMonomer
+    const independent = topSelection.atoms || (topSelection.atoms_ref && isNil(topSelection.indices)) || isMolecule || isMonomer
     const child_types = topSelection.child_systems
       ? new Set(topSelection.child_systems.map(x => x.structural_type))
       : new Set()
     const isMonomerGroup = isGroup && isEqual(child_types, new Set(['monomer']))
 
     // Determine the selection to center on.
-    selectionRef.current = representationMap.current[independent ? selection : topParent]?.sele
+    selectionRef.current = representationMap.current[independent ? selected : topParent]?.sele
 
     // Determine the selections to show opaque
-    const opaque = new Set([selection])
+    const opaque = new Set([selected])
 
     // Determine the selections to show transparent
     const transparent = new Set(isGroup ? [topParent] : [])
@@ -534,7 +522,7 @@ const StructureNGL = React.memo(({
   // We don't want this effect to react to 'showCell', 'showBonds' or
   // 'showLatticeParameters'
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection, ready, topologyMap, handleShowCell, handleShowLatticeConstants, handleReset])
+  }, [selected, system, ready, handleShowCell, handleShowLatticeConstants, handleReset])
 
   return <StructureBase
     onTakeScreenshot={handleTakeScreenshot}
@@ -559,7 +547,12 @@ const StructureNGL = React.memo(({
     noData={noData}
     nAtoms={nAtoms}
     prompt={prompt}
+    // File download is disabled for older archives where system has indices but
+    // does not have atoms_ref filled.
+    disableFileDownload={!isNil(system?.indices) && isNil(system.atoms_ref)}
     sizeLimit={sizeLimit}
+    entryId={newEntryId}
+    path={selected}
     {...rest}
   >
     <div ref={canvasParentRef} className={styles.canvasParent}>
@@ -574,9 +567,8 @@ StructureNGL.propTypes = {
     PropTypes.bool,
     PropTypes.string
   ]),
-  topologyTree: PropTypes.object,
   topologyMap: PropTypes.object,
-  selection: PropTypes.string,
+  selected: PropTypes.string,
   sizeLimit: PropTypes.number, // Maximum number of atoms before a prompt is shown.
   onFullscreen: PropTypes.func
 }
@@ -586,6 +578,40 @@ StructureNGL.defaultProps = {
 }
 
 export default withErrorHandler('Could not load structure.')(StructureNGL)
+
+/**
+ * Used to resolve the API parameters for fetching a structure that is required
+ * to visualize the current selection.
+ *
+ * @param {string} selected The selected system
+ * @param {string} entryId Entry id
+ * @param {object} topologyMap Object containing a mapping from system ids to the data.
+ * @returns The final entry_id and path for fetching the system file through the API.
+ */
+export function getSystemAPIQuery(selected, entryId, topologyMap) {
+  if (isNil(selected) || isNil(entryId) || isNil(topologyMap)) {
+    return {entryId: undefined, path: undefined}
+  }
+
+  // Get path to the first system which stores a reference or actual data for
+  // the structure and does not specify indices. This way the visualizer is a
+  // bit more optimal compared to doing API calls for every subsystem.
+  function getPath(top) {
+    return ((top.atoms_ref || top.atoms) && isNil(top.indices))
+      ? top.system_id
+      : getPath(topologyMap[top.parent_system])
+  }
+  let path = getPath(topologyMap[selected])
+
+  // The path may be a reference that points to some other entry as well,
+  // here it is resolved
+  if (!path.startsWith('results')) {
+    const nomadUrl = parseNomadUrl(path)
+    entryId = nomadUrl.entryId || entryId
+    path = nomadUrl.path
+  }
+  return {entryId, path}
+}
 
 /**
  * Returns a quaternion that aligns the view according to the given input

@@ -1403,3 +1403,25 @@ export function removePrefix(string, prefix) {
   }
   return string
 }
+
+/**
+ * Used to download a file using the native browser mechanism. You can either
+ * provide an URL or the raw data as content.
+ */
+export function download(filename, content) {
+  const link = document.createElement('a')
+  link.style.display = "none"
+  document.body.appendChild(link)
+  const remoteData = isString(content)
+  const url = remoteData
+    ? content
+    : window.URL.createObjectURL(content)
+  link.href = url
+  link.download = filename
+  link.click()
+  document.body.removeChild(link)
+  !remoteData &&
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url)
+    }, 0)
+}

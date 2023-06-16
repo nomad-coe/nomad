@@ -222,10 +222,13 @@ def ase_atoms_from_nomad_atoms(system: NOMADAtoms) -> Atoms:
     Returns:
         ase.Atoms instance.
     '''
+    cell = system.lattice_vectors
+    if cell is not None:
+        cell = cell.to(ureg.angstrom).magnitude
     return Atoms(
         positions=system.positions.to(ureg.angstrom).magnitude,
         numbers=system.species,
-        cell=system.lattice_vectors.to(ureg.angstrom).magnitude,
+        cell=cell,
         pbc=system.periodic
     )
 
@@ -285,10 +288,11 @@ def mda_universe_from_nomad_atoms(system: Atoms, logger=None) -> mda.Universe:
     universe.add_TopologyAttr('element', atom_names)
 
     # Add the box dimensions
-    universe.atoms.dimensions = atomutils.cell_to_cellpar(
-        system.lattice_vectors.to(ureg.angstrom).magnitude,
-        degrees=True
-    )
+    if system.lattice_vectors is not None:
+        universe.atoms.dimensions = atomutils.cell_to_cellpar(
+            system.lattice_vectors.to(ureg.angstrom).magnitude,
+            degrees=True
+        )
 
     return universe
 

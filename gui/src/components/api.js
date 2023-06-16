@@ -294,15 +294,18 @@ class Api {
       if (config.jsonResponse) {
         results.data = repairJsonResponse(results.data)
       }
+      const response = config.fullResponse
+        ? results
+        : results.data
       if (config.returnRequest) {
         return {
           method: config.methodName || method.name,
           url: `${this.baseURL}/${path}`,
           body: body,
-          response: results.data
+          response: response
         }
       }
-      return results.data
+      return response
     } catch (errors) {
       if (config.noHandleErrors) {
         throw errors

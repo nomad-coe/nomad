@@ -26,20 +26,19 @@ import {
   Menu,
   MenuItem,
   Typography,
-  Tooltip,
-  FormControlLabel,
-  IconButton
+  FormControlLabel
 } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
-import GetAppIcon from '@material-ui/icons/GetApp'
 import {
   MoreVert,
   Fullscreen,
   FullscreenExit,
   CameraAlt,
   Replay,
-  ViewList
+  ViewList,
+  GetApp
 } from '@material-ui/icons'
+import { DownloadSystemMenu } from '../buttons/DownloadSystemButton'
 import Floatable from './Floatable'
 import NoData from './NoData'
 import Placeholder from './Placeholder'
@@ -120,14 +119,19 @@ const StructureBase = React.memo(({
   classes,
   captureName,
   disableLegend,
+  disableFileDownload,
+  entryId,
+  path,
   m_path,
   'data-testid': testID,
   children}
 ) => {
   const [anchorEl, setAnchorEl] = React.useState(null)
+  const [systemAnchorEl, setSystemAnchorEl] = React.useState(null)
   const history = useHistory()
   const open = Boolean(anchorEl)
   const styles = useStyles(classes)
+  const downloadDisabled = isNil(entryId) || isNil(path) || disableFileDownload
 
   const setShowBonds = useCallback((value, render = false) => {
     onShowBonds && onShowBonds(value, render)
@@ -155,6 +159,10 @@ const StructureBase = React.memo(({
 
   const openMenu = useCallback((event) => {
     setAnchorEl(event.currentTarget)
+  }, [])
+
+  const openSystemMenu = useCallback((event) => {
+    setSystemAnchorEl(event.currentTarget)
   }, [])
 
   const closeMenu = useCallback(() => {
@@ -215,6 +223,16 @@ const StructureBase = React.memo(({
             <Action tooltip='Toggle fullscreen' onClick={handleFullscreen}>
               {float ? <FullscreenExit/> : <Fullscreen/>}
             </Action>
+            <Action
+              tooltip={downloadDisabled
+                ? 'File download not available for this system'
+                : 'Download system geometry as a file'
+              }
+              onClick={openSystemMenu}
+              disabled={downloadDisabled}
+            >
+              <GetApp/>
+            </Action>
             <Action tooltip='Capture image' onClick={takeScreencapture}>
               <CameraAlt/>
             </Action>
@@ -227,6 +245,12 @@ const StructureBase = React.memo(({
               <MoreVert/>
             </Action>
           </Actions>
+          <DownloadSystemMenu
+            entryId={entryId}
+            path={path}
+            anchorEl={systemAnchorEl}
+            onClose={() => setSystemAnchorEl(null)}
+          />
           <Menu
             id='settings-menu'
             anchorEl={anchorEl}
@@ -321,6 +345,9 @@ StructureBase.propTypes = {
   classes: PropTypes.object,
   noData: PropTypes.bool,
   canvasID: PropTypes.string,
+  disableFileDownload: PropTypes.bool, // Used to disable the file download button
+  entryId: PropTypes.string,
+  path: PropTypes.string,
   m_path: PropTypes.string, // Path of the structure data in the metainfo
   captureName: PropTypes.string, // Name of the file that the user can download
   disableLegend: PropTypes.bool, // Disable the legend showing the species list
@@ -328,7 +355,7 @@ StructureBase.propTypes = {
   children: PropTypes.node
 }
 StructureBase.defaultProps = {
-  captureName: 'structure'
+  captureName: 'system'
 }
 
 export default withWebGLErrorHandler(withErrorHandler('Could not load structure.')(StructureBase))
@@ -484,19 +511,4 @@ export function getTopology(index, archive) {
   traverse(root)
 
   return [root, topologyMap]
-}
-
-/**
- * Button for downloading a specific system.
- */
-export const DownloadSystemButton = React.memo(({path, ...rest}) => {
-  return <Tooltip title="Download the system geometry">
-      <IconButton size="small" {...rest}>
-      <GetAppIcon />
-    </IconButton>
-  </Tooltip>
-})
-
-DownloadSystemButton.propTypes = {
-  path: PropTypes.string
 }

@@ -68,6 +68,7 @@ def assert_topology(topology):
         if top.child_systems:
             child_map[top.system_id] = top.child_systems
         if top.indices is not None:
+            assert top.atoms_ref is not None
             assert len(top.indices.shape) == 2
             assert top.mass_fraction is not None
             assert top.atomic_fraction is not None
