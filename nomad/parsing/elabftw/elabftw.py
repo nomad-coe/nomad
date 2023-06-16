@@ -234,7 +234,7 @@ class ELabFTWParser(MatchingParser):
         super().__init__(
             name='parsers/elabftw_parser', code_name='ElabFTW',
             domain=None,
-            mainfile_mime_re=r'text/plain|application/json',
+            mainfile_mime_re=r'text/plain|application/json|text/html',
             mainfile_name_re=r'.*ro-crate-metadata.json$')
 
     def is_mainfile(
@@ -318,7 +318,7 @@ class ELabFTWParser(MatchingParser):
             try:
                 experiment_data.m_update_from_dict(export_data[0])
                 experiment_data.extra_fields = export_data[0]['metadata']['extra_fields']
-            except IndexError:
+            except (IndexError, KeyError):
                 logger.warning(f'Couldn\'t read and parse the data from export-elabftw.json file')
             elabftw_experiment.experiment_data = experiment_data
 

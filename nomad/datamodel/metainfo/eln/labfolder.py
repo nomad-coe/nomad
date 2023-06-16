@@ -267,7 +267,7 @@ class LabfolderProject(EntryData):
     def _labfolder_api_method(self, method, url, msg='cannot do labfolder api request', **kwargs):
         response = method(
             f'{self._api_base_url}{url}',
-            headers=self._headers, timeout=5, **kwargs)
+            headers=self._headers, timeout=10, **kwargs)
 
         if response.status_code >= 400:
             self.logger.error(
