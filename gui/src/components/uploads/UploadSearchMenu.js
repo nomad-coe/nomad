@@ -17,12 +17,26 @@
  */
 
 import React from 'react'
-import { MenuBar } from './MenuBar'
-import { routes } from './Routes'
-import MenuBarRoute from './MenuBarRoute'
+import PropTypes from 'prop-types'
+import { routes } from '../nav/Routes'
+import MenuBarRoute from '../nav/MenuBarRoute'
+import SearchIcon from '@material-ui/icons/Search'
 
-const MainMenu = React.memo(() => {
-   return <MenuBar>{routes.map((menu) => <MenuBarRoute key={menu.path} label={menu.menu} menu={menu} />)}</MenuBar>
+const UploadSearchMenu = React.memo(({
+  uploadId
+}) => {
+  const filteredMenus = routes.filter((menu) => menu.menu === 'Explore')
+  if (filteredMenus.length !== 1) {
+    return null
+  }
+  const menu = filteredMenus[0]
+    return (
+      <MenuBarRoute menu={menu} label={<SearchIcon />} initialFilters={{upload_id: uploadId}} />
+    )
 })
 
-export default MainMenu
+UploadSearchMenu.propTypes = {
+  uploadId: PropTypes.string.isRequired
+}
+
+export default UploadSearchMenu
