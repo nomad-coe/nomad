@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import re
 from io import BytesIO, StringIO
 
 import pytest
@@ -42,6 +43,16 @@ def ase_atoms(content, format):
     }.get(format, format)
     atoms = ase.io.read(StringIO(content), format=format)
     return atoms
+
+
+def assert_contents(a: str, b: str):
+    '''Compares two file contents to each other. Differences in trailing
+    whitespace are ignored.
+    '''
+    def normalize(a):
+        return re.sub(' +\n', '\n', a)
+
+    assert normalize(a) == normalize(b)
 
 
 def assert_atoms(a: ASEAtoms, b: ASEAtoms, compare_cell: bool = True, compare_pbc: bool = False, atol: float = 0, rtol: float = 1e-3):
@@ -223,7 +234,7 @@ def test_formats_with_cell(format, content_expected, filename, client, example_d
         filename
     )
     content = response.content.decode('utf-8')
-    assert content == content_expected
+    assert_contents(content, content_expected)
     atoms = ase_atoms(content, format)
     assert_atoms(
         atoms,
@@ -293,7 +304,7 @@ def test_formats_without_cell(format, content_expected, filename, client, exampl
         filename
     )
     content = response.content.decode('utf-8')
-    assert content == content_expected
+    assert_contents(content, content_expected)
     atoms = ase_atoms(content, format)
     assert_atoms(
         atoms,
