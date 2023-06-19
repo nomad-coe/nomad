@@ -951,6 +951,25 @@ class Relation(MSection):
     )
 
 
+class Coordination(MSection):
+    '''
+   Coordination number of an element, which represents the number
+   of atoms directly bonded to the element.
+    '''
+    element = Quantity(
+        type=MEnum(chemical_symbols),
+        description='''
+        Chemical symbol of element, whose coordination number is being determined.
+        '''
+    )
+    coordination_number = Quantity(
+        type=int,
+        description='''
+        The number of neighbours directly connected to an atom
+        '''
+    )
+
+
 class System(MSection):
     '''Describes a physical system as identified in an entry. Can be a part of a
     larger structural hierarchy.
@@ -980,7 +999,7 @@ class System(MSection):
         ]
     )
     method = Quantity(
-        type=MEnum('parser', 'user', 'matid'),
+        type=MEnum('parser', 'user', 'matid', 'porosity'),
         description='''
         The method used for identifying this system.
         ''',
@@ -1259,7 +1278,132 @@ class System(MSection):
     cell = SubSection(sub_section=Cell.m_def, repeats=False)
     symmetry = SubSection(sub_section=SymmetryNew.m_def, repeats=False)
 
+    sbu_type = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The topological representation of the metal secondary building units (sbus).
+        The shape of most metal sbus are well defined and form the basis of most
+         popular MOFs. The most common example is the paddlewheel, rodlike mofs,
+         irmofs, uio66
+         ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    largest_cavity_diameter = Quantity(
+        type=np.float64,
+        alias=['lcd', 'largest_included_sphere'],
+        unit='m',
+        description='''
+        The largest cavity diameter is the largest sphere that can be inserted in a porous
+        system without overlapping with any of the atoms in the system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
+    pore_limiting_diameter = Quantity(
+        type=np.float64,
+        alias=['pld', 'free_sphere'],
+        unit='m',
+        description='''
+        The pore limiting diameter is the largest sphere that can freely
+        diffuse through the porous network without overlapping with any of the
+        atoms in the system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
+    largest_included_sphere_along_free_sphere_path = Quantity(
+        type=np.float64,
+        alias=['lfpd'],
+        unit='m',
+        description='''
+        The largest included sphere along free sphere path is
+        largest sphere that can be inserted in the pore.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
+    accessible_surface_area = Quantity(
+        type=np.float64,
+        alias=['asa', 'sasa', 'solvent_accessible_surface_area'],
+        unit='m ** 2',
+        description='''
+        The surface area accessible is the area that is accessible to guest molecules
+        in a porous system. It is generally considered to be the entire surface area
+        that can be spanned by a probe of a specific radius. In NOMAD, by default we use
+        a probe that has a radius of 1.86 Angstrom, which correspond to the
+        covalent radii of nitrogen gas. For biomolecular system, a radii of
+        1.4 Angstrom can be used, which correspond to the covalent radii
+        of water.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
+    accessible_volume = Quantity(
+        type=np.float64,
+        alias=['common_solvent_accessible_volume', 'csav',
+               'solvent_accessible_volume', 'sav'],
+        unit='m ** 3',
+        description='''
+        Volume of unoccupied space in a system that can be accessible to
+        guest molecules, like solvents.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
 
+    metal_coordination = SubSection(sub_section=Coordination.m_def, repeats=True)
+
+    void_fraction = Quantity(
+        type=np.float64,
+        alias=['void_ratio'],
+        description='''
+        Ratio of the the volume of the unoccupied space in the system
+        to the volume of the entire system. It is a good proxy to
+        determine how porous a system is. Highly porous systems
+        often have a larger void fraction, meanwhile compact or dense
+        systems have smaller void fractions.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
+    n_channels = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of channels present in the porous system, which correspond to the number of
+        pores within the system.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
+    sbu_coordination_number = Quantity(
+        type=int,
+        alias=['n_point_of_extensions'],
+        description='''
+        The number of connecting point in the secondary building units(sbu), which corresponds to
+        the to the number of point of extension in the secondary building unit. Some common
+        terminology include
+        1 : monotopic
+        2 : ditopic
+        3 : tritopic
+        4 : tetratopic
+        5 : pentatopic
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_type),
+        ]
+    )
 # =============================================================================
 
 

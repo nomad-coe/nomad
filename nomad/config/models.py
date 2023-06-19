@@ -348,6 +348,7 @@ class Normalize(NomadSettings):
     normalizers: Options = Field(Options(
         options=dict(
             SystemNormalizer='nomad.normalizing.system.SystemNormalizer',
+            # PorosityNormalizer='nomad.normalizing.porosity.PorosityNormalizer',
             OptimadeNormalizer='nomad.normalizing.optimade.OptimadeNormalizer',
             DosNormalizer='nomad.normalizing.dos.DosNormalizer',
             BandStructureNormalizer='nomad.normalizing.band_structure.BandStructureNormalizer',

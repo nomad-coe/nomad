@@ -56,7 +56,7 @@ class MaterialNormalizer():
 
     def material(self) -> Material:
         '''Returns a populated Material subsection.'''
-        material = Material()
+        material = self.entry_archive.m_setdefault('results.material')
 
         if self.repr_system:
             try:

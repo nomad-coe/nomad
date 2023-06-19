@@ -43,7 +43,7 @@ import Placeholder from '../visualization/Placeholder'
 import { Actions, Action } from '../Actions'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { useHistory } from 'react-router-dom'
-import { isEmpty, flattenDeep, isNil, merge, cloneDeep } from 'lodash'
+import { isEmpty, flattenDeep } from 'lodash'
 import { Quantity } from '../../units'
 import { delay } from '../../utils'
 import { useAsyncError } from '../../hooks'
@@ -618,49 +618,4 @@ export function toMateriaStructure(structure) {
   } catch (error) {
     return {}
   }
-}
-
-/**
- * Retrieves the topology for a calculation given the index and archive.
- *
- * @param {object} index
- * @param {object} archive
- *
- * @return {undefined|object} If the given structure cannot be converted,
- * returns an empty object.
- */
-export function getTopology(index, archive) {
-  // If topology is explicitly stored, use it.
-  let topology
-  if (index?.results?.material?.topology) {
-    topology = merge(
-      cloneDeep(index?.results?.material?.topology),
-      archive?.results?.material?.topology
-    )
-  }
-
-  // Create topology map
-  const topologyMap = Object.fromEntries(topology.map(top => ([top.system_id, top])))
-
-  // Create topology tree by finding the root node and then recursively
-  // replacing its children with the actual child instances.
-  const root = topology.find(top => isNil(top.parent_system))
-  const traverse = (node) => {
-    if (!isEmpty(node?.child_systems)) {
-      node.child_systems = node.child_systems.map(id => topologyMap[id])
-      node.child_systems.forEach(child => traverse(child))
-    }
-  }
-  traverse(root)
-
-  // Simplify the view if there is only one subsystem that covers everything.
-  if (root?.child_systems?.length === 1) {
-    const child = root.child_systems[0]
-    if (child.atomic_fraction === 1 && child?.system_relation?.type === 'subsystem') {
-      child.parent_system = root
-      root.child_systems = child.child_systems
-    }
-  }
-
-  return [root, topologyMap]
 }

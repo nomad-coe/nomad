@@ -371,7 +371,16 @@ registerFilter(
     {name: 'cell.gamma', ...numberHistogramQuantity},
     {name: 'cell.atomic_density', ...numberHistogramQuantity},
     {name: 'cell.mass_density', ...numberHistogramQuantity},
-    {name: 'cell.volume', ...numberHistogramQuantity}
+    {name: 'cell.volume', ...numberHistogramQuantity},
+    {name: 'sbu_type', ...termQuantity},
+    {name: 'largest_cavity_diameter', ...numberHistogramQuantity},
+    {name: 'pore_limiting_diameter', ...numberHistogramQuantity},
+    {name: 'largest_included_sphere_along_free_sphere_path', ...numberHistogramQuantity},
+    {name: 'accessible_surface_area', ...numberHistogramQuantity},
+    {name: 'accessible_volume', ...numberHistogramQuantity},
+    {name: 'void_fraction', ...numberHistogramQuantity},
+    {name: 'number_of_channels', ...numberHistogramQuantity},
+    {name: 'sbu_coordination_number', ...numberHistogramQuantity}
   ]
 )
 registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})

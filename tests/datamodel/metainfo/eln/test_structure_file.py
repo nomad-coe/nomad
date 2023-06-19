@@ -26,10 +26,7 @@ def test_processing(raw_files, no_warn):
     mainfile_schema = 'eln_with_structure.schema.archive.yaml'
 
     test_archive_schema = run_processing(directory, mainfile_schema)
-    run_normalize(test_archive_schema)
-
     test_archive = run_processing(directory, mainfile)
-    run_normalize(test_archive)
     # assert archive for schema and solar cell entry
     assert len(test_archive_schema.definitions.section_definitions) == 1
     assert len(test_archive.results.material.chemical_formula_reduced) > 0

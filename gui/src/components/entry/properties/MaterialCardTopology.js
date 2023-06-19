@@ -17,14 +17,12 @@
  */
 import React, { useCallback, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { isEmpty } from 'lodash'
+import { isEmpty, isNil, merge, cloneDeep } from 'lodash'
 import { PropertyCard } from './PropertyCard'
 import { Tab, Tabs, Typography, Box } from '@material-ui/core'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
-import { getTopology } from '../../visualization/Structure'
 import StructureNGL from '../../visualization/StructureNGL'
 import { FloatableNoReparent } from '../../visualization/Floatable'
-import NoData from '../../visualization/NoData'
 import TreeView from '@material-ui/lab/TreeView'
 import TreeItem from '@material-ui/lab/TreeItem'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
@@ -60,11 +58,12 @@ const useMaterialCardStyles = makeStyles((theme) => ({
     width: '100%'
   }
 }))
+
 const MaterialCardTopology = React.memo(({index, archive}) => {
   const styles = useMaterialCardStyles()
   const [topologyTree, topologyMap] = useMemo(() => getTopology(index, archive), [index, archive])
   const [selected, setSelected] = useState(topologyTree.system_id)
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState('composition')
   const [float, setFloat] = useState(false)
 
   // Handle tab change
@@ -312,35 +311,59 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
   const nElemsLabel = nElementMap[nElems]
   const n_elements = `${nElems}${nElemsLabel ? ` (${nElemsLabel})` : ''}`
   const tabMap = useMemo(() => {
-    const cellTab = {...(node?.cell || {})}
-    const symmetryTab = {...(node?.symmetry || {})}
     const hasTopology = !isEmpty(node)
-    const hasCell = !isEmpty(cellTab)
-    const hasSymmetry = !isEmpty(symmetryTab)
-    return {
-      0: {disabled: !hasTopology, label: 'Composition'},
-      1: {disabled: !hasCell, label: 'Cell'},
-      2: {disabled: !hasSymmetry, label: 'Symmetry'}
+    const hasCell = !isEmpty(node?.cell)
+    const hasSymmetry = !isEmpty(node?.symmetry)
+    const hasPorosity = [
+      node.largest_cavity_diameter,
+      node.pore_limiting_diameter,
+      node.accessible_surface_area,
+      node.accessible_volume,
+      node.void_fraction,
+      node.n_of_channels
+    ].some(x => !isNil(x))
+    const hasSbu = [
+      node.sbu_type,
+      node.sbu_coordination_number
+    ].some(x => !isNil(x))
+    const tabMap = {
+      composition: hasTopology && {
+        label: 'Composition'
+      },
+      cell: hasCell && {
+        label: 'Cell'
+      },
+      porosity: hasPorosity && {
+        label: 'Porosity'
+      },
+      sbu: hasSbu && {
+        label: 'SBU'
+      },
+      symmetry: hasSymmetry && {
+        label: 'Symmetry'
+      }
     }
+    return tabMap
   }, [node])
+
+  const finalValue = tabMap[value] ? value : 'composition'
 
   return <>
     <Tabs
-      value={value}
+      value={finalValue}
       onChange={onChange}
       indicatorColor="primary"
       textColor="primary"
+      variant="scrollable"
+      scrollButtons="auto"
+      TabScrollButtonProps={{classes: {disabled: styles.scrollbutton}}}
     >
-      <Tab {...tabMap[0]}/>
-      <Tab {...tabMap[1]}/>
-      <Tab {...tabMap[2]}/>
-      <Tab {...tabMap[3]}/>
+      {Object.entries(tabMap).map(([key, value]) => value ? <Tab key={key} value={key} {...value}/> : null)}
     </Tabs>
-    <MaterialTab value={value} index={0}>
-      {!tabMap[0].disabled
-      ? <QuantityTable fixed>
+    <MaterialTab selected={finalValue} value="composition">
+      <QuantityTable fixed>
         <QuantityRow separator>
-          <QuantityCell value={node?.chemical_formula_hill} span={2} quantity="results.material.topology.chemical_formula_hill"/>
+          <QuantityCell value={node?.chemical_formula_hill} quantity="results.material.topology.chemical_formula_hill"/>
           <QuantityCell value={node?.chemical_formula_iupac} quantity="results.material.topology.chemical_formula_iupac"/>
         </QuantityRow>
         <QuantityRow>
@@ -359,11 +382,34 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
           <QuantityCell value={node?.n_atoms} quantity="results.material.topology.n_atoms"/>
         </QuantityRow>
       </QuantityTable>
-      : <NoData className={styles.noData}/>}
     </MaterialTab>
-    <MaterialTab value={value} index={1}>
-    {!tabMap[1].disabled
-      ? <QuantityTable fixed>
+    <MaterialTab selected={finalValue} value="porosity">
+      <QuantityTable fixed>
+        <QuantityRow>
+          <QuantityCell value={node?.largest_cavity_diameter} label="LCD" quantity="results.material.topology.largest_cavity_diameter"/>
+          <QuantityCell value={node?.pore_limiting_diameter} label="PLD" quantity="results.material.topology.pore_limiting_diameter"/>
+          <QuantityCell value={node?.largest_included_sphere_along_free_sphere_path} label="LFPD" quantity="results.material.topology.largest_included_sphere_along_free_sphere_path"/>
+        </QuantityRow>
+        <QuantityRow>
+          <QuantityCell value={node?.accessible_surface_area} label="ASA" quantity="results.material.topology.accessible_surface_area"/>
+          <QuantityCell value={node?.accessible_volume} colSpan={2} label="AV" quantity="results.material.topology.accessible_volume"/>
+        </QuantityRow>
+        <QuantityRow>
+          <QuantityCell value={node?.void_fraction} quantity="results.material.topology.void_fraction"/>
+          <QuantityCell value={node?.n_of_channels} colSpan={2} quantity="results.material.topology.n_of_channels"/>
+        </QuantityRow>
+      </QuantityTable>
+    </MaterialTab>
+    <MaterialTab selected={finalValue} value="sbu">
+      <QuantityTable fixed>
+        <QuantityRow>
+        <QuantityCell value={node?.sbu_coordination_number} quantity="results.material.topology.sbu_coordination_number"/>
+        <QuantityCell value={node?.sbu_type} quantity="results.material.topology.sbu_type"/>
+        </QuantityRow>
+      </QuantityTable>
+    </MaterialTab>
+    <MaterialTab selected={finalValue} value="cell">
+      <QuantityTable fixed>
         <QuantityRow>
           <QuantityCell value={node?.cell?.a} quantity="results.material.topology.cell.a"/>
           <QuantityCell value={node?.cell?.b} quantity="results.material.topology.cell.b"/>
@@ -380,30 +426,26 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
           <QuantityCell value={node?.cell?.atomic_density} quantity="results.material.topology.cell.atomic_density"/>
         </QuantityRow>
       </QuantityTable>
-      : <NoData className={styles.noData}/>}
     </MaterialTab>
-    <MaterialTab value={value} index={2}>
-      {!tabMap[2].disabled
-        ? <QuantityTable>
-            <QuantityRow>
-              <QuantityCell value={node?.symmetry?.crystal_system} quantity="results.material.topology.symmetry.crystal_system"/>
-              <QuantityCell value={node?.symmetry?.bravais_lattice} quantity="results.material.topology.symmetry.bravais_lattice"/>
-              <QuantityCell value={node?.symmetry?.strukturbericht_designation} quantity="results.material.topology.symmetry.strukturbericht_designation"/>
-              <QuantityCell value={node?.symmetry?.space_group_symbol} quantity="results.material.topology.symmetry.space_group_symbol"/>
-            </QuantityRow>
-            <QuantityRow>
-              <QuantityCell value={node?.symmetry?.space_group_number} quantity="results.material.topology.symmetry.space_group_number"/>
-              <QuantityCell value={node?.symmetry?.point_group} quantity="results.material.topology.symmetry.point_group"/>
-              <QuantityCell value={node?.symmetry?.hall_number} quantity="results.material.topology.symmetry.hall_number"/>
-              <QuantityCell value={node?.symmetry?.hall_symbol} quantity="results.material.topology.symmetry.hall_symbol"/>
-            </QuantityRow>
-            <QuantityRow>
-              <QuantityCell value={node?.symmetry?.prototype_name} quantity="results.material.topology.symmetry.prototype_name"/>
-              <QuantityCell value={node?.symmetry?.prototype_label_aflow} quantity="results.material.topology.symmetry.prototype_label_aflow"/>
-            </QuantityRow>
-          </QuantityTable>
-        : <NoData className={styles.noData}/>
-      }
+    <MaterialTab selected={finalValue} value="symmetry">
+      <QuantityTable>
+        <QuantityRow>
+          <QuantityCell value={node?.symmetry?.crystal_system} quantity="results.material.topology.symmetry.crystal_system"/>
+          <QuantityCell value={node?.symmetry?.bravais_lattice} quantity="results.material.topology.symmetry.bravais_lattice"/>
+          <QuantityCell value={node?.symmetry?.strukturbericht_designation} quantity="results.material.topology.symmetry.strukturbericht_designation"/>
+          <QuantityCell value={node?.symmetry?.space_group_symbol} quantity="results.material.topology.symmetry.space_group_symbol"/>
+        </QuantityRow>
+        <QuantityRow>
+          <QuantityCell value={node?.symmetry?.space_group_number} quantity="results.material.topology.symmetry.space_group_number"/>
+          <QuantityCell value={node?.symmetry?.point_group} quantity="results.material.topology.symmetry.point_group"/>
+          <QuantityCell value={node?.symmetry?.hall_number} quantity="results.material.topology.symmetry.hall_number"/>
+          <QuantityCell value={node?.symmetry?.hall_symbol} quantity="results.material.topology.symmetry.hall_symbol"/>
+        </QuantityRow>
+        <QuantityRow>
+          <QuantityCell value={node?.symmetry?.prototype_name} quantity="results.material.topology.symmetry.prototype_name"/>
+          <QuantityCell value={node?.symmetry?.prototype_label_aflow} quantity="results.material.topology.symmetry.prototype_label_aflow"/>
+        </QuantityRow>
+      </QuantityTable>
     </MaterialTab>
   </>
 })
@@ -413,20 +455,65 @@ MaterialTabs.propTypes = {
   onChange: PropTypes.func
 }
 
-const MaterialTab = React.memo(({value, index, children}) => {
+const MaterialTab = React.memo(({selected, value, children}) => {
   return <div
     role="tabpanel"
-    hidden={value !== index}
-    id={`full-width-tabpanel-${index}`}
-    aria-labelledby={`full-width-tab-${index}`}
+    hidden={selected !== value}
+    id={`full-width-tabpanel-${value}`}
+    aria-labelledby={`full-width-tab-${value}`}
   >
     {children}
   </div>
 })
 MaterialTab.propTypes = {
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
+  selected: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
   children: PropTypes.node
 }
 
 export default MaterialCardTopology
+
+/**
+ * Retrieves the topology for a calculation given the index and archive.
+ *
+ * @param {object} index
+ * @param {object} archive
+ *
+ * @return {undefined|object} If the given structure cannot be converted,
+ * returns an empty object.
+ */
+export function getTopology(index, archive) {
+  // If topology is explicitly stored, use it.
+  let topology
+  if (index?.results?.material?.topology) {
+    topology = merge(
+      cloneDeep(index?.results?.material?.topology),
+      archive?.results?.material?.topology
+    )
+  }
+
+  // Create topology map
+  const topologyMap = Object.fromEntries(topology.map(top => ([top.system_id, top])))
+
+  // Create topology tree by finding the root node and then recursively
+  // replacing its children with the actual child instances.
+  const root = topology.find(top => isNil(top.parent_system))
+  const traverse = (node) => {
+    if (!isEmpty(node?.child_systems)) {
+      node.child_systems = node.child_systems.map(id => topologyMap[id])
+      node.child_systems.forEach(child => traverse(child))
+    }
+  }
+  traverse(root)
+
+  // Simplify the view if there is only one subsystem that covers everything.
+  if (root?.child_systems?.length === 1) {
+    const child = root.child_systems[0]
+    if (child.atomic_fraction === 1 && child?.system_relation?.type === 'subsystem') {
+      child.parent_system = root
+      root.child_systems = child.child_systems
+    }
+  }
+
+  return [root, topologyMap]
+}
