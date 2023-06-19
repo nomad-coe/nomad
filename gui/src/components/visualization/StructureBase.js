@@ -44,7 +44,7 @@ import NoData from './NoData'
 import Placeholder from './Placeholder'
 import { Actions, Action } from '../Actions'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
-import { isEmpty, isNil, merge, cloneDeep } from 'lodash'
+import { isNil } from 'lodash'
 import { Quantity } from '../../units'
 
 /**
@@ -471,44 +471,4 @@ export function toMateriaStructure(structure) {
   } catch (error) {
     return {}
   }
-}
-
-/**
- * Retrieves the topology for a calculation given the index and archive.
- *
- * @param {object} index
- * @param {object} archive
- *
- * @return {undefined|object} If the given structure cannot be converted,
- * returns an empty object.
- */
-export function getTopology(index, archive) {
-  // If topology is explicitly stored, use it.
-  let topology
-  if (index?.results?.material?.topology) {
-    topology = merge(
-      cloneDeep(index?.results?.material?.topology),
-      archive?.results?.material?.topology
-    )
-  }
-
-  // Create topology map
-  let id = 0
-  const topologyMap = Object.fromEntries(topology.map(top => {
-    const node_id = `/results/material/topology/${id++}`
-    return [node_id, top]
-  }))
-
-  // Create topology tree by finding the root node and then recursively
-  // replacing its children with the actual child instances.
-  const root = topology.find(top => isNil(top.parent_system))
-  const traverse = (node) => {
-    if (!isEmpty(node?.child_systems)) {
-      node.child_systems = node.child_systems.map(id => topologyMap[id])
-      node.child_systems.forEach(child => traverse(child))
-    }
-  }
-  traverse(root)
-
-  return [root, topologyMap]
 }

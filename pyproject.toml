@@ -60,7 +60,8 @@ parsing = [
     'asr==0.4.1',
     'netCDF4==1.5.4',
     'mdtraj==1.9.6',
-    'h5py==3.6.0'
+    'h5py==3.6.0',
+    'pyzeo==0.1.4'
 ]
 infrastructure = [
     'h5grove>=1.0.0',

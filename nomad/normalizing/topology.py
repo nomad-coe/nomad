@@ -64,7 +64,7 @@ def get_topology_id(index: int) -> str:
     return f'results/material/topology/{index}'
 
 
-def get_topology_original(archive: EntryArchive, atoms: NOMADAtoms = None) -> System:
+def get_topology_original(atoms: NOMADAtoms = None, archive: EntryArchive = None) -> System:
     '''
     Creates a new topology item for the original structure.
     '''
@@ -166,12 +166,18 @@ class TopologyNormalizer():
         self.logger = logger
 
     def topology(self, material) -> Optional[List[System]]:
-        '''Returns a dictionary that contains all of the topologies mapped by
-        topology id.'''
-        # Use the calculation topology primarily
+        '''Returns a dictionary that contains all of the topologies mapped by id.
+        '''
+        # If topology already exists (e.g. written by another normalizer), do
+        # not overwrite it.
+        topology = self.entry_archive.m_xpath('results.material.topology')
+        if topology:
+            return None
+        # Next use the topology from the calculation
         topology_calc = self.topology_calculation()
         if topology_calc:
             return topology_calc
+        # Finally if no other topology exists, try creating one with MatID
         with utils.timer(self.logger, 'calculating topology with matid'):
             topology_matid = self.topology_matid(material)
         if topology_matid:
@@ -202,7 +208,7 @@ class TopologyNormalizer():
             return None
 
         topology: Dict[str, System] = {}
-        original = get_topology_original(self.entry_archive, atoms)
+        original = get_topology_original(atoms, self.entry_archive)
         add_system(original, topology)
         label_to_indices: Dict[str, list] = defaultdict(list)
 
@@ -273,8 +279,7 @@ class TopologyNormalizer():
 
     def topology_matid(self, material: Material) -> Optional[List[System]]:
         '''
-        Returns a list of the identified systems with topological relations and
-        classification of subsystems.
+        Returns a list of systems that have been identified with MatID.
         '''
         # See if a system is available
         try:
@@ -287,7 +292,7 @@ class TopologyNormalizer():
 
         # Create topology for the original system
         topology: Dict[str, System] = {}
-        original = get_topology_original(self.entry_archive, nomad_atoms)
+        original = get_topology_original(nomad_atoms, self.entry_archive)
         add_system(original, topology)
         add_system_info(original, topology)
 
