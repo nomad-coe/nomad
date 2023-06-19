@@ -24,7 +24,6 @@ from typing import TypeVar, List, Dict, Tuple, Any, Union, Optional, cast
 from typing_extensions import Literal, Annotated  # type: ignore
 from pydantic import BaseModel, Field, validator, Extra  # pylint: disable=unused-import
 from pkg_resources import get_distribution, DistributionNotFound
-from collections.abc import Iterator
 
 try:
     __version__ = get_distribution('nomad-lab').version
@@ -87,7 +86,7 @@ class OptionsBase(StrictSettings):
     def filter(self, value: str) -> bool:
         ''' Determines is a value fitting this specification. '''
         included = not self.include or value in self.include or '*' in self.include
-        excluded = self.exclude and value in self.exclude
+        excluded = self.exclude and (value in self.exclude or '*' in self.exclude)
 
         return included and not excluded
 
@@ -98,15 +97,31 @@ class Options(OptionsBase):
     '''
     options: Dict[str, Any] = Field({}, description='Contains the available options.')
 
-    def filtered(self) -> Iterator[Any]:
-        for key, value in self.options.items():
-            if self.filter(key):
-                yield value
+    def filtered_keys(self) -> List[str]:
+        '''Returns a list of keys that fullfill the include/exclude
+        requirements.
+        '''
+        if self.include is None or '*' in self.include:
+            include = list(self.options.keys())
+        else:
+            include = self.include
+        if self.exclude is not None and '*' in self.exclude:
+            return []
+        else:
+            exclude = self.exclude or []
+        return [key for key in include if key not in exclude]
 
-    def filtered_items(self) -> Iterator[Tuple[str, Any]]:
-        for key, value in self.options.items():
-            if self.filter(key):
-                yield key, value
+    def filtered_values(self) -> List[Any]:
+        '''Returns a list of values that fullfill the include/exclude
+        requirements.
+        '''
+        return [self.options[key] for key in self.filtered_keys()]
+
+    def filtered_items(self) -> List[Tuple[str, Any]]:
+        '''Returns a list of key/value pairs that fullfill the include/exclude
+        requirements.
+        '''
+        return [(key, self.options[key]) for key in self.filtered_keys()]
 
 
 class OptionsSingle(Options):

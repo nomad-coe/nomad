@@ -46,7 +46,7 @@ from .normalizer import Normalizer
 
 normalizers: List[Type[Normalizer]] = []
 
-for normalizer in config.normalize.normalizers.filtered():
+for normalizer in config.normalize.normalizers.filtered_values():
     try:
         package, cls = normalizer.rsplit('.', 1)
         normalizer = getattr(importlib.import_module(package), cls)

@@ -12,8 +12,6 @@ fs:
   public: '.volumes/test_fs/public'
 plugins:
   include:
-    - parsers/archive
-    - parsers/tabular
     - parsers/vasp
 services:
   aitoolkit_enabled: true

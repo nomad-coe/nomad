@@ -16,18 +16,24 @@
 # limitations under the License.
 #
 
-import importlib
-from pydantic import parse_obj_as
+import pytest
 
-from nomad import config
-from nomad.config import Schema, Plugin
+from nomad.config.models import Options
 
-from . import annotations  # Should be imported first to register the annotations before they are used
-from .simulation import m_env
-from .eln.perovskite_solar_cell_database import m_package
-from .downloads import m_package
-from .eln.labfolder import m_package
 
-for plugin in config.plugins.filtered_values():
-    if isinstance(plugin, Schema):
-        importlib.import_module(plugin.python_package)
+@pytest.mark.parametrize('include, exclude, expected_keys', [
+    pytest.param(['B', 'A'], None, ['B', 'A'], id='custom order'),
+    pytest.param(['A', 'B'], ['A'], ['B'], id='exclude takes precedence'),
+    pytest.param(['*'], None, ['A', 'B'], id='include all'),
+    pytest.param(['A', 'B'], ['*'], [], id='exclude all')
+])
+def test_options(include, exclude, expected_keys):
+    options = Options(
+        options={
+            'A': 'A',
+            'B': 'B'
+        },
+        include=include,
+        exclude=exclude
+    )
+    assert options.filtered_keys() == expected_keys
