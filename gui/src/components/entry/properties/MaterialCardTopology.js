@@ -396,7 +396,7 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
         </QuantityRow>
         <QuantityRow>
           <QuantityCell value={node?.void_fraction} quantity="results.material.topology.void_fraction"/>
-          <QuantityCell value={node?.n_of_channels} colSpan={2} quantity="results.material.topology.n_of_channels"/>
+          <QuantityCell value={node?.n_channels} colSpan={2} quantity="results.material.topology.n_channels"/>
         </QuantityRow>
       </QuantityTable>
     </MaterialTab>
