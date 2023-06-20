@@ -379,7 +379,7 @@ registerFilter(
     {name: 'accessible_surface_area', ...numberHistogramQuantity},
     {name: 'accessible_volume', ...numberHistogramQuantity},
     {name: 'void_fraction', ...numberHistogramQuantity},
-    {name: 'number_of_channels', ...numberHistogramQuantity},
+    {name: 'n_channels', ...numberHistogramQuantity},
     {name: 'sbu_coordination_number', ...numberHistogramQuantity}
   ]
 )
