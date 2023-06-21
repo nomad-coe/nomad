@@ -12,9 +12,10 @@ definitions:
           type: str
           m_annotations:
             tabular_parser:
+              current_entry:
+                row_to_sections: # This is the reference to where the targeted (sub-)section lies within this example schema file
+                  - My_Subsection/My_Section
               comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
-              row_sections: # This is the reference to where the targeted (sub-)section lies within this example schema file
-                - My_Subsection/My_Section
       sub_sections:
         My_Subsection:
           section:

@@ -147,8 +147,9 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                                 m_annotations:
                                     tabular_parser:
                                         comment: '#'
-                                        row_sections:
-                                            - test_subsection
+                                        current_entry:
+                                            row_to_sections:
+                                                - test_subsection
                         sub_sections:
                             test_subsection:
                                 repeats: true
@@ -222,10 +223,11 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                             m_annotations:
                                 tabular_parser:
                                     comment: '#'
-                                    column_sections:
-                                        - MySubsection1
-                                    row_sections:
-                                        - MySubsection2
+                                    current_entry:
+                                        row_to_sections:
+                                            - MySubsection2
+                                        column_to_sections:
+                                            - MySubsection1
                     sub_sections:
                         MySubsection1:
                             section: '#/MyColumnMode'
@@ -360,7 +362,7 @@ data:
         quantities:
           {quantity_generator('quantity_2', 'header_2', shape='')}
     ''', '''- my_substance1
-                - my_substance2''', '''my_substance1:
+                    - my_substance2''', '''my_substance1:
           repeats: true
           section:
             base_section: Substance1
@@ -398,8 +400,9 @@ def test_tabular_row_mode(raw_files, monkeypatch, test_case, section_placeholder
           m_annotations:
             tabular_parser:
               comment: '#'
-              row_sections:
-                <target_sub_section_placeholder>
+              current_entry:
+                row_to_sections:
+                    <target_sub_section_placeholder>
       sub_sections:
         <sub_sections_placeholder>
 data:
@@ -485,8 +488,9 @@ data:
                                 m_annotations:
                                     tabular_parser:
                                         comment: '#'
-                                        row_sections:
-                                            - MySubsection
+                                        current_entry:
+                                            row_to_sections:
+                                                - MySubsection
                         sub_sections:
                             MySubsection:
                                 repeats: true
@@ -526,8 +530,9 @@ data:
                   default: 'placeholder'
                   m_annotations:
                     tabular_parser:
-                      row_sections:
-                      - subsection_1
+                        current_entry:
+                            row_to_sections:
+                                - subsection_1
               sub_sections:
                 subsection_1:
                   repeats: True
@@ -599,8 +604,9 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
                             m_annotations:
                                 tabular_parser:
                                     comment: '#'
-                                    row_sections:
-                                        - MySubsection
+                                    current_entry:
+                                        row_to_sections:
+                                            - MySubsection
                     sub_sections:
                         MySubsection:
                             repeats: true
@@ -636,8 +642,9 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
                             m_annotations:
                                 tabular_parser:
                                     comment: '#'
-                                    row_sections:
-                                        - MySubsection
+                                    current_entry:
+                                        row_to_sections:
+                                            - MySubsection
                     sub_sections:
                         MySubsection:
                             repeats: true

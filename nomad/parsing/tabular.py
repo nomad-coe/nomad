@@ -158,51 +158,66 @@ class TableData(ArchiveSection):
                         self.m_set(quantity, np.array(df.loc[:, col_data]))
                     except Exception:
                         continue
+        current_entry = annotation.current_entry
+        new_entry = annotation.new_entry
 
-        column_sections = annotation.column_sections
-        row_sections = annotation.row_sections
-        entry_sections = annotation.entry_sections
-
-        # Setting alias for row_sections for backward compatibility
-        if deprecated_target_sections := annotation.target_sub_section:
-            logger.warning('''
-             You are using deprecated `target_sub_section` annotation in row mode. This will be
-             removed in future releases. Use `row_sections` instead.
-            ''')
-            row_sections = deprecated_target_sections
-
-        if len(column_sections) + len(row_sections) + len(entry_sections) == 0:
-            logger.info('''
-            No section is provided to normalize. Continuing to normalize in default mode: column mode.
-            ''')
+        if not current_entry and not new_entry:
             parse_columns(data, self)
+        if current_entry:
+            try:
+                column_sections, row_sections = current_entry.get_options()
+            except Exception:
+                raise TabularParserError("Couldn't extract the list of row/column sections.")
+            if column_sections:
+                _parse_column_mode(self, column_sections, data, logger=logger)
 
-        if len(entry_sections):
-            for entry_section in entry_sections:
-                if entry_section == 'root':
-                    self._parse_entry_mode(data, self.m_def, archive, mode='root', logger=logger)
-                elif matched_rows := [row_section for row_section in row_sections if entry_section in row_section]:
-                    # If there is a match, then remove the matched sections from row_sections so the main entry
-                    # does not populate the matched row_section
-                    is_quantity_def = False
-                    row_sections = [row for row in row_sections if row not in matched_rows]
-                    section = self.m_def.all_properties[matched_rows[0].split('/')[0]].sub_section.section_cls()
-                    for quantity_def in section.m_def.all_quantities.values():
-                        if isinstance(quantity_def.type, Reference):
-                            try:
-                                section = quantity_def.type.target_section_def.section_cls()
-                                is_quantity_def = True
-                            except AttributeError:
-                                continue
-                    matched_rows = [re.sub(r"^.*?\/", "", row) for row in matched_rows]
-                    _parse_row_mode(section, matched_rows, data, logger)
-                    child_archive = EntryArchive(
-                        data=section,
-                        m_context=archive.m_context,
-                        metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=section.m_def.name))
-                    create_archive(
-                        child_archive.m_to_dict(), archive.m_context, f'{section.m_def.name}.archive.yaml', 'yaml')
-                    if is_quantity_def:
+            if row_sections:
+                _parse_row_mode(self, row_sections, data, logger)
+
+        if new_entry:
+            for entry in new_entry:
+                try:
+                    column_sections, row_sections, entry_sections = entry.get_options()
+                except Exception:
+                    raise TabularParserError("Couldn't extract the list of row/column sections.")
+                if entry_sections:
+                    for entry_section in entry_sections:
+                        if entry_section == 'root':
+                            self._parse_entry_mode(data, self.m_def, archive, mode='root', logger=logger)
+                        else:
+                            entry_section_list = entry_section.split('/')
+                            entry_section_instance = create_subsection(
+                                self.m_def.all_properties[entry_section_list.pop(0)],
+                                entry_section_list)
+
+                            self._parse_entry_mode(data, entry_section_instance, archive, logger=logger)
+                else:
+                    section = self.m_def.all_properties[row_sections[0].split('/')[0]].sub_section.section_cls()
+                    if column_sections:
+                        parse_columns(data, section)
+                    if row_sections:
+                        # If there is a match, then remove the matched sections from row_sections so the main entry
+                        # does not populate the matched row_section
+                        is_quantity_def = False
+                        for quantity_def in section.m_def.all_quantities.values():
+                            if isinstance(quantity_def.type, Reference):
+                                try:
+                                    section_to_entry = quantity_def.type.target_section_def.section_cls()
+                                    is_quantity_def = True
+                                except AttributeError:
+                                    continue
+                        if not is_quantity_def:
+                            raise TabularParserError(
+                                f"No reference quantity is defined in {row_sections[0].split('/')[0]} section.")
+                        matched_rows = [re.sub(r"^.*?\/", "", row) for row in row_sections]
+                        _parse_row_mode(section_to_entry, matched_rows, data, logger)
+                        child_archive = EntryArchive(
+                            data=section_to_entry,
+                            m_context=archive.m_context,
+                            metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=section.m_def.name))
+                        # child_archive.normalize(archive=child_archive, logger=logger)
+                        create_archive(
+                            child_archive.m_to_dict(), archive.m_context, f'{section.m_def.name}.archive.yaml', 'yaml')
                         child_entry_id = generate_entry_id(
                             archive.m_context.upload_id, f'{section.m_def.name}.archive.yaml', None)
                         ref_quantity_proxy = MProxy(
@@ -210,30 +225,10 @@ class TableData(ArchiveSection):
                             m_proxy_context=self.m_context)
                         section.m_set(quantity_def, ref_quantity_proxy)
 
-                        self.m_add_sub_section(self.m_def.all_properties[entry_section], section, -1)
-                else:
-                    entry_section_list = entry_section.split('/')
-                    entry_section_instance = create_subsection(
-                        self.m_def.all_properties[entry_section_list.pop(0)],
-                        entry_section_list)
-
-                    self._parse_entry_mode(data, entry_section_instance, archive, logger=logger)
-
-        if len(column_sections):
-            for column_section in column_sections:
-                try:
-                    column_section_list = column_section.split('/')
-                    section = create_subsection(
-                        self.m_def.all_properties[column_section_list.pop(0)],
-                        column_section_list).sub_section.section_cls()
-                except Exception:
-                    logger.error(
-                        f'{column_section} sub_section does not exist. There might be a problem in schema definition')
-                parse_columns(data, section)
-                setattr(self, column_section, section)
-
-        if len(row_sections):
-            _parse_row_mode(self, row_sections, data, logger)
+                        if hasattr(self, row_sections[0].split('/')[0]):
+                            setattr(self, row_sections[0].split('/')[0], None)
+                        self.m_add_sub_section(
+                            self.m_def.all_properties[row_sections[0].split('/')[0]], section, -1)
 
         # If the `fill_archive_from_datafile` checkbox is set to be hidden for this specific section, parser's logic
         # also needs to be modified to 'Always run the parser if it's been called'.
@@ -275,11 +270,19 @@ class TableData(ArchiveSection):
             file_type = 'json'
         if '.entry_data' in mainfile_name:
             return
-
+        try:
+            if getattr(self, subsection_def.name):
+                setattr(self, subsection_def.name, MSubSectionList(self, subsection_def))
+        except AttributeError:
+            pass
         for index, child_section in enumerate(child_sections):
             filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
             try:
-                entry_name = f"{quantity_def.m_get_annotation('tabular_pattern', None)['name']}_{index}"
+                entry_name: str = quantity_def.m_get_annotations('entry_name', None)
+                if entry_name.startswith('#'):
+                    entry_name = f"{getattr(child_section, entry_name.split('/')[-1])}_{index}"
+                else:
+                    entry_name = f"{quantity_def.m_get_annotations('entry_name', None)}_{index}"
             except Exception:
                 entry_name = f"{quantity_def.name}_{index}"
             try:
@@ -303,6 +306,20 @@ class TableData(ArchiveSection):
 
 
 m_package.__init_metainfo__()
+
+
+def _parse_column_mode(main_section, list_of_columns, data, logger=None):
+    for column_section in list_of_columns:
+        try:
+            column_section_list = column_section.split('/')
+            section = create_subsection(
+                main_section.m_def.all_properties[column_section_list.pop(0)],
+                column_section_list).sub_section.section_cls()
+        except Exception:
+            logger.error(
+                f'{column_section} sub_section does not exist. There might be a problem in schema definition')
+        parse_columns(data, section)
+        setattr(main_section, column_section, section)
 
 
 def append_section_to_subsection(main_section, section_name: str, source_section: MSection):

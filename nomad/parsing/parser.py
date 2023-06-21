@@ -459,6 +459,8 @@ class ArchiveParser(MatchingParser):
         if metadata_data is not None:
             self.domain = metadata_data.get('domain')
             # Setting metadata in this way is not supported (any more)
+            if entry_name := metadata_data.get('entry_name', None):
+                archive.metadata.entry_name = entry_name
             del(archive_data[EntryArchive.metadata.name])
 
         # ensure that definitions are parsed first to make them available for the
