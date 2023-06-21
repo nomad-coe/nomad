@@ -336,6 +336,44 @@ class TabularMode(str, Enum):
     entry = 'entry'
 
 
+class CurrentEntryOptions(BaseModel):
+    row_to_sections: Optional[List[str]] = Field([], description='''
+        A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from individual rows
+        of the excel/csv file (i.e. in the row mode). Each path is a
+        `/` separated list of nested sub-sections. The targeted sub-sections, will be
+        considered when mapping table rows to quantities.
+        Has to be used to annotate the quantity that
+        holds the path to the `.csv` or excel file.
+    ''')
+    column_to_sections: Optional[List[str]] = Field([], description='''
+        A `list` of paths to the sub-sections where the tabular quantities are to be filled from the
+        entire column of the excel/csv file (i.e. in the column mode). Each path is a
+        `/` separated list of nested sub-sections. The targeted sub-sections, will be
+        considered when mapping table columns to quantities.
+        Has to be used to annotate the quantity that
+        holds the path to the `.csv` or excel file.
+    ''')
+
+    def get_options(self):
+        return self.column_to_sections, self.row_to_sections
+
+
+class NewEntryOptions(CurrentEntryOptions):
+    row_to_entries: Optional[List[str]] = Field([], description='''
+        A `list` of paths to the (sub)sections where the tabular quantities are to be filled from individual rows
+        of the excel/csv file, to create distinct entries. Each path is a
+        `/` separated list of nested sub-sections. The targeted (sub)sections, will be
+        considered when mapping table rows to quantities. The schema of the resultant entry follows the
+        (sub)section's schema. In order to parse the entire schema using entry mode, then set the
+        first item in this list to `root`.
+        Has to be used to annotate the quantity that
+        holds the path to the `.csv` or excel file.
+    ''')
+
+    def get_options(self):
+        return self.column_to_sections, self.row_to_sections, self.row_to_entries
+
+
 class TabularParserAnnotation(AnnotationModel):
     '''
     Instructs NOMAD to treat a string valued scalar quantity as a file path and
@@ -359,32 +397,6 @@ class TabularParserAnnotation(AnnotationModel):
         holds the path to the `.csv` or excel file.
     ''')
     separator: str = Field(None, description='An alias for `sep`')
-    column_sections: List[str] = Field([], description='''
-        A `list` of paths to the sub-sections where the tabular quantities are to be filled from the
-        entire column of the excel/csv file (i.e. in the column mode). Each path is a
-        `/` separated list of nested sub-sections. The targeted sub-sections, will be
-        considered when mapping table columns to quantities.
-        Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    row_sections: List[str] = Field([], description='''
-        A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from individual rows
-        of the excel/csv file (i.e. in the row mode). Each path is a
-        `/` separated list of nested sub-sections. The targeted sub-sections, will be
-        considered when mapping table rows to quantities.
-        Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    entry_sections: List[str] = Field([], description='''
-        A `list` of paths to the (sub)sections where the tabular quantities are to be filled from individual rows
-        of the excel/csv file, to create distinct entries. Each path is a
-        `/` separated list of nested sub-sections. The targeted (sub)sections, will be
-        considered when mapping table rows to quantities. The schema of the resultant entry follows the
-        (sub)section's schema. In order to parse the entire schema using entry mode, then set the
-        first item in this list to `root`.
-        Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
     target_sub_section: List[str] = Field([], description='''
         this feature is deprecated and will be removed in future release. Use `row_sections` instead.
         A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from individual rows
@@ -403,6 +415,14 @@ class TabularParserAnnotation(AnnotationModel):
         With `entry` new entry is created and populated from each row (and its cells) where
         all quantities should remain to be scalars. Has to be used to annotate the quantity that
         holds the path to the `.csv` or excel file.
+    ''')
+    current_entry: CurrentEntryOptions = Field([], description='''
+        Append a list of `row_sections` and `column_sections` here to parse the tabular data in the same NOMAD
+        entry
+    ''')
+    new_entry: List[NewEntryOptions] = Field([], description='''
+        Append a list of `row_sections` and `column_sections` and `row_to_entries` here to parse the tabular data
+        in new entries.
     ''')
 
 

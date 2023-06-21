@@ -48,6 +48,13 @@ definitions:
           type: str
           m_annotations:
             tabular_parser:
+              current_entry:
+                row_to_sections:
+                  - MyRowSubsection/MyRowCollection
+                  - MySpecialRowSubsection
+              new_entry:
+                - row_to_entries:
+                  - MyEntrySubsection
               sep: ','  
               comment: '#'
               target_sub_section: # list of subsections to be parsed by data_file_2 in row mode
@@ -76,6 +83,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: ReferenceEditQuantity
+                  entry_name: '#/MyEntry/MyEntryQuantity'
                   tabular_pattern: # use this option to define the names of the new entries created
                   # with parser
                     name: my_entry
