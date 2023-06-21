@@ -67,11 +67,14 @@ export const NumberField = React.memo((props) => {
         previousNumber.current = value
         previousNumberPart.current = newVal
         const inputValue = newVal && fixDigits(Number(newVal))
+        previousValue.current = inputValue
         setInputValue(inputValue)
         onInputChange(inputValue)
       }
     } else {
-      setInputValue((isNil(value) || isNaN(value)) ? '' : String(value))
+      const inputValue = (isNil(value) || isNaN(value)) ? '' : String(value)
+      previousValue.current = inputValue
+      setInputValue(inputValue)
     }
   }, [value, displayUnit, unit, convertInPlace, onInputChange, fixDigits])
 
@@ -148,7 +151,8 @@ export const NumberField = React.memo((props) => {
       if (onChange) {
         const storedValue = getStoredValue(number, newUnit)
         previousNumber.current = storedValue
-        onChange(Number(storedValue), newUnit)
+        const numberedStoredValue = Number(storedValue)
+        onChange(!isNaN(numberedStoredValue) ? numberedStoredValue : undefined, newUnit)
         onInputChange(number)
       }
     }
