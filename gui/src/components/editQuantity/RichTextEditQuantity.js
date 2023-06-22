@@ -39,8 +39,8 @@ const useStyle = makeStyles(theme => ({
 
 const RichTextEditQuantity = React.memo((props) => {
   const classes = useStyle()
-  const {quantityDef, value, onChange} = props
-  const initialHeight = 500
+  const {quantityDef, value, onChange, height} = props
+  const initialHeight = height || 500
   const {label} = getFieldProps(quantityDef)
   const initialValue = useRef(value)
   const editedValue = useRef(value)
@@ -106,7 +106,8 @@ const RichTextEditQuantity = React.memo((props) => {
 RichTextEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
   value: PropTypes.string,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  height: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
 }
 
 export default RichTextEditQuantity
