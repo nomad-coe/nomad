@@ -160,44 +160,39 @@ const FilterSubMenuMetadata = React.memo(({
   const [[options, tree], setOptions] = useState([[], {}])
   const {raiseError} = useErrors()
   useEffect(() => {
-    if (!globalMetainfo) {
+    if (!globalMetainfo || !visible) {
       return
     }
-    globalMetainfo.fetchAllCustomMetainfos()
-      .then(() => {
-        const root = globalMetainfo.getEntryArchiveDefinition()
-        const subSections = root?.sub_sections
-
-        const tree = {}
-        if (!subSections) {
-          return []
-        }
-        const options = []
-        const defsSet = new Set()
-        function addDef(def, prefix, node) {
-          const fullName = prefix ? `${prefix}.${def.name}` : def.name
-          node[def.name] = node[def.name] || {}
-          node = node[def.name]
-          if (defsSet.has(def)) {
-            return
-          }
-          defsSet.add(def)
-          options.push({value: fullName})
-          if (def.m_def === SubSectionMDef && def.sub_section) {
-            def = def.sub_section
-          }
-          if (def.m_def === SectionMDef) {
-            def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
-            dataStore.getAllInheritingSections(def).forEach(def => {
-              def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
-            })
-          }
-        }
-        subSections.forEach(def => addDef(def, null, tree))
-        setOptions([options, tree])
-      })
-      .catch(raiseError)
-  }, [raiseError, dataStore, globalMetainfo, setOptions])
+    const root = globalMetainfo.getEntryArchiveDefinition()
+    const subSections = root?.sub_sections
+    const tree = {}
+    if (!subSections) {
+      return []
+    }
+    const options = []
+    const defsSet = new Set()
+    function addDef(def, prefix, node) {
+      const fullName = prefix ? `${prefix}.${def.name}` : def.name
+      node[def.name] = node[def.name] || {}
+      node = node[def.name]
+      if (defsSet.has(def)) {
+        return
+      }
+      defsSet.add(def)
+      options.push({value: fullName})
+      if (def.m_def === SubSectionMDef && def.sub_section) {
+        def = def.sub_section
+      }
+      if (def.m_def === SectionMDef) {
+        def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
+        dataStore.getAllInheritingSections(def).forEach(def => {
+          def._allProperties.filter(filterProperties).forEach(def => addDef(def, fullName, node))
+        })
+      }
+    }
+    subSections.forEach(def => addDef(def, null, tree))
+    setOptions([options, tree])
+  }, [raiseError, dataStore, globalMetainfo, setOptions, visible])
 
   return <FilterSubMenu id={id} {...rest}>
     <InputGrid>

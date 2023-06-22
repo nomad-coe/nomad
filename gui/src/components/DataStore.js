@@ -422,9 +422,23 @@ const DataStore = React.memo(({children}) => {
           const isYaml = fileName.endsWith('yaml') || fileName.endsWith('yml')
           const isJson = fileName.endsWith('json')
           if (isYaml || isJson) {
-            const content = await api.get(`/uploads/${archive.metadata.upload_id}/raw/${fileName}`,
+            const path = `/uploads/${archive.metadata.upload_id}/raw/${fileName}`
+            const content = await api.get(path,
               {decompress: true, ignore_mime_type: true}, {transformResponse: []})
-            const rawArchive = isYaml ? YAML.parse(content) : isJson ? JSON.parse(content) : {}
+            let rawArchive = {}
+            if (isYaml) {
+              try {
+                rawArchive = YAML.parse(content)
+              } catch (error) {
+                throw Error(`Could not parse YAML Schema defined here: ${path}. Failed with the following parsing error: ${error.message}`)
+              }
+            } else if (isJson) {
+              try {
+                rawArchive = JSON.parse(content)
+              } catch (error) {
+                throw Error(`Could not parse JSON Schema defined here: ${path}. Failed with the following parsing error: ${error.message}`)
+              }
+            }
             if ('definitions' in rawArchive) {
               dataToUpdate.originalDefinition = rawArchive.definitions
             }
