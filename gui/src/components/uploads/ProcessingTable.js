@@ -28,7 +28,7 @@ import EntryDownloadButton from '../entry/EntryDownloadButton'
 import DeleteEntriesButton from './DeleteEntriesButton'
 import Quantity from '../Quantity'
 import EditMetaDataDialog from './EditMetaDataDialog'
-import {formatTimestamp, pluralize} from '../../utils'
+import {authorList, formatTimestamp, pluralize} from '../../utils'
 import { useUploadPageContext } from './UploadPageContext'
 
 const columns = [
@@ -52,6 +52,7 @@ const columns = [
     render: entry => <Quantity quantity={'entry_id'} noLabel noWrap withClipboard data={entry}/>
   },
   {key: 'parser_name', align: 'left'},
+  {key: 'authors', align: 'left', render: row => authorList(row)},
   {key: 'process_status', align: 'left'},
   {
     label: 'Modified',
