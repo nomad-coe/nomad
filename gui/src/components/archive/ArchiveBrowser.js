@@ -577,7 +577,7 @@ class SectionAdaptor extends ArchiveAdaptor {
           const deploymentUrl = this.parsedObjUrl.deploymentUrl
           const uploadId = this.parsedObjUrl.uploadId
           const path = this.obj[property.name]
-          const uploadUrl = createUploadUrl(deploymentUrl, uploadId, path)
+          const uploadUrl = createUploadUrl(deploymentUrl, uploadId, path, index)
           return new RawFileAdaptor(uploadUrl, null, false)
         }
       }
@@ -1128,6 +1128,8 @@ function SubSection({subSectionDef, section, editable}) {
   const {handleArchiveChanged} = useEntryStore() || {}
   const lane = useLane()
   const history = useHistory()
+  const [open, setOpen] = useState(false)
+
   const {label, getItemLabel} = useMemo(() => {
     const sectionDef = subSectionDef.sub_section
     let itemLabelKey = getItemLabelKey(sectionDef)
@@ -1166,6 +1168,7 @@ function SubSection({subSectionDef, section, editable}) {
       if (values.length > 1) {
         subSectionKey += `:${values.length - 1}`
       }
+      setOpen(true)
     } else {
       section[subSectionDef.name] = {}
     }
@@ -1173,27 +1176,33 @@ function SubSection({subSectionDef, section, editable}) {
     history.push(`${lane.path}/${subSectionKey}`)
   }, [subSectionDef, section, lane, history, handleArchiveChanged])
 
-  const values = section[subSectionDef.name]
-  const showList = subSectionDef.repeats && values && values.length > 1
-  const actions = editable && (subSectionDef.repeats || !values) && (
-    <Box marginRight={!showList && values ? -1 : 2}>
+  const values = section[subSectionDef.name] || []
+  const showList = subSectionDef.repeats && values.length > 1
+  const actions = editable && (subSectionDef.repeats || !section[subSectionDef.name]) && (
+    <Box marginRight={!showList && section[subSectionDef.name] ? -1 : 2}>
       <IconButton data-testid={`subsection:${subSectionDef.name}`} onClick={handleAdd} size="small">
         <AddIcon style={{fontSize: 20}}/>
       </IconButton>
     </Box>
   )
 
+  const handleClick = useCallback(() => {
+    setOpen(open => !open)
+  }, [])
+
   if (showList) {
     return <PropertyValuesList
       label={label || 'list'} actions={actions}
-      values={(section[subSectionDef.name] || []).map(getItemLabel)}
+      values={values.map(getItemLabel)}
+      open={open}
+      onClick={handleClick}
     />
   } else {
     return (
       <Box data-testid={'subsection'}>
         <Item
           itemKey={subSectionDef.repeats ? `${subSectionDef.name}/0` : subSectionDef.name}
-          disabled={!values} actions={actions}
+          disabled={!section[subSectionDef.name]} actions={actions}
         >
           <Typography component="span">
             <Box fontWeight="bold" component="span">
@@ -1215,9 +1224,18 @@ SubSection.propTypes = ({
 function ReferenceValuesList({quantityDef}) {
   const lane = useContext(laneContext)
   const values = useMemo(() => lane.adaptor.obj[quantityDef.name].map(() => null), [lane.adaptor.obj, quantityDef.name])
+  const [open, setOpen] = useState(false)
+
+  const handleClick = useCallback(() => {
+    setOpen(open => !open)
+  }, [])
+
   return <PropertyValuesList
     values={values}
-    label={quantityDef.name}/>
+    label={quantityDef.name}
+    open={open}
+    onClick={handleClick}
+  />
 }
 
 ReferenceValuesList.propTypes = ({
@@ -1260,38 +1278,89 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
  * Displays a list of values that can be collapsed. Long lists are paginated in
  * order to prevent issues with rendering.
  */
-export function PropertyValuesList({label, values, actions, nTop, nBottom, pageSize}) {
-  const classes = usePropertyValuesListStyles()
-  const [open, setOpen] = useState(false)
+export function PropertyValuesList(props) {
+  const {label, values, ...otherProps} = props
+  return <FoldableList
+    label={label || 'list'}
+    {...otherProps}
+  >
+    {values.map((value, index) => {
+      return <Item key={index} itemKey={`${label}/${index}`} length={values.length}>
+        <Box display="grid" flexDirection="row" flexGrow={1}>
+          <Box component="span" marginLeft={2}>
+            {value && typeof value === 'object'
+              ? value // item should be a react component
+              : <Typography component="span">{value || index}</Typography>
+            }
+          </Box>
+        </Box>
+      </Item>
+    })}
+  </FoldableList>
+}
+
+PropertyValuesList.propTypes = ({
+  label: PropTypes.string.isRequired,
+  values: PropTypes.arrayOf(PropTypes.object).isRequired,
+  actions: PropTypes.node,
+  /**
+   * Initial number of items to be shown from top of the list.
+   */
+  nTop: PropTypes.number,
+  /**
+   * Initial number of items to be shown from bottom of the list.
+   */
+  nBottom: PropTypes.number,
+  /**
+   * Initial number of items to be added or removed by show more and show less buttons.
+   */
+  pageSize: PropTypes.number,
+  /**
+   * To control the collapse state from outside the component.
+   */
+  open: PropTypes.bool,
+  /**
+   * An event firing when the item is clicked.
+   */
+  onClick: PropTypes.func,
+  /**
+   * To customize the label style in different places.
+   */
+  className: PropTypes.object,
+  /**
+   * Get item as children.
+   */
+  children: PropTypes.node
+})
+
+PropertyValuesList.defaultProps = ({
+  nTop: 50,
+  nBottom: 5,
+  pageSize: 25
+})
+
+/**
+ * Displays a list of values that can be collapsed. Long lists are paginated in
+ * order to prevent issues with rendering.
+ */
+export function FoldableList({label, children, actions, nTop, nBottom, pageSize, open, onClick, className}) {
+  const classes = {...usePropertyValuesListStyles(), ...className}
   const [nShownTop, setNShownTop] = useState(0)
   const [nShownBottom, setNShownBottom] = useState(0)
   const lane = useContext(laneContext)
-  const selected = lane.next && lane.next.key
+  const selected = lane?.next?.key
   const showSelected = !open && (selected === label || selected?.startsWith(label + ':'))
 
-  const item = (index, item) => {
-    return <Item key={index} itemKey={`${label}/${index}`} length={values.length}>
-      <Box display="flex" flexDirection="row" flexGrow={1}>
-        <Box component="span" marginLeft={2}>
-          {item && typeof item === 'object'
-            ? item // item should be a react component
-            : <Typography component="span">{item || index}</Typography>
-          }
-        </Box>
-      </Box>
-    </Item>
-  }
-
   const topStart = 0
-  const topEnd = Math.min(values.length, nTop + nShownTop)
-  const bottomStart = Math.max(topEnd, values.length - nBottom - nShownBottom)
-  const bottomEnd = values.length
+  const topEnd = Math.min(children.length, nTop + nShownTop)
+  const bottomStart = Math.max(topEnd, children.length - nBottom - nShownBottom)
+  const bottomEnd = children.length
 
   return <React.Fragment>
     <div className={classNames(
       classes.root, showSelected ? classes.selected : classes.unSelected)}
     >
-      <Typography onClick={() => setOpen(!open)} className={classes.title}>
+      <Typography onClick={onClick} className={classes.title}>
         {open ? <ArrowDownIcon/> : <ArrowRightIcon/>}
         <span role="item-list">{label}</span>
       </Typography>
@@ -1301,41 +1370,65 @@ export function PropertyValuesList({label, values, actions, nTop, nBottom, pageS
     </div>
     {open &&
       <div data-testid={`item-list:${label}`}>
-        {range(topStart, topEnd).map((index) => item(index, values[index]))}
+        {range(topStart, topEnd).map((index) => children[index])}
         {topEnd < bottomStart && <Box marginLeft={0.8}>
-          <Pagination
+          {nTop > 0 && <Pagination
             showMore
             showLess={nShownTop > 0}
             onMore={() => setNShownTop(x => Math.min(bottomStart, x + pageSize))}
             onLess={() => setNShownTop(x => Math.max(0, x - pageSize))}
             variant="down"
             data-testid="propertyvalueslist-pagination-down"
-          />
-          <Pagination
+          />}
+          {nBottom > 0 && <Pagination
             showMore
             showLess={nShownBottom > 0}
-            onMore={() => setNShownBottom(x => Math.min(values.length - nShownTop - nBottom, x + pageSize))}
+            onMore={() => setNShownBottom(x => Math.min(children.length - nShownTop - nBottom, x + pageSize))}
             onLess={() => setNShownBottom(x => Math.max(0, x - pageSize))}
             variant="up"
             data-testid="propertyvalueslist-pagination-up"
-          />
+          />}
         </Box>}
-        {range(bottomStart, bottomEnd).map((index) => item(index, values[index]))}
+        {range(bottomStart, bottomEnd).map((index) => children[index])}
       </div>
     }
   </React.Fragment>
 }
 
-PropertyValuesList.propTypes = ({
+FoldableList.propTypes = ({
   label: PropTypes.string.isRequired,
-  values: PropTypes.arrayOf(PropTypes.object).isRequired,
+  /**
+   * Get item as children.
+   */
+  children: PropTypes.arrayOf(PropTypes.node).isRequired,
   actions: PropTypes.node,
+  /**
+   * Initial number of items to be shown from top of the list.
+   */
   nTop: PropTypes.number,
+  /**
+   * Initial number of items to be shown from bottom of the list.
+   */
   nBottom: PropTypes.number,
-  pageSize: PropTypes.number
+  /**
+   * Initial number of items to be added or removed by show more and show less buttons.
+   */
+  pageSize: PropTypes.number,
+  /**
+   * To control the collapse state from outside the component.
+   */
+  open: PropTypes.bool,
+  /**
+   * An event firing when the item is clicked.
+   */
+  onClick: PropTypes.func,
+  /**
+   * To customize the label style in different places.
+   */
+  className: PropTypes.object
 })
 
-PropertyValuesList.defaultProps = ({
+FoldableList.defaultProps = ({
   nTop: 50,
   nBottom: 5,
   pageSize: 25

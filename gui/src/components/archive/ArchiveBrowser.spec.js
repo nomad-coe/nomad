@@ -17,11 +17,11 @@
  */
 import React from 'react'
 import { range } from 'lodash'
-import userEvent from '@testing-library/user-event'
 import { screen, renderNoAPI } from '../conftest.spec'
 import { expectPagination } from '../visualization/conftest.spec'
 import { PropertyValuesList } from './ArchiveBrowser'
 import { laneContext } from './Browser'
+import {waitFor} from "@testing-library/dom"
 
 test.each([
   [15, 10, 5],
@@ -33,12 +33,9 @@ test.each([
 
   renderNoAPI(
     <laneContext.Provider value={{next: {}}}>
-      <PropertyValuesList label={label} values={values} nTop={nTop} nBottom={nBottom} />
+      <PropertyValuesList label={label} values={values} nTop={nTop} nBottom={nBottom} open={true} />
     </laneContext.Provider>
   )
-  // Open section by clicking
-  const labelItem = screen.getByText(label)
-  await userEvent.click(labelItem)
 
   // Expect to find all items
   for (const i of indices) {
@@ -50,7 +47,8 @@ test.each([
 
 test.each([
   [30, 10, 5],
-  [16, 10, 5]
+  [16, 10, 5],
+  [30, 10, 0]
 ])('test subsection with pagination, items: %s, top: %s, bottom:%s', async (nItems, nTop, nBottom) => {
   const indices = range(nItems)
   const label = "subsection"
@@ -58,12 +56,9 @@ test.each([
 
   renderNoAPI(
     <laneContext.Provider value={{next: {}}}>
-      <PropertyValuesList label={label} values={values} nTop={nTop} nBottom={nBottom} />
+      <PropertyValuesList label={label} values={values} nTop={nTop} nBottom={nBottom} open={true} />
     </laneContext.Provider>
   )
-  // Open section by clicking
-  const labelItem = screen.getByText(label)
-  await userEvent.click(labelItem)
 
   // Expect to find top and bottom items
   for (const i of range(nTop)) {
@@ -75,6 +70,10 @@ test.each([
   // Both pagination components should be visible
   const downPagination = screen.getByTestId('propertyvalueslist-pagination-down')
   await expectPagination(true, false, false, downPagination)
-  const upPagination = screen.getByTestId('propertyvalueslist-pagination-up')
-  await expectPagination(true, false, false, upPagination)
+  if (nBottom > 0) {
+    const upPagination = screen.getByTestId('propertyvalueslist-pagination-up')
+    await expectPagination(true, false, false, upPagination)
+  } else {
+    await waitFor(() => expect(screen.queryByTestId('propertyvalueslist-pagination-up')).not.toBeInTheDocument())
+  }
 })

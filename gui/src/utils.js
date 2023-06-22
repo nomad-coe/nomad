@@ -1227,9 +1227,18 @@ export function normalizeNomadUrl(url) {
 /**
  * Utility for creating an absolute upload url, given deploymentUrl, uploadId and an UNESCAPED rawPath
  */
-export function createUploadUrl(deploymentUrl, uploadId, rawPathUnescaped) {
-  const rawPathEscaped = urlEncodePath(rawPathUnescaped || '')
-  return `${deploymentUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
+export function createUploadUrl(deploymentUrl, uploadId, rawPathUnescaped, index) {
+  if (isNaN(index)) {
+    const rawPathEscaped = urlEncodePath(rawPathUnescaped || '')
+    return `${deploymentUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
+  } else {
+    if (rawPathUnescaped[index] !== null) {
+      const rawPathEscaped = urlEncodePath(rawPathUnescaped[index] || '')
+      return `${deploymentUrl}/uploads/${uploadId}/raw/${rawPathEscaped}`
+    } else {
+      return `${deploymentUrl}/uploads/${uploadId}/raw`
+    }
+  }
 }
 
 /**

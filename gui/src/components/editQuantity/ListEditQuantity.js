@@ -15,11 +15,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback} from 'react'
+import React, {useCallback, useState} from 'react'
 import PropTypes from 'prop-types'
-import { Box, Grid } from '@material-ui/core'
+import {Box, makeStyles} from '@material-ui/core'
+import {FoldableList} from '../archive/ArchiveBrowser'
+import grey from "@material-ui/core/colors/grey"
+
+const useListEditQuantityStyles = makeStyles(theme => ({
+  root: {
+    margin: `0 -${theme.spacing(1)}px`,
+    padding: `0 ${theme.spacing(1)}px`,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    wrap: 'nowrap',
+    alignItems: 'center'
+  },
+  title: {
+    flexGrow: 1,
+    color: grey[600],
+    textDecoration: 'none',
+    margin: `0 -${theme.spacing(1)}px`,
+    whiteSpace: 'nowrap',
+    display: 'flex',
+    fontWeight: 'bold'
+  },
+  selected: {
+    whiteSpace: 'nowrap'
+  },
+  unSelected: {
+    '&:hover': {
+      backgroundColor: grey[300]
+    }
+  },
+  actions: {}
+}))
 
 const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, component, quantityDef, ...props}) {
+  const classes = useListEditQuantityStyles()
+  const [open, setOpen] = useState(true)
   const fixedLength = Number(quantityDef.shape?.[0])
   const hasFixedLength = !isNaN(fixedLength)
 
@@ -54,21 +88,31 @@ const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, 
     }
   }, [onChange, renderValue, fixedLength, hasFixedLength])
 
-  return (
-    <Box marginY={renderValue.length > 1 ? 2 : undefined}>
-      <Grid container direction="column" spacing={1}>
-        {renderValue.map((item, index) => (
-          <Grid item key={index}>{React.createElement(component, {
-            value: item,
-            onChange: value => handleChange(value, index),
-            quantityDef: quantityDef,
-            index: index,
-            ...props
-          })}</Grid>
-        ))}
-      </Grid>
-    </Box>
-  )
+  const handleClick = useCallback(() => {
+    setOpen(open => !open)
+  }, [])
+
+  return <Box marginTop={1} marginBottom={1}>
+    <FoldableList
+      label={quantityDef.name}
+      className={classes}
+      open={open}
+      onClick={handleClick}
+      nTop={10}
+      nBottom={0}
+      pageSize={10}
+    >
+      {renderValue.map((item, index) => (
+        <Box marginTop={1} marginLeft={2} marginRight={2} key={index}>{React.createElement(component, {
+          value: item,
+          onChange: value => handleChange(value, index),
+          quantityDef: quantityDef,
+          index: index,
+          ...props
+        })}</Box>
+      ))}
+    </FoldableList>
+  </Box>
 })
 ListEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
