@@ -23,7 +23,7 @@ import {
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import { useDropzone } from 'react-dropzone'
 import { useApi } from '../api'
-import { ItemButton } from '../archive/Browser'
+import {ItemButton, useLane} from '../archive/Browser'
 import { useEntryStore } from '../entry/EntryContext'
 import OverwriteExistingFileDialog from './OverwriteExistingFileDialog'
 import UploadProgressDialog from '../uploads/UploadProgressDialog'
@@ -44,11 +44,13 @@ const useFileEditQuantityStyles = makeStyles(theme => ({
 const FileEditQuantity = React.memo(props => {
   const classes = useFileEditQuantityStyles()
   const {onChange, onFailed, quantityDef, value, ...otherProps} = props
+  const {index} = otherProps
   const {uploadId, metadata} = useEntryStore()
   const {api} = useApi()
   const [askForOverwrite, setAskForOverwrite] = useState(false)
   const dropedFiles = useRef([])
   const [uploading, setUploading] = useState(null)
+  const lane = useLane()
 
   const uploadFile = useCallback((files, overwrite = false) => {
     const mainfilePathSegments = metadata.mainfile.split('/')
@@ -147,8 +149,8 @@ const FileEditQuantity = React.memo(props => {
                   <UploadIcon/>
                 </Tooltip>
               </IconButton>
-              {value && (
-                <ItemButton size="small" itemKey={quantityDef.name} />
+              {lane && value && (
+                <ItemButton size="small" itemKey={index === undefined ? quantityDef.name : `${quantityDef.name}/${index}`} />
               )}
             </React.Fragment>
           )

@@ -463,7 +463,7 @@ const useItemStyles = makeStyles(theme => ({
 
 const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
   const lane = useContext(laneContext)
-  if (lane) {
+  if (lane && itemKey) {
     return <Link
       {...props}
       data-testid={`item:${itemKey}`}
@@ -471,7 +471,10 @@ const ItemLink = React.forwardRef(function ItemLink({itemKey, ...props}, ref) {
     />
   } else {
     // If this is used in a non Browser context
-    return null
+    return <div
+      {...props}
+      data-testid={`item:${itemKey}`}
+    />
   }
 })
 ItemLink.propTypes = {
@@ -499,7 +502,7 @@ ItemButton.propTypes = {
 export function Item({children, itemKey, length, disabled, highlighted, icon, actions, chip}) {
   const classes = useItemStyles()
   const lane = useLane()
-  let selected = lane.next && lane.next.key
+  let selected = lane?.next && lane?.next.key
   let [label, index] = selected ? selected.split(':') : []
   if (index && length) {
     index = parseInt(index)

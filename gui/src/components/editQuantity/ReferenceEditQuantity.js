@@ -30,7 +30,7 @@ import {
   Tooltip
 } from '@material-ui/core'
 import { useEntryStore } from '../entry/EntryContext'
-import {ItemButton} from '../archive/Browser'
+import {ItemButton, useLane} from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
 import { refType, resolveNomadUrl } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
@@ -256,6 +256,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {user, api} = useApi()
   const {raiseError} = useErrors()
   const [error, setError] = useState()
+  const lane = useLane()
 
   const referencedSectionDef = useReferecedSectionDef(quantityDef)
   const referencedSectionQualifiedName = useMemo(() => referencedSectionDef?._qualifiedName, [referencedSectionDef])
@@ -390,7 +391,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         <EditIcon/>
       </Tooltip>
     </IconButton>)
-    if (value && !error) {
+    if (lane && value && !error) {
       actions.push(
         // TODO Disabled this button, because the browser does not correctly update after
         // the navigation. This needs to be fixed first.
@@ -406,7 +407,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey}/>)
     }
     return actions
-  }, [value, itemKey, user, error, referencedSectionDef])
+  }, [value, lane, itemKey, user, error, referencedSectionDef])
 
   const referencedValue = useMemo(() => {
     const value = entry?.value?.split('#')[1] || ''
