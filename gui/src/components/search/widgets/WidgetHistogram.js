@@ -33,6 +33,9 @@ import { Range } from '../input/InputRange'
 import { DType } from '../../../utils'
 import { scales } from '../../plotting/common'
 
+// Predefined in order to not break memoization
+const dtypes = new Set([DType.Float, DType.Int, DType.Timestamp])
+
 /**
  * Displays a histogram widget.
  */
@@ -170,8 +173,8 @@ export const WidgetHistogramEdit = React.memo((props) => {
             onChange={(value) => handleChange('quantity', value)}
             onSelect={(value) => handleAccept('quantity', value)}
             onError={(value) => handleError('quantity', value)}
-            dtypes={new Set([DType.Float, DType.Int, DType.Timestamp])}
-            dtypesRepeatable={new Set([DType.Float, DType.Int, DType.Timestamp])}
+            dtypes={dtypes}
+            dtypesRepeatable={dtypes}
           />
         </WidgetEditOption>
         <WidgetEditOption>

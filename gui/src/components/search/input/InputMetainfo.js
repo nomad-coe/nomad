@@ -226,7 +226,7 @@ export const InputSearchMetainfo = React.memo(({
         .filter(([key, data]) => {
           if (disableNonAggregatable && !data.aggregatable) return false
           const dtype = data?.dtype
-          return data?.repeatsRecursive
+          return data?.repeats
             ? dtypesRepeatable?.has(dtype)
             : dtypes?.has(dtype)
         })

@@ -42,6 +42,9 @@ import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdi
 import { DType, pluralize } from '../../../utils'
 import { scales } from '../../plotting/common'
 
+// Predefined in order to not break memoization
+const dtypes = new Set([DType.String, DType.Enum])
+
 /**
  * Displays a terms widget.
  */
@@ -301,8 +304,8 @@ export const WidgetTermsEdit = React.memo((props) => {
             onChange={(value) => handleChange('quantity', value)}
             onSelect={(value) => handleAccept('quantity', value)}
             onError={(value) => handleError('quantity', value)}
-            dtypes={new Set([DType.String, DType.Enum])}
-            dtypesRepeatable={new Set([DType.String, DType.Enum])}
+            dtypes={dtypes}
+            dtypesRepeatable={dtypes}
             disableNonAggregatable
           />
         </WidgetEditOption>
