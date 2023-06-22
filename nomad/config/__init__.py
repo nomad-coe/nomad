@@ -364,11 +364,6 @@ plugins = Plugins(options={
         name='parsers/eelsdb',
         mainfile_mime_re=r'application/json',
         mainfile_contents_re=(r'https://eelsdb.eu/spectra')),
-    'parsers/mofstructures': Parser(
-        python_package='workflowparsers.mofstructures',
-        mainfile_mime_re=r'(application/json)|(text/.*)',
-        mainfile_name_re=r'.*mof_.*\.json',
-        mainfile_contents_re=r'MOF Structures'),
     'parsers/quantum_espresso_phonon': Parser(
         python_package='workflowparsers.quantum_espresso_phonon',
         mainfile_contents_re=(

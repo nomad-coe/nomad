@@ -424,19 +424,6 @@
     "status": "production",
     "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`lobsterout` | **Mainfile** in LOBSTER specific plain-text |\n"
   },
-  "MOFStructures": {
-    "codeCategory": "Workflow manager",
-    "codeLabel": "MOFStructures",
-    "codeLabelStyle": "Capitals: M, O, F, S",
-    "codeName": "mofstructures",
-    "codeUrl": null,
-    "parserDirName": "dependencies/workflow/workflowparsers/mofstructures",
-    "parserGitUrl": "https://github.com/nomad-coe/workflow-parsers.git",
-    "parserSpecific": "",
-    "preamble": "",
-    "status": "beta",
-    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`*.json` | json files containing workflow results|\n"
-  },
   "MOPAC": {
     "codeCategory": "Atomistic code",
     "codeLabel": "MOPAC",
