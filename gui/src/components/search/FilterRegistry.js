@@ -15,18 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { isNil, isArray, isEmpty } from 'lodash'
-import {
-  setToArray,
-  getDatatype,
-  getSerializer,
-  getDeserializer,
-  formatLabel,
-  DType,
-  getSuggestions
-} from '../../utils'
+import { setToArray, DType, getSuggestions } from '../../utils'
 import { searchQuantities } from '../../config'
-import { Unit } from '../../units'
+import { Filter, getEnumOptions } from './Filter'
 import elementData from '../../elementData'
 
 // Containers for filter information
@@ -60,23 +51,6 @@ const idMetadata = 'metadata'
 const idOptimade = 'optimade'
 
 /**
- * Used to gather a list of fixed filter options from the metainfo.
- * @param {string} quantity Metainfo name
- * @returns Dictionary containing the available options and their labels.
- */
-function getEnumOptions(quantity, exclude = ['not processed']) {
-  const metainfoOptions = searchQuantities?.[quantity]?.type?.type_data
-  if (isArray(metainfoOptions) && metainfoOptions.length > 0) {
-    const opt = {}
-    for (const name of metainfoOptions) {
-      opt[name] = {label: name}
-    }
-    exclude.forEach(value => delete opt[value])
-    return opt
-  }
-}
-
-/**
  * This function is used to register a new filter within the SearchContext.
  * Filters are entities that can be searched through the filter panel and the
  * search bar, and can be encoded in the URL. Notice that a filter in this
@@ -95,98 +69,20 @@ function getEnumOptions(quantity, exclude = ['not processed']) {
  * @param {string} name Name of the filter.
  * @param {string} group The group into which the filter belongs to. Groups
  * are used to e.g. in showing FilterSummaries about a group of filters.
- * @param {obj} config Data object containing options for the filter. Can
- * include the following data:
-  *  - aggs: Object containing default values for specific aggregation types
-  *      that may be requested for this filter.
-  *      Also completely customized setter/getter methods are supported. E.g.
-  *        aggs = {
-  *          terms: {size: 5},
-  *          histogram: {buckets: 20},
-  *          min_max: {set: (config) => ({}), get: (agg) => ({})}
-  *        }
-  *  - value: Object containing a custom setter/getter for the filter value.
-  *  - multiple: Whether the user can simultaneously provide multiple values for
-  *      this filter.
-  *  - queryMode: The default query mode (e.g. 'any', 'all) when multiple values
-  *      can specified for this filter. Defaults to 'any'.
-  *  - exclusive: Whether this filter is exclusive: only one value is
-  *      associated with a single entry.
-  *  - widget: Object that determines the default widget for this filter.
-  *  - options: Object containing explicit options that this filter supports.
-  *  - unit: The unit for this filter. If no value is given and the name
-  *      corresponds to a metainfo name the data type is read directly from the
-  *      metainfo.
-  *  - dtype: The data type for this filter. If no value is given and the
-  *      name corresponds to a metainfo name the data type is read directly from
-  *      the metainfo.
-  *  - label: Name of the filter shown in the GUI. If no value is given and the
-  *      name corresponds to a metainfo name the description is read directly
-  *      from the metainfo.
-  *  - description: Description of the filter shown e.g. in the tooltips. If no
-  *      value is given and the name corresponnds to a metainfo, the metainfo
-  *      description is used.
-  *  - global: Whether this is a 'global' filter that affects e.g. the
-  *      behaviour of certain queris without being serialized into the query
-  *      itself.
-  *  - default: A default value which is implicitly enforced in the API call.
-  *      This value will not be serialized in the search bar.
-  */
+ * @param {obj} config Data object containing options for the filter.
+ */
 function saveFilter(name, group, config, parent) {
   if (group) {
     filterGroups[group]
       ? filterGroups[group].add(name)
       : filterGroups[group] = new Set([name])
   }
-
-  const data = filterData[name] || {}
-  const metadata = searchQuantities[name]
-  const parts = name.split('.')
-  const path = []
-  function getRepeats(name) {
-    return metadata?.repeats || !isEmpty(metadata?.shape)
-  }
-  data.repeatsRecursive = false
-  for (const part of parts) {
-    path.push(part)
-    if (getRepeats(path.join('.'))) {
-      data.repeatsRecursive = true
-      break
-    }
-  }
-  data.options = config.options || getEnumOptions(name)
-  data.aggs = config.aggs
-  data.value = config.value
-  data.placeholder = config.placeholder
-  data.multiple = config.multiple === undefined ? true : config.multiple
-  data.exclusive = config.exclusive === undefined ? true : config.exclusive
-  data.unit = config.unit || metadata?.unit
-  data.dtype = config.dtype || getDatatype(name)
-  data.customSerialization = !!config.serializerExact
-  data.serializerExact = config.serializerExact || getSerializer(data.dtype, false)
-  data.serializerPretty = config.serializerPretty || getSerializer(data.dtype, true)
-  data.dimension = data.unit && new Unit(data.unit).dimension()
-  data.deserializer = config.deserializer || getDeserializer(data.dtype, data.dimension)
-  data.label = config.label || formatLabel(metadata?.name || name)
-  data.labelFull = parent ? `${filterData[parent].label} ${data.label}` : data.label
-  data.nested = metadata?.nested
-  data.aggregatable = metadata?.aggregatable
-  data.section = !isNil(data.nested)
-  data.repeats = config.repeats === undefined ? getRepeats(name) : config.repeats
-  data.widget = config.widget || getWidgetConfig(data.dtype, metadata?.aggregatable)
-  data.parent = parent
-  data.description = config.description || metadata?.description
-  data.scale = config.scale || 'linear'
-  if (data.queryMode && !data.multiple) {
-    throw Error('Only filters that accept multiple values may have a query mode.')
-  }
-  data.queryMode = config.queryMode || 'any'
-  data.global = config.global
-  if (config.default && !data.global) {
-    throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
-  }
-  data.default = config.default
+  const def = searchQuantities[name]
+  const newConf = {...(config || {})}
+  newConf.name = name
+  const data = filterData[name] || new Filter(def, newConf, parent)
   filterData[name] = data
+  return data
 }
 
 /**
@@ -194,11 +90,11 @@ function saveFilter(name, group, config, parent) {
  * section.
  */
 function registerFilter(name, group, config, subQuantities) {
-  saveFilter(name, group, config)
+  const parent = saveFilter(name, group, config)
   if (subQuantities) {
     for (const subConfig of subQuantities) {
       const subname = `${name}.${subConfig.name}`
-      saveFilter(subname, group, subConfig, name)
+      saveFilter(subname, group, subConfig, parent)
     }
   }
 }
@@ -237,34 +133,6 @@ function registerFilterOptions(name, group, target, label, description, options)
   )
 }
 
-const histogramWidgetConfig = {
-  type: 'histogram',
-  scale: 'linear',
-  showinput: false,
-  autorange: false,
-  nbins: 30,
-  layout: {
-    sm: {w: 8, h: 3, minW: 8, minH: 3},
-    md: {w: 8, h: 3, minW: 8, minH: 3},
-    lg: {w: 8, h: 3, minW: 8, minH: 3},
-    xl: {w: 8, h: 3, minW: 8, minH: 3},
-    xxl: {w: 8, h: 3, minW: 8, minH: 3}
-  }
-}
-
-const termsWidgetConfig = {
-  type: 'terms',
-  scale: 'linear',
-  showinput: false,
-  layout: {
-    sm: {w: 6, h: 9, minW: 6, minH: 9},
-    md: {w: 6, h: 9, minW: 6, minH: 9},
-    lg: {w: 6, h: 9, minW: 6, minH: 9},
-    xl: {w: 6, h: 9, minW: 6, minH: 9},
-    xxl: {w: 6, h: 9, minW: 6, minH: 9}
-  }
-}
-
 const ptWidgetConfig = {
   type: 'periodictable',
   scale: '1/2',
@@ -274,23 +142,6 @@ const ptWidgetConfig = {
     lg: {w: 12, h: 8, minW: 12, minH: 8},
     xl: {w: 12, h: 8, minW: 12, minH: 8},
     xxl: {w: 12, h: 8, minW: 12, minH: 8}
-  }
-}
-
-/**
- * Tries to automatically create a default widget config for the given
- * quantity.
- *
- * @param {string} parent Parent quantity
- * @param {DType} dtype Datatype of the quantity
- * @param {bool} aggregatable Whether the quantity is aggregatable
- * @returns A widget config object.
- */
-const getWidgetConfig = (dtype, aggregatable) => {
-  if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
-    return histogramWidgetConfig
-  } else if (aggregatable) {
-    return termsWidgetConfig
   }
 }
 

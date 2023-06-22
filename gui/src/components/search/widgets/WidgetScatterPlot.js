@@ -42,6 +42,11 @@ import { styled } from '@material-ui/core/styles'
 import { DType } from '../../../utils'
 import { Quantity, Unit, useUnits } from '../../../units'
 
+// Predefined in order to not break memoization
+const dtypesNumeric = new Set([DType.Int, DType.Float])
+const dtypesColor = new Set([DType.String, DType.Enum, DType.Float, DType.Int])
+const dtypesColorRepeatable = new Set([DType.String, DType.Enum])
+
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   '& .MuiToggleButtonGroup-grouped': {
     margin: theme.spacing(0, 0.25),
@@ -314,8 +319,7 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
             onChange={(value) => handleChange('x', value)}
             onSelect={(value) => handleAccept('x', value)}
             onError={(value) => handleError('x', value)}
-            dtypes={new Set([DType.Int, DType.Float])}
-            repeats={false}
+            dtypes={dtypesNumeric}
           />
         </WidgetEditOption>
       </WidgetEditGroup>
@@ -328,8 +332,7 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
             onChange={(value) => handleChange('y', value)}
             onSelect={(value) => handleAccept('y', value)}
             onError={(value) => handleError('y', value)}
-            dtypes={new Set([DType.Int, DType.Float])}
-            repeats={false}
+            dtypes={dtypesNumeric}
           />
         </WidgetEditOption>
       </WidgetEditGroup>
@@ -342,8 +345,8 @@ export const WidgetScatterPlotEdit = React.memo((props) => {
             onChange={(value) => handleChange('color', value)}
             onSelect={(value) => handleAccept('color', value)}
             onError={(value) => handleError('color', value)}
-            dtypes={new Set([DType.String, DType.Enum, DType.Float, DType.Int])}
-            dtypesRepeatable={new Set([DType.String, DType.Enum])}
+            dtypes={dtypesColor}
+            dtypesRepeatable={dtypesColorRepeatable}
           />
         </WidgetEditOption>
       </WidgetEditGroup>
