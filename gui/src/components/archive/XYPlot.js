@@ -47,7 +47,8 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       }
       const unit = resolvedQuantityDef?.unit
       if (unit) {
-        const quantity = new Q(value, unit).toSystem(units)
+        const displayUnit = resolvedQuantityDef?.m_annotations?.eln?.[0]?.defaultDisplayUnit
+        const quantity = displayUnit ? new Q(value, unit).to(displayUnit) : new Q(value, unit).toSystem(units)
         return [quantity.value(), quantity.label()]
       } else {
         return [value, unit]
