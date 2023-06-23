@@ -26,7 +26,7 @@ import {
   MenuItem,
   Menu,
   ListItemText,
-  Typography
+  Typography, Tooltip, IconButton
 } from '@material-ui/core'
 import KeyboardArrowDownIcon from '@material-ui/icons/KeyboardArrowDown'
 import { matchPath, useHistory, useLocation } from 'react-router-dom'
@@ -129,7 +129,7 @@ const useMenuBarMenuStyles = makeStyles(theme => ({
   }
 }))
 
-export function MenuBarMenu({label, children, route}) {
+export function MenuBarMenu({label, children, route, icon}) {
   const classes = useMenuBarMenuStyles()
   const {pathname} = useLocation()
   const [anchorEl, setAnchorEl] = useState(null)
@@ -144,16 +144,21 @@ export function MenuBarMenu({label, children, route}) {
   }
 
   return <div onMouseLeave={handleClose}>
-    <Button
+    {icon && <IconButton onMouseEnter={handleOpen}>
+      <Tooltip title={label}>
+        {icon}
+      </Tooltip>
+    </IconButton>}
+    {!icon && <Button
       className={classes.root}
       onMouseEnter={handleOpen}
       disableElevation
       size="small"
       color={selected ? 'primary' : undefined}
-      endIcon={<KeyboardArrowDownIcon />}
+      endIcon={icon || <KeyboardArrowDownIcon />}
     >
       {label}
-    </Button>
+    </Button>}
     <Menu
       data-testid={label}
       PopoverClasses={{root: classes.menuPopover, paper: classes.menuPaper}}
@@ -176,5 +181,6 @@ MenuBarMenu.propTypes = {
   children: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
-  ])
+  ]),
+  icon: PropTypes.node
 }

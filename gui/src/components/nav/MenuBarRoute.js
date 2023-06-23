@@ -25,7 +25,8 @@ import { MenuBarItem, MenuBarList, MenuBarMenu } from './MenuBar'
 const MenuBarRoute = React.memo(({
   menu,
   label,
-  initialFilters
+  initialFilters,
+  children
 }) => {
     let filters = initialFilters && Object.entries(initialFilters).length > 0 && Object.entries(initialFilters).map(x => x.join('=')).join('&')
     filters = filters ? `?${filters}` : ''
@@ -67,7 +68,7 @@ const MenuBarRoute = React.memo(({
         })
     }
 
-  return <MenuBarMenu key={menu.path} label={label} route={'/' + menu.path}>
+  return <MenuBarMenu key={menu.path} label={label} route={'/' + menu.path} icon={children}>
         {content}
       </MenuBarMenu>
 })
@@ -78,7 +79,8 @@ MenuBarRoute.propTypes = {
   // The 'initialFilters' property is optional and should be a object representing
   // the initial set of filters for the menu. For ex, it could be set to '{upload_id:abc}'
   // to preselect items based on the 'upload_id' parameter with the value 'abc'
-  initialFilters: PropTypes.object
+  initialFilters: PropTypes.object,
+  children: PropTypes.node
 }
 
 export default MenuBarRoute
