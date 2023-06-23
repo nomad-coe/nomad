@@ -343,7 +343,7 @@ const useDatatableRowStyles = makeStyles(theme => ({
     position: 'sticky',
     right: 0,
     zIndex: 1,
-    backgroundColor: 'white'
+    backgroundColor: 'inherit'
   },
   detailsCell: {
     padding: 0

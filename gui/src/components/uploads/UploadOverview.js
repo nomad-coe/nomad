@@ -397,34 +397,36 @@ function UploadOverview(props) {
             <Typography>upload id: {uploadId}</Typography>
           </WithButton>
         </Grid>
-        <Grid>
-          <IconButton disableRipple><UploadSearchMenu uploadId={uploadId}/></IconButton>
-          <EditMembersDialog disabled={!isWriter}/>
-          <Download
-            component={IconButton} tooltip="Download files"
-            url={`uploads/${uploadId}/raw/?compress=true`}
-            data-testid='upload-download-action'
-          >
-            <DownloadIcon />
-          </Download>
-          <IconButton onClick={handleReload}>
-            <Tooltip title="Reload">
-              <ReloadIcon />
-            </Tooltip>
-          </IconButton>
-          <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess} data-testid='upload-reprocess-action'>
-            <Tooltip title="Reprocess">
-              <ReprocessIcon />
-            </Tooltip>
-          </IconButton>
-          <SourceApiDialogButton maxWidth="lg" fullWidth>
-            <SourceApiCall {...apiData} />
-          </SourceApiDialogButton>
-          <IconButton disabled={isPublished || !isMainAuthor} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
-            <Tooltip title="Delete the upload">
-              <DeleteIcon />
-            </Tooltip>
-          </IconButton>
+        <Grid item>
+          <Box display={'flex'}>
+            <UploadSearchMenu uploadId={uploadId}/>
+            <EditMembersDialog disabled={!isWriter}/>
+            <Download
+              component={IconButton} tooltip="Download files"
+              url={`uploads/${uploadId}/raw/?compress=true`}
+              data-testid='upload-download-action'
+            >
+              <DownloadIcon />
+            </Download>
+            <IconButton onClick={handleReload}>
+              <Tooltip title="Reload">
+                <ReloadIcon />
+              </Tooltip>
+            </IconButton>
+            <IconButton disabled={isPublished || !isWriter} onClick={handleReprocess} data-testid='upload-reprocess-action'>
+              <Tooltip title="Reprocess">
+                <ReprocessIcon />
+              </Tooltip>
+            </IconButton>
+            <SourceApiDialogButton maxWidth="lg" fullWidth>
+              <SourceApiCall {...apiData} />
+            </SourceApiDialogButton>
+            <IconButton disabled={isPublished || !isMainAuthor} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
+              <Tooltip title="Delete the upload">
+                <DeleteIcon />
+              </Tooltip>
+            </IconButton>
+          </Box>
           <Dialog
             open={openDeleteConfirmDialog}
             aria-describedby="alert-dialog-description"

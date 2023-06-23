@@ -178,7 +178,7 @@ export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...p
   // navigation that otherwise leaves the popup opened (the Tooltip state does
   // not get updated since the page is cached and a new page is shown
   // immediately).
-  return <Tooltip PopperProps={{disablePortal: true}} title="Go to the entry page">
+  return <Tooltip PopperProps={{disablePortal: true}} title="Go to the entry page" placement="right-start">
     <EntryButton
       {...props}
       entryId={data.entry_id}
