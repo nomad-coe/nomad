@@ -255,7 +255,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const [createEntryDialogOpen, setCreateEntryDialogOpen] = useState(false)
   const {user, api} = useApi()
   const {raiseError} = useErrors()
-  const [error, setError] = useState()
+  const [error, setError] = useState({error: undefined, processingError: undefined})
   const lane = useLane()
 
   const referencedSectionDef = useReferecedSectionDef(quantityDef)
@@ -263,7 +263,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
 
   useEffect(() => {
     if (!value || value === '') {
-      setError(null)
+      setError({error: null, processingError: null})
       return
     }
     const resolveValue = async () => {
@@ -299,14 +299,14 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         const archive = data[0].archive.metadata
         if (archive.processing_errors.length === 0) {
           setEntry({value: value, archive: archive})
-          setError(null)
+          setError({error: null, processingError: null})
         } else {
           setEntry(null)
-          setError('There are some processing errors in the referenced value')
+          setError({error: null, processingError: 'There are some processing errors in the referenced value'})
         }
       } else {
         setEntry(null)
-        setError('The referenced value does not exist anymore')
+        setError({error: 'The referenced value does not exist anymore', processingError: null})
       }
     }
     resolveValue()
@@ -391,7 +391,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
         <EditIcon/>
       </Tooltip>
     </IconButton>)
-    if (lane && value && !error) {
+    if (lane && value && !error.error) {
       actions.push(
         // TODO Disabled this button, because the browser does not correctly update after
         // the navigation. This needs to be fixed first.
@@ -407,7 +407,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey}/>)
     }
     return actions
-  }, [value, lane, itemKey, user, error, referencedSectionDef])
+  }, [value, lane, itemKey, user, error.error, referencedSectionDef])
 
   const referencedValue = useMemo(() => {
     const value = entry?.value?.split('#')[1] || ''
@@ -415,7 +415,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [entry])
 
   const handleError = useCallback((error) => {
-    setError(error)
+    setError(previousError => ({...previousError, error: error}))
   }, [])
 
   if (value && referencedValue === undefined) {
@@ -436,8 +436,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
               <TextField
                 {...params}
                 variant="filled"
-                error={!!error}
-                helperText={error}
+                error={!!(error.error || error.processingError)}
+                helperText={error.error || error.processingError}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: addIconButtonToEndAdornment(params.InputProps.endAdornment, actions)
