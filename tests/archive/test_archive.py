@@ -28,9 +28,9 @@ import yaml
 from nomad import utils, config
 from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference, MetainfoError, Context, MProxy
 from nomad.datamodel import EntryArchive, ClientContext
-from nomad.archive.storage import TOCPacker, _decode, _entries_per_block
+from nomad.archive.storage import TOCPacker, _decode, _entries_per_block, to_json
 from nomad.archive import (
-    write_archive, read_archive, ArchiveReader, ArchiveQueryError, query_archive,
+    write_archive, read_archive, ArchiveQueryError, query_archive,
     write_partial_archive_to_mongo, read_partial_archive_from_mongo, read_partial_archives_from_mongo,
     create_partial_archive, compute_required_with_referenced, RequiredReader,
 )
@@ -74,8 +74,13 @@ def example_entry():
 
 def _unpack(data, pos=None):
     f = BytesIO(data)
+    if config.archive.use_new_writer:
+        from nomad.archive.storage_v2 import ArchiveWriter
+        offset = ArchiveWriter.magic_len
+    else:
+        offset = 0
     if pos is None:
-        return msgpack.unpackb(f.read(), raw=False)
+        return msgpack.unpackb(f.read()[offset:], raw=False)
     else:
         f.seek(pos[0])
         return msgpack.unpackb(f.read(pos[1] - pos[0]), raw=False)
@@ -121,7 +126,7 @@ def test_short_uuids():
     f = BytesIO(packed_archive)
     with read_archive(f) as archive:
         assert '0' in archive
-        assert archive['0'].to_dict() == {'archive': 'test'}
+        assert to_json(archive['0']) == {'archive': 'test'}
 
 
 def test_write_file(raw_files, example_uuid):
@@ -129,7 +134,7 @@ def test_write_file(raw_files, example_uuid):
     write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
     with read_archive(path) as archive:
         assert example_uuid in archive
-        assert archive[example_uuid].to_dict() == {'archive': 'test'}
+        assert to_json(archive[example_uuid]) == {'archive': 'test'}
 
 
 def test_write_archive_single(example_uuid, example_entry):
@@ -145,14 +150,20 @@ def test_write_archive_single(example_uuid, example_entry):
     assert 'data' in archive['data'][example_uuid]
     assert archive['data'][example_uuid]['data'] == example_entry
 
-    toc_packer = TOCPacker(toc_depth=2)
-    toc_packer.reset()
-    toc_packer.pack(example_entry)
-    assert archive['data'][example_uuid]['toc'] == toc_packer.toc
+    if config.archive.use_new_writer:
+        from nomad.archive.storage_v2 import TOCPacker as TOCPackerNew
+        toc_packer = TOCPackerNew(toc_depth=2)
+        _, global_toc = toc_packer.pack(example_entry)
+    else:
+        toc_packer = TOCPacker(toc_depth=2)
+        toc_packer.reset()
+        toc_packer.pack(example_entry)
+        global_toc = toc_packer.toc
 
+    assert archive['data'][example_uuid]['toc'] == global_toc
     toc = _unpack(packed_archive, _decode(archive['toc_pos']))
     assert example_uuid in toc
-    assert _unpack(packed_archive, _decode(toc[example_uuid][0])) == toc_packer.toc
+    assert _unpack(packed_archive, _decode(toc[example_uuid][0])) == global_toc
     assert _unpack(packed_archive, _decode(toc[example_uuid][1])) == example_entry
 
 
@@ -189,8 +200,8 @@ def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
 
     assert example_uuid in data
     assert data[example_uuid]['run']['system'][1] == example_entry['run']['system'][1]
-    assert data[example_uuid]['run'].to_dict() == example_entry['run']
-    assert data[example_uuid].to_dict() == example_entry
+    assert to_json(data[example_uuid]['run']) == example_entry['run']
+    assert to_json(data[example_uuid]) == example_entry
 
     with pytest.raises(KeyError):
         data['does not exist']
@@ -212,7 +223,7 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
-    with ArchiveReader(f, use_blocked_toc=use_blocked_toc) as reader:
+    with read_archive(f, use_blocked_toc=use_blocked_toc) as reader:
         if use_blocked_toc:
             reader._load_toc_block(0)
             assert reader._toc.get(create_example_uuid(0)) is not None
@@ -570,23 +581,22 @@ def test_required_reader(archive, required, inplace_result, root_result, resolve
     write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=2)
     packed_archive = f.getbuffer()
 
-    archive_reader = ArchiveReader(BytesIO(packed_archive))
+    with read_archive(BytesIO(packed_archive)) as archive_reader:
+        required_reader = RequiredReader(required, resolve_inplace=resolve_inplace)
 
-    required_reader = RequiredReader(required, resolve_inplace=resolve_inplace)
+        if inplace_result is ArchiveQueryError:
+            with pytest.raises(inplace_result):
+                _ = required_reader.read(archive_reader, 'entry_id', None)
+            return
 
-    if inplace_result is ArchiveQueryError:
-        with pytest.raises(inplace_result):
-            _ = required_reader.read(archive_reader, 'entry_id', None)
-        return
+        results = required_reader.read(archive_reader, 'entry_id', None)
 
-    results = required_reader.read(archive_reader, 'entry_id', None)
-
-    if resolve_inplace:
-        if inplace_result:
-            assert_dict(results, inplace_result)
-    else:
-        if root_result:
-            assert_dict(results, root_result)
+        if resolve_inplace:
+            if inplace_result:
+                assert_dict(results, inplace_result)
+        else:
+            if root_result:
+                assert_dict(results, root_result)
 
 
 @pytest.fixture(scope='function')
@@ -696,11 +706,11 @@ def test_required_reader_with_remote_reference(
     write_archive(f, 1, [('entry_id', archive)], entry_toc_depth=2)
     packed_archive = f.getbuffer()
 
-    archive_reader = ArchiveReader(BytesIO(packed_archive))
-    required_reader = RequiredReader(
-        remote_reference_required, resolve_inplace=resolve_inplace, user=test_user)
-    results = required_reader.read(archive_reader, 'entry_id', 'id_published_with_ref')
-    ref_result = results['workflow2']
+    with read_archive(BytesIO(packed_archive)) as archive_reader:
+        required_reader = RequiredReader(
+            remote_reference_required, resolve_inplace=resolve_inplace, user=test_user)
+        results = required_reader.read(archive_reader, 'entry_id', 'id_published_with_ref')
+        ref_result = results['workflow2']
 
     while 'tasks' in ref_result:
         ref_result = ref_result['tasks'][0]['task']
@@ -761,14 +771,13 @@ data:
 
     f = BytesIO()
     write_archive(f, 1, [('id_example', yaml_archive)], entry_toc_depth=2)
-    packed_archive = f.getbuffer()
-    archive_reader = ArchiveReader(BytesIO(packed_archive))
-    required_reader = RequiredReader({'data': {'my_quantity': '*'}}, user=test_user)
-    results = required_reader.read(archive_reader, 'id_example', 'id_custom')
+    with read_archive(BytesIO(f.getbuffer())) as archive_reader:
+        required_reader = RequiredReader({'data': {'my_quantity': '*'}}, user=test_user)
+        results = required_reader.read(archive_reader, 'id_example', 'id_custom')
 
-    assert_dict(results, {'data': {'my_quantity': 'test_value'}, 'm_ref_archives': {}})
+        assert_dict(results, {'data': {'my_quantity': 'test_value'}, 'm_ref_archives': {}})
 
-    data.delete()
+        data.delete()
 
 
 def assert_required_results(

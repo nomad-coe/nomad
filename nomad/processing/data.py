@@ -59,7 +59,7 @@ from nomad.datamodel import (
     EntryArchive, EntryMetadata, MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
     EditableUserMetadata, AuthLevel, ServerContext)
 from nomad.archive import (
-    write_partial_archive_to_mongo, delete_partial_archives_from_mongo, serialise_container)
+    write_partial_archive_to_mongo, delete_partial_archives_from_mongo, to_json)
 from nomad.app.v1.models import (
     MetadataEditRequest, Aggregation, TermsAggregation, MetadataPagination, MetadataRequired,
     restrict_query_to_upload)
@@ -932,11 +932,11 @@ class Entry(Proc):
             # or configuration
             archive = upload.upload_files.read_archive(self.entry_id)
             entry_archive = archive[self.entry_id]
-            entry_archive_dict = {section_metadata: serialise_container(entry_archive[section_metadata])}
+            entry_archive_dict = {section_metadata: to_json(entry_archive[section_metadata])}
             if section_workflow in entry_archive:
-                entry_archive_dict[section_workflow] = entry_archive[section_workflow].to_dict()
+                entry_archive_dict[section_workflow] = to_json(entry_archive[section_workflow])
             if section_results in entry_archive:
-                entry_archive_dict[section_results] = serialise_container(entry_archive[section_results])
+                entry_archive_dict[section_results] = to_json(entry_archive[section_results])
             entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
             self._apply_metadata_from_mongo(upload, entry_metadata)
         except KeyError:
@@ -1085,7 +1085,7 @@ class Entry(Proc):
             try:
                 upload_files = PublicUploadFiles(self.upload_id)
                 with upload_files.read_archive(self.entry_id) as archive:
-                    self.upload_files.write_archive(self.entry_id, archive[self.entry_id].to_dict())
+                    self.upload_files.write_archive(self.entry_id, to_json(archive[self.entry_id]))
 
             except Exception as e:
                 logger.error('could not copy archive for non-reprocessed entry', exc_info=e)

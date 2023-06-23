@@ -28,8 +28,8 @@ from fastapi import HTTPException
 from nomad import utils
 from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference, QuantityReference, SectionReference, \
     Package
-from .query import ArchiveQueryError, _to_son, _query_archive_key_pattern, _extract_key_and_index, _extract_child
-from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict, serialise_container
+from .query import ArchiveQueryError, to_json, _query_archive_key_pattern, _extract_key_and_index, _extract_child
+from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict
 from ..datamodel.context import parse_path, ServerContext
 
 
@@ -250,10 +250,12 @@ class RequiredReader:
         ''' Resolves all references in archive. '''
         if isinstance(definition, Quantity):
             # it's a quantity ref, the archive is already resolved
-            return _to_son(archive[definition.name])
+            return to_json(archive[definition.name])
+
+        from .storage_v2 import ArchiveList as ArchiveListNew
 
         # it's a section ref
-        archive = _to_son(archive)
+        archive = to_json(archive)
 
         if 'm_def' in archive:
             section_def = self._resolve_definition(
@@ -280,12 +282,12 @@ class RequiredReader:
                 def handle_item(v):
                     return self._resolve_ref('include-resolved', v, child_dataset)
             else:
-                result[prop] = value.to_list() if isinstance(value, ArchiveList) else value
+                result[prop] = to_json(value)
                 continue
 
             try:
                 result[prop] = [handle_item(item) for item in value] if isinstance(
-                    value, (list, ArchiveList)) else handle_item(value)
+                    value, (list, ArchiveList, ArchiveListNew)) else handle_item(value)
             except ArchiveError as e:
                 # We continue just logging the error. Unresolvable references
                 # will appear as unset references in the returned archive.
@@ -377,7 +379,7 @@ class RequiredReader:
 
         # apply required to resolved archive_item
         if isinstance(required, str) and isinstance(dataset.definition, Quantity):
-            resolved_result = _to_son(resolved)
+            resolved_result = to_json(resolved)
         else:
             resolved_result = self._apply_required(required, resolved, dataset)  # type: ignore
 
@@ -425,7 +427,7 @@ class RequiredReader:
 
         if definition is not None and definition.startswith(('#/', '/')):
             # appears to be a local definition
-            root_definitions = serialise_container(archive_root['definitions'])
+            root_definitions = to_json(archive_root['definitions'])
             custom_def_package: Package = Package.m_from_dict(root_definitions, m_context=context)
             custom_def_package.init_metainfo()
             root_path: list = [v for v in definition.split('/') if v not in ('', '#', 'definitions')]
@@ -441,7 +443,7 @@ class RequiredReader:
         if archive_item is None:
             return None  # type: ignore
 
-        archive_item = _to_son(archive_item)
+        archive_item = to_json(archive_item)
         result: dict = {}
 
         if isinstance(archive_item, dict) and 'm_def' in archive_item:
@@ -479,7 +481,10 @@ class RequiredReader:
             prop_def = self._unwrap_reference(prop_def)
 
             try:
-                if isinstance(archive_child := _extract_child(archive_item, prop, index), (ArchiveList, list)):
+                archive_child = _extract_child(archive_item, prop, index)
+
+                from .storage_v2 import ArchiveList as ArchiveListNew
+                if isinstance(archive_child, (ArchiveListNew, ArchiveList, list)):
                     result[prop] = [self._apply_required(
                         val, item, dataset.replace(definition=prop_def)) for item in archive_child]
                 else:

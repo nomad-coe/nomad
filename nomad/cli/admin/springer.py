@@ -31,7 +31,7 @@ import time
 import os.path
 
 from nomad import config, archive
-
+from nomad.archive import read_archive
 
 required_items = {
     'Alphabetic Formula:': 'alphabetic_formula',
@@ -168,9 +168,9 @@ def update_springer(max_n_query: int = 10, retry_time: int = 120):
     # load database
     # querying database with unvailable dataset leads to error,
     # get toc keys first by making an empty query
-    springer_archive = archive.ArchiveReader(config.normalize.springer_db_path)
-    _ = springer_archive._load_toc_block(0)
-    archive_keys = springer_archive._toc.keys()
+    with read_archive(config.normalize.springer_db_path) as springer_archive:
+        _ = springer_archive._load_toc_block(0)
+        archive_keys = springer_archive._toc.keys()
 
     sp_data = archive.query_archive(config.normalize.springer_db_path, {spg: '*' for spg in archive_keys})
 

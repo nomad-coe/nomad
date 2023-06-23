@@ -16,7 +16,7 @@ from nomad import datamodel, files, utils, config
 
 from .filterparser import _get_transformer as get_transformer
 from .common import provider_specific_fields
-
+from ...archive import to_json
 
 logger = utils.get_logger(__name__)
 
@@ -127,12 +127,12 @@ class StructureCollection(EntryCollection):
 
         entry_archive_reader = archive_reader[entry_id]
         archive = {
-            'metadata': entry_archive_reader['metadata'].to_dict()}
+            'metadata': to_json(entry_archive_reader['metadata'])}
 
         # Lazy load results if only if results provider specfic field is requested
         def get_results():
             if 'results' not in archive:
-                archive['results'] = entry_archive_reader['results'].to_dict()
+                archive['results'] = to_json(entry_archive_reader['results'])
 
         attrs = archive['metadata'].get('optimade', {})
 
@@ -203,6 +203,8 @@ class StructureCollection(EntryCollection):
                     # quantity might have a path with repeated sections. This won't be
                     # handled right now.
                     pass
+
+        archive_reader.close()
 
         return attrs
 

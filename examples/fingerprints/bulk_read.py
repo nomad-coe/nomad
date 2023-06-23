@@ -17,6 +17,7 @@ import json
 import traceback
 
 from nomad import files
+from nomad.archive import to_json
 
 
 def read_archive(entries):
@@ -28,7 +29,7 @@ def read_archive(entries):
             entry_id = entry['entry_id']
             material_id = entry['material_id']
             with upload_files.read_archive(entry_id) as archive:
-                entry_archive = archive[entry_id].to_dict()
+                entry_archive = to_json(archive[entry_id])
                 for run in entry_archive.get('section_run', []):
                     for calc in run.get('section_single_configuration_calculation', []):
                         for dos in calc.get('section_dos', []):

@@ -62,8 +62,7 @@ import zipfile
 
 from nomad import config, utils, datamodel
 from nomad.config.models import BundleImportSettings, BundleExportSettings
-from nomad.archive import write_archive, read_archive, ArchiveReader
-
+from nomad.archive import write_archive, read_archive, ArchiveReader, to_json
 
 decompress_file_extensions = ('.zip', '.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar', '.eln')
 bundle_info_filename = 'bundle_info.json'
@@ -1107,10 +1106,11 @@ class StagingUploadFiles(UploadFiles):
             for entry in entries:
                 archive_file = self._archive_file_object(entry.entry_id)
                 if archive_file.exists():
-                    data = read_archive(archive_file.os_path)[entry.entry_id].to_dict()
-                    yield (entry.entry_id, data)
+                    with read_archive(archive_file.os_path) as archive:
+                        data = to_json(archive[entry.entry_id])
+                    yield entry.entry_id, data
                 else:
-                    yield (entry.entry_id, {})
+                    yield entry.entry_id, {}
 
         try:
             file_object = PublicUploadFiles._create_msg_file_object(target_dir, access)
@@ -1360,7 +1360,7 @@ class PublicUploadFiles(UploadFiles):
                 with self._open_msg_file() as archive:
                     for entry_id, data in archive.items():
                         entry_id = entry_id.strip()
-                        staging_upload_files.write_archive(entry_id, data.to_dict())
+                        staging_upload_files.write_archive(entry_id, to_json(data))
             except FileNotFoundError:
                 pass
 

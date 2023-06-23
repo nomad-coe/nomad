@@ -28,7 +28,7 @@ import yaml
 
 from nomad import utils, infrastructure, config
 from nomad.config.models import BundleImportSettings
-from nomad.archive import read_partial_archive_from_mongo
+from nomad.archive import read_partial_archive_from_mongo, to_json
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.parsing.parser import Parser
 from nomad.parsing import parsers
@@ -456,12 +456,12 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     if with_failure == 'after':
         with published.upload_files.read_archive(first_entry.entry_id) as archive_reader:
             assert list(archive_reader[first_entry.entry_id].keys()) == ['processing_logs', 'metadata']
-            archive = EntryArchive.m_from_dict(archive_reader[first_entry.entry_id].to_dict())
+            archive = EntryArchive.m_from_dict(to_json(archive_reader[first_entry.entry_id]))
 
     else:
         with published.upload_files.read_archive(first_entry.entry_id) as archive_reader:
             assert len(archive_reader[first_entry.entry_id]) > 2  # contains more then logs and metadata
-            archive = EntryArchive.m_from_dict(archive_reader[first_entry.entry_id].to_dict())
+            archive = EntryArchive.m_from_dict(to_json(archive_reader[first_entry.entry_id]))
 
     # assert maintained user metadata (mongo+es)
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
@@ -689,7 +689,7 @@ def test_re_pack(published: Upload):
 
     for entry in Entry.objects(upload_id=upload_id):
         with upload_files.read_archive(entry.entry_id) as archive:
-            archive[entry.entry_id].to_dict()
+            to_json(archive[entry.entry_id])
 
     published.reload()
 

@@ -36,7 +36,7 @@ from nomad.app.v1.routers.entries import perform_search
 from nomad.app.v1.routers.uploads import (
     get_upload_with_read_access, upload_to_pydantic, entry_to_pydantic, UploadProcDataQuery, UploadProcDataPagination
 )
-from nomad.archive import ArchiveList, ArchiveDict, serialise_container
+from nomad.archive import ArchiveList, ArchiveDict, to_json
 from nomad.archive.model import RequestConfig, DefinitionType, DirectiveType, ResolveType, DatasetQuery
 from nomad.datamodel import ServerContext, User, EntryArchive, Dataset
 from nomad.datamodel.util import parse_path
@@ -346,7 +346,7 @@ def _populate_result(container_root: dict, path: list, value):
 
     # the target container does not necessarily have to be a dict or a list
     # if the result is striped due to large size, it will be replaced by a string
-    new_value = serialise_container(value)
+    new_value = to_json(value)
     if isinstance(target_container, list):
         assert isinstance(key_or_index, int)
         if target_container[key_or_index] is None:
@@ -1613,7 +1613,8 @@ class ArchiveReader(GeneralReader):
                 self._log(f'Definition {name} is not found.', error_type=QueryError.NOTFOUND)
                 continue
 
-            is_list: bool = isinstance(child_archive, (list, ArchiveList))
+            from .storage_v2 import ArchiveList as ArchiveListNew
+            is_list: bool = isinstance(child_archive, (list, ArchiveList, ArchiveListNew))
 
             if is_list and not child_definition.repeats:
                 self._log(f'Definition {key} is not repeatable.')
@@ -1653,7 +1654,8 @@ class ArchiveReader(GeneralReader):
         Those come from explicitly given fields in the required query.
         They are handled by the caller.
         '''
-        if isinstance(node.archive, (list, ArchiveList)):
+        from .storage_v2 import ArchiveList as ArchiveListNew
+        if isinstance(node.archive, (list, ArchiveList, ArchiveListNew)):
             return self._resolve_list(node, config)
 
         # no matter if to resolve, it is always necessary to replace the definition with potential custom definition
@@ -1661,7 +1663,8 @@ class ArchiveReader(GeneralReader):
         # if it needs to resolve, it is necessary to check references
         node = self._check_reference(node, config, implicit_resolve=omit_keys is not None)
 
-        if not isinstance(node.archive, (dict, ArchiveDict)):
+        from .storage_v2 import ArchiveDict as ArchiveDictNew
+        if not isinstance(node.archive, (dict, ArchiveDict, ArchiveDictNew)):
             # primitive type data is always included
             # this is not affect by size limit nor by depth limit
             _populate_result(node.result_root, node.current_path, self._apply_resolver(node, config))
@@ -1674,7 +1677,7 @@ class ArchiveReader(GeneralReader):
             _populate_result(node.result_root, node.current_path, result_to_write)
             return
 
-        for key in serialise_container(node.archive):
+        for key in node.archive:
             if key == Token.DEF:
                 continue
 
@@ -1714,7 +1717,8 @@ class ArchiveReader(GeneralReader):
         Check the existence of custom definition.
         If positive, overwrite the corresponding information of the current node.
         '''
-        if not isinstance(node.archive, (dict, ArchiveDict)):
+        from .storage_v2 import ArchiveDict as ArchiveDictNew
+        if not isinstance(node.archive, (dict, ArchiveDict, ArchiveDictNew)):
             return node
 
         def __if_contains(m_def):
@@ -1797,7 +1801,7 @@ class ArchiveReader(GeneralReader):
 
         if m_def is not None and m_def.startswith(('#/', '/')):
             # appears to be a local definition
-            root_definitions = serialise_container(node.archive_root['definitions'])
+            root_definitions = to_json(node.archive_root['definitions'])
             custom_def_package: Package = Package.m_from_dict(root_definitions, m_context=context)
             custom_def_package.init_metainfo()
             root_path: list = [v for v in m_def.split('/') if v not in ('', '#', 'definitions')]
