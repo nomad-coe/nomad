@@ -27,6 +27,7 @@ import zipfile
 import re
 
 from nomad import config, datamodel, utils
+from nomad.archive import to_json
 from nomad.files import DirectoryObject, PathObject, empty_zip_file_size, empty_archive_file_size
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles
 from nomad.processing import Upload
@@ -262,7 +263,7 @@ class UploadFilesContract(UploadFilesFixtures):
         _, _, upload_files = test_upload
 
         with upload_files.read_archive(example_entry_id) as archive:
-            assert archive[example_entry_id].to_dict() == example_archive_contents
+            assert to_json(archive[example_entry_id]) == example_archive_contents
 
 
 def create_staging_upload(upload_id: str, entry_specs: str, embargo_length: int = 0) -> StagingUploadWithFiles:

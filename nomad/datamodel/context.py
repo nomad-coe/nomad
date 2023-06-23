@@ -237,7 +237,9 @@ class ServerContext(Context):
         upload_files = self._get_upload_files(upload_id, installation_url)
 
         try:
-            archive_dict = upload_files.read_archive(entry_id)[entry_id].to_dict()
+            with upload_files.read_archive(entry_id) as reader:
+                from nomad.archive import to_json
+                archive_dict = to_json(reader[entry_id])
         except KeyError:
             if upload_id != self.upload_id:
                 raise MetainfoReferenceError(f'Referencing another Upload is not allowed.')

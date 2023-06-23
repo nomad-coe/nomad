@@ -86,9 +86,10 @@ class Downloads(ArchiveSection):
             # Read the old existing archive, find the same downloads section, and compare
             # for `skip_download`
             try:
-                archive_reader = archive.m_context.upload_files.read_archive(archive.metadata.entry_id)
-                old_archive = EntryArchive.m_from_dict(
-                    archive_reader[archive.metadata.entry_id].to_dict())
+                with archive.m_context.upload_files.read_archive(archive.metadata.entry_id) as archive_reader:
+                    from nomad.archive import to_json
+                    old_archive = EntryArchive.m_from_dict(
+                        to_json(archive_reader[archive.metadata.entry_id]))
 
                 path = []
                 current = self

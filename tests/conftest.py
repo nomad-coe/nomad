@@ -36,7 +36,7 @@ from fastapi.testclient import TestClient
 from nomad import config, infrastructure, processing, utils, datamodel, bundles
 from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.utils import structlogging
-from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo
+from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo, to_json
 from nomad.processing import ProcessStatus
 from nomad.app.main import app
 from nomad.utils.exampledata import ExampleData
@@ -677,18 +677,18 @@ def oasis_publishable_upload(
         for file_name in os.listdir(archive_path):
             if file_name.endswith('.msg'):
                 full_path = os.path.join(archive_path, file_name)
-                data = read_archive(full_path)
                 new_data = []
-                for entry_id in data.keys():
-                    archive_dict = data[entry_id].to_dict()
-                    section_metadata = archive_dict['metadata']
-                    section_metadata['upload_id'] += suffix
-                    new_entry_id = utils.generate_entry_id(
-                        section_metadata['upload_id'],
-                        section_metadata['mainfile'],
-                        section_metadata.get('mainfile_key'))
-                    section_metadata['entry_id'] = new_entry_id
-                    new_data.append((new_entry_id, archive_dict))
+                with read_archive(full_path) as data:
+                    for entry_id in data.keys():
+                        archive_dict = to_json(data[entry_id])
+                        section_metadata = archive_dict['metadata']
+                        section_metadata['upload_id'] += suffix
+                        new_entry_id = utils.generate_entry_id(
+                            section_metadata['upload_id'],
+                            section_metadata['mainfile'],
+                            section_metadata.get('mainfile_key'))
+                        section_metadata['entry_id'] = new_entry_id
+                        new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
 
     monkeypatch.setattr('nomad.bundles.BundleImporter.open', new_bundle_importer_open)

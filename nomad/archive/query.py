@@ -23,7 +23,7 @@ from io import BytesIO
 
 from nomad import utils
 
-from .storage import ArchiveReader, ArchiveList, ArchiveDict, _to_son
+from .storage import ArchiveReader, ArchiveList, ArchiveDict, to_json, read_archive
 
 _query_archive_key_pattern = re.compile(r'^([\s\w\-]+)(\[([-?0-9]*)(:([-?0-9]*))?])?$')
 
@@ -61,7 +61,8 @@ def _extract_key_and_index(match) -> Tuple[str, Union[Tuple[int, int], int]]:
 # @cached(thread_safe=False, max_size=1024)
 def _extract_child(archive_item, prop, index) -> Union[dict, list]:
     archive_child = archive_item[prop]
-    is_list = isinstance(archive_child, (ArchiveList, list))
+    from .storage_v2 import ArchiveList as ArchiveListNew
+    is_list = isinstance(archive_child, (ArchiveListNew, ArchiveList, list))
 
     if index is None and is_list:
         index = (0, None)
@@ -129,7 +130,7 @@ def query_archive(
     if isinstance(f_or_archive_reader, ArchiveReader):
         return _load_data(query_dict, f_or_archive_reader)
     elif isinstance(f_or_archive_reader, (BytesIO, str)):
-        with ArchiveReader(f_or_archive_reader, **kwargs) as archive:
+        with read_archive(f_or_archive_reader, **kwargs) as archive:
             return _load_data(query_dict, archive)
 
     else:
@@ -139,7 +140,7 @@ def query_archive(
 def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveDict) -> Dict:
     query_dict_with_fixed_ids = {utils.adjust_uuid_size(
         key): value for key, value in query_dict.items()}
-    return filter_archive(query_dict_with_fixed_ids, archive_item, transform=_to_son)
+    return filter_archive(query_dict_with_fixed_ids, archive_item, transform=to_json)
 
 
 def filter_archive(
@@ -189,7 +190,8 @@ def filter_archive(
         try:
             archive_child = _extract_child(archive_item, key, index)
 
-            if isinstance(archive_child, (ArchiveList, list)):
+            from .storage_v2 import ArchiveList as ArchiveListNew
+            if isinstance(archive_child, (ArchiveListNew, ArchiveList, list)):
                 result[key] = [filter_archive(
                     val, item, transform=transform) for item in archive_child]
             else:

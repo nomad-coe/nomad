@@ -61,12 +61,9 @@ def _unpack_entry(data: bytes) -> Tuple[Any, Tuple[Any, Any]]:
     return entry_uuid, (_decode(positions_encoded[0]), _decode(positions_encoded[1]))
 
 
-def _to_son(data):
-    if isinstance(data, ArchiveList):
-        data = data.to_list()
-
-    elif isinstance(data, ArchiveDict):
-        data = data.to_dict()
+def to_json(data):
+    if hasattr(data, 'to_json'):
+        return data.to_json()
 
     # no need to convert build-in types
     return data
@@ -297,9 +294,9 @@ class ArchiveList(ArchiveItem, Sequence):
     def __len__(self):
         return self._toc_entry.__len__()
 
-    def to_list(self):
+    def to_json(self):
         if self._full_list is None:
-            self._full_list = [_to_son(self._child(child_entry)) for child_entry in self._toc_entry]
+            self._full_list = [to_json(self._child(child_entry)) for child_entry in self._toc_entry]
 
         return self._full_list
 
@@ -314,16 +311,16 @@ class ArchiveDict(ArchiveItem, Mapping):
             child_toc_entry = self._toc_entry['toc'][key]
             return self._child(child_toc_entry)
         except KeyError:
-            return self.to_dict().__getitem__(key)
+            return self.to_json().__getitem__(key)
 
     def __iter__(self):
-        return self._toc_entry['toc'].__iter__()
+        return self.to_json().__iter__()
 
     def __len__(self):
-        return self._toc_entry['toc'].__len__()
+        return self.to_json().__len__()
 
     @cached(thread_safe=False)
-    def to_dict(self):
+    def to_json(self):
         # todo: potential bug here, what if children are ArchiveList or ArchiveDict?
         return self._read(self._toc_entry['pos'])
 
@@ -470,15 +467,6 @@ class ArchiveReader(ArchiveDict):
         return self._f.closed
 
 
-def serialise_container(v):
-    if isinstance(v, ArchiveList):
-        return v.to_list()
-    if isinstance(v, ArchiveDict):
-        return v.to_dict()
-
-    return v
-
-
 def write_archive(
         path_or_file: Union[str, BytesIO], n_entries: int,
         data: Iterable[Tuple[str, Any]], entry_toc_depth: int = 2) -> None:
@@ -537,9 +525,15 @@ def write_archive(
         entry_toc_depth: The depth of the table of contents in each entry. Only objects will
             count for calculating the depth.
     '''
-    with ArchiveWriter(path_or_file, n_entries, entry_toc_depth=entry_toc_depth) as writer:
-        for uuid, entry in data:
-            writer.add(uuid, entry)
+    if archive.use_new_writer:
+        from .storage_v2 import ArchiveWriter as ArchiveWriterNew
+        with ArchiveWriterNew(path_or_file, n_entries, toc_depth=entry_toc_depth) as writer:
+            for uuid, entry in data:
+                writer.add(uuid, entry)
+    else:
+        with ArchiveWriter(path_or_file, n_entries, entry_toc_depth=entry_toc_depth) as writer:
+            for uuid, entry in data:
+                writer.add(uuid, entry)
 
 
 def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
@@ -556,6 +550,18 @@ def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
         will lazily load data as it is used. The mapping needs to be closed or used within
         a 'with' statement to free the underlying file resource after use.
     '''
+    from .storage_v2 import ArchiveWriter as ArchiveWriterNew, ArchiveReader as ArchiveReaderNew
+
+    if isinstance(file_or_path, str):
+        with open(file_or_path, 'rb') as f:
+            magic = f.read(ArchiveWriterNew.magic_len)
+    else:
+        file_or_path.seek(0)
+        magic = file_or_path.read(ArchiveWriterNew.magic_len)
+        file_or_path.seek(0)
+
+    if magic == ArchiveWriterNew.magic:
+        return ArchiveReaderNew(file_or_path, **kwargs)  # type: ignore
 
     return ArchiveReader(file_or_path, **kwargs)
 

@@ -23,7 +23,7 @@ import httpx
 import pytest
 import rfc3161ng
 
-from nomad.archive import write_archive, read_archive
+from nomad.archive import write_archive, read_archive, to_json
 from nomad.datamodel.datamodel import RFC3161Timestamp
 from nomad.processing.data import get_rfc3161_token, Entry
 
@@ -66,7 +66,8 @@ def test_rfc3161ng_processing(published, monkeypatch):
     file_path = published.upload_files._create_msg_file_object(
         published.upload_files, published.upload_files.access, fallback=True).os_path
 
-    archive = read_archive(file_path)[entry_id].to_dict()
+    with read_archive(file_path) as reader:
+        archive = to_json(reader[entry_id])
     assert 'entry_timestamp' in archive['metadata']
 
     original_timestamp = archive['metadata']['entry_timestamp']
@@ -78,7 +79,8 @@ def test_rfc3161ng_processing(published, monkeypatch):
             published.block_until_complete(interval=.01)
         except Exception:
             pass
-        return read_archive(file_path)[entry_id].to_dict()
+        with read_archive(file_path) as _reader:
+            return to_json(_reader[entry_id])
 
     # 0. assert reprocessing does not change timestamp
     archive = _re_process()

@@ -596,13 +596,27 @@ class BundleImport(NomadSettings):
 
 
 class Archive(NomadSettings):
-    block_size = 256 * 1024
+    block_size = Field(
+        256 * 1024, description='In case of using blocked TOC, this is the size of each block.')
     read_buffer_size = Field(
         256 * 1024, description='GPFS needs at least 256K to achieve decent performance.')
+    toc_depth = Field(
+        6, description='Depths of table of contents in the archive.')
     max_process_number = Field(
         20, description='Maximum number of processes can be assigned to process archive query.')
     min_entries_per_process = Field(
         20, description='Minimum number of entries per process.')
+    use_new_writer = False  # todo: to be removed
+    small_obj_optimization_threshold = Field(
+        256 * 1024, description='''
+        For any child of lists/dicts whose encoded size is smaller than this value, no TOC will be generated.''')
+    fast_loading = Field(
+        True, description='''
+        When enabled, this flag determines whether to read the whole dict/list at once
+        when a certain mount of children has been visited.
+        This reduces the number of syscalls although data may be repeatedly read.
+        Otherwise, always read children one by one. This may slow down the loading as more syscalls are needed.
+        ''')
 
 
 class UnitSystemEnum(str, Enum):
