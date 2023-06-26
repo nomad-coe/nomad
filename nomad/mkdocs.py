@@ -29,7 +29,11 @@ import os.path
 from typing import List, Set, Tuple, Any, Optional, Dict
 from typing_extensions import Literal, _AnnotatedAlias  # type: ignore
 from inspect import isclass
+from markdown.extensions.toc import slugify
 
+from nomad.utils import strip
+from nomad import config
+from nomad.config.plugins import Parser
 from nomad.app.v1.models import (
     query_documentation,
     owner_documentation)
@@ -364,3 +368,54 @@ def define_env(env):
         model = getattr(module, name)
 
         return pydantic_model_from_model(model, heading=heading, hide=hide)
+
+    @env.macro
+    def parser_list():  # pylint: disable=unused-variable
+        parsers = [
+            plugin for _, plugin in config.plugins.filtered_items()
+            if isinstance(plugin, Parser)
+        ]
+
+        def render_parser(parser: Parser) -> str:
+            # TODO this should be added, once the metadata typography gets
+            # fixed. At the moment the MD is completely broken in most cases.
+            # more_description = None
+            # if parser.metadata and 'parserSpecific' in parser.metadata:
+            #     more_description = strip(parser.metadata['parserSpecific'])
+
+            metadata = strip(f'''
+                ### {parser.code_name}
+
+                {parser.description or ''}
+
+                |parser|{parser.code_name}|
+                |-|-|
+                |format homepage|[{parser.code_homepage}]({parser.code_homepage})|
+                |plugin name|{parser.name}|
+                |package|{parser.python_package}|
+                |parser class|{parser.parser_class_name}|
+                |parser code|[{parser.plugin_source_code_url}]({parser.plugin_source_code_url})|
+            ''')
+
+            if parser.metadata and parser.metadata.get('tableOfFiles', '').strip(' \t\n') != '':
+                metadata += f'\n\n{strip(parser.metadata["tableOfFiles"])}'
+
+            return metadata
+
+        categories: Dict[str, List[Parser]] = {}
+        for parser in parsers:
+            category = categories.setdefault(parser.code_category, [])
+            category.append(parser)
+
+        def render_category(name: str, category: List[Parser]) -> str:
+            return f'## {name}s\n\n' + '\n\n'.join([
+                render_parser(parser) for parser in category
+            ])
+
+        return ', '.join([
+            f'[{parser.code_name}](#{slugify(parser.code_name, "-")})'
+            for parser in parsers
+        ]) + '\n\n' + '\n\n'.join([
+            render_category(name, category)
+            for name, category in categories.items()
+        ])

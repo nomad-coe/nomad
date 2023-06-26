@@ -115,13 +115,13 @@ class Options(OptionsBase):
         '''Returns a list of values that fullfill the include/exclude
         requirements.
         '''
-        return [self.options[key] for key in self.filtered_keys()]
+        return [self.options[key] for key in self.filtered_keys() if key in self.options]
 
     def filtered_items(self) -> List[Tuple[str, Any]]:
         '''Returns a list of key/value pairs that fullfill the include/exclude
         requirements.
         '''
-        return [(key, self.options[key]) for key in self.filtered_keys()]
+        return [(key, self.options[key]) for key in self.filtered_keys() if key in self.options]
 
 
 class OptionsSingle(Options):

@@ -28,6 +28,21 @@ nomad parse --show-archive <path-to-your-mainfile-code-output-file>
     dependencies via `pip install nomad-lab[parsing]`. Only a view parsers require
     extra dependencies. Please refer to the parser projects for more details.
 
+To skip the parser matching, i.e. the process that determined which parser fits to
+the given file, and state the parser directly, you can use the `--parser` argument
+to provide a [parser name](../reference/parsers.md).
+
+```
+nomad parser --parser parsers/vasp <path-to-your-mainfile-code-output-file>
+```
+
+To skip the potentially error-prone and depending on your use-case unnecessary
+normalization, you can use the `--skip-normalizers` argument:
+
+```
+nomad parser --skip-normalizers <path-to-your-mainfile-code-output-file>
+```
+
 ## From a python program
 
 You can also use the NOMAD parsers within Python, as shown below.

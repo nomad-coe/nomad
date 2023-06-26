@@ -35,6 +35,8 @@ class PluginBase(BaseModel):
     '''
     name: str = Field(description='A short descriptive human readable name for the plugin.')
     description: Optional[str] = Field(description='A human readable description of the plugin.')
+    plugin_documentation_url: Optional[str] = Field(description='The URL to the plugins main documentation page.')
+    plugin_source_code_url: Optional[str] = Field(description='The URL of the plugins main source code repository.')
 
 
 class PythonPluginBase(PluginBase):
@@ -190,6 +192,8 @@ class Parser(PythonPluginBase):
         del data['python_package']
         del data['plugin_type']
         del data['parser_as_interface']
+        del data['plugin_source_code_url']
+        del data['plugin_documentation_url']
 
         return MatchingParserInterface(**data)
 
