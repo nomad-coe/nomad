@@ -422,6 +422,7 @@ class Pseudopotential(MSection):
         shape=['*'],
         description='''
         Name of the exchange-correlation functional used to generate the pseudopotential.
+        Follows the libxc naming convention.
         ''')
 
     l_max = Quantity(

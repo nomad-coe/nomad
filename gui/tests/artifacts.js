@@ -5187,7 +5187,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "xc_functional_name",
-                "description": "Name of the exchange-correlation functional used to generate the pseudopotential.",
+                "description": "Name of the exchange-correlation functional used to generate the pseudopotential.\nFollows the libxc naming convention.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
