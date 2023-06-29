@@ -1,11 +1,6 @@
----
-title: Yaml schemas
----
-
 # Write NOMAD Schemas in YAML
 
-This page explains the fundamental concepts behind NOMAD schemas and how you can
-write and upload schemas in our `.archive.yaml` format.
+This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information visit the [learn section on schemas](../learn/schemas.md).
 
 ## Example data
 

@@ -1,4 +1,4 @@
-code_category: Database manager
+code_category: Standardized file format
 code_homepage: https://www.nexusformat.org/
 code_name: NeXus
 metadata:
@@ -18,3 +18,4 @@ metadata:
 name: parsers/nexus
 parser_class_name: nomad.parsing.nexus.NexusParser
 python_package: nomad.parsing.nexus
+plugin_source_code_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/develop/nomad/parsing/nexus

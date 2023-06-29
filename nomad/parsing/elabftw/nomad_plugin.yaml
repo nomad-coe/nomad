@@ -19,3 +19,4 @@ metadata:
 name: parsers/elabftw
 parser_class_name: nomad.parsing.elabftw.ELabFTWParser
 python_package: nomad.parsing.elabftw
+plugin_source_code_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/develop/nomad/parsing/elabftw

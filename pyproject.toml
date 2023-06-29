@@ -130,7 +130,9 @@ dev = [
     'mkdocs-material==8.1.1',
     'mkdocs-material-extensions==1.0.3',
     'mkdocs-macros-plugin==0.6.3',
-    'aiosmtpd'
+    'aiosmtpd',
+    'mkdocs-click==0.8.0',
+    'mkdocs-redirects==1.2.0'
 ]
 
 [project.scripts]

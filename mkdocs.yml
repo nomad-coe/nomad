@@ -3,33 +3,52 @@ site_description: |
   The documentation for NOMAD v1.
 site_author: The NOMAD Authors
 nav:
-  - Introduction: index.md
-  - web.md
-  - api.md
-  - Python package:
-    - pythonlib.md
-    - archive_query.md
-    - local_parsers.md
-  - Schemas:
-    - schema/introduction.md
-    - schema/basics.md
-    - schema/python.md
-    - schema/elns.md
-    - schema/workflows.md
-    - schema/hdf5.md
-  - Plugins: plugins.md
-  # - Using the AI Toolkit and other remote tools: aitoolkit.md
-  - Developing NOMAD:
-    - develop/setup.md
-    - develop/guides.md
-    - develop/gitlab.md
-    - develop/search.md
-    - develop/parser.md
-    - develop/normalizers.md
-  - Operating NOMAD:
-    - oasis.md
-    - config.md
-  - glossary.md
+  - Home: index.md
+  - Tutorial: tutorial.md
+  - How to guides:
+    - Data Management:
+      - How to upload/publish data: data/upload.md
+      - How to use ELNs: data/eln.md
+      - How to explore data: data/explore.md
+      - How to use NORTH: data/north.md
+    - Schemas:
+      - How to write a schema: schemas/basics.md
+      - How to define ELNs: schemas/elns.md
+      - How to define tabular data: schemas/tabular.md
+      - How to define workflows: schemas/workflows.md
+      - How to reference hdf5: schemas/hdf5.md
+    - Programming interfaces:
+      - How to use the API: apis/api.md
+      - How to install nomad-lab: apis/pythonlib.md
+      - How to access processed data: apis/archive_query.md
+      - How to run a parser: apis/local_parsers.md
+    - Plugins:
+      - How to develop and use plugins: plugins/plugins.md
+      - How to write schema plugins: plugins/schemas.md
+      - How to write parser plugins: plugins/parsers.md
+    - Development:
+      - How to get started: develop/setup.md
+      - Code guidelines: develop/guides.md
+      - How to contribute: develop/gitlab.md
+      - How to extend the search: develop/search.md
+      - How to write a parser: develop/parsers.md
+      - How to write a normalizer: develop/normalizers.md
+    - Oasis:
+      - How to install an Oasis: oasis/install.md
+      - How to customize an Oasis: oasis/customize.md
+      - How to migrate Oasis versions: oasis/migrate.md
+      - Administrative tasks: oasis/admin.md
+  - Learn:
+    - Files, processing, data: learn/how_nomad_works.md
+    - Schemas and structured data: learn/schemas.md
+    - Architecture: learn/architecture.md
+    - Why you need an Oasis: learn/oasis.md
+  - Reference:
+    - reference/config.md
+    - reference/annotations.md
+    - reference/cli.md
+    - reference/parsers.md
+    - reference/glossary.md
 theme:
   name: material
   palette:
@@ -41,6 +60,7 @@ theme:
   favicon: assets/favicon.png
   features:
     - navigation.instant
+  custom_dir: docs/theme
 # repo_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/
 markdown_extensions:
   - attr_list
@@ -54,9 +74,11 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       permalink: True
-      toc_depth: 3
   - pymdownx.arithmatex:
       generic: true
+  - attr_list
+  - mkdocs-click
+  - pymdownx.extra
 extra:
   generator: false
   homepage: https://nomad-lab.eu
@@ -65,6 +87,10 @@ plugins:
     - search
     - macros:
         module_name: nomad/mkdocs
+    - redirects:
+        redirect_maps:
+          'pythonlib.md': 'apis/pythonlib.md'
+          'oasis.md': 'oasis/install.md'
 extra_css:
   - stylesheets/extra.css
 extra_javascript:

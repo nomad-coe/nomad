@@ -1,10 +1,14 @@
-# Query Processed Data
-
 The `ArchiveQuery` allows you to search for entries and access their parsed and processed *archive* data
 at the same time. Furthermore, all data is accessible through a convenient Python interface
-based on the [NOMAD metainfo](schema/python.md#wrap-data-with-python-schema-classes) rather than plain JSON.
+based on the schema rather than plain JSON. See also this guide on using
+[NOMAD's Python schemas](../plugins/schemas.md#use-python-schemas-to-work-with-data)
+to work with processed data.
 
-## Basic Usage
+As a requirement, you have to install the `nomad-lab` Python package. Follow the
+[How to install nomad-lab](pythonlib.md) guide.
+
+
+## Getting started
 
 To define a query, one can, for example, write
 

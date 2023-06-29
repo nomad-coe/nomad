@@ -1,15 +1,54 @@
-# Using the APIs
+This guide is about using NOMAD's REST APIs directly, e.g. via Python's *request*.
 
-## Tutorial
+To access the processed data with our client library `nomad-lab` follow
+[How to access the processed data](archive_query.md). You watch our
+[video tutorial on the API](../tutorial.md#access-data-via-api).
 
-This video tutorial explains the basics of API and shows how to do simple requests
-against the NOMAD api.
+## Different options to use the API
 
-<div class="youtube">
-<iframe src="https://www.youtube.com/embed/G1frBCrxC0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</div>
+NOMAD offers all its functionality through application
+programming interfaces (APIs). More specifically [RESTful HTTP APIs](https://en.wikipedia.org/wiki/Representational_state_transfer) that allows you
+to use NOMAD as a set of resources (think data) that can be uploaded, accessed, downloaded,
+searched for, etc. via [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol).
 
-## Getting started
+You can get an overview on all NOMAD APIs on the [API page]({{ nomad_url() }}/v1/gui/analyze/apis).
+We will focus here on NOMAD's main API (v1). In fact, this API is also used by
+the web interface and should provide everything you need.
+
+There are different tools and libraries to use the NOMAD API that come with different
+trade-offs between expressiveness, learning curve, and convenience.
+
+<h4>You can use your browser</h4>
+
+For example to see the metadata for all entries with elements *Ti* and *O* go here:
+[{{ nomad_url() }}/v1/entries?elements=Ti&elements=O]({{ nomad_url() }}/v1/entries?elements=Ti&elements=O)
+
+<h4>Use *curl* or *wget*</h4>
+
+REST API's use resources located via URLs. You access URLs with *curl* or *wget*. Same
+*Ti*, *O* example as before:
+```sh
+curl "{{ nomad_url() }}/v1/entries?results.material.elements=Ti&results.material.elements=O" | python -m json.tool
+```
+
+<h4> Use Python and *requests*</h4>
+
+Requests is a popular Python library to use the internets HTTP protocol that is used to
+communicate with REST APIs. Install with `pip install requests`.
+See [the initial example](#using-request).
+
+<h4>Use our *dashboard*</h4>
+
+The NOMAD API has an [OpenAPI dashboard]({{ nomad_url() }}/v1/api/v1). This is an interactive documentation of all
+API functions that allows you to try these functions in the browser.
+
+<h4>Use NOMAD's Python package</h4>
+
+Install the [NOMAD Python client library](pythonlib.md) and use it's `ArchiveQuery`
+functionality for a more convenient query based access of archive data following the
+[How to access the processed data](archive_query.md) guide.
+
+## Using request
 
 If you are comfortable with REST APIs and using Pythons `requests` library, this example
 demonstrates the basic concepts of NOMAD's main API. You can get more documentation and
@@ -184,7 +223,7 @@ The result will look like this:
 You can work with the results in the given JSON (or respective Python dict/list) data already.
 If you have [NOMAD's Python library](pythonlib.md) installed ,
 you can take the archive data and use the Python interface.
-The [Python interface](schema/python.md#wrap-data-with-python-schema-classes) will help with code-completion (e.g. in notebook environments),
+The [Python interface](../plugins/schemas.md#wrap-data-with-python-schema-classes) will help with code-completion (e.g. in notebook environments),
 resolve archive references (e.g. from workflow to calculation to system), and allow unit conversion:
 ```py
 from nomad.datamodel import EntryArchive
@@ -201,47 +240,6 @@ This will give you an output like this:
 OOSrTiOOOSrTiOOOSrTiOFF
 -355626.93095025205 electron_volt
 ```
-## Overview
-
-NOMAD offers all its functionality through application
-programming interfaces (APIs). More specifically [RESTful HTTP APIs](https://en.wikipedia.org/wiki/Representational_state_transfer) that allows you
-to use NOMAD as a set of resources (think data) that can be uploaded, accessed, downloaded,
-searched for, etc. via [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol).
-
-You can get an overview on all NOMAD APIs on the [API page]({{ nomad_url() }}/v1/gui/analyze/apis).
-We will focus here on NOMAD's main API (v1). In fact, this API is also used by
-the web interface and should provide everything you need.
-
-There are different tools and libraries to use the NOMAD API that come with different
-trade-offs between expressiveness, learning curve, and convenience.
-
-#### You can use your browser
-
-For example to see the metadata for all entries with elements *Ti* and *O* go here:
-[{{ nomad_url() }}/v1/entries?elements=Ti&elements=O]({{ nomad_url() }}/v1/entries?elements=Ti&elements=O)
-
-#### Use *curl* or *wget*
-
-REST API's use resources located via URLs. You access URLs with *curl* or *wget*. Same
-*Ti*, *O* example as before:
-```sh
-curl "{{ nomad_url() }}/v1/entries?results.material.elements=Ti&results.material.elements=O" | python -m json.tool
-```
-
-#### Use Python and *requests*
-
-Requests is a popular Python library to use the internets HTTP protocol that is used to
-communicate with REST APIs. Install with `pip install requests`.
-See [the initial example](#getting-started).
-
-#### Use our *dashboard*
-
-The NOMAD API has an [OpenAPI dashboard]({{ nomad_url() }}/v1/api/v1). This is an interactive documentation of all
-API functions that allows you to try these functions in the browser.
-
-#### Use NOMAD's Python package
-Install the [NOMAD Python client library](pythonlib.md) and use it's `ArchiveQuery`
-functionality for a more convenient query based access of archive data.
 
 ## Different kinds of data
 
@@ -252,7 +250,7 @@ the API:
 - Raw files, the files as they were uploaded to NOMAD.
 - Archive data, all of the extracted data for an entry.
 
-There are also different entities (see also [Datamodel](index.md#datamodel-uploads-entries-files-datasets)) with different functions in the API:
+There are also different entities (see also [Datamodel](../learn/how_nomad_works.md#datamodel-uploads-entries-files-datasets)) with different functions in the API:
 
 - Entries
 - Uploads
@@ -410,7 +408,7 @@ directly from the shell:
 curl "{{ nomad_url() }}/v1/entries/raw?results.material.elements=Ti&results.material.elements=O" -o download.zip
 ```
 
-## Access archives
+## Access processed data (archives)
 Above under [getting started](#getting started), you've already learned how to access
 archive data. A special feature of the archive API functions is that you can define what is `required`
 from the archives.

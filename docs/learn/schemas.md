@@ -1,8 +1,4 @@
----
-title: Introduction
----
-
-# An Introduction to Schemas and Structured Data in NOMAD
+# Schemas and Structured Data in NOMAD
 
 NOMAD stores all processed data in a *well defined*, *structured*, and *machine readable*
 format. Well defined means that each element is supported by a formal definition that provides
@@ -11,7 +7,7 @@ hierarchical structure that logically organizes data in sections and subsections
 cross-references between pieces of data. Formal definitions and corresponding
 data structures enable the machine processing of NOMAD data.
 
-![archive example](../assets/archive-example.png)
+![archive example](archive-example.png)
 
 ## The Metainfo is the schema for Archive data.
 The Archive stores descriptive and structured information about materials-science
@@ -54,7 +50,7 @@ Metainfo schema can be programmed with Python classes, but can also be uploaded 
 archive files (the Metainfo itself is just a specific Archive schema). The following
 chart provides a sense of various ways that data can be entered into NOMAD:
 
-![nomad data flow](../assets/data-flow.png)
+![nomad data flow](data-flow.png)
 
 There are various interface to provide or retrieve Archive data and Metainfo schemas.
 The following documentation sections will explain a few of them.

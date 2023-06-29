@@ -1,24 +1,25 @@
-# Using the web interface
+This guide describes how to upload data in NOMAD supported file formats. You find a
+list of supported formats on top of each upload page, see below.
 
-## Uploading and publishing data
-
-This tutorial guides you through the basics of going from files on your computer
-to a published dataset with DOI.
-
-<div class="youtube">
-<iframe src="https://www.youtube.com/embed/3rVvfYoUbO0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</div>
-
-
-### Preparing files
+## Preparing files
 
 You can upload files one by one, but you can also provider larger `.zip` or `.tar.gz`
 archive files, if this is easier to you. Also the file upload via frp or command line with
 curl or with wget generates an archive files. The specific layout of these files is up to you.
 NOMAD will simply extract them and consider the whole directory structure within.
 
+## Create an upload and add files
 
-### Supported codes
+Open [NOMAD](https://nomad-lab.eu/prod/v1) and log in (you need to create an account first).
+
+Go to `PUBLISH` / `Uploads`. Here you can create an upload with the `CREATE A NEW UPLOAD`
+button. This will bring you to the upload page.
+
+You can drop your files on (or click) the `CLICK OR DROP FILES` button. On top you will
+see a list of supported file formats and details on the files to upload.
+You can also go to the `FILES` tab. Here you can create directories and drop files into directories.
+
+## Processing files
 
 NOMAD interprets your files. It checks each file and recognizes the main output file of the
 supported codes. NOMAD creates an entry for this *mainfile* that represents the respective
@@ -32,17 +33,19 @@ However, all files that are associated to a recognized *mainfile* by being in th
 same directory are displayed as *auxiliary* files next to the entry represented
 by the *mainfile*.
 
-**A note for VASP users**
-
-On the handling of **POTCAR** files: NOMAD takes care of it; you don't
-need to worry about it. We understand that POTCAR files are not supposed to be visible to
-the public according to your VASP license. Thus, in agreement with Georg Kresse, NOMAD extracts
-the most important information of POTCAR files and stores it in the files named
-`POTCAR.stripped`. These files can be accessed and downloaded by anyone, while the original
-POTCAR files are automatically removed.
 
 
-### User metadata
+!!! note
+    **A note for VASP users**.
+    On the handling of **POTCAR** files: NOMAD takes care of it; you don't
+    need to worry about it. We understand that POTCAR files are not supposed to be visible to
+    the public according to your VASP license. Thus, in agreement with Georg Kresse, NOMAD extracts
+    the most important information of POTCAR files and stores it in the files named
+    `POTCAR.stripped`. These files can be accessed and downloaded by anyone, while the original
+    POTCAR files are automatically removed.
+
+
+## Add user metadata
 
 NOMAD automatically extracts as much information as possible from your files but you
 can still specify additional metadata. This is what we call *user metadata*. This includes
@@ -75,15 +78,25 @@ User metadata can also be provided in an uploaded file. This can be a `.json` or
 This file is only applied during the initial processing of an entry. So make sure you either
 upload it first or with everything else as part of an archive file.
 
+## Publish and get a DOI
 
-### Limits
+After clicking the `PUBLISH` button, the uploaded files will become immutable, but you can still
+edit the metadata.
+
+As part of the *edit metadata* functionality, you can create and assign *datasets*.
+Go to `PUBLISH` / `Datasets` in the menu to see all your datasets. Here you can assign
+a DOI to created *datasets*. For a *dataset* with DOI, you can only add more entries, but
+not remove entries.
+
+
+## Upload limits
 
 - One upload cannot exceed **32 GB** in size.
 - Only **10 non published uploads** are allowed per user.
 - Only uploads with at least one recognized entry can be published. See also [supported codes](#supported-codes) below.
 
 
-### Strategies for large amounts of data
+## Strategies for large amounts of data
 
 Before attempting to upload large amounts of data, run some experiments with a representative
 and small subset of your data. Use this to simulate a larger upload that you can review and edit
@@ -124,11 +137,3 @@ files directly from its servers via an additional `local_path` parameter:
 ```
 curl -X PUT "http://nomad-lab.eu/prod/v1/api/uploads/?token=<your-token>&local_path=<path-to-upload-file>"
 ```
-
-## Exploring data on NOMAD
-
-This tutorial shows how to use NOMAD's search interface and structured data browsing to explore available data.
-
-<div class="youtube">
-<iframe src="https://www.youtube.com/embed/38S2U-TIvxE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-</div>
