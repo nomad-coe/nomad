@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useRef } from 'react'
+import React, {useEffect, useMemo, useRef} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, Tab, Tabs } from '@material-ui/core'
 import { trimEnd } from 'lodash'
@@ -27,6 +27,7 @@ import { useRouteMatch, useHistory, matchPath, Redirect } from 'react-router-dom
 import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 import { EntryContext, useEntryStore } from './EntryContext'
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline'
+import {useDataStore} from '../DataStore'
 
 const useStyles = makeStyles(theme => ({
   errorLogs: {
@@ -40,8 +41,14 @@ const useStyles = makeStyles(theme => ({
 
 function EntryTabs({tab, onChange}) {
   const {metadata} = useEntryStore()
+  const dataStore = useDataStore()
   const styles = useStyles()
   const entryHasProcessingError = metadata?.processing_errors.length > 0
+
+  useEffect(() => {
+    dataStore.breadcrumb.setUpload(metadata?.upload_name || 'Upload')
+    dataStore.breadcrumb.setEntry(metadata?.entry_name || metadata?.mainfile || 'Entry')
+  }, [dataStore.breadcrumb, metadata?.entry_name, metadata?.mainfile, metadata?.upload_name])
 
   const renderLogsTabLabel = () => {
     if (entryHasProcessingError) {
