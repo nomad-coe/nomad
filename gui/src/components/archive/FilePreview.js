@@ -27,6 +27,7 @@ import { apiBase } from '../../config'
 import { parseCifStructures } from 'crystcif-parse'
 import Structure from '../visualization/Structure'
 import { isWaitingForUpdateTestId } from '../../utils'
+import {useLane} from './Browser'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
@@ -221,7 +222,6 @@ export default FilePreview
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
     height: '100%',
-    overflow: 'auto',
     backgroundColor: theme.palette.primary.dark
   },
   fileContents: {
@@ -242,7 +242,7 @@ function FilePreviewText({uploadId, path}) {
   const [hasMore, setHasMore] = useState(true)
   const loading = useRef(false)
   const [loadFailed, setLoadFailed] = useState(false)
-  const containerRef = React.createRef()
+  const lane = useLane()
 
   const encodedPath = path.split('/').map(segment => encodeURIComponent(segment)).join('/')
 
@@ -283,13 +283,13 @@ function FilePreviewText({uploadId, path}) {
   }, [contents, loading, loadMore])
 
   return (
-    <div ref={containerRef} className={classes.containerDiv}>
+    <div className={classes.containerDiv}>
       <InfiniteScroll
         pageStart={0}
         loadMore={loadMore}
         hasMore={hasMore}
         useWindow={false}
-        getScrollParent={() => containerRef.current}
+        getScrollParent={() => lane.containerRef.current}
         {...(contents === null ? {'data-testid': isWaitingForUpdateTestId} : {})}
       >
         <pre className={classes.fileContents}>
