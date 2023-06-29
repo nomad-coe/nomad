@@ -53,6 +53,7 @@ import UploadName from './UploadName'
 import DeletingReferencesTable from './DeletingReferencesTable'
 import UploadProgressDialog from './UploadProgressDialog'
 import UploadSearchMenu from './UploadSearchMenu'
+import {useDataStore} from "../DataStore"
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -262,6 +263,7 @@ export function UploadDocumentation() {
 
 function UploadOverview(props) {
   const classes = useStyles()
+  const dataStore = useDataStore()
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {
@@ -276,7 +278,7 @@ function UploadOverview(props) {
 
   useEffect(() => {
     if (uploading) return
-
+    dataStore.breadcrumb.setUpload(upload?.upload_name || 'Upload')
     api.get(`/uploads/${uploadId}/raw/README.md`)
       .then(setReadme)
       .catch(error => {
@@ -285,7 +287,7 @@ function UploadOverview(props) {
           raiseError(error)
         }
       })
-  }, [api, raiseError, uploadId, uploading, setReadme])
+  }, [api, raiseError, uploadId, uploading, setReadme, dataStore.breadcrumb, upload?.upload_name])
 
   useEffect(() => {
     if (!openDeleteConfirmDialog) {

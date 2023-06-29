@@ -16,12 +16,13 @@
  * limitations under the License.
  */
 
-import React, { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { matchPath, useLocation, Link as RouterLink } from 'react-router-dom'
 import { Typography, Breadcrumbs as MUIBreadcrumbs, Link, Box, makeStyles } from '@material-ui/core'
 import HelpDialog from '../Help'
 import HelpIcon from '@material-ui/icons/Help'
 import { allRoutes } from './Routes'
+import {useDataStore} from "../DataStore"
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -33,20 +34,57 @@ const useStyles = makeStyles(theme => ({
   },
   helpIcon: {
     fontSize: 18
+  },
+  ellipsis: {
+    direction: 'rtl',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: 350
   }
 }))
 
 const Breadcrumbs = React.memo(function Breadcrumbs() {
   const styles = useStyles()
+  const dataStore = useDataStore()
   const {pathname} = useLocation()
   const routes = useMemo(() => allRoutes.slice().reverse(), [])
+
+  const getRef = useCallback((breadcrumb) => {
+    if (breadcrumb === 'Entry') {
+      return dataStore.breadcrumb.entryRef
+    } else if (breadcrumb === 'Upload') {
+      return dataStore.breadcrumb.uploadRef
+    } else {
+      return undefined
+    }
+  }, [dataStore.breadcrumb.entryRef, dataStore.breadcrumb.uploadRef])
+
+  const getFinalBreadcrumb = useCallback((breadcrumb) => {
+    if (breadcrumb === 'Entry') {
+      return dataStore.breadcrumb.getEntry()
+    } else if (breadcrumb === 'Upload') {
+      return dataStore.breadcrumb.getUpload()
+    } else {
+      return breadcrumb
+    }
+  }, [dataStore.breadcrumb])
+
   return <MUIBreadcrumbs className={styles.root}>
     {routes
       .filter(route => route.breadcrumb && route.path)
       .map(route => ({route: route, match: matchPath(pathname, {path: route.path})}))
       .filter(({match}) => match)
       .map(({route, match}, i) => {
-        const title = <Typography variant={i ? undefined : 'h6'} color="textPrimary">{route.breadcrumb}</Typography>
+        const title = <Typography
+          className={styles.ellipsis}
+          variant={i ? undefined : 'h6'}
+          color="textPrimary"
+          ref={getRef(route.breadcrumb)}
+        >
+          {getFinalBreadcrumb(route.breadcrumb)}
+        </Typography>
         if (match.url === pathname) {
           return <Box key={i} display="flex" flexDirection="row" alignItems="center">
             {title}

@@ -54,6 +54,24 @@ const DataStore = React.memo(({children}) => {
   userRef.current = user // The logged in user may change during component lifecycle
   const storeKey = useRef() // A key used to determine when the caches should be cleared
   const selectedEntry = useRef() // stores identity of the selected entry (used to determine if editable)
+  const entryBreadCrumb = useRef({innerText: 'Entry'})
+  const uploadBreadCrumb = useRef({innerText: 'Upload'})
+  const breadcrumb = {
+    uploadRef: uploadBreadCrumb,
+    entryRef: entryBreadCrumb,
+    setUpload: (breadcrumb) => {
+      if (uploadBreadCrumb.current) {
+        uploadBreadCrumb.current.innerText = breadcrumb
+      }
+    },
+    setEntry: (breadcrumb) => {
+      if (entryBreadCrumb.current) {
+        entryBreadCrumb.current.innerText = breadcrumb
+      }
+    },
+    getUpload: () => uploadBreadCrumb.current?.innerText,
+    getEntry: () => entryBreadCrumb.current?.innerText
+  }
 
   const uploadStore = useRef({}) // The upload store objects
   const entryStore = useRef({}) // The entry store objects
@@ -740,6 +758,7 @@ const DataStore = React.memo(({children}) => {
     getEntryAsync,
     subscribeToEntry,
     selectedEntry,
+    breadcrumb,
     getMetainfoAsync,
     getMetainfoDefAsync,
     getAllInheritingSections,
