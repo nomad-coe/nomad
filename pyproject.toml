@@ -107,7 +107,7 @@ infrastructure = [
 ]
 dev = [
     'build',
-    'pip-tools',
+    'pip-tools>=6.13.0',
     'markupsafe',
     'gitpython==3.1.24',
     'mypy>=1.0.1',
@@ -117,7 +117,8 @@ dev = [
     'pylint_plugin_utils==0.7',
     'pylint_mongoengine==0.4.0',
     'pycodestyle==2.8.0',
-    'pytest==3.10.0',
+    'pytest>= 5.3.0, < 6.0.0',
+    'pytest-xdist>=1.30.0',
     'pytest-timeout==1.4.2',
     'pytest-cov==2.7.1',
     'rope==0.21.0',

@@ -29,6 +29,7 @@ from typing import List
 import json
 import logging
 import warnings
+import tempfile
 
 from aiosmtpd.controller import Controller
 from fastapi.testclient import TestClient
@@ -76,12 +77,12 @@ pytest_plugins = ("celery.contrib.pytest", )
 
 @pytest.fixture(scope='function')
 def tmp():
-    directory = '.volumes/test_tmp'
-    if os.path.exists(directory):
-        shutil.rmtree(directory)
-    os.mkdir(directory)
-    yield directory
-    shutil.rmtree(directory)
+    parent_directory = '.volumes'
+    if not os.path.isdir(parent_directory):
+        os.makedirs(parent_directory, exist_ok=True)
+    directory = tempfile.TemporaryDirectory(dir=parent_directory, prefix='test_tmp')
+    yield directory.name
+    directory.cleanup()
 
 
 @pytest.fixture(scope="session")
@@ -101,13 +102,19 @@ def nomad_logging(monkeysession):
 
 @pytest.fixture(scope='session', autouse=True)
 def raw_files_infra():
-    config.fs.tmp = '.volumes/test_fs/tmp'
-    config.fs.staging = '.volumes/test_fs/staging'
-    config.fs.public = '.volumes/test_fs/public'
+    parent_directory = '.volumes'
+    if not os.path.isdir(parent_directory):
+        os.makedirs(parent_directory, exist_ok=True)
+    directory = tempfile.TemporaryDirectory(dir=parent_directory, prefix='test_fs')
+    config.fs.tmp = tempfile.TemporaryDirectory(dir=directory.name, prefix='tmp').name
+    config.fs.staging = tempfile.TemporaryDirectory(dir=directory.name, prefix='staging').name
+    config.fs.public = tempfile.TemporaryDirectory(dir=directory.name, prefix='public').name
     config.fs.staging_external = os.path.abspath(config.fs.staging)
     config.fs.public_external = os.path.abspath(config.fs.public)
     config.fs.prefix_size = 2
     clear_raw_files()
+    yield
+    directory.cleanup()
 
 
 @pytest.fixture(scope='module')
@@ -547,7 +554,7 @@ def smtpd(request, monkeysession):
     return fixture
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(scope='function')
 def mails(smtpd, monkeypatch):
     smtpd.clear()
     monkeypatch.setattr('nomad.config.mail.enabled', True)
@@ -718,7 +725,7 @@ def oasis_publishable_upload(
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def processed(uploaded: Tuple[str, str], test_user: User, proc_infra) -> processing.Upload:
+def processed(uploaded: Tuple[str, str], test_user: User, proc_infra, mails) -> processing.Upload:
     '''
     Provides a processed upload. Upload was uploaded with test_user.
     '''
