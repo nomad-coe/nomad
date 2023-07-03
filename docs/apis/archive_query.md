@@ -5,7 +5,7 @@ based on the schema rather than plain JSON. See also this guide on using
 to work with processed data.
 
 As a requirement, you have to install the `nomad-lab` Python package. Follow the
-[How to install nomad-lab](pythonlib.md) guide.
+[How-to install nomad-lab](pythonlib.md) guide.
 
 
 ## Getting started

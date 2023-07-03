@@ -10,7 +10,7 @@ authors = [
     { name = "NOMAD Laboratory", email = 'markus.scheidgen@physik.hu-berlin.de' },
 ]
 dynamic = ["version"]
-license = { file = "LICENSE" }
+license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 dependencies = [
     'numpy~=1.22.4',

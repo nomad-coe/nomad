@@ -13,7 +13,7 @@ button. This will bring you to the upload page.
 
 Click the `CREATE ENTRY` button. This will bring-up a dialog to choose an ELN schema.
 All ELNs (as any entry in NOMAD) needs to follow a schema. You can choose from uploaded
-custom schemas or NOMAD build-in schemas. You can choose the `Basic ELN` to create a
+custom schemas or NOMAD built-in schemas. You can choose the `Basic ELN` to create a
 simple ELN entry.
 
 The name of your ELN entry, will be the filename for your ELN without the `.archive.json`
@@ -33,5 +33,5 @@ click the `ADD EXAMPLE UPLOADS` button. The `Electronic Lab Notebook` example, w
 contain a schema and entries that instantiate different parts of the schema.
 The *ELN example sample (`sample.archive.json`) demonstrates what you can do.
 
-Follow the [How to write a schema](../schemas/basics.md) and [How to define ELN](../schemas/elns.md)
+Follow the [How-to write a schema](../schemas/basics.md) and [How-to define ELN](../schemas/elns.md)
 guides to create you own customized of ELNs.

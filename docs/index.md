@@ -34,14 +34,14 @@ It covers th whole publish, explore, analyze cycle:
 </div>
 <div markdown="block">
 
-### How to guides
+### How-to guides
 
 The documentation provides step-by-step instructions for a wide range of tasks. For example:
 
-- [How to upload and publish data](data/upload.md)
-- [How to write a custom ELN](schemas/elns.md)
-- [How to run a parser locally](apis/local_parsers.md)
-- [How to install NOMAD Oasis](oasis/install.md)
+- [How-to upload and publish data](data/upload.md)
+- [How-to write a custom ELN](schemas/elns.md)
+- [How-to run a parser locally](apis/local_parsers.md)
+- [How-to install NOMAD Oasis](oasis/install.md)
 
 </div>
 

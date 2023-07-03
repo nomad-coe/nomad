@@ -33,7 +33,7 @@ from markdown.extensions.toc import slugify
 
 from nomad.utils import strip
 from nomad import config
-from nomad.config.plugins import Parser
+from nomad.config.plugins import Parser, Plugin
 from nomad.app.v1.models import (
     query_documentation,
     owner_documentation)
@@ -418,4 +418,30 @@ def define_env(env):
         ]) + '\n\n' + '\n\n'.join([
             render_category(name, category)
             for name, category in categories.items()
+        ])
+
+    @env.macro
+    def plugin_list():  # pylint: disable=unused-variable
+        plugins = [
+            plugin for plugin in config.plugins.options.values()
+        ]
+
+        def render_plugin(plugin: Plugin) -> str:
+            result = plugin.name
+            docs_or_code_url = plugin.plugin_documentation_url or plugin.plugin_source_code_url
+            if docs_or_code_url:
+                result = f'[{plugin.name}]({docs_or_code_url})'
+            if plugin.description:
+                result = f'{result} ({plugin.description})'
+
+            return result
+
+        categories = {}
+        for plugin in plugins:
+            category = plugin.python_package.split(".")[0]
+            categories.setdefault(category, []).append(plugin)
+
+        return '\n\n'.join([
+            f'**{category}**: {", ".join([render_plugin(plugin) for plugin in plugins])}'
+            for category, plugins in categories.items()
         ])

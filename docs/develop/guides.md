@@ -170,7 +170,7 @@ Please follow the following rules when logging:
 
 - If a logger is not already provided, only use
   :py:func:`nomad.utils.get_logger` to acquire a new logger. Never use the
-  build-in logging directly. These logger work like the system loggers, but
+  built-in logging directly. These logger work like the system loggers, but
   allow you to pass keyword arguments with additional context data. See also
   the [structlog docs](https://structlog.readthedocs.io/en/stable/).
 - In many context, a logger is already provided (e.g. api, processing, parser, normalizer).

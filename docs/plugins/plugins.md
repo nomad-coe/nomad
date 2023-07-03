@@ -98,20 +98,102 @@ Now follow the instructions for one of our examples and try for yourself:
 - [schema plugin](https://github.com/nomad-coe/nomad-schema-plugin-example)
 - [parser plugin](https://github.com/nomad-coe/nomad-parser-plugin-example)
 
+
+## Publish a plugin
+
+!!! attention
+    The processes around publishing plugins and using plugins of others are still
+    worked on. The "best" practices mentioned here are preliminary.
+
+### Create a (GitHub) project
+
+If you forked from our examples, you already have a GitHub project. Otherwise, you
+should create one. This allows others to get your plugin sources or initiate communication
+via issues or pull requests.
+
+These are good names for plugin projects, depending on if you maintain one or more
+plugins in a project (a project can contain multiple modules with multiple
+`nomad-plugin.yaml` files and therefore multiple plugins):
+
+- nomad-<yourname\>-plugin
+- nomad-<yourname\>-plugins
+
+!!! note
+    If you develop a plugin in the context of **FAIRmat** or the **NOMAD CoE**, put your
+    plugin projects in the respective GitHub organization for [FAIRmat](https://github.com/fairmat-nfdi)
+    and the [NOMAD CoE](https://github.com/nomad-coe). Here, the naming convention above is binding.
+
+Your plugin projects should follow the layout of our example projects.
+
+### Different forms of plugin distribution
+
+- **source code**: Mounting plugin code into a NOMAD (Oasis) installation. This is described above and only
+the plugin source code is needed.
+- **built-in**: Plugins that are directly maintained by NOMAD as distributed as part of
+the NOMAD docker images. The Python code for those plugins is already installed, you only need
+to configure NOMAD to use the plugins (or not).
+- **PyPI/pip package**: Plugin projects can be published as PyPI/pip packages. Those
+packages can then be installed either during NOMAD start-up (not implemented yet) or
+when building a customized docker images (see [below](#pypipip-package)).
+
+Independent of the form of distribution, you'll still need to add the plugin to
+your configuration as explained above.
+
+### PyPI/pip package
+
+Learn from the PyPI documentation how to [create a package for PyPI](https://packaging.python.org/en/latest/tutorials/packaging-projects/).
+We recommend to use the `pyproject.toml`-based approach. Here is an example `pyproject.toml` file:
+
+```toml
+--8<-- "examples/plugins/schema/pyproject.toml"
+```
+
+The package can be build like this:
+```
+pip install build
+python -m build --sdist
+```
+
+Learn from the PyPI documentation how to [publish a package to PyPI](https://packaging.python.org/en/latest/tutorials/packaging-projects/#uploading-the-distribution-archives).
+If you have access to the MPCDF GitLab and NOMAD's presence there, you can also
+use the `nomad-FAIR` registry:
+
+```
+pip install twine
+twine upload \
+    -u <username> -p <password> \
+    --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi \
+    dist/nomad-example-schema-plugin-*.tar.gz
+```
+
+### Register your plugin
+
+!!! attention
+    This is work in progress. We plan to provide a plugin registry that allows you to
+    publish your plugin's *metadata*. This will then be used to simplify plugin management
+    within a NOMAD installation.
+
+    The built-in plugins can already be found in the [documentation reference](../reference/plugins.md).
+
 ## Add a plugin to your NOMAD
 
-To add a plugin, you need to add the *plugin metadata* to `nomad.yaml` (see above) and you need
-to add the *plugin code* to the `PYTHONPATH` of your NOMAD. The `nomad.yaml` needs to be
-edited manually in the usual way. There are several ways to
-add *plugin code* to a NOMAD installation.
+Adding a plugin, depends on the form of plugin distribution and how you run NOMAD.
+Eventually, you need to add the *plugin metadata* to `nomad.yaml` (see above) and you need
+to add the *plugin code* to the `PYTHONPATH`. The `nomad.yaml` needs to be
+edited manually in the usual ways. There are several ways to add *plugin code*.
 
-### Development setup of NOMAD
+### Built-in plugins
 
-Simply add the plugin directory to the `PYTHONPATH` environment variable. When you start
-the application (e.g. `nomad admin run appworker`), Python will find your code when NOMAD
+Those are already part of the NOMAD sources or NOMAD docker images. You only need
+to configure them in your `nomad.yaml`.
+
+### Add to Python path
+
+When you run NOMAD as a developer, simply add the plugin directory to the `PYTHONPATH` environment variable.
+When you start the application (e.g. `nomad admin run appworker`), Python will find your code when NOMAD
 imports the `python_package` given in the `plugins.options` of your `nomad.yaml`.
 
-### NOMAD Oasis
+### Mount into a NOMAD Oasis
 
 The NOMAD docker image adds the folder `/app/plugins` to the `PYTHONPATH`. You simply have
 to add the *plugin metadata* to your Oasis' `nomad.yaml` and mount your code into the `/app/plugins`
@@ -157,14 +239,33 @@ curl localhost/nomad-oasis/alive
 
 Read the [Oasis install guide](../oasis/install.md) for more details.
 
-### Other means
+### Install PyPI/pip package
 
-- via python packages (coming soon...)
-- via github projects (coming soon...)
+If the plugin is published on PyPI, you can simply install it with pip. If the
+plugin was published to our MPCDF GitLab registry, you have to use the `--index-url`
+parameter:
 
-## Publish a plugin
+```
+pip install nomad-example-schema-plugin --index-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple
+```
 
-coming soon...
+Installing via pip works for NOMAD developers, but how to pip install into an Oasis?
+The package could either be installed when NOMAD is started or via
+a customized docker image.
 
-We plan to provide a plugin registry that allows you to publish your plugin's *metadata*.
-This can then be used to simplify plugin management within a NOMAD installation.
+!!! attention
+    We still need to implement that configured plugins, if not already installed,
+    get automatically installed during NOMAD start.
+
+You can build a custom NOMAD docker image that has your packages already installed.
+Here is an example `Dockerfile`:
+
+```Dockerfile
+--8<-- "examples/plugins/schema/Dockerfile"
+```
+
+The image can be build like this:
+
+```
+docker build -t nomad-with-plugins .
+```

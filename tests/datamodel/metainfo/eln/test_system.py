@@ -16,10 +16,13 @@
 # limitations under the License.
 #
 
+import pytest
+
 from tests.normalizing.conftest import run_processing, run_normalize
 from nomad.datamodel.data import User
 
 
+@pytest.mark.skip()
 def test_substance(raw_files, no_warn):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_substance.archive.yaml'

@@ -1,4 +1,4 @@
-# How to run a parser
+# How-to run a parser
 
 You can find a [list of all parsers](../reference/parsers.md) and supported files in the reference.
 

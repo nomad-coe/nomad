@@ -1,6 +1,6 @@
 # Write NOMAD Schemas in YAML
 
-This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information visit the [learn section on schemas](../learn/schemas.md).
+This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information visit the [learn section on schemas](../learn/data.md).
 
 ## Example data
 
@@ -102,7 +102,7 @@ NOMAD manages units and data with units via the [Pint](https://pint.readthedocs.
 be simple units (or their aliases) or complex expressions. Here are a few examples:
 `m`, `meter`, `mm`, `millimeter`, `m/s`, `m/s**2`.
 
-While you can use all kinds of units in your uploaded schemas, the build-in NOMAD schema (Metainfo) uses only SI units.
+While you can use all kinds of units in your uploaded schemas, the built-in NOMAD schema (Metainfo) uses only SI units.
 
 ## Sub-sections
 
@@ -287,7 +287,7 @@ The fact that a sub-section or reference target can have different "forms" (i.e.
 
 ### Pre-defined sections
 
-NOMAD provides a series of build-in *section definitions*. For example, there is `EntryArchive`, a definition for the top-level object in all NOMAD archives (e.g. `.archive.yaml` files). Here is a simplified except of the *main* NOMAD schema `nomad.datamodel`:
+NOMAD provides a series of built-in *section definitions*. For example, there is `EntryArchive`, a definition for the top-level object in all NOMAD archives (e.g. `.archive.yaml` files). Here is a simplified except of the *main* NOMAD schema `nomad.datamodel`:
 
 ```yaml
 EntryArchive:
@@ -318,7 +318,7 @@ example:
 --8<-- "examples/docs/inheritance/hello.archive.yaml"
 ```
 
-Here are a few other build-in section definitions and packages of definitions:
+Here are a few other built-in section definitions and packages of definitions:
 
 |Section definition or package|Purpose|
 |---|---|

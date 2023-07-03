@@ -2,7 +2,7 @@
 title: Workflows
 ---
 
-## The build-in abstract workflow schema
+## The built-in abstract workflow schema
 
 Workflows are an important aspect of data as they explain how the data came to be. Let's
 first clarify that *workflow* refers to a workflow that already happened and that has
