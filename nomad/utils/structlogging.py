@@ -206,6 +206,13 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
 
 class ConsoleFormatter(LogstashFormatter):
 
+    def __init__(self, message_type='Logstash', tags=None, fqdn=False, datefmt=None):
+        # In conftest.py, we monkeypatch the logging.Formatter with ConsoleFormatter.
+        # Since pytest instantiates this formatter with the datefmt argument,
+        # we need to add this init method to logstashformatter to ensure proper functioning with pytest.
+        # LogstashFormatter does not accept the datefmt argument.
+        super().__init__(message_type=message_type, tags=tags, fqdn=fqdn)
+
     short_format = False
 
     @classmethod

@@ -7,7 +7,7 @@ project_dir=$(dirname $(dirname $(realpath $0)))
 
 cd $project_dir
 
-pip-compile --annotation-style=line \
+pip-compile --resolver=backtracking --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
     dependencies/matid/pyproject.toml \
@@ -20,7 +20,7 @@ pip-compile --annotation-style=line \
     dependencies/parsers/workflow/pyproject.toml pyproject.toml
 
 
-pip-compile --annotation-style=line \
+pip-compile ---resolver=backtracking -annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
     requirements.txt \

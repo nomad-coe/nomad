@@ -9,7 +9,7 @@ cd $project_dir
 
 set -x # echo on
 
-pip-compile --quiet --annotation-style=line \
+pip-compile --resolver=backtracking --quiet --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt.tmp \
     dependencies/matid/pyproject.toml \
@@ -24,7 +24,7 @@ pip-compile --quiet --annotation-style=line \
 diff requirements.txt requirements.txt.tmp
 
 
-pip-compile --quiet --annotation-style=line \
+pip-compile --resolver=backtracking --quiet --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt.tmp \
     requirements.txt \

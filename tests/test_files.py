@@ -25,6 +25,7 @@ import pytest
 import itertools
 import zipfile
 import re
+import pathlib
 
 from nomad import config, datamodel, utils
 from nomad.archive import to_json
@@ -214,8 +215,8 @@ class UploadFilesContract(UploadFilesFixtures):
         upload_files = test_upload[2]
         assert upload_files.os_path is not None
         if upload_files.external_os_path:
-            assert upload_files.external_os_path.endswith(
-                upload_files.os_path)
+            os_posix_path = pathlib.Path(upload_files.os_path).as_posix()
+            assert upload_files.external_os_path.endswith(os_posix_path)
 
     def test_rawfile(self, test_upload: UploadWithFiles):
         _, entries, upload_files = test_upload
