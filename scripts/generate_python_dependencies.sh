@@ -20,7 +20,7 @@ pip-compile --resolver=backtracking --annotation-style=line \
     dependencies/parsers/workflow/pyproject.toml pyproject.toml
 
 
-pip-compile ---resolver=backtracking -annotation-style=line \
+pip-compile --resolver=backtracking --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
     requirements.txt \
