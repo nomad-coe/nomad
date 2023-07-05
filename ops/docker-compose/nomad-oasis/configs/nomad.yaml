@@ -14,6 +14,9 @@ meta:
   deployment_url: 'https://my-oasis.org/api'
   maintainer_email: 'me@my-oasis.org'
 
+logstash:
+  enable: false
+
 mongo:
     db_name: nomad_oasis_v1
 

@@ -15,17 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Tuple
+from typing import Tuple, List
 import math
 import pytest
-import logging
 from collections import namedtuple
 import time
 from datetime import datetime
 import shutil
 import os
 import elasticsearch.exceptions
-from typing import List
 import json
 import logging
 import warnings
@@ -33,8 +31,13 @@ import tempfile
 
 from aiosmtpd.controller import Controller
 from fastapi.testclient import TestClient
+import socketserver
 
-from nomad import config, infrastructure, processing, utils, datamodel, bundles
+from nomad import config
+# make sure to disable logstash (the logs can interfere with the testing, especially for logtransfer)
+config.logstash.enabled = False  # noqa: E402  # this must be set *before* the other modules are imported
+
+from nomad import infrastructure, processing, utils, datamodel, bundles
 from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.utils import structlogging
 from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo, to_json
@@ -1021,3 +1024,47 @@ def client_with_api_v1(api_v1, monkeysession):
         return getattr(api_v1, method)(path, *args, **kwargs)
 
     monkeysession.setattr('nomad.client.api._call_requests', call_requests)
+
+
+@pytest.fixture(scope="function")
+def central_logstash_mock():
+
+    class TCPServerStore(socketserver.TCPServer):
+        received_content = []
+
+    class LogstashCentralHandler(socketserver.StreamRequestHandler):
+        def handle(self):
+            # print("OPENING SOCKET TO LogstashCentralHandler")
+            while True:
+                line = self.rfile.readline()
+                # print(f"received line {line}")
+                if line == b'':
+                    # print("received closing for LogstashCentralHandler")
+                    break
+
+                line = line.strip()
+                if len(line) > 0:
+                    self.server.received_content.append(line)
+
+    host, port = config.logstash.host, int(config.logstash.tcp_port)
+
+    # print(f"set up mock on host={host} and port={port}")
+    logstash_mock_central = TCPServerStore((host, port), LogstashCentralHandler, bind_and_activate=False)
+    logstash_mock_central.allow_reuse_address = True
+    logstash_mock_central.allow_reuse_port = True
+    # logstash_mock_central.timeout = 0.3
+
+    # It is in the responsibility of the test to set a time out of the test
+    while True:
+        try:
+            logstash_mock_central.server_bind()
+            logstash_mock_central.server_activate()
+        except Exception:
+            time.sleep(0.001)  # try again
+        else:
+            break
+
+    yield logstash_mock_central
+
+    # make sure to close the server
+    logstash_mock_central.server_close()

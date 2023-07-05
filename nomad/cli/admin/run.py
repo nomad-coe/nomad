@@ -48,6 +48,14 @@ def app(with_gui: bool, **kwargs):
     run_app(with_gui=with_gui, **kwargs)
 
 
+@run.command(help='Run server that collects and submits logs to the central Nomad instance.')
+def logtransfer():
+    config.meta.service = 'logtransfer'
+
+    from nomad.logtransfer import start_logtransfer_service
+    start_logtransfer_service()
+
+
 def run_app(with_gui: bool = False, **kwargs):
     config.meta.service = 'app'
 

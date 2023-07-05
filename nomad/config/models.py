@@ -344,6 +344,23 @@ class Logstash(NomadSettings):
     level: int = logging.DEBUG
 
 
+class Logtransfer(NomadSettings):
+    '''
+    Configuration of logtransfer server.
+
+    Note that other configurations are also used within logtransfer
+
+    * class Logstash (Configs: enabled, host, level, tcp_port) such that logs are send to the logstash proxy
+    * class Oasis (Config: central_nomad_api_url) address to which so send the logs
+    * class FS (Config: tmp) path where collected logfiles are stored.
+    '''
+    submit_interval: int = Field(60 * 60 * 24, description='Time interval in seconds after which logs are transferred.')
+    max_bytes: int = Field(int(1E7), description='The size of the logfile in bytes at which the logs are transferred.')
+    backup_count: int = Field(10, description='Number of logfiles stored before oldest rotated logfile is removed.')
+    log_filename: str = Field('collectedlogs.txt', description='Filename of logfile (located in ".volumes/tmp/").')
+    raise_unexpected_exceptions: bool = Field(False, description='Whether to keep the server alive if an unexpected exception is raised. Set to True for testing.')
+
+
 class Tests(NomadSettings):
     default_timeout = 60
 

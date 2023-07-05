@@ -183,12 +183,12 @@ async def alive():
     return "I am, alive!"
 
 
-@app.get("/-/health", status_code=status.HTTP_200_OK)
+@app.get('/-/health', status_code=status.HTTP_200_OK)
 async def health():
     return {'healthcheck': 'ok'}
 
 
-@app.middleware("http")
+@app.middleware('http')
 async def add_header(request: Request, call_next):
     response = await call_next(request)
     if str(request.url).endswith('index.html'):
