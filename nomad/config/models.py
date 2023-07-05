@@ -378,15 +378,25 @@ class Mail(NomadSettings):
 
 class Normalize(NomadSettings):
     normalizers: Options = Field(Options(
+        include=[
+            'SystemNormalizer',
+            'OptimadeNormalizer',
+            'DosNormalizer',
+            'BandStructureNormalizer',
+            'WorkflowNormalizer',
+            'ResultsNormalizer',
+            'MetainfoNormalizer'
+        ],
         options=dict(
             SystemNormalizer='nomad.normalizing.system.SystemNormalizer',
-            # PorosityNormalizer='nomad.normalizing.porosity.PorosityNormalizer',
+            SOAPNormalizer='nomad.normalizing.soap.SoapNormalizer',
+            PorosityNormalizer='nomad.normalizing.porosity.PorosityNormalizer',
             OptimadeNormalizer='nomad.normalizing.optimade.OptimadeNormalizer',
             DosNormalizer='nomad.normalizing.dos.DosNormalizer',
             BandStructureNormalizer='nomad.normalizing.band_structure.BandStructureNormalizer',
             WorkflowNormalizer='nomad.normalizing.workflow.WorkflowNormalizer',
             ResultsNormalizer='nomad.normalizing.results.ResultsNormalizer',
-            MetainfoNormalizer='nomad.normalizing.metainfo.MetainfoNormalizer'
+            MetainfoNormalizer='nomad.normalizing.metainfo.MetainfoNormalizer',
         )
     ))
     system_classification_with_clusters_threshold = Field(

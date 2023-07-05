@@ -505,6 +505,76 @@ class Constraint(MSection):
         ''')
 
 
+class SOAP(MSection):
+    m_def = Section(
+        description='''
+        SOAP descritors and representations
+        '''
+    )
+    n_max = Quantity(
+        type=int,
+        description='''
+        Number of radial basis functions in density expansion
+        '''
+    )
+    l_max = Quantity(
+        type=int,
+        description='''
+        Order of Spherical harmonics.
+        '''
+    )
+    r_cut = Quantity(
+        type=np.dtype('float64'),
+        description='''
+        Cutoff distance defining each local environment.
+        '''
+    )
+    atom_sigma = Quantity(
+        type=np.dtype('float64'),
+        description='''
+        Width of Gaussians used in density expansion
+        '''
+    )
+
+    soap = Quantity(
+        type=np.dtype('float64'),
+        shape=['n_sites', '*', '*', '*'],
+        description='''
+        Full SOAP stored in array format.
+        '''
+    )
+    tr_soap = Quantity(
+        type=np.dtype('float64'),
+        shape=['n_sites', '*'],
+        description='''
+        Normalised, tensor-reduced SOAP stored as a flat vector.
+        '''
+    )
+    global_soap = Quantity(
+        type=np.dtype('float64'),
+        shape=['*', '*', '*'],
+        description='''
+        Full SOAP, c_znlm averaged across sites, stored in array format.
+        '''
+    )
+    global_tr_soap = Quantity(
+        type=np.dtype('float64'),
+        shape=['*'],
+        description='''
+        Normalised, tensor-reduced global, c_znlm averaged across sites, SOAP stored as a flat vector.
+        '''
+    )
+
+
+class Descriptors(MSection):
+    m_def = Section(
+        description='''
+        Contains atomic descriptors and structural representations
+        '''
+    )
+    soap = SubSection(sub_section=SOAP.m_def, repeats=False)
+
+
 class System(ArchiveSection):
     '''
     Contains parameters describing a system of atomic configuration. These inclue the
@@ -615,6 +685,9 @@ class System(ArchiveSection):
 
     symmetry = SubSection(
         sub_section=Symmetry.m_def, repeats=True, categories=[FastAccess])
+
+    descriptors = SubSection(
+        sub_section=Descriptors.m_def, repeats=False, categories=[FastAccess])
 
 
 m_package.__init_metainfo__()
