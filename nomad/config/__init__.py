@@ -42,7 +42,7 @@ from pydantic import parse_obj_as, BaseModel
 
 from .models import (
     NomadSettings, Services, Meta, Oasis, RabbitMQ, Celery, FS, Elastic, Keycloak,
-    Mongo, Logstash, Tests, Mail, Normalize, Resources, Client, DataCite, GitLab, Process,
+    Mongo, Logstash, Logtransfer, Tests, Mail, Normalize, Resources, Client, DataCite, GitLab, Process,
     Reprocess, RFC3161Timestamp, BundleExport, BundleImport, Archive, UI
 )
 from .plugins import Plugins, Plugin, Parser, Schema
@@ -104,6 +104,7 @@ elastic = Elastic()
 keycloak = Keycloak()
 mongo = Mongo()
 logstash = Logstash()
+logtransfer = Logtransfer()
 tests = Tests()
 mail = Mail()
 normalize = Normalize()

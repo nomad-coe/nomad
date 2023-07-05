@@ -15,6 +15,7 @@ install the stand alone [docker-compose](https://docs.docker.com/compose/install
 - Download our basic configuration files [nomad-oasis.zip](../assets/nomad-oasis.zip)
 - Run the following commands (skip `chown` on MacOS and Windows computers)
 
+
 ```sh
 unzip nomad-oasis.zip
 cd nomad-oasis
@@ -65,6 +66,29 @@ for individual files is kept in memory. For large DFT geometry-optimizations thi
 add up quickly, especially if many CPU cores are available for processing entries in
 parallel. We recommend at least 2GB per core and a minimum of 8GB. You also need to consider
 RAM and CPU for running tools like jupyter, if you opt to use NOMAD NORTH.
+
+### Sharing data through the logtransfer service and data privacy notice
+
+The NOMAD software incorporates the so-called `logtransfer` service. When enabled the service automatically collects 
+and submits non-personalized data to our central NOMAD instance. Currently, this service is in an experimental phase 
+and requires to opt-in to the service. However, in an upcoming version of the NOMAD software this will transition to 
+an opt-out mechanism. See the instructions in the configuration below on how to enable/disable the `logtransfer` 
+service.
+
+The collected data consists of logs as well as aggregated statistics, such as the number of users or the 
+number of uploaded datasets. In any case this data does not personally identify the users of the NOMAD OASIS and all 
+data is in an aggregated and anonymized form.
+
+The data is solely used for internal purposes, including but not limited to:
+
+* Analyzing and monitoring system performance to identify and resolve issues.
+* Improving our NOMAD software based on usage patterns.
+* Generating aggregated and anonymized reports.
+
+We do not share any data collected through the `logtransfer` service with third parties.
+
+We may update this data privacy notice from time to time to reflect changes in our data practices.
+We encourage you to review this notice periodically for any updates.
 
 ### Using the central user management
 
@@ -135,8 +159,10 @@ Changes necessary:
 
 - The group in the value of the hub's user parameter needs to match the docker group
 on the host. This should ensure that the user which runs the hub, has the rights to access the host's docker.
-
 - On Windows or MacOS computers you have to run the `app` and `worker` container without `user: '1000:1000'` and the `north` container with `user: root`.
+- To opt-in the `logtransfer` service 
+  ([data notice above](#sharing-data-through-the-logtransfer-service-and-data-privacy-notice)), start `docker compose` 
+  with the flag `--profile with_logtransfer`. See also below for further necessary adaptations in the `nomad.yaml` file.
 
 A few things to notice:
 
@@ -153,7 +179,6 @@ a version tag (format is `vX.X.X`, you find all releases [here](https://gitlab.m
 - The `hub` service needs to run docker containers. We have to use the systems docker group as a group. You might need to replace `991` with your
 systems docker group id.
 
-
 #### nomad.yaml
 
 NOMAD app and worker read a `nomad.yaml` for configuration.
@@ -168,6 +193,7 @@ You should change the following:
 users back to this host. Make sure this is the hostname, your users can use.
 - Replace `deployment`, `deployment_url`, and `maintainer_email` with representative values.
 The `deployment_url` should be the url to the deployment's api (should end with `/api`).
+- To enable the `logtransfer` service activate logging in `logstash` format by setting `enable: true`.
 - You can change `api_base_path` to run NOMAD under a different path prefix.
 - You should generate your own `north.jupyterhub_crypt_key`. You can generate one
 with `openssl rand -hex 32`.

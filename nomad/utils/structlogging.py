@@ -28,7 +28,7 @@ entry processing. This means the :func:`get_logger` and all logger functions
 take keyword arguments for structured data. Otherwise :func:`get_logger` can
 be used similar to the standard *logging.getLogger*.
 
-Depending on the configuration all logs will also be send to a central logstash.
+Depending on the configuration all logs will also be sent to a central logstash.
 
 .. autofunc::nomad.utils.get_logger
 .. autofunc::nomad.utils.hash

@@ -77,6 +77,7 @@ services:
       NOMAD_RABBITMQ_HOST: rabbitmq
       NOMAD_ELASTIC_HOST: elastic
       NOMAD_MONGO_HOST: mongo
+      NOMAD_LOGSTASH_HOST: logtransfer
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -101,6 +102,7 @@ services:
       NOMAD_RABBITMQ_HOST: rabbitmq
       NOMAD_ELASTIC_HOST: elastic
       NOMAD_MONGO_HOST: mongo
+      NOMAD_LOGSTASH_HOST: logtransfer
       NOMAD_NORTH_HUB_HOST: north
     depends_on:
       rabbitmq:
@@ -160,6 +162,27 @@ services:
       timeout: 10s
       retries: 30
       start_period: 10s
+
+  # nomad logtransfer
+  # to enable the logtransfer service run "docker compose --profile with_logtransfer up"
+  logtransfer:
+    restart: unless-stopped
+    image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
+    container_name: nomad_oasis_logtransfer
+    environment:
+      NOMAD_SERVICE: nomad_oasis_logtransfer
+      NOMAD_ELASTIC_HOST: elastic
+      NOMAD_MONGO_HOST: mongo
+    depends_on:
+      elastic:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./configs/nomad.yaml:/app/nomad.yaml
+      - ./.volumes/fs:/app/.volumes/fs
+    command: python -m nomad.cli admin run logtransfer
+    profiles: ["with_logtransfer"]
 
   # nomad proxy (a reverse proxy for nomad)
   proxy:
