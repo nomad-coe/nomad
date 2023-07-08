@@ -104,8 +104,6 @@ data:
       realm_name: "{{ .Values.keycloak.realmName }}"
       username: "{{ .Values.keycloak.username }}"
       client_id: "{{ .Values.keycloak.clientId }}"
-    normalize:
-      springer_db_path: "{{ .Values.springerDbPath }}"
     datacite:
       enabled: {{ .Values.datacite.enabled }}
       prefix: "{{ .Values.datacite.prefix }}"
@@ -119,4 +117,10 @@ data:
       hub_service_api_token: "{{ .Values.north.hubServiceApiToken }}"
     {{ if .Values.archive }}
     archive: {{ .Values.archive | toYaml | nindent 6 }}
+    {{ end }}
+    {{ if .Values.plugins }}
+    plugins: {{ .Values.plugins | toYaml | nindent 6 }}
+    {{ end }}
+    {{ if .Values.normalize }}
+    normalize: {{ .Values.normalize | toYaml | nindent 6 }}
     {{ end }}
