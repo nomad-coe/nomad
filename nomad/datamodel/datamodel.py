@@ -732,9 +732,9 @@ class EntryMetadata(MSection):
                     searchable_quantity.text_value = value
                 elif isinstance(value, int):
                     searchable_quantity.long_value = int(value)
-                elif isinstance(value, PintQuantity):
+                elif isinstance(value, PintQuantity) and not np.isnan(value.m):
                     searchable_quantity.double_value = float(value.m)
-                elif isinstance(value, float):
+                elif isinstance(value, float) and not np.isnan(value):
                     searchable_quantity.double_value = float(value)
                 else:
                     return None
