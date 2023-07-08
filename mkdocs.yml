@@ -5,48 +5,49 @@ site_author: The NOMAD Authors
 nav:
   - Home: index.md
   - Tutorial: tutorial.md
-  - How to guides:
+  - How-to guides:
     - Data Management:
-      - How to upload/publish data: data/upload.md
-      - How to use ELNs: data/eln.md
-      - How to explore data: data/explore.md
-      - How to use NORTH: data/north.md
+      - How-to upload/publish data: data/upload.md
+      - How-to use ELNs: data/eln.md
+      - How-to explore data: data/explore.md
+      - How-to use NORTH: data/north.md
     - Schemas:
-      - How to write a schema: schemas/basics.md
-      - How to define ELNs: schemas/elns.md
-      - How to define tabular data: schemas/tabular.md
-      - How to define workflows: schemas/workflows.md
-      - How to reference hdf5: schemas/hdf5.md
+      - How-to write a schema: schemas/basics.md
+      - How-to define ELNs: schemas/elns.md
+      - How-to define tabular data: schemas/tabular.md
+      - How-to define workflows: schemas/workflows.md
+      - How-to reference hdf5: schemas/hdf5.md
     - Programming interfaces:
-      - How to use the API: apis/api.md
-      - How to install nomad-lab: apis/pythonlib.md
-      - How to access processed data: apis/archive_query.md
-      - How to run a parser: apis/local_parsers.md
+      - How-to use the API: apis/api.md
+      - How-to install nomad-lab: apis/pythonlib.md
+      - How-to access processed data: apis/archive_query.md
+      - How-to run a parser: apis/local_parsers.md
     - Plugins:
-      - How to develop and use plugins: plugins/plugins.md
-      - How to write schema plugins: plugins/schemas.md
-      - How to write parser plugins: plugins/parsers.md
+      - How-to develop, publish, and install plugins: plugins/plugins.md
+      - How-to write schema plugins: plugins/schemas.md
+      - How-to write parser plugins: plugins/parsers.md
     - Development:
-      - How to get started: develop/setup.md
+      - How-to get started: develop/setup.md
       - Code guidelines: develop/guides.md
-      - How to contribute: develop/gitlab.md
-      - How to extend the search: develop/search.md
-      - How to write a parser: develop/parsers.md
-      - How to write a normalizer: develop/normalizers.md
+      - How-to contribute: develop/gitlab.md
+      - How-to extend the search: develop/search.md
+      - How-to write a parser: develop/parsers.md
+      - How-to write a normalizer: develop/normalizers.md
     - Oasis:
-      - How to install an Oasis: oasis/install.md
-      - How to customize an Oasis: oasis/customize.md
-      - How to migrate Oasis versions: oasis/migrate.md
+      - How-to install an Oasis: oasis/install.md
+      - How-to customize an Oasis: oasis/customize.md
+      - How-to migrate Oasis versions: oasis/migrate.md
       - Administrative tasks: oasis/admin.md
   - Learn:
-    - Files, processing, data: learn/how_nomad_works.md
-    - Schemas and structured data: learn/schemas.md
+    - From files to data: learn/basics.md
+    - Structured data: learn/data.md
     - Architecture: learn/architecture.md
     - Why you need an Oasis: learn/oasis.md
   - Reference:
     - reference/config.md
     - reference/annotations.md
     - reference/cli.md
+    - reference/plugins.md
     - reference/parsers.md
     - reference/glossary.md
 theme:

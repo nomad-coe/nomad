@@ -386,7 +386,7 @@ print(json.dumps(calc.m_to_dict(), indent=2))
 ### Access structured data via the NOMAD Python package
 
 The NOMAD Python package provides utilities to [query large amounts of
-archive data](/archive_query.md). This uses the build-in Python schema classes as
+archive data](/archive_query.md). This uses the built-in Python schema classes as
 an interface to the data.
 
 ## Custom normalizers

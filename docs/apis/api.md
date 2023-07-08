@@ -1,7 +1,7 @@
 This guide is about using NOMAD's REST APIs directly, e.g. via Python's *request*.
 
 To access the processed data with our client library `nomad-lab` follow
-[How to access the processed data](archive_query.md). You watch our
+[How-to access the processed data](archive_query.md). You watch our
 [video tutorial on the API](../tutorial.md#access-data-via-api).
 
 ## Different options to use the API
@@ -46,7 +46,7 @@ API functions that allows you to try these functions in the browser.
 
 Install the [NOMAD Python client library](pythonlib.md) and use it's `ArchiveQuery`
 functionality for a more convenient query based access of archive data following the
-[How to access the processed data](archive_query.md) guide.
+[How-to access the processed data](archive_query.md) guide.
 
 ## Using request
 
@@ -250,7 +250,7 @@ the API:
 - Raw files, the files as they were uploaded to NOMAD.
 - Archive data, all of the extracted data for an entry.
 
-There are also different entities (see also [Datamodel](../learn/how_nomad_works.md#datamodel-uploads-entries-files-datasets)) with different functions in the API:
+There are also different entities (see also [Datamodel](../learn/basics.md)) with different functions in the API:
 
 - Entries
 - Uploads
