@@ -61,7 +61,8 @@ parsing = [
     'netCDF4==1.5.4',
     'mdtraj==1.9.6',
     'h5py==3.6.0',
-    'pyzeo==0.1.4'
+    'pyzeo==0.1.4',
+    'quippy-ase==0.9.14'
 ]
 infrastructure = [
     'h5grove>=1.0.0',

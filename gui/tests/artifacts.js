@@ -8456,6 +8456,138 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 6,
             "m_parent_sub_section": "section_definitions",
+            "name": "SOAP",
+            "description": "\n        SOAP descritors and representations\n        ",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "n_max",
+                "description": "Number of radial basis functions in density expansion",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "l_max",
+                "description": "Order of Spherical harmonics.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "r_cut",
+                "description": "Cutoff distance defining each local environment.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "atom_sigma",
+                "description": "Width of Gaussians used in density expansion",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "soap",
+                "description": "Full SOAP stored in array format.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_sites",
+                  "*",
+                  "*",
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "tr_soap",
+                "description": "Normalised, tensor-reduced SOAP stored as a flat vector.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_sites",
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "global_soap",
+                "description": "Full SOAP, c_znlm averaged across sites, stored in array format.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*",
+                  "*",
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "global_tr_soap",
+                "description": "Normalised, tensor-reduced global, c_znlm averaged across sites, SOAP stored as a flat vector.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 7,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Descriptors",
+            "description": "\n        Contains atomic descriptors and structural representations\n        ",
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "soap",
+                "sub_section": "/packages/1/section_definitions/6",
+                "repeats": false
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 8,
+            "m_parent_sub_section": "section_definitions",
             "name": "System",
             "description": "Contains parameters describing a system of atomic configuration. These inclue the compound name, atomic positions, lattice vectors, contraints on the atoms, etc.",
             "base_sections": [
@@ -8533,7 +8665,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": []
               },
@@ -8548,7 +8680,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": [
                   "n_references"
@@ -8662,6 +8794,17 @@ window.nomadArtifacts = {
                 ],
                 "sub_section": "/packages/1/section_definitions/2",
                 "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "sub_sections",
+                "name": "descriptors",
+                "categories": [
+                  "/packages/16/category_definitions/0"
+                ],
+                "sub_section": "/packages/1/section_definitions/7",
+                "repeats": false
               }
             ]
           }
@@ -11386,7 +11529,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": []
               },
@@ -12179,7 +12322,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system",
-                "sub_section": "/packages/1/section_definitions/6",
+                "sub_section": "/packages/1/section_definitions/8",
                 "repeats": true
               },
               {
@@ -17661,7 +17804,7 @@ window.nomadArtifacts = {
                 "description": "Contains the optimized geometry that is the result of a geometry optimization.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 }
               },
               {
@@ -63500,7 +63643,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the resulting system.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": []
               },
@@ -63545,7 +63688,7 @@ window.nomadArtifacts = {
                 "description": "References to the reference systems.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": [
                   "n_references"
@@ -65347,7 +65490,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the resulting system.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": []
               },
@@ -65392,7 +65535,7 @@ window.nomadArtifacts = {
                 "description": "References to the reference systems.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": [
                   "n_references"
@@ -67151,7 +67294,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the system of each step in the trajectory.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/6"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": [
                   "n_steps"
