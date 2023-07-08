@@ -117,4 +117,6 @@ data:
       hub_host: "{{ .Values.proxy.external.host }}"
       hub_port: {{ .Values.proxy.external.port }}
       hub_service_api_token: "{{ .Values.north.hubServiceApiToken }}"
-
+    {{ if .Values.archive }}
+    archive: {{ .Values.archive | toYaml | nindent 6 }}
+    {{ end }}
