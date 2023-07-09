@@ -45,7 +45,7 @@ These *guidelines* are partially enforced by CI/CD. As part of CI all tests are 
 branches; further we run a *linter*, *pep8* checker, and *mypy* (static type checker). You can
 run `nomad qa` to run all these tests and checks before committing.
 
-See [git/gitlab](./gitlab.md) for more details on how to work with issues, branches, merge
+See [the contributing guide](./contrib.md) for more details on how to work with issues, branches, merge
 requests, and CI/CD.
 
 ## Documenting code

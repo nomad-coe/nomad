@@ -10,6 +10,8 @@ customized NOMAD version and with their own compute and storage resources.
 
 ## Contributing
 
+See also the more detailed [contributing guide](https://nomad-lab.eu/docs/develop/contrib.html) in the documentation.
+
 There are two forks of this repository, one on **GitHUB** and one on MPCDF's **GitLab**.
 
 NOMAD's [GitHUB project](https://github.com/nomad-coe/nomad) always contains the current `develop` branch.
@@ -38,6 +40,17 @@ For a general project overview visit the official project page [https://nomad-la
 Omitted versions are plain bugfix releases with only minor changes and fixes. The
 file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
 contains much more detailed information about changes and fixes in the released versions.
+
+### v1.2.0
+- Restructured documentation
+- More how-to guides and learning material
+- The NOMAD plugin mechanism
+- Initial integration of external ELNs
+- Many improvement to the computational materials science parsers
+- Log-transfer from OASIS to the public NOMAD infrastructure
+- Revised archive storage format
+- Workflow model and visualizer, updated computational materials science workflow.
+- More flexible Python dependencies to install nomad-lab in various environments
 
 ### v1.1.9
 - ELN improvements for safer file handling

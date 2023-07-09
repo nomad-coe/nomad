@@ -1,5 +1,7 @@
 # Contributing
 
+See also the more detailed [contributing guide](https://nomad-lab.eu/docs/develop/contrib.html) in the documentation.
+
 We maintain two git repositories that you can contribute to. The default choice for
 external contributors should be the [GitHUB project](https://github.com/nomad-coe/nomad)
 project. Please you the normal [GitHub-Flow](https://docs.github.com/get-started/quickstart/github-flow) targeting the `develop` branch.
