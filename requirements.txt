@@ -165,7 +165,7 @@ oauthlib==3.2.2           # via jupyterhub
 openpyxl==3.1.2           # via nomad-lab (pyproject.toml)
 optimade[mongo]==0.22.1   # via nomad-lab (pyproject.toml)
 orjson==3.6.0             # via h5grove, nomad-lab (pyproject.toml)
-packaging==23.0           # via dask, docker, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, matplotlib, mdanalysis, mongomock, nbconvert, pint, scikit-image, sphinx
+packaging==23.0           # via dask, docker, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, matplotlib, mdanalysis, mongomock, nbconvert, pint, scikit-image, sphinx, xarray
 palettable==3.3.0         # via pymatgen
 pamela==1.0.0             # via jupyterhub
 pandas==1.3.5             # via eelsdbconverter (dependencies/parsers/eelsdb/pyproject.toml), ifes-apt-tc-data-modeling, panedr, pymatgen, xarray
@@ -284,7 +284,7 @@ websockets==10.4          # via uvicorn
 werkzeug==2.2.2           # via flask
 wheel==0.38.4             # via astunparse
 wrapt==1.12.1             # via nomad-lab (pyproject.toml)
-xarray==0.20.2            # via nexusutils (dependencies/parsers/nexus/pyproject.toml)
+xarray==2023.1.0          # via nexusutils (dependencies/parsers/nexus/pyproject.toml)
 zarr==2.12.0              # via hyperspy
 zipp==3.11.0              # via importlib-metadata
 zipstream-new==1.1.5      # via nomad-lab (pyproject.toml)
