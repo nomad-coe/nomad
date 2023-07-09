@@ -18,11 +18,6 @@
 
 import numpy as np
 
-try:
-    from quippy import descriptors
-except ImportError:
-    descriptors = None
-
 from nomad.datamodel.metainfo.simulation.system import Descriptors, SOAP
 
 from .normalizer import SystemBasedNormalizer
@@ -30,6 +25,11 @@ from .normalizer import SystemBasedNormalizer
 
 class SoapNormalizer(SystemBasedNormalizer):
     def normalize_system(self, system, is_representative):
+        try:
+            from quippy import descriptors
+        except ImportError:
+            descriptors = None
+
         # Only store SOAP for representative system to start with
         if not is_representative:
             return True
