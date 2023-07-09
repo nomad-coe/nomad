@@ -28,8 +28,9 @@ nav:
       - How-to write parser plugins: plugins/parsers.md
     - Development:
       - How-to get started: develop/setup.md
+      - How-to navigate the code: develop/code.md
+      - How-to contribute: develop/contrib.md
       - Code guidelines: develop/guides.md
-      - How-to contribute: develop/gitlab.md
       - How-to extend the search: develop/search.md
       - How-to write a parser: develop/parsers.md
       - How-to write a normalizer: develop/normalizers.md
@@ -90,8 +91,10 @@ plugins:
         module_name: nomad/mkdocs
     - redirects:
         redirect_maps:
+          'plugins.md': 'plugins/plugins.md'
           'pythonlib.md': 'apis/pythonlib.md'
           'oasis.md': 'oasis/install.md'
+          'develop/gitlab.md': 'develop/contrib.md'
 extra_css:
   - stylesheets/extra.css
 extra_javascript:
