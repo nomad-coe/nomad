@@ -155,8 +155,7 @@ publish prepared data and can be used by communities as a repository for FAIR da
 
 The NOMAD software is used to operate a public and free NOMAD service
 that allows everyone to share and publish materials science research data (https://nomad-lab.eu).
-This public NOMAD service contains over 12 million individual materials science simulations and an increasing number
- of entries describing materials science experiments. NOMAD is publicly available since 2014 and includes data from
+This public NOMAD service contains over 12 million individual materials science simulations and around 50 thousand entries describing materials experiments or synthesis. NOMAD is publicly available since 2014 and includes data from
 over 500 international authors.
 
 The NOMAD software can also be independently hosted by universities and other institutions when
@@ -174,8 +173,8 @@ The [NFDI consortium FAIRmat](https://www.fairmat-nfdi.eu/fairmat)
 uses NOMAD software as the bases for its federated FAIR data infrastructure [@scheffler:2022].
 
 [OPTIMADE](https://www.optimade.org/) [@andersen:2021] is an API specification (with associated
-software implementation) for materials science databases. NOMAD implements OPTIMADE
-and is an active part of the OPTIMADE consortium.
+software implementation) for materials science databases. NOMAD provides an implementation
+of the OPTIMADE specification and is an active part of the OPTIMADE consortium.
 
 Other materials science databases (and the respective software) focus on only publishing
 data that were produced by the group behind the database itself. Typical examples are databases of
@@ -196,7 +195,7 @@ a file-format standard, schemas, and tools for experimental materials science da
 # Acknowledgements
 
 NOMAD software development is funded by the the German National Research Data
- Infrastructure (NDFI) consortia FAIRmat and the NOMAD CoE (EU Horizon 2020, 951786), 
+ Infrastructure (NDFI) consortia FAIRmat (Deutsche Forschungsgemeinschaft DFG, 460197019) and the NOMAD CoE (EU Horizon 2020, 951786), 
 previous financial support was provided by the NOMAD CoE (EU Horizon 2020, 676580) and the Max-Planck Netzwerk BigMax. 
 The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's github and operating the public NOMAD service. 
 
