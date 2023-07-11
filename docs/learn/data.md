@@ -38,7 +38,7 @@ Quantities are related to *properties*, *attributes*, *slots*, *columns*.
 Sub-sections might be called *containment* or *composition*. Sub-sections and quantities
 with a section type also define *relationships*, *links*, or *references*.
 
-Our guide on [how-to write a schema](../schemas/basics.md) explains these concepts with an example.
+Our guide on [how to write a schema](../schemas/basics.md) explains these concepts with an example.
 
 ## Schema
 

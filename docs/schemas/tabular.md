@@ -216,7 +216,7 @@ and supports exporting experimental data in ELN file format. ELNFileFormat is a 
 that contains <b>metadata</b> of your elabFTW project along with all other associated data of
 your experiments.
 
-<b>How-to import elabFTW data into NOMAD:</b>
+<b>How to import elabFTW data into NOMAD:</b>
 
 Go to your elabFTW experiment and export your project as `ELN Archive`. Save the file to your filesystem under
 your preferred name and location (keep the `.eln` extension intact).
@@ -255,7 +255,7 @@ To do so, the necessary information are listed in the table below:
         The password (user credential) to authenticate and login the user. <b>Important Note</b>: this
         information <b>is discarded</b> once the authentication process is finished.
 
-<b>How-to import Labfolder data into NOMAD:</b>
+<b>How to import Labfolder data into NOMAD:</b>
 
 To get your data transferred to NOMAD, first go to NOMAD's upload page and create a new upload.
 Then click on `CREATE ENTRY` button. Select a name for your entry and pick `Labfolder Project Import` from

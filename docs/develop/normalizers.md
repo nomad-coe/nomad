@@ -1,4 +1,4 @@
-# How-to write a normalizer
+# How to write a normalizer
 
 ## Introduction
 
