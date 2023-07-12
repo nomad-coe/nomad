@@ -66,21 +66,3 @@ for archive in archives:
     # get the same data as JSON serializable Python dict
     python_dict = section_run.m_to_dict()
 ```
-
-## From cloned parser projects
-
-You can also clone a parser project to debug or fix a parser:
-
-```sh
-git clone https://github.com/nomad-coe/nomad-parser-vasp.git
-cd nomad-parser-vasp
-git checkout metainfo-refactor
-python -m nomad.cli nomad parse --show-archive <path-to-your-vasp-file>
-```
-
-Our parsers are hosted in GitHub.
-They are in the [nomad-coe](https://github.com/nomad-coe) organization.
-They are typically named `nomad-parser-<code-name>`.
-The parser version that fits the NOMAD v1 metainfo schema is typically in the `metainfo-refactor` branch.
-Run the CLI with `python -m nomad.cli` to automatically include the current working directory in the Python path.
-This will use the cloned parser code over the installed parser code.
