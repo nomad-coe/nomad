@@ -11,7 +11,7 @@ programming interfaces (APIs). More specifically [RESTful HTTP APIs](https://en.
 to use NOMAD as a set of resources (think data) that can be uploaded, accessed, downloaded,
 searched for, etc. via [HTTP requests](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol).
 
-You can get an overview on all NOMAD APIs on the [API page]({{ nomad_url() }}/v1/gui/analyze/apis).
+You can get an overview on all NOMAD APIs on the [API page]({{ nomad_url() }}../../gui/analyze/apis).
 We will focus here on NOMAD's main API (v1). In fact, this API is also used by
 the web interface and should provide everything you need.
 
@@ -31,15 +31,15 @@ REST API's use resources located via URLs. You access URLs with *curl* or *wget*
 curl "{{ nomad_url() }}/v1/entries?results.material.elements=Ti&results.material.elements=O" | python -m json.tool
 ```
 
-<h4> Use Python and *requests*</h4>
+<h4> Use Python and requests</h4>
 
 Requests is a popular Python library to use the internets HTTP protocol that is used to
 communicate with REST APIs. Install with `pip install requests`.
 See [the initial example](#using-request).
 
-<h4>Use our *dashboard*</h4>
+<h4>Use our dashboard</h4>
 
-The NOMAD API has an [OpenAPI dashboard]({{ nomad_url() }}/v1/api/v1). This is an interactive documentation of all
+The NOMAD API has an [OpenAPI dashboard]({{ nomad_url() }}/v1). This is an interactive documentation of all
 API functions that allows you to try these functions in the browser.
 
 <h4>Use NOMAD's Python package</h4>
