@@ -20,6 +20,7 @@ pip install --prefer-binary -r requirements-dev.txt
 pip install -e ".[infrastructure,parsing,dev]"
 
 # Build documentation
+sh scripts/generate_docs_artifacts.sh
 mkdocs build
 mkdir -p nomad/app/static/docs
 cp -r site/* nomad/app/static/docs
