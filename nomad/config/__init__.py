@@ -239,7 +239,8 @@ plugins = Plugins(options={
         mainfile_contents_re=(r'http://qboxcode.org')),
     'parsers/quantumespresso': Parser(
         python_package='electronicparsers.quantumespresso',
-        mainfile_contents_re=(r'(Program PWSCF.*starts)|(Current dimensions of program PWSCF are)')),
+        mainfile_contents_re=(r'(Program PWSCF.*starts)|(Current dimensions of program PWSCF are)'),
+        supported_compressions=["gz", "bz2", "xz"]),
     'parsers/siesta': Parser(
         python_package='electronicparsers.siesta',
         mainfile_contents_re=(
