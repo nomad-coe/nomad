@@ -55,7 +55,7 @@ import sys
 from nomad.client import parse, normalize_all
 
 # match and run the parser
-archives = parse(sys.argv[1])
+archives = parse('path/to/you/file')
 # run all normalizers
 for archive in archives:
     normalize_all(archive)
