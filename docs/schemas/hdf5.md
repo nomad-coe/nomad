@@ -32,8 +32,12 @@ HDF5 files. Structuring HDF5 files and processed data alike, might simplify late
 NOMAD clients (e.g. NOMAD UI) can pick up on these `HDF5Reference` quantities and
 provide respective functionality (e.g. showing a H5Web view).
 
-Code example, coming soon ...
+!!! attention
+
+    This part of the documentation is still work in progress.
 
 ## Metadata for large quantities
 
-Coming soon ...
+!!! attention
+
+    This will be implemented and documented soon.

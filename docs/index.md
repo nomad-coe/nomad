@@ -69,9 +69,9 @@ NOMAD is an open source project that warmly welcomes community projects, contrib
 NOMAD is developed by FAIRmat, an open NFDI consortium of over 30 partners building a shared
 data structure of for materials science together.
 
-- [Get support](https://nomad-lab.eu/nomad-lab/help.html)
+- [Get support](https://nomad-lab.eu/nomad-lab/support.html)
 - [Join our online forum](https://matsci.org/c/nomad/32)
-- [Contribute](https://nomad-lab.eu/nomad-lab/source-code.html)
+- [Contribute](develop/contrib.md)
 - [Roadmap](https://nomad-lab.eu/nomad-lab/features.html)
 - [Code guidelines](develop/guides.md)
 
