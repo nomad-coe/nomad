@@ -24,6 +24,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
 from nomad.datamodel.data import ArchiveSection
 
 from ..common import FastAccess
+from nomad.units import ureg
 
 m_package = Package()
 
@@ -248,8 +249,8 @@ class Atoms(MSection):
             from ase import Atoms
             return Atoms(
                 symbols=self.labels,
-                positions=self.positions.m,
-                cell=self.lattice_vectors.m,
+                positions=self.positions.to(ureg.angstroms).m,
+                cell=self.lattice_vectors.to(ureg.angstroms).m,
                 pbc=self.periodic
             )
         except Exception as e:
