@@ -174,11 +174,14 @@ export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...p
     return null
   }
 
-  // The portal is disabled for this tooltip because this button causes a
-  // navigation that otherwise leaves the popup opened (the Tooltip state does
-  // not get updated since the page is cached and a new page is shown
-  // immediately).
-  return <Tooltip PopperProps={{disablePortal: true}} title="Go to the entry page" placement="right-start">
+  // The exit transition is disabled for this tooltip because this button causes
+  // a navigation that does not fully remove the button from the DOM (the page
+  // is cached and a new page is shown immediately). If the exit transition is
+  // left on, the button can flicker on the new page.
+  return <Tooltip
+    TransitionProps={{exit: false}}
+    title="Go to the entry page"
+  >
     <EntryButton
       {...props}
       entryId={data.entry_id}

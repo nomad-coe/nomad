@@ -319,6 +319,22 @@ DatatableHeader.propTypes = {
 }
 
 const useDatatableRowStyles = makeStyles(theme => ({
+  // The default transparent hover/selection colors are overridden here in order
+  // to make the last actions column work with a 'sticky' positioning.
+  row: {
+    backgroundColor: '#fff'
+  },
+  rowHover: {
+    '&:hover': {
+      backgroundColor: '#f5f5f5 !important'
+    }
+  },
+  rowSelected: {
+    backgroundColor: `${lighten(theme.palette.secondary.light, 0.85)} !important`,
+    '&:hover': {
+      backgroundColor: `${lighten(theme.palette.secondary.light, 0.85)} !important`
+    }
+  },
   rowWithDetails: {
     '& > *': {
       borderBottom: 'unset'
@@ -326,6 +342,9 @@ const useDatatableRowStyles = makeStyles(theme => ({
   },
   rowWithUncollapsedDetails: {
     backgroundColor: `${theme.palette.primary.main} !important`,
+    '&:hover': {
+      backgroundColor: `${theme.palette.primary.main} !important`
+    },
     '& *': {
       fontWeight: 'bold',
       color: `${theme.palette.primary.contrastText} !important`
@@ -342,7 +361,6 @@ const useDatatableRowStyles = makeStyles(theme => ({
     paddingBottom: 0,
     position: 'sticky',
     right: 0,
-    zIndex: 1,
     backgroundColor: 'inherit'
   },
   detailsCell: {
@@ -384,6 +402,11 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
 
   return <>
     <TableRow
+      classes={{
+        root: classes.row,
+        hover: classes.rowHover,
+        selected: classes.rowSelected
+      }}
       className={clsx({
         [classes.rowWithUncollapsedDetails]: uncollapsed,
         [classes.rowWithDetails]: details,
