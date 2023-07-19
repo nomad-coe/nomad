@@ -65,9 +65,8 @@ function useReferecedSectionDef(quantityDef) {
   }, [quantityDef])
 }
 
-const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFailed, onCanceled}) => {
+const CreateNewReferenceDialog = React.memo(({allEntryDataSections, open, onSuccess, onFailed, onCanceled}) => {
   const classes = useStyles()
-  const dataStore = useDataStore()
   const {deploymentUrl, uploadId} = useEntryStore('*')
   const {user, api} = useApi()
   const {raiseError} = useErrors()
@@ -75,10 +74,10 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
   const [suggestions, setSuggestions] = useState([])
   const [selectedUpload, setSelectedUpload] = useState(null)
   const [askForOverwrite, setAskForOverwrite] = useState(false)
-  const referencedSectionDef = useReferecedSectionDef(quantityDef)
-  const [selectedSection, setSelectedSection] = useState(referencedSectionDef)
+  const [selectedSection, setSelectedSection] = useState()
 
   useEffect(() => {
+    setSelectedSection(allEntryDataSections?.[0])
     const prepareUploads = async () => {
       const response = await api.get(`/uploads?is_published=false&page_size=10000`)
       const uploads = response.data.map(upload => {
@@ -110,10 +109,7 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
     if (user?.sub && open) {
       prepareUploads()
     }
-  }, [api, raiseError, uploadId, user?.sub, open])
-
-  const inheritingSections = useMemo(() => dataStore.getAllInheritingSections(referencedSectionDef), [dataStore, referencedSectionDef])
-  const inheritingSectionsSuggestions = useMemo(() => [referencedSectionDef].concat(inheritingSections), [inheritingSections, referencedSectionDef])
+  }, [api, raiseError, uploadId, user?.sub, open, allEntryDataSections])
 
   const createNewEntry = useCallback((fileName, overwrite = false) => {
     const archive = {
@@ -175,7 +171,7 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
 
   return <React.Fragment>
     <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='create-reference-dialog'>
-      <DialogTitle>Create new reference</DialogTitle>
+      <DialogTitle>{selectedSection?.name ? `Create new reference of type ${selectedSection.name}` : `Create new reference`}</DialogTitle>
       <DialogContent>
         <AutoComplete
           options={suggestions}
@@ -187,8 +183,8 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
           getOptionLabel={(option) => option.label}
           renderInput={(params) => <TextField {...params} label="Target upload" variant='filled' />}
         />
-        {inheritingSections.length > 0 ? <AutoComplete
-          options={inheritingSectionsSuggestions}
+        {allEntryDataSections?.length > 1 ? <AutoComplete
+          options={allEntryDataSections}
           style={{width: '100%', paddingBottom: 10}}
           onChange={(event, value) => setSelectedSection(value)}
           value={selectedSection}
@@ -227,7 +223,7 @@ const CreateNewReferenceDialog = React.memo(({quantityDef, open, onSuccess, onFa
   </React.Fragment>
 })
 CreateNewReferenceDialog.propTypes = {
-  quantityDef: PropTypes.object.isRequired,
+  allEntryDataSections: PropTypes.object.isRequired,
   open: PropTypes.bool,
   onSuccess: PropTypes.func,
   onFailed: PropTypes.func,
@@ -257,7 +253,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   const {raiseError} = useErrors()
   const [error, setError] = useState({error: undefined, processingError: undefined})
   const lane = useLane()
-
+  const dataStore = useDataStore()
   const referencedSectionDef = useReferecedSectionDef(quantityDef)
   const referencedSectionQualifiedName = useMemo(() => referencedSectionDef?._qualifiedName, [referencedSectionDef])
 
@@ -376,10 +372,15 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
     return React.cloneElement(endAdornment, {}, children)
   }, [])
 
+  const allEntryDataSections = useMemo(() => {
+    const inheritingSections = dataStore.getAllInheritingSections(referencedSectionDef)
+    const allSections = [referencedSectionDef].concat(inheritingSections)
+    return allSections.filter(section => !!section._allBaseSections.find(baseSection => baseSection._qualifiedName === 'nomad.datamodel.data.EntryData'))
+  }, [dataStore, referencedSectionDef])
+
   const actions = useMemo(() => {
-    const isEntryData = referencedSectionDef?._allBaseSections.find(section => section._qualifiedName === 'nomad.datamodel.data.EntryData')
     const actions = []
-    if (!value && isEntryData) {
+    if (!value && allEntryDataSections?.length > 0) {
       actions.push(<IconButton key={'createAction'} size={'small'} disabled={!user?.sub} onClick={() => setCreateEntryDialogOpen(true)}>
         <Tooltip title="Create and assign a new reference">
           <AddIcon/>
@@ -407,7 +408,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
       actions.push(<ItemButton key={'navigateAction'} size="small" itemKey={itemKey}/>)
     }
     return actions
-  }, [value, lane, itemKey, user, error.error, referencedSectionDef])
+  }, [value, lane, itemKey, user, error.error, allEntryDataSections])
 
   const referencedValue = useMemo(() => {
     const value = entry?.value?.split('#')[1] || ''
@@ -449,7 +450,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
             )
           }}
         />
-        <CreateNewReferenceDialog open={createEntryDialogOpen} quantityDef={quantityDef} onSuccess={handleSuccess} onFailed={handleFailed} onCanceled={handleCanceled}/>
+        <CreateNewReferenceDialog open={createEntryDialogOpen} allEntryDataSections={allEntryDataSections} onSuccess={handleSuccess} onFailed={handleFailed} onCanceled={handleCanceled}/>
       </Box>
       <SectionSelectDialog
         open={open}

@@ -98,7 +98,7 @@ const testSectionSelectAutocomplete = async () => {
 
 const testCreateReferenceDialog = async () => {
   const dialog = screen.getByTestId('create-reference-dialog')
-  expect(within(dialog).queryByText('Create new reference')).toBeInTheDocument()
+  expect(within(dialog).queryByText('Create new reference of type Substance')).toBeInTheDocument()
 
   const createButton = within(dialog).getByRole('button', { name: /create/i })
   expect(createButton).toBeDisabled()
@@ -115,7 +115,7 @@ const testCreateReferenceDialog = async () => {
 
 test.each([
   [
-    'referenceEditQuantity',
+    'referenceEditQuantity 1',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity',
     '4WgzB6xcTzWB_Xk9UNUH4HB3IRKJ',
