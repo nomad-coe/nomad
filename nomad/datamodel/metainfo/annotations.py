@@ -332,46 +332,62 @@ class BrowserAnnotation(AnnotationModel):
 class TabularMode(str, Enum):
     row = 'row'
     column = 'column'
-    root = 'root'
     entry = 'entry'
 
 
-class CurrentEntryOptions(BaseModel):
-    row_to_sections: Optional[List[str]] = Field([], description='''
-        A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from individual rows
-        of the excel/csv file (i.e. in the row mode). Each path is a
-        `/` separated list of nested sub-sections. The targeted sub-sections, will be
-        considered when mapping table rows to quantities.
-        Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    column_to_sections: Optional[List[str]] = Field([], description='''
-        A `list` of paths to the sub-sections where the tabular quantities are to be filled from the
-        entire column of the excel/csv file (i.e. in the column mode). Each path is a
-        `/` separated list of nested sub-sections. The targeted sub-sections, will be
-        considered when mapping table columns to quantities.
-        Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-
-    def get_options(self):
-        return self.column_to_sections, self.row_to_sections
+class TabularParsingOptions(BaseModel):
+    skiprows: int = Field(None, description='Number of rows to skip')
+    sep: str = Field(None, description='Character identifier of a separator')
+    comment: str = Field(None, description='Character identifier of a commented line')
+    separator: str = Field(None, description='Alias for `sep`')
 
 
-class NewEntryOptions(CurrentEntryOptions):
-    row_to_entries: Optional[List[str]] = Field([], description='''
-        A `list` of paths to the (sub)sections where the tabular quantities are to be filled from individual rows
+class TabularFileModeEnum(str, Enum):
+    current_entry = 'current_entry'
+    single_new_entry = 'single_new_entry'
+    multiple_new_entries = 'multiple_new_entries'
+
+
+class TabularMappingOptions(BaseModel):
+    mapping_mode: TabularMode = Field(TabularMode.column, description='''
+    This controls the behaviour of mapping of the extracted data onto NOMAD schema.
+
+    The supported values are:
+
+    `row`: A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from
+        individual rows of the excel/csv file (i.e. in the row mode). Each path is a `/` separated list of
+        nested sub-sections. The targeted sub-sections, will be considered when mapping table rows to quantities.
+        Has to be used to annotate the quantity that holds the path to the `.csv` or excel file.<br/>
+    `column`: A `list` of paths to the sub-sections where the tabular quantities are to be filled from the
+        entire column of the excel/csv file (i.e. in the column mode). Each path is a `/`
+        separated list of nested sub-sections. The targeted sub-sections, will be
+        considered when mapping table columns to quantities. Has to be used to annotate the quantity that
+        holds the path to the `.csv` or excel file.<br/>
+    `enrty`: A `list` of paths to the (sub)sections where the tabular quantities are to be filled from individual rows
         of the excel/csv file, to create distinct entries. Each path is a
         `/` separated list of nested sub-sections. The targeted (sub)sections, will be
         considered when mapping table rows to quantities. The schema of the resultant entry follows the
         (sub)section's schema. In order to parse the entire schema using entry mode, then set the
         first item in this list to `root`.
         Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
+        holds the path to the `.csv` or excel file.<br/>
     ''')
+    file_mode: TabularFileModeEnum = Field(None, description='''
+    This controls the behaviour of the parser towards working physical files in file system.
 
-    def get_options(self):
-        return self.column_to_sections, self.row_to_sections, self.row_to_entries
+    The supported values are:
+
+    `current_entry`: Processing the data into the same NOMAD entry.<br/>
+    `single_new_entry`: Creating a new entry and processing the data into this new NOMAD entry.<br/>
+    `multiple_new_entries`: Creating many new entries and processing the data into these new NOMAD entries.<br/>
+    ''')
+    with_file: bool = Field(False, description='''
+    A boolean variable to set creation of new file(s) for each new entry. By default it is set to false
+    ''')
+    sections: List[str] = Field(None, description='''
+    A `list` of paths to the (sub)sections where the tabular quantities are to be filled from the data
+    extracted from the tabular file.
+    ''')
 
 
 class TabularParserAnnotation(AnnotationModel):
@@ -380,49 +396,31 @@ class TabularParserAnnotation(AnnotationModel):
     interprets the contents of this file as tabular data. Supports both
     `.csv` and Excel files.
     '''
+    parsing_options: TabularParsingOptions = Field(TabularParsingOptions(), description='''
+        Options on how to extract the data from csv/xlsx file. Under the hood, NOMAD uses pandas `Dataframe`
+        to parse the data from tabular files. These are the available options that can be passed down to the parser.
 
-    comment: str = Field(None, description='''
-        The character denoting the commented lines in `.csv` files. This is passed to
-        pandas to parse the file. Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
+        The supported values are:
+
+        `skiprows`: Number of rows to be skipped while reading the file.<br/>
+        `sep`: The character used to separate cells (specific to csv files).<br/>
+        `comment`: The character denoting the commented lines.<br/>
+        `separator`: An alias for `sep`.<br/>
     ''')
-    sep: str = Field(None, description='''
-        The character used to separate cells in a `.csv` file. This is passed to
-        pandas to parse the file. Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    skiprows: int = Field(None, description='''
-        Number of `.csv` file rows that are skipped. This is passed to
-        pandas to parse the file. Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    separator: str = Field(None, description='An alias for `sep`')
-    target_sub_section: List[str] = Field([], description='''
-        this feature is deprecated and will be removed in future release. Use `row_sections` instead.
-        A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from individual rows
-        of the excel/csv file (i.e. in the row mode). Each path is a
-        `/` separated list of nested sub-sections. The targeted sub-sections, will be
-        considered when mapping table rows to quantities.
-        Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    mode: Optional[TabularMode] = Field(TabularMode.column, description='''
-        This is optional. It will be removed in future release.
-        Either `column`, `row`, or `entry`. With `column` the whole column is mapped into a quantity
-        (needs to be a list).
-        With `row` each row (and its cells) are mapped into instances of a repeating
-        sub section, where each section represents a row (quantities need to be scalars).
-        With `entry` new entry is created and populated from each row (and its cells) where
-        all quantities should remain to be scalars. Has to be used to annotate the quantity that
-        holds the path to the `.csv` or excel file.
-    ''')
-    current_entry: CurrentEntryOptions = Field([], description='''
-        Append a list of `row_sections` and `column_sections` here to parse the tabular data in the same NOMAD
-        entry
-    ''')
-    new_entry: List[NewEntryOptions] = Field([], description='''
-        Append a list of `row_sections` and `column_sections` and `row_to_entries` here to parse the tabular data
-        in new entries.
+    mapping_options: List[TabularMappingOptions] = Field([], description='''
+        A list of directives on how to map the extracted data from the csv/xlsx file to NOMAD. Each directive
+        is a distinct directive, which allows for more modular definition of your tabular parser schema.
+        If no item is provided, the entire schema is treated to be parsed under column mode.
+
+        The supported values in each item of this list are:
+
+        `mapping_mode`: A `list` of paths to the repeating sub-sections where the tabular quantities are to be filled from
+            individual rows of the excel/csv file (i.e. in the row mode). Each path is a `/` separated list of
+            nested sub-sections. The targeted sub-sections, will be considered when mapping table rows to quantities.
+            Has to be used to annotate the quantity that holds the path to the `.csv` or excel file.<br/>
+        `file_mode`: The character used to separate cells (specific to csv files).<br/>
+        `with_file`: A boolean variable to dump the processed/parsed data into a ascii-formatted YAML/JSON file.<br/>
+        `sections`: The character denoting the commented lines.<br/>
     ''')
 
 

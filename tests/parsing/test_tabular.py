@@ -21,6 +21,7 @@ import os
 import os.path
 import re
 import datetime
+import yaml
 
 from nomad import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
@@ -33,14 +34,25 @@ from nomad.processing import ProcessStatus
 from nomad import files
 
 
-def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
-    base_case = f'''{quantity_name}:
-            type: str
-            {shape}
-            m_annotations:
-              tabular:
-                name: {header_name}'''
-    return re.sub(r'\n\s*\n', '\n', base_case)
+def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']', to_dict=False):
+    if to_dict:
+        return {quantity_name: {
+            'type': 'str',
+            'shape': shape,
+            'm_annotations': {
+                'tabular': {
+                    'name': header_name
+                }
+            }
+        }}
+    else:
+        base_case = f'''{quantity_name}:
+                type: str
+                {shape}
+                m_annotations:
+                  tabular:
+                    name: {header_name}'''
+        return re.sub(r'\n\s*\n', '\n', base_case)
 
 
 @pytest.mark.parametrize('schema', [
@@ -60,7 +72,8 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                                             type: str
                                             m_annotations:
                                                 tabular_parser:
-                                                    comment: '#'
+                                                    parsing_options:
+                                                        comment: '#'
                                         quantity_1:
                                             type: str
                                             m_annotations:
@@ -87,7 +100,8 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                                             type: str
                                             m_annotations:
                                                 tabular_parser:
-                                                    comment: '#'
+                                                    parsing_options:
+                                                        comment: '#'
                                         quantity_1:
                                             type: str
                                             m_annotations:
@@ -116,7 +130,8 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                                                 A reference to an uploaded .xlsx
                                             m_annotations:
                                                 tabular_parser:
-                                                    comment: '#'
+                                                    parsing_options:
+                                                        comment: '#'
                                         quantity_1:
                                             type: str
                                             m_annotations:
@@ -146,10 +161,13 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                                 type: str
                                 m_annotations:
                                     tabular_parser:
-                                        comment: '#'
-                                        current_entry:
-                                            row_to_sections:
-                                                - test_subsection
+                                        parsing_options:
+                                            comment: '#'
+                                        mapping_options:
+                                            -   mapping_mode: row
+                                                file_mode: current_entry
+                                                sections:
+                                                    -  test_subsection
                         sub_sections:
                             test_subsection:
                                 repeats: true
@@ -222,12 +240,17 @@ def quantity_generator(quantity_name, header_name, shape='shape: [\'*\']'):
                             default: datafile.xlsx
                             m_annotations:
                                 tabular_parser:
-                                    comment: '#'
-                                    current_entry:
-                                        row_to_sections:
-                                            - MySubsection2
-                                        column_to_sections:
-                                            - MySubsection1
+                                    parsing_options:
+                                        comment: '#'
+                                    mapping_options:
+                                        -   mapping_mode: row
+                                            file_mode: current_entry
+                                            sections:
+                                                -  MySubsection2
+                                        -   mapping_mode: column
+                                            file_mode: current_entry
+                                            sections:
+                                                -  MySubsection1
                     sub_sections:
                         MySubsection1:
                             section: '#/MyColumnMode'
@@ -293,48 +316,47 @@ def test_tabular_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra
         assert entry.process_status == ProcessStatus.SUCCESS
 
 
-@pytest.mark.parametrize('test_case,section_placeholder,sub_sections_placeholder,quantity_placeholder,csv_content', [
-    pytest.param('test_1', '', '', quantity_generator('quantity_0', 'header_0'),
-                 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple'),
-    pytest.param('test_2', f'''Mysection:
-        quantities:
-          {quantity_generator('quantity_0', 'header_0')}
-    ''', '''sub_sections:
-          my_substance:
-            section: Mysection''', '', 'header_0,header_1\n0_0,0_1\n1_0,1_1',
-                 id='nested'),
+@pytest.mark.parametrize('test_case, sub_sections_placeholder, mapping_options_placeholder, csv_content', [
+    pytest.param('test_1', {}, [], 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple'),
+    pytest.param(
+        'test_2', {'my_substance': {'section': '#/Mysection'}},
+        [{'mapping_mode': 'column', 'file_mode': 'current_entry', 'sections': ['my_substance']}],
+        'header_0,header_1\n0_0,0_1\n1_0,1_1', id='nested'),
 ])
-def test_tabular_column_mode(raw_files, monkeypatch, test_case, section_placeholder, quantity_placeholder,
-                             sub_sections_placeholder, csv_content):
+def test_tabular_column_mode(raw_files, monkeypatch, test_case, sub_sections_placeholder, mapping_options_placeholder,
+                             csv_content):
     '''
     Testing the TableData normalizer using default mode (column mode). This feature creates a list of values
     out of the given column in the excel/csv file for the given quantity.
     '''
-    base_schema = '''definitions:
-    name: 'Eln'
-    sections:
-      <section_placeholder>
-      My_schema:
-        base_sections:
-           - nomad.parsing.tabular.TableData
-        quantities:
-          data_file:
-            type: str
-            description: <description_placeholder>
-            m_annotations:
-              tabular_parser:
-                comment: '#'
-          <quantity_placeholder>
-        <sub_sections_placeholder>
-data:
-  m_def: My_schema
-  data_file: test.my_schema.archive.csv'''
-
-    schema = base_schema.replace('<section_placeholder>', section_placeholder)\
-        .replace('<sub_sections_placeholder>', sub_sections_placeholder)\
-        .replace('<quantity_placeholder>', quantity_placeholder)\
-        .replace('<description_placeholder>', test_case)
-    schema = re.sub(r'\n\s*\n', '\n', schema)
+    base_schema = {
+        'definitions': {
+            'name': 'Eln',
+            'sections': {
+                'Mysection': {'quantities': quantity_generator('quantity_1', 'header_1', shape=['*'], to_dict=True)},
+                'My_schema': {
+                    'base_section': 'nomad.parsing.tabular.TableData',
+                    'quantities': {
+                        'data_file': {
+                            'type': 'str', 'description': test_case,
+                            'm_annotations': {
+                                'tabular_parser': {
+                                    'parsing_options': {
+                                        'comment': '#'
+                                    },
+                                    'mapping_options': mapping_options_placeholder
+                                }
+                            }
+                        },
+                        'quantity_0': {'type': 'str', 'shape': ['*'], 'm_annotations': {'tabular': {'name': 'header_0'}}}
+                    },
+                    'sub_sections': sub_sections_placeholder
+                }
+            }
+        },
+        'data': {'m_def': 'My_schema', 'data_file': 'test.my_schema.archive.csv'}
+    }
+    schema = yaml.dump(base_schema)
     csv_file, schema_file = get_files(schema, csv_content)
 
     class MyContext(ClientContext):
@@ -350,70 +372,64 @@ data:
     if 'test_1' in schema:
         assert main_archive.data.quantity_0 == ['0_0', '1_0']
     elif 'test_2' in schema:
-        assert main_archive.data.my_substance.quantity_0 == ['0_0', '1_0']
+        assert main_archive.data.my_substance.quantity_1 == ['0_1', '1_1']
 
 
-@pytest.mark.parametrize('test_case,section_placeholder,target_sub_section_placeholder,sub_sections_placeholder,csv_content', [
-    pytest.param('test_1', '', '- my_substance1', '''my_substance1:
-          repeats: true
-          section:
-            base_section: Substance1''', 'header_0,header_1\n0_0,0_1\n1_0,1_1', id='simple_1_section'),
-    pytest.param('test_2', f'''Substance2:
-        quantities:
-          {quantity_generator('quantity_2', 'header_2', shape='')}
-    ''', '''- my_substance1
-                    - my_substance2''', '''my_substance1:
-          repeats: true
-          section:
-            base_section: Substance1
-        my_substance2:
-          repeats: true
-          section:
-            base_section: Substance2''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='simple_2_sections'),
-    pytest.param('test_3', '', '- subsection_1/my_substance1', f'''subsection_1:
-          section:
-            sub_sections:
-              my_substance1:
-                repeats: true
-                section:
-                  base_section: Substance1''', 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2', id='nested')])
+@pytest.mark.parametrize('test_case, section_placeholder, target_sub_section_placeholder, sub_sections_placeholder, csv_content', [
+    pytest.param('test_1', None, ['my_substance1'],
+                 {'my_substance1': {'repeats': 'true', 'section': {'base_section': 'Substance1'}}},
+                 'header_0,header_1\n0_0,0_1\n1_0,1_1',
+                 id='simple_1_section'),
+    pytest.param('test_2',
+                 {'Substance2': {'quantities': quantity_generator('quantity_2', 'header_2', shape='', to_dict=True)}},
+                 ['my_substance1', 'my_substance2'],
+                 {
+                     'my_substance1': {'repeats': 'true', 'section': {'base_section': 'Substance1'}},
+                     'my_substance2': {'repeats': 'true', 'section': {'base_section': 'Substance2'}}
+                 },
+                 'header_0,header_1,header_2\n0_0,0_1,0_2\n1_0,1_1,1_2',
+                 id='simple_2_sections'),
+    pytest.param('test_3', None,
+                 ['subsection_1/my_substance1'],
+                 {'subsection_1': {'section': {'sub_sections': {
+                     'my_substance1': {'repeats': 'true', 'section': {'base_section': 'Substance1'}}
+                 }}}},
+                 'header_0,header_1\n0_0,0_1\n1_0,1_1',
+                 id='nested')])
 def test_tabular_row_mode(raw_files, monkeypatch, test_case, section_placeholder, target_sub_section_placeholder,
                           sub_sections_placeholder, csv_content):
     '''
     Testing the TableData normalizer with mode set to row. This feature is used to create a section out of each row in a
     given sheet_name of an excel file or a csv file, and append it to the repeating (sub)section(s).
     '''
-    base_schema = f'''definitions:
-  name: 'Eln'
-  sections:
-    Substance1:
-      quantities:
-        {quantity_generator('quantity_4', 'header_0', shape='')}
-    <section_placeholder>
-    My_schema:
-      base_sections:
-       - nomad.parsing.tabular.TableData
-      quantities:
-        data_file:
-          type: str
-          description: <description_placeholder>
-          m_annotations:
-            tabular_parser:
-              comment: '#'
-              current_entry:
-                row_to_sections:
-                    <target_sub_section_placeholder>
-      sub_sections:
-        <sub_sections_placeholder>
-data:
-  m_def: My_schema
-  data_file: test.my_schema.archive.csv'''
-
-    schema = base_schema.replace('<section_placeholder>', section_placeholder) \
-        .replace('<target_sub_section_placeholder>', target_sub_section_placeholder) \
-        .replace('<sub_sections_placeholder>', sub_sections_placeholder) \
-        .replace('<description_placeholder>', test_case)
-    schema = re.sub(r'\n\s*\n', '\n', schema)
+    base_schema = {
+        'definitions': {
+            'name': 'Eln',
+            'sections': {
+                'Substance1': {'quantities': quantity_generator('quantity_4', 'header_0', shape='', to_dict=True)},
+                'Substance2': {'quantities': quantity_generator('quantity_2', 'header_2', shape='', to_dict=True)},
+                'My_schema': {
+                    'base_section': 'nomad.parsing.tabular.TableData',
+                    'quantities': {'data_file': {
+                        'type': 'str', 'description': test_case,
+                        'm_annotations': {
+                            'tabular_parser': {
+                                'parsing_options': {
+                                    'comment': '#'
+                                },
+                                'mapping_options': [
+                                    {'mapping_mode': 'row', 'file_mode': 'current_entry', 'sections': target_sub_section_placeholder}
+                                ]
+                            }
+                        }
+                    }},
+                    'sub_sections': sub_sections_placeholder
+                }
+            }
+        },
+        'data': {'m_def': 'My_schema', 'data_file': 'test.my_schema.archive.csv'}
+    }
+    schema = yaml.dump(base_schema)
     csv_file, schema_file = get_files(schema, csv_content)
 
     class MyContext(ClientContext):
@@ -459,7 +475,8 @@ data:
                               type: str
                               m_annotations:
                                 tabular_parser:
-                                  comment: '#'
+                                    parsing_options:
+                                      comment: '#'
                             header_0:
                                 type: str
                             header_1:
@@ -487,10 +504,13 @@ data:
                                 type: str
                                 m_annotations:
                                     tabular_parser:
-                                        comment: '#'
-                                        current_entry:
-                                            row_to_sections:
-                                                - MySubsection
+                                        parsing_options:
+                                            comment: '#'
+                                        mapping_options:
+                                        -   mapping_mode: row
+                                            file_mode: current_entry
+                                            sections:
+                                            -   MySubsection
                         sub_sections:
                             MySubsection:
                                 repeats: true
@@ -530,9 +550,13 @@ data:
                   default: 'placeholder'
                   m_annotations:
                     tabular_parser:
-                        current_entry:
-                            row_to_sections:
-                                - subsection_1
+                        parsing_options:
+                            comment: '#'
+                        mapping_options:
+                        -   mapping_mode: row
+                            file_mode: current_entry
+                            sections:
+                            -   subsection_1
               sub_sections:
                 subsection_1:
                   repeats: True
@@ -603,10 +627,13 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
                             type: str
                             m_annotations:
                                 tabular_parser:
-                                    comment: '#'
-                                    current_entry:
-                                        row_to_sections:
-                                            - MySubsection
+                                    parsing_options:
+                                        comment: '#'
+                                    mapping_options:
+                                    -   mapping_mode: row
+                                        file_mode: current_entry
+                                        sections:
+                                        -   MySubsection
                     sub_sections:
                         MySubsection:
                             repeats: true
@@ -641,10 +668,13 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
                             type: str
                             m_annotations:
                                 tabular_parser:
-                                    comment: '#'
-                                    current_entry:
-                                        row_to_sections:
-                                            - MySubsection
+                                    parsing_options:
+                                        comment: '#'
+                                    mapping_options:
+                                    -   mapping_mode: row
+                                        file_mode: current_entry
+                                        sections:
+                                        -   MySubsection
                     sub_sections:
                         MySubsection:
                             repeats: true

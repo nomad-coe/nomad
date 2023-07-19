@@ -15,10 +15,11 @@ definitions:
           # quantity as files. It will try to interpret the files and fill
           # quantities in this section (and sub_sections) with the column
           # data of .csv or .xlsx files.
-              comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
-              # column_sections: # Here the relative path to the sub_sections that are supposed to be filled
-              # from the given excel/csv file. Leaving this empty causes the normalizer to
-              # parse the entire schema under column mode.
+              parsing_options:
+                comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
+                # column_sections: # Here the relative path to the sub_sections that are supposed to be filled
+                # from the given excel/csv file. Leaving this empty causes the normalizer to
+                # parse the entire schema under column mode.
         My_Quantity:
           type: str
           shape: ['*']

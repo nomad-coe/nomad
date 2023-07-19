@@ -38,30 +38,37 @@ definitions:
           type: str
           m_annotations:
             tabular_parser:
-              sep: ','  
-              comment: '#'
-              column_sections: # list of subsections to be parsed by data_file_1 in column mode
-                - MyColSubsection
+              parsing_options:
+                sep: ','  
+                comment: '#'
+              mapping_options:
+                - mapping_mode: column
+                  file_mode: current_entry
+                  sections: # list of subsections to be parsed by data_file_1 in column mode
+                    - MyColSubsection
         data_file_2: # This data file quantity is responsible to fill the `MyRowSubsection`,
         # `MySpecialRowSubsection`, and `MyEntrySubsection` subsections as
         # denoted by both entry_sections and row_sections.
           type: str
           m_annotations:
             tabular_parser:
-              current_entry:
-                row_to_sections:
-                  - MyRowSubsection/MyRowCollection
-                  - MySpecialRowSubsection
-              new_entry:
-                - row_to_entries:
-                  - MyEntrySubsection
-              sep: ','  
-              comment: '#'
-              target_sub_section: # list of subsections to be parsed by data_file_2 in row mode
-                - MyRowSubsection/MyRowCollection
-                - MySpecialRowSubsection
-              entry_sections: # list of subsections to be parsed by data_file_2 in entry mode
-                - MyEntrySubsection
+              parsing_options:
+                sep: ','  
+                comment: '#'
+              mapping_options:
+                - mapping_mode: row
+                  file_mode: current_entry
+                  sections: # list of subsections to be parsed by data_file_1 in row mode
+                    - MyRowSubsection/MyRowCollection
+                - mapping_mode: row
+                  file_mode: current_entry
+                  sections: # list of subsections to be parsed by data_file_1 in row mode
+                    - MySpecialRowSubsection
+                - mapping_mode: entry
+                  file_mode: multiple_new_entries
+                  with_file: true
+                  sections: # list of subsections to be parsed by data_file_1 in row mode
+                    - MyEntrySubsection
         MyRootQuantity: # This quantity lives in the root level which is parsed in the column mode
           type: str
           shape: ['*']
