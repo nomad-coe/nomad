@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 import os
-from datetime import time
+import time
 from typing import List, Dict, Callable, Set, Any, Tuple, Iterator, Union, Iterable, cast
 
 import pandas as pd
@@ -223,7 +223,7 @@ class TableData(ArchiveSection):
                         create_archive(child_archive.m_to_dict(), archive.m_context, filename, 'yaml')
 
                         child_entry_id = generate_entry_id(archive.m_context.upload_id, filename, None)
-                        entry_id_set = set(child_entry_id)
+                        entry_id_dct = {filename: child_entry_id}
                         ref_quantity_proxy = MProxy(
                             m_proxy_value=f'../upload/archive/{child_entry_id}#/data',
                             m_proxy_context=self.m_context)
@@ -235,7 +235,7 @@ class TableData(ArchiveSection):
                             self.m_def.all_properties[row_sections[0].split('/')[0]], section, -1)
 
                         if not with_file:
-                            _delete_entry_file(entry_id_set, archive, filename, logger=logger)
+                            _delete_entry_file(entry_id_dct, archive, logger=logger)
 
         else:
             parse_columns(data, self)
@@ -286,7 +286,7 @@ class TableData(ArchiveSection):
         except AttributeError:
             pass
 
-        entry_id_set = set()
+        entry_id_dct: Dict[str, str] = {}
         for index, child_section in enumerate(child_sections):
             filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
             try:
@@ -308,7 +308,7 @@ class TableData(ArchiveSection):
 
             if is_referenced_section:
                 child_entry_id = generate_entry_id(archive.m_context.upload_id, filename, None)
-                entry_id_set.add(child_entry_id)
+                entry_id_dct.update({filename: child_entry_id})
                 ref_quantity_proxy = MProxy(
                     m_proxy_value=f'../upload/archive/{child_entry_id}#/data',
                     m_proxy_context=self.m_context)
@@ -317,8 +317,8 @@ class TableData(ArchiveSection):
 
                 self.m_add_sub_section(subsection_def, section_ref, -1)
 
-            if not with_file:
-                _delete_entry_file(entry_id_set, archive, filename)
+        if not with_file:
+            _delete_entry_file(entry_id_dct, archive, logger=logger)
 
 
 m_package.__init_metainfo__()
@@ -338,19 +338,19 @@ def _parse_column_mode(main_section, list_of_columns, data, logger=None):
         setattr(main_section, column_section, section)
 
 
-def _delete_entry_file(entry_id_set, archive, filename, logger=None):
+def _delete_entry_file(entry_id_dct, archive, logger=None):
     from nomad.processing import Entry, ProcessStatus
-    while entry_id_set:
-        tmp = set()
-        for entry_id in entry_id_set:
+    while entry_id_dct:
+        tmp: Dict[str, str] = {}
+        for filename, entry_id in entry_id_dct.items():
             if Entry.objects(entry_id=entry_id).first().process_status == ProcessStatus.RUNNING:
-                tmp.add(entry_id)
+                tmp.update({filename: entry_id})
             else:
                 try:
                     os.remove(os.path.join(archive.m_context.upload.upload_files.external_os_path, 'raw', filename))
                 except Exception:
                     logger.warning(f'Failed to remove archive {filename}.')
-        entry_id_set = tmp
+        entry_id_dct = tmp
         time.sleep(.5)
 
 
