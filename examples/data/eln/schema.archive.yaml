@@ -154,8 +154,9 @@ definitions:
                         # quantities in this section (and sub_section) with the column
                         # data of .csv or .xlsx files. There is also a mode option that by default, is set to column.
                         tabular_parser:
-                          sep: '\t'
-                          comment: '#'
+                          parsing_options:
+                            sep: '\t'
+                            comment: '#'
                         browser:
                           adaptor: RawFileAdaptor  # Allows to navigate to files in the data browser
                         eln:

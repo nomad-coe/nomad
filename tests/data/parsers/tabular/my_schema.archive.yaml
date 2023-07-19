@@ -9,10 +9,14 @@ definitions:
                     default: Test.xlsx
                     m_annotations:
                         tabular_parser:
-                            comment: '#'
-                            new_entry:
-                                - row_to_entries:
-                                    - root
+                            parsing_options:
+                                comment: '#'
+                            mapping_options:
+                                -   mapping_mode: entry
+                                    file_mode: multiple_new_entries
+                                    with_file: true
+                                    sections:
+                                        -  root
                 my_quantity_1:
                     type: str
                     m_annotations:

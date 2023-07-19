@@ -13,10 +13,14 @@ definitions:
           type: str
           m_annotations:
             tabular_parser:
-              new_entry:
-                - row_to_entries: # This is the reference to where the targeted (sub-)section lies within this example schema file
-                  - root
-              comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
+              parsing_options:
+                comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
+              mapping_options:
+                - mapping_mode: entry
+                  file_mode: multiple_new_entries
+                  with_file: true
+                  sections:
+                    - root
         My_quantity:
           type: str
           m_annotations:
