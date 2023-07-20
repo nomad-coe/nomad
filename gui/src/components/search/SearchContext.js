@@ -70,6 +70,8 @@ import {
   materialNames
 } from './FilterRegistry'
 
+const debounceTime = 450
+
 /**
  * React context that provides access to the search state implemented with
  * Recoil.js. The purpose of this context is to hide the Recoil.js
@@ -1121,7 +1123,7 @@ export const SearchContext = React.memo(({
   }, [filterDefaults, filtersLocked, resource, api, raiseError, resolve])
 
   // This is a debounced version of apiCall.
-  const apiCallDebounced = useMemo(() => debounce(apiCall, 400), [apiCall])
+  const apiCallDebounced = useMemo(() => debounce(apiCall, debounceTime), [apiCall])
 
   /**
    * Intermediate function that should primarily be used when trying to perform
@@ -1299,7 +1301,7 @@ export const SearchContext = React.memo(({
     const useHits = (id = 'default', required, pagination, callback) => {
       const [results, setResults] = useState()
       const query = useRecoilValue(queryState)
-      const apiCallDebounced = useMemo(() => debounce(apiCall, 400), [])
+      const apiCallDebounced = useMemo(() => debounce(apiCall, debounceTime), [])
 
       // Update hits when query, includes, excludes or pagination change.
       useEffect(() => {

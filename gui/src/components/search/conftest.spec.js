@@ -213,7 +213,7 @@ export async function expectPeriodicTable(quantity, loaded, elements, root = scr
       expect(root.getAllByText(element.number)) // This number may also be used as a count
       expect(root.getByTitle(element.name)).toBeInTheDocument()
       if (!loaded) {
-        expect(name.closest('button')).toHaveAttribute('disabled')
+        expectElement(element.name, true)
       }
     })
     expect(screen.getByRole('checkbox')).toBeInTheDocument()
@@ -223,6 +223,22 @@ export async function expectPeriodicTable(quantity, loaded, elements, root = scr
 
     // Test that only available elements are clickable after API response.
     await expectPeriodicTableItems(elements)
+}
+
+/**
+ * Tests that a PeriodicTable element is displayed correctly.
+ * @param {string} name Full name of the element.
+ * @param {bool} disabled Whether the element should be disabled.
+ */
+export function expectElement(name, disabled) {
+    const rect = screen.getByTestId(name)
+    expect(rect).not.toBe(null)
+    const classes = [...rect.classList].join(' ')
+    if (disabled) {
+      expect(classes).toMatch(/rectDisabled/)
+    } else {
+      expect(classes).not.toMatch(/rectDisabled/)
+    }
 }
 
 /**
@@ -236,13 +252,7 @@ export async function expectPeriodicTableItems(elements, root = screen) {
     const elementSet = new Set(elements)
     await waitFor(() => {
       elementData.elements.forEach(element => {
-        const button = root.getByText(element.symbol).closest('button')
-        expect(button).not.toBe(null)
-        if (elementSet.has(element.symbol)) {
-          expect(button).not.toBeDisabled()
-        } else {
-          expect(button).toBeDisabled()
-        }
+        expectElement(element.name, !elementSet.has(element.symbol))
       })
     })
 }
