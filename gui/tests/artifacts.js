@@ -2998,13 +2998,15 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.method.simulation.dmft.hunds_hubbard_ratio": {
-      "name": "hunds_hubbard_ratio",
-      "description": "Ratio JH/U, with JH being the Hunds coupling and U being the Hubbard local interaction.",
+    "results.method.simulation.dmft.jh": {
+      "name": "jh",
+      "description": "Value of the (interorbital) Hund's coupling.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
       },
+      "unit": "joule",
+      "shape": [],
       "aggregatable": false
     },
     "results.method.simulation.precision.k_line_density": {
@@ -5024,6 +5026,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.method.simulation.dmft.jh"
+                  ]
+                },
                 "name": "jh",
                 "description": "Value of the (interorbital) Hund's coupling.",
                 "type": {
@@ -16594,15 +16601,17 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.method.simulation.dmft.hunds_hubbard_ratio"
+                    "results.method.simulation.dmft.jh"
                   ]
                 },
-                "name": "hunds_hubbard_ratio",
-                "description": "Ratio JH/U, with JH being the Hunds coupling and U being the Hubbard local interaction.",
+                "name": "jh",
+                "description": "Value of the (interorbital) Hund's coupling.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
-                }
+                },
+                "shape": [],
+                "unit": "joule"
               }
             ]
           },
@@ -17636,7 +17645,7 @@ window.nomadArtifacts = {
                 "name": "volumes",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/50/quantities/1"
+                  "type_data": "/packages/18/section_definitions/53/quantities/1"
                 }
               },
               {
@@ -17646,7 +17655,7 @@ window.nomadArtifacts = {
                 "name": "energies_raw",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/50/quantities/2"
+                  "type_data": "/packages/18/section_definitions/53/quantities/2"
                 }
               },
               {
@@ -17656,7 +17665,7 @@ window.nomadArtifacts = {
                 "name": "energies_fit",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/49/quantities/1"
+                  "type_data": "/packages/18/section_definitions/52/quantities/1"
                 }
               }
             ]
@@ -68249,7 +68258,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "band_gap_dft",
-                "description": "DFT band gap",
+                "description": "DFT band gap.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/19"
@@ -68263,7 +68272,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "band_gap_gw",
-                "description": "GW band gap",
+                "description": "GW band gap.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/19"
@@ -68277,7 +68286,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "dos_dft",
-                "description": "DFT density of states",
+                "description": "Ref to the DFT density of states.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/17"
@@ -68291,7 +68300,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "dos_gw",
-                "description": "GW density of states",
+                "description": "Ref to the GW density of states.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/17"
@@ -68305,7 +68314,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "band_structure_dft",
-                "description": "DFT density of states",
+                "description": "Ref to the DFT band structure.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/14"
@@ -68319,7 +68328,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "band_structure_gw",
-                "description": "DFT density of states",
+                "description": "Ref to the GW band structure.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/14"
@@ -68488,19 +68497,30 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
-                "name": "dos_dft",
-                "description": "DFT density of states",
+                "name": "band_structure_dft",
+                "description": "Ref to the DFT band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/2/section_definitions/14"
                 }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "name": "dos_gw",
-                "description": "GW density of states",
+                "name": "band_structure_gw",
+                "description": "Ref to the GW band structure.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/14"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "dos_dft",
+                "description": "Ref to the DFT density of states.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/2/section_definitions/17"
@@ -68508,24 +68528,13 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "band_structure_dft",
-                "description": "DFT density of states",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
-                "name": "band_structure_gw",
-                "description": "DFT density of states",
+                "name": "dos_gw",
+                "description": "Ref to the GW density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/2/section_definitions/17"
                 }
               }
             ],
@@ -68581,6 +68590,212 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 48,
             "m_parent_sub_section": "section_definitions",
+            "name": "DMFTResults",
+            "base_sections": [
+              "/packages/18/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_dft",
+                "description": "DFT band gap.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_projection",
+                "description": "Projection band gap.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_dmft",
+                "description": "DMFT band gap.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "band_structure_dft",
+                "description": "Ref to the DFT band structure.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/14"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "dos_dft",
+                "description": "Ref to the DFT density of states.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/17"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "band_structure_projection",
+                "description": "Ref to the projected band structure.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/14"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "dos_projection",
+                "description": "Ref to the projected density of states.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/17"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "greens_functions_dmft",
+                "description": "Ref to the DMFT Greens functions.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/29"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 49,
+            "m_parent_sub_section": "section_definitions",
+            "name": "DMFTMethod",
+            "base_sections": [
+              "/packages/18/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "starting_point",
+                "description": "Starting point (XC functional or HF) used.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/20"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "electrons_representation",
+                "description": "Basis set used.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/16"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "projection_method_ref",
+                "description": "Projection methodology reference.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/23"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "dmft_method_ref",
+                "description": "DMFT methodology reference.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/31"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 50,
+            "m_parent_sub_section": "section_definitions",
+            "name": "DMFT",
+            "base_sections": [
+              "/packages/18/section_definitions/10"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "method",
+                "sub_section": "/packages/18/section_definitions/49"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "categories": [
+                  "/packages/16/category_definitions/0"
+                ],
+                "sub_section": "/packages/18/section_definitions/48"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 51,
+            "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateMethod",
             "base_sections": [
               "/packages/18/section_definitions/0"
@@ -68602,7 +68817,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 49,
+            "m_parent_index": 52,
             "m_parent_sub_section": "section_definitions",
             "name": "EOSFit",
             "description": "Section containing results of an equation of state fit.",
@@ -68701,7 +68916,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 50,
+            "m_parent_index": 53,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateResults",
             "base_sections": [
@@ -68757,14 +68972,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eos_fit",
-                "sub_section": "/packages/18/section_definitions/49",
+                "sub_section": "/packages/18/section_definitions/52",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 51,
+            "m_parent_index": 54,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfState",
             "base_sections": [
@@ -68776,7 +68991,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/18/section_definitions/48"
+                "sub_section": "/packages/18/section_definitions/51"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -68786,7 +69001,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/16/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/50"
+                "sub_section": "/packages/18/section_definitions/53"
               }
             ]
           }

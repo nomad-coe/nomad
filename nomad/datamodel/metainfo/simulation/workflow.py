@@ -29,10 +29,11 @@ from nomad.datamodel.metainfo.common import FastAccess
 from nomad.datamodel.metainfo.workflow import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, XCFunctional, BasisSetContainer, GW as GWMethodology,
+    Method, XCFunctional, BasisSetContainer, GW as GWMethodology, Projection as ProjectionMethodology,
+    DMFT as DMFTMethodology
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
+    Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra, GreensFunctions,
     RadiusOfGyration as RadiusOfGyrationCalculation,
     RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation)
 from nomad.atomutils import archive_to_universe
@@ -2352,42 +2353,42 @@ class GWResults(SimulationWorkflowResults):
         type=Reference(BandGap),
         shape=['*'],
         description='''
-        DFT band gap
+        DFT band gap.
         ''')
 
     band_gap_gw = Quantity(
         type=Reference(BandGap),
         shape=['*'],
         description='''
-        GW band gap
+        GW band gap.
         ''')
 
     dos_dft = Quantity(
         type=Reference(Dos),
         shape=['*'],
         description='''
-        DFT density of states
+        Ref to the DFT density of states.
         ''')
 
     dos_gw = Quantity(
         type=Reference(Dos),
         shape=['*'],
         description='''
-        GW density of states
+        Ref to the GW density of states.
         ''')
 
     band_structure_dft = Quantity(
         type=Reference(BandStructure),
         shape=['*'],
         description='''
-        DFT density of states
+        Ref to the DFT band structure.
         ''')
 
     band_structure_gw = Quantity(
         type=Reference(BandStructure),
         shape=['*'],
         description='''
-        DFT density of states
+        Ref to the GW band structure.
         ''')
 
 
@@ -2504,28 +2505,28 @@ class PhotonPolarization(ParallelSimulation):
 
 class ParticleHoleExcitationsResults(SimulationWorkflowResults):
 
-    dos_dft = Quantity(
-        type=Reference(Dos),
-        description='''
-        DFT density of states
-        ''')
-
-    dos_gw = Quantity(
-        type=Reference(Dos),
-        description='''
-        GW density of states
-        ''')
-
     band_structure_dft = Quantity(
         type=Reference(BandStructure),
         description='''
-        DFT density of states
+        Ref to the DFT band structure.
         ''')
 
     band_structure_gw = Quantity(
         type=Reference(BandStructure),
         description='''
-        DFT density of states
+        Ref to the GW band structure.
+        ''')
+
+    dos_dft = Quantity(
+        type=Reference(Dos),
+        description='''
+        Ref to the DFT density of states.
+        ''')
+
+    dos_gw = Quantity(
+        type=Reference(Dos),
+        description='''
+        Ref to the GW density of states.
         ''')
 
     spectra = SubSection(sub_section=PhotonPolarizationResults, repeats=True)
@@ -2558,6 +2559,137 @@ class ParticleHoleExcitations(SerialSimulation):
             # link results also to last task
             if self.tasks:
                 self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+
+
+class DMFTResults(SimulationWorkflowResults):
+
+    band_gap_dft = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        DFT band gap.
+        ''')
+
+    band_gap_projection = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        Projection band gap.
+        ''')
+
+    band_gap_dmft = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        DMFT band gap.
+        ''')
+
+    band_structure_dft = Quantity(
+        type=Reference(BandStructure),
+        shape=['*'],
+        description='''
+        Ref to the DFT band structure.
+        ''')
+
+    dos_dft = Quantity(
+        type=Reference(Dos),
+        shape=['*'],
+        description='''
+        Ref to the DFT density of states.
+        ''')
+
+    band_structure_projection = Quantity(
+        type=Reference(BandStructure),
+        shape=['*'],
+        description='''
+        Ref to the projected band structure.
+        ''')
+
+    dos_projection = Quantity(
+        type=Reference(Dos),
+        shape=['*'],
+        description='''
+        Ref to the projected density of states.
+        ''')
+
+    greens_functions_dmft = Quantity(
+        type=Reference(GreensFunctions),
+        shape=['*'],
+        description='''
+        Ref to the DMFT Greens functions.
+        ''')
+
+
+class DMFTMethod(SimulationWorkflowMethod):
+
+    starting_point = Quantity(
+        type=Reference(XCFunctional),
+        description='''
+        Starting point (XC functional or HF) used.
+        ''')
+
+    electrons_representation = Quantity(
+        type=Reference(BasisSetContainer),
+        description='''
+        Basis set used.
+        ''')
+
+    projection_method_ref = Quantity(
+        type=Reference(ProjectionMethodology),
+        description='''
+        Projection methodology reference.
+        ''')
+
+    dmft_method_ref = Quantity(
+        type=Reference(DMFTMethodology),
+        description='''
+        DMFT methodology reference.
+        ''')
+
+
+class DMFT(SerialSimulation):
+
+    method = SubSection(sub_section=DMFTMethod)
+
+    results = SubSection(sub_section=DMFTResults)
+
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
+        if not self.method:
+            self.method = DMFTMethod()
+            if not self.inputs:
+                self.inputs.append(Link(name=_workflow_method_name, section=self.method))
+                # link method also to first task
+                if self.tasks:
+                    self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
+
+        if not self.results:
+            self.results = DMFTResults()
+            if not self.outputs:
+                self.outputs.append(Link(name=_workflow_results_name, section=self.results))
+                # link results also to last task
+                if self.tasks:
+                    self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+
+        if len(self.tasks) != 2:
+            logger.error('Expected two tasks: Projection and DMFT SinglePoint tasks')
+            return
+
+        proj_task = self.tasks[0]
+        dmft_task = self.tasks[1]
+
+        for name, section in self.results.m_def.all_quantities.items():
+            calc_name = '_'.join(name.split('_')[:-1])
+            if calc_name in ['dos', 'band_structure']:
+                calc_name = f'{calc_name}_electronic'
+            calc_section = []
+            if 'projection' in name:
+                calc_section = getattr(proj_task.outputs[-1].section, calc_name)
+            elif 'dmft' in name:
+                calc_section = getattr(dmft_task.outputs[-1].section, calc_name)
+            if calc_section:
+                self.results.m_set(section, calc_section)
 
 
 class EquationOfStateMethod(SimulationWorkflowMethod):

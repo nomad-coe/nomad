@@ -81,7 +81,7 @@ const FilterSubMenuDMFT = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputRange
-          quantity="results.method.simulation.dmft.hunds_hubbard_ratio"
+          quantity="results.method.simulation.dmft.jh"
           visible={visible}
           xs={12}
           disableSearch

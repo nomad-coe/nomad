@@ -46,7 +46,7 @@ from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as NOMADAtoms)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies,
-    RadiusOfGyration, RadiusOfGyrationValues)
+    RadiusOfGyration, RadiusOfGyrationValues, GreensFunctions)
 from nomad.datamodel.metainfo.simulation.workflow import (
     DiffusionConstantValues,
     MolecularDynamicsMethod,
@@ -69,7 +69,7 @@ from nomad.datamodel.metainfo.workflow import (
     Link, TaskReference
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    GWMethod, GW as GWworkflow
+    GWMethod, GW as GWworkflow, DMFTMethod, DMFT as DMFTworkflow
 )
 from nomad.datamodel.metainfo.measurements import Measurement, Sample
 
@@ -122,12 +122,41 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
     return run_normalize(parsed_template_example)
 
 
-def get_template_dft() -> EntryArchive:
-    '''Returns a basic archive template for a DFT calculation.
+def get_template_computation() -> EntryArchive:
+    '''Returns a basic archive template for a computational calculation
     '''
     template = EntryArchive()
     run = template.m_create(Run)
     run.program = Program(name='VASP', version='4.6.35')
+    system = run.m_create(System)
+    system.atoms = NOMADAtoms(
+        lattice_vectors=[
+            [5.76372622e-10, 0.0, 0.0],
+            [0.0, 5.76372622e-10, 0.0],
+            [0.0, 0.0, 4.0755698899999997e-10]
+        ],
+        positions=[
+            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+            [0.0, 0.0, 0.0],
+            [2.88186311e-10, 2.88186311e-10, 0.0],
+        ],
+        labels=['Br', 'K', 'Si', 'Si'],
+        periodic=[True, True, True])
+    scc = run.m_create(Calculation)
+    scc.system_ref = system
+    scc.energy = Energy(
+        free=EnergyEntry(value=-1.5936767191492225e-18),
+        total=EnergyEntry(value=-1.5935696296699573e-18),
+        total_t0=EnergyEntry(value=-3.2126683561907e-22))
+    return template
+
+
+def get_template_dft() -> EntryArchive:
+    '''Returns a basic archive template for a DFT calculation.
+    '''
+    template = get_template_computation()
+    run = template.run[-1]
     method = run.m_create(Method)
     method.electrons_representation = [BasisSetContainer(
         type='plane waves',
@@ -140,39 +169,26 @@ def get_template_dft() -> EntryArchive:
     method.electronic = Electronic(method='DFT')
     xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
     method.dft = DFT(xc_functional=xc_functional)
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(
-        lattice_vectors=[
-            [5.76372622e-10, 0.0, 0.0],
-            [0.0, 5.76372622e-10, 0.0],
-            [0.0, 0.0, 4.0755698899999997e-10]
-        ],
-        positions=[
-            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
-            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
-            [0.0, 0.0, 0.0],
-            [2.88186311e-10, 2.88186311e-10, 0.0],
-        ],
-        labels=['Br', 'K', 'Si', 'Si'],
-        periodic=[True, True, True])
-    scc = run.m_create(Calculation)
-    scc.system_ref = system
+    scc = run.calculation[-1]
     scc.method_ref = method
-    scc.energy = Energy(
-        free=EnergyEntry(value=-1.5936767191492225e-18),
-        total=EnergyEntry(value=-1.5935696296699573e-18),
-        total_t0=EnergyEntry(value=-3.2126683561907e-22))
     template.workflow2 = GeometryOptimization()
     return template
 
 
-def get_template_excited() -> EntryArchive:
+def get_template_excited(type: str) -> EntryArchive:
     '''Returns a basic archive template for a ExcitedState calculation.
     '''
     template = EntryArchive()
     run = template.m_create(Run)
     run.program = Program(name='VASP', version='4.6.35')
     method = run.m_create(Method)
+    if type == 'GW':
+        method_gw = method.m_create(GW)
+        method_gw.type = 'G0W0'
+    elif type == 'BSE':
+        method_bse = method.m_create(BSE)
+        method_bse.type = 'Singlet'
+        method_bse.solver = 'Lanczos-Haydock'
     system = run.m_create(System)
     system.atoms = NOMADAtoms(
         lattice_vectors=[
@@ -195,6 +211,50 @@ def get_template_excited() -> EntryArchive:
         free=EnergyEntry(value=-1.5936767191492225e-18),
         total=EnergyEntry(value=-1.5935696296699573e-18),
         total_t0=EnergyEntry(value=-3.2126683561907e-22))
+    template.workflow2 = SinglePoint()
+    return template
+
+
+def get_template_projection() -> EntryArchive:
+    '''Returns a basic archive template for a Projection calculation.
+    '''
+    template = get_template_computation()
+    run = template.run[-1]
+    run.program = Program(name='Wannier90', version='3.1.0')
+    method = run.m_create(Method)
+    method_proj = method.m_create(Projection)
+    method_proj.wannier = Wannier(is_maximally_localized=False)
+    system = run.system[-1]
+    system.m_add_sub_section(System.atoms_group, AtomsGroup(
+        label='Br',
+        type='projection',
+        index=0,
+        is_molecule=False,
+        n_atoms=1,
+        atom_indices=np.array([0])
+    ))
+    scc = run.calculation[-1]
+    scc.method_ref = method
+    template.workflow2 = SinglePoint()
+    return template
+
+
+def get_template_dmft() -> EntryArchive:
+    '''Returns a basic archive template for a DMFT calculation.
+    '''
+    template = get_template_computation()
+    run = template.run[-1]
+    run.program = Program(name='w2dynamics')
+    input_method = run.m_create(Method)
+    input_model = input_method.m_create(LatticeModelHamiltonian)
+    input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19))
+    method_dmft = run.m_create(Method)
+    method_dmft.dmft = DMFT(
+        impurity_solver='CT-HYB', n_atoms_per_unit_cell=1, n_correlated_electrons=1.0, n_correlated_orbitals=[3.0],
+        inverse_temperature=60.0, magnetic_state='paramagnetic')
+    method_dmft.starting_method_ref = input_method
+    scc = run.calculation[-1]
+    scc.method_ref = method_dmft
     template.workflow2 = SinglePoint()
     return template
 
@@ -423,33 +483,31 @@ def get_template_band_structure(
     return archive
 
 
+def add_template_greens_functions(template: EntryArchive) -> EntryArchive:
+    '''Used to create a test data for Greens functions.
+    '''
+    scc = template.run[0].calculation[0]
+    sec_gfs = scc.m_create(GreensFunctions)
+    sec_gfs.matsubara_freq = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    sec_gfs.tau = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    n_atoms = 1
+    n_spin = 2
+    n_orbitals = 3
+    n_iw = len(sec_gfs.matsubara_freq)
+    self_energy_iw = [[[[w * 1j + o + s + a for w in range(n_iw)] for o in range(n_orbitals)] for s in range(n_spin)] for a in range(n_atoms)]
+    sec_gfs.self_energy_iw = self_energy_iw
+    sec_gfs.greens_function_tau = self_energy_iw
+    return template
+
+
 def get_template_gw_workflow() -> EntryArchive:
     # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
     archive_dft = get_template_dft()
-    archive_gw = get_template_excited()
-    band_gaps: List = None
-    type: str = 'electronic'
-    has_references: bool = True
-    has_reciprocal_cell: bool = True
-    archive_dft = add_template_band_structure(
-        archive_dft, band_gaps, type, has_references, has_reciprocal_cell)
-    archive_gw = add_template_band_structure(
-        archive_gw, band_gaps, type, has_references, has_reciprocal_cell)
-    fill: List = [[[0, 1], [2, 3]]]
-    energy_reference_fermi: Union[float, None] = None
-    energy_reference_highest_occupied: Union[float, None] = None
-    energy_reference_lowest_unoccupied: Union[float, None] = None
-    n_values: int = 101
-    archive_dft = add_template_dos(
-        archive_dft, fill, energy_reference_fermi, energy_reference_highest_occupied,
-        energy_reference_lowest_unoccupied, n_values, type)
-    archive_gw = add_template_dos(
-        archive_gw, fill, energy_reference_fermi, energy_reference_highest_occupied,
-        energy_reference_lowest_unoccupied, n_values, type)
-    archive_gw.run[0].method = None
-    run = archive_gw.run[0]
-    method_gw = run.m_create(Method)
-    method_gw.gw = GW(type='G0W0')
+    archive_gw = get_template_excited(type='GW')
+    archive_dft = add_template_band_structure(archive_dft)
+    archive_gw = add_template_band_structure(archive_gw)
+    archive_dft = add_template_dos(archive_dft)
+    archive_gw = add_template_dos(archive_gw)
     # Normalizing SinglePoint archives
     run_normalize(archive_dft)
     run_normalize(archive_gw)
@@ -478,6 +536,43 @@ def get_template_gw_workflow() -> EntryArchive:
     workflow.m_add_sub_section(GWworkflow.outputs, Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]))
     workflow.m_add_sub_section(GWworkflow.tasks, task_dft)
     workflow.m_add_sub_section(GWworkflow.tasks, task_gw)
+    template.workflow2 = workflow
+    return template
+
+
+def get_template_dmft_workflow() -> EntryArchive:
+    # Defining Projection and DMFT SinglePoint archives and adding band_structure and greens_functions to them.
+    archive_proj = get_template_projection()
+    archive_dmft = get_template_dmft()
+    archive_proj = add_template_band_structure(archive_proj)
+    archive_dmft = add_template_greens_functions(archive_dmft)
+    # Normalizing SinglePoint archives BEFORE defining the DMFT workflow entry
+    run_normalize(archive_proj)
+    run_normalize(archive_dmft)
+    # Defining Projection and DMFT tasks for later the DMFT workflow
+    task_proj = TaskReference(task=archive_proj.workflow2)
+    task_proj.name = 'Projection'
+    task_proj.inputs = [Link(name='Input structure', section=archive_proj.run[-1].system[-1])]
+    task_proj.outputs = [Link(name='Output Projection calculation', section=archive_proj.run[-1].calculation[-1])]
+    task_dmft = TaskReference(task=archive_dmft.workflow2)
+    task_dmft.name = 'DMFT'
+    task_dmft.inputs = [Link(name='Output Projection calculation', section=archive_proj.run[-1].calculation[-1])]
+    task_dmft.outputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
+    # DMFT workflow entry (no need of creating Method nor Calculation)
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = archive_dmft.run[-1].program
+    run.system = archive_proj.run[-1].system
+    workflow = DMFTworkflow()
+    workflow.name = 'DMFT'
+    workflow_method = DMFTMethod(
+        projection_method_ref=archive_proj.run[-1].method[-1].projection,
+        dmft_method_ref=archive_dmft.run[-1].method[-1].dmft)
+    workflow.m_add_sub_section(DMFTworkflow.method, workflow_method)
+    workflow.m_add_sub_section(DMFTworkflow.inputs, Link(name='Input structure', section=archive_proj.run[-1].system[-1]))
+    workflow.m_add_sub_section(DMFTworkflow.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
+    workflow.m_add_sub_section(DMFTworkflow.tasks, task_proj)
+    workflow.m_add_sub_section(DMFTworkflow.tasks, task_dmft)
     template.workflow2 = workflow
     return template
 
@@ -679,97 +774,28 @@ def dft_plus_u() -> EntryArchive:
 @pytest.fixture(scope='session')
 def projection() -> EntryArchive:
     '''Wannier Projection calculation.'''
-    template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='Wannier90', version='3.1.0')
-    method = run.m_create(Method)
-    method_proj = method.m_create(Projection)
-    method_proj.wannier = Wannier(is_maximally_localized=False)
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(
-        lattice_vectors=[
-            [5.76372622e-10, 0.0, 0.0],
-            [0.0, 5.76372622e-10, 0.0],
-            [0.0, 0.0, 4.0755698899999997e-10]
-        ],
-        positions=[
-            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
-            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
-            [0.0, 0.0, 0.0],
-            [2.88186311e-10, 2.88186311e-10, 0.0],
-        ],
-        labels=['Br', 'K', 'Si', 'Si'],
-        periodic=[True, True, True])
-    system.m_add_sub_section(System.atoms_group, AtomsGroup(
-        label='Br',
-        type='projection',
-        index=0,
-        is_molecule=False,
-        n_atoms=1,
-        atom_indices=np.array([0])
-    ))
-    scc = run.m_create(Calculation)
-    scc.system_ref = system
-    scc.method_ref = method
-    template.workflow2 = SinglePoint()
+    template = get_template_projection()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
     '''GW calculation.'''
-    template = get_template_excited()
-    template.run[0].method = None
-    run = template.run[0]
-    method_gw = run.m_create(Method)
-    method_gw.gw = GW(type='G0W0')
+    template = get_template_excited(type='GW')
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def bse() -> EntryArchive:
     '''BSE calculation.'''
-    template = get_template_excited()
-    template.run[0].method = None
-    run = template.run[0]
-    method_bse = run.m_create(Method)
-    method_bse.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
+    template = get_template_excited(type='BSE')
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dmft() -> EntryArchive:
     '''DMFT calculation.'''
-    template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='w2dynamics')
-    input_method = run.m_create(Method)
-    input_model = input_method.m_create(LatticeModelHamiltonian)
-    input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19))
-    method_dmft = run.m_create(Method)
-    method_dmft.dmft = DMFT(
-        impurity_solver='CT-HYB', n_atoms_per_unit_cell=1, n_correlated_electrons=1.0, n_correlated_orbitals=[3.0],
-        inverse_temperature=60.0, magnetic_state='paramagnetic')
-    method_dmft.starting_method_ref = input_method
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(
-        lattice_vectors=[
-            [5.76372622e-10, 0.0, 0.0],
-            [0.0, 5.76372622e-10, 0.0],
-            [0.0, 0.0, 4.0755698899999997e-10]
-        ],
-        positions=[
-            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
-            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
-            [0.0, 0.0, 0.0],
-            [2.88186311e-10, 2.88186311e-10, 0.0],
-        ],
-        labels=['Br', 'K', 'Si', 'Si'],
-        periodic=[True, True, True])
-    scc = run.m_create(Calculation)
-    scc.system_ref = system
-    scc.method_ref = method_dmft
-    template.workflow2 = SinglePoint()
+    template = get_template_dmft()
     return run_normalize(template)
 
 
@@ -944,8 +970,15 @@ def single_point() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def gw_workflow() -> EntryArchive:
-    '''GW workflow EntryArchive.'''
+    '''GW workflow (DFT+GW) EntryArchive.'''
     template = get_template_gw_workflow()
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def dmft_workflow() -> EntryArchive:
+    '''DMFT workflow (Projection+GW) EntryArchive.'''
+    template = get_template_dmft_workflow()
     return run_normalize(template)
 
 

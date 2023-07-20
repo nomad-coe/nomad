@@ -153,6 +153,10 @@ class MethodNormalizer():
             except Exception:
                 self.logger.warning('Error finding the DFT and ExcitedState (GW, BSE) method sections from workflow refs.')
                 return method
+        elif method.workflow_name == 'DMFT':
+            repr_method = self.entry_archive.workflow2.method.dmft_method_ref  # DMFT method
+            repr_method = repr_method.m_parent
+            method_name = f'Projection+DMFT'
         # if only one method is specified, use it directly
         elif n_methods == 1:
             repr_method = methods[0]
@@ -234,7 +238,7 @@ class MethodNormalizer():
         elif self.method_name in ['Projection']:  # TODO extend for 'DFT+Projection'
             simulation = ProjectionMethod(
                 self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
-        elif self.method_name in ['DMFT']:  # TODO extend for 'DFT+DMFT', 'DFT+Projection+DMFT'
+        elif self.method_name in ['DMFT', 'Projection+DMFT']:  # TODO extend for 'DFT+DMFT', 'DFT+Projection+DMFT'
             simulation = DMFTMethod(
                 self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
         else:
@@ -788,13 +792,12 @@ class DMFTMethod(ElectronicMethod):
         dmft.total_filling = 0.5 * np.sum(self._repr_method.dmft.n_correlated_electrons) / np.sum(self._repr_method.dmft.n_correlated_orbitals)
         dmft.inverse_temperature = self._repr_method.dmft.inverse_temperature
         dmft.magnetic_state = self._repr_method.dmft.magnetic_state
-        # TODO update U to be U/W when linking between DFT>Projection>DMFT (@ should
-        # be extracted from the bands obtained by Projection).
+        # TODO update U to be U/W (W == kinetic energy) when resolving (DFT+)Projection+DMFT
         model_hamiltonian = self._repr_method.starting_method_ref.lattice_model_hamiltonian
         if model_hamiltonian is not None:
-            dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
-            if dmft.u.magnitude != 0.0:
-                dmft.hunds_hubbard_ratio = model_hamiltonian[0].hubbard_kanamori_model[0].jh.magnitude / dmft.u.magnitude
+            if model_hamiltonian[0].hubbard_kanamori_model is not None:
+                dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
+                dmft.jh = model_hamiltonian[0].hubbard_kanamori_model[0].jh
         simulation.dmft = dmft
         return simulation
 
