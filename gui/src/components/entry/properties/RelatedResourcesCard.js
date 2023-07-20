@@ -26,6 +26,7 @@ import { Datatable, DatatableTable, DatatablePagePagination } from '../../datata
 import { formatTimestamp } from '../../../utils'
 import Quantity from '../../Quantity'
 import { PropertyCard } from './PropertyCard'
+import Ellipsis from '../../visualization/Ellipsis'
 
 const useResourceDetailsStyles = makeStyles(theme => ({
   resourceDetails: {
@@ -52,16 +53,6 @@ const useResourceDetailsStyles = makeStyles(theme => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     width: '11rem'
-  },
-  ellipsis: {
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    width: '11rem'
-  },
-  ellipsisFront: {
-    direction: 'rtl',
-    textAlign: 'left'
   }
 }))
 
@@ -103,7 +94,6 @@ ResourceActions.propTypes = {
 }
 
 const RelatedResourcesCard = React.memo(({index, archive}) => {
-  const classes = useResourceDetailsStyles()
   const {resourcesApi} = useApi()
   const {raiseError} = useErrors()
   const [externalResources, setExternalResources] = useState()
@@ -145,9 +135,9 @@ const RelatedResourcesCard = React.memo(({index, archive}) => {
       sortable: true,
       align: 'left',
       render: data => (
-        <div className={classes.ellipsis}>
-          <Typography noWrap> {data.id} </Typography>
-        </div>
+        <Typography noWrap>
+          <Ellipsis>{data.id}</Ellipsis>
+        </Typography>
       )
     },
     {
@@ -155,9 +145,11 @@ const RelatedResourcesCard = React.memo(({index, archive}) => {
       sortable: true,
       align: 'left',
       render: data => (
-        <div className={classes.ellipsis}>
-          <Typography noWrap><Link href={data.url}>{data.url}</Link></Typography>
-        </div>
+        <Typography noWrap>
+          <Link href={data.url}>
+            <Ellipsis>{data.url}</Ellipsis>
+          </Link>
+        </Typography>
       )
     },
     {
@@ -166,7 +158,7 @@ const RelatedResourcesCard = React.memo(({index, archive}) => {
       align: 'left',
       render: data => data.database_name
     }
-  ], [classes.ellipsis])
+  ], [])
 
   if (!externalResources || (!externalResources.is_retrieving_more && externalResources.data.length === 0)) {
     return ''

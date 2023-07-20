@@ -38,6 +38,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { get, isNil, isString, isNumber } from 'lodash'
 import { searchQuantities } from '../config'
 import Placeholder from './visualization/Placeholder'
+import Ellipsis from './visualization/Ellipsis'
 import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Quantity as Q, Unit, useUnits } from '../units'
@@ -60,15 +61,6 @@ const useQuantityStyles = makeStyles(theme => ({
   },
   value: {
     flexGrow: 1
-  },
-  ellipsis: {
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis'
-  },
-  ellipsisFront: {
-    direction: 'rtl',
-    textAlign: 'left'
   },
   valueAction: {},
   valueActionButton: {
@@ -169,11 +161,6 @@ const Quantity = React.memo((props) => {
   let content = null
   let clipboardContent = null
 
-  let valueClassName = styles.value
-  if (noWrap && ellipsisFront) {
-    valueClassName = `${valueClassName} ${styles.ellipsisFront}`
-  }
-
   const isQuantityString = isString(quantity)
   const def = isQuantityString
     ? (searchQuantities[quantity])
@@ -240,11 +227,14 @@ const Quantity = React.memo((props) => {
     if (children && children.length !== 0) {
       content = children
     } else if (finalValue || finalValue === 0) {
-      content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
-        {finalValue}
+      content = <Typography noWrap={noWrap} variant={typography} className={styles.value}>
+        {(noWrap && ellipsisFront)
+          ? <Ellipsis front={ellipsisFront}>{finalValue}</Ellipsis>
+          : finalValue
+        }
       </Typography>
     } else {
-      content = <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
+      content = <Typography noWrap={noWrap} variant={typography} className={styles.value}>
         <i>{placeholder || 'unavailable'}</i>
       </Typography>
     }
@@ -262,7 +252,7 @@ const Quantity = React.memo((props) => {
         >{useLabel}</Typography> : ''}
         <div className={styles.valueContainer}>
           {loading
-            ? <Typography noWrap={noWrap} variant={typography} className={valueClassName}>
+            ? <Typography noWrap={noWrap} variant={typography} className={styles.value}>
               <i>loading ...</i>
             </Typography>
             // The tooltip portal is disabled for custom contents that may
