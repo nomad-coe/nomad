@@ -360,6 +360,39 @@ class ResultsNormalizer(Normalizer):
                 dos_electronic.append(d)
         return [bg_electronic, bs_electronic, dos_electronic, []]
 
+    def dmft_workflow_properties(self):
+        bg_electronic = self.electronic_properties[0]
+        bs_electronic = self.electronic_properties[1]
+        dos_electronic = self.electronic_properties[2]
+        gf_electronic = self.electronic_properties[3]
+        for method in ['dft', 'projection']:
+            name = method.upper()
+            band_gaps = self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"])
+            band_structures = self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"])
+            dos = self.resolve_dos(["workflow2", "results", f"dos_{method}"])
+            for bg in band_gaps:
+                bg.label = name
+                bg_electronic.append(bg)
+            for bs in band_structures:
+                bs.label = name
+                for band_gap in bs.band_gap:
+                    band_gap.label = name
+                bs_electronic.append(bs)
+            for d in dos:
+                d.label = name
+                for band_gap in d.band_gap:
+                    band_gap.label = name
+                dos_electronic.append(d)
+        band_gaps = self.resolve_band_gap(["workflow2", "results", f"band_gap_dmft"])
+        for bg in band_gaps:
+            bg.label = 'DMFT'
+            bg_electronic.append(bg)
+        greens_functions = self.resolve_greens_functions(["workflow2", "results", f"greens_functions_dmft"])
+        for gf in greens_functions:
+            gf.label = 'DMFT'
+            gf_electronic.append(gf)
+        return [bg_electronic, bs_electronic, dos_electronic, gf_electronic]
+
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
         """Returns a new section containing a phonon band structure. In
         the case of multiple valid band structures, only the latest one is
@@ -705,6 +738,8 @@ class ResultsNormalizer(Normalizer):
             workflow_name = workflow.m_def.name
             if workflow_name == 'GW':
                 self.electronic_properties = self.gw_workflow_properties()
+            elif workflow_name == 'DMFT':
+                self.electronic_properties = self.dmft_workflow_properties()
 
         method_def = {value.sub_section.name: value for _, value in ElectronicProperties.m_def.all_sub_sections.items()}
         if any(self.electronic_properties):

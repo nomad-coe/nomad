@@ -1836,12 +1836,10 @@ class DMFT(MSection):
             Elasticsearch(material_entry_type)
         ]
     )
-    hunds_hubbard_ratio = Quantity(
-        type=np.float64,
-        description='''
-        Ratio JH/U, with JH being the Hunds coupling and U being the Hubbard local interaction.
-        ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+    jh = HubbardKanamori.jh.m_copy(
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type)
+        ]
     )
 
 

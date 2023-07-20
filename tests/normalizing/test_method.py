@@ -176,7 +176,7 @@ def test_method_dmft(dmft):
     assert method.simulation.dmft.inverse_temperature.magnitude == 60.0
     assert method.simulation.dmft.magnetic_state == "paramagnetic"
     assert method.simulation.dmft.u.magnitude == 4.0e-19
-    assert method.simulation.dmft.hunds_hubbard_ratio == 0.6e-19 / 4.0e-19
+    assert method.simulation.dmft.jh.magnitude == 0.6e-19
 
 
 def test_method_eels(eels):
