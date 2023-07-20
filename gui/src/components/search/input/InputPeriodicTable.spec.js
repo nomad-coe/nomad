@@ -19,7 +19,12 @@ import React from 'react'
 import userEvent from '@testing-library/user-event'
 import { waitFor } from '@testing-library/dom'
 import { startAPI, closeAPI, screen } from '../../conftest.spec'
-import { renderSearchEntry, expectPeriodicTable, expectPeriodicTableItems } from '../conftest.spec'
+import {
+  renderSearchEntry,
+  expectPeriodicTable,
+  expectPeriodicTableItems,
+  expectElement
+} from '../conftest.spec'
 import InputPeriodicTable from './InputPeriodicTable'
 
 const quantity = 'results.material.elements'
@@ -54,10 +59,10 @@ describe('', () => {
 
   test('selecting an element in both non-exclusive and exclusive mode correctly updates the table', async () => {
     // Wait for hydrogen to become selectable
-    await waitFor(() => { expect(screen.getByText('H').closest('button')).not.toHaveAttribute('disabled') })
+    await waitFor(() => expectElement('Hydrogen', false))
 
     // Test that after selecting C, only the correct elements are selectable.
-    const cButton = screen.getByText('C')
+    const cButton = screen.getByTestId('Carbon')
     await userEvent.click(cButton)
     await expectPeriodicTableItems(['H', 'C', 'N', 'I', 'Pb'])
 

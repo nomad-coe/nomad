@@ -71,6 +71,10 @@ export const WidgetPeriodicTable = React.memo((
       anchored={true}
       disableStatistics={true}
       visible={true}
+      // Can't use the same aggregation identifier as the periodic table in the
+      // filter menu: due to rendering order the aggregation may otherwise get
+      // turned off when menu is not open.
+      aggId={'widget'}
     />
   </Widget>
 })

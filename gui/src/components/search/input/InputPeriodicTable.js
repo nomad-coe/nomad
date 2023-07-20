@@ -15,121 +15,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
 import elementData from '../../../elementData'
-import {
-  Typography,
-  ButtonBase,
-  Tooltip
-} from '@material-ui/core'
+import { useResizeDetector } from 'react-resize-detector'
+import { Tooltip } from '@material-ui/core'
 import InputHeader from './InputHeader'
 import InputCheckbox from './InputCheckbox'
-import { makeStyles } from '@material-ui/core/styles'
+import { makeStyles, useTheme, lighten } from '@material-ui/core/styles'
 import { useSearchContext } from '../SearchContext'
 import { approxInteger } from '../../../utils'
 import { getScaler } from '../../plotting/common'
-
-// A fixed 2D, 10x18 array for the element data.
-const elements = []
-for (let i = 0; i < 10; i++) {
-  elements[i] = Array.apply(null, Array(18))
-}
-elementData.elements.forEach(element => {
-  elements[element.ypos - 1][element.xpos - 1] = element
-  element.category = element.category.replace(' ', '')
-})
 
 /**
  * A single element in the periodic table.
 */
 const useElementStyles = makeStyles(theme => ({
-  root: {
-    top: 1,
-    bottom: 1,
-    left: 1,
-    right: 1,
-    position: 'absolute'
-  },
-  fit: {
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    position: 'absolute'
-  },
-  bg: {
-    opacity: 0,
-    willChange: 'opacity',
-    transition: 'opacity 250ms',
-    backgroundColor: theme.palette.primary.light
-  },
-  disabled: {
-    opacity: 1,
-    willChange: 'opacity',
-    transition: 'opacity 250ms',
-    backgroundColor: '#eee'
-  },
-  selected: {
-    backgroundColor: theme.palette.secondary.main,
-    display: 'none'
-  },
-  visible: {
-    display: 'block'
-  },
-  button: {
-    color: theme.palette.text.default,
-    width: '100%',
-    height: '100%',
-    border: '1px solid',
-    borderColor: '#555',
-    textAlign: 'center',
+  text: {
     fontFamily: theme.typography.fontFamily,
-    fontSize: '1rem',
-    fontWeight: 600,
+    fill: theme.palette.text.default,
+    userSelect: 'none',
+    pointerEvents: 'none'
+  },
+  rect: {
+    transition: 'fill .15s ease',
+    cursor: 'pointer',
     '&:hover': {
-      boxShadow: theme.shadows[4]
+      filter: 'drop-shadow(0px 0px 2px rgb(0 0 0 / 0.4))'
     }
   },
-  buttonSelected: {
-    color: 'white'
+  rectDisabled: {
+    cursor: 'auto',
+    '&:hover': {
+      filter: 'unset'
+    }
   },
-  buttonDisabled: {
-    borderColor: '#999',
-    color: theme.palette.text.disabled
+  label: {
+    fontSize: '1rem',
+    fontWeight: 600
   },
   number: {
-    position: 'absolute',
-    top: 0,
-    left: 2,
-    margin: 0,
-    padding: 0,
-    fontSize: 9,
-    pointerEvents: 'none'
+    fontSize: '0.58rem'
   },
   count: {
-    position: 'absolute',
-    bottom: 0,
-    right: 2,
-    margin: 0,
-    padding: 0,
-    fontSize: 9,
-    pointerEvents: 'none'
-  },
-  textSelected: {
-    color: 'white'
-  },
-  textDisabled: {
-    color: '#BDBDBD'
-  },
-  symbol: {
-    marginTop: -2
+    fontSize: '0.58rem'
   }
 }))
 
 const Element = React.memo(({
+  x,
+  y,
+  width,
+  height,
   element,
   selected,
   disabled,
@@ -137,145 +76,110 @@ const Element = React.memo(({
   disableStatistics,
   max,
   count,
-  scale,
-  localFilter
+  scale
 }) => {
   const styles = useElementStyles()
-
-  // Calculate the approximated count and the final scaled value
+  const theme = useTheme()
   const scaler = useMemo(() => getScaler(scale, undefined, [0.2, 1]), [scale])
   const finalCount = useMemo(() => approxInteger(count || 0), [count])
   const finalScale = useMemo(() => scaler(count / max) || 0, [count, max, scaler])
-
-  // Dynamically calculated styles. The background color is formed by animating
-  // opacity: opacity animation can be GPU-accelerated by the browser unlike
-  // animating the color property.
-  const useDynamicStyles = makeStyles((theme) => {
-    return {
-      bg: { opacity: disableStatistics
-        ? 0.4
-        : (isNil(count) || isNil(max))
-          ? 0
-          : finalScale
-      },
-      disabled: { opacity: disabled ? 1 : 0 }
-    }
-  })
-  const dynamicStyles = useDynamicStyles()
-
-  const [selectedInternal, setSelectedInternal] = useState(selected)
-  useEffect(() => {
-    setSelectedInternal(selected)
-  }, [selected])
-  const disabledInternal = selectedInternal ? false : disabled
+  const disabledFinal = disabled && !selected
+  const color = selected
+    ? theme.palette.secondary.main
+    : disabled
+      ? '#eee'
+      : disableStatistics
+        ? theme.palette.primary.light
+        : lighten(theme.palette.primary.light, 1 - finalScale)
+  const strokeColor = disabledFinal
+    ? theme.palette.text.disabled
+    : '#555'
+  const textColor = selected
+    ? 'white'
+    : disabled
+      ? theme.palette.text.disabled
+      : theme.palette.text.default
 
   const handleClick = useCallback(() => {
-    setSelectedInternal(old => {
-      const newValue = !old
-      if (newValue) {
-        localFilter.add(element.symbol)
-      } else {
-        localFilter.delete(element.symbol)
-      }
-      return newValue
-    })
-    onClick()
-  }, [onClick, element, localFilter])
+    if (disabledFinal) return
+    onClick && onClick()
+  }, [onClick, disabledFinal])
 
-  return <div className={styles.root}>
-    <div className={clsx(styles.fit, styles.bg, dynamicStyles.bg)}/>
-    <div className={clsx(styles.fit, styles.disabled, dynamicStyles.disabled)}/>
-    <div className={clsx(styles.fit, styles.selected, selectedInternal && styles.visible)}/>
-    <Tooltip title={element.name}>
-      <span className={styles.fit}>
-        <ButtonBase
-          className={clsx(
-            styles.fit,
-            styles.button,
-            selectedInternal && styles.buttonSelected,
-            disabledInternal && styles.buttonDisabled)
-          }
-          disabled={disabledInternal}
-          onClick={handleClick}
-          variant="contained"
-        >
-          <span className={styles.symbol}>{element.symbol}</span>
-        </ButtonBase>
-      </span>
-    </Tooltip>
-    <Typography
-      className={clsx(
-        styles.number,
-        selectedInternal && styles.textSelected,
-        disabledInternal && styles.textDisabled
-      )}
-      variant="caption"
-    >
-      {element.number}
-    </Typography>
-    {(!disableStatistics) && <Typography
-      className={clsx(
-        styles.count,
-        selectedInternal && styles.textSelected,
-        disabledInternal && styles.textDisabled
-      )}
-      variant="caption"
-    >
-      {finalCount}
-    </Typography>}
-  </div>
+  return <Tooltip title={element.name}>
+    <g>
+      <rect
+        data-testid={element.name}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        stroke={strokeColor}
+        strokeWidth={1}
+        fill={color}
+        className={clsx(styles.rect, disabledFinal && styles.rectDisabled)}
+        onClick={handleClick}
+      />
+      <text
+        x={x + 0.5 * width}
+        y={y + 0.53 * height}
+        fill={textColor}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        className={clsx(styles.text, styles.label)}>{element.symbol}
+      </text>
+      <text
+        x={x + 0.04 * width}
+        y={y + 0.03 * height}
+        fill={textColor}
+        textAnchor="start"
+        dominantBaseline="hanging"
+        className={clsx(styles.text, styles.number)}>{element.number}
+      </text>
+      {!disableStatistics && <text
+        x={x + 0.95 * width}
+        y={y + 0.93 * height}
+        fill={textColor}
+        textAnchor="end"
+        dominantBaseline="auto"
+        className={clsx(styles.text, styles.number)}>{finalCount}
+      </text>}
+    </g>
+  </Tooltip>
 })
 
 Element.propTypes = {
+  x: PropTypes.number.isRequired,
+  y: PropTypes.number.isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
   element: PropTypes.object.isRequired,
-  onClick: PropTypes.func,
-  selected: PropTypes.bool,
-  disabled: PropTypes.bool,
-  disableStatistics: PropTypes.bool,
   max: PropTypes.number,
   count: PropTypes.number,
   scale: PropTypes.string,
-  localFilter: PropTypes.object
+  selected: PropTypes.bool,
+  disabled: PropTypes.bool,
+  onClick: PropTypes.func,
+  disableStatistics: PropTypes.bool
 }
 
 /**
- * Represents a single element in the periodic table.
+ * Displays an interactive periodic table.
 */
-const useTableStyles = makeStyles(theme => ({
+const usePeriodicTableStyles = makeStyles(theme => ({
   root: {
-    height: '100%',
+    minHeight: 0, // added min-height: 0 to prevent relayouting when within flexbox
+    flexGrow: 1,
     width: '100%',
-    display: 'flex',
-    flexDirection: 'column'
+    height: '100%',
+    position: 'relative'
   },
   container: {
-    flex: '1 1 100%',
-    position: 'relative'
-  },
-  table: {
-    width: '100%',
-    height: '100%',
-    borderSpacing: 0,
-    tableLayout: 'fixed'
-  },
-  td: {
-    position: 'relative'
-  },
-  formContainer: {
     position: 'absolute',
     top: theme.spacing(-0.2),
     left: '10%',
     textAlign: 'center'
   }
 }))
-
-function eqSet(as, bs) {
-  if (isNil(as) || isNil(bs)) return false
-  if (as.size !== bs.size) return false
-  for (const a of as) if (!bs.has(a)) return false
-  return true
-}
-
 export const PeriodicTable = React.memo(({
   quantity,
   visible,
@@ -286,12 +190,11 @@ export const PeriodicTable = React.memo(({
   className,
   'data-testid': testID
 }) => {
-  const styles = useTableStyles()
+  const styles = usePeriodicTableStyles()
+  const { height, width, ref } = useResizeDetector()
   const {useFilterState, useAgg, useIsStatisticsEnabled} = useSearchContext()
   const isStatisticsEnabled = useIsStatisticsEnabled()
   const [filter, setFilter] = useFilterState(quantity)
-  const localFilter = useRef(new Set())
-  const [update, setUpdate] = useState(0)
   const aggConfig = useMemo(() => ({type: 'terms'}), [])
   const agg = useAgg(quantity, visible, aggId, aggConfig)
   const availableValues = useMemo(() => {
@@ -302,18 +205,6 @@ export const PeriodicTable = React.memo(({
   disableStatistics = anchored
     ? false
     : isNil(disableStatistics) ? !isStatisticsEnabled : disableStatistics
-
-  // The selected state of the periodic filter is kept in a local reference.
-  // This way simply selecting an element does not cause a full re-render of the
-  // table. To handle external changes to the filter state, the local state is
-  // synced each time a change is triggered and only if the states differ, a
-  // re-render is issued.
-  useEffect(() => {
-    if (!eqSet(filter, localFilter.current)) {
-      localFilter.current = new Set(filter)
-      setUpdate(old => old + 1)
-    }
-  }, [filter, setUpdate, localFilter])
 
   const onElementClicked = useCallback((element) => {
     setFilter(old => {
@@ -329,53 +220,55 @@ export const PeriodicTable = React.memo(({
     })
   }, [setFilter])
 
-  const table = useMemo(() => {
-    // The colors are normalized with respect to the maximum aggregation size
-    // for an unselected element.
-    const max = agg
+  const max = useMemo(() => {
+    return agg
       ? Math.max(...agg.data
-        .filter(option => !localFilter.current.has(option.value))
+        .filter(option => !filter?.has(option.value))
         .map(option => option.count))
       : 0
-    return <div className={clsx(styles.root, className)} data-testid={testID}>
-      <div className={styles.container}>
-        <table className={styles.table}>
-          <tbody>
-            {elements.map((row, i) => (
-              <tr key={i}>
-                {row.map((element, j) => (
-                  <td key={j} className={styles.td}>
-                    {element
-                      ? <Element
-                        element={element}
-                        disabled={!availableValues[element.symbol]}
-                        onClick={() => onElementClicked(element.symbol)}
-                        selected={localFilter.current.has(element.symbol)}
-                        max={max}
-                        count={availableValues[element.symbol]}
-                        localFilter={localFilter.current}
-                        scale={scale}
-                        disableStatistics={disableStatistics}
-                      />
-                      : null}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className={styles.formContainer}>
-          <InputCheckbox
-            quantity="exclusive"
-            label="only compositions that exclusively contain these atoms"
-          ></InputCheckbox>
-        </div>
-      </div>
-    </div>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agg, availableValues, onElementClicked, styles, update, scale, disableStatistics, className, testID])
+  }, [agg, filter])
 
-  return table
+  const padding = 1
+  const margin = 3
+  const cellWidth = (width - 2 * padding - 17 * margin) / 18
+  const cellHeight = (height - 2 * padding - 9 * margin) / 10
+
+  return <div className={clsx(styles.root, className)} data-testid={testID}>
+    <svg
+      ref={ref}
+      width="100%"
+      height="100%"
+      viewBox={`0 0 ${width || 0} ${height || 0}`}
+      shapeRendering='optimizeSpeed'
+      textRendering='optimizeSpeed'
+    >
+      {(width && height) &&
+        elementData.elements.map((element) => (
+          <Element
+            key={element.name}
+            element={element}
+            disabled={!availableValues[element.symbol]}
+            onClick={() => onElementClicked(element.symbol)}
+            selected={filter?.has(element.symbol)}
+            max={max}
+            count={availableValues[element.symbol]}
+            scale={scale}
+            x={padding + (element.xpos - 1) * (cellWidth + margin)}
+            y={padding + (element.ypos - 1) * (cellHeight + margin)}
+            width={cellWidth}
+            height={cellHeight}
+            disableStatistics={disableStatistics}
+          />
+        ))
+      }
+    </svg>
+    <div className={styles.container}>
+      <InputCheckbox
+        quantity="exclusive"
+        label="only compositions that exclusively contain these atoms"
+      ></InputCheckbox>
+    </div>
+  </div>
 })
 
 PeriodicTable.propTypes = {
