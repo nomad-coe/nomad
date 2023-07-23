@@ -37,7 +37,7 @@ import { useGlobalMetainfo } from '../../archive/metainfo'
 import { NumberEditQuantity } from '../../editQuantity/NumberEditQuantity'
 import { StringEditQuantity } from '../../editQuantity/StringEditQuantity'
 import { EnumEditQuantity } from '../../editQuantity/EnumEditQuantity'
-import { DateTimeEditQuantity } from '../../editQuantity/DateTimeEditQuantity'
+import { DateTimeEditQuantity, DateEditQuantity } from '../../editQuantity/DateTimeEditQuantity'
 import { editQuantityComponents } from '../../editQuantity/EditQuantity'
 import { InputMetainfo } from '../../search/input/InputMetainfo'
 import { DType, getDatatype } from '../../../utils'
@@ -76,6 +76,14 @@ const valueKeys = {
   [DType.Enum]: 'keyword_value'
 }
 
+const componentMap = {
+  [DType.Int]: NumberEditQuantity,
+  [DType.Float]: NumberEditQuantity,
+  [DType.Timestamp]: DateEditQuantity,
+  [DType.String]: StringEditQuantity,
+  [DType.Enum]: EnumEditQuantity
+}
+
 const getValueKey = (quantityDef) => {
   const dtype = getDatatype(quantityDef)
   const result = valueKeys[dtype]
@@ -103,17 +111,10 @@ const EditQuantity = React.memo(({quantityDef, value, onChange}) => {
     const usesCompatibleComponent = [StringEditQuantity, EnumEditQuantity, NumberEditQuantity, DateTimeEditQuantity].indexOf(component) !== -1
 
     if (!(component && usesCompatibleComponent)) {
-      const {type_kind, type_data} = quantityDef.type
-      if (type_data === 'str') {
-        component = StringEditQuantity
-      } else if (type_kind === 'Enum') {
-        component = EnumEditQuantity
-      } else if (type_data === 'float' || type_data === 'np.float64') {
-        component = NumberEditQuantity
-      } else if (type_data === 'int' || type_data === 'np.int32') {
-        component = NumberEditQuantity
-      } else if (type_data === 'nomad.metainfo.metainfo._Datetime') {
-        component = DateTimeEditQuantity
+      const type = getDatatype(quantityDef)
+      // todo: if the type ends up being unknown, the page will crash.
+      if (type !== DType.Unknown) {
+        component = componentMap[type]
       }
       props = {}
       otherProps = {}
@@ -289,8 +290,9 @@ const FilterSubMenuCustomQuantities = React.memo(({
         const searchableQuantity = path.entries[0].searchable_quantities
         const sectionDef = await metainfo.resolveDefinition(searchableQuantity.section_definition)
         const quantityDef = sectionDef._properties[searchableQuantity.quantity_name]
-        let description = types[quantityDef.type.type_data] || 'unknown type'
-        if (quantityDef.type.type_kind === 'Enum') {
+        const type = getDatatype(quantityDef)
+        let description = types[type] || 'unknown type'
+        if (type === DType.Enum) {
           description = 'Enum'
         }
         if (quantityDef.unit) {
