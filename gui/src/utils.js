@@ -484,7 +484,10 @@ export function formatTimestamp(value) {
  * window.nomadArtifacts.searchQuantities.
  *
  * @return {string} The data type of the metainfo. Can be one of the following:
- *   - number
+ *   - int
+ *   - float
+ *   - enum
+ *   - boolean
  *   - timestamp
  *   - string
  *   - unknown
@@ -506,9 +509,9 @@ export function getDatatype(quantity) {
   const type_data = quantity?.type?.type_data
   const type_kind = quantity?.type?.type_kind
 
-  if (isString(type_data) && type_data.startsWith('int')) {
+  if (isString(type_data) && type_data.includes('int')) {
     return DType.Int
-  } else if (isString(type_data) && type_data.startsWith('float')) {
+  } else if (isString(type_data) && type_data.includes('float')) {
     return DType.Float
   } else if (type_data === 'nomad.metainfo.metainfo._Datetime') {
     return DType.Timestamp
