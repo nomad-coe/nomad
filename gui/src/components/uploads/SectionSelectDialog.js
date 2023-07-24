@@ -17,8 +17,8 @@
  */
 import React, {useCallback, useContext, useEffect, useMemo, useState} from 'react'
 import {
-  makeStyles, DialogContent, Dialog, Typography, Checkbox, FormControlLabel,
-  Box, MenuItem, ListItemIcon, ListItemText, MenuList, Chip
+  makeStyles, DialogContent, Dialog, Typography, FormControlLabel,
+  Box, MenuItem, ListItemIcon, ListItemText, MenuList, Chip, RadioGroup, Radio, FormControl, Checkbox
 } from '@material-ui/core'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
@@ -202,8 +202,9 @@ Details.propTypes = {
 function SearchBox({open, onCancel, onSelectedChanged, selected}) {
   const classes = useStyles()
   const {user} = useApi()
-  const [onlyMine, setOnlyMine] = useState(!!user?.sub)
-  const [onlyThisUpload, setOnlyThisUpload] = useState(false)
+  const [filter, setFilter] = useState('visible')
+  const [unpublished, setUnpublished] = useState(true)
+  const [published, setPublished] = useState(true)
   const {
     useSetFilter,
     useFiltersState,
@@ -211,13 +212,23 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
     filters: filterList
   } = useSearchContext()
   const filtersLocked = useFiltersLocked()
-  const [filters, setFilters] = useFiltersState([...allFilters].filter(filter => filter !== 'visibility' && filter !== 'processed' && filter !== 'upload_id' && !filtersLocked[filter]))
+  const [filters, setFilters] = useFiltersState([...allFilters]
+    .filter(
+      filter => filter !== 'visibility' &&
+      filter !== 'processed' &&
+      filter !== 'upload_id' &&
+      filter !== 'published' &&
+      filter !== 'main_author.user_id' &&
+      !filtersLocked[filter]
+    ))
   const uploadContext = useUploadPageContext()
   const entryContext = useEntryStore()
   const {uploadId} = uploadContext || entryContext
   const setVisibilityFilter = useSetFilter('visibility')
   const setUploadIdFilter = useSetFilter('upload_id')
   const setProcessedFilter = useSetFilter('processed')
+  const setPublishedFilter = useSetFilter('published')
+  const setMainAuthorFilter = useSetFilter('main_author.user_id')
 
   const handleCancel = useCallback(() => {
     onCancel()
@@ -225,9 +236,25 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
 
   useEffect(() => {
     setProcessedFilter(true)
-    setVisibilityFilter(onlyMine ? 'user' : undefined)
-    setUploadIdFilter(onlyThisUpload ? uploadId : undefined)
-  }, [onlyMine, onlyThisUpload, setUploadIdFilter, setVisibilityFilter, setProcessedFilter, uploadId, user])
+    setPublishedFilter(published === unpublished ? undefined : published)
+    if (filter === 'visible') {
+      setVisibilityFilter(undefined)
+      setMainAuthorFilter(undefined)
+      setUploadIdFilter(undefined)
+    } else if (filter === 'mine') {
+      setVisibilityFilter('user')
+      setMainAuthorFilter(undefined)
+      setUploadIdFilter(undefined)
+    } else if (filter === 'coauthors') {
+      setVisibilityFilter(undefined)
+      setMainAuthorFilter([user.sub], {queryMode: 'none'})
+      setUploadIdFilter(undefined)
+    } else if (filter === 'upload') {
+      setVisibilityFilter(undefined)
+      setMainAuthorFilter(undefined)
+      setUploadIdFilter(uploadId)
+    }
+  }, [filter, published, unpublished, setUploadIdFilter, setMainAuthorFilter, setVisibilityFilter, setPublishedFilter, setProcessedFilter, uploadId, user])
 
   const contextValue = useMemo(() => ({
     selected: selected,
@@ -275,27 +302,71 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
         <Typography className={classes.filters} variant="body1">
           Filters
         </Typography>
-        <Box display='flex'>
-          <FormControlLabel
+        <Box display='grid'>
+          <FormControl>
+            <RadioGroup row>
+              <FormControlLabel
+                value={'visible'}
+                control={(
+                  <Radio
+                    checked={filter === 'visible'}
+                    onClick={() => setFilter('visible')}
+                  />
+                )}
+                label='All'
+              />
+              <FormControlLabel
+                value={'mine'}
+                control={(
+                  <Radio
+                    checked={filter === 'mine'}
+                    onClick={() => setFilter('mine')}
+                  />
+                )}
+                label='Only mine'
+              />
+              <FormControlLabel
+                value={'coauthors'}
+                control={(
+                  <Radio
+                    checked={filter === 'coauthors'}
+                    onClick={() => setFilter('coauthors')}
+                  />
+                )}
+                label='Only from others'
+              />
+              <FormControlLabel
+                value={'upload'}
+                control={(
+                  <Radio
+                    checked={filter === 'upload'}
+                    onClick={() => setFilter('upload')}
+                  />
+                )}
+                label='Only this upload'
+              />
+            </RadioGroup>
+          </FormControl>
+          <Box display='flex'>
+            <FormControlLabel
               control={<Checkbox
-                  onChange={event => setOnlyMine(event.target.checked)}
-                  color='primary'
-                  checked={onlyMine}
-                  name='Only mine'
-                  disabled={!user || onlyThisUpload}
+                onChange={event => setPublished(event.target.checked)}
+                color='primary'
+                checked={published}
+                name='Published'
               />}
-              label='Only mine'
-          />
-          <FormControlLabel
+              label='Published'
+            />
+            <FormControlLabel
               control={<Checkbox
-                  onChange={event => setOnlyThisUpload(event.target.checked)}
-                  color='primary'
-                  checked={onlyThisUpload}
-                  name='Only this upload'
-                  disabled={!user}
+                onChange={event => setUnpublished(event.target.checked)}
+                color='primary'
+                checked={unpublished}
+                name='Unpublished'
               />}
-              label='Only this upload'
-          />
+              label='Unpublished'
+            />
+          </Box>
           {definedFilters.length > 0 && <Chip label={`and ${definedFilters.length} more ${pluralize('filter', definedFilters.length, false)}`} color="primary" onDelete={() => handleResetSearch()}/>}
         </Box>
         <div className={classes.resultsTable}>
