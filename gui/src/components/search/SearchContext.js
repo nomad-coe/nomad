@@ -317,6 +317,7 @@ export const SearchContext = React.memo(({
     useResetFilters,
     useUpdateQueryString,
     queryState,
+    dynamicQueryModesState,
     aggsFamily,
     aggsState,
     paginationState,
@@ -345,6 +346,10 @@ export const SearchContext = React.memo(({
       key: `queryFamily_${contextID}`,
       default: (name) => initialQuery[name]
     })
+    const dynamicQueryModesFamily = atomFamily({
+      key: `dynamicQueryModesFamily_${contextID}`,
+      default: (name) => undefined
+    })
     // Used to get/set the state of all filters at once
     const filtersState = selector({
       key: `filtersState_${contextID}`,
@@ -356,8 +361,9 @@ export const SearchContext = React.memo(({
         }
         return query
       },
-      set: ({set}, [key, value]) => {
+      set: ({set}, [key, value, queryMode]) => {
         set(queryFamily(key), value)
+        if (queryMode) set(dynamicQueryModesFamily(key), queryMode)
       }
     })
 
@@ -403,6 +409,33 @@ export const SearchContext = React.memo(({
         if (data) {
           for (const [key, value] of Object.entries(data)) {
             set(queryFamily(key), value)
+          }
+        }
+      }
+    })
+
+    /**
+     * A Recoil.js selector that return the dynamic query modes state
+     */
+    const dynamicQueryModesState = selector({
+      key: `dynamicQueryModes_${contextID}`,
+      get: ({get}) => {
+        const query = {}
+        for (const key of filters) {
+          const filter = get(dynamicQueryModesFamily(key))
+          if (filter !== undefined) {
+            query[key] = filter
+          }
+        }
+        return query
+      },
+      set: ({ set }, data) => {
+        for (const filter of filters) {
+          set(dynamicQueryModesFamily(filter), undefined)
+        }
+        if (data) {
+          for (const [key, value] of Object.entries(data)) {
+            set(dynamicQueryModesFamily(key), value)
           }
         }
       }
@@ -659,6 +692,7 @@ export const SearchContext = React.memo(({
       const subname = useMemo(() => section ? name.slice(section.length + 1) : undefined, [name, section])
 
       const value = useRecoilValue(queryFamily(section || name))
+
       return section
         ? value?.[subname]
         : value
@@ -678,9 +712,11 @@ export const SearchContext = React.memo(({
       const section = sectionContext?.section
       const subname = useMemo(() => section ? name.slice(section.length + 1) : undefined, [name, section])
       const setter = useSetRecoilState(queryFamily(section || name))
+      const dynamicQueryModeSetter = useSetRecoilState(dynamicQueryModesFamily(section || name))
 
-      const handleSet = useCallback((value) => {
+      const handleSet = useCallback((value, config = undefined) => {
         updatedFilters.current.add(name)
+        dynamicQueryModeSetter(config?.queryMode)
         section
           ? setter(old => {
             const newValue = isNil(old) ? {} : {...old}
@@ -693,7 +729,7 @@ export const SearchContext = React.memo(({
           : setter(isFunction(value)
             ? (old) => clearEmpty(value(old))
             : clearEmpty(value))
-      }, [section, subname, setter, name])
+      }, [name, dynamicQueryModeSetter, section, setter, subname])
       return handleSet
     }
 
@@ -704,9 +740,9 @@ export const SearchContext = React.memo(({
      * @param {string} name Name of the filter.
      * @returns Array containing the filter value and setter function for it.
      */
-    const useFilterState = (name, section) => {
-      const value = useFilterValue(name, section)
-      const setter = useSetFilter(name, section)
+    const useFilterState = (name) => {
+      const value = useFilterValue(name)
+      const setter = useSetFilter(name)
       return useMemo(() => [value, setter], [value, setter])
     }
 
@@ -735,6 +771,7 @@ export const SearchContext = React.memo(({
       const reset = useRecoilCallback(({set}) => () => {
         for (const filter of filters) {
           set(queryFamily(filter), undefined)
+          set(dynamicQueryModesFamily(filter), undefined)
         }
       }, [])
       return reset
@@ -917,6 +954,7 @@ export const SearchContext = React.memo(({
       useResetFilters,
       useUpdateQueryString,
       queryState,
+      dynamicQueryModesState,
       aggsFamily,
       aggsState,
       paginationState,
@@ -948,6 +986,7 @@ export const SearchContext = React.memo(({
   const updateAggsResponse = useSetRecoilState(aggsResponseState)
   const aggs = useRecoilValue(aggsState)
   const query = useRecoilValue(queryState)
+  const dynamicQueryModes = useRecoilValue(dynamicQueryModesState)
   const filtersLocked = useFiltersLocked()
   const [pagination, setPagination] = useRecoilState(paginationState)
   const required = useRecoilValue(requiredState)
@@ -1037,8 +1076,8 @@ export const SearchContext = React.memo(({
     // The locked filters are applied as a parallel AND query. This is the only
     // way to consistently apply them. If we mix them inside 'regular' filters,
     // they can be accidentally overwritten with an OR statement.
-    const customQuery = toAPIFilter(apiQuery, resource)
-    const lockedQuery = toAPIFilter(filtersLocked, resource)
+    const customQuery = toAPIFilter(apiQuery, resource, dynamicQueryModes)
+    const lockedQuery = toAPIFilter(filtersLocked, resource, dynamicQueryModes)
 
     let finalQuery = customQuery
     if (!isEmpty(lockedQuery)) {
@@ -1120,7 +1159,7 @@ export const SearchContext = React.memo(({
         callbackAgg && callbackAgg(undefined, error, true)
         callbackHits && callbackHits(undefined, error, true, undefined)
       })
-  }, [filterDefaults, filtersLocked, resource, api, raiseError, resolve])
+  }, [filterDefaults, filtersLocked, resource, api, raiseError, resolve, dynamicQueryModes])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useMemo(() => debounce(apiCall, debounceTime), [apiCall])
@@ -1535,7 +1574,7 @@ function searchToQs(query, statistics) {
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIFilter(query, resource) {
+export function toAPIFilter(query, resource, queryModes) {
   const queryCustomized = {}
   if (!query) {
     return undefined
@@ -1577,7 +1616,7 @@ export function toAPIFilter(query, resource) {
   // Create the API-compatible keys and values.
   const queryNormalized = {}
   for (const [k, v] of Object.entries(queryCustomized)) {
-    const [newKey, newValue] = toAPIFilterSingle(k, v)
+    const [newKey, newValue] = toAPIFilterSingle(k, v, undefined, queryModes?.[k])
     const splitted = newKey.split(':')
     const filterName = splitted[0]
     const queryMode = splitted.length > 1 ? splitted[1] : undefined
@@ -1640,10 +1679,12 @@ export function toAPIFilter(query, resource) {
  * @param {string} key Filter name
  * @param {any} value Filter value
  * @param {string} path The full path of the filter.
+ * @param {string} queryMode Determines the queryMode otherwise it uses the
+ *   global queryMode defined in the config in filter registry.
  *
  * @returns {any} The filter value in a format that is suitable for the API.
  */
-function toAPIFilterSingle(key, value, path = undefined) {
+function toAPIFilterSingle(key, value, path = undefined, queryMode = undefined) {
   // Determine the API-compatible value.
   let newValue
   if (value instanceof Set) {
@@ -1681,12 +1722,16 @@ function toAPIFilterSingle(key, value, path = undefined) {
   }
 
   // Determine the final API key. It depends on the particular queryMode.
-  let queryMode
-  if (isArray(newValue)) {
-    const fullPath = path ? `${path}.${key}` : key
-    queryMode = filterDataGlobal[fullPath]?.queryMode
+  let finalQueryMode
+  if (queryMode) {
+    finalQueryMode = queryMode
+  } else {
+    if (isArray(newValue)) {
+      const fullPath = path ? `${path}.${key}` : key
+      finalQueryMode = filterDataGlobal[fullPath]?.queryMode
+    }
   }
-  const newKey = queryMode ? `${key}:${queryMode}` : key
+  const newKey = finalQueryMode ? `${key}:${finalQueryMode}` : key
 
   return [newKey, newValue]
 }
