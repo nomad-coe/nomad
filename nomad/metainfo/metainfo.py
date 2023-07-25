@@ -580,6 +580,9 @@ class Reference(DataType):
 
             context_section = context.resolve_archive_url(url.archive_url)
 
+        if isinstance(context_section, Package) and "definitions" in url.fragment:
+            url.fragment = url.fragment.replace('/definitions', '')
+
         return self.resolve_fragment(context_section, url.fragment)
 
     def resolve_fragment(self, context_section: MSection, fragment: str) -> MSection:
