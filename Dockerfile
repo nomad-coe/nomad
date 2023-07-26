@@ -176,7 +176,7 @@ RUN pip install nomad-lab-*.tar.gz
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
  && find /usr/local/lib/python3.9/ -type d -name 'test' -exec rm -r '{}' + \
- && find /usr/local/lib/python3.9/site-packages/ -name '*.so' ! -path '*/h5py/*' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+ && find /usr/local/lib/python3.9/site-packages/ -name '*.so' ! -path '*/h5py/*' ! -path '*/quippy*/*' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 
 
 # ================================================================================
