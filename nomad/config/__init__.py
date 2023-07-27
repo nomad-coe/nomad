@@ -410,6 +410,9 @@ plugins = Plugins(options={
         supported_compressions=['gz', 'bz2', 'xz']),
     'parsers/elabftw/elabftw': Parser(
         python_package='nomad.parsing.elabftw',
+        parser_as_interface=True),
+    'parsers/chemotion/chemotion': Parser(
+        python_package='nomad.parsing.chemotion',
         parser_as_interface=True)
 })
 

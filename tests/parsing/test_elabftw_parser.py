@@ -25,7 +25,7 @@ from nomad.files import StagingUploadFiles, UploadFiles
 from tests.processing.test_data import run_processing
 
 
-def _assert_parsed_data(upload_id, entries, cls, no_archive: bool = False, **kwargs):
+def _assert_parsed_data(upload_id, entries, cls, parser, assert_fnc, mainfile_str, no_archive: bool = False, **kwargs):
 
     upload_files = UploadFiles.get(upload_id)
     assert upload_files is not None
@@ -38,30 +38,33 @@ def _assert_parsed_data(upload_id, entries, cls, no_archive: bool = False, **kwa
         try:
             archive = upload_files.read_archive(entry.entry_id)
             assert entry.entry_id in archive
-            if entry.entry_name and 'ro-crate-metadata.json' in entry.entry_name:
+            if entry.entry_name and mainfile_str in entry.entry_name:
                 test_archive = EntryArchive(metadata=EntryMetadata(entry_id=entry.entry_id, upload_id=upload_id))
                 test_archive.m_context = Context()
                 mainfile = '/'.join([upload_files.os_path, 'raw', entry.mainfile])
-                parser = ELabFTWParser()
                 parser.parse(mainfile, test_archive, None, child_archives={'0': test_archive})
 
-                assert test_archive.data is not None
-                assert test_archive.data.title == 'Test'
-                assert test_archive.data.id == 'ro-crate-metadata.json'
-                assert len(test_archive.data.experiment_data.experiments_links) == 1
-                assert len(test_archive.data.experiment_files) == 5
-                assert test_archive.data.experiment_data.experiments_links[0].title == 'JSON test '
-                assert test_archive.data.experiment_data.items_links[0].title == 'Untitled'
-                assert test_archive.data.experiment_data.extra_fields is not None
-                for item in test_archive.data.experiment_files:
-                    assert item.type == 'File'
-                    assert item.file is not None
-                    assert item.id is not None
+                assert_fnc(test_archive)
 
         except KeyError:
             assert no_archive
 
     upload_files.close()
+
+
+def _assert_elabftw(test_archive):
+    assert test_archive.data is not None
+    assert test_archive.data.title == 'Test'
+    assert test_archive.data.id == 'ro-crate-metadata.json'
+    assert len(test_archive.data.experiment_data.experiments_links) == 1
+    assert len(test_archive.data.experiment_files) == 5
+    assert test_archive.data.experiment_data.experiments_links[0].title == 'JSON test '
+    assert test_archive.data.experiment_data.items_links[0].title == 'Untitled'
+    assert test_archive.data.experiment_data.extra_fields is not None
+    for item in test_archive.data.experiment_files:
+        assert item.type == 'File'
+        assert item.file is not None
+        assert item.id is not None
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -72,4 +75,6 @@ def test_elabftw_parser(raw_files, proc_infra, api_v1, test_user):
     assert len(upload.successful_entries) == 2
 
     with upload.entries_metadata() as entries:
-        _assert_parsed_data(upload.upload_id, entries, StagingUploadFiles, published=False)
+        _assert_parsed_data(
+            upload.upload_id,
+            entries, StagingUploadFiles, ELabFTWParser(), _assert_elabftw, 'ro-crate-metadata.json', published=False)

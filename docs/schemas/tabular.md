@@ -239,7 +239,7 @@ containing metadata and additional info of the files associated with the experim
 ### Labfolder integration
 
 Labfolder provides API endpoints to interact with your ELN data. NOMAD makes API calls to
-retrieve, parse and map the data from your Labfolder instacne/database to a NOMAD's schema.
+retrieve, parse and map the data from your Labfolder instance/database to a NOMAD's schema.
 To do so, the necessary information are listed in the table below:
 
 <i>project_url</i>:
@@ -274,4 +274,23 @@ contains data of any text field in your Labfodler project.
 
 ### Chemotion integration
 
-Coming soon
+NOMAD supports importing your data from Chemotion repository via `chemotion` parser. The parser maps
+your data that is structured under chemotion schema, into a predefined NOMAD schema. From your Chemotion
+repo, you can export your entire data as a zip file which then is used to populate NOMAD schema.
+
+<b>How to import Chemotion data into NOMAD:</b>
+
+Go to your Chemotion repository and export your project. Save the file to your filesystem under
+your preferred name and location (`your_file_name.zip`).
+To get your data parsed into NOMAD,
+go to the upload page of NOMAD and create a new upload. In the `overview` page, upload your exported file (either by
+drag-dropping it into the <i>click or drop files</i> box or by navigating to the path where you stored the file).
+This causes triggering NOMAD's parser to create one new entry in this upload.
+
+You can inspect the parsed data of each of this new entry by navigating to the <b>DATA</b>
+tab of the current entry page. Under <i>Entry</i> column, click on <i>data</i> section. Now a new lane titled
+`Chemotion Project Import` should be visible. Under this section, (some of) the metadata of your project is listed.
+Also, there are various (sub)sections which are either filled depending on whether your datafile
+contains information on them.
+
+If a section contains an image (or attachment) it is appended to the same section under `file` Quantity.
