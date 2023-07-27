@@ -1,0 +1,21 @@
+code_category: ELN
+code_homepage: https://chemotion.net/
+code_name: Chemotion
+metadata:
+  codeCategory: ELN
+  codeLabel: Chemotion
+  codeLabelStyle: 'capitals: C.'
+  codeName: Chemotion
+  codeUrl: https://chemotion.net/
+  parserDirName: nomad/parsing/chemotion
+  parserGitUrl: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR.git
+  preabmle: ""
+  status: production
+  tableOfFiles: |
+    |Input Filename| Description|
+    |--- | --- |
+    |`*.export.json` | **Mainfile** as part of the .eln chemotion export |
+    |`*` | Files in .eln chemotion export that are references by the mainfile and description.txt |
+name: parsers/chemotion
+parser_class_name: nomad.parsing.chemotion.ChemotionParser
+python_package: nomad.parsing.chemotion
