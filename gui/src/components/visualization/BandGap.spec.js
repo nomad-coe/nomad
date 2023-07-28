@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectVisualization, VisualizationState } from './conftest.spec'
 import BandGap, { bandGapError } from './BandGap'
 
@@ -25,6 +25,6 @@ test.each([
   ['loading', VisualizationState.Loading, undefined],
   ['error: invalid data', VisualizationState.Error, "invalid data"]
 ])('band gap: %s', async (id, state, data) => {
-  render(<BandGap data={data} />)
+  renderNoAPI(<BandGap data={data} />)
   await expectVisualization(state, 'band-gap-placeholder', bandGapError)
 })

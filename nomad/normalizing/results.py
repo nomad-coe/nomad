@@ -68,6 +68,10 @@ from nomad.datamodel.results import (
     GreensFunctionsElectronic,
     EnergyFreeHelmholtz,
     HeatCapacityConstantVolume,
+    SpectroscopicProperties,
+    EELSMethodology,
+    SpectraProvenance,
+    Spectra,
 )
 
 re_label = re.compile("^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*")
@@ -156,6 +160,30 @@ class ResultsNormalizer(Normalizer):
         if len(measurement.sample) > 0:
             self.normalize_sample(measurement.sample[0])
 
+        # Results properties for EELSDB
+        if measurement.m_xpath('eels.spectrum'):
+            properties = results.properties
+            spectroscopic = properties.m_create(SpectroscopicProperties)
+
+            spectra = Spectra(
+                type='EELS',
+                label='experiment',
+                n_energies=measurement.eels.spectrum.n_values,
+                energies=measurement.eels.spectrum.energy,
+                intensities=measurement.eels.spectrum.count,
+                intensities_units='counts',
+            )
+            if measurement.instrument:
+                provenance = spectra.m_create(SpectraProvenance)
+                provenance.label = 'EELSDB'
+                methodology = EELSMethodology(
+                    resolution=measurement.instrument[0].eels.resolution,
+                    detector_type=measurement.instrument[0].eels.detector_type,
+                    min_energy=measurement.instrument[0].eels.min_energy,
+                    max_energy=measurement.instrument[0].eels.max_energy)
+                provenance.m_add_sub_section(SpectraProvenance.eels, methodology)
+            spectroscopic.m_add_sub_section(SpectroscopicProperties.spectra, spectra)
+
     def normalize_run(self, logger=None) -> None:
         # Fetch different information resources from which data is gathered
         repr_system = None
@@ -227,14 +255,14 @@ class ResultsNormalizer(Normalizer):
             return None
         bg_root: List[BandGap] = []
         for bg in band_gaps:
-            bg_new = BandGap()
-            bg_new.index = bg.index
-            bg_new.value = bg.value
-            bg_new.type = bg.type
-            bg_new.energy_highest_occupied = bg.energy_highest_occupied
-            bg_new.energy_lowest_unoccupied = bg.energy_lowest_unoccupied
-            bg_new.provenance = bg.provenance
-            bg_root.insert(0, bg_new)
+            bg_results = BandGap()
+            bg_results.index = bg.index
+            bg_results.value = bg.value
+            bg_results.type = bg.type
+            bg_results.energy_highest_occupied = bg.energy_highest_occupied
+            bg_results.energy_lowest_unoccupied = bg.energy_lowest_unoccupied
+            bg_results.provenance = bg.provenance
+            bg_root.insert(0, bg_results)
         return bg_root
 
     def resolve_band_structure(self, path: list[str]) -> Union[List[BandStructureElectronic], None]:
@@ -262,16 +290,16 @@ class ResultsNormalizer(Normalizer):
                     break
             if valid:
                 # Fill band structure data to the newer, improved data layout
-                bs_new = BandStructureElectronic()
-                bs_new.reciprocal_cell = bs
-                bs_new.segment = bs.segment
-                bs_new.spin_polarized = bs_new.segment[0].energies.shape[0] > 1
-                bs_new.energy_fermi = bs.energy_fermi
+                bs_results = BandStructureElectronic()
+                bs_results.reciprocal_cell = bs
+                bs_results.segment = bs.segment
+                bs_results.spin_polarized = bs_results.segment[0].energies.shape[0] > 1
+                bs_results.energy_fermi = bs.energy_fermi
 
                 for info in bs.band_gap:
                     info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
-                    bs_new.m_add_sub_section(BandStructureElectronic.band_gap, info_new)
-                bs_root.insert(0, bs_new)
+                    bs_results.m_add_sub_section(BandStructureElectronic.band_gap, info_new)
+                bs_root.insert(0, bs_results)
         return bs_root
 
     def resolve_dos(self, path: list[str]) -> Union[List[DOSElectronic], None]:
@@ -290,16 +318,16 @@ class ResultsNormalizer(Normalizer):
             energies = dos.energies
             values = np.array([d.value.magnitude for d in dos.total])
             if valid_array(energies) and valid_array(values):
-                dos_new = DOSElectronic()
-                dos_new.energies = dos
-                dos_new.total = dos.total
+                dos_results = DOSElectronic()
+                dos_results.energies = dos
+                dos_results.total = dos.total
                 n_channels = values.shape[0]
-                dos_new.spin_polarized = n_channels > 1
-                dos_new.energy_fermi = dos.energy_fermi
+                dos_results.spin_polarized = n_channels > 1
+                dos_results.energy_fermi = dos.energy_fermi
                 for info in dos.band_gap:
                     info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
-                    dos_new.m_add_sub_section(DOSElectronic.band_gap, info_new)
-                dos_root.insert(0, dos_new)
+                    dos_results.m_add_sub_section(DOSElectronic.band_gap, info_new)
+                dos_root.insert(0, dos_results)
         return dos_root
 
     def resolve_greens_functions(self, path: list[str]) -> Union[List[GreensFunctionsElectronic], None]:
@@ -320,51 +348,70 @@ class ResultsNormalizer(Normalizer):
             values_gtau = np.array([np.absolute(gtau) for gtau in gfs.greens_function_tau.real])
             values_siw = np.array([siw for siw in gfs.self_energy_iw.imag])
             if (valid_array(tau) and valid_array(values_gtau)) or (valid_array(iw) and valid_array(values_siw)):
-                gfs_new = GreensFunctionsElectronic()
-                gfs_new.chemical_potential = gfs.chemical_potential
+                gfs_results = GreensFunctionsElectronic()
+                gfs_results.chemical_potential = gfs.chemical_potential
                 if valid_array(tau) and valid_array(values_gtau):
-                    gfs_new.tau = tau
-                    gfs_new.real_greens_function_tau = values_gtau
+                    gfs_results.tau = tau
+                    gfs_results.real_greens_function_tau = values_gtau
                 if valid_array(iw) and valid_array(values_siw):
-                    gfs_new.matsubara_freq = iw
-                    gfs_new.imag_self_energy_iw = values_siw
+                    gfs_results.matsubara_freq = iw
+                    gfs_results.imag_self_energy_iw = values_siw
                 if valid_array(gfs.orbital_occupations):
-                    gfs_new.orbital_occupations = gfs.orbital_occupations
+                    gfs_results.orbital_occupations = gfs.orbital_occupations
                 if valid_array(gfs.quasiparticle_weights):
-                    gfs_new.quasiparticle_weights = gfs.quasiparticle_weights
+                    gfs_results.quasiparticle_weights = gfs.quasiparticle_weights
 
-                gfs_root.insert(0, gfs_new)
+                gfs_root.insert(0, gfs_results)
         return gfs_root
 
-    def gw_workflow_properties(self):
-        bg_electronic = self.electronic_properties[0]
-        bs_electronic = self.electronic_properties[1]
-        dos_electronic = self.electronic_properties[2]
+    def get_gw_workflow_properties(self):
+        bg_electronic, bs_electronic, dos_electronic, _ = self.electronic_properties
         for method in ['dft', 'gw']:
             name = method.upper()
-            bgs = self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"])
-            bss = self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"])
-            doss = self.resolve_dos(["workflow2", "results", f"dos_{method}"])
-            for bg in bgs:
+            for bg in self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"]):
                 bg.label = name
                 bg_electronic.append(bg)
-            for bs in bss:
+            for bs in self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"]):
                 bs.label = name
                 for band_gap in bs.band_gap:
                     band_gap.label = name
                 bs_electronic.append(bs)
-            for d in doss:
-                d.label = name
-                for band_gap in d.band_gap:
+            for dos in self.resolve_dos(["workflow2", "results", f"dos_{method}"]):
+                dos.label = name
+                for band_gap in dos.band_gap:
                     band_gap.label = name
-                dos_electronic.append(d)
+                dos_electronic.append(dos)
         return [bg_electronic, bs_electronic, dos_electronic, []]
 
-    def dmft_workflow_properties(self):
-        bg_electronic = self.electronic_properties[0]
-        bs_electronic = self.electronic_properties[1]
-        dos_electronic = self.electronic_properties[2]
-        gf_electronic = self.electronic_properties[3]
+    def resolve_spectra(self, path: list[str]) -> Union[List[Spectra], None]:
+        """Returns a reference to the section containing the electronic Spectra.
+        """
+        spectra = traverse_reversed(self.entry_archive, path)
+        if not spectra:
+            return None
+        spectra_root: List[Spectra] = []
+        for spectrum in spectra:
+            n_energies = spectrum.n_energies
+            if n_energies and n_energies > 0:
+                spectra_results = Spectra(
+                    type=spectrum.type,
+                    label='computation',
+                    n_energies=n_energies
+                )
+                provenance = spectra_results.m_create(SpectraProvenance)
+                provenance.electronic_structure = spectrum.provenance
+                energies = spectrum.excitation_energies
+                intensities = spectrum.intensities
+                if valid_array(energies) and valid_array(intensities):
+                    spectra_results.energies = energies
+                    spectra_results.intensities = intensities
+                    if spectrum.intensities_units:
+                        spectra_results.intensities_units = spectrum.intensities_units
+                    spectra_root.insert(0, spectra_results)
+        return spectra_root
+
+    def get_dmft_workflow_properties(self):
+        bg_electronic, bs_electronic, dos_electronic, gf_electronic = self.electronic_properties
         for method in ['dft', 'projection']:
             name = method.upper()
             band_gaps = self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"])
@@ -392,6 +439,29 @@ class ResultsNormalizer(Normalizer):
             gf.label = 'DMFT'
             gf_electronic.append(gf)
         return [bg_electronic, bs_electronic, dos_electronic, gf_electronic]
+
+    def get_xs_workflow_properties(self):
+        bg_electronic, bs_electronic, dos_electronic, _ = self.electronic_properties
+        spct_electronic = self.spectra
+        for method in ['dft', 'gw']:
+            name = method.upper()
+            for bg in self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"]):
+                bg.label = name
+                bg_electronic.append(bg)
+            for bs in self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"]):
+                bs.label = name
+                for band_gap in bs.band_gap:
+                    band_gap.label = name
+                bs_electronic.append(bs)
+            for dos in self.resolve_dos(["workflow2", "results", f"dos_{method}"]):
+                dos.label = name
+                for band_gap in dos.band_gap:
+                    band_gap.label = name
+                dos_electronic.append(dos)
+        spectra = self.resolve_spectra(["workflow2", "results", "spectra", "spectrum_polarization"])
+        if spectra:
+            spct_electronic = spectra
+        return ([bg_electronic, bs_electronic, dos_electronic, []], spct_electronic)
 
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
         """Returns a new section containing a phonon band structure. In
@@ -727,19 +797,30 @@ class ResultsNormalizer(Normalizer):
                 elif structural_type == "1D":
                     conv_atoms, _ = self.structures_1d(original_atoms)
 
-        # Electronic properties
+        # Electronic and Spectroscopic
+        #   electronic properties list
         bg_electronic = self.resolve_band_gap(['run', 'calculation', 'band_gap'])
         bs_electronic = self.resolve_band_structure(['run', 'calculation', 'band_structure_electronic'])
         dos_electronic = self.resolve_dos(['run', 'calculation', 'dos_electronic'])
         gfs_electronic = self.resolve_greens_functions(['run', 'calculation', 'greens_functions'])
         self.electronic_properties = [bg_electronic, bs_electronic, dos_electronic, gfs_electronic]
+        #   spectroscopic properties list
+        spectra = self.resolve_spectra(['run', 'calculation', 'spectra'])
+        self.spectra = spectra
+        # Resolving GW, XS workflow properties
         workflow = self.entry_archive.workflow2
         if workflow:
             workflow_name = workflow.m_def.name
             if workflow_name == 'GW':
-                self.electronic_properties = self.gw_workflow_properties()
+                self.electronic_properties = self.get_gw_workflow_properties()
             elif workflow_name == 'DMFT':
-                self.electronic_properties = self.dmft_workflow_properties()
+                self.electronic_properties = self.get_dmft_workflow_properties()
+            elif workflow_name == 'PhotonPolarization':
+                spectra = self.resolve_spectra(['workflow2', 'results', 'spectrum_polarization'])
+                if spectra is not None:
+                    self.spectra = spectra
+            elif workflow_name == 'XS':
+                (self.electronic_properties, self.spectra) = self.get_xs_workflow_properties()
 
         method_def = {value.sub_section.name: value for _, value in ElectronicProperties.m_def.all_sub_sections.items()}
         if any(self.electronic_properties):
@@ -752,6 +833,12 @@ class ResultsNormalizer(Normalizer):
                     else:
                         continue
             properties.electronic = electronic
+
+        # Spectroscopic
+        if self.spectra:
+            spectroscopic = SpectroscopicProperties()
+            spectroscopic.spectra = self.spectra
+            properties.spectroscopic = spectroscopic
 
         # Vibrational
         bs_phonon = self.band_structure_phonon()

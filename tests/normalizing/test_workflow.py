@@ -64,7 +64,7 @@ def test_single_point_workflow(workflow_archive):
 
 
 def test_gw_workflow(gw_workflow):
-    """Testing GW workflow entry"""
+    """Testing GW workflow (DFT+GW) entry"""
     workflow = gw_workflow.workflow2
     assert workflow.name == 'GW'
     assert workflow.method.gw_method_ref.type == 'G0W0'
@@ -116,6 +116,63 @@ def test_dmft_workflow(dmft_workflow):
     # TODO check why this testing is not passing
     #   * conftest seems to not be able to normalize the archive_dmft for the Greens functions, despite self_energy_iw is defined.
     # assert results.m_xpath('properties.electronic.greens_function_electronic')
+
+
+def test_bse_workflow(bse_workflow):
+    """Testing BSE workflow (Photon1+Photon2) entry"""
+    workflow = bse_workflow.workflow2
+    assert workflow.name == 'BSE'
+    assert len(workflow.inputs) == 2
+    assert workflow.inputs[0].name == 'Input structure'
+    assert workflow.inputs[1].name == 'Input BSE methodology'
+    assert len(workflow.outputs) == 2 and len(workflow.outputs) == workflow.results.n_polarizations
+    assert len(workflow.tasks) == 2
+    assert workflow.method.bse_method_ref.type == 'Singlet'
+    assert workflow.method.bse_method_ref.solver == 'Lanczos-Haydock'
+    results = bse_workflow.results
+    assert results.method.method_name == 'BSE'
+    assert results.method.workflow_name == 'PhotonPolarization'
+    assert results.method.simulation.program_name == 'VASP'
+    assert results.method.simulation.program_version == '4.6.35'
+    assert results.method.simulation.bse.type == 'Singlet'
+    assert results.method.simulation.bse.solver == 'Lanczos-Haydock'
+    assert results.properties.spectroscopic
+    spectra = results.properties.spectroscopic.spectra
+    assert len(spectra) == 2
+    assert spectra[0].type == 'XAS'
+    assert spectra[0].label == 'computation'
+    assert spectra[0].n_energies == 11
+    assert spectra[0].energies[3].to('eV').magnitude == approx(3.0)
+    assert spectra[0].intensities[3] == approx(130.0)
+    assert spectra[0].intensities_units == 'F/m'
+    assert spectra[0].provenance and spectra[1].provenance
+    assert spectra[0].provenance != spectra[1].provenance
+
+
+def test_xs_workflow(xs_workflow):
+    """Testing XS workflow (DFT+BSEworkflow) entry"""
+    workflow = xs_workflow.workflow2
+    assert workflow.name == 'XS'
+    assert len(workflow.inputs) == 1
+    assert workflow.inputs[0].name == 'Input structure'
+    assert len(workflow.outputs) == 2
+    assert len(workflow.tasks) == 2
+    assert workflow.tasks[0].name == 'DFT' and workflow.tasks[1].name == 'BSE 1'
+    assert workflow.results.dos_dft and workflow.results.band_structure_dft and workflow.results.spectra
+    results = xs_workflow.results
+    assert results.method.method_name == 'BSE'
+    assert results.method.workflow_name == 'XS'
+    assert results.method.simulation.program_name == 'VASP'
+    assert results.method.simulation.program_version == '4.6.35'
+    assert results.method.simulation.bse.type == 'Singlet'
+    assert results.method.simulation.bse.solver == 'Lanczos-Haydock'
+    assert results.method.simulation.bse.starting_point_type == 'GGA'
+    assert results.method.simulation.bse.starting_point_names == ['GGA_X_PBE']
+    assert results.method.simulation.bse.basis_set_type == 'plane waves'
+    assert results.properties.electronic and results.properties.spectroscopic
+    assert results.properties.electronic.dos_electronic[0].label == 'DFT'
+    assert len(results.properties.spectroscopic.spectra) == 2
+    assert results.properties.spectroscopic.spectra[0].provenance != results.properties.spectroscopic.spectra[1].provenance
 
 
 def test_geometry_optimization_workflow(workflow_archive):

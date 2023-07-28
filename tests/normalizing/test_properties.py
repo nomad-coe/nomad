@@ -32,14 +32,23 @@ from .conftest import (
 
 
 def test_eels(eels):
-    assert eels.results.properties.spectroscopy.eels is not None
-    spectroscopy_data = eels.results.properties.spectroscopy.spectrum
-    eels_data = eels.results.properties.spectroscopy.eels
-    assert eels_data.resolution.to(ureg.electron_volt).magnitude == pytest.approx(1)
-    assert eels_data.min_energy.to(ureg.electron_volt).magnitude == pytest.approx(100)
-    assert eels_data.max_energy.to(ureg.electron_volt).magnitude == pytest.approx(200)
-    assert eels_data.detector_type == 'Quantum GIF'
-    assert spectroscopy_data.n_values == spectroscopy_data.count.shape[0] == spectroscopy_data.energy.shape[0]
+    assert eels.results.method.method_name == 'EELS'
+    assert eels.results.properties.spectroscopic is not None
+    spectra = eels.results.properties.spectroscopic.spectra
+    assert len(spectra) == 1
+    assert spectra[0].type == 'EELS'
+    assert spectra[0].label == 'experiment'
+    assert spectra[0].n_energies == 101
+    assert spectra[0].energies[22].to('eV').magnitude == pytest.approx(122.0)
+    assert spectra[0].intensities[22] == pytest.approx(22.0)
+    assert spectra[0].intensities_units == 'counts'
+    assert spectra[0].m_xpath('provenance.eels')
+    provenance = spectra[0].provenance
+    assert provenance.label == 'EELSDB'
+    assert provenance.eels.detector_type == 'Quantum GIF'
+    assert provenance.eels.min_energy.to('eV').magnitude == pytest.approx(100.0)
+    assert provenance.eels.max_energy.to('eV').magnitude == pytest.approx(200.0)
+    assert provenance.eels.resolution.to('eV').magnitude == pytest.approx(1.0)
 
 
 def test_bulk_modulus(mechanical_eos):

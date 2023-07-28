@@ -10,7 +10,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import Structure from '../visualization/Structure'
 import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
-import EELS from '../visualization/EELS'
+import Spectra from '../visualization/Spectra'
 import DOS from '../visualization/DOS'
 import { Quantity, useUnits } from '../../units'
 import { electronicRange } from '../../config'
@@ -202,24 +202,24 @@ OverviewBandstructureElectronic.propTypes = ({
   units: PropTypes.object
 })
 
-const useOverviewEELSStyles = makeStyles({
+const useOverviewSpectraStyles = makeStyles({
   root: {
     width: '30rem',
     height: '15rem',
     margin: 'auto'
   }
 })
-export const OverviewEELS = React.memo(({def, section, units}) => {
-  const style = useOverviewEELSStyles()
+export const OverviewSpectra = React.memo(({def, section, units}) => {
+  const style = useOverviewSpectraStyles()
 
-  return <EELS
+  return <Spectra
     className={style.root}
     data={[section]}
     layout={{yaxis: {autorange: true}}}
     units={units}
   />
 })
-OverviewEELS.propTypes = ({
+OverviewSpectra.propTypes = ({
   def: PropTypes.object,
   section: PropTypes.object,
   units: PropTypes.object
@@ -275,7 +275,7 @@ export const Overview = React.memo((props) => {
   } else if (def.name === 'Dos' && path === 'dos_phonon') {
     return <OverviewDOSPhonon {...props} units={units}/>
   } else if (def.name === 'Spectrum') {
-    return <OverviewEELS {...props} units={units}/>
+    return <OverviewSpectra {...props} units={units}/>
   } else if (def.name === 'EquationOfState') {
     return <OverviewEquationOfState {...props} units={units}/>
   }

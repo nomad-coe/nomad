@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
 import MeanSquaredDisplacement, { msdError } from './MeanSquaredDisplacement'
 
@@ -28,6 +28,6 @@ test.each([
   ['error: invalid data layout', VisualizationState.Error, {invalid: "data"}, undefined],
   ['valid', VisualizationState.Success, {molecular: [{label: 'MOL', times: [0, 1], value: [0, 1], diffusion_constant_value: 2.1, diffusion_constant_errors: 0.98}]}, undefined]
 ])('msd plot: %s', async (id, state, data, placeholderTestID) => {
-  render(<MeanSquaredDisplacement msd={data} />)
+  renderNoAPI(<MeanSquaredDisplacement msd={data} />)
   await expectPlot(state, placeholderTestID, msdError)
 })

@@ -135,8 +135,8 @@ class MethodNormalizer():
         # workflow_name
         if self.entry_archive.workflow2:
             method.workflow_name = self.entry_archive.workflow2.m_def.name
-        # if the entry is a GW or ParticleHoleExcitations workflow, keep method_name as DFT+XS
-        if method.workflow_name in ['GW', 'ParticleHoleExcitations']:
+        # if the entry is a GW or XS workflow, keep method_name as DFT+XS
+        if method.workflow_name in ['GW', 'XS']:
             try:
                 gs_method = self.entry_archive.workflow2.tasks[0].task.tasks[-1].inputs[1].section  # Ground-state method
                 repr_method = gs_method

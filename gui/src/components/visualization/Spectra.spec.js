@@ -18,15 +18,14 @@
 import React from 'react'
 import { renderNoAPI } from '../conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
-import GeometryOptimization from './GeometryOptimization'
+import Spectra, { spectraError } from './Spectra'
 
-const errorMsg = 'Could not load geometry optimization data.'
 test.each([
-  [VisualizationState.NoData, false, undefined],
-  [VisualizationState.Loading, undefined, 'geometry-optimization-plot-placeholder'],
-  [VisualizationState.Error, {invalid: 'data'}, undefined],
-  [VisualizationState.Success, [0, 1, 2, 3, 4], undefined]
-])('%s', async (state, energies, placeholderTestID) => {
-  const {container} = renderNoAPI(<GeometryOptimization energies={energies}/>)
-  await expectPlot(state, placeholderTestID, errorMsg, container)
+  ['no data', VisualizationState.NoData, false, undefined],
+  ['loading', VisualizationState.Loading, undefined, 'spectra-placeholder'],
+  ['error: invalid data layout', VisualizationState.Error, {invalid: 'data'}, undefined],
+  ['valid', VisualizationState.Success, [{energies: [0, 1, 2], intensities: [0, 2, 1], label: 'computation', type: 'XAS'}], undefined]
+])('spectra: %s', async (id, state, data, spectraID) => {
+  renderNoAPI(<Spectra data={data} />)
+  await expectPlot(state, spectraID, spectraError)
 })

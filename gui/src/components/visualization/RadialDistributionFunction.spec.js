@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
 import RadialDistributionFunction, { rdfError } from './RadialDistributionFunction'
 
@@ -28,6 +28,6 @@ test.each([
   ['error: invalid data layout', VisualizationState.Error, {invalid: "data"}, undefined],
   ['valid', VisualizationState.Success, {molecular: {'MOL-MOL': [{bins: [0, 1], value: [0, 1]}]}}, undefined]
 ])('rdf plot: %s', async (id, state, data, placeholderTestID) => {
-  render(<RadialDistributionFunction rdf={data} />)
+  renderNoAPI(<RadialDistributionFunction rdf={data} />)
   await expectPlot(state, placeholderTestID, rdfError)
 })

@@ -34,7 +34,7 @@ import ThermodynamicPropertiesCard from '../entry/properties/ThermodynamicProper
 import DynamicalPropertiesCard from '../entry/properties/DynamicalPropertiesCard'
 import StructuralPropertiesCard from '../entry/properties/StructuralPropertiesCard'
 import GeometryOptimizationCard from '../entry/properties/GeometryOptimizationCard'
-import EELSPropertiesCard from './properties/EELSPropertiesCard'
+import SpectroscopicPropertiesCard from './properties/SpectroscopicPropertiesCard'
 import RelatedResourcesCard from '../entry/properties/RelatedResourcesCard'
 import WorkflowCard from './properties/WorkflowCard'
 import { MethodMetadata } from './EntryDetails'
@@ -115,7 +115,7 @@ const required = {
         band_gap: '*'
       },
       mechanical: 'include-resolved',
-      spectroscopy: 'include-resolved',
+      spectroscopic: 'include-resolved',
       vibrational: 'include-resolved',
       thermodynamic: 'include-resolved',
       geometry_optimization: {
@@ -187,7 +187,7 @@ const OverviewView = React.memo(() => {
       structural: StructuralPropertiesCard,
       dynamical: DynamicalPropertiesCard,
       geometry_optimization: GeometryOptimizationCard,
-      eels: EELSPropertiesCard,
+      spectroscopic: SpectroscopicPropertiesCard,
       workflow: WorkflowCard,
       references: ReferenceUsingCard,
       relatedResources: RelatedResourcesCard
