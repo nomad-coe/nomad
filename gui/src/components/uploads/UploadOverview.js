@@ -61,7 +61,7 @@ const useDropButtonStyles = makeStyles(theme => ({
   },
   dropzoneAccept: {
     '& button': {
-      background: theme.palette.primary.main,
+      background: theme.palette.secondary.main,
       color: theme.palette.common.white
     }
   },
@@ -83,11 +83,11 @@ function DropButton({onDrop, ...buttonProps}) {
         <input {...getInputProps()} />
         <Button
           variant="contained"
-          color="default"
+          color="primary"
           startIcon={<UploadIcon/>}
           {...buttonProps}
         >
-          click or drop files
+          Drop files here or click to open dialog
         </Button>
       </div>
     </div>
@@ -248,17 +248,35 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 
-export function UploadDocumentation() {
-  return <React.Fragment>
-    Visit our documentation on <Link href={`${appBase}/docs/web.html#uploading-and-publishing-data`}>
-      uploading files
-    </Link> or show <DialogLink title="Supported file formats" text="supported file formats">
-      <Typography>
-        The following codes are supported: <CodeList withUploadInstructions />. Click
-        the code to get more specific information about how to prepare your files.
-      </Typography>
-    </DialogLink>.
-  </React.Fragment>
+export function SupportedCodes({children}) {
+  return <DialogLink title="Supported codes" text={children}>
+    <Typography>
+      For the following codes, we support automatic parsing of data into
+      entries: <CodeList withUploadInstructions />. Click the code to get more
+      specific information about how to prepare your files.
+    </Typography>
+  </DialogLink>
+}
+SupportedCodes.propTypes = {
+  children: PropTypes.node
+}
+
+export function UploadDocumentation({children}) {
+  return <Link href={`${appBase}/docs/web.html#uploading-and-publishing-data`}>
+    {children}
+  </Link>
+}
+UploadDocumentation.propTypes = {
+  children: PropTypes.node
+}
+
+export function SchemaDocumentation({children}) {
+  return <Link href={`${appBase}/docs/schema/basics.html`}>
+    {children}
+  </Link>
+}
+SchemaDocumentation.propTypes = {
+  children: PropTypes.node
 }
 
 function UploadOverview(props) {
@@ -468,10 +486,11 @@ function UploadOverview(props) {
             {!isPublished && isAuthenticated && isWriter && (
               <React.Fragment>
                 <Typography className={classes.stepContent}>
-                  Upload files or create entries. You can upload individual files or
-                  .zip/.tar files. <UploadDocumentation/> Entries can be created from build-in
-                  or uploaded schemas. Visit our documentation
-                  on <Link href={`${appBase}/docs/schema/basics.html`}>creating schemas</Link>.
+                  Here you can upload files. Top-level .zip/.tar files will be uncompressed automatically. For more information,
+                  see our documentation on <UploadDocumentation>uploading
+                  files</UploadDocumentation> or view the <SupportedCodes>supported codes</SupportedCodes>.
+                  Optionally, you can also create an entry from built-in or
+                  uploaded schemas. Please take a look at our documentation on <SchemaDocumentation>schemas</SchemaDocumentation>.
                 </Typography>
                 <Box display="flex" flexDirection="row">
                   <Box flexGrow={1}>
@@ -487,9 +506,9 @@ function UploadOverview(props) {
                       size="large"
                       disabled={isProcessing}
                       variant="contained"
-                      color="primary"
+                      color="default"
                     >
-                      Create entry
+                      Create from schema
                     </CreateEntry>
                   </Box>
                 </Box>
