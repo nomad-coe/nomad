@@ -21,6 +21,7 @@ import numpy as np
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime)
 from nomad.metainfo.metainfo import Reference, SectionProxy
+from nomad.datamodel import Author
 
 
 m_package = Package(name='measurements')
@@ -148,6 +149,14 @@ class Spectrum(MSection):
             appears in `additional_channel_data`.
         ''')
     n_additional_channels = Quantity(type=int, derived=lambda spectrum: len(spectrum.additional_channels))
+
+
+class EELSMeasurement(MSection):
+    spectrum = SubSection(section_def=Spectrum)
+    edges = Quantity(type=str, shape=['*'])
+    publish_time = Quantity(
+        type=Datetime, description='The datetime that this was published on EELS DB.')
+    authors = SubSection(section_def=Author, repreats=True)
 
 
 m_package.__init_metainfo__()

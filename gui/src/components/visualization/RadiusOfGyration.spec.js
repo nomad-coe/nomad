@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
 import RadiusOfGyration, { rgError } from './RadiusOfGyration'
 
@@ -28,6 +28,6 @@ test.each([
   ['error: invalid data layout', VisualizationState.Error, {invalid: "data"}, undefined],
   ['valid', VisualizationState.Success, {molecular: [{label: 'MOL', time: [0, 1], value: [0, 1]}]}, undefined]
 ])('rg plot: %s', async (id, state, data, placeholderTestID) => {
-  render(<RadiusOfGyration rg={data} />)
+  renderNoAPI(<RadiusOfGyration rg={data} />)
   await expectPlot(state, placeholderTestID, rgError)
 })

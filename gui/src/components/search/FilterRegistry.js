@@ -41,7 +41,7 @@ const idElectronic = 'electronic'
 const idSolarCell = 'solarcell'
 const idVibrational = 'vibrational'
 const idMechanical = 'mechanical'
-const idSpectroscopy = 'spectroscopy'
+const idSpectroscopic = 'spectroscopic'
 const idThermodynamic = 'thermodynamic'
 const idGeometryOptimization = 'geometry_optimization'
 const idELN = 'eln'
@@ -355,8 +355,8 @@ registerFilter('custom_quantities', idCustomQuantities, {
   }
 })
 registerFilter(
-  'results.properties.spectroscopy.eels',
-  idSpectroscopy,
+  'results.properties.spectroscopic.spectra.provenance.eels',
+  idSpectroscopic,
   {...nestedQuantity, label: 'Electron Energy Loss Spectrum (EELS)'},
   [
     {name: 'detector_type', ...termQuantity},
@@ -571,7 +571,7 @@ registerFilterOptions(
 // Spectroscopic properties: subset of results.properties.available_properties
 registerFilterOptions(
   'spectroscopic_properties',
-  idSpectroscopy,
+  idSpectroscopic,
   'results.properties.available_properties',
   'Spectroscopic Properties',
   'The spectroscopic properties that are present in an entry.',

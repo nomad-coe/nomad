@@ -30,10 +30,11 @@ from nomad.datamodel.metainfo.workflow import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import (
     Method, XCFunctional, BasisSetContainer, GW as GWMethodology, Projection as ProjectionMethodology,
-    DMFT as DMFTMethodology
+    DMFT as DMFTMethodology, BSE as BSEMethodology
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra, GreensFunctions,
+    Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
+    ElectronicStructureProvenance, GreensFunctions,
     RadiusOfGyration as RadiusOfGyrationCalculation,
     RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation)
 from nomad.atomutils import archive_to_universe
@@ -2353,42 +2354,42 @@ class GWResults(SimulationWorkflowResults):
         type=Reference(BandGap),
         shape=['*'],
         description='''
-        DFT band gap.
+        Reference to the DFT band gap.
         ''')
 
     band_gap_gw = Quantity(
         type=Reference(BandGap),
         shape=['*'],
         description='''
-        GW band gap.
+        Reference to the GW band gap.
         ''')
 
     dos_dft = Quantity(
         type=Reference(Dos),
         shape=['*'],
         description='''
-        Ref to the DFT density of states.
+        Reference to the DFT density of states.
         ''')
 
     dos_gw = Quantity(
         type=Reference(Dos),
         shape=['*'],
         description='''
-        Ref to the GW density of states.
+        Reference to the GW density of states.
         ''')
 
     band_structure_dft = Quantity(
         type=Reference(BandStructure),
         shape=['*'],
         description='''
-        Ref to the DFT band structure.
+        Reference to the DFT band structure.
         ''')
 
     band_structure_gw = Quantity(
         type=Reference(BandStructure),
         shape=['*'],
         description='''
-        Ref to the GW band structure.
+        Reference to the GW band structure.
         ''')
 
 
@@ -2397,19 +2398,19 @@ class GWMethod(SimulationWorkflowMethod):
     gw_method_ref = Quantity(
         type=Reference(GWMethodology),
         description='''
-        GW methodology reference.
+        Reference to the GW methodology.
         ''')
 
     starting_point = Quantity(
         type=Reference(XCFunctional),
         description='''
-        Starting point (XC functional or HF) used.
+        Reference to the starting point (XC functional or HF) used.
         ''')
 
     electrons_representation = Quantity(
         type=Reference(BasisSetContainer),
         description='''
-        Basis set used.
+        Reference to the basis set used.
         ''')
 
 
@@ -2424,17 +2425,9 @@ class GW(SerialSimulation):
 
         if not self.method:
             self.method = GWMethod()
-            self.inputs.append(Link(name=_workflow_method_name, section=self.method))
-            # link method also to first task
-            if self.tasks:
-                self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
 
         if not self.results:
             self.results = GWResults()
-            self.outputs.append(Link(name=_workflow_results_name, section=self.results))
-            # link results also to last task
-            if self.tasks:
-                self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
 
         if len(self.tasks) != 2:
             logger.error('Expected two tasks.')
@@ -2474,7 +2467,11 @@ class PhotonPolarizationResults(SimulationWorkflowResults):
 
 class PhotonPolarizationMethod(SimulationWorkflowMethod):
 
-    pass
+    bse_method_ref = Quantity(
+        type=Reference(BSEMethodology),
+        description='''
+        BSE methodology reference.
+        ''')
 
 
 class PhotonPolarization(ParallelSimulation):
@@ -2503,62 +2500,107 @@ class PhotonPolarization(ParallelSimulation):
                     self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
 
 
-class ParticleHoleExcitationsResults(SimulationWorkflowResults):
+class XSResults(SimulationWorkflowResults):
+
+    band_gap_dft = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        Reference to the DFT band gap.
+        ''')
+
+    band_gap_gw = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        Reference to the GW band gap.
+        ''')
 
     band_structure_dft = Quantity(
         type=Reference(BandStructure),
+        shape=['*'],
         description='''
-        Ref to the DFT band structure.
+        Reference to the DFT density of states.
         ''')
 
     band_structure_gw = Quantity(
         type=Reference(BandStructure),
+        shape=['*'],
         description='''
-        Ref to the GW band structure.
+        Reference to the GW density of states.
         ''')
 
     dos_dft = Quantity(
         type=Reference(Dos),
+        shape=['*'],
         description='''
-        Ref to the DFT density of states.
+        Reference to the DFT band structure.
         ''')
 
     dos_gw = Quantity(
         type=Reference(Dos),
+        shape=['*'],
         description='''
-        Ref to the GW density of states.
+        Reference to the GW band structure.
         ''')
 
     spectra = SubSection(sub_section=PhotonPolarizationResults, repeats=True)
 
 
-class ParticleHoleExcitationsMethod(SimulationWorkflowMethod):
+class XSMethod(SimulationWorkflowMethod):
 
     pass
 
 
-class ParticleHoleExcitations(SerialSimulation):
+class XS(SerialSimulation):
 
-    method = SubSection(sub_section=ParticleHoleExcitationsMethod)
+    method = SubSection(sub_section=XSMethod)
 
-    results = SubSection(sub_section=ParticleHoleExcitationsResults)
+    results = SubSection(sub_section=XSResults)
 
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
         if not self.method:
-            self.method = ParticleHoleExcitationsMethod()
-            self.inputs.append(Link(name=_workflow_method_name, section=self.method))
-            # link method also to first task
-            if self.tasks:
-                self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
+            self.method = XSMethod()
 
         if not self.results:
-            self.results = ParticleHoleExcitationsResults()
-            self.outputs.append(Link(name=_workflow_results_name, section=self.results))
-            # link results also to last task
-            if self.tasks:
-                self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
+            self.results = XSResults()
+
+        if len(self.tasks) < 2:
+            logger.error('Expected more than one task: DFT+PhotonPolarization or DFT+GW+PhotonPolarization.')
+            return
+
+        dft_task = self.tasks[0]
+        xs_tasks = [self.tasks[i] for i in range(1, len(self.tasks))]
+        gw_task = None
+        # Check if the xs_tasks contain GW SinglePoint or a list of PhotonPolarizations
+        if xs_tasks[0].task.m_def.name != 'PhotonPolarization':
+            gw_task = xs_tasks[0]
+            xs_tasks.pop(0)  # we delete the [0] element associated with GW in case DFT+GW+PhotonPolarization workflow
+
+        for name, section in self.results.m_def.all_quantities.items():
+            calc_name = '_'.join(name.split('_')[:-1])
+            if calc_name in ['dos', 'band_structure']:
+                calc_name = f'{calc_name}_electronic'
+            calc_section = []
+            if 'dft' in name:
+                calc_section = getattr(dft_task.outputs[-1].section, calc_name)
+            elif 'gw' in name and gw_task:
+                calc_section = getattr(gw_task.outputs[-1].section, calc_name)
+            elif name == 'spectra':
+                pass
+            if calc_section:
+                self.results.m_set(section, calc_section)
+        for xs in xs_tasks:
+            if xs.m_xpath('task.results'):
+                photon_results = xs.task.results
+                # Adding provenance to BSE method section, in addition to the existent 'photon' provenance
+                if xs.task.m_xpath('inputs[1].section'):
+                    for spectra in photon_results.spectrum_polarization:
+                        provenance = ElectronicStructureProvenance(methodology=xs.task.inputs[1].section, label='bse')
+                        spectra.m_add_sub_section(Spectra.provenance, provenance)
+                self.results.m_add_sub_section(XSResults.spectra, photon_results)
 
 
 class DMFTResults(SimulationWorkflowResults):

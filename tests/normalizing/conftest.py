@@ -21,10 +21,8 @@ import pytest
 from ase import Atoms
 import ase.build
 import re
-import yaml
 from warnings import warn
 
-from nomad.utils import strip
 from nomad.units import ureg
 from nomad.normalizing import normalizers
 from nomad.datamodel import EntryArchive
@@ -40,13 +38,13 @@ from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_a
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSetContainer, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, BSE, DMFT, AtomParameters, Projection, Wannier,
+    Electronic, Smearing, Scf, GW, Photon, BSE, DMFT, AtomParameters, Projection, Wannier,
     LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as NOMADAtoms)
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies,
-    RadiusOfGyration, RadiusOfGyrationValues, GreensFunctions)
+    RadiusOfGyration, RadiusOfGyrationValues, GreensFunctions, Spectra, ElectronicStructureProvenance)
 from nomad.datamodel.metainfo.simulation.workflow import (
     DiffusionConstantValues,
     MolecularDynamicsMethod,
@@ -69,9 +67,13 @@ from nomad.datamodel.metainfo.workflow import (
     Link, TaskReference
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
-    GWMethod, GW as GWworkflow, DMFTMethod, DMFT as DMFTworkflow
+    GWMethod, GW as GWworkflow, DMFTMethod, DMFT as DMFTworkflow, PhotonPolarization,
+    PhotonPolarizationMethod, PhotonPolarizationResults, XS as XSworkflow
 )
-from nomad.datamodel.metainfo.measurements import Measurement, Sample
+from nomad.datamodel.metainfo.measurements import (
+    Measurement, Sample, EELSMeasurement, Spectrum, Instrument
+)
+from nomad.datamodel.results import EELSInstrument
 
 from nomad.datamodel.context import ServerContext
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
@@ -178,39 +180,18 @@ def get_template_dft() -> EntryArchive:
 def get_template_excited(type: str) -> EntryArchive:
     '''Returns a basic archive template for a ExcitedState calculation.
     '''
-    template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='VASP', version='4.6.35')
+    template = get_template_computation()
+    run = template.run[-1]
     method = run.m_create(Method)
     if type == 'GW':
-        method_gw = method.m_create(GW)
-        method_gw.type = 'G0W0'
+        method.gw = GW(type='G0W0')
+    elif type == 'Photon':
+        photon = Photon(multipole_type='dipole')
+        method.m_add_sub_section(Method.photon, photon)
     elif type == 'BSE':
-        method_bse = method.m_create(BSE)
-        method_bse.type = 'Singlet'
-        method_bse.solver = 'Lanczos-Haydock'
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(
-        lattice_vectors=[
-            [5.76372622e-10, 0.0, 0.0],
-            [0.0, 5.76372622e-10, 0.0],
-            [0.0, 0.0, 4.0755698899999997e-10]
-        ],
-        positions=[
-            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
-            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
-            [0.0, 0.0, 0.0],
-            [2.88186311e-10, 2.88186311e-10, 0.0],
-        ],
-        labels=['Br', 'K', 'Si', 'Si'],
-        periodic=[True, True, True])
-    scc = run.m_create(Calculation)
-    scc.system_ref = system
+        method.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
+    scc = run.calculation[-1]
     scc.method_ref = method
-    scc.energy = Energy(
-        free=EnergyEntry(value=-1.5936767191492225e-18),
-        total=EnergyEntry(value=-1.5935696296699573e-18),
-        total_t0=EnergyEntry(value=-3.2126683561907e-22))
     template.workflow2 = SinglePoint()
     return template
 
@@ -262,33 +243,37 @@ def get_template_dmft() -> EntryArchive:
 def get_template_eels() -> EntryArchive:
     '''Returns a basic archive template for an EELS experiment.
     '''
-    # Ensure that the eels schema is loaded
-    from eelsdbparser import eelsdb_parser  # pylint: disable=unused-import,import-error
-    dct_data = yaml.safe_load(strip(f'''
-        results:
-            properties:
-                spectroscopy:
-                    spectrum: '#/measurement/0/eels/spectrum'
-                    eels:
-                        detector_type: Quantum GIF
-                        min_energy: {(100 * ureg.electron_volt).to(ureg.joule).m}
-                        max_energy: {(200 * ureg.electron_volt).to(ureg.joule).m}
-                        resolution: {(1 * ureg.electron_volt).to(ureg.joule).m}
-        measurement:
-            - method_name: electron energy loss spectroscopy
-              method_abbreviation: EELS
-              sample:
-                  - elements:
-                        - Si
-                        - O
-                    chemical_formula: SiO
-              eels:
-                  spectrum: {{}}
-    '''))
-    archive = EntryArchive.m_from_dict(dct_data)
-    archive.measurement[0].eels.spectrum.count = np.linspace(0, 100, 1)
-    archive.measurement[0].eels.spectrum.energy = np.linspace(100, 200, 1)
-    return archive
+    template = EntryArchive()
+    measurement = template.m_create(Measurement)
+    measurement.method_name = 'electron energy loss spectroscopy'
+    measurement.method_abbreviation = 'EELS'
+    # Sample
+    sample = Sample(
+        elements=['Si', 'O'],
+        chemical_formula='SiO'
+    )
+    measurement.m_add_sub_section(Measurement.sample, sample)
+    # Instrument
+    instrument = measurement.m_create(Instrument)
+    min_energy = 100.0 * ureg.eV
+    max_energy = 200.0 * ureg.eV
+    instrument.eels = EELSInstrument(
+        min_energy=min_energy,
+        max_energy=max_energy,
+        detector_type='Quantum GIF',
+        resolution=1.0 * ureg.eV
+    )
+    # Spectrum
+    eels_measurement = EELSMeasurement()
+    counts = np.linspace(0, 100, 101)
+    energies = np.linspace(100, 200, 101) * ureg.eV
+    spectrum = Spectrum(
+        count=counts,
+        energy=energies
+    )
+    eels_measurement.m_add_sub_section(EELSMeasurement.spectrum, spectrum)
+    measurement.eels = eels_measurement
+    return template
 
 
 def get_template_for_structure(atoms: Atoms) -> EntryArchive:
@@ -501,6 +486,8 @@ def add_template_greens_functions(template: EntryArchive) -> EntryArchive:
 
 
 def get_template_gw_workflow() -> EntryArchive:
+    '''Returns a basic archive template for a GW workflow entry, composed of two main tasks:
+    DFT GeometryOptimization and GW SinglePoint.'''
     # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
     archive_dft = get_template_dft()
     archive_gw = get_template_excited(type='GW')
@@ -518,7 +505,7 @@ def get_template_gw_workflow() -> EntryArchive:
     task_dft.outputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
     task_gw = TaskReference(task=archive_gw.workflow2)
     task_gw.name = 'GW'
-    task_gw.inputs = [Link(name='Output DFT calculation', section=archive_gw.run[-1].calculation[-1])]
+    task_gw.inputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
     task_gw.outputs = [Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1])]
     # GW workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
@@ -573,6 +560,117 @@ def get_template_dmft_workflow() -> EntryArchive:
     workflow.m_add_sub_section(DMFTworkflow.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
     workflow.m_add_sub_section(DMFTworkflow.tasks, task_proj)
     workflow.m_add_sub_section(DMFTworkflow.tasks, task_dmft)
+    template.workflow2 = workflow
+    return template
+
+
+def get_template_bse_workflow() -> EntryArchive:
+    '''Returns a basic archive template for a BSE workflow entry, composed of two tasks:
+    PhotonPolarization SinglePoint number 1 and PhotonPolarization SinglePoint number 2.'''
+    # Adding two spectras for both photon polarizations
+    archive_photon_1 = get_template_excited(type='Photon')
+    archive_photon_2 = get_template_excited(type='Photon')
+    n_energies = 11
+    spectra_1 = Spectra(
+        type='XAS',
+        n_energies=n_energies,
+        excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
+        intensities=np.linspace(100, 200, n_energies),
+        intensities_units='F/m'
+    )
+    provenance_1 = ElectronicStructureProvenance(
+        label='photon',
+        methodology=archive_photon_1.run[-1].method[-1]
+    )
+    spectra_1.m_add_sub_section(Spectra.provenance, provenance_1)
+    archive_photon_1.run[-1].calculation[-1].m_add_sub_section(Calculation.spectra, spectra_1)
+    spectra_2 = Spectra(
+        type='XAS',
+        n_energies=n_energies,
+        excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
+        intensities=np.linspace(200, 300, n_energies),
+        intensities_units='F/m'
+    )
+    provenance_2 = ElectronicStructureProvenance(
+        label='photon',
+        methodology=archive_photon_2.run[-1].method[-1]
+    )
+    spectra_2.m_add_sub_section(Spectra.provenance, provenance_2)
+    archive_photon_2.run[-1].calculation[-1].m_add_sub_section(Calculation.spectra, spectra_2)
+    # Normalizing SinglePoint archives BEFORE defining the BSE workflow entry
+    run_normalize(archive_photon_1)
+    run_normalize(archive_photon_2)
+    # Defining Photon1 and Photon2 tasks for later the BSE workflow
+    task_photon_1 = TaskReference(task=archive_photon_1.workflow2)
+    task_photon_1.name = 'Photon 1'
+    task_photon_1.inputs = [Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])]
+    task_photon_1.outputs = [Link(name='Output polarization 1', section=archive_photon_1.run[-1].calculation[-1])]
+    task_photon_2 = TaskReference(task=archive_photon_2.workflow2)
+    task_photon_2.name = 'Photon 2'
+    task_photon_2.inputs = [Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])]
+    task_photon_2.outputs = [Link(name='Output polarization 2', section=archive_photon_2.run[-1].calculation[-1])]
+    # BSE workflow entry (no need of creating Calculation). We need to define BSE method.
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = archive_photon_1.run[-1].program
+    run.system = archive_photon_1.run[-1].system
+    method = run.m_create(Method)
+    method.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
+    workflow = PhotonPolarization()
+    workflow.name = 'BSE'
+    workflow_method = PhotonPolarizationMethod(bse_method_ref=template.run[-1].method[-1].bse)
+    workflow.m_add_sub_section(PhotonPolarization.method, workflow_method)
+    spectras = [spectra_1, spectra_2]
+    workflow_results = PhotonPolarizationResults(
+        n_polarizations=2,
+        spectrum_polarization=spectras
+    )
+    workflow.m_add_sub_section(PhotonPolarization.results, workflow_results)
+    workflow.m_add_sub_section(PhotonPolarization.inputs, Link(name='Input structure', section=archive_photon_1.run[-1].system[-1]))
+    workflow.m_add_sub_section(PhotonPolarization.inputs, Link(name='Input BSE methodology', section=template.run[-1].method[-1]))
+    workflow.m_add_sub_section(PhotonPolarization.outputs, Link(name='Output polarization 1', section=archive_photon_1.run[-1].calculation[-1]))
+    workflow.m_add_sub_section(PhotonPolarization.outputs, Link(name='Output polarization 2', section=archive_photon_2.run[-1].calculation[-1]))
+    workflow.m_add_sub_section(PhotonPolarization.tasks, task_photon_1)
+    workflow.m_add_sub_section(PhotonPolarization.tasks, task_photon_2)
+    template.workflow2 = workflow
+    return template
+
+
+def get_template_xs_workflow() -> EntryArchive:
+    '''Returns a basic archive template for a XS workflow entry, composed of two main tasks:
+    DFT GeometryOptimization and BSE workflow. The BSE workflow archive contains one
+    PhotonPolarization SinglePoint task.'''
+    # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
+    archive_dft = get_template_dft()
+    archive_dft = add_template_band_structure(archive_dft)
+    archive_dft = add_template_dos(archive_dft)
+    archive_bse = get_template_bse_workflow()
+    # Normalizing SinglePoint archives BEFORE defining the XS workflow entry
+    run_normalize(archive_dft)
+    run_normalize(archive_bse)
+    # Defining DFT and BSE tasks for later the BS workflow
+    task_dft = TaskReference(task=archive_dft.workflow2)
+    task_dft.name = 'DFT'
+    task_dft.inputs = [Link(name='Input structure', section=archive_dft.run[-1].system[-1])]
+    task_dft.outputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
+    task_bse = TaskReference(task=archive_bse.workflow2)
+    task_bse.name = 'BSE 1'
+    task_bse.inputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
+    task_bse.outputs = [
+        Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section),
+        Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section)]
+    # XS (BSE) workflow entry (no need of creating Method nor Calculation)
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = archive_dft.run[-1].program
+    run.system = archive_dft.run[-1].system
+    workflow = XSworkflow()
+    workflow.name = 'XS'
+    workflow.m_add_sub_section(XSworkflow.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
+    workflow.m_add_sub_section(XSworkflow.outputs, Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section))
+    workflow.m_add_sub_section(XSworkflow.outputs, Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section))
+    workflow.m_add_sub_section(XSworkflow.tasks, task_dft)
+    workflow.m_add_sub_section(XSworkflow.tasks, task_bse)
     template.workflow2 = workflow
     return template
 
@@ -964,7 +1062,6 @@ def unknown_program() -> EntryArchive:
 def single_point() -> EntryArchive:
     '''Single point calculation.'''
     template = get_template_dft()
-
     return run_normalize(template)
 
 
@@ -979,6 +1076,20 @@ def gw_workflow() -> EntryArchive:
 def dmft_workflow() -> EntryArchive:
     '''DMFT workflow (Projection+GW) EntryArchive.'''
     template = get_template_dmft_workflow()
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def bse_workflow() -> EntryArchive:
+    '''BSE workflow (Photon1+Photon2) EntryArchive'''
+    template = get_template_bse_workflow()
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def xs_workflow() -> EntryArchive:
+    '''XS workflow (DFT+BSEworkflow) EntryArchive.'''
+    template = get_template_xs_workflow()
     return run_normalize(template)
 
 

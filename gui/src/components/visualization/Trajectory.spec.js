@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectMethodologyItem } from '../entry/conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
 import Trajectory, { trajectoryError, trajectoryPath } from './Trajectory'
@@ -27,7 +27,7 @@ test.each([
   ['error', VisualizationState.Error, {invalid: 'data'}, false, false, undefined],
   ['valid', VisualizationState.Success, {time: [0, 1, 2], value: [0, 1, 2]}, false, false, undefined]
 ])('trajectory plot: %s', async (id, state, temperature, pressure, energyPotential, placeholderTestID) => {
-  render(<Trajectory
+  renderNoAPI(<Trajectory
     temperature={temperature}
     pressure={pressure}
     energyPotential={energyPotential}
@@ -39,7 +39,7 @@ test.each([
   ['no provenance', undefined],
   ['valid provenance', {molecular_dynamics: {time_step: 2e-15, ensemble_type: 'NVT'}}]
 ])('provenance is displayed correctly: %s', async (state, provenance) => {
-  render(<Trajectory provenance={provenance}/>)
+  renderNoAPI(<Trajectory provenance={provenance}/>)
   expectMethodologyItem(
     'Molecular dynamics',
     provenance,

@@ -1160,6 +1160,13 @@ class ElectronicStructureProvenance(ProvenanceTracker):
         description='''
         '''
     )
+    methodology = Quantity(
+        type=Reference(Method.m_def),
+        shape=[],
+        description='''
+        Reference to the specific method section.
+        '''
+    )
 
 
 class BandGap(BandGapDeprecated):
@@ -1490,9 +1497,9 @@ class Density(Volumetric):
         ''')
 
 
-class Spectra(MSection):
+class Spectra(ArchiveSection):
     '''
-    Excited states properties.
+    Section containing the spectra properties.
     '''
 
     m_def = Section(validate=False)
@@ -1519,11 +1526,26 @@ class Spectra(MSection):
         ''',
         categories=[EnergyValue])
 
+    energy_zero_ref = Quantity(
+        type=np.float64,
+        unit='joule',
+        shape=[],
+        description='''
+        Reference energy to set the origin of the spectra to 0 eV.
+        ''')
+
     intensities = Quantity(
         type=np.float64,
         shape=['n_energies'],
         description='''
         Excitation intensities in arbitrary units.
+        ''')
+
+    intensities_units = Quantity(
+        type=str,
+        description='''
+        Units in which the intensities of the spectra are returned by a calculation. The
+        typical units for the dielectric constant are `F/m`.
         ''')
 
     oscillator_strengths = Quantity(
@@ -1540,6 +1562,8 @@ class Spectra(MSection):
         description='''
         Transition dipole moments.
         ''')
+
+    provenance = SubSection(sub_section=ElectronicStructureProvenance.m_def, repeats=True)
 
 
 class GreensFunctions(MSection):

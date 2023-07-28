@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectVisualization, VisualizationState } from './conftest.spec'
 import BrillouinZone from './BrillouinZone'
 
 test.each([
   ['no webgl', VisualizationState.NoWebGL, false]
 ])('brillouin zone: %s', async (id, state, data) => {
-  render(<BrillouinZone data={data} />)
+  renderNoAPI(<BrillouinZone data={data} />)
   await expectVisualization(state)
 })

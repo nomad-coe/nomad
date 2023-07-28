@@ -62,8 +62,8 @@ window.nomadEnv = {
           "geometry_optimization": {
             "error": "Could not render geometry optimization."
           },
-          "eels": {
-            "error": "Could not render EELS properties."
+          "spectroscopic": {
+            "error": "Could not render spectroscopic properties."
           },
           "workflow": {
             "error": "Could not render workflow card."
@@ -979,11 +979,11 @@ window.nomadEnv = {
                 "label": "Formula",
                 "align": "left"
               },
-              "results.properties.spectroscopy.eels.detector_type": {
+              "results.properties.spectroscopic.spectra.provenance.eels.detector_type": {
                 "label": "Detector type",
                 "align": "left"
               },
-              "results.properties.spectroscopy.eels.resolution": {
+              "results.properties.spectroscopic.spectra.provenance.eels.resolution": {
                 "label": "Resolution",
                 "align": "left"
               },
@@ -995,10 +995,10 @@ window.nomadEnv = {
                 "label": "Authors",
                 "align": "left"
               },
-              "results.properties.spectroscopy.eels.min_energy": {
+              "results.properties.spectroscopic.spectra.provenance.eels.min_energy": {
                 "align": "left"
               },
-              "results.properties.spectroscopy.eels.max_energy": {
+              "results.properties.spectroscopic.spectra.provenance.eels.max_energy": {
                 "align": "left"
               },
               "entry_name": {
@@ -1032,8 +1032,8 @@ window.nomadEnv = {
             },
             "selected": [
               "results.material.chemical_formula_hill",
-              "results.properties.spectroscopy.eels.detector_type",
-              "results.properties.spectroscopy.eels.resolution",
+              "results.properties.spectroscopic.spectra.provenance.eels.detector_type",
+              "results.properties.spectroscopic.spectra.provenance.eels.resolution",
               "upload_create_time",
               "authors"
             ]

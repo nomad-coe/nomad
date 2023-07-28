@@ -24,7 +24,6 @@ from ase.data import chemical_symbols
 
 from nomad import config
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
-from nomad.datamodel.metainfo.measurements import Spectrum
 from nomad.datamodel.metainfo.simulation.system import Atoms, System as SystemRun
 from nomad.datamodel.metainfo.simulation.workflow import (
     EquationOfStateResults,
@@ -65,12 +64,13 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     DosValues,
     BandGapDeprecated as CalcBandGapDeprecated,
     BandGap as CalcBandGap,
-    Calculation
+    Calculation,
+    ElectronicStructureProvenance
 )  # noqa
 from nomad.datamodel.metainfo.simulation.method import (
     Scf, Electronic, Smearing, ExcitedStateMethodology as XSMethod,
     GW as GWMethod, BSE as BSEMethod, HubbardKanamoriModel as HubbardKanamori,
-    AtomParameters, DMFT as DMFTMethod, BasisSet, BasisSetContainer,
+    AtomParameters, DMFT as DMFTMethod, BasisSet, BasisSetContainer
 )  # noqa
 from nomad.datamodel.metainfo.simulation.workflow import (
     GeometryOptimization as MGeometryOptimization,
@@ -221,7 +221,7 @@ def available_properties(root: MSection) -> List[str]:
         'mechanical.bulk_modulus': 'bulk_modulus',
         'mechanical.shear_modulus': 'shear_modulus',
         'mechanical.energy_volume_curve': 'energy_volume_curve',
-        'spectroscopy.eels': 'eels',
+        'spectroscopic.spectra': 'spectra',
         'optoelectronic.solar_cell': 'solar_cell',
     }
     available_properties: List[str] = []
@@ -2801,13 +2801,170 @@ class OptoelectronicProperties(MSection):
     )
 
 
-class SpectroscopyProperties(MSection):
+class EELSInstrument(MSection):
+    m_def = Section(
+        description='''
+        Base class for an EELS instrument.
+        ''',
+    )
+    detector_type = Quantity(
+        type=str,
+        description='''
+        Detector type.
+        ''')
+    max_energy = Quantity(
+        type=np.float64,
+        unit='joule',
+        description='''
+        Maximum energy of the detector.
+        ''')
+    min_energy = Quantity(
+        type=np.float64,
+        unit='joule',
+        description='''
+        Minimum energy of the detector.
+        ''')
+    guntype = Quantity(
+        type=str,
+        description='''
+        Gun type of the detector.
+        ''')
+    beam_energy = Quantity(
+        type=np.float64,
+        unit='volt',
+        description='''
+        Incoming beam energy.
+        ''')
+    beam_current = Quantity(
+        type=str,
+        description='''
+        Incoming beam current.
+        ''')
+    resolution = Quantity(
+        type=np.float64,
+        unit='joule',
+        description='''
+        Energy resolution of the detector.
+        ''')
+    step_size = Quantity(
+        type=str,
+        description='''
+        Step size for axes in units of energy / pixel.
+        ''')
+    acquisition_mode = Quantity(
+        type=str,
+        description='''
+        Acquisition mode for the counts in the detector.
+        ''')
+    dark_current = Quantity(
+        type=bool,
+        description='''
+        Is dark current or noise to be substract included in the output?
+        ''')
+
+
+class EELSMethodology(MSection):
+    m_def = Section(
+        description='''
+        Base class for the EELS methodology.
+        ''',
+    )
+    detector_type = EELSInstrument.detector_type.m_copy(
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion="default")])
+    resolution = EELSInstrument.resolution.m_copy(
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type)])
+    max_energy = EELSInstrument.max_energy.m_copy(
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type)])
+    min_energy = EELSInstrument.min_energy.m_copy(
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type)])
+
+
+class SpectraProvenance(ProvenanceTracker):
+    m_def = Section(
+        description="""
+        Contains provenance information (mainly the methodology section) for spectra properties
+        derived from an experiment or a calculation.
+        """,
+    )
+    eels = SubSection(
+        sub_section=EELSMethodology.m_def,
+    )
+    electronic_structure = SubSection(
+        sub_section=ElectronicStructureProvenance.m_def,
+        repeats=True
+    )
+
+
+class Spectra(MSection):
+    m_def = Section(
+        description='''
+        Base class for Spectra calculation information as obtained from an experiment or a computation.
+        ''',
+    )
+    type = Quantity(
+        type=MEnum('EELS', 'XAS', 'XANES', 'EXAFS', 'XES', 'XPS', 'RXIS', config.services.unavailable_value),
+        description='''
+        Identifier for the methodology done to obtain the spectra data: EELS, XAS, XPS, etc.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    label = Quantity(
+        type=MEnum('computation', 'experiment'),
+        description='''
+        Identifier for the source of the spectra data, either 'computation' or 'experiment'.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+    n_energies = Quantity(
+        type=np.int32,
+        description='''
+        Number of excitation energies.
+        ''')
+    energies = Quantity(
+        type=np.float64,
+        shape=['n_energies'],
+        unit='joule',
+        description='''
+        Excitation energies for which the spectra is obtained.
+        ''')
+    intensities = Quantity(
+        type=np.float64,
+        shape=['n_energies'],
+        description='''
+        Intensitites obtained at each excitation energy. This can be computationally calculated,
+        or electron counts coming from an experiment. In arbitrary units.
+        ''')
+    intensities_units = Quantity(
+        type=str,
+        description='''
+        Units in which the intensities of the spectra are returned. It can be `F/m` as for
+        the dielectric constant, or `counts` for the data of a CCD device.
+        ''')
+    provenance = SubSection(sub_section=SpectraProvenance.m_def)
+
+
+class SpectroscopicProperties(MSection):
     m_def = Section(
         description='''
         Spectroscopic properties.
         ''',
     )
-    spectrum = Quantity(type=Spectrum)
+    spectra = SubSection(
+        sub_section=Spectra.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_type, nested=True)
+    )
 
 
 class Properties(MSection):
@@ -2825,7 +2982,7 @@ class Properties(MSection):
     optoelectronic = SubSection(sub_section=OptoelectronicProperties.m_def, repeats=False)
     mechanical = SubSection(sub_section=MechanicalProperties.m_def, repeats=False)
     thermodynamic = SubSection(sub_section=ThermodynamicProperties.m_def, repeats=False)
-    spectroscopy = SubSection(sub_section=SpectroscopyProperties.m_def, repeats=False)
+    spectroscopic = SubSection(sub_section=SpectroscopicProperties.m_def, repeats=False)
     geometry_optimization = SubSection(sub_section=GeometryOptimization.m_def, repeats=False)
 
     n_calculations = Quantity(

@@ -42,26 +42,26 @@ const FilterSubMenuEELS = React.memo(({
     <InputGrid>
       <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.spectroscopy.eels"
+          section="results.properties.spectroscopic.spectra.provenance.eels"
           disableHeader
           visible={visible}
         >
-          <InputRange
-            quantity="results.properties.spectroscopy.eels.resolution"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.spectroscopy.eels.min_energy"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.spectroscopy.eels.max_energy"
-            visible={visible}
-          />
           <InputField
-            quantity="results.properties.spectroscopy.eels.detector_type"
+            quantity="results.properties.spectroscopic.spectra.provenance.eels.detector_type"
             visible={visible}
             xs={12}
+          />
+          <InputRange
+            quantity="results.properties.spectroscopic.spectra.provenance.eels.resolution"
+            visible={visible}
+          />
+          <InputRange
+            quantity="results.properties.spectroscopic.spectra.provenance.eels.min_energy"
+            visible={visible}
+          />
+          <InputRange
+            quantity="results.properties.spectroscopic.spectra.provenance.eels.max_energy"
+            visible={visible}
           />
         </InputSection>
       </InputGridItem>

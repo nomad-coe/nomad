@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import React from 'react'
-import { render } from '../conftest.spec'
+import { renderNoAPI } from '../conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
 import GreensFunctions, { gfError } from './GreensFunctions'
 
@@ -26,7 +26,7 @@ test.each([
   ['error: invalid data layout', VisualizationState.Error, {invalid: 'data'}, undefined, undefined, undefined, undefined],
   ['valid', VisualizationState.Success, {tau: [0, 1, 2], regtau: [[[[1, 0, 1]], [[1, 0, 1]]]], iw: [-1, 0, 1], imsiw: [[[[1, 0, 1]], [[1, 0, 1]]]]}, {magnetic_state: 'paramagnetic'}, undefined, 'greens-functions-regtau', 'greens-functions-imsiw']
 ])('greens functions: %s', async (id, state, data, provenance, classes, regtauTestID, imsiwTestID) => {
-  render(<GreensFunctions data={data} provenance={provenance} classes={classes} />)
+  renderNoAPI(<GreensFunctions data={data} provenance={provenance} classes={classes} />)
   await expectPlot(state, regtauTestID, gfError)
   await expectPlot(state, imsiwTestID, gfError)
 })
