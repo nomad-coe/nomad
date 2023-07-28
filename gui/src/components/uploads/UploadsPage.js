@@ -47,7 +47,7 @@ import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogBut
 import { useHistory } from 'react-router-dom'
 import DeleteUploadsButton from './DeleteUploadsButton'
 import { formatTimestamp } from '../../utils'
-import { UploadDocumentation } from './UploadOverview'
+import { SupportedCodes, UploadDocumentation } from './UploadOverview'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -395,7 +395,7 @@ export function UploadsPage() {
       </Box>
       <Box>
         <Typography>
-          <UploadDocumentation/>
+          Visit our documentation on <UploadDocumentation>uploading files</UploadDocumentation> or show <SupportedCodes>supported codes</SupportedCodes>.
         </Typography>
       </Box>
       {(data?.pagination?.total || 0) > 0 && <React.Fragment>

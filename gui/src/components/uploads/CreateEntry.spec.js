@@ -60,7 +60,7 @@ test.each([
 
   await waitFor(() => expect(screen.getByText('Processing completed, 3/3 entries processed')).toBeInTheDocument())
 
-  const createEntryButton = screen.getByButtonText('Create entry')
+  const createEntryButton = screen.getByButtonText('Create from schema')
   await act(async () => { await userEvent.click(createEntryButton) })
 
   await waitFor(() => expect(screen.queryByText('Select a schema')).toBeInTheDocument())

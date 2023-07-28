@@ -229,10 +229,10 @@ const CreateEntry = React.memo((props) => {
       onClose={() => setOpenCreateEntryDialog(false)}
       data-testid='create-entry-dialog'
     >
-      <DialogTitle>Create new entry</DialogTitle>
+      <DialogTitle>Create new entry from schema</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          Select a name to create an entry of the type of the selected schema
+          Name of the entry
         </DialogContentText>
         <TextField
           className={classes.nameField}
