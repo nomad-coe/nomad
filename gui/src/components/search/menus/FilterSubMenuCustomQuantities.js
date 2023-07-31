@@ -18,6 +18,7 @@
 
 import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
+import { isNil } from 'lodash'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import {
   Box,
@@ -44,12 +45,11 @@ import { DType, getDatatype } from '../../../utils'
 import { InputTextField } from '../input/InputText'
 
 const types = {
-  str: 'String',
-  float: 'Float',
-  float64: 'Float',
-  int32: 'Integer',
-  int: 'Integer',
-  'nomad.metainfo.metainfo._Datetime': 'Datetime'
+  [DType.Int]: 'Integer',
+  [DType.Float]: 'Float',
+  [DType.Timestamp]: 'Datetime',
+  [DType.String]: 'String',
+  [DType.Enum]: 'Enum'
 }
 
 const operators = {
@@ -112,10 +112,8 @@ const EditQuantity = React.memo(({quantityDef, value, onChange}) => {
 
     if (!(component && usesCompatibleComponent)) {
       const type = getDatatype(quantityDef)
-      // todo: if the type ends up being unknown, the page will crash.
-      if (type !== DType.Unknown) {
-        component = componentMap[type]
-      }
+      // fall back on StringEditQuantity if type ends up being unknown
+      component = type === DType.Unknown ? StringEditQuantity : componentMap[type]
       props = {}
       otherProps = {}
     }
@@ -245,6 +243,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
   const metainfo = useGlobalMetainfo()
   const {selected, open} = useContext(filterMenuContext)
   const {useFilterState} = useSearchContext()
+  const [loaded, setLoaded] = useState(false)
   const visible = open && id === selected
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -254,7 +253,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
   const [andFilters, setAndFilters] = useState([{}])
 
   useEffect(() => {
-    if (!metainfo || !visible) {
+    if (!metainfo || loaded || !visible) {
       return
     }
     const retrieve = async () => {
@@ -292,9 +291,6 @@ const FilterSubMenuCustomQuantities = React.memo(({
         const quantityDef = sectionDef._properties[searchableQuantity.quantity_name]
         const type = getDatatype(quantityDef)
         let description = types[type] || 'unknown type'
-        if (type === DType.Enum) {
-          description = 'Enum'
-        }
         if (quantityDef.unit) {
           description += ` in ${quantityDef.unit}`
         }
@@ -306,15 +302,10 @@ const FilterSubMenuCustomQuantities = React.memo(({
         })
       }
       setQuantities(quantities)
+      setLoaded(true)
     }
     retrieve().catch(raiseError)
-  }, [visible, api, raiseError, setQuantities, metainfo])
-
-  useEffect(() => {
-    if (!visible && quantities?.length > 0) {
-      setQuantities([])
-    }
-  }, [quantities, setQuantities, visible])
+  }, [loaded, visible, api, raiseError, setQuantities, metainfo])
 
   const handleFilterChange = useCallback((filter, index) => {
     setAndFilters(filters => {
@@ -334,7 +325,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
   }, [setAndFilters, setQuery])
 
   const searchEnabled = useMemo(() => {
-    return andFilters.every(f => f.path && f.value)
+    return andFilters.every(f => f.path && !isNil(f.value))
   }, [andFilters])
 
   const handleSearchClicked = useCallback(() => {
