@@ -1694,35 +1694,37 @@ class MolecularDynamicsResults(ThermodynamicsResults):
             return
 
         flag_rgs = False
-        for i_calc, calc in enumerate(sec_calc):
-            if calc.radius_of_gyration:
+        for calc in sec_calc:
+            if calc.get('radius_of_gyration'):
                 flag_rgs = True
                 break  # TODO Should transfer Rg's to workflow results if they are already supplied in calculation
 
         if not flag_rgs:
-            flag_warned = False
             sec_rgs_calc = None
             system_topology = sec_system.get('atoms_group')
+            system_ref_indices = [i_calc for i_calc, calc in enumerate(sec_calc) if calc.system_ref]
             rg_results = calc_molecular_radius_of_gyration(universe, system_topology)
             for rg in rg_results:
+
+                n_frames = rg.get('n_frames')
+                if system_ref_indices is []:
+                    self.logger.warning(
+                            'Cannot find system references in calculation.'
+                            'Will not store Rg values under calculation section')
+                    continue
+                elif len(system_ref_indices) != n_frames:
+                    self.logger.warning(
+                            'Mismatch in length of system references in calculation and calculated Rg values.'
+                            'Will not store Rg values under calculation section')
+                    continue
+
                 sec_rgs = RadiusOfGyration()
                 sec_rgs._rg_results = rg
                 self.radius_of_gyration.append(sec_rgs)
 
-                # disperse results into calculation section
-                n_frames = rg.get('n_frames')
-                if len(sec_calc) == 0:
-                    sec_calc = [self.run.m_create(Calculation) for _ in range(n_frames)]
-                elif n_frames != len(sec_calc):
-                    if not flag_warned:
-                        self.logger.warning(
-                            'Unexpected mismatch in number of calculations and number of'
-                            'trajectory frames. Not storing Rg values under calculation.')
-                        flag_warned = True
-                    # TODO sync calculation and system sections to be able to store the Rgs under calculation
-                    continue
-                for i_calc, calc in enumerate(sec_calc):
-                    sec_rgs_calc = calc.radius_of_gyration
+                for i_sys, i_calc in enumerate(system_ref_indices):
+                    calc = sec_calc[i_calc]
+                    sec_rgs_calc = calc.get('radius_of_gyration')
                     if not sec_rgs_calc:
                         sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
                         sec_rgs_calc.kind = rg.get('type')
@@ -1731,7 +1733,7 @@ class MolecularDynamicsResults(ThermodynamicsResults):
                     sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
                     sec_rg_values.atomsgroup_ref = rg.get('atomsgroup_ref')
                     sec_rg_values.label = rg.get('label')
-                    sec_rg_values.value = rg.get('value')[i_calc]
+                    sec_rg_values.value = rg.get('value')[i_sys]
 
 
 class MolecularDynamics(SerialSimulation):

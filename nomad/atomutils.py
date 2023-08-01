@@ -988,7 +988,8 @@ class Formula():
 
 def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
                           atom_resindex: NDArray[Int] = None, residue_segindex: NDArray[Int] = None,
-                          flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False):
+                          flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False,
+                          timestep: float = None):
     '''Create a blank Universe
 
     This function was adapted from the function empty() within the MDA class Universe().
@@ -1075,7 +1076,7 @@ def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, 
         # grab and attach a MemoryReader
         universe.trajectory = get_reader_for(coords)(
             coords, order='fac', n_atoms=n_atoms,
-            velocities=vels, forces=forces)
+            velocities=vels, forces=forces, dt=timestep)
 
     return universe
 
@@ -1140,6 +1141,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_system_top = sec_run.system[system_index]
         sec_atoms = sec_system_top.atoms
         sec_atoms_group = sec_system_top.atoms_group
+        sec_calculation = sec_run.calculation
         sec_method = sec_run.method[method_index] if sec_run.get('method') is not None else None
         sec_force_field = sec_method.force_field if sec_method is not None else None
         sec_model = sec_force_field.model[model_index] if sec_force_field is not None else None
@@ -1260,11 +1262,34 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         if contribution.type == 'bond':  # and contribution.atom_indices is not None:
             bonds.append(tuple(contribution.atom_indices))
 
+    # get the system times
+    system_timestep = None
+
+    def approx(a, b, rel_tol=1e-09, abs_tol=0.0):
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+    system_times = [calc.time for calc in sec_calculation if calc.system_ref]
+    if system_times is []:
+        try:
+            integration_timestep = archive.workflow2.method.integration_timestep
+            coordinate_save_frequency = archive.workflow2.method.coordinate_save_frequency
+            system_timestep = integration_timestep * coordinate_save_frequency
+        except Exception:
+            logging.warning('Cannot find the system times. MDA universe will contain non-physical times and timestep.')
+    else:
+        time_steps = []
+        for i_time in range(1, len(system_times)):
+            time_steps.append(system_times[i_time] - system_times[i_time - 1])
+        if all([approx(time_steps[0], time_step) for time_step in time_steps]):
+            system_timestep = ureg.convert(time_steps[0].magnitude, ureg.second, ureg.picosecond)
+        else:
+            logging.warning('System times are not equally spaced. Cannot set system times in MDA universe. MDA universe will contain non-physical times and timestep.')
+
     # create the Universe
     metainfo_universe = create_empty_universe(
         n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments,
         atom_resindex=atom_resindex, residue_segindex=residue_segindex, flag_trajectory=True,
-        flag_velocities=True)
+        flag_velocities=True, timestep=system_timestep)
 
     # set the positions and velocities
     for frame_ind, frame in enumerate(metainfo_universe.trajectory):
@@ -1449,15 +1474,21 @@ def __get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[st
     return bead_groups
 
 
-def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_prune: int = 1, interval_indices=None):
+def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_prune: int = 1, interval_indices=None, max_mols: int = 5000):
     '''
     Calculates the radial distribution functions between for each unique pair of
     molecule types as a function of their center of mass distance.
 
     interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
+    max_mols: the maximum number of molecules per bead group for calculating the rdf, for efficiency purposes.
+    5k was set after > 50k was giving problems. Should do further testing to see where the appropriate limit should be set.
     '''
 
-    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
+    if universe is None:
+        return
+    trajectory = universe.trajectory[0] if universe.trajectory else None
+    dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
+    if dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1480,9 +1511,15 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
         if not interval_indices:
             interval_indices = [[i] for i in range(n_traj_split)]
 
-    atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
-    moltypes = np.unique(atoms_moltypes)
-    bead_groups = __get_molecular_bead_groups(universe, moltypes=moltypes)
+    bead_groups = __get_molecular_bead_groups(universe)
+    if bead_groups is {}:
+        return bead_groups
+    moltypes = [moltype for moltype in bead_groups.keys()]
+    del_list = []
+    for i_moltype, moltype in enumerate(moltypes):
+        if bead_groups[moltype]._nbeads > max_mols:
+            del_list.append(i_moltype)
+    moltypes = np.delete(moltypes, del_list)
 
     min_box_dimension = np.min(universe.trajectory[0].dimensions[:3])
     max_rdf_dist = min_box_dimension / 2
@@ -1563,10 +1600,13 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     return rdf_results
 
 
-def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe):
+def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max_mols: int = 1000000):
     '''
     Calculates the mean squared displacement for the center of mass of each
     molecule type.
+
+    max_mols: the maximum number of molecules per bead group for calculating the msd, for efficiency purposes.
+    1M is arbitrary, 50k was tested and is very fast and does not seem to have any memory issues.
     '''
 
     def mean_squared_displacement(start: NDArray, current: NDArray):
@@ -1576,7 +1616,11 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe):
         vec = start - current
         return (vec ** 2).sum(axis=1).mean()
 
-    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
+    if universe is None:
+        return
+    trajectory = universe.trajectory[0] if universe.trajectory else None
+    dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
+    if dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1585,10 +1629,21 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe):
                       'mean squared displacements.', UserWarning)
         return
 
-    atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
-    moltypes = np.unique(atoms_moltypes)
-    bead_groups = __get_molecular_bead_groups(universe, moltypes=moltypes)
-    times = np.arange(n_frames) * universe.trajectory.dt
+    dt = getattr(universe.trajectory, 'dt')
+    if dt is None:
+        return
+    times = np.arange(n_frames) * dt
+
+    bead_groups = __get_molecular_bead_groups(universe)
+    if bead_groups is {}:
+        return bead_groups
+
+    moltypes = [moltype for moltype in bead_groups.keys()]
+    del_list = []
+    for i_moltype, moltype in enumerate(moltypes):
+        if bead_groups[moltype]._nbeads > max_mols:
+            del_list.append(i_moltype)
+    moltypes = np.delete(moltypes, del_list)
 
     msd_results: Dict[str, Any] = {}
     msd_results['type'] = 'molecular'
@@ -1671,7 +1726,11 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
     '''
 
-    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
+    if universe is None:
+        return
+    trajectory = universe.trajectory[0] if universe.trajectory else None
+    dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
+    if dimensions is None:
         return
 
     selection = ' '.join([str(i) for i in molecule_atom_indices])
