@@ -1521,7 +1521,7 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     for i_moltype, moltype in enumerate(moltypes):
         if bead_groups[moltype]._nbeads > max_mols:
             del_list.append(i_moltype)
-    moltypes = np.delete(moltypes, del_list)
+    moltypes = np.delete(moltypes, del_list).tolist()
 
     min_box_dimension = np.min(universe.trajectory[0].dimensions[:3])
     max_rdf_dist = min_box_dimension / 2

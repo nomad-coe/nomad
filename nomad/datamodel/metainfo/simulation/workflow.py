@@ -1657,7 +1657,6 @@ class MolecularDynamicsResults(ThermodynamicsResults):
             return
 
         # calculate molecular radial distribution functions
-        print(self.radial_distribution_functions)
         if not self.radial_distribution_functions:
             n_traj_split = 10  # number of intervals to split trajectory into for averaging
             interval_indices = []  # 2D array specifying the groups of the n_traj_split intervals to be averaged
