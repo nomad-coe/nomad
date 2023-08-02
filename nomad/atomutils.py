@@ -1600,7 +1600,7 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     return rdf_results
 
 
-def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max_mols: int = 1000000):
+def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max_mols: int = 5000):
     '''
     Calculates the mean squared displacement for the center of mass of each
     molecule type.
