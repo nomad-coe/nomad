@@ -1222,10 +1222,12 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         mol_index_counter += n_res
 
     # get the atom masses and charges
+
     masses = np.empty(n_atoms)
     charges = np.empty(n_atoms)
     atom_parameters = sec_method.get('atom_parameters') if sec_method is not None else []
     atom_parameters = atom_parameters if atom_parameters is not None else []
+
     for atom_ind, atom in enumerate(atom_parameters):
         if atom.get('mass'):
             masses[atom_ind] = ureg.convert(atom.mass.magnitude, atom.mass.units, ureg.amu)
@@ -1626,7 +1628,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     n_frames = universe.trajectory.n_frames
     if n_frames < 50:
         warnings.warn('Less than 50 frames in trajectory, not calculating molecular'
-                      'mean squared displacements.', UserWarning)
+                      ' mean squared displacements.', UserWarning)
         return
 
     dt = getattr(universe.trajectory, 'dt')
@@ -1642,7 +1644,25 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     del_list = []
     for i_moltype, moltype in enumerate(moltypes):
         if bead_groups[moltype]._nbeads > max_mols:
-            del_list.append(i_moltype)
+            try:
+                # select max_mols nr. of rnd molecules from this moltype
+                moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
+                molnums = universe.atoms.molnums[moltype_indices]
+                molnum_types = np.unique(molnums)
+                molnum_types_rnd = np.sort(np.random.choice(molnum_types, size=max_mols))
+                atom_indices_rnd = np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])
+                selection = ' '.join([str(i) for i in atom_indices_rnd])
+                selection = f'index {selection}'
+                ags_moltype_rnd = universe.select_atoms(selection)
+                bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
+                warnings.warn('The number of molecules of type ' + moltype + ' exceeds the maximum of '
+                               + str(max_mols) + ' for calculating the msd.'
+                               ' A random selection of the maximum number of molecules will be made from this group.')
+            except Exception:
+                warnings.warn('Tried to select random molecules for large group ' + moltype
+                               + ' when calculating msd, but something went wrong. Skipping this molecule type.')
+                del_list.append(i_moltype)
+
     moltypes = np.delete(moltypes, del_list)
 
     msd_results: Dict[str, Any] = {}
