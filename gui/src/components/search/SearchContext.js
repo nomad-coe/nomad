@@ -59,7 +59,7 @@ import {
 import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
-import { Published } from '../entry/EntryDetails'
+import UploadStatusIcon from '../uploads/UploadStatusIcon'
 import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
 import { searchQuantities } from '../../config'
@@ -120,7 +120,7 @@ export const SearchContext = React.memo(({
   initialFilters,
   children
 }) => {
-  const {api} = useApi()
+  const {api, user} = useApi()
   const {raiseError} = useErrors()
   const oldQuery = useRef(undefined)
   const oldPagination = useRef(undefined)
@@ -222,7 +222,7 @@ export const SearchContext = React.memo(({
         }
       },
       published: {
-        render: (entry) => <Published entry={entry} />
+        render: (entry) => <UploadStatusIcon data={entry} user={user}/>
       }
     }
 
@@ -241,7 +241,7 @@ export const SearchContext = React.memo(({
     }))
 
     return config
-  }, [initialColumns])
+  }, [initialColumns, user])
 
   // The final row configuration
   const rows = useMemo(() => {

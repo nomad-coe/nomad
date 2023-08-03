@@ -49,7 +49,10 @@ test('Render uploads page: sort by upload create time', async () => {
   // Test the order of uploads: by default is descending upload create time
   for (let i = 0; i < 10; i++) {
     expect(within(rows[i]).queryByText(`dft_upload_${11 - i}`)).toBeInTheDocument()
-    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
+    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0
+      ? 'Published and accessible by everyone'
+      : 'Unpublished, only accessible by you, coauthors and reviewers'
+    ))).toBeInTheDocument()
   }
 
   // Test the order of uploads: sort by Upload name
@@ -72,7 +75,10 @@ test('Render uploads page: sort by upload create time', async () => {
   expect(within(datatableBody).queryByText('dft_upload_11')).not.toBeInTheDocument()
   for (let i = 0; i < 10; i++) {
     expect(within(rows[i]).queryByText(`dft_upload_${i + 1}`)).toBeInTheDocument()
-    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0 ? 'published upload' : 'this upload is not yet published'))).toBeInTheDocument()
+    expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0
+      ? 'Published and accessible by everyone'
+      : 'Unpublished, only accessible by you, coauthors and reviewers'
+    ))).toBeInTheDocument()
   }
 
   // Testing the "Add example uploads" functionality
