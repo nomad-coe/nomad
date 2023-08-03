@@ -72518,7 +72518,8 @@ window.nomadArtifacts = {
           "email": "markus.scheidgen@physik.hu-berlin.de"
         }
       ],
-      "privileged": false
+      "privileged": false,
+      "external_mounts": []
     },
     "nionswift": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop:latest",
@@ -72535,7 +72536,8 @@ window.nomadArtifacts = {
           "email": "sherjeel.shabih@hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "nexustools": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop:latest",
@@ -72561,7 +72563,8 @@ window.nomadArtifacts = {
           "email": "sandor.brockhauser@physik.hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "ellips": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/ellips-jupyter",
@@ -72585,7 +72588,8 @@ window.nomadArtifacts = {
           "email": "emminger.carola@physik.hu-berlin.de"
         }
       ],
-      "privileged": false
+      "privileged": false,
+      "external_mounts": []
     },
     "mpes": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/mpes-webtop",
@@ -72607,7 +72611,8 @@ window.nomadArtifacts = {
           "email": "florian.dobener@physik.hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "xps": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter:0.1",
@@ -72633,7 +72638,8 @@ window.nomadArtifacts = {
           "email": "rubel.mozumder@physik.hu-berlin.de"
         }
       ],
-      "privileged": false
+      "privileged": false,
+      "external_mounts": []
     },
     "webtop": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop",
@@ -72650,7 +72656,8 @@ window.nomadArtifacts = {
           "email": "sherjeel.shabih@hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "apmtools": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop",
@@ -72667,7 +72674,8 @@ window.nomadArtifacts = {
           "email": "markus.kuehbach@physik.hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "fiji": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/fiji-webtop",
@@ -72684,7 +72692,8 @@ window.nomadArtifacts = {
           "email": "markus.kuehbach@physik.hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "frwr": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/frwr-webtop",
@@ -72701,7 +72710,8 @@ window.nomadArtifacts = {
           "email": "markus.kuehbach@physik.hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     },
     "abtem": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/abtem-webtop",
@@ -72718,7 +72728,8 @@ window.nomadArtifacts = {
           "email": "markus.kuehbach@physik.hu-berlin.de"
         }
       ],
-      "privileged": true
+      "privileged": true,
+      "external_mounts": []
     }
   },
   "unitList": [

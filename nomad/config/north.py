@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+from enum import Enum
 from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 
@@ -33,6 +34,17 @@ class NORTHToolMaintainer(BaseModel):
     email: str
 
 
+class ReadMode(str, Enum):
+    ro = 'ro'
+    rw = 'rw'
+
+
+class NORTHExternalMount(BaseModel):
+    host_path: str
+    bind: str
+    mode: ReadMode = ReadMode.ro
+
+
 class NORTHTool(BaseModel):
     image: str
     description: str = None
@@ -44,6 +56,7 @@ class NORTHTool(BaseModel):
     file_extensions: List[str] = []
     maintainer: List[NORTHToolMaintainer] = []
     privileged: bool = False
+    external_mounts: List[NORTHExternalMount] = []
 
 
 class NORTHTools(Options):
