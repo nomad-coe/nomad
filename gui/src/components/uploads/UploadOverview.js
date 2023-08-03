@@ -29,11 +29,8 @@ import FilesBrower from './FilesBrowser'
 import { useErrors } from '../errors'
 import ProcessingTable from './ProcessingTable'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import DeleteIcon from '@material-ui/icons/Delete'
 import ReprocessIcon from '@material-ui/icons/Autorenew'
 import WithButton from '../utils/WithButton'
-import PublishedIcon from '@material-ui/icons/Public'
-import UnPublishedIcon from '@material-ui/icons/AccountCircle'
 import Markdown from '../Markdown'
 import EditMembersDialog from './EditMembersDialog'
 import EditMetaDataDialog from './EditMetaDataDialog'
@@ -50,7 +47,8 @@ import ReloadIcon from '@material-ui/icons/Replay'
 import {formatTimestamp} from '../../utils'
 import DialogLink from '../utils/DialogLink'
 import UploadName from './UploadName'
-import DeletingReferencesTable from './DeletingReferencesTable'
+import UploadStatusIcon from './UploadStatusIcon'
+import DeleteUploadsButton from './DeleteUploadsButton'
 import UploadProgressDialog from './UploadProgressDialog'
 import UploadSearchMenu from './UploadSearchMenu'
 import {useDataStore} from "../DataStore"
@@ -95,26 +93,6 @@ function DropButton({onDrop, ...buttonProps}) {
 }
 DropButton.propTypes = {
   onDrop: PropTypes.func
-}
-
-function UploadStatus({upload, ...props}) {
-  if (!upload) {
-    return <UnPublishedIcon color="default" {...props} />
-  }
-  if (upload.published) {
-    return <Tooltip title="This upload is published and visible to everybody.">
-      <PublishedIcon color="primary" {...props} />
-    </Tooltip>
-  }
-  // TODO published with embargo
-  if (!upload.published) {
-    return <Tooltip title="This upload is not yet published and only visible to you.">
-      <UnPublishedIcon color="error" {...props} />
-    </Tooltip>
-  }
-}
-UploadStatus.propTypes = {
-  upload: PropTypes.object
 }
 
 function PublishUpload({upload, onPublish}) {
@@ -282,17 +260,14 @@ SchemaDocumentation.propTypes = {
 function UploadOverview(props) {
   const classes = useStyles()
   const dataStore = useDataStore()
-  const {api} = useApi()
+  const {api, user} = useApi()
   const {raiseError} = useErrors()
   const {
     uploadId, upload, entries, apiData, hasUpload, isProcessing, error,
     isWriter, pagination, deleteRequested, updateUpload, requestRefreshUpload, isMainAuthor} = useUploadPageContext()
   const [uploading, setUploading] = useState(null)
-  const [openDeleteConfirmDialog, setOpenDeleteConfirmDialog] = useState(false)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
   const [readme, setReadme] = useState(null)
-  const [entryReferences, setEntryReferences] = useState([])
-  const [brokenEntries, setBrokenEntries] = useState([])
 
   useEffect(() => {
     if (uploading) return
@@ -306,27 +281,6 @@ function UploadOverview(props) {
         }
       })
   }, [api, raiseError, uploadId, uploading, setReadme, dataStore.breadcrumb, upload?.upload_name])
-
-  useEffect(() => {
-    if (!openDeleteConfirmDialog) {
-      return
-    }
-    const requestBody = {owner: 'visible', query: {entry_references: {'target_upload_id:any': uploadId ? [uploadId] : []}}}
-    api.post(`entries/query`, requestBody)
-      .then(results => {
-        const data = results?.data || []
-        if (data.length > 0) {
-          const brokenEntries = data.filter(entry => entry.upload_id !== uploadId)
-          setBrokenEntries(brokenEntries)
-          const allReferences = data.map(entry => entry.entry_references).flat()
-          const references = [...new Map(allReferences.map(entry => [entry.target_entry_id, entry])).values()]
-          setEntryReferences(references)
-        }
-      })
-      .catch(err =>
-        raiseError(err)
-      )
-  }, [api, openDeleteConfirmDialog, raiseError, uploadId])
 
   const handleDropFiles = useCallback(files => {
     if (!files[0]?.name) {
@@ -380,7 +334,6 @@ function UploadOverview(props) {
   }
 
   const handleDelete = () => {
-    setOpenDeleteConfirmDialog(false)
     api.delete(`/uploads/${uploadId}`)
       .then(results => updateUpload({upload: results.data}))
       .catch(raiseError)
@@ -396,20 +349,12 @@ function UploadOverview(props) {
   const isPublished = upload.published
   const isEmpty = upload.entries === 0
 
-  const handleDeleteButtonClicked = () => {
-    if (isEmpty) {
-      handleDelete()
-    } else {
-      setOpenDeleteConfirmDialog(true)
-    }
-  }
-
   return (
     <Page limitedWidth>
       <UploadProgressDialog uploading={uploading} />
       <Grid container spacing={2} alignItems="center">
         <Grid item>
-          <UploadStatus upload={upload} fontSize="large" />
+          <UploadStatusIcon data={upload} user={user} fontSize="large" />
         </Grid>
         <Grid item style={{flexGrow: 1}}>
           <UploadName upload_name={upload?.upload_name} onChange={handleNameChange} />
@@ -441,27 +386,14 @@ function UploadOverview(props) {
             <SourceApiDialogButton maxWidth="lg" fullWidth>
               <SourceApiCall {...apiData} />
             </SourceApiDialogButton>
-            <IconButton disabled={isPublished || !isMainAuthor} onClick={handleDeleteButtonClicked} data-testid='upload-delete-action'>
-              <Tooltip title="Delete the upload">
-                <DeleteIcon />
-              </Tooltip>
-            </IconButton>
+            <DeleteUploadsButton
+              tooltip="Delete upload"
+              disabled={isPublished || !isMainAuthor}
+              data-testid='upload-delete-action'
+              uploads={[upload]}
+              onConfirm={handleDelete}
+            />
           </Box>
-          <Dialog
-            open={openDeleteConfirmDialog}
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogContent>
-              <DialogContentText id="alert-dialog-description">
-                The upload is not empty. Are you sure you want to delete this upload?
-              </DialogContentText>
-              <DeletingReferencesTable entryReferences={entryReferences} brokenEntries={brokenEntries}/>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setOpenDeleteConfirmDialog(false)} autoFocus>Cancel</Button>
-              <Button onClick={handleDelete}>{brokenEntries.length > 0 ? 'Delete anyway' : 'Delete'}</Button>
-            </DialogActions>
-          </Dialog>
         </Grid>
       </Grid>
       {readme && (

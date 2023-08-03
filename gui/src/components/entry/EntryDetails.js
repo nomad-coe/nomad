@@ -23,10 +23,6 @@ import { Tooltip, IconButton } from '@material-ui/core'
 import { useApi } from '../api'
 import { EntryButton } from '../nav/Routes'
 import DetailsIcon from '@material-ui/icons/ArrowForward'
-import PublicIcon from '@material-ui/icons/Public'
-import UploaderIcon from '@material-ui/icons/AccountCircle'
-import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
-import PrivateIcon from '@material-ui/icons/VisibilityOff'
 import { makeStyles } from '@material-ui/core/styles'
 
 export const MethodMetadata = React.memo(({data}) => {
@@ -116,55 +112,6 @@ export const EntryIds = React.memo(({data}) => {
 })
 EntryIds.propTypes = {
   data: PropTypes.object.isRequired
-}
-
-export function Published(props) {
-  const {user} = useApi()
-  const {entry} = props
-  if (entry.published) {
-    if (entry.with_embargo) {
-      if (user && entry.main_author.user_id === user.sub) {
-        if (entry.viewers.length === 1) {
-          return <Tooltip title="published with embargo by you and only accessible by you">
-            <UploaderIcon color="error" />
-          </Tooltip>
-        } else {
-          return <Tooltip title="published with embargo by you and only accessible to you and the specified coauthors and reviewers">
-            <SharedIcon color="error" />
-          </Tooltip>
-        }
-      } else if (user && entry.coauthors.find(user => user.user_id === user.sub)) {
-        return <Tooltip title="published with embargo and visible to you as a coauthor">
-          <SharedIcon color="error" />
-        </Tooltip>
-      } else if (user && entry.reviewers.find(user => user.user_id === user.sub)) {
-        return <Tooltip title="published with embargo and visible to you as a reviewer">
-          <SharedIcon color="error" />
-        </Tooltip>
-      } else {
-        if (user) {
-          return <Tooltip title="published with embargo and not accessible by you">
-            <PrivateIcon color="error" />
-          </Tooltip>
-        } else {
-          return <Tooltip title="published with embargo and might become accessible after login">
-            <PrivateIcon color="error" />
-          </Tooltip>
-        }
-      }
-    } else {
-      return <Tooltip title="published and accessible by everyone">
-        <PublicIcon color="primary" />
-      </Tooltip>
-    }
-  } else {
-    return <Tooltip title="you have not published this entry yet">
-      <UploaderIcon color="error"/>
-    </Tooltip>
-  }
-}
-Published.propTypes = {
-  entry: PropTypes.object.isRequired
 }
 
 export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...props}) {

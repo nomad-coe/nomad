@@ -31,9 +31,6 @@ import ExampleUploadButton from './ExampleUploadButton'
 import { useApi, withLoginRequired } from '../api'
 import Page from '../Page'
 import { useErrors } from '../errors'
-import PublicIcon from '@material-ui/icons/Public'
-import UploaderIcon from '@material-ui/icons/AccountCircle'
-import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
 import DetailsIcon from '@material-ui/icons/ArrowForward'
 import { UploadButton } from '../nav/Routes'
 import {
@@ -46,6 +43,7 @@ import Quantity from '../Quantity'
 import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import { useHistory } from 'react-router-dom'
 import DeleteUploadsButton from './DeleteUploadsButton'
+import UploadStatusIcon from './UploadStatusIcon'
 import { formatTimestamp } from '../../utils'
 import { SupportedCodes, UploadDocumentation } from './UploadOverview'
 
@@ -132,41 +130,6 @@ The documentation on the [user data page](${guiBase}/userdata) contains more inf
 export const uploadsPageContext = React.createContext()
 export function useUploadsPageContext() {
   return useContext(uploadsPageContext)
-}
-
-const columns = [
-  {
-    key: 'upload_create_time',
-    render: upload => formatTimestamp(upload.upload_create_time)
-  },
-  {key: 'upload_name'},
-  {
-    key: 'upload_id',
-    render: upload => <Quantity quantity={'upload_id'} noLabel noWrap withClipboard data={upload}/>
-  },
-  {key: 'last_status_message', label: 'Status'},
-  {key: 'entries', render: upload => upload.entries, align: 'center'},
-  {key: 'published', render: upload => <Published upload={upload} />, align: 'center'}
-]
-
-addColumnDefaults(columns, {align: 'left'})
-
-const Published = React.memo(function Published({upload}) {
-  const hasMultipleAuthors = upload.coauthors.length > 0
-  if (upload.published) {
-    return <Tooltip title="published upload">
-      <PublicIcon color="primary" role='published-upload-icon'/>
-    </Tooltip>
-  } else {
-    return <Tooltip title="this upload is not yet published">
-      {hasMultipleAuthors ? <SharedIcon color="error" />
-      : <UploaderIcon color="error" />
-       }
-    </Tooltip>
-  }
-})
-Published.propTypes = {
-  upload: PropTypes.object.isRequired
 }
 
 const useUploadCommandStyles = makeStyles(theme => ({
@@ -316,7 +279,9 @@ export function UploadsPage() {
     }
   }, [fetchData, history])
 
-  const isDisabled = unpublished ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : false) : false
+  const isDisabled = unpublished
+    ? (unpublished.pagination ? unpublished.pagination.total >= servicesUploadLimit : false)
+    : false
 
   useEffect(() => {
     api.get('/uploads/command-examples')
@@ -324,7 +289,10 @@ export function UploadsPage() {
       .catch(errors.raiseError)
   }, [api, errors, setUploadCommands])
 
-  const selectedUploads = useMemo(() => selected === 'all' ? unpublished.data.map(upload => upload.upload_id) : [...selected], [selected, unpublished])
+  const selectedUploads = useMemo(() => selected === 'all'
+    ? unpublished.data
+    : data?.data?.filter(upload => selected.has(upload.upload_id)
+  ), [data, selected, unpublished])
 
   // A map to store whether each of the upload object's main author is the current user
   const currentUserUploadsMap = useMemo(() => {
@@ -346,9 +314,8 @@ export function UploadsPage() {
     }
   }, [data, selected, currentUserUploadsMap])
 
-  const selectedCount = useMemo(() => selected === 'all' ? unpublished.pagination.total : selected?.size, [selected, unpublished])
   const deleteUploads = useCallback(() => {
-    const promises = selectedUploads.map(upload_id => api.delete(`uploads/${upload_id}`))
+    const promises = selectedUploads.map(upload => api.delete(`uploads/${upload.upload_id}`))
     return Promise.allSettled(promises)
   }, [selectedUploads, api])
 
@@ -367,6 +334,26 @@ export function UploadsPage() {
       fetchData()
     })
   }, [deleteUploads, errors, fetchData])
+
+  // Setup columns
+  const columns = useMemo(() => {
+    const columns = [
+      {
+        key: 'upload_create_time',
+        render: upload => formatTimestamp(upload.upload_create_time)
+      },
+      {key: 'upload_name'},
+      {
+        key: 'upload_id',
+        render: upload => <Quantity quantity={'upload_id'} noLabel noWrap withClipboard data={upload}/>
+      },
+      {key: 'last_status_message', label: 'Status'},
+      {key: 'entries', render: upload => upload.entries, align: 'center'},
+      {key: 'published', render: upload => <UploadStatusIcon data={upload} user={user} />, align: 'center'}
+    ]
+    addColumnDefaults(columns, {align: 'left'})
+    return columns
+  }, [user])
 
   return (
     <Page loading={!(data && uploadCommands)}>
@@ -430,9 +417,8 @@ export function UploadsPage() {
                 <DeleteUploadsButton
                   isIcon
                   disabled={disableDeleteButton}
-                  selectedCount={selectedCount}
-                  selectedUploads={selectedUploads}
-                  onSubmitted={handleDeleteSubmitted}
+                  uploads={selectedUploads}
+                  onConfirm={handleDeleteSubmitted}
                 />
               </DatatableToolbarActions>
             </DatatableToolbar>
