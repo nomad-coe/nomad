@@ -197,6 +197,16 @@ async def start_tool(
             }
         )
 
+    external_mounts: List[Dict[str, str]] = []
+    for ext_mount in tool.external_mounts:
+        external_mounts.append(
+            {
+                'host_path': ext_mount.host_path,
+                'bind': os.path.join(tool.mount_path, ext_mount.bind),
+                'mode': ext_mount.mode,
+            }
+        )
+
     # Check if the tool/named server already exists
     _get_status(tool, user)
     if tool.state != ToolStateEnum.stopped:
@@ -220,7 +230,8 @@ async def start_tool(
             'host_path': os.path.join(config.fs.north_home_external, user.user_id),
             'mount_path': os.path.join(tool.mount_path, 'work')
         },
-        'uploads': uploads
+        'uploads': uploads,
+        'external_mounts': external_mounts,
     }
 
     logger.info('body of the post call', body=body)

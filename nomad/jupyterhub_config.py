@@ -54,6 +54,13 @@ def pre_spawn(spawner):
             'bind': upload['mount_path']
         }
 
+    external_mounts = spawner.user_options.get('external_mounts', [])
+    for external_mount in external_mounts:
+        spawner.volumes[external_mount['host_path']] = {
+            'bind': external_mount['bind'],
+            'mode': external_mount['mode']
+        }
+
     environment = spawner.user_options.get('environment', {})
     spawner.environment.update(environment)
 
