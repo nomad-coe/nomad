@@ -1,24 +1,30 @@
-NOMAD uses parsers to convert raw code input and output files into NOMAD's common Archive format. This is the documentation on how to develop such a parser.
+# How to write a parser
+
+NOMAD uses parsers to convert raw code input and output files into NOMAD's common archive
+format. This is the documentation on how to develop such a parser.
 
 ## Getting started
 
 Let's assume we need to write a new parser from scratch.
 
-First we need to install *nomad-lab* Python package to get the necessary libraries:
-```sh
+First we need to install the `nomad-lab` Python package to get the necessary libraries:
+
+```shell
 pip install nomad-lab
 ```
 
-We prepared an example parser project that you can work with.
-```sh
+We have prepared an example parser project that you can work with:
+
+```shell
 git clone https://github.com/nomad-coe/nomad-parser-example.git --branch hello-world
 ```
 
 Alternatively, you can fork the example project on GitHub to create your own parser. Clone
 your fork accordingly.
 
-The project structure should be
-```none
+The project structure should be:
+
+```text
 example/exampleparser/__init__.py
 example/exampleparser/__main__.py
 example/exampleparser/metainfo.py
@@ -28,14 +34,16 @@ example/README.md
 example/setup.py
 ```
 
-Next you should install your new parser with pip. The `-e` parameter installs the parser
-in *development*. This means you can change the sources without having to reinstall.
-```sh
+Next, you should install your new parser with pip. The `-e` parameter installs the parser
+in *development*. This means you can change the sources without having to reinstall:
+
+```shell
 cd example
 pip install -e .
 ```
 
 The main code file `exampleparser/parser.py` should look like this:
+
 ```python
 class ExampleParser(MatchingParser):
     def __init__(self):
@@ -52,18 +60,20 @@ class ExampleParser(MatchingParser):
 A parser is a simple program with a single class. The base class `MatchingParser`
 provides the necessary interface to NOMAD. We provide some basic information
 about our parser in the constructor. The *main* function `run` simply takes a filepath
-and an empty archive as input. Now its up to you, to open the given file and populate the
+and an empty archive as input. Now it's up to you, to open the given file and populate the
 given archive accordingly. In the plain *hello world*, we simple create a log entry,
 populate the archive with a *root section* `Run`, and set the program name to `EXAMPLE`.
 
 You can run the parser with the included `__main__.py`. It takes a file as argument and
 you can run it like this:
-```sh
+
+```shell
 python -m exampleparser tests/data/example.out
 ```
 
 The output should show the log entry and the minimal archive with one `section_run` and
-the respective `program_name`.
+the respective `program_name`:
+
 ```json
 {
   "section_run": [
@@ -77,15 +87,18 @@ the respective `program_name`.
 ## Parsing test files
 
 Let's do some actual parsing. Here we demonstrate how to parse ASCII files with some
-structure information in it. As it is typically used by materials science codes.
+structure information in it, as it is typically used by materials science codes.
 
 On the `master` branch of the example project, we have a more 'realistic' example:
-```sh
+
+```shell
 git checkout master
 ```
 
-This example imagines a potential code output that looks like this (`tests/data/example.out`):
-```none
+This example imagines a potential code output that looks like this
+(`tests/data/example.out`):
+
+```text
 2020/05/15
                *** super_code v2 ***
 
@@ -106,14 +119,15 @@ cell: (0, 0, 0), (1, 0, 0), (1, 1, 0)
 energy: 1.29372
 ```
 
-At the top there are some general informations. Below that is a list of simulated systems with
-sites and lattice describing crystal structures as well as a computed energy value as an example for
-a code specific quantity from a 'magic source'.
+At the top there is some general information. Below that is a list of simulated systems
+with "sites" and "lattice" describing the crystal structure, as well as a computed energy
+value as an example for a code specific quantity from a 'magic source'.
 
-In order to convert the information  from this file into the archive, we first have to
-parse the necessary quantities: the date, system, energy, etc. The *nomad-lab* Python
+In order to convert the information from this file into the archive, we first have to
+parse the necessary quantities: the date, system, energy, etc. The `nomad-lab` Python
 package provides a `text_parser` module for declarative parsing of text files. You can
 define text file parsers like this:
+
 ```python
 def str_to_sites(string):
     sym, pos = string.split('(')
@@ -141,27 +155,28 @@ mainfile_parser = UnstructuredTextFileParser(quantities=[
 ```
 
 The quantities to be parsed can be specified as a list of `Quantity` objects with a name
-and a *regular expression (re)* pattern. The matched value should be enclosed in a group(s)
-denoted by `(...)`.
-By default, the parser uses the *findall* method of `re`, hence overlap
-between matches is not tolerated. If overlap cannot be avoided, you should switch to the
-*finditer* method by passing *findall=False* to the parser. Multiple
-matches for the quantity are returned if *repeats=True* (default). The name, data type,
-shape and unit for the quantity can also be intialized by passing a metainfo Quantity.
-An external function *str_operation* can also be passed to perform more specific
-string operations on the matched value. A local parsing on a matched block can be carried
-out by nesting a *sub_parser*. This is also an instance of the `UnstructuredTextFileParser`
-with a list of quantities to parse. To access a parsed quantity, you can use the *get*
-method.
+and a *regular expression (re)* pattern. The matched value should be enclosed in a
+group(s) denoted by `(...)`.
+By default, the parser uses the `findall` method of `re`, hence overlap between matches is
+not tolerated. If overlap cannot be avoided, you should switch to the `finditer` method by
+passing `findall=False` to the parser. Multiple matches for the quantity are returned if
+`repeats=True` (default). The name, data type, shape and unit for the quantity can also be
+initialized by passing a `metainfo.Quantity`.
+An external function `str_operation` can also be passed to perform more specific string
+operations on the matched value. A local parsing on a matched block can be carried out by
+nesting a `sub_parser`. This is also an instance of the `UnstructuredTextFileParser` with
+a list of quantities to parse. To access a parsed quantity, you can use the `get` method.
 
 We can apply these parser definitions like this:
-```sh
+
+```shell
 mainfile_parser.mainfile = mainfile
 mainfile_parser.parse()
 ```
 
 This will populate the `mainfile_parser` object with parsed data and it can be accessed
 like a Python dict with quantity names as keys:
+
 ```python
 run = archive.m_create(Run)
 run.program_name = 'super_code'
@@ -189,24 +204,24 @@ for calculation in mainfile_parser.get('calculation'):
 ```
 
 You can still run the parser on the given example file:
-```sh
+
+```shell
 python -m exampleparser tests/data/example.out
 ```
 
 Now you should get a more comprehensive archive with all the provided information from
 the `example.out` file.
 
-** TODO more examples and an explanations for: unit conversion, logging, types, scalar, vectors,
-multi-line matrices **
-
 ## Extending the Metainfo
-The NOMAD Metainfo defines the schema of each archive. There are pre-defined schemas for
-all domains (e.g. `common_dft.py` for electron-structure codes; `common_ems.py` for
-experiment data, etc.). The sections `Run`, `System`, and the single configuration calculations (`SCC`)
-in the example are taken fom `common_dft.py`. While this covers most of the data usually
-provided in code input/output files, some data is typically format-specific and applies only
-to a certain code or method. For these cases, we allow to extend the Metainfo like
-this (`exampleparser/metainfo.py`):
+
+The NOMAD Metainfo defines the schema of each archive. There are predefined schemas for
+all domains (e.g. `common_dft.py` for electronic structure codes; `common_ems.py` for
+experimental data, etc.). The sections `Run`, `System`, and the single configuration
+calculations (`SCC`) in the example are taken from `common_dft.py`. While this covers most
+of the data usually provided in code input/output files, some data is typically
+format-specific and applies only to a certain code or method. For these cases, we allow to
+extend the Metainfo like this (`exampleparser/metainfo.py`):
+
 ```python
 # We extend the existing common definition of a section "single configuration calculation"
 class ExampleSCC(SCC):
@@ -225,13 +240,15 @@ Until now, we simply run our parser on some example data and manually observed t
 To improve the parser quality and ease the further development, you should get into the
 habit of testing the parser.
 
-We use the Python unit test framework *pytest*:
-```sh
+We use the Python unit test framework `pytest`:
+
+```shell
 pip install pytest
 ```
 
-A typical test, would take one example file, parse it, and make statements about
-the output.
+A typical test would take one example file, parse it, and check assertions about the
+output:
+
 ```python
 def test_example():
     parser = rExampleParser()
@@ -245,26 +262,25 @@ def test_example():
 ```
 
 You can run all tests in the `tests` directory like this:
-```sh
+
+```shell
 pytest -svx tests
 ```
 
 You should define individual test cases with example files that demonstrate certain
 features of the underlying code/format.
 
-## Structured data files with numpy
-**TODO: examples**
+## Structured data files with NumPsy
 
-The `DataTextParser` uses the numpy.loadtxt function to load an structured data file.
-The loaded data can be accessed from property *data*.
+The `DataTextParser` uses the `numpy.loadtxt` function to load an structured data file.
+The loaded data can be accessed from property `data`.
 
 ## XML Parser
 
-**TODO: examples**
-
-The `XMLParser` uses the ElementTree module to parse an xml file. The parse method of the
-parser takes in an xpath style key to access individual quantities. By default, automatic
-data type conversion is performed, which can be switched off by setting *convert=False*.
+The `XMLParser` uses the ElementTree module to parse an XML file. The `parse` method of
+the parser takes in an XPath-style key to access individual quantities. By default,
+automatic data type conversion is performed, which can be switched off by setting
+`convert=False`.
 
 ## Add the parser to NOMAD
 
@@ -274,6 +290,7 @@ parser attributes.
 
 Consider the example where we use the `MatchingParser` constructor to add additional
 attributes that determine for which files the parser is intended for:
+
 ```python
 class ExampleParser(MatchingParser):
     def __init__(self):
@@ -286,54 +303,67 @@ class ExampleParser(MatchingParser):
             mainfile_contents_dict={'program': {'version': '1', 'name': 'EXAMPLE'}})
 ```
 
-- `mainfile_mime_re`: A regular expression on the mime type of files. The parser is run only
- on files with matching mime type. The mime-type is *guessed* with libmagic.
+- `mainfile_mime_re`: A regular expression on the MIME type of files. The parser is run
+  only on files with matching MIME type. The MIME type is *guessed* with libmagic.
+
 - `mainfile_contents_re`: A regular expression that is applied to the first 4k of a file.
-The parser is run only on files where this matches.
-- `mainfile_name_re`: A regular expression that can be used to match against the name and path of the file.
-- `supported compressions`: A list of [gz, bz2], if the parser supports compressed files
-- `mainfile_alternative`: If True files are mainfile if no mainfile_name_re matching file
-is present in the same directory.
-- `mainfile_contents_dict`: A dictionary to match the contents of the file. If provided
-will load the file and match the value of the key(s) provided.
+  The parser is run only on files where this matches.
+
+- `mainfile_name_re`: A regular expression that can be used to match against the name and
+  path of the file.
+
+- `supported compressions`: A list of [`gz`, `bz2`] if the parser supports compressed
+  files.
+
+- `mainfile_alternative`: If `True`, a file is `mainfile` unless another file in the same
+  directory matches `mainfile_name_re`.
+
+- `mainfile_contents_dict`: A dictionary to match the contents of the file. If provided,
+  it will load the file and match the value of the key(s) provided.
 
 Not all of these attributes have to be used. Those that are given must all match in order
 to use the parser on a file.
 
-The nomad infrastructure keeps a list of parser objects (in `nomad/parsing/parsers.py::parsers`).
-These parsers are considered in the order they appear in the list. The first matching parser
-is used to parse a given file.
+The NOMAD infrastructure keeps a list of parser objects (in
+`nomad/parsing/parsers.py::parsers`). These parsers are considered in the order they
+appear in the list. The first matching parser is used to parse a given file.
 
 While each parser project should provide its own tests, a single example file should be
 added to the infrastructure parser tests (`tests/parsing/test_parsing.py`).
 
 Once the parser is added, it becomes also available through the command line interface and
 normalizers are applied as well:
-```sh
-nomad parser tests/data/example.out
+
+```shell
+nomad parse tests/data/example.out
 ```
 
 ## Developing an existing parser
+
 To refine an existing parser, you should install the parser via the `nomad-lab` package:
-```sh
+
+```shell
 pip install nomad-lab
 ```
 
-Close the parser project on top:
-```sh
+Clone the parser project:
+
+```shell
 git clone <parser-project-url>
 cd <parser-dir>
 ```
 
-Either remove the installed parser and pip install the cloned version:
-```sh
-rm -rf <path-to-your-python-env>/lib/python3.7/site-packages/<parser-module-name>
+Either remove the installed parser and `pip install` the cloned version:
+
+```shell
+rm -rf <path-to-your-python-env>/lib/python3.9/site-packages/<parser-module-name>
 pip install -e .
 ```
 
-Or use `PYTHONPATH` so that the cloned code takes precedence over the installed code:
-```sh
-PYTHONPATH=. nomad parser <path-to-example-file>
+Or set `PYTHONPATH` so that the cloned code takes precedence over the installed code:
+
+```shell
+PYTHONPATH=. nomad parse <path-to-example-file>
 ```
 
 Alternatively, you can also do a full developer setup of the NOMAD infrastructure and
