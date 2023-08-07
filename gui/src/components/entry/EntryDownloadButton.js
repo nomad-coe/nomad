@@ -20,11 +20,9 @@ import PropTypes from 'prop-types'
 import { apiBase } from '../../config'
 import { Tooltip, IconButton, Menu, MenuItem } from '@material-ui/core'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
-import { toAPIFilter } from '../search/SearchContext'
 
 const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
   const {tooltip, disabled, buttonProps, dark, query} = props
-
   const [anchorEl, setAnchorEl] = useState(null)
 
   const handleClick = event => {
@@ -34,7 +32,7 @@ const EntryDownloadButton = React.memo(function EntryDownloadButton(props) {
 
   const handleSelect = (urlSuffix) => {
     setAnchorEl(null)
-    const queryStringData = toAPIFilter(query)
+    const queryStringData = query
     const owner = query.visibility || 'visible'
     const url = `${apiBase}/v1/entries/${urlSuffix}?owner=${owner}&json_query=${JSON.stringify(queryStringData)}`
     window.location.assign(url)

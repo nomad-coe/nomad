@@ -34,9 +34,9 @@ import IconButton from '@material-ui/core/IconButton'
 import { useUnits } from '../../units'
 import { DType, getDatatype } from '../../utils'
 import { useSuggestions } from '../../hooks'
-import { useSearchContext, toGUIFilterSingle } from './SearchContext'
+import { useSearchContext } from './SearchContext'
 import { searchQuantities } from '../../config'
-import { filterFullnames, quantityNameSearch } from './FilterRegistry'
+import { quantityNameSearch } from './FilterRegistry'
 
 const opMap = {
   '<=': 'lte',
@@ -98,8 +98,10 @@ const SearchBar = React.memo(({
   const {
     filters,
     filterData,
+    filterFullnames,
     useSetFilters,
-    useFiltersLocked
+    useFiltersLocked,
+    useParseQuery
   } = useSearchContext()
   const [inputValue, setInputValue] = useState('')
   const [suggestionInput, setSuggestionInput] = useState('')
@@ -108,6 +110,7 @@ const SearchBar = React.memo(({
   const [error, setError] = useState(false)
   const filtersLocked = useFiltersLocked()
   const setFilter = useSetFilters()
+  const parseQuery = useParseQuery()
 
   const [quantitiesAll, quantitiesAllSet, quantitiesSuggestable] = useMemo(() => {
     let quantitySetSuggestable, quantityList
@@ -168,7 +171,7 @@ const SearchBar = React.memo(({
       return [fullName, `Cannot target metainfo sections`]
     }
     return [fullName, undefined]
-  }, [quantitiesAllSet, filterData])
+  }, [quantitiesAllSet, filterData, filterFullnames])
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
@@ -193,7 +196,7 @@ const SearchBar = React.memo(({
         return
       }
       try {
-        queryValue = toGUIFilterSingle(quantityFullname, equals[2], units)
+        queryValue = parseQuery(quantityFullname, equals[2], units)
       } catch (error) {
         setError(`Invalid value for this metainfo. Please check your syntax.`)
         return
@@ -227,7 +230,7 @@ const SearchBar = React.memo(({
         }
         let quantityValue
         try {
-          quantityValue = toGUIFilterSingle(quantityFullname, value, units)
+          quantityValue = parseQuery(quantityFullname, value, units)
         } catch (error) {
           console.log(error)
           setError(`Invalid value for this metainfo. Please check your syntax.`)
@@ -261,8 +264,8 @@ const SearchBar = React.memo(({
         }
         queryValue = {}
         try {
-          queryValue[opMapReverse[op1]] = toGUIFilterSingle(quantityFullname, a, units)
-          queryValue[opMap[op2]] = toGUIFilterSingle(quantityFullname, c, units)
+          queryValue[opMapReverse[op1]] = parseQuery(quantityFullname, a, units)
+          queryValue[opMap[op2]] = parseQuery(quantityFullname, c, units)
         } catch (error) {
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return
@@ -288,7 +291,7 @@ const SearchBar = React.memo(({
     } else {
       setError(`Invalid query`)
     }
-  }, [inputValue, checkMetainfo, units, setFilter, filterData, filtersLocked])
+  }, [inputValue, checkMetainfo, units, setFilter, filterData, parseQuery, filtersLocked])
 
   // Handle clear button
   const handleClose = useCallback(() => {
@@ -353,7 +356,7 @@ const SearchBar = React.memo(({
     }
     setSuggestionNames(quantitySet)
     setSuggestionInput(value)
-  }, [quantitiesSuggestable])
+  }, [quantitiesSuggestable, filterFullnames])
 
   return <Paper className={clsx(className, styles.root)}>
     <Autocomplete

@@ -29,32 +29,32 @@ import {
 } from 'recoil'
 import {
   debounce,
-  isEmpty,
-  isArray,
   isBoolean,
+  isEmpty,
+  isEqual,
+  isArray,
   isPlainObject,
   isNil,
   isSet,
   isFunction,
   size,
-  isEqual,
   cloneDeep
 } from 'lodash'
-import { Link } from '@material-ui/core'
 import qs from 'qs'
+import { Link } from '@material-ui/core'
 import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
 import {
-  setToArray,
   authorList,
   entryName,
   entryType,
   formatTimestamp,
   getDeep,
   formatNumber,
-  getDatatype
+  getDatatype,
+  setToArray
 } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
@@ -63,12 +63,7 @@ import UploadStatusIcon from '../uploads/UploadStatusIcon'
 import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
 import { searchQuantities } from '../../config'
-import {
-  filterData as filterDataGlobal,
-  filterAbbreviations,
-  filterFullnames,
-  materialNames
-} from './FilterRegistry'
+import { filterData as filterDataStatic } from './FilterRegistry'
 
 const debounceTime = 450
 
@@ -91,23 +86,6 @@ const debounceTime = 450
  * depending on the context would re-render for each filter change regardless if
  * it actually changes the state of that component or not.
  */
-
-/**
- * Used to turn empty containers into undefined which is used to indicate that a
- * search filter has not been specified.
- */
-function clearEmpty(value) {
-  function isEmpty(value) {
-    if (isPlainObject(value)) {
-      return Object.values(value).every(isEmpty)
-    } else if ((isSet(value) || isArray(value)) && size(value) === 0) {
-      return true
-    }
-    return false
-  }
-  return isEmpty(value) ? undefined : value
-}
-
 export const searchContext = React.createContext()
 export const SearchContext = React.memo(({
   resource,
@@ -222,7 +200,7 @@ export const SearchContext = React.memo(({
         }
       },
       published: {
-        render: (entry) => <UploadStatusIcon data={entry} user={user}/>
+        render: (entry) => <UploadStatusIcon data={entry} user={user} />
       }
     }
 
@@ -260,25 +238,26 @@ export const SearchContext = React.memo(({
       : undefined
   }, [initialDashboard])
 
-  // Initialize the set of available filters. This may depend on the resource.
-  const [filtersLocal, filterDataLocal] = useMemo(() => {
-    const include = initialFilters?.include || [...Object.keys(filterDataGlobal)]
+  // Initialize the set of filters that are available directly from the
+  // metainfo.
+  const {filtersStatic, filtersStaticData, filtersStaticAbbreviations} = useMemo(() => {
+    const staticFilterNames = Object.keys(filterDataStatic)
+    const include = initialFilters?.include || [...staticFilterNames]
     const exclude = initialFilters?.exclude || []
     const filters = include.filter((key) => !exclude?.includes(key))
-    const filtersLocal = new Set(filters)
-    const filterDataLocal = Object.fromEntries(filters.map(
-      (name) => [name, filterDataGlobal[name]]
+    const filtersStatic = new Set(filters)
+    const filtersStaticData = Object.fromEntries(filters.map(
+      (name) => [name, filterDataStatic[name]]
     ))
-    return [filtersLocal, filterDataLocal]
+    const filtersStaticAbbreviations = getAbbreviations([...Object.keys(filtersStaticData)])
+    return {filtersStatic, filtersStaticData, filtersStaticAbbreviations}
   }, [initialFilters])
-  const filters = useState(filtersLocal)[0]
-  const filterData = useState(filterDataLocal)[0]
 
   // Initialize the search context state: any parameters in the URL are read and
   // default values as specified in filter registry are loaded
   const [initialQuery, initialAggs, filterDefaults] = useMemo(() => {
     const filterDefaults = {}
-    for (const [key, value] of Object.entries(filterData)) {
+    for (const [key, value] of Object.entries(filtersStaticData)) {
       if (!isNil(value.default)) {
         filterDefaults[key] = value.default
       }
@@ -288,10 +267,10 @@ export const SearchContext = React.memo(({
     let queryURL = {}
     if (split.length !== 1) {
       const qs = split.pop();
-      [queryURL] = qsToSearch(qs)
+      [queryURL] = parseQueryString(qs, filtersStaticData, filtersStaticAbbreviations.filterFullnames)
     }
     const initialAggs = {}
-    for (const key of filters) {
+    for (const key of filtersStatic) {
       initialAggs[key] = {
         default: {update: false}
       }
@@ -301,47 +280,103 @@ export const SearchContext = React.memo(({
       initialAggs,
       filterDefaults
     ]
-  }, [filterData, filters])
+  }, [filtersStaticData, filtersStatic, filtersStaticAbbreviations])
 
-  // Initialize a bunch of Recoil.js states and hooks. Notice how we are not using a set
-  // of global states, but instead each SearchContext gets it's own states. This
-  // way the contexts stay separated and several of them can be active at once.
-  const [
-    useFilterLocked,
-    useFiltersLocked,
-    useFiltersLockedState,
-    useFilterValue,
-    useSetFilter,
-    useFilterState,
-    useFiltersState,
-    useResetFilters,
-    useUpdateQueryString,
-    queryState,
-    dynamicQueryModesState,
-    aggsFamily,
-    aggsState,
-    paginationState,
-    requiredState,
-    resultsUsedState,
-    resultsState,
-    apiDataState,
-    aggsResponseState,
-    isMenuOpenState,
-    isCollapsedState,
-    isStatisticsEnabledState,
-    useWidgetValue,
-    useSetWidget,
-    useWidgetState,
-    useWidgetsValue,
-    useWidgetsState,
-    useAddWidget,
-    useRemoveWidget,
-    useResetWidgets,
-    useResults,
-    useApiData,
-    useAgg,
-    useSetFilters
-  ] = useMemo(() => {
+  // Atoms + setters and getters are used instead of regular React states to
+  // avoid re-rendering components that are not depending on these values. The
+  // Recoil mechanisms are abstracted under hooks in order to make it easier to
+  // replace Recoil with some other state management library in the future.
+ const {
+      useFilterLocked,
+      useFiltersLocked,
+      useFiltersLockedState,
+      useFilterValue,
+      useSetFilter,
+      useFilterState,
+      useFiltersState,
+      useFilterNames,
+      useFiltersData,
+      useFilterMaps,
+      useResetFilters,
+      useUpdateQueryString,
+      useDynamicQueryModes,
+      aggsFamily,
+      useWidgetValue,
+      useSetWidget,
+      useWidgetState,
+      useWidgetsValue,
+      useWidgetsState,
+      useAddWidget,
+      useRemoveWidget,
+      useResetWidgets,
+      useQuery,
+      usePagination,
+      usePaginationState,
+      useAgg,
+      useAggs,
+      useSetAggsResponse,
+      useSetFilters,
+      useIsMenuOpen,
+      useSetIsMenuOpen,
+      useIsCollapsed,
+      useSetIsCollapsed,
+      useIsStatisticsEnabled,
+      useSetIsStatisticsEnabled,
+      useApiQuery,
+      useSetApiQuery,
+      useApiData,
+      useSetApiData,
+      useResults,
+      useSetResults,
+      useResultsUsed,
+      useRequired
+  } = useMemo(() => {
+    const isMenuOpenState = atom({
+      key: `isMenuOpen_${contextID}`,
+      default: false
+    })
+    const isCollapsedState = atom({
+      key: `isCollapsed_${contextID}`,
+      default: false
+    })
+    const isStatisticsEnabledState = atom({
+      key: `statisticsEnabled_${contextID}`,
+      default: true
+    })
+    const apiDataState = atom({
+      key: `apiData_${contextID}`,
+      default: null
+    })
+    const apiQueryState = atom({
+      key: `apiQuery_${contextID}`,
+      default: null
+    })
+    const resultsState = atom({
+      key: `results_${contextID}`,
+      default: {
+        pagination: {}
+      }
+    })
+    const resultsUsedState = atom({
+      key: `resultsUsed_${contextID}`,
+      default: false
+    })
+    const requiredState = atom({
+      key: `required_${contextID}`,
+      default: {
+        exclude: resource === 'entries' ? ['quantities', 'sections', 'files'] : undefined
+      }
+    })
+    // Stores the available filters. Initialized with static filters, can be
+    // modified later.
+    const filtersDataState = atom({
+      key: `filtersData_${contextID}`,
+      default: filtersStaticData
+    })
+    const filterNamesState = selector({
+      key: `filters${contextID}`,
+      get: ({get}) => new Set(Object.keys(get(filtersDataState)))
+    })
     const queryFamily = atomFamily({
       key: `queryFamily_${contextID}`,
       default: (name) => initialQuery[name]
@@ -355,7 +390,7 @@ export const SearchContext = React.memo(({
       key: `filtersState_${contextID}`,
       get: ({get}) => {
         const query = {}
-        for (const key of filters) {
+        for (const key of get(filterNamesState)) {
           const filter = get(queryFamily(key))
           query[key] = filter
         }
@@ -367,7 +402,21 @@ export const SearchContext = React.memo(({
       }
     })
 
-    const guiLocked = toGUIFilter(initialFiltersLocked)
+    // Stores a mapping between filter abbreviations and their full names.
+    const filterMapsState = selector({
+      key: `filterAbbreviations_${contextID}`,
+      get: ({get}) => {
+        const filterNames = [...get(filterNamesState)]
+        return getAbbreviations(filterNames)
+      }
+    })
+
+    const paginationState = atom({
+      key: `pagination_${contextID}`,
+      default: initialPagination
+    })
+
+    const guiLocked = parseQueries(initialFiltersLocked, filtersStaticData, filtersStaticAbbreviations.filterFullnames)
     const lockedFamily = atomFamily({
       key: `lockedFamily_${contextID}`,
       default: (name) => guiLocked?.[name]
@@ -378,7 +427,7 @@ export const SearchContext = React.memo(({
       key: `lockedState_${contextID}`,
       get: ({get}) => {
         const locks = {}
-        for (const key of filters) {
+        for (const key of get(filterNamesState)) {
           const filter = get(lockedFamily(key))
           if (!isNil(filter)) locks[key] = filter
         }
@@ -394,7 +443,7 @@ export const SearchContext = React.memo(({
       key: `query_${contextID}`,
       get: ({get}) => {
         const query = {}
-        for (const key of filters) {
+        for (const key of get(filterNamesState)) {
           const filter = get(queryFamily(key))
           if (filter !== undefined) {
             query[key] = filter
@@ -402,8 +451,8 @@ export const SearchContext = React.memo(({
         }
         return query
       },
-      set: ({ set }, data) => {
-        for (const filter of filters) {
+      set: ({ set, get }, data) => {
+        for (const filter of get(filterNamesState)) {
           set(queryFamily(filter), undefined)
         }
         if (data) {
@@ -421,7 +470,7 @@ export const SearchContext = React.memo(({
       key: `dynamicQueryModes_${contextID}`,
       get: ({get}) => {
         const query = {}
-        for (const key of filters) {
+        for (const key of get(filterNamesState)) {
           const filter = get(dynamicQueryModesFamily(key))
           if (filter !== undefined) {
             query[key] = filter
@@ -429,8 +478,8 @@ export const SearchContext = React.memo(({
         }
         return query
       },
-      set: ({ set }, data) => {
-        for (const filter of filters) {
+      set: ({ set, get }, data) => {
+        for (const filter of get(filterNamesState)) {
           set(dynamicQueryModesFamily(filter), undefined)
         }
         if (data) {
@@ -441,35 +490,9 @@ export const SearchContext = React.memo(({
       }
     })
 
-    const isStatisticsEnabledState = atom({
-      key: `statisticsEnabled_${contextID}`,
-      default: true
-    })
-    const isMenuOpenState = atom({
-      key: `isMenuOpen_${contextID}`,
-      default: false
-    })
-    const isCollapsedState = atom({
-      key: `isCollapsed_${contextID}`,
-      default: false
-    })
-
-    const paginationState = atom({
-      key: `pagination_${contextID}`,
-      default: initialPagination
-    })
-
-    const requiredState = atom({
-      key: `required_${contextID}`,
-      default: {
-        exclude: resource === 'entries' ? ['quantities', 'sections', 'files'] : undefined
-      }
-    })
-
-    const resultsUsedState = atom({
-      key: `resultsUsed_${contextID}`,
-      default: false
-    })
+    function useDynamicQueryModes() {
+      return useRecoilValue(dynamicQueryModesState)
+    }
 
     const widgetFamily = atomFamily({
       key: `widgetFamily_${contextID}`,
@@ -504,6 +527,10 @@ export const SearchContext = React.memo(({
         return stats
       }
     })
+
+    function useQuery(name) {
+      return useRecoilValue(queryState)
+    }
 
     /**
      * This hook will expose a function for reading if widgets are shown
@@ -603,18 +630,6 @@ export const SearchContext = React.memo(({
       }, [])
       return reset
     }
-
-    const resultsState = atom({
-      key: `results_${contextID}`,
-      default: {
-        pagination: {}
-      }
-    })
-
-    const apiDataState = atom({
-      key: `apiData_${contextID}`,
-      default: null
-    })
 
     const aggsFamilyRaw = atomFamily({
       key: `aggsFamilyRaw_${contextID}`,
@@ -755,11 +770,13 @@ export const SearchContext = React.memo(({
     const useUpdateQueryString = () => {
       const history = useHistory()
       const query = useRecoilValue(queryState)
+      const filtersData = useRecoilValue(filtersDataState)
+      const {filterAbbreviations} = useRecoilValue(filterMapsState)
 
       return useCallback(() => {
-        const queryString = searchToQs(query)
+        const queryString = convertQueryGUIToQS(query, filtersData, filterAbbreviations)
         history.replace(history.location.pathname + '?' + queryString)
-      }, [history, query])
+      }, [history, query, filtersData, filterAbbreviations])
     }
 
     /**
@@ -768,8 +785,9 @@ export const SearchContext = React.memo(({
      * @returns Function for resetting all filters.
      */
     const useResetFilters = () => {
+      const filterNames = useRecoilValue(filterNamesState)
       const reset = useRecoilCallback(({set}) => () => {
-        for (const filter of filters) {
+        for (const filter of filterNames) {
           set(queryFamily(filter), undefined)
           set(dynamicQueryModesFamily(filter), undefined)
         }
@@ -875,7 +893,7 @@ export const SearchContext = React.memo(({
      * pagination and a function for changing the pagination.
      *
      * @returns {object} {data, pagination, setPagination}
-     */
+    */
     const useResults = () => {
       const setResultsUsed = useSetRecoilState(resultsUsedState)
 
@@ -887,13 +905,6 @@ export const SearchContext = React.memo(({
 
       return useRecoilValue(resultsState)
     }
-
-    /**
-     * Hook for returning an object containing the last used API call.
-     *
-     * @returns {object} {method, url, body, response}
-     */
-    const useApiData = () => useRecoilValue(apiDataState)
 
     /**
      * Hook for modifying an aggregation request and fetching the latest values for
@@ -915,20 +926,21 @@ export const SearchContext = React.memo(({
       const key = useMemo(() => `${name}:${id}`, [name, id])
       const setAgg = useSetRecoilState(aggsFamily(key))
       const aggResponse = useRecoilValue(aggsResponseFamily(key))
+      const filtersData = useRecoilValue(filtersDataState)
 
       // Whenever the aggregation requirements change, create the final
       // aggregation config and set it in the search context: this will then
       // trigger any required API calls that also return the aggregation
       // response that is returned by this hook.
       useEffect(() => {
-        const defaults = filterData[name]?.aggs?.[config?.type]
+        const defaults = filtersData[name]?.aggs?.[config?.type]
         const finalConfig = {
           update: update,
           ...defaults || {},
           ...config
         }
         setAgg(finalConfig)
-      }, [name, update, setAgg, config])
+      }, [name, update, setAgg, config, filtersData])
 
       return aggResponse
     }
@@ -943,7 +955,7 @@ export const SearchContext = React.memo(({
       return useSetRecoilState(filtersState)
     }
 
-    return [
+    return {
       useFilterLocked,
       useFiltersLocked,
       useFiltersLockedState,
@@ -953,19 +965,8 @@ export const SearchContext = React.memo(({
       useFiltersState,
       useResetFilters,
       useUpdateQueryString,
-      queryState,
-      dynamicQueryModesState,
+      useDynamicQueryModes,
       aggsFamily,
-      aggsState,
-      paginationState,
-      requiredState,
-      resultsUsedState,
-      resultsState,
-      apiDataState,
-      aggsResponseState,
-      isMenuOpenState,
-      isCollapsedState,
-      isStatisticsEnabledState,
       useWidgetValue,
       useSetWidget,
       useWidgetState,
@@ -974,23 +975,59 @@ export const SearchContext = React.memo(({
       useAddWidget,
       useRemoveWidget,
       useResetWidgets,
-      useResults,
-      useApiData,
       useAgg,
-      useSetFilters
-    ]
-  }, [contextID, initialQuery, filters, initialFiltersLocked, dashboard, initialAggs, initialPagination, filterData, resource])
+      useSetFilters,
+      useQuery,
+      useFilterNames: () => useRecoilValue(filterNamesState),
+      useFiltersData: () => useRecoilValue(filtersDataState),
+      useFilterMaps: () => useRecoilValue(filterMapsState),
+      useSetFiltersData: () => useSetRecoilState(filtersDataState),
+      useAggs: () => useRecoilValue(aggsState),
+      useSetAggsResponse: () => useSetRecoilState(aggsResponseState),
+      usePagination: () => useRecoilValue(paginationState),
+      usePaginationState: () => useRecoilState(paginationState),
+      useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
+      useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
+      useIsCollapsed: () => useRecoilValue(isCollapsedState),
+      useSetIsCollapsed: () => useSetRecoilState(isCollapsedState),
+      useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
+      useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
+      useApiQuery: () => useRecoilValue(apiQueryState),
+      useSetApiQuery: () => useSetRecoilState(apiQueryState),
+      useApiData: () => useRecoilValue(apiDataState),
+      useSetApiData: () => useSetRecoilState(apiDataState),
+      useResults,
+      useSetResults: () => useSetRecoilState(resultsState),
+      useResultsUsed: () => useRecoilValue(resultsUsedState),
+      useSetResultsUsed: () => useSetRecoilState(resultsUsedState),
+      useRequired: () => useRecoilValue(requiredState)
+  }
+  }, [
+    resource,
+    contextID,
+    initialQuery,
+    filtersStaticData,
+    filtersStaticAbbreviations,
+    initialFiltersLocked,
+    initialPagination,
+    dashboard,
+    initialAggs
+  ])
 
-  const setResults = useSetRecoilState(resultsState)
-  const setApiData = useSetRecoilState(apiDataState)
-  const updateAggsResponse = useSetRecoilState(aggsResponseState)
-  const aggs = useRecoilValue(aggsState)
-  const query = useRecoilValue(queryState)
-  const dynamicQueryModes = useRecoilValue(dynamicQueryModesState)
+  const setResults = useSetResults()
+  const setApiData = useSetApiData()
+  const setApiQuery = useSetApiQuery()
+  const filters = useFilterNames()
+  const filtersData = useFiltersData()
+  const { filterAbbreviations, filterFullnames } = useFilterMaps()
+  const [pagination, setPagination] = usePaginationState()
+  const updateAggsResponse = useSetAggsResponse()
+  const aggs = useAggs()
+  const query = useQuery()
+  const dynamicQueryModes = useDynamicQueryModes()
   const filtersLocked = useFiltersLocked()
-  const [pagination, setPagination] = useRecoilState(paginationState)
-  const required = useRecoilValue(requiredState)
-  const resultsUsed = useRecoilValue(resultsUsedState)
+  const required = useRequired()
+  const resultsUsed = useResultsUsed()
   const updateQueryString = useUpdateQueryString()
 
   /**
@@ -1012,7 +1049,7 @@ export const SearchContext = React.memo(({
     // Update the aggregations if new aggregation data is received. The old
     // aggregation data is preserved and new information is updated.
     if (!isEmpty(data.aggregations)) {
-      const newAggs = toGUIAgg(data.aggregations, aggsToUpdate, resource)
+      const newAggs = convertAggAPIToGUI(data.aggregations, aggsToUpdate, resource, filtersData)
       callbackAgg && callbackAgg(newAggs, undefined, true)
     } else {
       callbackAgg && callbackAgg(undefined, undefined, false)
@@ -1036,7 +1073,7 @@ export const SearchContext = React.memo(({
     if (nextResolve) {
       resolve(nextResolve)
     }
-  }, [setPagination])
+  }, [setPagination, filtersData])
 
   /**
    * Function that preprocesses API call requests and finally performs the
@@ -1076,8 +1113,8 @@ export const SearchContext = React.memo(({
     // The locked filters are applied as a parallel AND query. This is the only
     // way to consistently apply them. If we mix them inside 'regular' filters,
     // they can be accidentally overwritten with an OR statement.
-    const customQuery = toAPIFilter(apiQuery, resource, dynamicQueryModes)
-    const lockedQuery = toAPIFilter(filtersLocked, resource, dynamicQueryModes)
+    const customQuery = convertQueryGUIToAPI(apiQuery, resource, filtersData, dynamicQueryModes)
+    const lockedQuery = convertQueryGUIToAPI(filtersLocked, resource, filtersData, dynamicQueryModes)
 
     let finalQuery = customQuery
     if (!isEmpty(lockedQuery)) {
@@ -1096,9 +1133,10 @@ export const SearchContext = React.memo(({
     const search = {
       owner: filtersLocked?.visibility || apiQuery.visibility,
       query: finalQuery,
-      aggregations: toAPIAgg(
+      aggregations: convertAggGUIToAPI(
         aggs,
-        resource
+        resource,
+        filtersData
       ),
       pagination: {...pagination},
       required: required
@@ -1140,6 +1178,7 @@ export const SearchContext = React.memo(({
 
     const timestamp = Date.now()
     apiQueue.current.push(timestamp)
+    setApiQuery(search?.query)
     api.query(resource, search, {loadingIndicator: true, returnRequest: true})
       .then((response) => {
         return resolve({
@@ -1159,7 +1198,7 @@ export const SearchContext = React.memo(({
         callbackAgg && callbackAgg(undefined, error, true)
         callbackHits && callbackHits(undefined, error, true, undefined)
       })
-  }, [filterDefaults, filtersLocked, resource, api, raiseError, resolve, dynamicQueryModes])
+  }, [filtersData, filterDefaults, filtersLocked, resource, api, raiseError, resolve, dynamicQueryModes, setApiQuery])
 
   // This is a debounced version of apiCall.
   const apiCallDebounced = useMemo(() => debounce(apiCall, debounceTime), [apiCall])
@@ -1187,7 +1226,8 @@ export const SearchContext = React.memo(({
       aggs,
       updatedAggsMap.current,
       queryChanged,
-      updatedFilters.current
+      updatedFilters.current,
+      filtersData
     )
 
     // If results are needed and query and pagination have not changed and
@@ -1205,7 +1245,7 @@ export const SearchContext = React.memo(({
       callbackAgg && callbackAgg(undefined, undefined, false)
       callbackHits && callbackHits(undefined, undefined, false, undefined)
     }
-  }, [apiCall, apiCallDebounced])
+  }, [apiCall, apiCallDebounced, filtersData])
 
   // When query, aggregation or pagination changes, update the search context
   useEffect(() => {
@@ -1245,11 +1285,11 @@ export const SearchContext = React.memo(({
   const values = useMemo(() => {
     // Hook for refreshing the results.
     const useRefresh = () => {
-      const query = useRecoilValue(queryState)
-      const aggs = useRecoilValue(aggsState)
-      const pagination = useRecoilValue(paginationState)
-      const required = useRecoilValue(requiredState)
-      const resultsUsed = useRecoilValue(resultsUsedState)
+      const query = useQuery()
+      const aggs = useAggs()
+      const pagination = usePagination()
+      const required = useRequired()
+      const resultsUsed = useResultsUsed()
 
       const refresh = useCallback(() => {
         apiCallInterMediate(
@@ -1283,10 +1323,10 @@ export const SearchContext = React.memo(({
     // can track the state of individual calls and perform callbacks.
     const useAggCall = (name, id) => {
       const key = useMemo(() => `${name}:${id}`, [name, id])
-      const query = useRecoilValue(queryState)
-      const pagination = useRecoilValue(paginationState)
-      const required = useRecoilValue(requiredState)
-      const resultsUsed = useRecoilValue(resultsUsedState)
+      const query = useQuery()
+      const pagination = usePagination()
+      const required = useRequired()
+      const resultsUsed = useResultsUsed()
       const setAgg = useSetRecoilState(aggsFamily(key))
 
       /**
@@ -1339,7 +1379,7 @@ export const SearchContext = React.memo(({
      */
     const useHits = (id = 'default', required, pagination, callback) => {
       const [results, setResults] = useState()
-      const query = useRecoilValue(queryState)
+      const query = useQuery()
       const apiCallDebounced = useMemo(() => debounce(apiCall, debounceTime), [])
 
       // Update hits when query, includes, excludes or pagination change.
@@ -1368,18 +1408,39 @@ export const SearchContext = React.memo(({
       return results
     }
 
+    /**
+     * Hook that returns a function for parsing filter values into a form that
+     * is supported by the GUI. The parsing depends on the SearchContext as
+     * filters may define a custom deserialization function and only certain
+     * filters may be available.
+     * */
+    const useParseQuery = () => {
+      const parse = useCallback(
+        (key, value, units, path) => parseQuery(key, value, filtersData, units, path),
+        []
+      )
+      return parse
+    }
+
     return {
       resource,
       columns,
       rows,
       filterMenus,
-      useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
-      useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
-      useIsCollapsed: () => useRecoilValue(isCollapsedState),
-      useSetIsCollapsed: () => useSetRecoilState(isCollapsedState),
-      useIsStatisticsEnabled: () => useRecoilValue(isStatisticsEnabledState),
-      useSetIsStatisticsEnabled: () => useSetRecoilState(isStatisticsEnabledState),
-      useQuery: () => useRecoilValue(queryState),
+      filters,
+      filterData: filtersData,
+      filterFullnames,
+      filterAbbreviations,
+      useIsMenuOpen,
+      useSetIsMenuOpen,
+      useIsCollapsed,
+      useSetIsCollapsed,
+      useIsStatisticsEnabled,
+      useSetIsStatisticsEnabled,
+      useApiData,
+      useApiQuery,
+      useQuery,
+      useParseQuery,
       useFilterValue,
       useSetFilter,
       useFilterState,
@@ -1400,18 +1461,25 @@ export const SearchContext = React.memo(({
       useUpdateQueryString,
       useResults,
       useHits,
-      useApiData,
       useAgg,
       useAggCall,
-      useSetFilters,
-      filters,
-      filterData
+      useSetFilters
     }
   }, [
     resource,
     rows,
     columns,
     filterMenus,
+    filters,
+    filtersData,
+    filterFullnames,
+    filterAbbreviations,
+    useIsMenuOpen,
+    useSetIsMenuOpen,
+    useIsCollapsed,
+    useSetIsCollapsed,
+    useIsStatisticsEnabled,
+    useSetIsStatisticsEnabled,
     useFilterValue,
     useSetFilter,
     useFilterState,
@@ -1429,23 +1497,19 @@ export const SearchContext = React.memo(({
     useRemoveWidget,
     useResetWidgets,
     useUpdateQueryString,
+    usePagination,
     useResults,
+    useResultsUsed,
+    useRequired,
+    useApiQuery,
     useApiData,
     useAgg,
+    useAggs,
+    useQuery,
     useSetFilters,
-    filters,
-    filterData,
-    queryState,
-    aggsState,
-    paginationState,
-    requiredState,
-    resultsUsedState,
     apiCallInterMediate,
     apiCall,
     aggsFamily,
-    isMenuOpenState,
-    isCollapsedState,
-    isStatisticsEnabledState,
     updateAggsResponse,
     setPagination,
     setResults,
@@ -1477,39 +1541,105 @@ export function useSearchContext() {
 }
 
 /**
- * Converts a query string into a valid query object.
+ * Parses a single filter value into a form that is supported by the GUI. This includes:
+ * - Arrays are are transformed into Sets
+ * - If multiple values are supported, scalar values are stored inside sets.
+ * - Numerical values with units are transformed into Quantities.
+ * - Custom serialization defined for the filter will be used if defined.
+ *
+ * @param {string} key Name of the filter or an operator name.
+ * @param {any} value Value of the filter or operator
+ * @param {object} filtersData All of the filters that are available
+ * @param {object} units Unit system for unit conversion
+ * @param {string} path The full path for the filter without an operator name.
+ *
+ * @returns {any} The filter value in a format that is suitable for the GUI.
+ */
+function parseQuery(key, value, filtersData, units = undefined, path = undefined) {
+  let newValue
+  const fullPath = path ? `${path}.${key}` : key
+  if (isPlainObject(value)) {
+    newValue = {}
+    for (const [keyInner, valueInner] of Object.entries(value)) {
+      const valueConverted = parseQuery(keyInner, valueInner, filtersData, units, fullPath)
+      if (!isNil(valueConverted)) {
+        newValue[keyInner] = valueConverted
+      }
+    }
+  } else {
+    // If the key is an operator, the filter name is read from the path.
+    const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
+    const filterPath = opKeys.has(key) ? path : fullPath
+    const multiple = filtersData[filterPath].multiple
+    const deserializer = filtersData[filterPath].deserializer
+    if (isArray(value) || isSet(value)) {
+      newValue = new Set(value.map((v) => deserializer(v, units)))
+    } else {
+      newValue = deserializer(value, units)
+      if (multiple) {
+        newValue = new Set([newValue])
+      }
+    }
+  }
+  return newValue
+}
+
+/**
+ * Cleans an entire query object into a form that is supported by the GUI. This
+ * includes:
+ * - Arrays are are transformed into Sets
+ * - If multiple values are supported, scalar values are stored inside sets.
+ * - Numerical values with units are transformed into Quantities.
+ *
+ * @param {object} query Query object to transform.
+ * @param {object} filtersData All of the filters that are available
+ * @param {object} units The desired unit system used when reading quantities.
+ *
+ * @returns {any} The filter object in a format that is suitable for the GUI.
+ */
+function parseQueries(query, filtersData, filterFullnames, units = undefined) {
+  const newQuery = {}
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      const newKey = filterFullnames[key] || key
+      const valueGUI = parseQuery(newKey, value, filtersData, units)
+      newQuery[newKey] = valueGUI
+    }
+  }
+  return newQuery
+}
+
+/**
+ * Parses a URL query string into a query object that can be used within
+ * search context.
  *
  * @param {string} queryString URL querystring, encoded or not.
- * @returns Returns an object containing the filters. Values are converted into
+ * @param {object} filtersData All of the filters that are available
+ * @returns Returns an object containing the query. Values are converted into
  * datatypes that are directly compatible with the filter components.
  */
-function qsToSearch(queryString) {
+function parseQueryString(queryString, filtersData, filterFullnames) {
   const queryObj = qs.parse(queryString, {comma: true})
-
-  // Deserialize query
-  const query = toGUIFilter(queryObj)
+  const query = parseQueries(queryObj, filtersData, filterFullnames)
   return [query]
 }
 
 /**
- * Used to create an object that represents the current search context state in
- * a serializable format. Can e.g. be used to build a query string.
+ * Converts a query object into a valid query string.
  *
- * @param {object} search Object representing the currently active search
- * context.
- *  - query: Object representing the active search filters.
- * @returns {object} An object that can e.g. be serialized into a query string.
+ * @param {object} query Query object representing the currently active
+ * filters in a search context.
+ * @param {object} filtersData All of the filters that are available
+ * @returns URL querystring, not encoded to improve readability.
  */
-export function searchToQsData(search) {
-  const query = search.query
-
+function convertQueryGUIToQS(query, filtersData, filterAbbreviations) {
   // Used to recursively convert the query into a serializable format.
   function convert(key, value, path) {
     // If the key is an operator, the filter name is read from the path.
     const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
     const fullPath = path ? `${path}.${key}` : key
     const filterPath = opKeys.has(key) ? path : fullPath
-    const filterData = filterDataGlobal[filterPath]
+    const filterData = filtersData[filterPath]
     let newValue
     if (isPlainObject(value) && !filterData.customSerialization) {
       newValue = {}
@@ -1547,18 +1677,7 @@ export function searchToQsData(search) {
     }
   }
 
-  return queryStringQuery
-}
-
-/**
- * Converts a query into a valid query string.
- * @param {object} query Query object representing the currently active
- * filters.
- * @returns URL querystring, not encoded if possible to improve readability.
- */
-function searchToQs(query, statistics) {
-  const queryData = searchToQsData({query, abbreviate: true})
-  return qs.stringify(queryData, {indices: false, encode: false})
+  return qs.stringify(queryStringQuery, {indices: false, encode: false})
 }
 
 /**
@@ -1570,11 +1689,13 @@ function searchToQs(query, statistics) {
  *
  * @param {number} query The query object.
  * @param {string} resource The resource we are looking at: entries or materials.
+ * @param {object} filtersData All of the filters that are available
+ * @param {object} queryModes Query modes for filters
  *
  * @returns {object} A copy of the object with certain items cleaned into a
  * format that is supported by the API.
  */
-export function toAPIFilter(query, resource, queryModes) {
+function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
   const queryCustomized = {}
   if (!query) {
     return undefined
@@ -1582,7 +1703,7 @@ export function toAPIFilter(query, resource, queryModes) {
 
   // Perform custom transformations
   function customize(key, value, parent, subKey = undefined) {
-    const data = filterDataGlobal[key]
+    const data = filtersData[key]
 
     // Global filters are not serialized into the API call.
     if (data?.global) return
@@ -1616,11 +1737,11 @@ export function toAPIFilter(query, resource, queryModes) {
   // Create the API-compatible keys and values.
   const queryNormalized = {}
   for (const [k, v] of Object.entries(queryCustomized)) {
-    const [newKey, newValue] = toAPIFilterSingle(k, v, undefined, queryModes?.[k])
+    const [newKey, newValue] = convertQuerySingleGUIToAPI(k, v, filtersData, undefined, queryModes?.[k])
     const splitted = newKey.split(':')
     const filterName = splitted[0]
     const queryMode = splitted.length > 1 ? splitted[1] : undefined
-    let finalKey = resource === 'materials' ? materialNames[filterName] : filterName
+    let finalKey = resource === 'materials' ? getFilterMaterialPath(filterName) : filterName
     finalKey = queryMode ? `${finalKey}:${queryMode}` : finalKey
     queryNormalized[finalKey] = newValue
   }
@@ -1678,13 +1799,14 @@ export function toAPIFilter(query, resource, queryModes) {
  *
  * @param {string} key Filter name
  * @param {any} value Filter value
+ * @param {object} filtersData All of the filters that are available
  * @param {string} path The full path of the filter.
  * @param {string} queryMode Determines the queryMode otherwise it uses the
  *   global queryMode defined in the config in filter registry.
  *
  * @returns {any} The filter value in a format that is suitable for the API.
  */
-function toAPIFilterSingle(key, value, path = undefined, queryMode = undefined) {
+function convertQuerySingleGUIToAPI(key, value, filtersData, path = undefined, queryMode = undefined) {
   // Determine the API-compatible value.
   let newValue
   if (value instanceof Set) {
@@ -1709,7 +1831,7 @@ function toAPIFilterSingle(key, value, path = undefined, queryMode = undefined) 
   } else if (isPlainObject(value)) {
     newValue = {}
     for (const [keyInner, valueInner] of Object.entries(value)) {
-      const [apiKey, apiValue] = toAPIFilterSingle(keyInner, valueInner, key)
+      const [apiKey, apiValue] = convertQuerySingleGUIToAPI(keyInner, valueInner, filtersData, key)
       if (!isNil(apiValue)) {
         newValue[apiKey] = apiValue
       }
@@ -1728,78 +1850,12 @@ function toAPIFilterSingle(key, value, path = undefined, queryMode = undefined) 
   } else {
     if (isArray(newValue)) {
       const fullPath = path ? `${path}.${key}` : key
-      finalQueryMode = filterDataGlobal[fullPath]?.queryMode
+      finalQueryMode = filtersData[fullPath]?.queryMode
     }
   }
   const newKey = finalQueryMode ? `${key}:${finalQueryMode}` : key
 
   return [newKey, newValue]
-}
-
-/**
- * Cleans an entire query object into a form that is supported by the GUI. This
- * includes:
- * - Arrays are are transformed into Sets
- * - If multiple values are supported, scalar values are stored inside sets.
- * - Numerical values with units are transformed into Quantities.
- *
- * @param {object} query Query object to transform.
- * @param {object} units The desired unit system used when reading quantities.
- *
- * @returns {any} The filter object in a format that is suitable for the GUI.
- */
-export function toGUIFilter(query, units = undefined) {
-  const newQuery = {}
-  if (query) {
-    for (const [key, value] of Object.entries(query)) {
-      const newKey = filterFullnames[key] || key
-      const valueGUI = toGUIFilterSingle(newKey, value, units)
-      newQuery[newKey] = valueGUI
-    }
-  }
-  return newQuery
-}
-
-/**
- * Cleans a single filter value into a form that is supported by the GUI. This includes:
- * - Arrays are are transformed into Sets
- * - If multiple values are supported, scalar values are stored inside sets.
- * - Numerical values with units are transformed into Quantities.
- *
- * @param {string} key Name of the filter or an operator name.
- * @param {any} value Value of the filter or operator
- * @param {object} units Unit system for unit conversion
- * @param {string} path The full path for the filter without an operator name.
- *
- * @returns {any} The filter value in a format that is suitable for the GUI.
- */
-export function toGUIFilterSingle(key, value, units = undefined, path = undefined) {
-  let newValue
-  const fullPath = path ? `${path}.${key}` : key
-  if (isPlainObject(value)) {
-    newValue = {}
-    for (const [keyInner, valueInner] of Object.entries(value)) {
-      const valueConverted = toGUIFilterSingle(keyInner, valueInner, units, fullPath)
-      if (!isNil(valueConverted)) {
-        newValue[keyInner] = valueConverted
-      }
-    }
-  } else {
-    // If the key is an operator, the filter name is read from the path.
-    const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
-    const filterPath = opKeys.has(key) ? path : fullPath
-    const multiple = filterDataGlobal[filterPath].multiple
-    const deserializer = filterDataGlobal[filterPath].deserializer
-    if (isArray(value) || isSet(value)) {
-      newValue = new Set(value.map((v) => deserializer(v, units)))
-    } else {
-      newValue = deserializer(value, units)
-      if (multiple) {
-        newValue = new Set([newValue])
-      }
-    }
-  }
-  return newValue
 }
 
 /**
@@ -1810,15 +1866,16 @@ export function toGUIFilterSingle(key, value, units = undefined, path = undefine
  * @param {object} updatedFilters Set of filters that were updated together with
  * this call.
  * @param {string} resource The resource we are looking at: entries or materials.
+ * @param {object} filtersData All of the filters that are available
  *
  * @returns {object} Aggregation query that is usable by the API.
  */
-function toAPIAgg(aggs, resource) {
+function convertAggGUIToAPI(aggs, resource, filtersData) {
   const apiAggs = {}
   for (const [key, agg] of Object.entries(aggs)) {
     const filterName = key.split(':')[0]
     if (agg.update) {
-      const exclusive = filterDataGlobal[filterName].exclusive
+      const exclusive = filtersData[filterName].exclusive
       const type = agg.type
       const apiAgg = apiAggs[key] || {}
       const aggSet = agg.set
@@ -1828,7 +1885,7 @@ function toAPIAgg(aggs, resource) {
       // The targeted quantity is decided based on the resource as materials
       // search need to target slightly different fields.
       const finalQuantity = resource === 'materials'
-        ? materialNames[quantity]
+        ? getFilterMaterialPath(quantity)
         : quantity
 
       apiAgg[type] = {
@@ -1851,11 +1908,11 @@ function toAPIAgg(aggs, resource) {
  * @param {object} aggs The aggregation data as returned by the API.
  * @param {array} aggsToUpdate The set of targeted filters. Needed because the keys
  * in the aggs dictionary may be different due to custom aggregation set/get.
- * @param {string} resource The resource we are looking at: entries or materials.
+ * @param {object} filtersData All of the filters that are available
  *
  * @returns {object} Aggregation result that is usable by the GUI.
  */
-function toGUIAgg(aggs, aggsToUpdate, resource) {
+function convertAggAPIToGUI(aggs, aggsToUpdate, filtersData) {
   if (isEmpty(aggs)) {
     return {}
   }
@@ -1867,7 +1924,7 @@ function toGUIAgg(aggs, aggsToUpdate, resource) {
     const aggConfig = aggs[key]
     if (!isNil(aggConfig)) {
       for (const [type, agg] of Object.entries(aggConfig)) {
-        const aggGet = filterDataGlobal[filter_name]?.aggs?.[type]?.get
+        const aggGet = filtersData[filter_name]?.aggs?.[type]?.get
         const aggFinal = aggGet ? aggGet(agg) : agg
         // Add flag for if all terms have been returned, and the total number of
         // items. TODO: Could this total be given by the API directly?
@@ -1890,10 +1947,11 @@ function toGUIAgg(aggs, aggsToUpdate, resource) {
  * @param {object} aggs The current aggregation configuration.
  * @param {object} oldAggs Reduced aggregation config from latest finished query.
  * @param {bool} queryChanged Whether the query has changed.
+ * @param {object} filtersData All of the filters that are available
  *
  * @returns {object} Reduced aggregation config.
  */
-function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters) {
+function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters, filtersData) {
   // Loop through the different aggregations for each quantity and see if any
   // of them need to be updated.
   const reducedAggs = {}
@@ -1932,7 +1990,7 @@ function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters) {
     // If the filter is exclusive, and ONLY it has been modified in this
     // query, we do not update it's aggregation.
     const exclude = isNil(agg.exclude_from_search)
-      ? filterDataGlobal[filter_name].exclusive
+      ? filtersData[filter_name].exclusive
       : agg.exclude_from_search
     if (exclude && updatedFilters.has(filter_name) && updatedFilters.size === 1) {
       update = false
@@ -1956,6 +2014,7 @@ function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters) {
  * @param {*} filterLocked The current locked filter value in the search context
  * @param {*} initialValue Initial value that overrides any default specified in
  *   the FilterRegistry
+ *
  * @returns The final value for the filter.
  */
 export function getValue(def, filter, filterLocked, initialValue) {
@@ -1965,13 +2024,63 @@ export function getValue(def, filter, filterLocked, initialValue) {
 }
 
 /**
- * Returns the final value that should be shown for the given filter.
- *
- * @param {Set} dtypes The targeted data types
- * @param {string[]} filters The available list of filters
- * @returns Array of filter names
+ * Used to turn empty containers into undefined which is used to indicate that a
+ * search filter has not been specified.
  */
-export function getFilterSuggestions(dtypes, repeats, filterData) {
-  return Object.keys(filterData)
-    .filter((d) => dtypes.has(filterData[d]?.dtype) && filterData[d]?.repeats === repeats)
+function clearEmpty(value) {
+  function isEmpty(value) {
+    if (isPlainObject(value)) {
+      return Object.values(value).every(isEmpty)
+    } else if ((isSet(value) || isArray(value)) && size(value) === 0) {
+      return true
+    }
+    return false
+  }
+  return isEmpty(value) ? undefined : value
+}
+
+/**
+ * Returns a mapping from full filter names to their abbreviations
+ * and vice-versa.
+*/
+function getAbbreviations(filterNames) {
+  const abbreviations = {}
+  const filterAbbreviations = {}
+  const filterFullnames = {}
+  const nameAbbreviationPairs = filterNames.map(
+    fullname => [fullname, fullname.split('.').pop()])
+  for (const [fullname, abbreviation] of nameAbbreviationPairs) {
+    const old = abbreviations[abbreviation]
+    if (old === undefined) {
+      abbreviations[abbreviation] = 1
+    } else {
+      abbreviations[abbreviation] += 1
+    }
+    filterAbbreviations[fullname] = fullname
+    filterFullnames[fullname] = fullname
+  }
+  for (const [fullname, abbreviation] of nameAbbreviationPairs) {
+    if (abbreviations[abbreviation] === 1) {
+      filterAbbreviations[fullname] = abbreviation
+      filterFullnames[abbreviation] = fullname
+    }
+  }
+  return {filterAbbreviations, filterFullnames}
+}
+
+/**
+ * Function that is used to automatically convert paths that target the correct
+ * property in the materials index.
+ * @param {string} path Path in the entry index
+ * @returns The correct path in the materials index
+ */
+function getFilterMaterialPath(path) {
+  const prefix = 'results.material.'
+  let materialPath
+  if (path.startsWith(prefix)) {
+    materialPath = path.substring(prefix.length)
+  } else {
+    materialPath = `entries.${path}`
+  }
+  return materialPath
 }
