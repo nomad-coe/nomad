@@ -32,16 +32,17 @@ from nomad.processing.data import get_rfc3161_token, Entry
     pytest.param('http://zeitstempel.dfn.de', None, True, id='zeitstempel.dfn.de'),
     pytest.param('http://timestamp.sectigo.com', None, True, id='timestamp.sectigo.com'),
     pytest.param('https://freetsa.org/tsr', 'https://freetsa.org/files/tsa.crt', True, id='freetsa.org/tsr'),
-    pytest.param(
-        'http://timestamp.digicert.com/',
-        'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',
-        True,
-        id='timestamp.digicert.com-correct-cert'),
-    pytest.param(
-        'http://timestamp.digicert.com/',
-        'https://freetsa.org/files/tsa.crt',
-        False,
-        id='timestamp.digicert.com-wrong-cert'),
+    # The digicert server cannot be reached: the affected tests are skipped temporarily
+    # pytest.param(
+    #     'http://timestamp.digicert.com/',
+    #     'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',
+    #     True,
+    #     id='timestamp.digicert.com-correct-cert'),
+    # pytest.param(
+    #     'http://timestamp.digicert.com/',
+    #     'https://freetsa.org/files/tsa.crt',
+    #     False,
+    #     id='timestamp.digicert.com-wrong-cert'),
 ])
 def test_rfc3161ng_timestamp(server, cert, result, monkeysession):
     # this is due to requests being used by rfc3161ng
