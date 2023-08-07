@@ -38,9 +38,9 @@ import { useSearchContext } from './SearchContext'
  */
 const SearchResults = React.memo(function SearchResults(props) {
   const {noAction, onSelectedChanged, defaultUncollapsedEntryID, 'data-testid': testID, ...otherProps} = props
-  const {columns, resource, rows, useResults, useQuery} = useSearchContext()
+  const {columns, resource, rows, useResults, useApiQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
-  const searchQuery = useQuery()
+  const apiQuery = useApiQuery()
   const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
@@ -51,10 +51,10 @@ const SearchResults = React.memo(function SearchResults(props) {
 
   const query = useMemo(() => {
     if (selected === 'all') {
-      return searchQuery
+      return apiQuery
     }
     return {entry_id: [...selected]}
-  }, [selected, searchQuery])
+  }, [selected, apiQuery])
 
   if (isEmpty(columns)) {
     return <Alert severity="warning">

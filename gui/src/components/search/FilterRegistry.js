@@ -22,8 +22,6 @@ import elementData from '../../elementData'
 
 // Containers for filter information
 export const filterGroups = [] // Mapping from a group name -> set of filter names
-export const filterAbbreviations = [] // Mapping of filter full name -> abbreviation
-export const filterFullnames = [] // Mapping of filter abbreviation -> full name
 export const filterData = {} // Stores data for each registered filter
 
 // Ids for the filter menus: used to tie filter chips to a specific menu.
@@ -591,44 +589,6 @@ registerFilterOptions(
     trajectory: {label: 'Trajectory'}
   }
 )
-
-// The filter abbreviation mapping has to be done only after all filters have
-// been registered.
-const abbreviations = {}
-const nameAbbreviationPairs = [...Object.keys(filterData)].map(
-  fullname => [fullname, fullname.split('.').pop()])
-for (const [fullname, abbreviation] of nameAbbreviationPairs) {
-  const old = abbreviations[abbreviation]
-  if (old === undefined) {
-    abbreviations[abbreviation] = 1
-  } else {
-    abbreviations[abbreviation] += 1
-  }
-  filterAbbreviations[fullname] = fullname
-  filterFullnames[fullname] = fullname
-}
-for (const [fullname, abbreviation] of nameAbbreviationPairs) {
-  if (abbreviations[abbreviation] === 1) {
-    filterAbbreviations[fullname] = abbreviation
-    filterFullnames[abbreviation] = fullname
-  }
-}
-
-// Material and entry queries target slightly different fields. Here we prebuild
-// the mapping.
-export const materialNames = {} // Mapping of field name from entry -> material
-export const entryNames = {} // Mapping of field name from material -> entry
-for (const name of Object.keys(searchQuantities)) {
-  const prefix = 'results.material.'
-  let materialName
-  if (name.startsWith(prefix)) {
-    materialName = name.substring(prefix.length)
-  } else {
-    materialName = `entries.${name}`
-  }
-  materialNames[name] = materialName
-  entryNames[materialName] = name
-}
 
 /**
  * Creates static suggestion for all metainfo quantities that have an enum

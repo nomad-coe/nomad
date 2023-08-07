@@ -22,7 +22,6 @@ import clsx from 'clsx'
 import { isNil, isPlainObject, isEmpty } from 'lodash'
 import { FilterChip, FilterChipGroup, FilterAnd, FilterOr } from './FilterChip'
 import { useSearchContext } from './SearchContext'
-import { filterAbbreviations } from './FilterRegistry'
 import { useUnits } from '../../units'
 import { DType } from '../../utils'
 
@@ -60,7 +59,7 @@ const FilterSummary = React.memo(({
   className,
   classes
 }) => {
-  const { filterData, useFiltersState } = useSearchContext()
+  const { filterData, filterAbbreviations, useFiltersState } = useSearchContext()
   const [filters, setFilter] = useFiltersState(quantities)
   // TODO: locked filters are currently not shown to keep the layout tidier
   const filtersLocked = {} // useFiltersLockedState(quantities)
