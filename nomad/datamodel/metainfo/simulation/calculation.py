@@ -233,6 +233,7 @@ class EnergyEntry(Atomic):
         code-independent value of the energy.
         ''')
 
+    # TODO Can we remove reference to unit cell in this description to make more general?
     value = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -281,6 +282,22 @@ class EnergyEntry(Atomic):
         unit='joule',
         description='''
         Value of the correction to the energy.
+        ''')
+
+    short_range = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the short range contributions to the energy.
+        ''')
+
+    long_range = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the long range contributions to the energy.
         ''')
 
 
@@ -389,6 +406,7 @@ class Energy(MSection):
         Contains the value and information regarding the Madelung energy.
         ''')
 
+    # TODO I suggest ewald is moved to "long range" under electrostatic->energyentry, unless there is some other usage I am misunderstanding
     ewald = SubSection(
         sub_section=EnergyEntry.m_def,
         description='''
@@ -458,6 +476,7 @@ class Energy(MSection):
         Value of the calculated enthalpy per cell i.e. energy_total + pressure * volume.
         ''')
 
+    # TODO Shouldn't this be moved out of energy?
     entropy = Quantity(
         type=np.dtype(np.float64),
         shape=[],
@@ -551,6 +570,12 @@ class Energy(MSection):
         sub_section=EnergyEntry.m_def,
         description='''
         Contains the value and information regarding the potential energy.
+        ''')
+
+    pressure_volume_work = SubSection(
+        sub_section=EnergyEntry.m_def,
+        description='''
+        Contains the value and information regarding the instantaneous pV work.
         ''')
 
 
@@ -1898,6 +1923,32 @@ class BaseCalculation(ArchiveSection):
         unit='pascal',
         description='''
         Value of the pressure of the system.
+        ''')
+
+    pressure_tensor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit='pascal',
+        description='''
+        Value of the pressure in terms of the x, y, z components of the simulation cell.
+        Typically calculated as the difference between the kinetic energy and the virial.
+        ''')
+
+    virial_tensor = Quantity(
+        type=np.dtype(np.float64),
+        shape=[3, 3],
+        unit='joule',
+        description='''
+        Value of the virial in terms of the x, y, z components of the simulation cell.
+        Typically calculated as the cross product between positions and forces.
+        ''')
+
+    enthalpy = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='joule',
+        description='''
+        Value of the calculated enthalpy per cell i.e. energy_total + pressure * volume.
         ''')
 
     temperature = Quantity(

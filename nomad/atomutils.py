@@ -1627,8 +1627,8 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
 
     n_frames = universe.trajectory.n_frames
     if n_frames < 50:
-        warnings.warn('Less than 50 frames in trajectory, not calculating molecular'
-                      ' mean squared displacements.', UserWarning)
+        warnings.warn('At least 50 frames required to calculate molecular'
+                      ' mean squared displacements, skipping.', UserWarning)
         return
 
     dt = getattr(universe.trajectory, 'dt')
