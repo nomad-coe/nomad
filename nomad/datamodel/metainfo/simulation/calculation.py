@@ -1917,6 +1917,14 @@ class BaseCalculation(ArchiveSection):
         Value of the volume of the system.
         ''')
 
+    density = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='kg m ** -3',
+        description='''
+        Value of the density of the system.
+        ''')
+
     pressure = Quantity(
         type=np.dtype(np.float64),
         shape=[],

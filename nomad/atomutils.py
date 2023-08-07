@@ -1655,12 +1655,10 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
                 selection = f'index {selection}'
                 ags_moltype_rnd = universe.select_atoms(selection)
                 bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
-                warnings.warn('The number of molecules of type ' + moltype + ' exceeds the maximum of '
-                               + str(max_mols) + ' for calculating the msd.'
-                               ' A random selection of the maximum number of molecules will be made from this group.')
+                warnings.warn('Maximum number of molecules for calculating the msd has been reached.'
+                              ' Will make a random selection for calculation.')
             except Exception:
-                warnings.warn('Tried to select random molecules for large group ' + moltype
-                               + ' when calculating msd, but something went wrong. Skipping this molecule type.')
+                warnings.warn('Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type.')
                 del_list.append(i_moltype)
 
     moltypes = np.delete(moltypes, del_list)
