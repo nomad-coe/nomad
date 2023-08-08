@@ -1926,7 +1926,7 @@ class BaseCalculation(ArchiveSection):
         ''')
 
     pressure = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[],
         unit='pascal',
         description='''
@@ -1934,7 +1934,7 @@ class BaseCalculation(ArchiveSection):
         ''')
 
     pressure_tensor = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=[3, 3],
         unit='pascal',
         description='''

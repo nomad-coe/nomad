@@ -40,7 +40,7 @@ dependencies = [
     'scipy>=1.7.1',
     'panedr>=0.2',
     'parmed>=3.0.0',
-    'mdanalysis==2.1.0',
+    'mdanalysis==2.5.0',
     'xarray>=0.20.2',
     'phonopy~=2.11.0',
     'pymatgen~=2023.2.28',
