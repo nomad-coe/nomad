@@ -1705,7 +1705,6 @@ class MolecularDynamicsResults(ThermodynamicsResults):
             system_topology = sec_system.atoms_group
             rg_results = calc_molecular_radius_of_gyration(universe, system_topology)
             for rg in rg_results:
-
                 n_frames = rg.get('n_frames')
                 if len(sec_systems) != n_frames:
                     self.logger.warning(
@@ -1721,7 +1720,7 @@ class MolecularDynamicsResults(ThermodynamicsResults):
                     if not calc.system_ref:
                         continue
                     sys_ind = calc.system_ref.m_parent_index
-                    sec_rgs_calc = calc.get('radius_of_gyration')
+                    sec_rgs_calc = calc.radius_of_gyration
                     if not sec_rgs_calc:
                         sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
                         sec_rgs_calc.kind = rg.get('type')

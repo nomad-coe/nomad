@@ -987,10 +987,11 @@ class Formula():
         return ''.join(symb + (str(n) if n > 1 else '') for symb, n in dct.items())
 
 
-def create_empty_universe(n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
-                          atom_resindex: NDArray[Int] = None, residue_segindex: NDArray[Int] = None,
-                          flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False,
-                          timestep: float = None):
+def create_empty_universe(
+        n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
+        atom_resindex: NDArray[Int] = None, residue_segindex: NDArray[Int] = None,
+        flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False,
+        timestep: float = None):
     '''Create a blank Universe
 
     This function was adapted from the function empty() within the MDA class Universe().
@@ -1275,8 +1276,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     if system_times:
         try:
             method = archive.workflow2.method
-            coordinate_save_frequency = archive.workflow2.method.coordinate_save_frequency
-            system_timestep = method.integration_timestep * coordinate_save_frequency
+            system_timestep = method.integration_timestep * method.coordinate_save_frequency
         except Exception:
             logging.warning('Cannot find the system times. MDA universe will contain non-physical times and timestep.')
     else:
@@ -1284,7 +1284,9 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         if all([approx(time_steps[0], time_step) for time_step in time_steps]):
             system_timestep = ureg.convert(time_steps[0].magnitude, ureg.second, ureg.picosecond)
         else:
-            logging.warning('System times are not equally spaced. Cannot set system times in MDA universe. MDA universe will contain non-physical times and timestep.')
+            logging.warning(
+                'System times are not equally spaced. Cannot set system times in MDA universe.'
+                ' MDA universe will contain non-physical times and timestep.')
 
     # create the Universe
     metainfo_universe = create_empty_universe(
@@ -1621,8 +1623,9 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
 
     dt = getattr(universe.trajectory, 'dt')
     if dt is None:
-        warnings.warn('Universe is missing time step, cannot calculate molecular'
-                      ' mean squared displacements, skipping.', UserWarning)
+        warnings.warn(
+            'Universe is missing time step, cannot calculate molecular'
+            ' mean squared displacements, skipping.', UserWarning)
         return
     times = np.arange(n_frames) * dt
 
@@ -1635,8 +1638,9 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     for i_moltype, moltype in enumerate(moltypes):
         if bead_groups[moltype]._nbeads > max_mols:
             if max_mols > 50000:
-                warnings.warn('Calculating mean squared displacements for more than 50k molecules.'
-                              ' Expect long processing times!', UserWarning)
+                warnings.warn(
+                    'Calculating mean squared displacements for more than 50k molecules.'
+                    ' Expect long processing times!', UserWarning)
             try:
                 # select max_mols nr. of rnd molecules from this moltype
                 moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
