@@ -51,6 +51,7 @@ import MDAnalysis.analysis.rdf as MDA_RDF
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 from nomad.units import ureg
+# from nomad.parsing.file_parser import Quantity
 
 
 valid_elements = set(ase.data.chemical_symbols[1:])
@@ -1265,23 +1266,21 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
             bonds.append(tuple(contribution.atom_indices))
 
     # get the system times
-    system_timestep = None
+    system_timestep = 1.0
 
     def approx(a, b, rel_tol=1e-09, abs_tol=0.0):
-        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+        return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
     system_times = [calc.time for calc in sec_calculation if calc.system_ref]
-    if system_times is []:
+    if system_times:
         try:
-            integration_timestep = archive.workflow2.method.integration_timestep
+            method = archive.workflow2.method
             coordinate_save_frequency = archive.workflow2.method.coordinate_save_frequency
-            system_timestep = integration_timestep * coordinate_save_frequency
+            system_timestep = method.integration_timestep * coordinate_save_frequency
         except Exception:
             logging.warning('Cannot find the system times. MDA universe will contain non-physical times and timestep.')
     else:
-        time_steps = []
-        for i_time in range(1, len(system_times)):
-            time_steps.append(system_times[i_time] - system_times[i_time - 1])
+        time_steps = [system_times[i_time] - system_times[i_time - 1] for i_time in range(1, len(system_times))]
         if all([approx(time_steps[0], time_step) for time_step in time_steps]):
             system_timestep = ureg.convert(time_steps[0].magnitude, ureg.second, ureg.picosecond)
         else:
@@ -1451,7 +1450,7 @@ def shifted_correlation_average(function: Callable, times: NDArray, positions: N
     return correlation_times, result
 
 
-def __calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
+def _calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
     '''
     Determines the diffusion constant from a fit of the mean squared displacement
     vs. time according to the Einstein relation.
@@ -1462,7 +1461,7 @@ def __calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
     return slope * 1 / (2 * dim), error
 
 
-def __get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None):
+def _get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None):
 
     if moltypes is None:
         atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
@@ -1483,14 +1482,10 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
 
     interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
     max_mols: the maximum number of molecules per bead group for calculating the rdf, for efficiency purposes.
-    5k was set after > 50k was giving problems. Should do further testing to see where the appropriate limit should be set.
     '''
 
-    if universe is None:
-        return
-    trajectory = universe.trajectory[0] if universe.trajectory else None
-    dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
-    if dimensions is None:
+    # TODO 5k default for max_mols was set after > 50k was giving problems. Should do further testing to see where the appropriate limit should be set.
+    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1513,14 +1508,11 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
         if not interval_indices:
             interval_indices = [[i] for i in range(n_traj_split)]
 
-    bead_groups = __get_molecular_bead_groups(universe)
-    if bead_groups is {}:
+    bead_groups = _get_molecular_bead_groups(universe)
+    if not bead_groups:
         return bead_groups
     moltypes = [moltype for moltype in bead_groups.keys()]
-    del_list = []
-    for i_moltype, moltype in enumerate(moltypes):
-        if bead_groups[moltype]._nbeads > max_mols:
-            del_list.append(i_moltype)
+    del_list = [i_moltype for i_moltype, moltype in enumerate(moltypes) if bead_groups[moltype]._nbeads > max_mols]
     moltypes = np.delete(moltypes, del_list).tolist()
 
     min_box_dimension = np.min(universe.trajectory[0].dimensions[:3])
@@ -1608,7 +1600,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     molecule type.
 
     max_mols: the maximum number of molecules per bead group for calculating the msd, for efficiency purposes.
-    1M is arbitrary, 50k was tested and is very fast and does not seem to have any memory issues.
+    50k was tested and is very fast and does not seem to have any memory issues.
     '''
 
     def mean_squared_displacement(start: NDArray, current: NDArray):
@@ -1618,11 +1610,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
         vec = start - current
         return (vec ** 2).sum(axis=1).mean()
 
-    if universe is None:
-        return
-    trajectory = universe.trajectory[0] if universe.trajectory else None
-    dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
-    if dimensions is None:
+    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
 
     n_frames = universe.trajectory.n_frames
@@ -1633,10 +1621,12 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
 
     dt = getattr(universe.trajectory, 'dt')
     if dt is None:
+        warnings.warn('Universe is missing time step, cannot calculate molecular'
+                      ' mean squared displacements, skipping.', UserWarning)
         return
     times = np.arange(n_frames) * dt
 
-    bead_groups = __get_molecular_bead_groups(universe)
+    bead_groups = _get_molecular_bead_groups(universe)
     if bead_groups is {}:
         return bead_groups
 
@@ -1644,6 +1634,9 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     del_list = []
     for i_moltype, moltype in enumerate(moltypes):
         if bead_groups[moltype]._nbeads > max_mols:
+            if max_mols > 50000:
+                warnings.warn('Calculating mean squared displacements for more than 50k molecules.'
+                              ' Expect long processing times!', UserWarning)
             try:
                 # select max_mols nr. of rnd molecules from this moltype
                 moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
@@ -1655,10 +1648,12 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
                 selection = f'index {selection}'
                 ags_moltype_rnd = universe.select_atoms(selection)
                 bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
-                warnings.warn('Maximum number of molecules for calculating the msd has been reached.'
-                              ' Will make a random selection for calculation.')
+                warnings.warn(
+                    'Maximum number of molecules for calculating the msd has been reached.'
+                    ' Will make a random selection for calculation.')
             except Exception:
-                warnings.warn('Tried to select random molecules for large group when calculating msd, but something went wrong. Skipping this molecule type.')
+                warnings.warn(
+                    'Error in selecting random molecules for large group when calculating msd. Skipping this molecule type.')
                 del_list.append(i_moltype)
 
     moltypes = np.delete(moltypes, del_list)
@@ -1676,7 +1671,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
         if results:
             msd_results['value'].append(results[1])
             msd_results['times'].append(results[0])
-            diffusion_constant, error = __calc_diffusion_constant(*results)
+            diffusion_constant, error = _calc_diffusion_constant(*results)
             msd_results['diffusion_constant'].append(diffusion_constant)
             msd_results['error_diffusion_constant'].append(error)
 
@@ -1744,13 +1739,8 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
     '''
 
-    if universe is None:
+    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
-    trajectory = universe.trajectory[0] if universe.trajectory else None
-    dimensions = getattr(trajectory, 'dimensions', None) if trajectory else None
-    if dimensions is None:
-        return
-
     selection = ' '.join([str(i) for i in molecule_atom_indices])
     selection = f'index {selection}'
     molecule = universe.select_atoms(selection)
@@ -1758,11 +1748,12 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     rg_results['type'] = 'molecular'
     rg_results['times'] = []
     rg_results['value'] = []
+    time_unit = hasattr(universe.trajectory.time, 'units')
     for __ in universe.trajectory:
-        rg_results['times'].append(universe.trajectory.time)
+        rg_results['times'].append(universe.trajectory.time.magnitude if time_unit else universe.trajectory.time)
         rg_results['value'].append(molecule.radius_of_gyration())
     rg_results['n_frames'] = len(rg_results['times'])
-    rg_results['times'] = np.array(rg_results['times']) * ureg.picosecond
+    rg_results['times'] = np.array(rg_results['times']) * time_unit if time_unit else np.array(rg_results['times'])
     rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
 
     return rg_results

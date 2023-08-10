@@ -1687,7 +1687,8 @@ class MolecularDynamicsResults(ThermodynamicsResults):
 
         # calculate radius of gyration for polymers
         try:
-            sec_system = archive.run[-1].system[0]
+            sec_systems = archive.run[-1].system
+            sec_system = sec_systems[0]
             sec_calc = archive.run[-1].calculation
             sec_calc = sec_calc if sec_calc is not None else []
         except Exception:
@@ -1701,29 +1702,25 @@ class MolecularDynamicsResults(ThermodynamicsResults):
 
         if not flag_rgs:
             sec_rgs_calc = None
-            system_topology = sec_system.get('atoms_group')
-            system_ref_indices = [i_calc for i_calc, calc in enumerate(sec_calc) if calc.system_ref]
+            system_topology = sec_system.atoms_group
             rg_results = calc_molecular_radius_of_gyration(universe, system_topology)
             for rg in rg_results:
 
                 n_frames = rg.get('n_frames')
-                if system_ref_indices is []:
+                if len(sec_systems) != n_frames:
                     self.logger.warning(
-                            'Cannot find system references in calculation.'
-                            'Will not store Rg values under calculation section')
-                    continue
-                elif len(system_ref_indices) != n_frames:
-                    self.logger.warning(
-                            'Mismatch in length of system references in calculation and calculated Rg values.'
-                            'Will not store Rg values under calculation section')
+                        'Mismatch in length of system references in calculation and calculated Rg values.'
+                        'Will not store Rg values under calculation section')
                     continue
 
                 sec_rgs = RadiusOfGyration()
                 sec_rgs._rg_results = rg
                 self.radius_of_gyration.append(sec_rgs)
 
-                for i_sys, i_calc in enumerate(system_ref_indices):
-                    calc = sec_calc[i_calc]
+                for calc in sec_calc:
+                    if not calc.system_ref:
+                        continue
+                    sys_ind = calc.system_ref.m_parent_index
                     sec_rgs_calc = calc.get('radius_of_gyration')
                     if not sec_rgs_calc:
                         sec_rgs_calc = calc.m_create(RadiusOfGyrationCalculation)
@@ -1733,7 +1730,7 @@ class MolecularDynamicsResults(ThermodynamicsResults):
                     sec_rg_values = sec_rgs_calc.m_create(RadiusOfGyrationValuesCalculation)
                     sec_rg_values.atomsgroup_ref = rg.get('atomsgroup_ref')
                     sec_rg_values.label = rg.get('label')
-                    sec_rg_values.value = rg.get('value')[i_sys]
+                    sec_rg_values.value = rg.get('value')[sys_ind]
 
 
 class MolecularDynamics(SerialSimulation):

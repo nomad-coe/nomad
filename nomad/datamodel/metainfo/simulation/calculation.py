@@ -1920,7 +1920,7 @@ class BaseCalculation(ArchiveSection):
     density = Quantity(
         type=np.dtype(np.float64),
         shape=[],
-        unit='kg m ** -3',
+        unit='kg / m ** 3',
         description='''
         Value of the density of the system.
         ''')
