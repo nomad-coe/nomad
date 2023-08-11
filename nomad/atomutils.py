@@ -1660,7 +1660,8 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
                     'Error in selecting random molecules for large group when calculating msd. Skipping this molecule type.')
                 del_list.append(i_moltype)
 
-    moltypes = np.delete(moltypes, del_list)
+    for index in sorted(del_list, reverse=True):
+        del moltypes[index]
 
     msd_results: Dict[str, Any] = {}
     msd_results['type'] = 'molecular'
