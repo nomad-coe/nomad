@@ -21,7 +21,7 @@ from typing import Optional
 
 import numpy as np
 
-from nexusutils.nexus import nexus as read_nexus  # pylint: disable=import-error
+from pynxtools.nexus import nexus as read_nexus  # pylint: disable=import-error
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, nexus
 from nomad.metainfo.util import MQuantity, MSubSectionList, resolve_variadic_name

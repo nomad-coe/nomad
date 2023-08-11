@@ -119,6 +119,10 @@ const useBrowserStyles = makeStyles(theme => ({
     height: '100%',
     overflowY: 'hidden',
     width: 'fit-content'
+  },
+  sideLane: {
+    display: 'flex',
+    height: '100%'
   }
 }))
 export const Browser = React.memo(function Browser({adaptor, form}) {
@@ -191,7 +195,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         lane = {
           index: index,
           key: segment,
-          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment?.replace(':', '/'))) : rootPath,
+          path: prev ? prev.path + '/' + encodeURI(escapeBadPathChars(segment)) : rootPath,
           next: null,
           prev: prev,
           initialized: false
@@ -313,8 +317,9 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         </Card>
         </Grid>
         {hdf5Path && hdf5Filename && adaptor?.obj?.metadata?.upload_id && <Grid item md={4} style={{visibility: (hdf5Path == null ? "hidden" : "visible")}}>
-          <Card>
-            <H5Web upload_id={adaptor?.obj?.metadata?.upload_id} filename={hdf5Filename} initialPath={(hdf5Path)} explorerOpen={false}/>
+          <Card className={classes.sideLane}>
+            {/* We use the key prop in the H5Web component here to force re-render on path changes while browsing with the browser. The prop, initialPath, does not re-render the component. */}
+            <H5Web key={hdf5Path} upload_id={adaptor?.obj?.metadata?.upload_id} filename={hdf5Filename} initialPath={hdf5Path} explorerOpen={false}/>
           </Card>
         </Grid>}
       </Grid>

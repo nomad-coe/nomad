@@ -1,0 +1,38 @@
+._root_sdd7a_1 {
+    --primary: #a2b3f7;
+    --primary-light: #a2b3f7;
+    --primary-lighter: #ffffff;
+    --primary-dark: #2A4CDF;
+    --primary-bg: #ffffff;
+    --primary-light-bg: #ffffff;
+    --primary-dark-bg: #dde2d7;
+    --secondary: #2A4CDF;
+    --secondary-light: #eaedfc;
+    --secondary-lighter: #a2b3f7;
+    --secondary-dark: #2A4CDF;
+    --secondary-dark-15: #1b998b26;
+    --secondary-darker: #0e5846;
+    --secondary-bg: #ffffff;
+    --secondary-light-bg: #ffffff;
+    --monospace: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    --sans-serif: -apple-system, BlinkMacSystemFont, "Titillium Web", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    --toolbar-height: 2.875rem;
+    --toolbarBtn-height: 2rem
+}
+
+/* Important for removing ugly scrollbars */
+.reflex-element::-webkit-scrollbar {
+    display: none;
+}
+
+._btnLike_1fvcz_11:hover {
+    background-color: #FDFEFF !important;
+    color: var(--primary-dark) !important
+}
+._btnLike_1fvcz_11 {
+    height: 1.625rem !important;
+    background-color: #FDFEFF !important;
+    border: 1px solid #bdbdbd;
+    box-shadow: #0000001a 0 0 0 1px, #0000001a 0 1px 4px;
+    color: #282828;
+}

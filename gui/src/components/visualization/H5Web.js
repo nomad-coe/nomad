@@ -7,20 +7,12 @@ import { useErrors } from '../errors'
 
 import '@h5web/lib/dist/styles.css'
 import '@h5web/app/dist/styles.css'
-import { makeStyles } from '@material-ui/core'
-
-const useH5WebStyles = makeStyles(theme => ({
-  visualizerContainer: {
-    color: theme.palette.primary.main
-  }
-}))
+import './H5Web.css'
 
 const H5Web = ({upload_id, filename, initialPath, explorerOpen}) => {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [filepath, setFilepath] = useState(false)
-
-  const styles = useH5WebStyles()
 
   useEffect(() => {
     if (filename && upload_id) {
@@ -39,16 +31,14 @@ const H5Web = ({upload_id, filename, initialPath, explorerOpen}) => {
 
   if (filepath) {
     return (
-      <div className={styles.visualizerContainer} key={initialPath}>
       <H5GroveProvider
         url={appBase + '/h5grove/'}
         filepath={filepath}
         axiosConfig={{params: {file: filepath, upload_id: upload_id}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
       >
-        <App initialPath={initialPath} explorerOpen={explorerOpen}/>
+        <App disableDarkMode initialPath={initialPath} explorerOpen={explorerOpen}/>
 
       </H5GroveProvider>
-      </div>
     )
   }
   return 'Loading...'

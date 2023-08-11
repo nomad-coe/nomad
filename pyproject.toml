@@ -65,7 +65,7 @@ parsing = [
     'quippy-ase==0.9.14'
 ]
 infrastructure = [
-    'h5grove>=1.0.0',
+    'h5grove[fastapi]==1.3.0',
     'optimade[mongo]==0.22.1',
     'structlog',
     'elasticsearch==7.17.1',

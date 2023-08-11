@@ -204,7 +204,6 @@ WORKDIR /app
 # transfer installed packages from the build stage
 COPY --chown=nomad:1000 scripts/run.sh .
 COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
-COPY --chown=nomad:1000 dependencies/nomad-remote-tools-hub/tools.json ./dependencies/nomad-remote-tools-hub/tools.json
 
 COPY --chown=nomad:1000 --from=dev_python /app/examples/data/uploads /app/examples/data/uploads
 COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages

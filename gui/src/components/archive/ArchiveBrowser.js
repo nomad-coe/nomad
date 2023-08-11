@@ -64,7 +64,7 @@ import { apiBase } from '../../config'
 import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
 import ReactJson from 'react-json-view'
-import { range } from 'lodash'
+import { range, isNaN } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { useEntryStore } from '../entry/EntryContext'
 import ArchiveSearchBar from './ArchiveSearchBar'
@@ -497,7 +497,9 @@ class SectionAdaptor extends ArchiveAdaptor {
     let urlSuffix = index ? `${name}/${index}` : name
     const property = this.def._properties[name] || (name === 'm_attributes' && this.def.attributes.find(attr => attr.name === index))
     let value = this.obj[name] === undefined || this.obj[name] === null ? property?.default : this.obj[name]
+    const text_index = index
     index = parseInt(index)
+    index = isNaN(index) ? text_index : index
     if (index < 0) index = index + value.length
     if (property.m_def === QuantityMDef && quantityUsesFullStorage(property)) {
       value = value[index]
@@ -509,7 +511,7 @@ class SectionAdaptor extends ArchiveAdaptor {
       let subSectionAdaptor
       let subSectionIndex = -1
       if (property.repeats) {
-        subSectionIndex = parseInt(index || 0)
+        subSectionIndex = index || 0
         subSectionAdaptor = await this.adaptorFactory(
           appendDataUrl(this.parsedObjUrl, `${name}/${subSectionIndex}`), value[subSectionIndex], sectionDef)
       } else {
