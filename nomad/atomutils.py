@@ -1281,7 +1281,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
             logging.warning('Cannot find the system times. MDA universe will contain non-physical times and timestep.')
     else:
         time_steps = [system_times[i_time] - system_times[i_time - 1] for i_time in range(1, len(system_times))]
-        if all([approx(time_steps[0], time_step) for time_step in time_steps]):
+        if all(approx(time_steps[0], time_step) for time_step in time_steps):
             system_timestep = ureg.convert(time_steps[0].magnitude, ureg.second, ureg.picosecond)
         else:
             logging.warning(
