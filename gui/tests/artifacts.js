@@ -9249,6 +9249,32 @@ window.nomadArtifacts = {
                 },
                 "shape": [],
                 "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "short_range",
+                "description": "Value of the short range contributions to the energy.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "name": "long_range",
+                "description": "Value of the long range contributions to the energy.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "joule"
               }
             ]
           },
@@ -9584,6 +9610,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "potential",
                 "description": "Contains the value and information regarding the potential energy.",
+                "sub_section": "/packages/2/section_definitions/4"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 26,
+                "m_parent_sub_section": "sub_sections",
+                "name": "pressure_volume_work",
+                "description": "Contains the value and information regarding the instantaneous pV work.",
                 "sub_section": "/packages/2/section_definitions/4"
               }
             ]
@@ -11866,6 +11900,19 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
+                "name": "density",
+                "description": "Value of the density of the system.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "kilogram / meter ** 3"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 13,
+                "m_parent_sub_section": "quantities",
                 "name": "pressure",
                 "description": "Value of the pressure of the system.",
                 "type": {
@@ -11877,7 +11924,52 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 13,
+                "m_parent_index": 14,
+                "m_parent_sub_section": "quantities",
+                "name": "pressure_tensor",
+                "description": "Value of the pressure in terms of the x, y, z components of the simulation cell.\nTypically calculated as the difference between the kinetic energy and the virial.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  3,
+                  3
+                ],
+                "unit": "pascal"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 15,
+                "m_parent_sub_section": "quantities",
+                "name": "virial_tensor",
+                "description": "Value of the virial in terms of the x, y, z components of the simulation cell.\nTypically calculated as the cross product between positions and forces.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  3,
+                  3
+                ],
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 16,
+                "m_parent_sub_section": "quantities",
+                "name": "enthalpy",
+                "description": "Value of the calculated enthalpy per cell i.e. energy_total + pressure * volume.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 17,
                 "m_parent_sub_section": "quantities",
                 "name": "temperature",
                 "description": "Value of the temperature of the system.",
@@ -11890,7 +11982,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 14,
+                "m_parent_index": 18,
                 "m_parent_sub_section": "quantities",
                 "name": "step",
                 "description": "The number of time steps with respect to the start of the simulation.",
@@ -11902,7 +11994,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 15,
+                "m_parent_index": 19,
                 "m_parent_sub_section": "quantities",
                 "name": "time",
                 "description": "The elapsed simulated physical time since the start of the simulation.",
