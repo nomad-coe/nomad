@@ -2763,9 +2763,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if isinstance(copy, Definition):
                 copy.more = deepcopy(self.more)
             for sub_section_def in self.m_def.all_sub_sections.values():
-                sub_sections_copy = [
-                    sub_section.m_copy(deep=True, parent=copy)
-                    for sub_section in self.m_get_sub_sections(sub_section_def)]
+                sub_sections_copy = MSubSectionList(self, sub_section_def)
+                for sub_section in self.m_get_sub_sections(sub_section_def):
+                    sub_sections_copy.append(sub_section.m_copy(deep=True, parent=copy))
 
                 if sub_section_def.repeats:
                     copy.__dict__[sub_section_def.name] = sub_sections_copy

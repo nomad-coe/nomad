@@ -9,15 +9,13 @@ alabaster==0.7.12         # via -r requirements.txt, sphinx
 alembic==1.9.1            # via -r requirements.txt, jupyterhub
 amqp==5.1.1               # via -r requirements.txt, kombu
 aniso8601==7.0.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
-anyio==3.6.2              # via -r requirements.txt, httpcore, jupyter-server, starlette, watchfiles
-appnope==0.1.3            # via -r requirements.txt, ipykernel, ipython
-argon2-cffi==21.3.0       # via -r requirements.txt, jupyter-server, nbclassic, notebook
-argon2-cffi-bindings==21.2.0  # via -r requirements.txt, argon2-cffi
+anyio==3.6.2              # via -r requirements.txt, httpcore, starlette, watchfiles
 arrow==1.2.3              # via -r requirements.txt, isoduration
 asciitree==0.3.3          # via -r requirements.txt, zarr
 ase==3.19.0               # via -r requirements.txt, asr, ifes-apt-tc-data-modeling, nomad-lab (pyproject.toml), quippy-ase
 asgiref==3.6.0            # via -r requirements.txt, nomad-lab (pyproject.toml)
 asr==0.4.1                # via -r requirements.txt, nomad-lab (pyproject.toml)
+asteval==0.9.31           # via -r requirements.txt, lmfit
 astroid==2.11.7           # via nomad-lab (pyproject.toml), pylint
 asttokens==2.1.0          # via devtools
 astunparse==1.6.3         # via -r requirements.txt, mdtraj
@@ -25,16 +23,16 @@ async-generator==1.10     # via -r requirements.txt, jupyterhub
 async-timeout==4.0.2      # via -r requirements.txt, redis
 atpublic==3.1.1           # via aiosmtpd
 attrs==22.2.0             # via -r requirements.txt, aiosmtpd, cattrs, jsonschema, pytest, requests-cache
-babel==2.11.0             # via -r requirements.txt, jupyterlab-server, sphinx
+babel==2.11.0             # via -r requirements.txt, sphinx
 backcall==0.2.0           # via -r requirements.txt, ipython
 bagit==1.8.1              # via -r requirements.txt, nomad-lab (pyproject.toml)
 basicauth==0.4.1          # via -r requirements.txt, nomad-lab (pyproject.toml)
 bcrypt==3.2.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
-beautifulsoup4==4.11.1    # via -r requirements.txt, bs4, nbconvert
+beautifulsoup4==4.11.1    # via -r requirements.txt, bs4
 billiard==3.6.4.0         # via -r requirements.txt, celery
 biopython==1.80           # via -r requirements.txt, mdanalysis
 bitarray==2.3.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
-bleach==5.0.1             # via -r requirements.txt, nbconvert, readme-renderer
+bleach==5.0.1             # via readme-renderer
 bs4==0.0.1                # via -r requirements.txt, nomad-lab (pyproject.toml)
 build==0.9.0              # via nomad-lab (pyproject.toml), pip-tools
 cachetools==4.2.4         # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -42,7 +40,7 @@ cattrs==22.2.0            # via -r requirements.txt, requests-cache
 celery[redis]==5.2.7      # via -r requirements.txt, nomad-lab (pyproject.toml)
 certifi==2022.12.7        # via -r requirements.txt, elasticsearch, httpcore, httpx, requests
 certipy==0.1.3            # via -r requirements.txt, jupyterhub
-cffi==1.15.1              # via -r requirements.txt, argon2-cffi-bindings, bcrypt, cryptography
+cffi==1.15.1              # via -r requirements.txt, bcrypt, cryptography
 cftime==1.6.2             # via -r requirements.txt, netcdf4
 charset-normalizer==2.0.12  # via -r requirements.txt, requests
 click==8.1.3              # via -r requirements.txt, asr, celery, click-didyoumean, click-plugins, click-repl, flask, mkdocs, mkdocs-click, nomad-lab (pyproject.toml), pip-tools, uvicorn
@@ -53,13 +51,14 @@ cloudpickle==2.2.0        # via -r requirements.txt, dask
 colorama==0.4.6           # via twine
 commonmark==0.9.1         # via -r requirements.txt, recommonmark
 coverage==6.5.0           # via pytest-cov
-cryptography==39.0.0      # via -r requirements.txt, nomad-lab (pyproject.toml), pyjwt, pyopenssl, rfc3161ng
+cryptography==39.0.0      # via -r requirements.txt, nomad-lab (pyproject.toml), pyjwt, pyopenssl, rfc3161ng, secretstorage
 cycler==0.11.0            # via -r requirements.txt, matplotlib
-dask[array]==2022.2.0     # via -r requirements.txt, hyperspy
+dask[array]==2022.2.0     # via -r requirements.txt, hyperspy, kikuchipy, orix, pyxem
 debugpy==1.6.5            # via -r requirements.txt, ipykernel
 decorator==5.1.1          # via -r requirements.txt, ipyparallel, ipython, validators
-defusedxml==0.7.1         # via -r requirements.txt, nbconvert
 devtools==0.8.0           # via nomad-lab (pyproject.toml)
+diffpy-structure==3.1.0   # via -r requirements.txt, diffsims, kikuchipy, orix
+diffsims==0.5.2           # via -r requirements.txt, kikuchipy, pyxem
 dill==0.3.6               # via -r requirements.txt, hyperspy, pylint
 dnspython==2.2.1          # via -r requirements.txt, email-validator
 docker==6.0.1             # via -r requirements.txt, dockerspawner
@@ -79,12 +78,12 @@ exceptiongroup==1.1.1     # via -r requirements.txt, cattrs
 execnet==1.9.0            # via pytest-xdist
 executing==0.10.0         # via devtools
 f90wrap==0.2.13           # via -r requirements.txt, quippy-ase
-fastapi==0.92.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
+fabio==2023.6.0           # via -r requirements.txt, pyfai, silx
+fastapi==0.92.0           # via -r requirements.txt, h5grove, nomad-lab (pyproject.toml)
 fasteners==0.18           # via -r requirements.txt, mdanalysis, zarr
-fastjsonschema==2.16.2    # via -r requirements.txt, nbformat
 filelock==3.3.1           # via -r requirements.txt, nomad-lab (pyproject.toml)
 flask==2.2.2              # via -r requirements.txt, asr
-flatdict==4.0.1           # via -r requirements.txt, nexusutils (dependencies/parsers/nexus/pyproject.toml)
+flatdict==4.0.1           # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
 fonttools==4.38.0         # via -r requirements.txt, matplotlib
 fqdn==1.5.1               # via -r requirements.txt, jsonschema
 fsspec==2022.11.0         # via -r requirements.txt, dask, hyperspy
@@ -96,66 +95,65 @@ greenlet==2.0.1           # via -r requirements.txt, sqlalchemy
 griddataformats==0.7.0    # via -r requirements.txt, mdanalysis
 gsd==2.7.0                # via -r requirements.txt, mdanalysis
 h11==0.14.0               # via -r requirements.txt, httpcore, uvicorn
-h5grove==1.2.0            # via -r requirements.txt, jupyterlab-h5web, nomad-lab (pyproject.toml)
-h5py==3.6.0               # via -r requirements.txt, h5grove, hyperspy, ifes-apt-tc-data-modeling, jupyterlab-h5web, nomad-lab (pyproject.toml), phonopy, pyscf
+h5grove[fastapi]==1.3.0   # via -r requirements.txt, nomad-lab (pyproject.toml)
+h5py==3.6.0               # via -r requirements.txt, h5grove, hyperspy, ifes-apt-tc-data-modeling, kikuchipy, nionswift, nomad-lab (pyproject.toml), orix, phonopy, pyfai, silx
 hjson==3.0.2              # via -r requirements.txt, nomad-lab (pyproject.toml)
 html5lib==1.1             # via -r requirements.txt, nomad-lab (pyproject.toml)
 httpcore==0.16.3          # via -r requirements.txt, httpx
 httptools==0.5.0          # via -r requirements.txt, uvicorn
 httpx==0.23.3             # via -r requirements.txt, nomad-lab (pyproject.toml)
-hyperspy==1.7.3           # via -r requirements.txt, nexusutils (dependencies/parsers/nexus/pyproject.toml)
+hyperspy==1.7.5           # via -r requirements.txt, kikuchipy, pynxtools (dependencies/parsers/nexus/pyproject.toml), pyxem
 idna==3.4                 # via -r requirements.txt, anyio, email-validator, jsonschema, requests, rfc3986
-ifes-apt-tc-data-modeling==0.0.6  # via -r requirements.txt, nexusutils (dependencies/parsers/nexus/pyproject.toml)
-imageio==2.24.0           # via -r requirements.txt, hyperspy, scikit-image
+ifes-apt-tc-data-modeling==0.0.9  # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
+imageio==2.24.0           # via -r requirements.txt, hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
 imagesize==1.4.1          # via -r requirements.txt, sphinx
-importlib-metadata==4.13.0  # via -r requirements.txt, flask, hyperspy, jupyterlab-server, keyring, markdown, mkdocs, nbconvert, nomad-lab (pyproject.toml), sphinx, twine
+importlib-metadata==4.13.0  # via -r requirements.txt, flask, hyperspy, keyring, markdown, mkdocs, nomad-lab (pyproject.toml), sphinx, twine
 inflection==0.5.1         # via -r requirements.txt, nomad-lab (pyproject.toml)
-ipykernel==6.16.2         # via -r requirements.txt, ipyparallel, nbclassic, notebook
+ipykernel==6.16.2         # via -r requirements.txt, ipyparallel, ipywidgets
 ipyparallel==8.4.1        # via -r requirements.txt, hyperspy
-ipython==7.34.0           # via -r requirements.txt, hyperspy, ipykernel, ipyparallel, jupyterlab
-ipython-genutils==0.2.0   # via -r requirements.txt, nbclassic, notebook
+ipython==7.34.0           # via -r requirements.txt, hyperspy, ipykernel, ipyparallel, ipywidgets
+ipywidgets==8.0.7         # via -r requirements.txt, pyxem
 isodate==0.6.1            # via -r requirements.txt, rdflib
 isoduration==20.11.0      # via -r requirements.txt, jsonschema
 isort==4.3.21             # via pylint
 itsdangerous==2.1.2       # via -r requirements.txt, flask, nomad-lab (pyproject.toml)
 jaraco-classes==3.2.3     # via keyring
 jedi==0.18.2              # via -r requirements.txt, ipython
-jinja2==3.0.3             # via -r requirements.txt, flask, hyperspy, jupyter-server, jupyterhub, jupyterlab, jupyterlab-server, mkdocs, mkdocs-macros-plugin, mkdocs-material, nbclassic, nbconvert, notebook, sphinx
+jeepney==0.8.0            # via keyring, secretstorage
+jinja2==3.0.3             # via -r requirements.txt, flask, hyperspy, jupyterhub, mkdocs, mkdocs-macros-plugin, mkdocs-material, sphinx
 jmespath==0.10.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 joblib==1.1.0             # via -r requirements.txt, mdanalysis, nomad-lab (pyproject.toml), scikit-learn
-json5==0.9.11             # via -r requirements.txt, jupyterlab-server
 jsonpointer==2.3          # via -r requirements.txt, jsonschema
-jsonschema[format]==4.17.3  # via -r requirements.txt, jupyter-telemetry, jupyterlab-server, nbformat, nomad-lab (pyproject.toml), oauthenticator
-jupyter-client==7.4.8     # via -r requirements.txt, ipykernel, ipyparallel, jupyter-server, nbclassic, nbclient, notebook
-jupyter-core==4.12.0      # via -r requirements.txt, jupyter-client, jupyter-server, jupyterlab, nbclassic, nbclient, nbconvert, nbformat, notebook
-jupyter-server==1.23.4    # via -r requirements.txt, jupyterlab, jupyterlab-h5web, jupyterlab-server, nbclassic, notebook-shim
+jsonschema[format]==4.17.3  # via -r requirements.txt, jupyter-telemetry, nomad-lab (pyproject.toml), oauthenticator
+jupyter-client==7.4.8     # via -r requirements.txt, ipykernel, ipyparallel
+jupyter-core==4.12.0      # via -r requirements.txt, jupyter-client
 jupyter-telemetry==0.1.0  # via -r requirements.txt, jupyterhub
 jupyterhub==1.4.2         # via -r requirements.txt, dockerspawner, nomad-lab (pyproject.toml), oauthenticator
-jupyterlab==3.5.3         # via -r requirements.txt, ifes-apt-tc-data-modeling, nexusutils (dependencies/parsers/nexus/pyproject.toml)
-jupyterlab-h5web==7.0.0   # via -r requirements.txt, ifes-apt-tc-data-modeling, nexusutils (dependencies/parsers/nexus/pyproject.toml)
-jupyterlab-pygments==0.2.2  # via -r requirements.txt, nbconvert
-jupyterlab-server==2.21.0  # via -r requirements.txt, jupyterlab
+jupyterlab-widgets==3.0.8  # via -r requirements.txt, ipywidgets
 keyring==23.11.0          # via twine
+kikuchipy==0.8.6          # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
 kiwisolver==1.4.4         # via -r requirements.txt, matplotlib
 kombu==5.2.4              # via -r requirements.txt, celery
-lark==1.1.5               # via -r requirements.txt, nexusutils (dependencies/parsers/nexus/pyproject.toml), optimade
+lark==1.1.5               # via -r requirements.txt, optimade, pynxtools (dependencies/parsers/nexus/pyproject.toml)
 latexcodec==2.0.1         # via -r requirements.txt, pybtex
 lazy-object-proxy==1.9.0  # via astroid
 llvmlite==0.39.1          # via -r requirements.txt, numba
+lmfit==1.2.2              # via -r requirements.txt, pyxem
 locket==1.0.0             # via -r requirements.txt, partd
 lxml==4.7.1               # via -r requirements.txt, nomad-lab (pyproject.toml)
 m2r==0.2.1                # via -r requirements.txt, nomad-lab (pyproject.toml)
 mako==1.2.4               # via -r requirements.txt, alembic
 markdown==3.4.1           # via mkdocs, mkdocs-click, mkdocs-material, pymdown-extensions
-markupsafe==2.1.1         # via -r requirements.txt, jinja2, mako, nbconvert, nomad-lab (pyproject.toml), werkzeug
-matplotlib==3.5.3         # via -r requirements.txt, ase, asr, hyperspy, mdanalysis, phonopy, pymatgen, radioactivedecay
+markupsafe==2.1.1         # via -r requirements.txt, jinja2, mako, nomad-lab (pyproject.toml), werkzeug
+matplotlib==3.5.3         # via -r requirements.txt, ase, asr, diffsims, hyperspy, kikuchipy, matplotlib-scalebar, mdanalysis, orix, phonopy, pyfai, pymatgen, pyxem, radioactivedecay
 matplotlib-inline==0.1.6  # via -r requirements.txt, ipykernel, ipython
+matplotlib-scalebar==0.8.1  # via -r requirements.txt, orix
 mccabe==0.6.1             # via pylint
 mdanalysis==2.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
 mdtraj==1.9.6             # via -r requirements.txt, nomad-lab (pyproject.toml)
 memoization==0.4.0        # via -r requirements.txt, nomad-lab (pyproject.toml)
 mergedeep==1.3.4          # via mkdocs
-mistune==2.0.4            # via -r requirements.txt, m2r, nbconvert
+mistune==2.0.4            # via -r requirements.txt, m2r
 mkdocs==1.2.3             # via mkdocs-macros-plugin, mkdocs-material, mkdocs-redirects, nomad-lab (pyproject.toml)
 mkdocs-click==0.8.0       # via nomad-lab (pyproject.toml)
 mkdocs-macros-plugin==0.6.3  # via nomad-lab (pyproject.toml)
@@ -171,34 +169,34 @@ mp-api==0.30.10           # via -r requirements.txt, pymatgen
 mpmath==1.2.1             # via -r requirements.txt, sympy
 mrcfile==1.4.3            # via -r requirements.txt, griddataformats
 msgpack==1.0.4            # via -r requirements.txt, mmtf-python, mp-api, nomad-lab (pyproject.toml)
-mypy==1.0.1               # via nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml)
+mypy==1.0.1               # via nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml)
 mypy-extensions==0.4.3    # via mypy
 names==0.3.0              # via nomad-lab (pyproject.toml)
 natsort==8.2.0            # via -r requirements.txt, hyperspy
-nbclassic==0.5.3          # via -r requirements.txt, jupyterlab, notebook
-nbclient==0.7.2           # via -r requirements.txt, nbconvert
-nbconvert==7.2.7          # via -r requirements.txt, jupyter-server, nbclassic, notebook
-nbformat==5.7.3           # via -r requirements.txt, jupyter-server, nbclassic, nbclient, nbconvert, notebook
-nest-asyncio==1.5.6       # via -r requirements.txt, ipykernel, jupyter-client, nbclassic, notebook
+nest-asyncio==1.5.6       # via -r requirements.txt, ipykernel, jupyter-client
 netcdf4==1.5.4            # via -r requirements.txt, nomad-lab (pyproject.toml)
 networkx==2.6.3           # via -r requirements.txt, matid (dependencies/matid/pyproject.toml), mdanalysis, pymatgen, radioactivedecay, scikit-image
-notebook==6.5.3           # via -r requirements.txt, jupyterlab
-notebook-shim==0.2.2      # via -r requirements.txt, nbclassic
+niondata==0.15.5          # via -r requirements.txt, nionswift, nionswift-io
+nionswift==0.16.8         # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
+nionswift-io==0.15.1      # via -r requirements.txt, nionswift
+nionui==0.6.11            # via -r requirements.txt, nionswift
+nionutils==0.4.7          # via -r requirements.txt, niondata, nionswift, nionswift-io, nionui
 nptyping==1.4.4           # via -r requirements.txt, nomad-lab (pyproject.toml)
-numba==0.56.4             # via -r requirements.txt, hyperspy, sparse
+numba==0.56.4             # via -r requirements.txt, diffsims, hyperspy, kikuchipy, orix, pyxem, sparse
 numcodecs==0.10.2         # via -r requirements.txt, zarr
-numexpr==2.8.4            # via -r requirements.txt, hyperspy
-numpy==1.22.4             # via -r requirements.txt, ase, biopython, cftime, dask, f90wrap, griddataformats, gsd, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, imageio, matplotlib, mdanalysis, mdtraj, mrcfile, netcdf4, nomad-lab (pyproject.toml), nptyping, numba, numcodecs, numexpr, pandas, phonopy, pymatgen, pyscf, pywavelets, quippy-ase, radioactivedecay, scikit-image, scikit-learn, scipy, sparse, spglib, tifffile, xarray, zarr
+numexpr==2.8.4            # via -r requirements.txt, hyperspy, pyfai
+numpy==1.22.4             # via -r requirements.txt, ase, biopython, cftime, dask, diffsims, f90wrap, fabio, griddataformats, gsd, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, imageio, kikuchipy, lmfit, matplotlib, mdanalysis, mdtraj, mrcfile, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-lab (pyproject.toml), nptyping, numba, numcodecs, numexpr, numpy-quaternion, orix, pandas, phonopy, pyfai, pymatgen, pywavelets, pyxem, quippy-ase, radioactivedecay, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tifffile, xarray, zarr
+numpy-quaternion==2022.4.3  # via -r requirements.txt, orix
 oauthenticator==15.1.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 oauthlib==3.2.2           # via -r requirements.txt, jupyterhub
 openpyxl==3.1.2           # via -r requirements.txt, nomad-lab (pyproject.toml)
 optimade[mongo]==0.22.1   # via -r requirements.txt, nomad-lab (pyproject.toml)
+orix==0.11.1              # via -r requirements.txt, diffsims, kikuchipy, pyxem
 orjson==3.6.0             # via -r requirements.txt, h5grove, nomad-lab (pyproject.toml)
-packaging==23.0           # via -r requirements.txt, build, dask, docker, hyperspy, ipykernel, jupyter-server, jupyterlab, jupyterlab-server, matplotlib, mdanalysis, mkdocs, mongomock, nbconvert, pint, pytest, scikit-image, sphinx, xarray
+packaging==23.0           # via -r requirements.txt, build, dask, docker, hyperspy, ipykernel, matplotlib, mdanalysis, mkdocs, mongomock, pint, pooch, pytest, scikit-image, sphinx
 palettable==3.3.0         # via -r requirements.txt, pymatgen
 pamela==1.0.0             # via -r requirements.txt, jupyterhub
 pandas==1.3.5             # via -r requirements.txt, ifes-apt-tc-data-modeling, nomad-lab (pyproject.toml), panedr, pymatgen, xarray
-pandocfilters==1.5.0      # via -r requirements.txt, nbconvert
 panedr==0.2               # via -r requirements.txt, nomad-lab (pyproject.toml)
 parmed==3.0.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 parso==0.8.3              # via -r requirements.txt, jedi
@@ -208,28 +206,31 @@ pep517==0.13.0            # via build
 pexpect==4.8.0            # via -r requirements.txt, ipython
 phonopy==2.11.0           # via -r requirements.txt, asr, nomad-lab (pyproject.toml)
 pickleshare==0.7.5        # via -r requirements.txt, ipython
-pillow==9.4.0             # via -r requirements.txt, imageio, matplotlib, scikit-image
+pillow==9.4.0             # via -r requirements.txt, imageio, matplotlib, nionswift, scikit-image
 pint==0.17                # via -r requirements.txt, hyperspy, nomad-lab (pyproject.toml)
-pip-tools==6.13.0         # via nomad-lab (pyproject.toml)
+pip-tools==6.13.0         # via nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml)
 pkginfo==1.8.3            # via twine
-platformdirs==3.1.1       # via -r requirements.txt, pylint, requests-cache
+platformdirs==3.1.1       # via -r requirements.txt, pooch, pylint, requests-cache
 plotly==5.11.0            # via -r requirements.txt, asr, pymatgen
 pluggy==0.13.1            # via pytest
+pooch==1.7.0              # via -r requirements.txt, kikuchipy, orix
 prettytable==3.6.0        # via -r requirements.txt, hyperspy
-prometheus-client==0.15.0  # via -r requirements.txt, jupyter-server, jupyterhub, nbclassic, notebook
+prometheus-client==0.15.0  # via -r requirements.txt, jupyterhub
 prompt-toolkit==3.0.36    # via -r requirements.txt, click-repl, ipython
-psutil==5.9.4             # via -r requirements.txt, ipykernel, ipyparallel
-ptyprocess==0.7.0         # via -r requirements.txt, pexpect, terminado
+psutil==5.9.4             # via -r requirements.txt, diffsims, ipykernel, ipyparallel, pyxem
+ptyprocess==0.7.0         # via -r requirements.txt, pexpect
 py==1.11.0                # via pytest, pytest-forked
 pyasn1==0.4.8             # via -r requirements.txt, pyasn1-modules, python-jose, rfc3161ng, rsa
 pyasn1-modules==0.2.8     # via -r requirements.txt, rfc3161ng
 pybtex==0.24.0            # via -r requirements.txt, emmet-core, pymatgen
-pycodestyle==2.8.0        # via nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml)
+pycifrw==4.4.5            # via -r requirements.txt, diffpy-structure
+pycodestyle==2.8.0        # via nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml)
 pycparser==2.21           # via -r requirements.txt, cffi
 pydantic==1.10.9          # via -r requirements.txt, emmet-core, fastapi, nomad-lab (pyproject.toml), optimade
-pygments==2.14.0          # via -r requirements.txt, ipython, mkdocs-material, nbconvert, readme-renderer, sphinx
+pyfai==2023.5.0           # via -r requirements.txt, pyxem
+pygments==2.14.0          # via -r requirements.txt, ipython, mkdocs-material, readme-renderer, sphinx
 pyjwt[crypto]==2.6.0      # via -r requirements.txt, nomad-lab (pyproject.toml)
-pylint==2.13.9            # via nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml), pylint-mongoengine, pylint-plugin-utils
+pylint==2.13.9            # via nomad-lab (pyproject.toml), pylint-mongoengine, pylint-plugin-utils, pynxtools (dependencies/parsers/nexus/pyproject.toml)
 pylint-mongoengine==0.4.0  # via nomad-lab (pyproject.toml)
 pylint-plugin-utils==0.7  # via nomad-lab (pyproject.toml), pylint-mongoengine
 pymatgen==2023.2.28       # via -r requirements.txt, asr, emmet-core, mp-api, nomad-lab (pyproject.toml)
@@ -238,11 +239,10 @@ pymongo==3.12.1           # via -r requirements.txt, mongoengine, nomad-lab (pyp
 pyopenssl==23.0.0         # via -r requirements.txt, certipy
 pyparsing==3.0.9          # via -r requirements.txt, matplotlib, mdtraj, rdflib
 pyrsistent==0.19.3        # via -r requirements.txt, jsonschema
-pyscf==2.0.1 ; sys_platform == "darwin"  # via -r requirements.txt, electronicparsers (dependencies/parsers/electronic/pyproject.toml)
-pytest==5.4.3             # via nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml), pytest-cov, pytest-forked, pytest-timeout, pytest-xdist
-pytest-cov==2.7.1         # via nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml)
+pytest==5.4.3             # via nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml), pytest-cov, pytest-forked, pytest-timeout, pytest-xdist
+pytest-cov==2.7.1         # via nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml)
 pytest-forked==1.6.0      # via pytest-xdist
-pytest-timeout==1.4.2     # via nexusutils (dependencies/parsers/nexus/pyproject.toml), nomad-lab (pyproject.toml)
+pytest-timeout==1.4.2     # via nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml)
 pytest-xdist==1.34.0      # via nomad-lab (pyproject.toml)
 python-dateutil==2.8.2    # via -r requirements.txt, arrow, elasticsearch-dsl, ghp-import, hyperspy, ipyparallel, jupyter-client, jupyterhub, matplotlib, mkdocs-macros-plugin, pandas, rfc3161ng
 python-dotenv==0.21.0     # via -r requirements.txt, uvicorn
@@ -253,20 +253,22 @@ python-keycloak==0.26.1   # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-logstash==0.4.6    # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-magic==0.4.24      # via -r requirements.txt, nomad-lab (pyproject.toml)
 python-multipart==0.0.5   # via -r requirements.txt, nomad-lab (pyproject.toml)
-pytz==2022.7.1            # via -r requirements.txt, babel, celery, nomad-lab (pyproject.toml), pandas
+pytz==2022.7.1            # via -r requirements.txt, babel, celery, nionswift, nomad-lab (pyproject.toml), pandas
+pytz-deprecation-shim==0.1.0.post0  # via -r requirements.txt, tzlocal
 pywavelets==1.3.0         # via -r requirements.txt, scikit-image
-pyyaml==6.0               # via -r requirements.txt, dask, hyperspy, mkdocs, mkdocs-macros-plugin, nomad-lab (pyproject.toml), phonopy, pybtex, pyyaml-env-tag, uvicorn
+pyxem==0.15.1             # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
+pyyaml==6.0               # via -r requirements.txt, dask, hyperspy, kikuchipy, mkdocs, mkdocs-macros-plugin, nomad-lab (pyproject.toml), phonopy, pybtex, pyyaml-env-tag, uvicorn
 pyyaml-env-tag==0.1       # via mkdocs
 pyzeo==0.1.4              # via -r requirements.txt, nomad-lab (pyproject.toml)
-pyzmq==25.0.0             # via -r requirements.txt, ipykernel, ipyparallel, jupyter-client, jupyter-server, nbclassic, notebook
+pyzmq==25.0.0             # via -r requirements.txt, ipykernel, ipyparallel, jupyter-client
 quippy-ase==0.9.14        # via -r requirements.txt, nomad-lab (pyproject.toml)
 radioactivedecay==0.4.17  # via -r requirements.txt, ifes-apt-tc-data-modeling
 rdflib==5.0.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 readme-renderer==37.3     # via twine
 recommonmark==0.7.1       # via -r requirements.txt, nomad-lab (pyproject.toml)
 redis==4.4.2              # via -r requirements.txt, celery
-requests==2.28.2          # via -r requirements.txt, docker, hyperspy, jupyterhub, jupyterlab-server, mp-api, nomad-lab (pyproject.toml), oauthenticator, optimade, pymatgen, python-gitlab, python-keycloak, requests-cache, requests-toolbelt, rfc3161ng, sphinx, twine
-requests-cache==1.0.1     # via -r requirements.txt, nexusutils (dependencies/parsers/nexus/pyproject.toml)
+requests==2.28.2          # via -r requirements.txt, docker, hyperspy, jupyterhub, mp-api, nomad-lab (pyproject.toml), oauthenticator, optimade, pooch, pymatgen, python-gitlab, python-keycloak, requests-cache, requests-toolbelt, rfc3161ng, sphinx, twine
+requests-cache==1.0.1     # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
 requests-toolbelt==0.10.1  # via python-gitlab, twine
 rfc3161ng==2.1.3          # via -r requirements.txt, nomad-lab (pyproject.toml)
 rfc3339-validator==0.1.4  # via -r requirements.txt, jsonschema
@@ -277,12 +279,13 @@ rsa==4.9                  # via -r requirements.txt, python-jose
 ruamel-yaml==0.17.21      # via -r requirements.txt, jupyter-telemetry, oauthenticator, pymatgen
 ruamel-yaml-clib==0.2.7   # via -r requirements.txt, ruamel-yaml
 runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
-scikit-image==0.19.3      # via -r requirements.txt, hyperspy
-scikit-learn==1.0.2       # via -r requirements.txt, nomad-lab (pyproject.toml)
-scipy==1.7.1              # via -r requirements.txt, ase, griddataformats, hyperspy, mdanalysis, mdtraj, nomad-lab (pyproject.toml), pymatgen, pyscf, radioactivedecay, scikit-image, scikit-learn, sparse
-send2trash==1.8.0         # via -r requirements.txt, jupyter-server, nbclassic, notebook
+scikit-image==0.19.3      # via -r requirements.txt, hyperspy, kikuchipy, pyxem
+scikit-learn==1.0.2       # via -r requirements.txt, kikuchipy, nomad-lab (pyproject.toml), pyxem
+scipy==1.7.1              # via -r requirements.txt, ase, diffsims, griddataformats, hyperspy, kikuchipy, lmfit, mdanalysis, mdtraj, niondata, nionswift, nomad-lab (pyproject.toml), orix, pyfai, pymatgen, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse
+secretstorage==3.3.3      # via keyring
 sentinels==1.0.0          # via -r requirements.txt, mongomock
-six==1.16.0               # via -r requirements.txt, asttokens, astunparse, basicauth, bcrypt, bleach, click-repl, ecdsa, elasticsearch-dsl, griddataformats, html5lib, isodate, latexcodec, pybtex, pytest-xdist, python-dateutil, python-multipart, rdflib, rfc3339-validator, url-normalize, validators
+silx==1.1.2               # via -r requirements.txt, pyfai
+six==1.16.0               # via -r requirements.txt, asttokens, astunparse, basicauth, bcrypt, bleach, click-repl, diffpy-structure, ecdsa, elasticsearch-dsl, griddataformats, html5lib, isodate, latexcodec, pybtex, pytest-xdist, python-dateutil, python-multipart, rdflib, rfc3339-validator, url-normalize, validators
 smmap==5.0.0              # via -r requirements.txt, gitdb
 sniffio==1.3.0            # via -r requirements.txt, anyio, httpcore, httpx
 snowballstemmer==2.2.0    # via -r requirements.txt, sphinx
@@ -303,31 +306,32 @@ sympy==1.10.1             # via -r requirements.txt, hyperspy, pymatgen, radioac
 tabulate==0.8.9           # via -r requirements.txt, nomad-lab (pyproject.toml), pymatgen
 tenacity==8.1.0           # via -r requirements.txt, plotly
 termcolor==2.1.0          # via mkdocs-macros-plugin
-terminado==0.17.1         # via -r requirements.txt, jupyter-server, nbclassic, notebook
 threadpoolctl==3.1.0      # via -r requirements.txt, mdanalysis, scikit-learn
 tifffile==2021.11.2       # via -r requirements.txt, h5grove, hyperspy, scikit-image
-tinycss2==1.2.1           # via -r requirements.txt, nbconvert
-tomli==2.0.1              # via -r requirements.txt, build, jupyterlab, mypy, pep517, pylint
+tomli==2.0.1              # via build, mypy, pep517, pylint
 toolz==0.12.0             # via -r requirements.txt, dask, hyperspy, partd
 toposort==1.9             # via -r requirements.txt, nomad-lab (pyproject.toml)
-tornado==6.2              # via -r requirements.txt, ipykernel, ipyparallel, jupyter-client, jupyter-server, jupyterhub, jupyterlab, nbclassic, notebook, terminado
-tqdm==4.64.1              # via -r requirements.txt, hyperspy, ipyparallel, mdanalysis, pymatgen, twine
-traitlets==5.8.1          # via -r requirements.txt, ipykernel, ipyparallel, ipython, jupyter-client, jupyter-core, jupyter-server, jupyter-telemetry, jupyterhub, matplotlib-inline, nbclassic, nbclient, nbconvert, nbformat, notebook
+tornado==6.2              # via -r requirements.txt, ipykernel, ipyparallel, jupyter-client, jupyterhub
+tqdm==4.64.1              # via -r requirements.txt, diffsims, hyperspy, ipyparallel, kikuchipy, mdanalysis, orix, pymatgen, twine
+traitlets==5.8.1          # via -r requirements.txt, ipykernel, ipyparallel, ipython, ipywidgets, jupyter-client, jupyter-core, jupyter-telemetry, jupyterhub, matplotlib-inline
 traits==6.4.1             # via -r requirements.txt, hyperspy
+transforms3d==0.4.1       # via -r requirements.txt, diffsims, pyxem
 twine==3.4.2              # via nomad-lab (pyproject.toml)
 typed-ast==1.4.2          # via nomad-lab (pyproject.toml)
-types-pytz==2022.7.0.0    # via nexusutils (dependencies/parsers/nexus/pyproject.toml)
-types-pyyaml==6.0.12.1    # via nexusutils (dependencies/parsers/nexus/pyproject.toml)
-types-requests==2.28.11.16  # via nexusutils (dependencies/parsers/nexus/pyproject.toml)
+types-pytz==2022.7.0.0    # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
+types-pyyaml==6.0.12.1    # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
+types-requests==2.28.11.16  # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
 types-urllib3==1.26.25.8  # via types-requests
 typing-extensions==4.4.0  # via -r requirements.txt, astroid, emmet-core, gitpython, mp-api, mypy, numcodecs, pydantic, pylint, starlette
 typish==1.9.3             # via -r requirements.txt, nptyping
-uncertainties==3.1.7      # via -r requirements.txt, pymatgen
+tzdata==2023.3            # via -r requirements.txt, pytz-deprecation-shim
+tzlocal==4.3              # via -r requirements.txt, nionswift, pynxtools (dependencies/parsers/nexus/pyproject.toml)
+uncertainties==3.1.7      # via -r requirements.txt, lmfit, pymatgen
 unidecode==1.3.2          # via -r requirements.txt, nomad-lab (pyproject.toml)
 uri-template==1.2.0       # via -r requirements.txt, jsonschema
 url-normalize==1.4.3      # via -r requirements.txt, requests-cache
 urllib3==1.26.14          # via -r requirements.txt, docker, elasticsearch, requests, requests-cache
-uvicorn[standard]==0.20.0  # via -r requirements.txt, nomad-lab (pyproject.toml)
+uvicorn[standard]==0.20.0  # via -r requirements.txt, h5grove, nomad-lab (pyproject.toml)
 uvloop==0.17.0            # via -r requirements.txt, uvicorn
 validators==0.18.2        # via -r requirements.txt, nomad-lab (pyproject.toml)
 vine==5.0.0               # via -r requirements.txt, amqp, celery, kombu
@@ -335,14 +339,16 @@ watchdog==2.1.9           # via mkdocs
 watchfiles==0.18.1        # via -r requirements.txt, uvicorn
 wcwidth==0.2.5            # via -r requirements.txt, prettytable, prompt-toolkit, pytest
 webcolors==1.12           # via -r requirements.txt, jsonschema
-webencodings==0.5.1       # via -r requirements.txt, bleach, html5lib, tinycss2
-websocket-client==1.4.2   # via -r requirements.txt, docker, jupyter-server
+webencodings==0.5.1       # via -r requirements.txt, bleach, html5lib
+websocket-client==1.4.2   # via -r requirements.txt, docker
 websockets==10.4          # via -r requirements.txt, uvicorn
 werkzeug==2.2.2           # via -r requirements.txt, flask
 wheel==0.38.4             # via -r requirements.txt, astunparse, pip-tools
+widgetsnbextension==4.0.8  # via -r requirements.txt, ipywidgets
 wrapt==1.12.1             # via -r requirements.txt, astroid, nomad-lab (pyproject.toml)
-xarray==2023.1.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
+xarray==0.20.2            # via -r requirements.txt, nomad-lab (pyproject.toml)
 zarr==2.12.0              # via -r requirements.txt, hyperspy
+zipfile37==0.1.3          # via -r requirements.txt, pynxtools (dependencies/parsers/nexus/pyproject.toml)
 zipp==3.11.0              # via -r requirements.txt, importlib-metadata
 zipstream-new==1.1.5      # via -r requirements.txt, nomad-lab (pyproject.toml)
 

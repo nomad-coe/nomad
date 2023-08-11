@@ -778,6 +778,18 @@ class TestM1:
         assert copy.systems[0].m_parent_index == 0
         assert copy.systems[0].m_parent_sub_section is run.systems[0].m_parent_sub_section
 
+    def test_copy_keeps_m_sub_section_list(self):
+        run = Run()
+        run.m_create(Parsing).parser_name = 'test'
+        system = run.m_create(System)
+        system.atom_labels = ['H', 'O']
+
+        copy = run.m_copy(deep=True)
+        copy.systems.append(System())
+
+        copy2 = copy.m_copy(deep=True)
+        copy2.m_to_dict()
+
     def test_not_default_defaults(self):
         class TestSection(MSection):
             int_quantity = Quantity(type=int)

@@ -27,7 +27,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 from toposort import toposort_flatten
 
-from nexusutils.nexus import nexus  # pylint: disable=import-error
+from pynxtools.nexus import nexus  # pylint: disable=import-error
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import (
     Attribute, Bytes, Datetime, Definition, MEnum, Package, Property, Quantity, Section, SubSection)

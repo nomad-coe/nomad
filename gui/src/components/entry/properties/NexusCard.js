@@ -20,14 +20,21 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import H5Web from '../../visualization/H5Web'
-import { Card } from '@material-ui/core'
+import { Card, makeStyles } from '@material-ui/core'
+
+const useNexusCardStyles = makeStyles(theme => ({
+  root: {
+    height: 500
+  }
+}))
 
 const NexusCard = React.memo(function NexusCard({index}) {
+  const classes = useNexusCardStyles()
   if (index.parser_name !== 'parsers/nexus') {
     return null
   }
   return (
-    <Card style={{height: 500, overflowY: "scroll"}}>
+    <Card className={classes.root}>
       <H5Web upload_id={index.upload_id} filename={index.mainfile} initialPath="/"/>
     </Card>
   )
