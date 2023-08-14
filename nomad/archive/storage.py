@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import os
 from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast
 from io import BytesIO, BufferedReader
 from collections.abc import Mapping, Sequence
@@ -26,7 +26,7 @@ from msgpack.fallback import Packer, StringIO
 import struct
 import json
 
-from nomad import utils
+from nomad import utils, config
 from nomad.config import archive
 
 __packer = msgpack.Packer(autoreset=True, use_bin_type=True)
@@ -464,7 +464,7 @@ class ArchiveReader(ArchiveDict):
             self._f.close()
 
     def is_closed(self):
-        return self._f.closed
+        return self._f.closed if isinstance(self._file_or_path, str) else True
 
 
 def write_archive(
@@ -551,6 +551,11 @@ def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
         a 'with' statement to free the underlying file resource after use.
     '''
     from .storage_v2 import ArchiveWriter as ArchiveWriterNew, ArchiveReader as ArchiveReaderNew
+
+    # if the file is smaller than the threshold, just read it into memory to avoid multiple small reads
+    if isinstance(file_or_path, str) and os.path.getsize(file_or_path) < 4 * config.archive.read_buffer_size:
+        with open(file_or_path, 'rb') as f:
+            file_or_path = BytesIO(f.read())
 
     if isinstance(file_or_path, str):
         with open(file_or_path, 'rb') as f:

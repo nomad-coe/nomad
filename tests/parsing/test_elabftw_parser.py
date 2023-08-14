@@ -36,8 +36,8 @@ def _assert_parsed_data(upload_id, entries, cls, parser, assert_fnc, mainfile_st
             f.read()
 
         try:
-            archive = upload_files.read_archive(entry.entry_id)
-            assert entry.entry_id in archive
+            with upload_files.read_archive(entry.entry_id) as archive:
+                assert entry.entry_id in archive
             if entry.entry_name and mainfile_str in entry.entry_name:
                 test_archive = EntryArchive(metadata=EntryMetadata(entry_id=entry.entry_id, upload_id=upload_id))
                 test_archive.m_context = Context()

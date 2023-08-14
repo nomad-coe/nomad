@@ -930,15 +930,15 @@ class Entry(Proc):
             # parts that are referenced by section_metadata/EntryMetadata
             # TODO somehow it should determine which root sections too load from the metainfo
             # or configuration
-            archive = upload.upload_files.read_archive(self.entry_id)
-            entry_archive = archive[self.entry_id]
-            entry_archive_dict = {section_metadata: to_json(entry_archive[section_metadata])}
-            if section_workflow in entry_archive:
-                entry_archive_dict[section_workflow] = to_json(entry_archive[section_workflow])
-            if section_results in entry_archive:
-                entry_archive_dict[section_results] = to_json(entry_archive[section_results])
-            entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
-            self._apply_metadata_from_mongo(upload, entry_metadata)
+            with upload.upload_files.read_archive(self.entry_id) as archive:
+                entry_archive = archive[self.entry_id]
+                entry_archive_dict = {section_metadata: to_json(entry_archive[section_metadata])}
+                if section_workflow in entry_archive:
+                    entry_archive_dict[section_workflow] = to_json(entry_archive[section_workflow])
+                if section_results in entry_archive:
+                    entry_archive_dict[section_results] = to_json(entry_archive[section_results])
+                entry_metadata = datamodel.EntryArchive.m_from_dict(entry_archive_dict)[section_metadata]
+                self._apply_metadata_from_mongo(upload, entry_metadata)
         except KeyError:
             # Due to hard processing failures, it might be possible that an entry might not
             # have an archive. Return the metadata that is available.

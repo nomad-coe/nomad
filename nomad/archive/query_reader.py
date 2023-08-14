@@ -713,7 +713,8 @@ class GeneralReader:
             self.upload_pool[upload_id] = upload.upload_files
 
         try:
-            return self.upload_pool[upload_id].read_archive(entry_id)[entry_id]
+            with self.upload_pool[upload_id].read_archive(entry_id) as archive:
+                return archive[entry_id]
         except KeyError:
             raise ArchiveError(f'Archive {entry_id} does not exist in upload {entry_id}.')
 
