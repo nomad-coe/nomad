@@ -565,9 +565,8 @@ def assert_upload_files(
             f.read()
 
         try:
-            archive = upload_files.read_archive(entry.entry_id)
-            assert entry.entry_id in archive
-
+            with upload_files.read_archive(entry.entry_id) as archive:
+                assert entry.entry_id in archive
         except KeyError:
             assert no_archive
 

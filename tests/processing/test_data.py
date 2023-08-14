@@ -846,9 +846,9 @@ def test_creating_new_entries_during_processing(proc_infra, test_user):
         assert entry.process_status == ProcessStatus.SUCCESS
         if entry.mainfile.startswith('my_batch_'):
             idx = int(entry.mainfile.split('.')[0].split('_')[-1])
-            archive = upload_files.read_archive(entry.entry_id)[entry.entry_id]
-            assert archive['data']['batch_id'] == 'my_batch'
-            assert archive['data']['sample_number'] == idx
+            with upload_files.read_archive(entry.entry_id) as archive:
+                assert archive[entry.entry_id]['data']['batch_id'] == 'my_batch'
+                assert archive[entry.entry_id]['data']['sample_number'] == idx
 
 
 @pytest.mark.timeout(config.tests.default_timeout)

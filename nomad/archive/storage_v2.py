@@ -673,7 +673,9 @@ class ArchiveReader(ArchiveItem):
             self._f.close()
 
     def is_closed(self):
-        return self._f.closed
+        # If the input is a BytesIO, it is assumed that the file is always closed
+        # If the input is a path, need to check if the file is closed
+        return self._f.closed if isinstance(self._file_or_path, str) else True
 
     def to_json(self):
         if self._full_cache is None:
