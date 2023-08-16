@@ -22,8 +22,7 @@ from tests.normalizing.conftest import run_processing, run_normalize
 from nomad.datamodel.data import User
 
 
-@pytest.mark.skip()
-def test_substance(raw_files, no_warn):
+def test_substance(raw_files):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_substance.archive.yaml'
     test_archive = run_processing(directory, mainfile)

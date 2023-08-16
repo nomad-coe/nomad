@@ -56623,6 +56623,1029 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 3,
             "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ]
+            },
+            "name": "ELNProcess",
+            "label": "Material Processing ELN",
+            "description": "A basic electronic lab notebook for a material processing activity.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/20",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ],
+                  "template": [
+                    {
+                      "process_identifiers": {}
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "process_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
+            "name": "BasicMeasurementResult",
+            "label": "Measurement Result",
+            "description": "A basic section for describing the result of a measurement.",
+            "base_sections": [
+              "/packages/15/section_definitions/24"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "RichTextEditQuantity"
+                    }
+                  ]
+                },
+                "name": "result",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 5,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "measurement_identifiers": {}
+                }
+              ]
+            },
+            "name": "ELNMeasurement",
+            "label": "Measurement ELN",
+            "description": "A basic electronic lab notebook for a measurement activity.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/25",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "measurement_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 6,
+            "m_parent_sub_section": "section_definitions",
+            "name": "BasicAnalysisResult",
+            "label": "Analysis Result",
+            "description": "A basic section for describing the result of an analysis.",
+            "base_sections": [
+              "/packages/15/section_definitions/21"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "RichTextEditQuantity"
+                    }
+                  ]
+                },
+                "name": "result",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 7,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "analysis_identifiers": {}
+                }
+              ]
+            },
+            "name": "ELNAnalysis",
+            "label": "Analysis ELN",
+            "description": "A basic electronic lab notebook for an analysis activity.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/22",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "analysis_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "outputs",
+                "description": "The input data of the analysis.",
+                "sub_section": "/packages/7/section_definitions/6",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 8,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "sample_identifiers": {}
+                }
+              ]
+            },
+            "name": "ELNSample",
+            "label": "Generic Sample ELN",
+            "description": "A basic electronic lab notebook for a generic sample.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/17",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "sample_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 9,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "substance_identifiers": {},
+                  "substance": {
+                    "m_def": "nomad.datamodel.metainfo.basesections.PubChemPureSubstanceSection"
+                  }
+                }
+              ]
+            },
+            "name": "ELNSubstance",
+            "label": "Substance ELN",
+            "description": "A basic electronic lab notebook for a generic sample.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/26",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "substance_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 10,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "instrument_identifiers": {}
+                }
+              ]
+            },
+            "name": "ELNInstrument",
+            "label": "Instrument ELN",
+            "description": "A basic electronic lab notebook for a generic instrument.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/11",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "instrument_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 11,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "collection_identifiers": {}
+                }
+              ]
+            },
+            "name": "ELNCollection",
+            "label": "Collection ELN",
+            "description": "A basic electronic lab notebook for a collection of entities.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/8",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "collection_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 12,
+            "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "eln": [
+                {
+                  "lane_width": "600px"
+                }
+              ],
+              "template": [
+                {
+                  "experiment_identifiers": {}
+                }
+              ]
+            },
+            "name": "ELNExperiment",
+            "label": "Experiment ELN",
+            "description": "A basic electronic lab notebook for a collection of activities.",
+            "categories": [
+              "/packages/14/category_definitions/2"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/7",
+              "/packages/14/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "tags",
+                "description": "Add a tag that can be used for search.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "experiment_identifiers",
+                "sub_section": "/packages/15/section_definitions/31"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 13,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SampleID",
+            "description": "A base section that can be used for sample IDs. If the `sample_owner`, `sample_short_name`, `institute`, and `creation_datetime`\nquantities are provided, the sample_id will be automatically created as a combination\nof these four quantities.",
+            "base_sections": [
+              "/packages/14/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "institute",
+                "description": "Alias/short name of the home institute of the owner, i.e. *HZB*.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "sample_owner",
+                "description": "Name or alias of the process operator, e.g. jmp",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity"
+                    }
+                  ]
+                },
+                "name": "creation_datetime",
+                "description": "Creation date of the sample.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "sample_short_name",
+                "description": "A short name of the sample (the identifier scribed on the smaple,\nor in the sample container), e.g. 4001-8, YAG-2-34.\nThis is to be managed and decided internally by the labs,\nalthough we recomend to avoid the following characters on it: \"_\", \"/\", \"\" and \".\"",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "sample_id",
+                "description": "Full sample id. Ideally a human readable sample id convention,\nwhich is simple, understandable and still having chances of becoming unique.\nIf the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nare provided, this will be formed automatically by joining these components by an underscore (_).\nSpaces in any of the individual components will be replaced with hyphens (-).\nAn example would be hzb_oah_20200602_4001-08",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 14,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CASExperimentalProperty",
+            "description": "A section for experimental properties retrieved from the CAS API.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "name",
+                "description": "CAS experimental property name.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "property",
+                "description": "CAS experimental property.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "sourceNumber",
+                "description": "CAS experimental property source.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 15,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CASPropertyCitation",
+            "description": "A section for citations of the experimental properties retrieved from the CAS API.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "docUri",
+                "description": "CAS property citation document uri.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "sourceNumber",
+                "more": {
+                  "decription": "CAS property citation source number."
+                },
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "source",
+                "description": "CAS property citation source.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 16,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Substance",
+            "description": "A base section for any substance defined in the ELN.",
+            "base_sections": [
+              "/packages/15/section_definitions/10"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Substance name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "The name of the substance entry.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Substance ID"
+                    }
+                  ]
+                },
+                "name": "lab_id",
+                "description": "A human human readable substance ID that is at least unique for the lab.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "CAS uri"
+                    }
+                  ]
+                },
+                "name": "cas_uri",
+                "description": "CAS uri",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "CAS number"
+                    }
+                  ]
+                },
+                "name": "cas_number",
+                "description": "CAS number.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "CAS name"
+                    }
+                  ]
+                },
+                "name": "cas_name",
+                "description": "CAS name.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "FileEditQuantity"
+                    }
+                  ],
+                  "browser": [
+                    {
+                      "adaptor": "RawFileAdaptor"
+                    }
+                  ]
+                },
+                "name": "image",
+                "description": "CAS image.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "inchi",
+                "description": "CAS inchi.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "inchi_key",
+                "description": "CAS inchi key.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "smile",
+                "description": "CAS smile.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "canonical_smile",
+                "description": "CAS canonical smile.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "molecular_formula",
+                "description": "CAS molecular formula.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity"
+                    }
+                  ]
+                },
+                "name": "molecular_mass",
+                "description": "CAS molecular mass.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "dalton"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 12,
+                "m_parent_sub_section": "quantities",
+                "name": "cas_synonyms",
+                "description": "CAS synonyms.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 13,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "RichTextEditQuantity",
+                      "label": "Detailed substance description"
+                    }
+                  ]
+                },
+                "name": "description",
+                "description": "A field for adding additional information about the substance that is not captured\nby the other quantities and subsections.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "cas_experimental_properties",
+                "sub_section": "/packages/7/section_definitions/14",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "cas_property_citations",
+                "sub_section": "/packages/7/section_definitions/15",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 17,
+            "m_parent_sub_section": "section_definitions",
             "name": "ElnWithFormulaBaseSection",
             "description": "A generic abstract base section for ELNs that provides a few commonly used for items with a chemical formula, e.g. chemicals or samples.",
             "base_sections": [
@@ -56651,27 +57674,27 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
+            "m_parent_index": 18,
             "m_parent_sub_section": "section_definitions",
             "name": "Chemical",
             "description": "A ELN base section that can be used for chemicals.",
             "base_sections": [
-              "/packages/7/section_definitions/3"
+              "/packages/7/section_definitions/17"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
+            "m_parent_index": 19,
             "m_parent_sub_section": "section_definitions",
             "name": "Sample",
             "description": "A ELN base section that can be used for samples.",
             "base_sections": [
-              "/packages/7/section_definitions/3"
+              "/packages/7/section_definitions/17"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
+            "m_parent_index": 20,
             "m_parent_sub_section": "section_definitions",
             "name": "ElnWithStructureFile",
             "description": "A base section for for parsing crystal structure files, e.g. `.cif`, and populating the Material section in Results.",
@@ -56701,7 +57724,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
+            "m_parent_index": 21,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellDefinition",
             "base_sections": [
@@ -56786,7 +57809,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
+            "m_parent_index": 22,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellLayer",
             "base_sections": [
@@ -56873,7 +57896,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
+            "m_parent_index": 23,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellBaseSectionWithOptoelectronicProperties",
             "base_sections": [
@@ -56904,7 +57927,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 10,
+            "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJV",
             "more": {
@@ -57189,11 +58212,11 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 11,
+            "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJVCurve",
             "base_sections": [
-              "/packages/7/section_definitions/10"
+              "/packages/7/section_definitions/24"
             ],
             "quantities": [
               {
@@ -57265,7 +58288,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 12,
+            "m_parent_index": 26,
             "m_parent_sub_section": "section_definitions",
             "m_annotations": {
               "eln": [
@@ -61429,6 +62452,74 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 2,
             "m_parent_sub_section": "section_definitions",
+            "name": "ActivityStep",
+            "description": "Any dependant step of an `Activity`.",
+            "base_sections": [
+              "/packages/14/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Step name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "A short and descriptive name for this step.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity",
+                      "label": "Starting time"
+                    }
+                  ]
+                },
+                "name": "start_time",
+                "description": "Optionally, the starting time of the activity step. If omitted, it is assumed to\nfollow directly after the previous step.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "RichTextEditQuantity"
+                    }
+                  ]
+                },
+                "name": "comment",
+                "description": "Any additional information about the step not captured by the other fields.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
             "name": "Activity",
             "description": "An action that has a temporal extension and for some time depends on some entity.",
             "links": [
@@ -61461,25 +62552,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "DateTimeEditQuantity",
-                      "label": "Ending Time"
-                    }
-                  ]
-                },
-                "name": "end_time",
-                "description": "The date and time when this activity was done.",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
                 "name": "method",
                 "description": "A short consistent handle for the applied method.",
                 "type": {
@@ -61489,7 +62561,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "eln": [
@@ -61505,11 +62577,192 @@ window.nomadArtifacts = {
                   "type_data": "str"
                 }
               }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "steps",
+                "description": "An ordered list of all the dependant steps that make up this activity.",
+                "sub_section": "/packages/15/section_definitions/2",
+                "repeats": true
+              }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 3,
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SectionReference",
+            "description": "A section used for referencing another section.",
+            "base_sections": [
+              "/packages/14/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "A short descriptive name for the role of this reference.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity",
+                      "label": "Section Reference"
+                    }
+                  ]
+                },
+                "name": "reference",
+                "description": "A reference to a NOMAD archive section.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/14/section_definitions/0"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 5,
+            "m_parent_sub_section": "section_definitions",
+            "name": "EntityReference",
+            "description": "A section used for referencing an Entity.",
+            "base_sections": [
+              "/packages/15/section_definitions/4"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity",
+                      "label": "Entity Reference"
+                    }
+                  ]
+                },
+                "name": "reference",
+                "description": "A reference to a NOMAD `Entity` entry.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/15/section_definitions/1"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "lab_id",
+                "description": "The readable identifier for the entity.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 6,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ExperimentStep",
+            "description": "Any dependant step of an `Experiment`.",
+            "base_sections": [
+              "/packages/15/section_definitions/2"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity"
+                    }
+                  ]
+                },
+                "name": "activity",
+                "description": "The activity that makes up this step of the experiment.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/15/section_definitions/3"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 7,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Experiment",
+            "description": "A section for grouping activities together into an experiment.",
+            "base_sections": [
+              "/packages/15/section_definitions/3"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "steps",
+                "description": "An ordered list of all the dependant steps that make up this activity.",
+                "sub_section": "/packages/15/section_definitions/6",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 8,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Collection",
+            "description": "A section for grouping entities together into a collection.",
+            "base_sections": [
+              "/packages/15/section_definitions/1"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "entities",
+                "description": "References to the entities that make up the collection.",
+                "sub_section": "/packages/15/section_definitions/5",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 9,
             "m_parent_sub_section": "section_definitions",
             "name": "ElementalComposition",
             "description": "A section for describing the elemental composition of a system, i.e. the element and its atomic fraction.",
@@ -61697,7 +62950,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
+            "m_parent_index": 10,
             "m_parent_sub_section": "section_definitions",
             "name": "System",
             "description": "A base section for any system of materials which is investigated or used to construct other systems.",
@@ -61711,14 +62964,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "elemental_composition",
                 "description": "A list of all the elements found in the system together and their respective\natomic fraction within the system.",
-                "sub_section": "/packages/15/section_definitions/3",
+                "sub_section": "/packages/15/section_definitions/9",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
+            "m_parent_index": 11,
             "m_parent_sub_section": "section_definitions",
             "name": "Instrument",
             "description": "A base section that can be used for instruments.",
@@ -61728,49 +62981,41 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
+            "m_parent_index": 12,
             "m_parent_sub_section": "section_definitions",
-            "name": "Process",
-            "description": "A planned process which results in physical changes in a specified input material. [ obi : prs obi : mc obi : fg obi : jf obi : bp ]\n\nSynonyms:\n - preparative method\n - sample preparation\n - sample preparative method\n - material transformations",
-            "links": [
-              "http://purl.obolibrary.org/obo/OBI_0000094"
-            ],
+            "name": "InstrumentReference",
+            "description": "A section used for referencing an Instrument.",
             "base_sections": [
-              "/packages/15/section_definitions/2"
+              "/packages/15/section_definitions/5"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity",
+                      "label": "Instrument Reference"
+                    }
+                  ]
+                },
+                "name": "reference",
+                "description": "A reference to a NOMAD `Instrument` entry.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/15/section_definitions/11"
+                }
+              }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Measurement",
-            "description": "A planned process with the objective to produce information about the material entity that is the evaluant, by physically examining it or its proxies. [ obi : pppb ]",
-            "links": [
-              "http://purl.obolibrary.org/obo/OBI_0000070"
-            ],
-            "base_sections": [
-              "/packages/15/section_definitions/2"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
-            "m_parent_sub_section": "section_definitions",
-            "name": "SynthesisMethod",
-            "description": "A method used to synthesise a sample.",
-            "links": [
-              "http://purl.obolibrary.org/obo/CHMO_0001301"
-            ],
-            "base_sections": [
-              "/packages/15/section_definitions/6"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
+            "m_parent_index": 13,
             "m_parent_sub_section": "section_definitions",
             "name": "Component",
-            "description": "A section for describing a component and its role in an ensemble.",
+            "description": "A section for describing a component and its role in a composite system.",
             "base_sections": [
               "/packages/14/section_definitions/0"
             ],
@@ -61783,7 +63028,7 @@ window.nomadArtifacts = {
                   "eln": [
                     {
                       "component": "StringEditQuantity",
-                      "label": "Component name"
+                      "label": "Component label"
                     }
                   ]
                 },
@@ -61801,24 +63046,6 @@ window.nomadArtifacts = {
                 "m_annotations": {
                   "eln": [
                     {
-                      "component": "ReferenceEditQuantity"
-                    }
-                  ]
-                },
-                "name": "system",
-                "description": "A reference to the component system.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/15/section_definitions/4"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
                       "component": "NumberEditQuantity",
                       "defaultDisplayUnit": "mg"
                     }
@@ -61831,17 +63058,282 @@ window.nomadArtifacts = {
                   "type_data": "float64"
                 },
                 "unit": "kilogram"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity"
+                    }
+                  ]
+                },
+                "name": "mass_fraction",
+                "description": "The mass fraction of the component in the composite system.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 10,
+            "m_parent_index": 14,
             "m_parent_sub_section": "section_definitions",
-            "name": "Ensemble",
-            "description": "A base section for an ensemble of material systems. Each component of the ensemble is of a (sub)type of `System`.",
+            "name": "SystemComponent",
+            "description": "A section for describing a system component and its role in a composite system.",
             "base_sections": [
-              "/packages/15/section_definitions/4"
+              "/packages/15/section_definitions/13"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity"
+                    }
+                  ]
+                },
+                "name": "system",
+                "description": "A reference to the component system.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/15/section_definitions/10"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 15,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PureSubstanceSection",
+            "description": "A sub section for describing any elemental, molecular or single phase pure substance.",
+            "base_sections": [
+              "/packages/14/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Substance name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "A short name for the substance.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "iupac_name",
+                "description": "IUPAC name.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "molecular_formula",
+                "description": "Molecular formula.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity",
+                      "defaultDisplayUnit": "Da"
+                    }
+                  ]
+                },
+                "name": "molecular_mass",
+                "description": "Molecular mass.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "dalton"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "inchi",
+                "description": "Inchi.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "inchi_key",
+                "description": "Inchi key.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "smile",
+                "description": "Smile.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "canonical_smile",
+                "description": "Canonical smile.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "cas_number",
+                "description": "CAS number.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 16,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PureSubstanceComponent",
+            "description": "A section for describing a substance component and its role in a composite system.",
+            "base_sections": [
+              "/packages/15/section_definitions/13"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "substance_name",
+                "description": "The name of the substance within the section where this component is contained.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "pure_substance",
+                "description": "Section describing the pure substance that is the component.",
+                "sub_section": "/packages/15/section_definitions/15"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 17,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CompositeSystem",
+            "description": "A base section for a material systems composed of components. Each component of the composite system is of a (sub)type of `System`.",
+            "base_sections": [
+              "/packages/15/section_definitions/10"
             ],
             "sub_sections": [
               {
@@ -61849,23 +63341,257 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "components",
-                "description": "A list of all the components of the ensemble containing a name, reference to the\nsystem section and mass of that component.",
-                "sub_section": "/packages/15/section_definitions/9",
+                "description": "A list of all the components of the composite system containing a name, reference\nto the system section and mass of that component.",
+                "sub_section": "/packages/15/section_definitions/13",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 11,
+            "m_parent_index": 18,
             "m_parent_sub_section": "section_definitions",
-            "name": "Substance",
-            "description": "A base section for any elemental, molecular of single phase substance.",
+            "name": "CompositeSystemReference",
+            "description": "A section used for referencing a CompositeSystem.",
+            "base_sections": [
+              "/packages/15/section_definitions/5"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "ReferenceEditQuantity",
+                      "label": "Composite System Reference"
+                    }
+                  ]
+                },
+                "name": "reference",
+                "description": "A reference to a NOMAD `CompositeSystem` entry.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/15/section_definitions/17"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 19,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ProcessStep",
+            "description": "Any dependant step of a `Process`.",
+            "base_sections": [
+              "/packages/15/section_definitions/2"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity",
+                      "defaultDisplayUnit": "second"
+                    }
+                  ]
+                },
+                "name": "duration",
+                "description": "The duration time of the process step.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "float"
+                },
+                "unit": "second"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 20,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Process",
+            "description": "A planned process which results in physical changes in a specified input material. [ obi : prs obi : mc obi : fg obi : jf obi : bp ]\n\nSynonyms:\n - preparative method\n - sample preparation\n - sample preparative method\n - material transformations",
+            "links": [
+              "http://purl.obolibrary.org/obo/OBI_0000094"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/3"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "DateTimeEditQuantity",
+                      "label": "Ending Time"
+                    }
+                  ]
+                },
+                "name": "end_time",
+                "description": "The date and time when this process was finished.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                }
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "steps",
+                "description": "An ordered list of all the dependant steps that make up this activity.",
+                "sub_section": "/packages/15/section_definitions/19",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "instruments",
+                "description": "A list of all the instruments and their role in this process.",
+                "sub_section": "/packages/15/section_definitions/12",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "samples",
+                "description": "The samples as that have undergone the process.",
+                "sub_section": "/packages/15/section_definitions/18",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 21,
+            "m_parent_sub_section": "section_definitions",
+            "name": "AnalysisResult",
+            "description": "A section for the results of an `Analysis` process.",
+            "base_sections": [
+              "/packages/14/section_definitions/0"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 22,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Analysis",
+            "description": "A planned process that produces output data from input data. Synonyms:\n - data processing\n - data analysis",
+            "links": [
+              "http://purl.obolibrary.org/obo/OBI_0200000"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/3"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "inputs",
+                "description": "The input data of the analysis.",
+                "sub_section": "/packages/15/section_definitions/4",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "outputs",
+                "description": "The output data of the analysis.",
+                "sub_section": "/packages/15/section_definitions/21",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 23,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SynthesisMethod",
+            "description": "A method used to synthesise a sample.",
+            "links": [
+              "http://purl.obolibrary.org/obo/CHMO_0001301"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/20"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 24,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MeasurementResult",
+            "description": "A section for the results of an `Measurement` process.",
+            "base_sections": [
+              "/packages/14/section_definitions/0"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 25,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Measurement",
+            "description": "A planned process with the objective to produce information about the material entity that is the evaluant, by physically examining it or its proxies. [ obi : pppb ]",
+            "links": [
+              "http://purl.obolibrary.org/obo/OBI_0000070"
+            ],
+            "base_sections": [
+              "/packages/15/section_definitions/3"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "samples",
+                "description": "A list of all the samples measured during the measurement.",
+                "sub_section": "/packages/15/section_definitions/18",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "instruments",
+                "description": "A list of all the instruments and their role in this process.",
+                "sub_section": "/packages/15/section_definitions/12",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "description": "The result of the measurement.",
+                "sub_section": "/packages/15/section_definitions/24",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 26,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PureSubstance",
+            "description": "A base section for any elemental, molecular, or single phase pure substance.",
             "links": [
               "http://purl.obolibrary.org/obo/CHEBI_23367"
             ],
             "base_sections": [
-              "/packages/15/section_definitions/4"
+              "/packages/15/section_definitions/10"
             ],
             "quantities": [
               {
@@ -61913,24 +63639,6 @@ window.nomadArtifacts = {
                 "m_annotations": {
                   "eln": [
                     {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "molecular_formula",
-                "description": "Molecular formula.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
                       "component": "RichTextEditQuantity",
                       "label": "Detailed substance description"
                     }
@@ -61943,11 +63651,68 @@ window.nomadArtifacts = {
                   "type_data": "str"
                 }
               }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "pure_substance",
+                "description": "Section with properties describing the substance.",
+                "sub_section": "/packages/15/section_definitions/15"
+              }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 12,
+            "m_parent_index": 27,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PubChemPureSubstanceSection",
+            "label": "PubChem Pure Substance Section",
+            "description": "A section for pure substances existing as \"compounds\" in the PubChem database.",
+            "base_sections": [
+              "/packages/15/section_definitions/15"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "NumberEditQuantity"
+                    }
+                  ]
+                },
+                "name": "pub_chem_cid",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
+                  ]
+                },
+                "name": "pub_chem_link",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 28,
             "m_parent_sub_section": "section_definitions",
             "name": "CASExperimentalProperty",
             "description": "A section for experimental properties retrieved from the CAS API.",
@@ -61992,7 +63757,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 13,
+            "m_parent_index": 29,
             "m_parent_sub_section": "section_definitions",
             "name": "CASPropertyCitation",
             "description": "A section for citations of the experimental properties retrieved from the CAS API.",
@@ -62039,12 +63804,13 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 14,
+            "m_parent_index": 30,
             "m_parent_sub_section": "section_definitions",
-            "name": "CASSubstance",
-            "description": "A base section for any Substance with a CAS number.",
+            "name": "CASPureSubstanceSection",
+            "label": "CAS Pure Substance Section",
+            "description": "A base section for any `PureSubstance` with a CAS number.",
             "base_sections": [
-              "/packages/15/section_definitions/11"
+              "/packages/15/section_definitions/15"
             ],
             "quantities": [
               {
@@ -62131,115 +63897,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "inchi",
-                "description": "CAS inchi.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "inchi_key",
-                "description": "CAS inchi key.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "smile",
-                "description": "CAS smile.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "canonical_smile",
-                "description": "CAS canonical smile.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "StringEditQuantity"
-                    }
-                  ]
-                },
-                "name": "molecular_formula",
-                "description": "CAS molecular formula.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "eln": [
-                    {
-                      "component": "NumberEditQuantity"
-                    }
-                  ]
-                },
-                "name": "molecular_mass",
-                "description": "CAS molecular mass.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "unit": "dalton"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
-                "m_parent_sub_section": "quantities",
                 "name": "cas_synonyms",
                 "description": "CAS synonyms.",
                 "type": {
@@ -62257,7 +63914,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_experimental_properties",
-                "sub_section": "/packages/15/section_definitions/12",
+                "sub_section": "/packages/15/section_definitions/28",
                 "repeats": true
               },
               {
@@ -62265,17 +63922,17 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_property_citations",
-                "sub_section": "/packages/15/section_definitions/13",
+                "sub_section": "/packages/15/section_definitions/29",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 15,
+            "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
-            "name": "SampleID",
-            "description": "A base section that can be used for sample IDs. If the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nquantities are provided, the sample_id will be automatically created as a combination\nof these four quantities.",
+            "name": "ReadableIdentifiers",
+            "description": "A base section that can be used to generate readable IDs. If the `owner`, `short_name`, `institute`, and `creation_datetime`\nquantities are provided, the lab_id will be automatically created as a combination\nof these four quantities.",
             "base_sections": [
               "/packages/14/section_definitions/0"
             ],
@@ -62309,8 +63966,8 @@ window.nomadArtifacts = {
                     }
                   ]
                 },
-                "name": "sample_owner",
-                "description": "Name or alias of the process operator, e.g. jmp",
+                "name": "owner",
+                "description": "Alias for the owner of the identified thing. This should be unique within the\ninstitute.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62328,8 +63985,8 @@ window.nomadArtifacts = {
                     }
                   ]
                 },
-                "name": "creation_datetime",
-                "description": "Creation date of the sample.",
+                "name": "datetime",
+                "description": "A datetime associated with the identified thing. In case of an `Activity`, this\nshould be the starting time and, in case of an `Entity`, the creation time.",
                 "type": {
                   "type_kind": "custom",
                   "type_data": "nomad.metainfo.metainfo._Datetime"
@@ -62346,8 +64003,8 @@ window.nomadArtifacts = {
                     }
                   ]
                 },
-                "name": "sample_short_name",
-                "description": "A short name of the sample (the identifier scribed on the smaple,\nor in the sample container), e.g. 4001-8, YAG-2-34.\nThis is to be managed and decided internally by the labs,\nalthough we recomend to avoid the following characters on it: \"_\", \"/\", \"\" and \".\"",
+                "name": "short_name",
+                "description": "A short name of the the identified thing (e.g. the identifier scribed on the\nsample, the process number, or machine name), e.g. 4001-8, YAG-2-34.\nThis is to be managed and decided internally by the labs, although we recommend\nto avoid the following characters in it: \"_\", \"/\", \"\\\" and \".\".",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62364,8 +64021,8 @@ window.nomadArtifacts = {
                     }
                   ]
                 },
-                "name": "sample_id",
-                "description": "Full sample id. Ideally a human readable sample id convention,\nwhich is simple, understandable and still having chances of becoming unique.\nIf the `sample_owner`, `sample_short_name`, `\u00ecnstitute`, and `creation_datetime`\nare provided, this will be formed automatically by joining these components by an underscore (_).\nSpaces in any of the individual components will be replaced with hyphens (-).\nAn example would be hzb_oah_20200602_4001-08",
+                "name": "lab_id",
+                "description": "Full readable id. Ideally a human readable id convention, which is simple,\nunderstandable and still have chances of becoming unique.\nIf the `owner`, `short_name`, `\u00ecnstitute`, and `datetime` are provided, this will\nbe formed automatically by joining these components by an underscore (_).\nSpaces in any of the individual components will be replaced with hyphens (-).\nAn example would be hzb_oah_20200602_4001-08.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62375,7 +64032,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 16,
+            "m_parent_index": 32,
             "m_parent_sub_section": "section_definitions",
             "name": "PublicationReference",
             "description": "A base section that can be used for references.",

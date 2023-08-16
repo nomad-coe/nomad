@@ -1,0 +1,14 @@
+definitions:
+  name: My custom schemas
+  sections:
+    MyCASSubstance:
+      base_sections:
+        - nomad.datamodel.metainfo.basesections.PureSubstance
+        - nomad.datamodel.data.EntryData
+
+data:
+  m_def: MyCASSubstance
+  name: My PbI2 CAS Substance
+  pure_substance:
+    m_def: nomad.datamodel.metainfo.basesections.CASPureSubstanceSection
+    name: Lead Iodide

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 import datetime
 import re
 from typing import (
@@ -30,11 +30,14 @@ from ase.data import (
     atomic_numbers,
     atomic_masses,
 )
+import requests
 if TYPE_CHECKING:
     from structlog.stdlib import (
         BoundLogger,
     )
-
+from nomad.atomutils import (
+    Formula,
+)
 from nomad import (
     utils,
 )
@@ -61,6 +64,125 @@ from nomad.datamodel.results import (
     ElementalComposition as ResultsElementalComposition,
     Material,
 )
+from nomad.datamodel.metainfo.annotations import (
+    ELNAnnotation,
+)
+
+
+PUB_CHEM_PUG_PATH = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound'
+CAS_API_PATH = 'https://commonchemistry.cas.org/api'
+EXTERNAL_API_TIMEOUT = 5
+
+
+def pub_chem_api_get_properties(cid: int, properties: Iterable[str]) -> requests.Response:
+    '''
+    Function for performing a get request to the PubChem PUG API to get properties for a
+    given compound identifier.
+
+    Args:
+        cid (int): The compound identifier of the compound of interest.
+        properties (Iterable[str]): The properties to retrieve the value for.
+
+    Returns:
+        requests.Response: The response as returned from the PubChem PUG API.
+    '''
+    return requests.get(
+        url=f'{PUB_CHEM_PUG_PATH}/cid/{cid}/property/{str.join(",", properties)}/JSON',
+        timeout=EXTERNAL_API_TIMEOUT,
+    )
+
+
+def pub_chem_api_get_synonyms(cid: int) -> requests.Response:
+    '''
+    Function for performing a get request to the PubChem PUG API to get properties for a
+    given compound identifier.
+
+    Args:
+        cid (int): The compound identifier of the compound of interest.
+
+    Returns:
+        requests.Response: The response as returned from the PubChem PUG API.
+    '''
+    return requests.get(
+        url=f'{PUB_CHEM_PUG_PATH}/cid/{cid}/synonyms/JSON',
+        timeout=EXTERNAL_API_TIMEOUT,
+    )
+
+
+def pub_chem_api_search(path: str, search: str) -> requests.Response:
+    '''
+    Function for performing a get request to the PubChem PUG API to search the given path
+    for a given string.
+
+    Args:
+        path (str): The path (property) to search for.
+        search (str): The string to search for a match with.
+
+    Returns:
+        requests.Response: The response as returned from the PubChem PUG API.
+    '''
+    return requests.get(
+        url=f'{PUB_CHEM_PUG_PATH}/{path}/{search}/cids/JSON',
+        timeout=EXTERNAL_API_TIMEOUT,
+    )
+
+
+def cas_api_search(search: str) -> requests.Response:
+    '''
+    Function for performing a get request to the CAS API to search for a match with the
+    given string.
+
+    Args:
+        search (str): The string to search for a match with.
+
+    Returns:
+        requests.Response: The response as returned from the CAS API.
+    '''
+    return requests.get(
+        f'{CAS_API_PATH}/search?q={search}',
+        timeout=EXTERNAL_API_TIMEOUT,
+    )
+
+
+def cas_api_details(cas_rn: str) -> requests.Response:
+    '''
+    Function for performing a get request to the CAS API to get the details for the
+    substance with the given CAS registry number.
+
+    Args:
+        cas_rn (str): The CAS registry number of the substance for which to get details.
+
+    Returns:
+        requests.Response: The response as returned from the CAS API.
+    '''
+    return requests.get(
+        f'{CAS_API_PATH}/detail?cas_rn={cas_rn}',
+        timeout=EXTERNAL_API_TIMEOUT,
+    )
+
+
+def is_cas_rn(candidate: str) -> bool:
+    '''
+    Help function for checking if a candidate string is a valid CAS Registry Number.
+
+    Args:
+        candidate (str): The candidate string to be checked.
+
+    Returns:
+        bool: Whether or not the candidate string is a valid CAS Registry Number.
+    '''
+    try:
+        match = re.fullmatch(
+            r'(?P<p1>\d{2,7})-(?P<p2>\d{2})-(?P<check>\d{1})',
+            candidate
+        )
+        check = sum([
+            int(c) * (i + 1) for i, c
+            in enumerate(reversed(match.group('p1') + match.group('p2')))
+        ]) % 10
+        return int(match.group('check')) == check
+    except (AttributeError, TypeError):
+        return False
 
 
 class BaseSection(ArchiveSection):
@@ -168,6 +290,43 @@ class Entity(BaseSection):
     )
 
 
+class ActivityStep(ArchiveSection):
+    '''
+    Any dependant step of an `Activity`.
+    '''
+    m_def = Section()
+    name = Quantity(
+        type=str,
+        description='''
+        A short and descriptive name for this step.
+        ''',
+        a_eln=ELNAnnotation(
+            component='StringEditQuantity',
+            label='Step name',
+        ),
+    )
+    start_time = Quantity(
+        type=Datetime,
+        description='''
+        Optionally, the starting time of the activity step. If omitted, it is assumed to
+        follow directly after the previous step.
+        ''',
+        a_eln=ELNAnnotation(
+            component='DateTimeEditQuantity',
+            label='Starting time'
+        ),
+    )
+    comment = Quantity(
+        type=str,
+        description='''
+        Any additional information about the step not captured by the other fields.
+        ''',
+        a_eln=ELNAnnotation(
+            component='RichTextEditQuantity',
+        ),
+    )
+
+
 class Activity(BaseSection):
     '''
     An action that has a temporal extension and for some time depends on some entity.
@@ -180,11 +339,6 @@ class Activity(BaseSection):
         description='The date and time when this activity was started.',
         a_eln=dict(component='DateTimeEditQuantity', label='Starting Time'),
     )
-    end_time = Quantity(
-        type=Datetime,
-        description='The date and time when this activity was done.',
-        a_eln=dict(component='DateTimeEditQuantity', label='Ending Time'),
-    )
     method = Quantity(
         type=str,
         description='A short consistent handle for the applied method.',
@@ -193,6 +347,13 @@ class Activity(BaseSection):
         type=str,
         description='location of the experiment.',
         a_eln=dict(component='StringEditQuantity'),
+    )
+    steps = SubSection(
+        section_def=ActivityStep,
+        description='''
+        An ordered list of all the dependant steps that make up this activity.
+        ''',
+        repeats=True,
     )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
@@ -212,6 +373,123 @@ class Activity(BaseSection):
             archive.results.eln.methods.append(self.method)
         else:
             archive.results.eln.methods.append(self.m_def.name)
+
+
+class SectionReference(ArchiveSection):
+    '''
+    A section used for referencing another section.
+    '''
+    name = Quantity(
+        type=str,
+        description='A short descriptive name for the role of this reference.',
+        a_eln=ELNAnnotation(
+            component='StringEditQuantity',
+        )
+    )
+    reference = Quantity(
+        type=ArchiveSection,
+        description='A reference to a NOMAD archive section.',
+        a_eln=ELNAnnotation(
+            component='ReferenceEditQuantity',
+            label='Section Reference',
+        ),
+    )
+
+
+class EntityReference(SectionReference):
+    '''
+    A section used for referencing an Entity.
+    '''
+    reference = Quantity(
+        type=Entity,
+        description='A reference to a NOMAD `Entity` entry.',
+        a_eln=ELNAnnotation(
+            component='ReferenceEditQuantity',
+            label='Entity Reference',
+        ),
+    )
+    lab_id = Quantity(
+        type=str,
+        description='''
+        The readable identifier for the entity.
+        ''',
+        a_eln=ELNAnnotation(
+            component='StringEditQuantity'
+        ),
+    )
+
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer for the `EntityReference` class.
+        Will attempt to fill the `reference` from the `lab_id` or vice versa.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        super(EntityReference, self).normalize(archive, logger)
+        if self.reference is None and self.lab_id is not None:
+            from nomad.search import search, MetadataPagination
+            query = {
+                'results.eln.lab_ids': self.lab_id
+            }
+            search_result = search(
+                owner='all',
+                query=query,
+                pagination=MetadataPagination(page_size=1),
+                user_id=archive.metadata.main_author.user_id)
+            if search_result.pagination.total > 0:
+                entry_id = search_result.data[0]["entry_id"]
+                upload_id = search_result.data[0]["upload_id"]
+                self.reference = f'../uploads/{upload_id}/archive/{entry_id}#data'
+                if search_result.pagination.total > 1:
+                    logger.warn(
+                        f'Found {search_result.pagination.total} entries with lab_id: '
+                        f'"{self.lab_id}". Will use the first one found.'
+                    )
+            else:
+                logger.warn(
+                    f'Found no entries with lab_id: "{self.lab_id}".'
+                )
+        elif self.lab_id is None and self.reference is not None:
+            self.lab_id = self.reference.lab_id
+        if self.name is None and self.lab_id is not None:
+            self.name = self.lab_id
+
+
+class ExperimentStep(ActivityStep):
+    '''
+    Any dependant step of an `Experiment`.
+    '''
+    activity = Quantity(
+        type=Activity,
+        description='''
+        The activity that makes up this step of the experiment.
+        ''',
+        a_eln=ELNAnnotation(
+            component='ReferenceEditQuantity',
+        ),
+    )
+
+
+class Experiment(Activity):
+    '''
+    A section for grouping activities together into an experiment.
+    '''
+    steps = Activity.steps.m_copy()
+    steps.section_def = ExperimentStep
+
+
+class Collection(Entity):
+    '''
+    A section for grouping entities together into a collection.
+    '''
+    entities = SubSection(
+        section_def=EntityReference,
+        description='References to the entities that make up the collection.',
+        repeats=True,
+    )
 
 
 class ElementalComposition(ArchiveSection):
@@ -401,54 +679,28 @@ class Instrument(Entity):
             archive.results.eln.instruments.append(self.name)
 
 
-class Process(Activity):
+class InstrumentReference(EntityReference):
     '''
-    A planned process which results in physical changes in a specified input material.
-    [ obi : prs obi : mc obi : fg obi : jf obi : bp ]
-
-    Synonyms:
-     - preparative method
-     - sample preparation
-     - sample preparative method
-     - material transformations
+    A section used for referencing an Instrument.
     '''
-    m_def = Section(
-        links=['http://purl.obolibrary.org/obo/OBI_0000094'],
-    )
-
-
-class Measurement(Activity):
-    '''
-    A planned process with the objective to produce information about the material entity
-    that is the evaluant, by physically examining it or its proxies. [ obi : pppb ]
-    '''
-    m_def = Section(
-        links=['http://purl.obolibrary.org/obo/OBI_0000070'],
-    )
-
-
-class SynthesisMethod(Process):
-    '''
-    A method used to synthesise a sample.
-    '''
-    m_def = Section(
-        links=['http://purl.obolibrary.org/obo/CHMO_0001301'],
+    reference = Quantity(
+        type=Instrument,
+        description='A reference to a NOMAD `Instrument` entry.',
+        a_eln=ELNAnnotation(
+            component='ReferenceEditQuantity',
+            label='Instrument Reference',
+        ),
     )
 
 
 class Component(ArchiveSection):
     '''
-    A section for describing a component and its role in an ensemble.
+    A section for describing a component and its role in a composite system.
     '''
     name = Quantity(
         type=str,
         description='A short name for the component.',
-        a_eln=dict(component='StringEditQuantity', label='Component name'),
-    )
-    system = Quantity(
-        type=Reference(System.m_def),
-        description='A reference to the component system.',
-        a_eln=dict(component='ReferenceEditQuantity'),
+        a_eln=dict(component='StringEditQuantity', label='Component label'),
     )
     mass = Quantity(
         type=np.float64,
@@ -456,10 +708,26 @@ class Component(ArchiveSection):
         unit='kg',
         a_eln=dict(component='NumberEditQuantity', defaultDisplayUnit='mg'),
     )
+    mass_fraction = Quantity(
+        type=np.float64,
+        description='The mass fraction of the component in the composite system.',
+        a_eln=dict(component='NumberEditQuantity'),
+    )
+
+
+class SystemComponent(Component):
+    '''
+    A section for describing a system component and its role in a composite system.
+    '''
+    system = Quantity(
+        type=Reference(System.m_def),
+        description='A reference to the component system.',
+        a_eln=dict(component='ReferenceEditQuantity'),
+    )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
-        The normalizer for the `Component` class. If none is set, the normalizer
+        The normalizer for the `SystemComponent` class. If none is set, the normalizer
         will set the name of the component to be that of the referenced system if it has
         one.
 
@@ -468,20 +736,137 @@ class Component(ArchiveSection):
             normalized.
             logger ('BoundLogger'): A structlog logger.
         '''
-        super(Component, self).normalize(archive, logger)
+        super(SystemComponent, self).normalize(archive, logger)
         if self.name is None and self.system is not None:
             self.name = self.system.name
 
 
-class Ensemble(System):
+class PureSubstanceSection(ArchiveSection):
     '''
-    A base section for an ensemble of material systems. Each component of the ensemble is
-    of a (sub)type of `System`.
+    A sub section for describing any elemental, molecular or single phase pure substance.
+    '''
+    name = Quantity(
+        type=str,
+        description='A short name for the substance.',
+        a_eln=dict(component='StringEditQuantity', label='Substance name'),
+    )
+    iupac_name = Quantity(
+        type=str,
+        description='IUPAC name.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    molecular_formula = Quantity(
+        type=str,
+        description='Molecular formula.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    molecular_mass = Quantity(
+        type=np.dtype(np.float64),
+        unit='Da',
+        description='Molecular mass.',
+        a_eln=dict(
+            component='NumberEditQuantity',
+            defaultDisplayUnit='Da',
+        ),
+    )
+    inchi = Quantity(
+        type=str,
+        description='Inchi.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    inchi_key = Quantity(
+        type=str,
+        description='Inchi key.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    smile = Quantity(
+        type=str,
+        description='Smile.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    canonical_smile = Quantity(
+        type=str,
+        description='Canonical smile.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    cas_number = Quantity(
+        type=str,
+        description='CAS number.',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+
+
+class PureSubstanceComponent(Component):
+    '''
+    A section for describing a substance component and its role in a composite system.
+    '''
+    substance_name = Quantity(
+        type=str,
+        description='''
+        The name of the substance within the section where this component is contained.
+        ''',
+        a_eln=dict(
+            component='StringEditQuantity'
+        )
+    )
+    pure_substance = SubSection(
+        section_def=PureSubstanceSection,
+        description='''
+        Section describing the pure substance that is the component.
+        ''',
+    )
+
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer for the `PureSubstanceComponent` class. If none is set, the
+        normalizer will set the name of the component to be the molecular formula of the
+        substance.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        super(PureSubstanceComponent, self).normalize(archive, logger)
+        if self.substance_name and self.pure_substance is None:
+            self.pure_substance = PureSubstanceSection(
+                name=self.substance_name
+            )
+        if self.name is None and self.pure_substance is not None:
+            self.name = self.pure_substance.molecular_formula
+
+
+def elemental_composition_from_formula(formula: Formula) -> List[ElementalComposition]:
+    '''
+    Help function for generating list of `ElementalComposition` instances from
+    `nomad.atomutils.Formula` item
+
+    Args:
+        formula (Formula): The `nomad.atomutils.Formula` item
+
+    Returns:
+        List[ElementalComposition]: List of filled `ElementalComposition` items
+    '''
+    mass_fractions = formula.mass_fractions()
+    return [
+        ElementalComposition(
+            element=element,
+            atomic_fraction=fraction,
+            mass_fraction=mass_fractions[element],
+        )
+        for element, fraction in formula.atomic_fractions().items()
+    ]
+
+
+class CompositeSystem(System):
+    '''
+    A base section for a material systems composed of components.
+    Each component of the composite system is of a (sub)type of `System`.
     '''
     components = SubSection(
         description='''
-        A list of all the components of the ensemble containing a name, reference to the
-        system section and mass of that component.
+        A list of all the components of the composite system containing a name, reference
+        to the system section and mass of that component.
         ''',
         section_def=Component,
         repeats=True,
@@ -556,13 +941,13 @@ class Ensemble(System):
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
-        The normalizer for the `Ensemble` class. If the elemental composition list is
+        The normalizer for the `CompositeSystem` class. If the elemental composition list is
         empty, the normalizer will iterate over the components and extract all the
         elements for populating the elemental composition list. If masses are provided for
         all components and the elemental composition of all components contain atomic
         fractions the normalizer will also calculate the atomic fractions for the
-        ensemble. The populated elemental composition list is added to the results by the
-        normalizer in the `System` super class.
+        composite system. The populated elemental composition list is added to the results
+        by the normalizer in the `System` super class.
 
         Args:
             archive (EntryArchive): The archive containing the section that is being
@@ -571,18 +956,43 @@ class Ensemble(System):
         '''
         if logger is None:
             logger = utils.get_logger(__name__)
+        mass_fractions = [component.mass_fraction for component in self.components]
+        if mass_fractions.count(None) == 1:
+            empty_index = mass_fractions.index(None)
+            mass_fractions.pop(empty_index)
+            self.components[empty_index].mass_fraction = 1 - sum(mass_fractions)
         if not self.elemental_composition:
-            from pint import UnitRegistry
-            ureg = UnitRegistry()
-
             mass_dict: Dict[str, float] = {}
-            for component in self.components:
-                if component.mass is None:
-                    mass = None
+            if any(component.mass is None for component in self.components):
+                if all(component.mass is None for component in self.components):
+                    masses = [component.mass_fraction for component in self.components]
                 else:
-                    mass = component.mass.to(ureg.kilogram).magnitude
-                component_dict = self._atomic_to_mass(
-                    component.system.elemental_composition, mass)
+                    mass = next(
+                        component.mass.to(ureg.kilogram).magnitude
+                        for component in self.components if component.mass is not None
+                    )
+                    masses = [
+                        mass * component.mass_fraction
+                        if component.mass is None and component.mass_fraction is not None
+                        else component.mass for component in self.components
+                    ]
+            else:
+                masses = [
+                    component.mass.to(ureg.kilogram).magnitude
+                    for component in self.components
+                ]
+            for component, mass in zip(self.components, masses):
+                if isinstance(component, PureSubstanceComponent):
+                    try:
+                        formula = Formula(component.pure_substance.molecular_formula)
+                        elemental_composition = elemental_composition_from_formula(formula)
+                    except ValueError:
+                        elemental_composition = []
+                elif isinstance(component, SystemComponent):
+                    elemental_composition = component.system.elemental_composition
+                else:
+                    elemental_composition = []
+                component_dict = self._atomic_to_mass(elemental_composition, mass)
                 for element, mass in component_dict.items():
                     if element in mass_dict and mass is not None:
                         mass_dict[element] += mass
@@ -592,12 +1002,185 @@ class Ensemble(System):
         for comp in self.elemental_composition:
             comp.normalize(archive, logger)
 
-        super(Ensemble, self).normalize(archive, logger)
+        super(CompositeSystem, self).normalize(archive, logger)
 
 
-class Substance(System):
+class CompositeSystemReference(EntityReference):
     '''
-    A base section for any elemental, molecular of single phase substance.
+    A section used for referencing a CompositeSystem.
+    '''
+    reference = Quantity(
+        type=CompositeSystem,
+        description='A reference to a NOMAD `CompositeSystem` entry.',
+        a_eln=ELNAnnotation(
+            component='ReferenceEditQuantity',
+            label='Composite System Reference',
+        ),
+    )
+
+
+class ProcessStep(ActivityStep):
+    '''
+    Any dependant step of a `Process`.
+    '''
+    duration = Quantity(
+        type=float,
+        unit='second',
+        description='''
+        The duration time of the process step.
+        ''',
+        a_eln=ELNAnnotation(
+            component='NumberEditQuantity',
+            defaultDisplayUnit='second',
+        ),
+    )
+
+
+class Process(Activity):
+    '''
+    A planned process which results in physical changes in a specified input material.
+    [ obi : prs obi : mc obi : fg obi : jf obi : bp ]
+
+    Synonyms:
+     - preparative method
+     - sample preparation
+     - sample preparative method
+     - material transformations
+    '''
+    m_def = Section(
+        links=['http://purl.obolibrary.org/obo/OBI_0000094'],
+    )
+    end_time = Quantity(
+        type=Datetime,
+        description='The date and time when this process was finished.',
+        a_eln=dict(component='DateTimeEditQuantity', label='Ending Time'),
+    )
+    steps = SubSection(
+        section_def=ProcessStep,
+        description='''
+        An ordered list of all the dependant steps that make up this activity.
+        ''',
+        repeats=True,
+    )
+    instruments = SubSection(
+        section_def=InstrumentReference,
+        description='''
+        A list of all the instruments and their role in this process.
+        ''',
+        repeats=True,
+    )
+    samples = SubSection(
+        section_def=CompositeSystemReference,
+        description='''
+        The samples as that have undergone the process.
+        ''',
+        repeats=True,
+    )
+
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer for the `Process` class.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        super(Process, self).normalize(archive, logger)
+        if (
+            self.datetime is not None
+            and all(step.duration is not None for step in self.steps)
+            and any(step.start_time is None for step in self.steps)
+        ):
+            start = self.datetime
+            for step in self.steps:
+                if step.start_time is None:
+                    step.start_time = start
+                start += datetime.timedelta(seconds=step.duration.magnitude)
+            if self.end_time is None and start > self.datetime:
+                self.end_time = start
+
+
+class AnalysisResult(ArchiveSection):
+    '''
+    A section for the results of an `Analysis` process.
+    '''
+    pass
+
+
+class Analysis(Activity):
+    '''
+    A planned process that produces output data from input data.
+
+    Synonyms:
+     - data processing
+     - data analysis
+    '''
+    m_def = Section(
+        links=['http://purl.obolibrary.org/obo/OBI_0200000']
+    )
+    inputs = SubSection(
+        section_def=SectionReference,
+        description='The input data of the analysis.',
+        repeats=True,
+    )
+    outputs = SubSection(
+        section_def=AnalysisResult,
+        description='The output data of the analysis.',
+        repeats=True,
+    )
+
+
+class SynthesisMethod(Process):
+    '''
+    A method used to synthesise a sample.
+    '''
+    m_def = Section(
+        links=['http://purl.obolibrary.org/obo/CHMO_0001301'],
+    )
+
+
+class MeasurementResult(ArchiveSection):
+    '''
+    A section for the results of an `Measurement` process.
+    '''
+    pass
+
+
+class Measurement(Activity):
+    '''
+    A planned process with the objective to produce information about the material entity
+    that is the evaluant, by physically examining it or its proxies. [ obi : pppb ]
+    '''
+    m_def = Section(
+        links=['http://purl.obolibrary.org/obo/OBI_0000070'],
+    )
+    samples = SubSection(
+        section_def=CompositeSystemReference,
+        description='''
+        A list of all the samples measured during the measurement.
+        ''',
+        repeats=True,
+    )
+    instruments = SubSection(
+        section_def=InstrumentReference,
+        description='''
+        A list of all the instruments and their role in this process.
+        ''',
+        repeats=True,
+    )
+    results = SubSection(
+        section_def=MeasurementResult,
+        description='''
+        The result of the measurement.
+        ''',
+        repeats=True,
+    )
+
+
+class PureSubstance(System):
+    '''
+    A base section for any elemental, molecular, or single phase pure substance.
     '''
     m_def = Section(
         links=['http://purl.obolibrary.org/obo/CHEBI_23367'],
@@ -614,11 +1197,6 @@ class Substance(System):
         ''',
         a_eln=dict(component='StringEditQuantity', label='Substance ID'),
     )
-    molecular_formula = Quantity(
-        type=str,
-        description='Molecular formula.',
-        a_eln=dict(component='StringEditQuantity'),
-    )
     description = Quantity(
         type=str,
         description='''
@@ -629,6 +1207,12 @@ class Substance(System):
             component='RichTextEditQuantity',
             label='Detailed substance description',
         ),
+    )
+    pure_substance = SubSection(
+        section_def=PureSubstanceSection,
+        description='''
+        Section with properties describing the substance.
+        '''
     )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
@@ -641,32 +1225,196 @@ class Substance(System):
             archive (EntryArchive): The archive that is being normalized.
             logger ('BoundLogger'): A structlog logger.
         '''
-        super(Substance, self).normalize(archive, logger)
+        super(PureSubstance, self).normalize(archive, logger)
         if logger is None:
             logger = utils.get_logger(__name__)
-        from nomad.atomutils import Formula
-
-        if self.molecular_formula:
+        if self.pure_substance and self.pure_substance.molecular_formula:
             if not archive.results:
                 archive.results = Results()
             if not archive.results.material:
                 archive.results.material = Material()
-
             try:
-                formula = Formula(self.molecular_formula)
-                formula.populate(archive.results.material)
+                formula = Formula(self.pure_substance.molecular_formula)
+                try:
+                    formula.populate(archive.results.material)
+                except ValueError:
+                    logger.info('Not overwriting existing results.material.')
                 if not self.elemental_composition:
-                    mass_fractions = formula.mass_fractions()
-                    for element, fraction in formula.atomic_fractions().items():
-                        self.elemental_composition.append(
-                            ElementalComposition(
-                                element=element,
-                                atomic_fraction=fraction,
-                                mass_fraction=mass_fractions[element],
-                            )
-                        )
+                    self.elemental_composition = elemental_composition_from_formula(formula)
             except Exception as e:
                 logger.warn('Could not analyse chemical formula.', exc_info=e)
+
+
+class PubChemPureSubstanceSection(PureSubstanceSection):
+    '''
+    A section for pure substances existing as "compounds" in the PubChem database.
+    '''
+    m_def = Section(
+        label='PubChem Pure Substance Section',
+    )
+    pub_chem_cid = Quantity(
+        type=int,
+        a_eln=dict(
+            component='NumberEditQuantity',
+        ),
+    )
+    pub_chem_link = Quantity(
+        type=str,
+        a_eln=dict(
+            component='StringEditQuantity',
+        ),
+    )
+
+    def _populate_from_cid(self, logger: 'BoundLogger') -> None:
+        '''
+        Private method for populating unfilled properties by searching the PubChem using
+        the CID in `pub_chem_cid`.
+
+        Args:
+            logger (BoundLogger): A structlog logger.
+        '''
+        properties = {
+            'Title': 'name',
+            'IUPACName': 'iupac_name',
+            'MolecularFormula': 'molecular_formula',
+            'ExactMass': 'molecular_mass',
+            'InChI': 'inchi',
+            'InChIKey': 'inchi_key',
+            'IsomericSMILES': 'smile',
+            'CanonicalSMILES': 'canonical_smile',
+        }
+        response = pub_chem_api_get_properties(cid=self.pub_chem_cid, properties=properties)
+        if not response.ok:
+            logger.warn(f'Property request to PubChem responded with: {response}')
+            return
+        self.pub_chem_link = f'https://pubchem.ncbi.nlm.nih.gov/compound/{self.pub_chem_cid}'
+        try:
+            property_values = response.json()['PropertyTable']['Properties'][0]
+        except (KeyError, IndexError):
+            property_values = {}
+        for property_name in properties:
+            if getattr(self, properties[property_name], None) is None:
+                try:
+                    setattr(
+                        self,
+                        properties[property_name],
+                        property_values[property_name],
+                    )
+                except KeyError:
+                    logger.warn(
+                        f'Property "{property_name}" missing from PubChem response.'
+                    )
+        if self.cas_number is None:
+            response = pub_chem_api_get_synonyms(cid=self.pub_chem_cid)
+            if not response.ok:
+                logger.warn(f'Synonyms request to PubChem responded with: {response}')
+                return
+            response_dict = response.json()
+            try:
+                synonyms = response_dict['InformationList']['Information'][0]['Synonym']
+            except (KeyError, IndexError):
+                synonyms = []
+            for synonym in synonyms:
+                if is_cas_rn(synonym):
+                    self.cas_number = synonym
+                    break
+
+    def _pub_chem_search_unique(self, search: str, path: str, logger: 'BoundLogger') -> bool:
+        '''
+        Private method for searching the PubChem API for CIDs using the provided `path`
+        and `search` strings.
+
+        Args:
+            search (str): The string containing the search value.
+            path (str): The path to search the string for.
+            logger (BoundLogger): A structlog logger.
+
+        Returns:
+            bool: _description_
+        '''
+        response = pub_chem_api_search(path=path, search=search)
+        if response.status_code == 404:
+            logger.info(f'No results for PubChem search for {path}="{search}".')
+            return False
+        elif not response.ok:
+            logger.warn(f'PubChem search for {path}="{search}" yielded: {response}')
+            return False
+        try:
+            cids = response.json()['IdentifierList']['CID']
+        except KeyError:
+            logger.warn(f'CID search request to PubChem response missing CID list.')
+            return False
+        if len(cids) == 0:
+            return False
+        elif len(cids) > 1:
+            urls = [
+                f'https://pubchem.ncbi.nlm.nih.gov/compound/{cid}' for cid in cids
+            ]
+            logger.warn(
+                f'Search for PubChem CID yielded {len(cids)} results: '
+                f'{", ".join(urls)}. Using {urls[0]}'
+            )
+        self.pub_chem_cid = cids[0]
+        return True
+
+    def _find_cid(self, logger: 'BoundLogger') -> None:
+        '''
+        Private method for finding the PubChem CID using the filled attributes in the
+        following order:
+
+        1. `smile`
+        2. `canonical_smile`
+        3. `inchi_key`
+        4. `iupac_name`
+        5. `name`
+        6. `molecular_formula`
+
+        The first hit will populate the `pub_chem_cid` attribute and return.
+
+        Args:
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        for search, path in (
+                (self.smile, 'smiles'),
+                (self.canonical_smile, 'smiles'),
+                (self.inchi_key, 'inchikey'),
+                (self.iupac_name, 'name'),
+                (self.name, 'name'),
+                (self.molecular_formula, 'fastformula'),
+                (self.name, 'fastformula'),
+                (self.cas_number, 'name')):
+            if search and self._pub_chem_search_unique(search, path, logger):
+                self._populate_from_cid(logger)
+
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer method for the `PubChemSubstanceSection` class.
+        This method will attempt to get data on the substance instance from the PubChem
+        PUG REST API: https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest
+        If a PubChem CID is specified the details are retrieved directly.
+        Otherwise a search query is made for the filled attributes in the following order:
+        1. `smile`
+        2. `canonical_smile`
+        3. `inchi_key`
+        4. `iupac_name`
+        5. `name`
+        6. `molecular_formula`
+        7. `cas_number`
+
+        Args:
+            archive (EntryArchive): The archive that is being normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        if logger is None:
+            logger = utils.get_logger(__name__)
+
+        if self.pub_chem_cid:
+            if any(getattr(self, value) is None for value in self.m_def.all_quantities):
+                self._populate_from_cid(logger)
+        else:
+            self._find_cid(logger)
+
+        super(PubChemPureSubstanceSection, self).normalize(archive, logger)
 
 
 class CASExperimentalProperty(ArchiveSection):
@@ -705,10 +1453,13 @@ class CASPropertyCitation(ArchiveSection):
     )
 
 
-class CASSubstance(Substance):
+class CASPureSubstanceSection(PureSubstanceSection):
     '''
-    A base section for any Substance with a CAS number.
+    A base section for any `PureSubstance` with a CAS number.
     '''
+    m_def = Section(
+        label='CAS Pure Substance Section',
+    )
     cas_uri = Quantity(
         type=str,
         description='CAS uri',
@@ -730,37 +1481,6 @@ class CASSubstance(Substance):
         a_eln=dict(component='FileEditQuantity'),
         a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'),
     )
-    inchi = Quantity(
-        type=str,
-        description='CAS inchi.',
-        a_eln=dict(component='StringEditQuantity'),
-    )
-    inchi_key = Quantity(
-        type=str,
-        description='CAS inchi key.',
-        a_eln=dict(component='StringEditQuantity'),
-    )
-    smile = Quantity(
-        type=str,
-        description='CAS smile.',
-        a_eln=dict(component='StringEditQuantity'),
-    )
-    canonical_smile = Quantity(
-        type=str,
-        description='CAS canonical smile.',
-        a_eln=dict(component='StringEditQuantity'),
-    )
-    molecular_formula = Quantity(
-        type=str,
-        description='CAS molecular formula.',
-        a_eln=dict(component='StringEditQuantity'),
-    )
-    molecular_mass = Quantity(
-        type=np.dtype(np.float64),
-        unit='Da',
-        description='CAS molecular mass.',
-        a_eln=dict(component='NumberEditQuantity'),
-    )
     cas_experimental_properties = SubSection(
         section_def=CASExperimentalProperty,
         repeats=True,
@@ -779,18 +1499,15 @@ class CASSubstance(Substance):
         '''
         Private method for populating the attributes from a call to the CAS API using
         the `cas_number`.
-        Will overwrite exisiting CAS attributes if the query provides a value for them.
+        Will overwrite existing CAS attributes if the query provides a value for them.
         I.e. all attributes that begin with `cas_`.
 
         Args:
             archive (EntryArchive): The archive that is being normalized.
             logger ('BoundLogger'): A structlog logger.
         '''
-        import httpx
-        response = httpx.get(
-            f'https://commonchemistry.cas.org/api/detail?cas_rn={self.cas_number}',
-            timeout=2)
-        if response.status_code == 200:
+        response = cas_api_details(cas_rn=self.cas_number)
+        if response.ok:
             response_dict = response.json()
 
             self.cas_uri = response_dict.get("uri", None)
@@ -870,10 +1587,8 @@ class CASSubstance(Substance):
         Returns:
             bool: Whether the search found a unique result.
         '''
-        import httpx
-        response = httpx.get(
-            f'https://commonchemistry.cas.org/api/search?q={search}', timeout=2)
-        if response.status_code == 200:
+        response = cas_api_search(search=search)
+        if response.ok:
             response_dict = response.json()
             n_hits = response_dict.get("count", 0)
             if n_hits == 0:
@@ -921,11 +1636,12 @@ class CASSubstance(Substance):
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
-        The normalizer method for the `CASSubstance` class.
-        This method will attempt to get data on the substance instance from the CAS API:
-        https://commonchemistry.cas.org/api-overview
+        The normalizer method for the `CASPureSubstanceSection` class.
+        This method will attempt to get data on the pure substance instance from the CAS
+        API: https://commonchemistry.cas.org/api-overview
         If a CAS number is specified the details are retrieved directly.
         Otherwise a search query is made for the filled attributes in the following order:
+
         1. `cas_name`
         2. `inchi`
         3. `inchi_key`
@@ -937,69 +1653,81 @@ class CASSubstance(Substance):
             archive (EntryArchive): The archive that is being normalized.
             logger ('BoundLogger'): A structlog logger.
         '''
-        super(CASSubstance, self).normalize(archive, logger)
         if logger is None:
             logger = utils.get_logger(__name__)
 
         if self.cas_number:
             self.cas_number = self.cas_number.strip()
-            self._populate_from_cas(archive, logger)
+            if any(getattr(self, value) is None for value in self.m_def.all_quantities):
+                self._populate_from_cas(archive, logger)
         else:
             self._find_cas(archive, logger)
 
-        super(CASSubstance, self).normalize(archive, logger)
+        super(CASPureSubstanceSection, self).normalize(archive, logger)
 
 
-class SampleID(ArchiveSection):
+class ReadableIdentifiers(ArchiveSection):
     '''
-    A base section that can be used for sample IDs.
-    If the `sample_owner`, `sample_short_name`, `ìnstitute`, and `creation_datetime`
-    quantities are provided, the sample_id will be automatically created as a combination
+    A base section that can be used to generate readable IDs.
+    If the `owner`, `short_name`, `institute`, and `creation_datetime`
+    quantities are provided, the lab_id will be automatically created as a combination
     of these four quantities.
     '''
     institute = Quantity(
         type=str,
-        description='Alias/short name of the home institute of the owner, i.e. *HZB*.',
+        description='''
+        Alias/short name of the home institute of the owner, i.e. *HZB*.
+        ''',
         a_eln=dict(component='StringEditQuantity'),
     )
-    sample_owner = Quantity(
+    owner = Quantity(
         type=str,
         shape=[],
-        description='Name or alias of the process operator, e.g. jmp',
+        description='''
+        Alias for the owner of the identified thing. This should be unique within the
+        institute.
+        ''',
         a_eln=dict(component='StringEditQuantity'),
     )
-    creation_datetime = Quantity(
+    datetime = Quantity(
         type=Datetime,
-        description='Creation date of the sample.',
+        description='''
+        A datetime associated with the identified thing. In case of an `Activity`, this
+        should be the starting time and, in case of an `Entity`, the creation time.
+        ''',
         a_eln=dict(component='DateTimeEditQuantity'),
     )
-    sample_short_name = Quantity(
+    short_name = Quantity(
         type=str,
-        description='''A short name of the sample (the identifier scribed on the smaple,
-         or in the sample container), e.g. 4001-8, YAG-2-34.
-         This is to be managed and decided internally by the labs,
-         although we recomend to avoid the following characters on it: "_", "/", "\" and "."''',
+        description='''
+        A short name of the the identified thing (e.g. the identifier scribed on the
+        sample, the process number, or machine name), e.g. 4001-8, YAG-2-34.
+        This is to be managed and decided internally by the labs, although we recommend
+        to avoid the following characters in it: "_", "/", "\\" and ".".
+        ''',
         a_eln=dict(component='StringEditQuantity'),
     )
-    sample_id = Quantity(
+    lab_id = Quantity(
         type=str,
-        description='''Full sample id. Ideally a human readable sample id convention,
-        which is simple, understandable and still having chances of becoming unique.
-        If the `sample_owner`, `sample_short_name`, `ìnstitute`, and `creation_datetime`
-        are provided, this will be formed automatically by joining these components by an underscore (_).
+        description='''
+        Full readable id. Ideally a human readable id convention, which is simple,
+        understandable and still have chances of becoming unique.
+        If the `owner`, `short_name`, `ìnstitute`, and `datetime` are provided, this will
+        be formed automatically by joining these components by an underscore (_).
         Spaces in any of the individual components will be replaced with hyphens (-).
-        An example would be hzb_oah_20200602_4001-08''',
+        An example would be hzb_oah_20200602_4001-08.
+        ''',
         a_eln=dict(component='StringEditQuantity'),
     )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
         '''
-        The normalizer for the `SampleID` class.
-        If sample owner is not filled the field will be filled by the first two letters of
+        The normalizer for the `ReadableIdentifiers` class.
+        If owner is not filled the field will be filled by the first two letters of
         the first name joined with the first two letters of the last name of the author.
         If the institute is not filled a institute abreviations will be constructed from
         the author's affiliation.
-        If no creation datetime is filled, the datetime will be taken from the `datetime`
+        If no datetime is filled, the datetime will be taken from the `datetime`
         property of the parent, if it exists, otherwise the current date and time will be
         used.
         If no short name is filled, the name will be taken from the parent name, if it
@@ -1012,15 +1740,15 @@ class SampleID(ArchiveSection):
             normalized.
             logger ('BoundLogger'): A structlog logger.
         '''
-        super(SampleID, self).normalize(archive, logger)
+        super(ReadableIdentifiers, self).normalize(archive, logger)
 
-        if self.sample_owner is None or self.institute is None:
+        if self.owner is None or self.institute is None:
             from unidecode import unidecode
             author = archive.metadata.main_author
-            if author and self.sample_owner is None:
+            if author and self.owner is None:
                 first_short = unidecode(author.first_name)[:2]
                 last_short = unidecode(author.last_name)[:2]
-                self.sample_owner = first_short + last_short
+                self.owner = first_short + last_short
             if author and self.institute is None:
                 unwanted_words = ("zu", "of", "the", "fur", "für")
                 institute = ''
@@ -1040,37 +1768,37 @@ class SampleID(ArchiveSection):
                         institute = ''.join([w[:1] for w in wanted_words[:3]]).upper()
                 self.institute = institute
 
-        if self.creation_datetime is None:
+        if self.datetime is None:
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
                 self.creation_datetime = self.m_parent.datetime
             else:
                 self.creation_datetime = datetime.datetime.now()
 
-        if self.sample_short_name is None:
+        if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):
                 name = self.m_parent.name
             elif archive.metadata.entry_name:
                 name = archive.metadata.entry_name
             else:
                 name = archive.metadata.mainfile
-            self.sample_short_name = re.sub(r'_|\s', '-', name.split('.')[0])
+            self.short_name = re.sub(r'_|\s', '-', name.split('.')[0])
 
-        if self.institute and self.sample_short_name and self.sample_owner and self.creation_datetime:
+        if self.institute and self.short_name and self.owner and self.creation_datetime:
             creation_date = self.creation_datetime.strftime('%Y%m%d')
-            sample_owner = self.sample_owner.replace(' ', '-')
-            sample_id_list = [self.institute, sample_owner, creation_date, self.sample_short_name]
-            self.sample_id = '_'.join(sample_id_list)
+            owner = self.owner.replace(' ', '-')
+            lab_id_list = [self.institute, owner, creation_date, self.short_name]
+            self.lab_id = '_'.join(lab_id_list)
 
         if not archive.results:
             archive.results = Results(eln=ELN())
         if not archive.results.eln:
             archive.results.eln = ELN()
 
-        if self.sample_id:
+        if self.lab_id:
             if not archive.results.eln.lab_ids:
                 archive.results.eln.lab_ids = []
-            if self.sample_id not in archive.results.eln.lab_ids:
-                archive.results.eln.lab_ids.append(self.sample_id)
+            if self.lab_id not in archive.results.eln.lab_ids:
+                archive.results.eln.lab_ids.append(self.lab_id)
 
         if not archive.results.eln.sections:
             archive.results.eln.sections = []
@@ -1142,14 +1870,14 @@ class PublicationReference(ArchiveSection):
         super(PublicationReference, self).normalize(archive, logger)
         from nomad.datamodel.datamodel import EntryMetadata
         import dateutil.parser
-        import httpx
+        import requests
 
         # Parse journal name, lead author and publication date from crossref
         if self.DOI_number:
             try:
                 url = f'https://api.crossref.org/works/{self.DOI_number}?mailto=contact@nomad-lab.eu'
-                timeout = 2
-                r = httpx.get(url, timeout=timeout)
+                timeout = 5
+                r = requests.get(url, timeout=timeout)
                 if r.status_code == 200:
                     temp_dict = r.json()
                     # make sure the doi has the prefix https://doi.org/
