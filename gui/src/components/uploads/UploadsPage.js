@@ -257,7 +257,7 @@ export function UploadsPage() {
         }
       })
       .catch(errors.raiseError)
-    api.get(`/uploads?is_published=false&page_size=10000&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
+    api.get(`/uploads?is_published=false&roles=main_author&page_size=10000&order_by=${(order_by === 'published' ? 'publish_time' : order_by)}&order=${order}`)
       .then(response => {
         setUnpublished(response)
       })

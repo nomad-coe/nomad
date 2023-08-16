@@ -388,7 +388,7 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
         ), id='invalid-credentials'),
     pytest.param(
         dict(
-            query_params={'is_processing': True},
+            query_params={'is_processing': True, 'roles': 'main_author'},
             expected_upload_ids=['id_processing'],
         ), id='filter-is_processing-True'),
     pytest.param(
@@ -472,7 +472,32 @@ def get_upload_entries_metadata(entries: List[Dict[str, Any]]) -> Iterable[Entry
         dict(
             query_params={'order_by': 'upload_id'},
             expected_status_code=422
-        ), id='pag-invalid-order_by')])
+        ), id='pag-invalid-order_by'),
+    pytest.param(
+        dict(
+            user='other_test_user',
+            query_params={'roles': 'coauthor'},
+            expected_pagination={'total': 2}
+        ), id='roles-coauthor'),
+    pytest.param(
+        dict(
+            user='other_test_user',
+            query_params={'roles': 'reviewer'},
+            expected_pagination={'total': 2}
+        ), id='roles-reviewer'),
+    pytest.param(
+        dict(
+            user='test_user',
+            query_params={'roles': 'main_author'},
+            expected_pagination={'total': 10}
+        ), id='roles-main-author'),
+    pytest.param(
+        dict(
+            user='other_test_user',
+            query_params={'roles': ['reviewer', 'coauthor']},
+            expected_pagination={'total': 4}
+        ), id='roles-multiple')
+])
 def test_get_uploads(
         client, mongo_module, test_auth_dict, example_data, kwargs):
     ''' Makes a get request to uploads in various different ways. '''
