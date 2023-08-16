@@ -1,0 +1,193 @@
+{
+  "cas_api_search": {
+    "count": 1,
+    "results": [
+      {
+        "rn": "10101-63-0",
+        "name": "Lead iodide (PbI<sub>2</sub>)",
+        "image": "<svg width=\"104.52\" viewBox=\"0 0 3484 712\" text-rendering=\"auto\" stroke-width=\"1\" stroke-opacity=\"1\" stroke-miterlimit=\"10\" stroke-linejoin=\"miter\" stroke-linecap=\"square\" stroke-dashoffset=\"0\" stroke-dasharray=\"none\" stroke=\"black\" shape-rendering=\"auto\" image-rendering=\"auto\" height=\"21.36\" font-weight=\"normal\" font-style=\"normal\" font-size=\"12\" font-family=\"'Dialog'\" fill-opacity=\"1\" fill=\"black\" color-rendering=\"auto\" color-interpolation=\"auto\" xmlns=\"http://www.w3.org/2000/svg\"><g><g stroke=\"white\" fill=\"white\"><rect y=\"0\" x=\"0\" width=\"3484\" stroke=\"none\" height=\"712\"/></g><g transform=\"translate(32866,32758)\" text-rendering=\"geometricPrecision\" stroke-width=\"44\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><line y2=\"-32422\" y1=\"-32422\" x2=\"-31376\" x1=\"-32424\" fill=\"none\"/><line y2=\"-32422\" y1=\"-32422\" x2=\"-29648\" x1=\"-30694\" fill=\"none\"/><text y=\"-32242\" xml:space=\"preserve\" x=\"-31338\" stroke=\"none\" font-size=\"433.3333\" font-family=\"sans-serif\">Pb</text><text y=\"-32242\" xml:space=\"preserve\" x=\"-32762\" stroke=\"none\" font-size=\"433.3333\" font-family=\"sans-serif\">I</text><text y=\"-32242\" xml:space=\"preserve\" x=\"-29611\" stroke=\"none\" font-size=\"433.3333\" font-family=\"sans-serif\">I</text></g></g></svg>"
+      }
+    ]
+  },
+  "cas_api_details": {
+    "uri": "substance/pt/10101630",
+    "rn": "10101-63-0",
+    "name": "Lead iodide (PbI<sub>2</sub>)",
+    "image": "<svg width=\"104.52\" viewBox=\"0 0 3484 712\" text-rendering=\"auto\" stroke-width=\"1\" stroke-opacity=\"1\" stroke-miterlimit=\"10\" stroke-linejoin=\"miter\" stroke-linecap=\"square\" stroke-dashoffset=\"0\" stroke-dasharray=\"none\" stroke=\"black\" shape-rendering=\"auto\" image-rendering=\"auto\" height=\"21.36\" font-weight=\"normal\" font-style=\"normal\" font-size=\"12\" font-family=\"'Dialog'\" fill-opacity=\"1\" fill=\"black\" color-rendering=\"auto\" color-interpolation=\"auto\" xmlns=\"http://www.w3.org/2000/svg\"><g><g stroke=\"white\" fill=\"white\"><rect y=\"0\" x=\"0\" width=\"3484\" stroke=\"none\" height=\"712\"/></g><g transform=\"translate(32866,32758)\" text-rendering=\"geometricPrecision\" stroke-width=\"44\" stroke-linejoin=\"round\" stroke-linecap=\"round\"><line y2=\"-32422\" y1=\"-32422\" x2=\"-31376\" x1=\"-32424\" fill=\"none\"/><line y2=\"-32422\" y1=\"-32422\" x2=\"-29648\" x1=\"-30694\" fill=\"none\"/><text y=\"-32242\" xml:space=\"preserve\" x=\"-31338\" stroke=\"none\" font-size=\"433.3333\" font-family=\"sans-serif\">Pb</text><text y=\"-32242\" xml:space=\"preserve\" x=\"-32762\" stroke=\"none\" font-size=\"433.3333\" font-family=\"sans-serif\">I</text><text y=\"-32242\" xml:space=\"preserve\" x=\"-29611\" stroke=\"none\" font-size=\"433.3333\" font-family=\"sans-serif\">I</text></g></g></svg>",
+    "inchi": "InChI=1S/2HI.Pb/h2*1H;/q;;+2/p-2",
+    "inchiKey": "InChIKey=RQQRAHKHDFPBMC-UHFFFAOYSA-L",
+    "smile": "[Pb](I)I",
+    "canonicalSmile": "I[Pb]I",
+    "molecularFormula": "I<sub>2</sub>Pb",
+    "molecularMass": "",
+    "experimentalProperties": [
+      {
+        "name": "Melting Point",
+        "property": "402 \u00b0C",
+        "sourceNumber": 1
+      },
+      {
+        "name": "Density",
+        "property": "6.16 g/cm\u00b3",
+        "sourceNumber": 1
+      }
+    ],
+    "propertyCitations": [
+      {
+        "docUri": "",
+        "sourceNumber": 1,
+        "source": "Hazardous Substances Data Bank data were obtained from the National Library of Medicine (US)"
+      }
+    ],
+    "synonyms": [
+      "Lead iodide (PbI<sub>2</sub>)",
+      "C.I. 77613",
+      "Plumbous iodide",
+      "Lead diiodide",
+      "Lead iodide",
+      "Lead(II) iodide",
+      "Lead diiodide (PbI2)"
+    ],
+    "replacedRns": [
+      "82669-93-0"
+    ],
+    "hasMolfile": true
+  },
+  "pub_chem_api_get_properties": {
+    "24601": {
+      "PropertyTable": {
+        "Properties": [
+          {
+            "CID": 24601,
+            "MolecularFormula": "CsI",
+            "CanonicalSMILES": "[I-].[Cs+]",
+            "IsomericSMILES": "[I-].[Cs+]",
+            "InChI": "InChI=1S/Cs.HI/h;1H/q+1;/p-1",
+            "InChIKey": "XQPRBTXUXXVTKB-UHFFFAOYSA-M",
+            "IUPACName": "cesium;iodide",
+            "ExactMass": "259.80992",
+            "Title": "Cesium iodide"
+          }
+        ]
+      }
+    },
+    "24931": {
+      "PropertyTable": {
+        "Properties": [
+          {
+            "CID": 24931,
+            "MolecularFormula": "I2Pb",
+            "CanonicalSMILES": "I[Pb]I",
+            "IsomericSMILES": "I[Pb]I",
+            "InChI": "InChI=1S/2HI.Pb/h2*1H;/q;;+2/p-2",
+            "InChIKey": "RQQRAHKHDFPBMC-UHFFFAOYSA-L",
+            "IUPACName": "diiodolead",
+            "ExactMass": "461.78560",
+            "Title": "Lead(II) iodide"
+          }
+        ]
+      }
+    }
+  },
+  "pub_chem_api_get_synonyms": {
+    "24601": {
+      "InformationList": {
+        "Information": [
+          {
+            "CID": 24601,
+            "Synonym": [
+              "CESIUM IODIDE",
+              "7789-17-5",
+              "Cesiumiodide",
+              "Caesium iodide",
+              "Cesium iodide (CsI)",
+              "Cesium monoiodide",
+              "Dicesium diiodide",
+              "Tricesium triiodide",
+              "cesium;iodide",
+              "Cesium iodide (Cs2I2)",
+              "Cesium iodide (Cs3I3)",
+              "EINECS 232-145-2",
+              "MFCD00010962",
+              "NSC 15199",
+              "UNII-U1P3GVC56L",
+              "U1P3GVC56L",
+              "NSC-15199",
+              "EC 232-145-2",
+              "Cs-I",
+              "Cesium iodide, ultra dry",
+              "WLN: CS I",
+              "CESIUM IODIDE [MI]",
+              "DTXSID3064859",
+              "XQPRBTXUXXVTKB-UHFFFAOYSA-M",
+              "NSC15199",
+              "AKOS015833256",
+              "AKOS015902666",
+              "SB66393",
+              "LS-52804",
+              "SY023491",
+              "Cesium iodide, 99.9% Trace metals grade",
+              "C2205",
+              "FT-0623568",
+              "Q50703",
+              "A839266"
+            ]
+          }
+        ]
+      }
+    },
+    "24931": {
+      "InformationList": {
+        "Information": [
+          {
+            "CID": 24931,
+            "Synonym": [
+              "Lead(II) iodide",
+              "10101-63-0",
+              "diiodolead",
+              "Lead diiodide",
+              "Plumbous iodide",
+              "PbI2",
+              "Lead iodide (PbI2)",
+              "Plumbum jodatum",
+              "Blei(II)-iodid",
+              "UNII-OTL90F2GLT",
+              "HSDB 636",
+              "EINECS 233-256-9",
+              "Lead(II) Iodide [for Perovskite precursor]",
+              "MFCD00011163",
+              "Lead(II) Iodide (99.99%, trace metals basis) [for Perovskite precursor]",
+              "Diiodure de plomb",
+              "I2Pb",
+              "LID (CHRIS Code)",
+              "I2-Pb",
+              "Lead(II) iodide,99%",
+              "Lead(II) iodide, 99%",
+              "NA9188",
+              "AKOS015833817",
+              "12684-19-4",
+              "C.I. 77613",
+              "CS-0111981",
+              "FT-0627762",
+              "H10699",
+              "EN300-7396592",
+              "Lead(II) iodide, 99.999% trace metals basis",
+              "Q408805",
+              "Lead(II) iodide, 99.999% trace metals basis, perovskite grade",
+              "Lead(II) iodide, beads, -10 mesh, 99.999% trace metals basis"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "pub_chem_api_search": {
+    "IdentifierList": {
+      "CID": [
+        24931,
+        9933991,
+        22323341
+      ]
+    }
+  }
+}

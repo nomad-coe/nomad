@@ -1,0 +1,13 @@
+definitions:
+  name: My custom schemas
+  sections:
+    MySubstance:
+      base_sections:
+        - nomad.datamodel.metainfo.basesections.PureSubstance
+        - nomad.datamodel.data.EntryData
+
+data:
+  m_def: MySubstance
+  name: My substance
+  pure_substance:
+    molecular_formula: PbI2

@@ -14,6 +14,7 @@ nav:
     - Schemas:
       - How to write a schema: schemas/basics.md
       - How to define ELNs: schemas/elns.md
+      - How to use base sections: schemas/base_sections.md
       - How to define tabular data: schemas/tabular.md
       - How to define workflows: schemas/workflows.md
       - How to reference hdf5: schemas/hdf5.md

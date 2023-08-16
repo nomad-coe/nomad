@@ -1,0 +1,14 @@
+definitions:
+  name: My custom schemas
+  sections:
+    MyPubChemSubstance:
+      base_sections:
+        - nomad.datamodel.metainfo.basesections.PureSubstance
+        - nomad.datamodel.data.EntryData
+
+data:
+  m_def: MyPubChemSubstance
+  name: My PbI2 PubChem Substance
+  pure_substance:
+    m_def: nomad.datamodel.metainfo.basesections.PubChemPureSubstanceSection
+    name: PbI2
