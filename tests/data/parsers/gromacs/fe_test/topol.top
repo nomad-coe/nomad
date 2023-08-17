@@ -1,0 +1,145 @@
+;
+;  File 'res.top'   was generated
+;	By user: hessb (2102)
+;	On host: pckr59
+;	At date: Wed Sep 14 17:33:28 2005
+;
+;	This is your topology file
+;	tryptophane in water
+;
+; Include forcefield parameters
+#include "gromos53a6.ff/forcefield.itp"
+
+[ bondtypes ]
+ DUM  DUM   2   0.0  0.0
+
+[ dihedraltypes ]
+ CH3  C     2   gi_1
+ DUM  DUM   2   0.0  0.0
+
+[ moleculetype ]
+; Name            nrexcl
+Protein             3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
+     1        CH3      1    TRP     CB      1      0 15.035    DUM      0 15.035
+     2          C      1    TRP     CG      2  -0.21 12.011    DUM      0 12.011
+     3          C      1    TRP    CD1      2  -0.14 12.011    DUM      0 12.011
+     4         HC      1    TRP    HD1      2   0.14  1.008    DUM      0  1.008
+     5          C      1    TRP    CD2      2      0 12.011    DUM      0 12.011
+     6         NR      1    TRP    NE1      2   -0.1 14.0067    DUM      0 14.0067
+     7          H      1    TRP    HE1      2   0.31  1.008    DUM      0  1.008
+     8          C      1    TRP    CE2      2      0 12.011    DUM      0 12.011
+     9          C      1    TRP    CE3      3  -0.14 12.011    DUM      0 12.011
+    10         HC      1    TRP    HE3      3   0.14  1.008    DUM      0  1.008
+    11          C      1    TRP    CZ2      4  -0.14 12.011    DUM      0 12.011
+    12         HC      1    TRP    HZ2      4   0.14  1.008    DUM      0  1.008
+    13          C      1    TRP    CZ3      5  -0.14 12.011    DUM      0 12.011
+    14         HC      1    TRP    HZ3      5   0.14  1.008    DUM      0  1.008
+    15          C      1    TRP    CH2      6  -0.14 12.011    DUM      0 12.011
+    16         HC      1    TRP    HH2      6   0.14  1.008    DUM      0  1.008
+
+[ bonds ]
+;  ai    aj funct            c0            c1            c2            c3
+#ifdef GENERATE_ERROR
+    1     2     2    ;gb_27    ;gb_27
+#else
+    1     2     2    gb_27    ;gb_27
+#endif
+    2     3     2    gb_10    ;gb_10
+    2     5     2    gb_16    gb_16
+    3     4     2     gb_3     gb_3
+    3     6     2    gb_10    gb_10
+    5     8     2    gb_16    gb_16
+    5     9     2    gb_16    gb_16
+    6     7     2     gb_2     gb_2
+    6     8     2    gb_10    gb_10
+    8    11     2    gb_16    gb_16
+    9    10     2     gb_3     gb_3
+    9    13     2    gb_16    gb_16
+   11    12     2     gb_3     gb_3
+   11    15     2    gb_16    gb_16
+   13    14     2     gb_3     gb_3
+   13    15     2    gb_16    gb_16
+   15    16     2     gb_3     gb_3
+
+[ angles ]
+;  ai    aj    ak funct            c0            c1            c2            c3
+    1     2     3     2    ga_37    ga_37
+    1     2     5     2    ga_37    ga_37
+    3     2     5     2     ga_7     ga_7
+    2     3     4     2    ga_36    ga_36
+    2     3     6     2     ga_7     ga_7
+    4     3     6     2    ga_36    ga_36
+    2     5     8     2     ga_7     ga_7
+    2     5     9     2    ga_39    ga_39
+    8     5     9     2    ga_27    ga_27
+    3     6     7     2    ga_36    ga_36
+    3     6     8     2     ga_7     ga_7
+    7     6     8     2    ga_36    ga_36
+    5     8     6     2     ga_7     ga_7
+    5     8    11     2    ga_27    ga_27
+    6     8    11     2    ga_39    ga_39
+    5     9    10     2    ga_25    ga_25
+    5     9    13     2    ga_27    ga_27
+   10     9    13     2    ga_25    ga_25
+    8    11    12     2    ga_25    ga_25
+    8    11    15     2    ga_27    ga_27
+   12    11    15     2    ga_25    ga_25
+    9    13    14     2    ga_25    ga_25
+    9    13    15     2    ga_27    ga_27
+   14    13    15     2    ga_25    ga_25
+   11    15    13     2    ga_27    ga_27
+   11    15    16     2    ga_25    ga_25
+   13    15    16     2    ga_25    ga_25
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3
+    1     5     3     2     2     gi_1  0 0
+    2     9     8     5     2     gi_1     gi_1
+    2     5     8     6     2     gi_1     gi_1
+    2     3     6     8     2     gi_1     gi_1
+    3     2     6     4     2     gi_1     gi_1
+    3     6     8     5     2     gi_1     gi_1
+    3     2     5     8     2     gi_1     gi_1
+    5     2     3     6     2     gi_1     gi_1
+    5     8    11    15     2     gi_1     gi_1
+    5     9    13    15     2     gi_1     gi_1
+    6     3     8     7     2     gi_1     gi_1
+    6    11     5     8     2     gi_1     gi_1
+    8     5     9    13     2     gi_1     gi_1
+    8    11    15    13     2     gi_1     gi_1
+    9     5    13    10     2     gi_1     gi_1
+    9     5     8    11     2     gi_1     gi_1
+    9    13    15    11     2     gi_1     gi_1
+   11     8    15    12     2     gi_1     gi_1
+   13     9    15    14     2     gi_1     gi_1
+   15    11    13    16     2     gi_1     gi_1
+
+; Include Position restraint file
+#ifdef POSRES
+#include "posre.itp"
+#endif
+
+; Include water topology
+#include "gromos53a6.ff/spce.itp"
+
+#ifdef POSRES_WATER
+; Position restraint for each water oxygen
+[ position_restraints ]
+;  i funct       fcx        fcy        fcz
+   1    1       1000       1000       1000
+#endif
+
+; Include generic topology for ions
+#include "gromos53a6.ff/ions.itp"
+
+[ system ]
+; Name
+tryptophane in water
+
+[ molecules ]
+; Compound        #mols
+Protein             1
+SOL               500

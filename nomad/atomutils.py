@@ -1267,7 +1267,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
             bonds.append(tuple(contribution.atom_indices))
 
     # get the system times
-    system_timestep = 1.0
+    system_timestep = 1.0 * ureg.picosecond
 
     def approx(a, b, rel_tol=1e-09, abs_tol=0.0):
         return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
@@ -1292,7 +1292,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     metainfo_universe = create_empty_universe(
         n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments,
         atom_resindex=atom_resindex, residue_segindex=residue_segindex, flag_trajectory=True,
-        flag_velocities=True, timestep=system_timestep)
+        flag_velocities=True, timestep=system_timestep.magnitude)
 
     # set the positions and velocities
     for frame_ind, frame in enumerate(metainfo_universe.trajectory):

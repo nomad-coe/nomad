@@ -1,0 +1,70 @@
+                   :-) GROMACS - gmx mdrun, VERSION 5.1.4 (-:
+
+                            GROMACS is written by:
+     Emile Apol      Rossen Apostolov  Herman J.C. Berendsen    Par Bjelkmar   
+ Aldert van Buuren   Rudi van Drunen     Anton Feenstra   Sebastian Fritsch 
+  Gerrit Groenhof   Christoph Junghans   Anca Hamuraru    Vincent Hindriksen
+ Dimitrios Karkoulis    Peter Kasson        Jiri Kraus      Carsten Kutzner  
+    Per Larsson      Justin A. Lemkul   Magnus Lundborg   Pieter Meulenhoff 
+   Erik Marklund      Teemu Murtola       Szilard Pall       Sander Pronk   
+   Roland Schulz     Alexey Shvetsov     Michael Shirts     Alfons Sijbers  
+   Peter Tieleman    Teemu Virolainen  Christian Wennberg    Maarten Wolf   
+                           and the project leaders:
+        Mark Abraham, Berk Hess, Erik Lindahl, and David van der Spoel
+
+Copyright (c) 1991-2000, University of Groningen, The Netherlands.
+Copyright (c) 2001-2015, The GROMACS development team at
+Uppsala University, Stockholm University and
+the Royal Institute of Technology, Sweden.
+check out http://www.gromacs.org for more information.
+
+GROMACS is free software; you can redistribute it and/or modify it
+under the terms of the GNU Lesser General Public License
+as published by the Free Software Foundation; either version 2.1
+of the License, or (at your option) any later version.
+
+GROMACS:      gmx mdrun, VERSION 5.1.4
+Executable:   /Users/bonat/GROMACS/BUILD/bin/gmx_mpi
+Data prefix:  /Users/bonat/GROMACS/BUILD
+Command line:
+  gmx_mpi mdrun -notunepme
+
+
+Running on 1 node with total 4 logical cores
+Hardware detected on host iMacBerk.local (the node of MPI rank 0):
+  CPU info:
+    Vendor: GenuineIntel
+    Brand:  Intel(R) Core(TM) i5-6500 CPU @ 3.20GHz
+    SIMD instructions most likely to fit this hardware: AVX2_256
+    SIMD instructions selected at GROMACS compile time: AVX2_256
+
+Reading file topol.tpr, VERSION 5.1.4 (single precision)
+Using 2 MPI processes
+
+
+NOTE: This file uses the deprecated 'group' cutoff_scheme. This will be
+removed in a future release when 'verlet' supports all interaction forms.
+
+starting mdrun 'tryptophane in water'
+20 steps,      0.0 ps.
+
+NOTE: the minimum cell size is smaller than 1.05 times the cell size limit, will not turn on dynamic load balancing
+
+
+Writing final coordinates.
+
+ Average load imbalance: 23.5 %
+ Part of the total run time spent waiting due to load imbalance: 3.6 %
+
+
+NOTE: 8 % of the run time was spent communicating energies,
+      you might want to use the -gcom option of mdrun
+
+
+               Core t (s)   Wall t (s)        (%)
+       Time:        0.093        0.047      200.0
+                 (ns/day)    (hour/ns)
+Performance:       19.428        1.235
+
+Thanx for Using GROMACS - Have a Nice Day
+

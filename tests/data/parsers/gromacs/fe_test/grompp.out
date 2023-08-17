@@ -1,0 +1,8 @@
+Analysing residue names:
+There are:     1    Protein residues
+There are:   500      Water residues
+Analysing Protein...
+Largest charge group radii for Van der Waals: 0.180, 0.165 nm
+Largest charge group radii for Coulomb:       0.180, 0.174 nm
+Using a fourier grid of 20x20x20, spacing 0.123 0.123 0.123
+This run will generate roughly 0 Mb of data
