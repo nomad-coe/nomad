@@ -1,0 +1,85 @@
+                  :-) GROMACS - gmx grompp, VERSION 5.1.4 (-:
+
+                            GROMACS is written by:
+     Emile Apol      Rossen Apostolov  Herman J.C. Berendsen    Par Bjelkmar   
+ Aldert van Buuren   Rudi van Drunen     Anton Feenstra   Sebastian Fritsch 
+  Gerrit Groenhof   Christoph Junghans   Anca Hamuraru    Vincent Hindriksen
+ Dimitrios Karkoulis    Peter Kasson        Jiri Kraus      Carsten Kutzner  
+    Per Larsson      Justin A. Lemkul   Magnus Lundborg   Pieter Meulenhoff 
+   Erik Marklund      Teemu Murtola       Szilard Pall       Sander Pronk   
+   Roland Schulz     Alexey Shvetsov     Michael Shirts     Alfons Sijbers  
+   Peter Tieleman    Teemu Virolainen  Christian Wennberg    Maarten Wolf   
+                           and the project leaders:
+        Mark Abraham, Berk Hess, Erik Lindahl, and David van der Spoel
+
+Copyright (c) 1991-2000, University of Groningen, The Netherlands.
+Copyright (c) 2001-2015, The GROMACS development team at
+Uppsala University, Stockholm University and
+the Royal Institute of Technology, Sweden.
+check out http://www.gromacs.org for more information.
+
+GROMACS is free software; you can redistribute it and/or modify it
+under the terms of the GNU Lesser General Public License
+as published by the Free Software Foundation; either version 2.1
+of the License, or (at your option) any later version.
+
+GROMACS:      gmx grompp, VERSION 5.1.4
+Executable:   /Users/bonat/GROMACS/BUILD/bin/gmx_mpi
+Data prefix:  /Users/bonat/GROMACS/BUILD
+Command line:
+  gmx_mpi grompp -f ./grompp.mdp -c ./conf -p ./topol -maxwarn 10
+
+Ignoring obsolete mdp entry 'optimize_fft'
+Replacing old mdp entry 'verlet-buffer-drift' by 'verlet-buffer-tolerance'
+Replacing old mdp entry 'nstxtcout' by 'nstxout-compressed'
+Replacing old mdp entry 'xtc_precision' by 'compressed-x-precision'
+
+WARNING 1 [file ./grompp.mdp, line 343]:
+  You are using soft-core interactions while the Van der Waals interactions
+  are not decoupled (note that the sc-coul option is only active when using
+  lambda states). Although this will not lead to errors, you will need much
+  more sampling than without soft-core interactions. Consider using
+  sc-alpha=0.
+
+
+NOTE 1 [file ./grompp.mdp]:
+  The group cutoff scheme is deprecated since GROMACS 5.0 and will be
+  removed in a future release when all interaction forms are supported for
+  the verlet scheme. The verlet scheme already scales better, and it is
+  compatible with GPUs and other accelerators.
+
+
+NOTE 2 [file ./grompp.mdp]:
+  With PME there is a minor soft core effect present at the cut-off,
+  proportional to (LJsigma/rcoulomb)^6. This could have a minor effect on
+  energy conservation, but usually other effects dominate. With a common
+  sigma value of 0.34 nm the fraction of the particle-particle potential at
+  the cut-off at lambda=0.5 is around 1.5e-04, while ewald-rtol is 1.0e-05.
+
+
+NOTE 3 [file ./grompp.mdp]:
+  nstcomm < nstcalcenergy defeats the purpose of nstcalcenergy, setting
+  nstcomm to nstcalcenergy
+
+
+NOTE 4 [file ./grompp.mdp]:
+  The Berendsen thermostat does not generate the correct kinetic energy
+  distribution. You might want to consider using the V-rescale thermostat.
+
+Generated 165 of the 1596 non-bonded parameter combinations
+
+WARNING 2 [file topol.top, line 48]:
+  Some parameters for bonded interaction involving perturbed atoms are
+  specified explicitly in state A, but not B - copying A to B
+
+Excluding 3 bonded neighbours molecule type 'Protein'
+Excluding 2 bonded neighbours molecule type 'SOL'
+Number of degrees of freedom in T-Coupling group System is 3045.00
+Estimate for the relative computational load of the PME mesh part: 0.48
+
+There were 4 notes
+
+There were 2 warnings
+
+Thanx for Using GROMACS - Have a Nice Day
+

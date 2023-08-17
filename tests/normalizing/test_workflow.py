@@ -298,6 +298,34 @@ def test_rdf_and_msd(workflow_archive):
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.errors == approx(0.9965870174917716)
 
 
+def test_rdf_2(workflow_archive):
+    archive = workflow_archive(
+        'parsers/gromacs', 'tests/data/parsers/gromacs/fe_test/mdrun.out')
+
+    sec_workflow = archive.workflow2
+    section_md = sec_workflow.results
+
+    assert section_md.radial_distribution_functions[0].type == 'molecular'
+    assert section_md.radial_distribution_functions[0].n_smooth == 2
+    assert section_md.radial_distribution_functions[0].variables_name[0] == 'distance'
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].label == 'SOL-Protein'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].magnitude == approx(7.624056451320648 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].bins[122].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].value[96] == approx(1.093694948374587)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[0].frame_end == 2
+
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].label == 'SOL-SOL'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].n_bins == 198
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].magnitude == approx(6.389391438961029 * 10**(-10))
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].bins[102].units == 'meter'
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].value[55] == approx(0.8368052672121375)
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_start == 0
+    assert section_md.radial_distribution_functions[0].radial_distribution_function_values[1].frame_end == 2
+
+
 def test_radius_of_gyration(workflow_archive):
     archive = workflow_archive(
         'parsers/gromacs', 'tests/data/parsers/gromacs/protein_small_nowater/md.log')

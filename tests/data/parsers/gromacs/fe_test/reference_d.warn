@@ -1,0 +1,11 @@
+WARNING 1 [file ./grompp.mdp, line 343]:
+  You are using soft-core interactions while the Van der Waals interactions
+  are not decoupled (note that the sc-coul option is only active when using
+  lambda states). Although this will not lead to errors, you will need much
+  more sampling than without soft-core interactions. Consider using
+  sc-alpha=0.
+
+WARNING 2 [file topol.top, line 48]:
+  Some parameters for bonded interaction involving perturbed atoms are
+  specified explicitly in state A, but not B - copying A to B
+
