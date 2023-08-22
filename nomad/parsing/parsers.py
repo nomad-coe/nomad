@@ -132,6 +132,9 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
             # TODO: deal with multiple possible parser specs
             return parser, mainfile_keys
 
+    if parser_name and parser:
+        return parser, None  # Ignore any child entries
+
     return None, None
 
 

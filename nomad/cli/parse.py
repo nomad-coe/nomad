@@ -28,7 +28,8 @@ from .cli import cli
 @click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
 @click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
-@click.option('--parser', help='Skip matching and use the provided parser')
+@click.option('--parser', help='''Skip matching and use the provided parser (format: `parsers/<name>`).
+              Additional selection rules still apply for parsers with multiple main files.''')
 @click.option('--server-context', is_flag=True, default=False, help='Whether to use server context.')
 @click.option('--username', default=None, help='Username for authentication.')
 @click.option('--password', default=None, help='Password for authentication.')
