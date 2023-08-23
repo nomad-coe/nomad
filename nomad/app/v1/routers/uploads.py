@@ -18,6 +18,7 @@
 import os
 import io
 import shutil
+from enum import Enum
 from datetime import datetime
 from typing import Tuple, List, Set, Dict, Any, Optional, Union
 from pydantic import BaseModel, Field, validator
@@ -55,6 +56,12 @@ action_tag = 'uploads/action'
 bundle_tag = 'uploads/bundle'
 
 logger = utils.get_logger(__name__)
+
+
+class UploadRole(str, Enum):
+    main_author = "main_author"
+    reviewer = "reviewer"
+    coauthor = "coauthor"
 
 
 class ProcData(BaseModel):
@@ -444,6 +451,9 @@ async def get_command_examples(user: User = Depends(create_user_dependency(requi
     response_model_exclude_none=True)
 async def get_uploads(
         request: Request,
+        roles: List[UploadRole] = FastApiQuery(
+            None,
+            description='Only return uploads where the user has one of the given roles.'),
         query: UploadProcDataQuery = Depends(upload_proc_data_query_parameters),
         pagination: UploadProcDataPagination = Depends(upload_proc_data_pagination_parameters),
         user: User = Depends(create_user_dependency(required=True))):
@@ -452,8 +462,19 @@ async def get_uploads(
     '''
     # Build query
     mongo_query = Q()
+
     user_id = str(user.user_id)
-    mongo_query &= Q(main_author=user_id) | Q(reviewers=user_id) | Q(coauthors=user_id)
+    if not roles:
+        role_query = Q(main_author=user_id) | Q(reviewers=user_id) | Q(coauthors=user_id)
+    else:
+        role_query = Q()
+        if UploadRole.main_author in roles:
+            role_query |= Q(main_author=user_id)
+        if UploadRole.coauthor in roles:
+            role_query |= Q(coauthors=user_id)
+        if UploadRole.reviewer in roles:
+            role_query |= Q(reviewers=user_id)
+    mongo_query &= role_query
 
     if query.upload_id:
         mongo_query &= Q(upload_id__in=query.upload_id)
