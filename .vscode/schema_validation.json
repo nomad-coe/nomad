@@ -1,0 +1,243 @@
+{
+  "$id": "#tbd",
+  "title": "Nomad Schema",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "properties": {
+    "definitions": {
+      "type": "object",
+      "properties": {
+        "sections": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SectionSpec"
+                }
+              ]
+            }
+          },
+          "errorMessage": {
+            "additionalProperties": "must contain alphanumeric character ([a-z0-9A-Z]), could contain dashes (-), underscores (_), and alphanumerics between."
+          },
+          "description": "Sections are a representation of data and they are the building blocks for archives. Section definitions form a schema and they are the building blocks for the metainfo.",
+          "additionalProperties": false
+        }
+      }
+    },
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DataSpec"
+        }
+      ]
+    }
+  },
+  "type": "object",
+  "description": "A schema validator for nomad schemas.",
+  "additionalProperties": false,
+  "externalDocs": {
+    "url": "https://nomad-lab.eu/prod/v1/docs/schema/basics.html#sections"
+  },
+  "definitions": {
+    "SectionSpec": {
+      "properties": {
+        "quantities": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/QuantitySpec"
+                }
+              ]
+            }
+          },
+          "errorMessage": {
+            "additionalProperties": "must contain alphanumeric character ([a-z0-9A-Z]), could contain dashes (-), underscores (_), and alphanumerics between."
+          }
+        },
+        "sub_sections": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-zA-Z0-9_-]+$": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SubSectionSpec"
+                }
+              ]
+            }
+          },
+          "errorMessage": {
+            "additionalProperties": "must contain alphanumeric character ([a-z0-9A-Z]), could contain dashes (-), underscores (_), and alphanumerics between."
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "Human readable description"
+        },
+        "base_section": {
+          "type": "string",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BaseSectionSpec"
+            }
+          ]
+        }
+      },
+      "type": "object",
+      "description": "Sections are a representation of data and they are the building blocks for archives. Section definitions form a schema and they are the building blocks for the metainfo.",
+      "additionalProperties": true,
+      "externalDocs": {
+        "url": "https://nomad-lab.eu/prod/v1/docs/schema/basics.html#sections"
+      }
+    },
+    "QuantitySpec": {
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Human readable description"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "Author",
+                "Datetime",
+                "User",
+                "bool",
+                "boolean",
+                "float",
+                "int",
+                "integer",
+                "np.float32",
+                "np.float64",
+                "np.int32",
+                "np.int64",
+                "str",
+                "string"
+              ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type_kind", "type_data"],
+              "properties": {
+                "type_kind": {
+                  "type": "string",
+                  "enum": ["Enum"]
+                },
+                "type_data": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "errorMessage": {
+                "pattern": "must be an ENUM of {type_kind: Enum, type_data: [val1, val2]}"
+              }
+            },
+            {
+              "$ref": "#/definitions/ReferenceSpec"
+            }
+          ],
+          "description": "Type of quantity",
+          "errorMessage": "must be of the format str"
+        },
+        "unit": {
+          "type": "string",
+          "anyOf": [
+            {
+              "type": "string"
+            }
+          ],
+          "description": "Unit of quantity",
+          "errorMessage": "Must be a string"
+        },
+        "shape": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["*"]
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "description": "Shape of quantity",
+          "errorMessage": "['*'] or [num] where num is an int. ex: [3, 3] or [4]"
+        }
+      },
+      "type": "object",
+      "description": "Quantities define possible primitive values.",
+      "additionalProperties": true,
+      "externalDocs": {
+        "url": "https://nomad-lab.eu/prod/v1/docs/schema/basics.html#quantities"
+      }
+    },
+    "SubSectionSpec": {
+      "properties": {
+        "section": {
+          "anyOf": [{"type": "string"}, {"type": "object"}],
+          "description": "Must be a valid section"
+        },
+        "repeats": {
+          "type": "boolean",
+          "description": "A boolean that determines whether this subsection can appear multiple times in the parent section."
+        }
+      },
+      "type": "object",
+      "required": [
+        "section"
+      ],
+      "description": "Sub-sections define a part-of-relationship between two sections.",
+      "additionalProperties": true,
+      "externalDocs": {
+        "url": "https://nomad-lab.eu/prod/v1/docs/schema/basics.html#sub-sections"
+      }
+    },
+    "DataSpec": {
+      "type": "object"
+    },
+    "ReferenceSpec": {
+      "type": "string",
+      "pattern": "^[^#]+#[^#]+$",
+      "description": "A reference is a uni-directional link between a source section and a target section.",
+      "externalDocs": "https://nomad-lab.eu/prod/v1/docs/schema/basics.html#references"
+    },
+    "BaseSectionSpec": {
+      "type": "string",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "nomad.datamodel.EntryArchive",
+            "nomad.datamodel.EntryMetadata",
+            "nomad.datamodel.EntryData",
+            "ArchiveSection",
+            "nomad.parsing.tabular.TableData"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^nomad\\.(datamodel\\.metainfo\\.(simulation|eln)|metainfo)\\.\\*$"
+        },
+        {
+          "$ref": "#/definitions/ReferenceSpec"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "Relationship between section definitions that allows us to create more specialized definitions from more abstract definitions.",
+      "externalDocs": {
+        "url": "https://nomad-lab.eu/prod/v1/docs/schema/basics.html#base-sections-and-inheritance"
+      }
+    }
+  }
+}
