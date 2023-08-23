@@ -25,6 +25,9 @@
     "files.watcherExclude": {
       "${workspaceFolder}/.pyenv/**": true,
     },
+    "yaml.schemas": {
+        ".vscode/schema_validation.json": "*.archive.yaml"
+    },
     "launch": {
         "version": "0.2.0",
         "configurations": [
