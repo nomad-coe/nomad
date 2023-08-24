@@ -6,6 +6,15 @@ uses NOMAD software independently is called a *NOMAD OASIS*. A *NOMAD OASIS* doe
 need to be fully isolated. For example, you can publish uploads from your OASIS to the
 central NOMAD installation.
 
+!!! note
+
+    **Register your oasis**
+
+    If you installed (or even just plan to install) a NOMAD Oasis, please take
+    the time to register your Oasis with FAIRmat. This will help us to assist
+    you in an problems and keep you updated on new releases. You can register
+    by filling out this [simple form](https://www.fairmat-nfdi.eu/fairmat/oasis_registration).
+
 ## Quick-start
 
 - Find a linux computer.
@@ -69,23 +78,22 @@ RAM and CPU for running tools like jupyter, if you opt to use NOMAD NORTH.
 
 ### Sharing data through the logtransfer service and data privacy notice
 
-The NOMAD software incorporates the so-called `logtransfer` service. When enabled the service automatically collects 
-and submits non-personalized data to our central NOMAD instance. Currently, this service is in an experimental phase 
-and requires to opt-in to the service. However, in an upcoming version of the NOMAD software this will transition to 
-an opt-out mechanism. See the instructions in the configuration below on how to enable/disable the `logtransfer` 
-service.
+The NOMAD includes a `logtransfer` service. When enabled this service automatically collects
+and transfers non-personalized log-data to us. Currently, this service is experimental
+and requires opt-in. However, in upcoming versions of NOMAD Oasis, we might change to out-out.
+See the instructions in the configuration below on how to enable/disable the `logtransfer`.
 
-The collected data consists of logs as well as aggregated statistics, such as the number of users or the 
-number of uploaded datasets. In any case this data does not personally identify the users of the NOMAD OASIS and all 
-data is in an aggregated and anonymized form.
+The service collects log-data and aggregated statistics, such as the number of users or the
+number of uploaded datasets. In any case this data does not personally identify any users or
+contains any uploaded data. All data is in an aggregated and anonymized form.
 
-The data is solely used for internal purposes, including but not limited to:
+The data is solely used by the NOMAD developers and FAIRmat, including but not limited to:
 
 * Analyzing and monitoring system performance to identify and resolve issues.
 * Improving our NOMAD software based on usage patterns.
 * Generating aggregated and anonymized reports.
 
-We do not share any data collected through the `logtransfer` service with third parties.
+We do not share any data collected through the `logtransfer` service with any third parties.
 
 We may update this data privacy notice from time to time to reflect changes in our data practices.
 We encourage you to review this notice periodically for any updates.
@@ -160,8 +168,8 @@ Changes necessary:
 - The group in the value of the hub's user parameter needs to match the docker group
 on the host. This should ensure that the user which runs the hub, has the rights to access the host's docker.
 - On Windows or MacOS computers you have to run the `app` and `worker` container without `user: '1000:1000'` and the `north` container with `user: root`.
-- To opt-in the `logtransfer` service 
-  ([data notice above](#sharing-data-through-the-logtransfer-service-and-data-privacy-notice)), start `docker compose` 
+- To opt-in the `logtransfer` service
+  ([data notice above](#sharing-data-through-the-logtransfer-service-and-data-privacy-notice)), start `docker compose`
   with the flag `--profile with_logtransfer`. See also below for further necessary adaptations in the `nomad.yaml` file.
 
 A few things to notice:
