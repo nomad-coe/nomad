@@ -23,7 +23,6 @@ from pydantic import BaseModel
 
 from pymongo import ReplaceOne
 from pymongo.database import Database, Collection
-from pymongo.cursor import Cursor
 from nomad import utils
 from nomad.processing import ProcessStatus, Upload, Entry
 from nomad.datamodel import Dataset
@@ -65,24 +64,25 @@ def create_collections_if_needed(db_dst: Database):
     If the collections haven't yet been created, create them by calling .objects() on the
     MongoDocument class.
     '''
-    if 'upload' not in db_dst.collection_names():
+    if 'upload' not in db_dst.list_collection_names():
         Upload.objects()
-    if 'entry' not in db_dst.collection_names():
+    if 'entry' not in db_dst.list_collection_names():
         Entry.objects()
-    if 'dataset' not in db_dst.collection_names():
+    if 'dataset' not in db_dst.list_collection_names():
         Dataset.m_def.a_mongo.objects()
 
 
 def migrate_mongo_uploads(
-        db_src: Database, db_dst: Database, uploads: Cursor, failed_ids_to_file: bool,
+        db_src: Database, db_dst: Database, uploads_query: Any, failed_ids_to_file: bool,
         upload_update: Dict[str, Any], entry_update: Dict[str, Any], overwrite: str,
         fix_problems: bool, dry: bool):
     ''' Converts and/or migrates an upload and all related entries and datasets. '''
     logger = utils.get_logger(__name__)
 
-    number_of_uploads = uploads.count()
+    uploads = db_src.upload.find(uploads_query)
+    number_of_uploads = db_src.upload.count_documents(uploads_query)
     print(f'Found {number_of_uploads} uploads to import.')
-    src_entry_collection = db_src.calc if 'calc' in db_src.collection_names() else db_src.entry
+    src_entry_collection = db_src.calc if 'calc' in db_src.list_collection_names() else db_src.entry
     dataset_cache: Dict[str, _DatasetCacheItem] = {}
     stats = _UpgradeStatistics()
     stats.uploads.total = number_of_uploads

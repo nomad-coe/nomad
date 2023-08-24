@@ -82,6 +82,30 @@ spec:
               name: {{ .Values.keycloak.passwordSecret }}
               key: password
         {{ end }}
+        {{ if .Values.elastic.secret }}
+        - name: NOMAD_ELASTIC_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.elastic.secret }}
+              key: username
+        - name: NOMAD_ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.elastic.secret }}
+              key: password
+        {{ end }}
+        {{ if .Values.mongo.secret }}
+        - name: NOMAD_MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mongo.secret }}
+              key: username
+        - name: NOMAD_MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mongo.secret }}
+              key: password
+        {{ end }}
         command: ["python", "-m", "celery", "-A", "nomad.processing", "worker", "-n", "$(NOMAD_CELERY_NODE_NAME)" {{ if .Values.worker.processes }}, "-c", "{{ .Values.worker.processes }}"{{ end }}{{ if .Values.worker.maxTasksPerChild }}, "--max-tasks-per-child", "{{ .Values.worker.maxTasksPerChild }}"{{ end }}]
         livenessProbe:
           exec:

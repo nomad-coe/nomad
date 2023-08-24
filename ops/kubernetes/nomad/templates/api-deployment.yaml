@@ -135,6 +135,30 @@ spec:
               name: {{ .Values.datacite.secret }}
               key: user
         {{ end }}
+        {{ if .Values.elastic.secret }}
+        - name: NOMAD_ELASTIC_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.elastic.secret }}
+              key: username
+        - name: NOMAD_ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.elastic.secret }}
+              key: password
+        {{ end }}
+        {{ if .Values.mongo.secret }}
+        - name: NOMAD_MONGO_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mongo.secret }}
+              key: username
+        - name: NOMAD_MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mongo.secret }}
+              key: password
+        {{ end }}
         {{ if .Values.north.hubServiceApiTokenSecret }}
         - name: NOMAD_NORTH_HUB_SERVICE_API_TOKEN
           valueFrom:

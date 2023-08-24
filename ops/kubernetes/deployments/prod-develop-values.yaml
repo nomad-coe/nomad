@@ -37,9 +37,11 @@ worker:
 elastic:
   host: elasticsearch.elasticsearch-7.svc.cluster.local
   port: 9200
+  secret: nomad-elastic
 
 mongo:
   host: mongodb://mongodb-0.mongo.mongodb.svc.cluster.local,mongodb-1.mongo.mongodb.svc.cluster.local,mongodb-2.mongo.mongodb.svc.cluster.local/?replicaSet=rs0
+  secret: nomad-mongo
 
 logstash:
   host: logstash.elk.svc.cluster.local

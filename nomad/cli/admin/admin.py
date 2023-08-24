@@ -343,10 +343,9 @@ def migrate_mongo(
     if upload_ids:
         upload_query = {'_id': {'$in': upload_ids}}
     print('Querying uploads...')
-    uploads = db_src.upload.find(upload_query)
 
     migrate.migrate_mongo_uploads(
-        db_src, db_dst, uploads, failed_ids_to_file, upload_update, entry_update, overwrite,
+        db_src, db_dst, upload_query, failed_ids_to_file, upload_update, entry_update, overwrite,
         fix_problems, dry)
 
 

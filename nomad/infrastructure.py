@@ -81,11 +81,15 @@ def setup_files():
 def setup_mongo(client=False):
     ''' Creates connection to mongodb. '''
     global mongo_client
+    kwargs = dict(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+    if config.mongo.username and config.mongo.password:
+        kwargs.update(username=config.mongo.username, password=config.mongo.password)
+
     try:
-        mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+        mongo_client = connect(**kwargs)
     except ConnectionFailure:
         disconnect()
-        mongo_client = connect(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+        mongo_client = connect(**kwargs)
 
     logger.info('setup mongo connection')
     return mongo_client
@@ -93,10 +97,14 @@ def setup_mongo(client=False):
 
 def setup_elastic():
     ''' Creates connection to elastic search. '''
+    http_auth = None
+    if config.elastic.username and config.elastic.password:
+        http_auth = (config.elastic.username, config.elastic.password)
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
-        timeout=config.elastic.timeout, max_retries=10, retry_on_timeout=True)
+        timeout=config.elastic.timeout, max_retries=10, retry_on_timeout=True,
+        http_auth=http_auth)
     logger.info('setup elastic connection')
     from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
     create_v1_indices()
