@@ -56188,6 +56188,7 @@ window.nomadArtifacts = {
                     "json_yml",
                     "mpes",
                     "rii_database",
+                    "sts",
                     "transmission",
                     "xps"
                   ]
@@ -56248,6 +56249,7 @@ window.nomadArtifacts = {
                     "NXaberration_model_ceos",
                     "NXaberration_model_nion",
                     "NXadc",
+                    "NXamplifier",
                     "NXaperture_em",
                     "NXapm",
                     "NXapm_composition_space_results",
@@ -56275,6 +56277,7 @@ window.nomadArtifacts = {
                     "NXapm_paraprobe_results_transcoder",
                     "NXbeam_path",
                     "NXbeam_splitter",
+                    "NXbias_spectroscopy",
                     "NXcalibration",
                     "NXcg_alpha_complex",
                     "NXcg_cylinder_set",
@@ -56298,6 +56301,7 @@ window.nomadArtifacts = {
                     "NXcg_unit_normal_set",
                     "NXchamber",
                     "NXchemical_composition",
+                    "NXcircuit",
                     "NXcircuit_board",
                     "NXclustering",
                     "NXcollectioncolumn",
@@ -56349,11 +56353,13 @@ window.nomadArtifacts = {
                     "NXinteraction_vol_em",
                     "NXion",
                     "NXisocontour",
+                    "NXiv_bias",
                     "NXiv_temp",
                     "NXlab_electro_chemo_mechanical_preparation",
                     "NXlab_sample_mounting",
                     "NXlens_em",
                     "NXlens_opt",
+                    "NXlockin",
                     "NXmagnetic_kicker",
                     "NXmanipulator",
                     "NXmatch_filter",
@@ -56370,6 +56376,7 @@ window.nomadArtifacts = {
                     "NXpeak",
                     "NXpid",
                     "NXpolarizer_opt",
+                    "NXpositioner_sts",
                     "NXprogram",
                     "NXpulser_apm",
                     "NXpump",
@@ -56380,6 +56387,7 @@ window.nomadArtifacts = {
                     "NXregistration",
                     "NXscanbox_em",
                     "NXsensor_scan",
+                    "NXsensor_sts",
                     "NXseparator",
                     "NXsimilarity_grouping",
                     "NXslip_system_set",
@@ -56394,6 +56402,7 @@ window.nomadArtifacts = {
                     "NXspin_rotator",
                     "NXspindispersion",
                     "NXstage_lab",
+                    "NXsts",
                     "NXsubsampling_filter",
                     "NXtransmission",
                     "NXwaveplate",
@@ -74223,6 +74232,11 @@ window.nomadArtifacts = {
         "title": "XPS",
         "description": "This example presents the capabilities of the NOMAD platform to store and standardize XPS data.\nIt shows the generation of a NeXus file according to the\n[NXmpes](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes)\napplication definition and a successive analysis of an example data set.\n"
       },
+      "sts": {
+        "path": "examples/data/uploads/sts.zip",
+        "title": "STS",
+        "description": "AT this moment, the reader works for two types of experiments Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy.\nIt can only transform the data from Nanonis machine generate files into standarized nexus application definition NXsts. In this zip file, the data file are collected from\ntwo specific software versions generic 5e and genric 4.5.\n"
+      },
       "apm": {
         "path": "examples/data/uploads/apm.zip",
         "title": "Electronic Lab Notebook for Atom Probe Microscopy (APM)",
@@ -74377,6 +74391,29 @@ window.nomadArtifacts = {
           "name": "Florian Dobener",
           "email": "florian.dobener@physik.hu-berlin.de"
         },
+        {
+          "name": "Rubel Mozumder",
+          "email": "rubel.mozumder@physik.hu-berlin.de"
+        }
+      ],
+      "privileged": false,
+      "external_mounts": []
+    },
+    "sts": {
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter:latest",
+      "description": "AT this moment, the reader works for two types of experiments, Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can only transform the data from Nanonis machine generated files into standarised nexus application definition NXsts. The present version of STS reader can handle files from two specific software versions generic 5e and genric 4.5.",
+      "short_description": "An example for analyzing SPM (STM /STS) experiment.",
+      "cmd": null,
+      "path_prefix": "lab/tree",
+      "mount_path": "/home/jovyan",
+      "icon": "jupyter_logo.svg",
+      "file_extensions": [
+        "ipynb",
+        "nxs",
+        "h5",
+        "hdf5"
+      ],
+      "maintainer": [
         {
           "name": "Rubel Mozumder",
           "email": "rubel.mozumder@physik.hu-berlin.de"

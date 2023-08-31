@@ -217,6 +217,27 @@ class NORTH(NomadSettings):
                     )
                 ]
             ),
+
+            'sts': NORTHTool(
+                short_description='An example for analyzing SPM (STM /STS) experiment.',
+                description="AT this moment, the reader works for two types of experiments, Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can only transform the data from Nanonis machine generated files into standarised nexus application definition NXsts. The present version of STS reader can handle files from two specific software versions generic 5e and genric 4.5.",
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter:latest',
+                path_prefix='lab/tree',
+                icon='jupyter_logo.svg',
+                mount_path='/home/jovyan',
+                file_extensions=[
+                    'ipynb',
+                    'nxs',
+                    'h5',
+                    'hdf5'
+                ],
+                maintainer=[
+                    NORTHToolMaintainer(
+                        name='Rubel Mozumder',
+                        email='rubel.mozumder@physik.hu-berlin.de'
+                    )
+                ]
+            ),
             'webtop': NORTHTool(
                 description='Baseline webtop image for test',
                 image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop',
