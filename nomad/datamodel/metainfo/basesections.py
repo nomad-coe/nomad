@@ -1669,7 +1669,7 @@ class CASPureSubstanceSection(PureSubstanceSection):
 class ReadableIdentifiers(ArchiveSection):
     '''
     A base section that can be used to generate readable IDs.
-    If the `owner`, `short_name`, `institute`, and `creation_datetime`
+    If the `owner`, `short_name`, `institute`, and `datetime`
     quantities are provided, the lab_id will be automatically created as a combination
     of these four quantities.
     '''
@@ -1749,7 +1749,7 @@ class ReadableIdentifiers(ArchiveSection):
                 first_short = unidecode(author.first_name)[:2]
                 last_short = unidecode(author.last_name)[:2]
                 self.owner = first_short + last_short
-            if author and self.institute is None:
+            if author and self.institute is None and getattr(author, 'affiliation', None):
                 unwanted_words = ("zu", "of", "the", "fur", "für")
                 institute = ''
                 all_words = re.split(' |-|_|,|:|;', unidecode(author.affiliation))
@@ -1770,9 +1770,9 @@ class ReadableIdentifiers(ArchiveSection):
 
         if self.datetime is None:
             if self.m_parent and getattr(self.m_parent, 'datetime', None):
-                self.creation_datetime = self.m_parent.datetime
+                self.datetime = self.m_parent.datetime
             else:
-                self.creation_datetime = datetime.datetime.now()
+                self.datetime = datetime.datetime.now()
 
         if self.short_name is None:
             if self.m_parent and getattr(self.m_parent, 'name', None):
@@ -1783,8 +1783,8 @@ class ReadableIdentifiers(ArchiveSection):
                 name = archive.metadata.mainfile
             self.short_name = re.sub(r'_|\s', '-', name.split('.')[0])
 
-        if self.institute and self.short_name and self.owner and self.creation_datetime:
-            creation_date = self.creation_datetime.strftime('%Y%m%d')
+        if self.institute and self.short_name and self.owner and self.datetime:
+            creation_date = self.datetime.strftime('%Y%m%d')
             owner = self.owner.replace(' ', '-')
             lab_id_list = [self.institute, owner, creation_date, self.short_name]
             self.lab_id = '_'.join(lab_id_list)

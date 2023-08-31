@@ -63932,7 +63932,7 @@ window.nomadArtifacts = {
             "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
             "name": "ReadableIdentifiers",
-            "description": "A base section that can be used to generate readable IDs. If the `owner`, `short_name`, `institute`, and `creation_datetime`\nquantities are provided, the lab_id will be automatically created as a combination\nof these four quantities.",
+            "description": "A base section that can be used to generate readable IDs. If the `owner`, `short_name`, `institute`, and `datetime`\nquantities are provided, the lab_id will be automatically created as a combination\nof these four quantities.",
             "base_sections": [
               "/packages/14/section_definitions/0"
             ],
