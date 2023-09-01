@@ -62724,6 +62724,25 @@ window.nomadArtifacts = {
                   "type_kind": "reference",
                   "type_data": "/packages/15/section_definitions/3"
                 }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Activity ID"
+                    }
+                  ]
+                },
+                "name": "lab_id",
+                "description": "The readable identifier for the activity.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
               }
             ]
           },

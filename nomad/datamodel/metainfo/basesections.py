@@ -471,6 +471,59 @@ class ExperimentStep(ActivityStep):
             component='ReferenceEditQuantity',
         ),
     )
+    lab_id = Quantity(
+        type=str,
+        description='''
+        The readable identifier for the activity.
+        ''',
+        a_eln=ELNAnnotation(
+            component='StringEditQuantity',
+            label='Activity ID',
+        ),
+    )
+
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer for the `ExperimentStep` class.
+        Will attempt to fill the `activity` from the `lab_id` or vice versa.
+        If the activity reference is filled but the start time is not the time will be
+        taken from the `datetime` property of the referenced activity.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        super(ExperimentStep, self).normalize(archive, logger)
+        if self.activity is None and self.lab_id is not None:
+            from nomad.search import search, MetadataPagination
+            query = {
+                'results.eln.lab_ids': self.lab_id
+            }
+            search_result = search(
+                owner='all',
+                query=query,
+                pagination=MetadataPagination(page_size=1),
+                user_id=archive.metadata.main_author.user_id)
+            if search_result.pagination.total > 0:
+                entry_id = search_result.data[0]["entry_id"]
+                upload_id = search_result.data[0]["upload_id"]
+                self.activity = f'../uploads/{upload_id}/archive/{entry_id}#data'
+                if search_result.pagination.total > 1:
+                    logger.warn(
+                        f'Found {search_result.pagination.total} entries with lab_id: '
+                        f'"{self.lab_id}". Will use the first one found.'
+                    )
+            else:
+                logger.warn(
+                    f'Found no entries with lab_id: "{self.lab_id}".'
+                )
+        elif self.lab_id is None and self.activity is not None:
+            self.lab_id = self.activity.lab_id
+        if self.name is None and self.lab_id is not None:
+            self.name = self.lab_id
+        if self.activity is not None and self.start_time is None and self.activity.datetime:
+            self.start_time = self.activity.datetime
 
 
 class Experiment(Activity):
