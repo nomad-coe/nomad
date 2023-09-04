@@ -59,7 +59,7 @@ repository = 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR'
 parsing = [
     'asr==0.4.1',
     'netCDF4==1.5.4',
-    'mdtraj==1.9.6',
+    'mdtraj==1.9.9',
     'h5py==3.6.0',
     'pyzeo==0.1.4',
     'quippy-ase==0.9.14'
