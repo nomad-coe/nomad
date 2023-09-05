@@ -1,0 +1,52 @@
+em_lab:
+  detector:
+  - local_name: idk
+  ebeam_column:
+    aberration_correction:
+      applied: true
+    aperture_em:
+    - name: ap1
+      value: 5.0
+    electron_source:
+      emitter_type: field_emission
+      name: unknown
+      voltage:
+        unit: kV
+        value: 60.0
+  fabrication:
+    capabilities: n/a
+    identifier: '0'
+    model: Nion Hermes
+    vendor: Nion
+  instrument_name: Nion Hermes
+  location: Berlin
+  optical_system_em: {}
+  stage_lab:
+    description: nionstage
+    name: nion
+entry:
+  attr_version: nexus-fairmat-proposal successor of 9636feecb79bb32b828b1a9804269573256d7696
+  definition: NXem
+  end_time: '2023-05-28T19:30:00+00:00'
+  experiment_description: nion test
+  experiment_identifier: nion
+  program: nionswift
+  program__attr_version: nionswift from eln
+  start_time: '2023-05-28T19:30:00+00:00'
+sample:
+  atom_types:
+  - U
+  description: idk
+  method: simulation
+  name: n/a
+  preparation_date: '2023-05-28T19:31:00+00:00'
+  sample_history: n/a
+  short_title: n/a
+  thickness:
+    unit: nm
+    value: 9.999999999999998
+user:
+- affiliation: FAIRmat
+  name: MarkusK
+- name: Benedikt Haas
+- name: Sherjeel Shabih

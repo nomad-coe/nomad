@@ -18,6 +18,8 @@ zip -r -j uploads/apm.zip apm/*
 zip -r -j uploads/mpes.zip $REMOTE_TOOLS_PATH/mpes/example/*
 zip -r -j uploads/ellips.zip $REMOTE_TOOLS_PATH/ellips/example/*
 zip -r -j uploads/em_spctrscpy.zip em_spctrscpy/*
+zip -r -j uploads/em_om.zip em_om/*
+zip -r -j uploads/em_nion.zip em_nion/*
 zip -r -j uploads/iv_temp.zip iv_temp/*
 zip -r -j uploads/xps.zip $REMOTE_TOOLS_PATH/xps/example/*
 zip -r -j uploads/sts.zip $REMOTE_TOOLS_PATH/sts/example/*

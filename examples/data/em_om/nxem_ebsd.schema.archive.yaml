@@ -1,0 +1,1105 @@
+# https://kikuchipy.org/en/stable/tutorials/reference_frames.html#Reference-frames
+
+definitions:
+  name: 'em_om'
+  # 'ELN for collecting conventions relevant for interpreting orientation microscopy data.'
+  sections: # section definitions what were back in the old days msection base classes
+    ElectronBackscatterDiffraction: # the actual schema´
+      base_sections:
+        - 'nomad.datamodel.metainfo.eln.NexusDataConverter'
+        - 'nomad.datamodel.data.EntryData'
+      m_annotations:
+        # Here you can set your default values for the reader and nxdl.
+        template: 
+          reader: em_om
+          nxdl: NXem_ebsd.nxdl
+        # Listing quantities in the hide component will not show them in the ELN.
+        # This would be useful to make the default values set in `template` fixed.
+        # Leave the hide key even if you want to pass an empty list like in this example.
+        eln: 
+          # hide: ['nxdl', 'reader']
+          hide: []
+      sub_sections:
+        entry:
+          section:
+            description: |
+              Conventions and definitions which make orientation microscopy data interpretable.
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              attr_version:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - 'nexus-fairmat-proposal successor of 9636feecb79bb32b828b1a9804269573256d7696'
+                description: Hashvalue of the NeXus application definition file
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              definition:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - NXem_ebsd
+                description: NeXus NXDL schema to which this file conforms
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              workflow_identifier:
+                type: str
+                description: GUID of the workflow
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              workflow_description:
+                type: str
+                description: |
+                  Free text details about this particular workflow.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              start_time:
+                type: Datetime
+                description: |
+                  ISO 8601 time code with local time zone offset to UTC
+                  when the experiment started.
+                m_annotations:
+                  eln:
+                    component: DateTimeEditQuantity
+              end_time:
+                type: Datetime
+                description: |
+                  ISO 8601 time code with local time zone offset to UTC
+                  when the experiment ended.
+                m_annotations:
+                  eln:
+                    component: DateTimeEditQuantity
+              program:
+                type: str
+                default: nexusutils/dataconverter/readers/em_om.py
+                description: |
+                  Name of the program used to parse this file.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              program__attr_version:
+                type: str
+                default: undefined
+                description: |
+                  Version plus build number, commit hash, or description
+                  of the program to support reproducibility.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+
+              # inputfile_reconstruction:
+              #   type: str
+              #   description: |
+              #     Place to drag-and-drop the file containing the result of the measurement.
+              #     This result has to be the tomographic reconstruction.
+              #     Accepted file formats are POS, ePOS, and APT (from APSuite).
+              #   m_annotations:
+              #     eln:
+              #       component: FileEditQuantity
+              # inputfile_range_file:
+              #   type: str
+              #   description: |
+              #     Place to drag-and-drop a file which contains the result of a ranging of
+              #     the mass-to-charge-state ratio values to assigned ion labels.
+              #     Accepted file formats are RNG, and RRNG.
+              #   m_annotations:
+              #     eln:
+              #       component: FileEditQuantity
+
+        user:
+          repeats: true
+          section:
+            description: |
+              Optional contact information and eventually details of at least
+              one person involved in performing the workflow. This can be the
+              principle investigator who implemented the workflow.
+              Adding multiple users if relevant is recommended.
+            m_annotations:
+              eln:
+            quantities:
+              name:
+                type: str
+                description: Given (first) name and surname.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              email:
+                type: str
+                description: Email address of the user at the point in time when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              affiliation:
+                type: str
+                description: Name of the affiliation of the user at the point in time when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              address:
+                type: str
+                description: Postal address of the affiliation.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              orcid:
+                type: str
+                description: Globally unique identifier of the user as offered by services like OrcID or ResearcherID.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              orcid_platform:
+                type: str
+                description: Name of the OrcID or ResearcherID where the account under orcid is registered.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              telephone_number:
+                type: str
+                description: (Business) (tele)phone number of the user at the point in time when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              role:
+                type: str
+                description: Which role does the user have in the place and at the point in time when the experiment was performed? Technician operating the microscope. Student, postdoc, principle investigator, guest are common examples.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              social_media_name:
+                type: str
+                description: Account name that is associated with the user in social media platforms.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              social_media_platform:
+                type: str
+                description: Name of the social media platform where the account under social_media_name is registered.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+
+        commercial_on_the_fly_indexing:
+          section:
+            description: |
+              An inspection of available EBSD datasets with an open-source
+              license stored on public archive services like Zenodo revealed,
+              inspected during the implementation of a generic parser for
+              EBSD data that such data are in most cases stored in two ways:
+              Case one is via a file in a format defined by technology partners.
+              Typically this file contains results of an on-the-fly executed indexing,
+              i.e. scan point positions, indexing solutions per scan point,
+              and some quality descriptors of the solutions,
+              as well as crystal structure and phase metadata.
+              Case two is pattern in some custom format sometimes supported
+              with custom metadata and descriptions of the individual fields
+              and data arrays most frequently just pointing to the publication.
+              
+              Therefore, we first need to collect how these on_the_fly indexed
+              results have been generated and in which file they ended up.
+              Ideally one would do so by creating a complete set of data
+              using e.g. NXem. This would allow reading all the above-mentioned
+              data directly from file referred to in the measurement group.
+              However, in most cases this is not available.
+              
+              Therefore, we store here key metadata about which results file
+              contain the EBSD mapping and which software was used (software name
+              and version with build number) to create it. These pieces of information
+              support the interpretation of specific metadata
+              in these results file which currently cannot be interpreted completely
+              or reliably conceptually.
+            m_annotations:
+              eln:
+            quantities:
+              program:
+                type: str
+                description: |
+                  Commercial program which was used to index the EBSD data
+                  incrementally after they have been captured and while the
+                  microscope was capturing. This is the usual production workflow
+                  how scanning electron microscopes are used when collecting
+                  EBSD data.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              program__attr_version:
+                type: str
+                description: |
+                  Program version plus build number, commit hash, or other description of an ever persistent resource where the source
+                  code of the program and build instructions can be found or at least more information about the program in this version can be found. If all such information is not available, like for commercial software, here the version number and build number should be written. Use semantic versioning if possible.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              results_file:
+                type: str
+                description: |
+                  Name of the results file.
+                m_annotations:
+                  eln:
+                    component: FileEditQuantity
+              # results_file__attr_version:
+              #   type: str
+              #   description: |
+              #     Hash of that file.
+              #   m_annotations:
+              #     eln:
+              #       component: StringEditQuantity
+
+        measurement:
+          # repeats: true
+          section:
+            description: |
+              Connection between the measurement of the Kikuchi pattern and
+              the processing of these into an orientation microscopy image.
+            m_annotations:
+              eln:
+            quantities:
+              origin:
+                type: str
+                description: |
+                  Name or link to an existent instance of an EBSD raw dataset
+                  inside an NXem which has at least one NXimage_set_em_kikuchi
+                  instance. The path to this instance in the origin has to be
+                  specified under path.
+                  
+                  When NXem is not used or the aim is to rather explore first
+                  how community specific files with EBSD data, such as ANG, CPR,
+                  or HDF5-based formats can be parsed from, inject here the name
+                  of that file.
+                  
+                  The em_om parser will currently not interpret the majority of
+                  the many system and technique-specific metadata which come
+                  with the files from e.g. technology partners. This is because
+                  the current culture in the field in the EBSD community is that
+                  many metadata fields are not in all cases fully documented.
+                  
+                  In addition, it is common practice in EBSD that users transcode
+                  their raw data files into other formats so that these data can be
+                  interpreted by specific software tools including commercial
+                  software from technology partners other than the one which
+                  delivered the system that was e.g. used when for collecting
+                  the raw data.
+                  As many of the file formats are not designed to communicate
+                  also these specifically and eventually differently contextualized
+                  metadata, we have opted for the first iteration of the implementation
+                  to discard these metadata. Currently, this is also not problematic
+                  as the file pointed to will be kept but as it uses information
+                  alien to most research data management systems certain data have
+                  to be extracted and transformed for the RDMS to serve them.
+                  
+                  Another reason for this choice was also to emphasize that in
+                  fact such challenges do exist in the community. Hence, pointing
+                  them out may support the discussion to arrive at eventually more
+                  complete solutions. As developing these solutions though should
+                  not be our own authority and necessarily demands feedback from
+                  technology partners and acceptance by the EBSD community we have
+                  opted for this intermediate approach.
+                m_annotations:
+                  eln:
+                    component: FileEditQuantity
+              # origin__attr_version:
+              #   type: str
+              #   description: |
+              #     Hash of the file referred to.
+              #   m_annotations:
+              #     eln:
+              #       component: StringEditQuantity
+              path:
+                type: str
+                description: |
+                  Path which resolves which specific NXimage_set_em_kikuchi instance
+                  was used as the raw data to this EBSD data (post)-processing workflow.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+
+        calibration:
+          # repeats: true
+          section:
+            description: |
+              The EBSD system, that is the electron gun, pole-piece, stage
+              tilting, and EBSD detector, as well as the gnomonic projection
+              have to be calibrated to achieve reliable results.
+              Here a connection can be made to inform about another measurement
+              during which these calibrations were made.
+            m_annotations:
+              eln:
+            quantities:
+              origin:
+                type: str
+                description: |
+                  Drag-and-drop a file which is ideally an instance of NXebsd with
+                  an associated instance of NXem detailed under measurement
+                  which informs about the calibration procedures.
+                  If such a file is not available the file can also remain empty
+                  but keep in mind then that it is unclear in which calibration
+                  state your microscope was used.
+                m_annotations:
+                  eln:
+                    component: FileEditQuantity
+              # origin__attr_version:
+              #   type: str
+              #   description: |
+              #     Hash of the file referred to.
+              #   m_annotations:
+              #     eln:
+              #       component: StringEditQuantity
+              path:
+                type: str
+                description: |
+                  Path which resolves which specific NXimage_set_em_kikuchi instance
+                  was used as the raw data to this EBSD data (post)-processing workflow
+                  when performing the calibration.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+        rotation_conventions:
+          section:
+            description: |
+              Mathematical conventions and materials-science-specific conventions
+              required for interpreting every collection of orientation data.
+            m_annotations:
+              eln:
+            quantities:
+              three_dimensional_rotation_handedness:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - counter_clockwise
+                    - clockwise
+                default: undefined
+                description: |
+                  Convention how a positive rotation angle is defined when viewing
+                  from the end of the rotation unit vector towards its origin,
+                  i.e. in accordance with convention 2 of DOI: 10.1088/0965-0393/23/8/083501.
+                  Counter_clockwise is equivalent to a right-handed choice.
+                  Clockwise is equivalent to a left-handed choice.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              rotation_convention:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - passive
+                    - active
+                default: undefined
+                description: |
+                  How are rotations interpreted into an orientation
+                  according to convention 3 of DOI: 10.1088/0965-0393/23/8/083501.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              euler_angle_convention:
+                type: str
+                default: undefined
+                description: |
+                  How are Euler angles interpreted given that there are several
+                  choices (e.g. ZXZ, XYZ, etc.) according to convention 4 of
+                  DOI: 10.1088/0965-0393/23/8/083501.
+                  The most frequently used convention is ZXZ which is based on
+                  the work of H.-J. Bunge but other conventions are possible.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              axis_angle_convention:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - rotation_angle_on_interval_zero_to_pi
+                default: undefined
+                description: |
+                  To which angular range is the rotation angle argument of an
+                  axis-angle pair parameterization constrained according to
+                  convention 5 of DOI: 10.1088/0965-0393/23/8/083501.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              sign_convention:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - p_plus_one
+                    - p_minus_one
+                default: undefined
+                description: |
+                  Which sign convention is followed when converting orientations
+                  between different parameterizations/representations according
+                  to convention 6 of DOI: 10.1088/0965-0393/23/8/083501.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+
+        processing_reference_frame:
+          section:
+            description: |
+              Details about eventually relevant named directions that may
+              give reasons for anisotropies. The classical example is cold-rolling
+              where one has to specify which directions (rolling, transverse, and normal)
+              align how with the direction of the base vectors of the sample_reference_frame.
+            m_annotations:
+              eln:
+            quantities:
+              reference_frame_type:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - right_handed_cartesian
+                    - left_handed_cartesian
+                default: undefined
+                description: |
+                  Type of coordinate system and reference frame according to
+                  convention 1 of DOI: 10.1088/0965-0393/23/8/083501.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              xaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing x-axis base vector of
+                  the processing_reference_frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a position
+                  that is located behind the detector.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              xaxis_alias:
+                type: str
+                default: undefined
+                description: |
+                  Name or alias assigned to the x-axis base vector,
+                  e.g. rolling direction.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              yaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing y-axis base vector of
+                  the processing_reference_frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a position
+                  that is located behind the detector. For further information consult
+                  also the help info for the xaxis_direction field.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              yaxis_alias:
+                type: str
+                default: undefined
+                description: |
+                  Name or alias assigned to the y-axis base vector,
+                  e.g. transverse direction.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              zaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing z-axis base vector of
+                  the processing_reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a position
+                  that is located behind the detector. For further information consult
+                  also the help info for the xaxis_direction field.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              zaxis_alias:
+                type: str
+                default: undefined
+                description: |
+                  Name or alias assigned to the z-axis base vector,
+                  e.g. normal direction.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              origin:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - front_top_left
+                    - front_top_right
+                    - front_bottom_right
+                    - front_bottom_left
+                    - back_top_left
+                    - back_top_right
+                    - back_bottom_right
+                    - back_bottom_left
+                default: undefined
+                description: |
+                  Location of the origin of the sample surface reference frame.
+                  This specifies the location Xs = 0, Ys = 0, Zs = 0.
+                  Assume regions-of-interest in this reference frame form a
+                  rectangle or cuboid.
+                  Edges are interpreted by inspecting the direction of their
+                  outer unit normals (which point either parallel or antiparallel)
+                  along respective base vector direction of the reference frame.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+
+        sample_reference_frame:
+          section:
+            description: |
+              Details about the sample/specimen (surface) reference frame.
+            m_annotations:
+              eln:
+            quantities:
+              reference_frame_type:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - right_handed_cartesian
+                    - left_handed_cartesian
+                default: undefined
+                description: |
+                  Type of coordinate system and reference frame according to
+                  convention 1 of DOI: 10.1088/0965-0393/23/8/083501.
+                  The reference frame for the sample surface reference is used for
+                  identifying positions on a (virtual) image which is formed by
+                  information collected from an electron beam scanning the
+                  sample surface. We assume the configuration is inspected by
+                  looking towards the sample surface from a position that is
+                  located behind the detector.
+                  Reference DOI: 10.1016/j.matchar.2016.04.008
+                  The sample surface reference frame has coordinates Xs, Ys, Zs.
+                  In three dimensions these coordinates are not necessarily
+                  located on the surface of the sample as there are multiple
+                  faces/sides of the sample. Most frequently though the coordinate
+                  system here is used to define the surface which the electron
+                  beam scans.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              xaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing x-axis base vector of
+                  the sample surface reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a position
+                  that is located behind the detector.
+                  Different tools assume that different strategies can be used
+                  and are perceived as differently convenient to enter
+                  details about coordinate system definitions. In this ELN users
+                  have to possibility to fill in what they assume is sufficient to
+                  define the coordinate system directions unambiguously.
+                  Software which works with this user input needs to offer parsing
+                  capabilities which detect conflicting input and warn accordingly.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              yaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing y-axis base vector of
+                  the sample surface reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a position
+                  that is located behind the detector.
+                  For further information consult also the help info for the
+                  xaxis_direction field.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              zaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing z-axis base vector of
+                  the sample surface reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a position
+                  that is located behind the detector.
+                  For further information consult also the help info for the
+                  xaxis_direction field.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              origin:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - front_top_left
+                    - front_top_right
+                    - front_bottom_right
+                    - front_bottom_left
+                    - back_top_left
+                    - back_top_right
+                    - back_bottom_right
+                    - back_bottom_left
+                default: undefined
+                description: |
+                  Location of the origin of the sample surface reference frame.
+                  This specifies the location Xs = 0, Ys = 0, Zs = 0.
+                  Assume regions-of-interest in this reference frame form a
+                  rectangle or cuboid.
+                  Edges are interpreted by inspecting the direction of their
+                  outer unit normals (which point either parallel or antiparallel)
+                  along respective base vector direction of the reference frame.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+
+        detector_reference_frame:
+          section:
+            description: |
+              Details about the detector reference frame.
+            m_annotations:
+              eln:
+            quantities:
+              reference_frame_type:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - right_handed_cartesian
+                    - left_handed_cartesian
+                default: undefined
+                description: |
+                  Type of coordinate system/reference frame used for
+                  identifying positions in detector space Xd, Yd, Zd,
+                  according to DOI: 10.1016/j.matchar.2016.04.008.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              xaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing x-axis base vector of
+                  the detector space reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a
+                  position that is located behind the detector.
+                  Different tools assume that different strategies can be used
+                  and are perceived as differently convenient to enter
+                  details about coordinate system definitions. In this ELN users
+                  have to possibility to fill in what they assume is sufficient to
+                  define the coordinate system directions unambiguously.
+                  Software which works with this user input needs to offer parsing
+                  capabilities which detect conflicting input and warn accordingly.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              yaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing y-axis base vector of
+                  the detector space reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a
+                  position that is located behind the detector.
+                  For further information consult also the help info for the
+                  xaxis_direction field.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              zaxis_direction:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - north
+                    - east
+                    - south
+                    - west
+                    - in
+                    - out
+                default: undefined
+                description: |
+                  Direction of the positively pointing z-axis base vector of
+                  the detector space reference frame. We assume the configuration
+                  is inspected by looking towards the sample surface from a
+                  position that is located behind the detector.
+                  For further information consult also the help info for the
+                  xaxis_direction field.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              origin:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - front_top_left
+                    - front_top_right
+                    - front_bottom_right
+                    - front_bottom_left
+                    - back_top_left
+                    - back_top_right
+                    - back_bottom_right
+                    - back_bottom_left
+                default: undefined
+                description: |
+                  Where is the origin of the detector space reference
+                  frame located. This is the location of Xd = 0, Yd = 0, Zd = 0.
+                  Assume regions-of-interest in this reference frame form a
+                  rectangle or cuboid.
+                  Edges are interpreted by inspecting the direction of their
+                  outer unit normals (which point either parallel or antiparallel)
+                  along respective base vector direction of the reference frame.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+
+        gnomonic_projection:
+          section:
+            description: |
+              Specific conventions for electron backscatter diffraction (EBSD) for
+              interpreting data and eventually applied post-processing tasks.
+            m_annotations:
+              eln:
+            quantities:
+              method:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - backscatter
+                    - other
+                default: backscatter
+                description: Which type of electron diffraction method used.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+            sub_sections:
+              # useful for all diffraction techniques
+              # specific for EBSD
+              gnomonic_projection_reference_frame:
+                section:
+                  description: |
+                    Details about the gnomonic projection reference frame.
+                  m_annotations:
+                    eln:
+                  quantities:
+                    reference_frame_type:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - right_handed_cartesian
+                          - left_handed_cartesian
+                      default: undefined
+                      description: |
+                        Type of coordinate system/reference frame used for
+                        identifying positions in the gnomonic projection space
+                        Xg, Yg, Zg.
+                        according to DOI: 10.1016/j.matchar.2016.04.008.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    xaxis_direction:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - north
+                          - east
+                          - south
+                          - west
+                          - in
+                          - out
+                      default: undefined
+                      description: |
+                        Direction of the positively pointing "gnomomic" x-axis base
+                        vector when viewing how the diffraction pattern looks on the
+                        detector screen. We assume the configuration is inspected by
+                        looking towards the sample surface from a position
+                        that is located behind the detector.
+                        Different tools assume that different strategies can be used
+                        and are perceived as differently convenient to enter
+                        details about coordinate system definitions. In this ELN users
+                        have to possibility to fill in what they assume is sufficient to
+                        define the coordinate system directions unambiguously.
+                        Software which works with this user input needs to offer parsing
+                        capabilities which detect conflicting input and warn accordingly.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    yaxis_direction:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - north
+                          - east
+                          - south
+                          - west
+                          - in
+                          - out
+                      default: undefined
+                      description: |
+                        Direction of the positively pointing "gnomomic" y-axis base
+                        vector when viewing how the diffraction pattern looks on the
+                        detector screen. We assume the configuration is inspected by
+                        looking towards the sample surface from a position
+                        that is located behind the detector.
+                        For further information consult also the help info for the
+                        xaxis_direction field.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    zaxis_direction:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - north
+                          - east
+                          - south
+                          - west
+                          - in
+                          - out
+                      default: undefined
+                      description: |
+                        Direction of the positively pointing "gnomomic" z-axis base
+                        vector when viewing how the diffraction pattern looks on the
+                        detector screen. We assume the configuration is inspected by
+                        looking towards the sample surface from a position
+                        that is located behind the detector.
+                        For further information consult also the help info for the
+                        xaxis_direction field.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    origin:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - in_the_pattern_centre
+                      # just stating in the pattern_centre is not necessarily sufficient
+                      default: undefined
+                      description: |
+                        Is the origin of the gnomonic coordinate system located
+                        where we assume the location of the pattern centre.
+                        This is the location Xg = 0, Yg = 0, Zg = 0 according to
+                        reference DOI: 10.1016/j.matchar.2016.04.008.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+              pattern_centre:
+                section:
+                  description: |
+                    Details about the definition and location of the pattern centre
+                    which is a point in the gnomonic projection space Xg, Yg, Zg.
+                  m_annotations:
+                    eln:
+                  quantities:
+                    xaxis_boundary_convention:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - top
+                          - right
+                          - bottom
+                          - left
+                      default: undefined
+                      description: |
+                        From which border of the EBSP (in the detector reference frame)
+                        is the pattern centre's x-position (PCx) measured?
+                        Keywords assume the region-of-interest is defined by
+                        a rectangle. We observe this rectangle and inspect the
+                        direction of the outer-unit normals to the edges of
+                        this rectangle.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    xaxis_normalization_direction:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - north
+                          - east
+                          - south
+                          - west
+                      default: undefined
+                      description: |
+                        In which direction are positive values for PCx measured from
+                        the specified boundary. Keep in mind that the gnomonic space
+                        is in virtually all cases embedded in the detector space.
+                        Specifically, the XgYg plane is defined such that it is
+                        embedded/laying inside the XdYd plane (of the detector
+                        reference frame).
+                        When the normalization direction is the same as e.g. the
+                        detector x-axis direction, we state that we effectively
+                        normalize in fractions of the width of the detector.
+                        The issue with terms like width and height is that these
+                        degenerate if the detector region-of-interest is square-shaped.
+                        This is why we should better avoid talking about width and height but programmatically state how we would measure distances practically with a ruler and how we then measure positive
+                        distances.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    yaxis_boundary_convention:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - top
+                          - right
+                          - bottom
+                          - left
+                      default: undefined
+                      description: |
+                        From which border of the EBSP (in the detector reference
+                        frame) is the pattern centre's y-position (PCy) measured?
+                        For further details inspect the help button of
+                        xaxis_boundary_convention.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    yaxis_normalization_direction:
+                      type:
+                        type_kind: Enum
+                        type_data:
+                          - undefined
+                          - north
+                          - east
+                          - south
+                          - west
+                      default: undefined
+                      description: |
+                        In which direction are positive values for PCy measured from
+                        the specified boundary.
+                        For further details inspect the help button of
+                        xaxis_normalization_direction.
+                      m_annotations:
+                        eln:
+                          component: RadioEnumEditQuantity
+                    # pattern_centre_distance_convention:
+                    #   type:
+                    #     type_kind: Enum
+                    #     type_data:
+                    #       - undefined
+                    #       - Bruker
+                    #       - JEOL
+                    #       - FEI
+                    #       - Oxford
+                    #   description: |
+                    #     How is the third of the three pattern centre parameter values,
+                    #     the (distance) parameter DD, normalized. Which convention
+                    #     is followed. We are aware that specifying one of the options here
+                    #     also implicitly comes with conventions for some of the parameter
+                    #     requested in this ELN. For now we would rather like to ask
+                    #     the users though to be specific also to learn how such an ELN
+                    #     will be used in practice.
+                    #   m_annotations:
+                    #     eln:
+                    #       component: RadioEnumEditQuantity
+                    # Reference DOI: 10.1016/j.matchar.2016.04.008
+                    # Other packages describe the PC position starting from the bottom left
+                    # of the EBSP instead of the top left as used here. These packages may record
+                    # this with respect to a square/circular EBSP, illustrating that care must be
+                    # taken when using rectangular screens, as the aspect ratio of the EBSP is
+                    # important when converting pattern fractions into effective pixels or mm.
+        indexing:
+          section:
+            description: |
+              Details about the indexing algorithm(s) used.
+            m_annotations:
+              eln:
+            quantities:
+              method:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - undefined
+                    - hough_transform
+                    - dictionary
+                    - radon_transform
+                    - other
+                default: backscatter
+                description: |
+                  Principal algorithm used for indexing.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity

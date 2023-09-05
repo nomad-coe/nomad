@@ -99,7 +99,7 @@ class NORTH(NomadSettings):
             'jupyter': NORTHTool(
                 short_description='Basic jupyter run with an empty notebook or on given notebook file.',
                 description='### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.',
-                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:latest',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:v0.0.1',
                 path_prefix='tree',
                 mount_path='/home/jovyan',
                 icon='jupyter_logo.svg',
@@ -120,7 +120,7 @@ class NORTH(NomadSettings):
             'nionswift': NORTHTool(
                 short_description='Run NionSwift to analyze data as well as prepare focus series reconstructions',
                 description='Run Nion Swift to analyze data.',
-                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop:latest',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop',
                 privileged=True,
                 mount_path='/config',
                 maintainer=[
@@ -132,7 +132,7 @@ class NORTH(NomadSettings):
             ),
             'nexustools': NORTHTool(
                 description='Includes multiple NeXus tools for visualization and analysis.',
-                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop:latest',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop',
                 privileged=True,
                 mount_path='/config',
                 file_extensions=[
@@ -196,7 +196,7 @@ class NORTH(NomadSettings):
             'xps': NORTHTool(
                 short_description='An example for analyzing XPS data.',
                 description='Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS xml files into NeXus.',
-                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter:0.1',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter',
                 path_prefix='lab/tree',
                 icon='jupyter_logo.svg',
                 mount_path='/home/jovyan',
@@ -221,7 +221,7 @@ class NORTH(NomadSettings):
             'sts': NORTHTool(
                 short_description='An example for analyzing SPM (STM /STS) experiment.',
                 description="AT this moment, the reader works for two types of experiments, Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can only transform the data from Nanonis machine generated files into standarised nexus application definition NXsts. The present version of STS reader can handle files from two specific software versions generic 5e and genric 4.5.",
-                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter:latest',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter',
                 path_prefix='lab/tree',
                 icon='jupyter_logo.svg',
                 mount_path='/home/jovyan',
@@ -252,7 +252,7 @@ class NORTH(NomadSettings):
             ),
             'apmtools': NORTHTool(
                 short_description='An example for analyzing atom probe data.',
-                description='Miscellaneous tools from the atom probe community:\nCurrently the Leoben APT_analyzer and the paraprobe-toolbox.',
+                description='Miscellaneous tools from the atom probe community:\nCurrently APTyzer, paraprobe-toolbox, and APAV',
                 image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop',
                 privileged=True,
                 icon='jupyter_logo.svg',

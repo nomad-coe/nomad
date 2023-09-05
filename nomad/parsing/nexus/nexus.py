@@ -285,7 +285,7 @@ class NexusParser(Parser):
         self.nx_root = self.archive.nexus
         self._logger = logger if logger else get_logger(__name__)
 
-        nexus_helper = read_nexus.HandleNexus(logger, [mainfile])
+        nexus_helper = read_nexus.HandleNexus(logger, mainfile, None, None)
         nexus_helper.process_nexus_master_file(self.__nexus_populate)
 
         if archive.metadata is None:

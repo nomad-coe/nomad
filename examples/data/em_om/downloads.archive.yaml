@@ -1,0 +1,11 @@
+data:
+  m_def: nomad.datamodel.metainfo.downloads.Downloads
+  mainfiles:
+    - em_om.archive.json
+  downloads:
+    - url: https://www.zenodo.org/record/7885531/files/em_om_sprint14_01.zip?download=1
+      output: em_om_sprint14_01.zip
+      extract: true
+    - url: https://www.zenodo.org/record/7885531/files/em_om_sprint14_02.zip?download=1
+      output: em_om_sprint14_02.zip
+      extract: true
