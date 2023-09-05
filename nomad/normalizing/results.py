@@ -25,7 +25,7 @@ import matid.geometry  # pylint: disable=import-error
 
 from nomad import config
 from nomad import atomutils
-from nomad.utils import traverse_reversed
+from nomad.utils import traverse_reversed, extract_section
 from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
@@ -324,6 +324,7 @@ class ResultsNormalizer(Normalizer):
                 n_channels = values.shape[0]
                 dos_results.spin_polarized = n_channels > 1
                 dos_results.energy_fermi = dos.energy_fermi
+                dos.label = dos.kind
                 for info in dos.band_gap:
                     info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
                     dos_results.m_add_sub_section(DOSElectronic.band_gap, info_new)
@@ -332,36 +333,34 @@ class ResultsNormalizer(Normalizer):
 
     def resolve_greens_functions(self, path: list[str]) -> Union[List[GreensFunctionsElectronic], None]:
         """Returns a reference to the section containing the electronic Green's functions.
-        In the case of multiple valid Green's functions sections, only the latest one is reported.
-
-        Green's functions are reported only under the following conditions:
-            - There is a non-empty array of greens_function_tau or self_energy_iw or occupancies.
-            - There is a non-empty array of tau or matsubara_freq.
         """
-        greens_functions = traverse_reversed(self.entry_archive, path)
+        greens_functions = extract_section(self.entry_archive, path, full_list=True)
         if not greens_functions:
-            return None
+            return []
         gfs_root: List[GreensFunctionsElectronic] = []
         for gfs in greens_functions:
+            gfs_results = GreensFunctionsElectronic()
             tau = gfs.tau
-            iw = gfs.matsubara_freq
-            values_gtau = np.array([np.absolute(gtau) for gtau in gfs.greens_function_tau.real])
-            values_siw = np.array([siw for siw in gfs.self_energy_iw.imag])
-            if (valid_array(tau) and valid_array(values_gtau)) or (valid_array(iw) and valid_array(values_siw)):
-                gfs_results = GreensFunctionsElectronic()
-                gfs_results.chemical_potential = gfs.chemical_potential
-                if valid_array(tau) and valid_array(values_gtau):
-                    gfs_results.tau = tau
-                    gfs_results.real_greens_function_tau = values_gtau
-                if valid_array(iw) and valid_array(values_siw):
-                    gfs_results.matsubara_freq = iw
-                    gfs_results.imag_self_energy_iw = values_siw
-                if valid_array(gfs.orbital_occupations):
-                    gfs_results.orbital_occupations = gfs.orbital_occupations
-                if valid_array(gfs.quasiparticle_weights):
-                    gfs_results.quasiparticle_weights = gfs.quasiparticle_weights
-
-                gfs_root.insert(0, gfs_results)
+            if valid_array(tau):
+                gfs_results.tau = gfs
+                gfs_results.greens_function_tau = gfs if valid_array(gfs.greens_function_tau) else None
+            matsubara_freq = gfs.matsubara_freq
+            if valid_array(matsubara_freq):
+                gfs_results.matsubara_freq = gfs
+                gfs_results.greens_function_iw = gfs if valid_array(gfs.greens_function_iw) else None
+                gfs_results.self_energy_iw = gfs if valid_array(gfs.self_energy_iw) else None
+            frequencies = gfs.frequencies
+            if valid_array(frequencies):
+                gfs_results.frequencies = gfs
+                gfs_results.greens_function_freq = gfs if valid_array(gfs.greens_function_freq) else None
+                gfs_results.self_energy_freq = gfs if valid_array(gfs.self_energy_freq) else None
+                gfs_results.hybridization_function_freq = gfs if valid_array(gfs.hybridization_function_freq) else None
+            gfs_results.orbital_occupations = gfs if valid_array(gfs.orbital_occupations) else None
+            gfs_results.quasiparticle_weights = gfs if valid_array(gfs.quasiparticle_weights) else None
+            if gfs.chemical_potential:
+                gfs_results.chemical_potential = gfs
+            gfs_results.type = gfs.type if gfs.type else None
+            gfs_root.append(gfs_results)
         return gfs_root
 
     def get_gw_workflow_properties(self):
@@ -430,14 +429,31 @@ class ResultsNormalizer(Normalizer):
                 for band_gap in d.band_gap:
                     band_gap.label = name
                 dos_electronic.append(d)
-        band_gaps = self.resolve_band_gap(["workflow2", "results", f"band_gap_dmft"])
+        band_gaps = self.resolve_band_gap(["workflow2", "results", "band_gap_dmft"])
         for bg in band_gaps:
             bg.label = 'DMFT'
             bg_electronic.append(bg)
-        greens_functions = self.resolve_greens_functions(["workflow2", "results", f"greens_functions_dmft"])
+        greens_functions = self.resolve_greens_functions(["workflow2", "results", "greens_functions_dmft"])
         for gf in greens_functions:
             gf.label = 'DMFT'
             gf_electronic.append(gf)
+        return [bg_electronic, bs_electronic, dos_electronic, gf_electronic]
+
+    def get_maxent_workflow_properties(self):
+        bg_electronic, bs_electronic, dos_electronic, gf_electronic = self.electronic_properties
+        band_gaps = self.resolve_band_gap(["workflow2", "results", "band_gap_maxent"])
+        for bg in band_gaps:
+            bg.label = 'MaxEnt'
+            bg_electronic.append(bg)
+        dos = self.resolve_dos(["workflow2", "results", "dos_maxent"])
+        for d in dos:
+            d.label = 'MaxEnt'
+            d.append(bg)
+        for method in ['dmft', 'maxent']:
+            greens_functions = self.resolve_greens_functions(["workflow2", "results", f"greens_functions_{method}"])
+            for gf in greens_functions:
+                gf.label = 'DMFT' if method == 'dmft' else 'MaxEnt'
+                gf_electronic.append(gf)
         return [bg_electronic, bs_electronic, dos_electronic, gf_electronic]
 
     def get_xs_workflow_properties(self):
@@ -815,6 +831,8 @@ class ResultsNormalizer(Normalizer):
                 self.electronic_properties = self.get_gw_workflow_properties()
             elif workflow_name == 'DMFT':
                 self.electronic_properties = self.get_dmft_workflow_properties()
+            elif workflow_name == 'MaxEnt':
+                self.electronic_properties = self.get_maxent_workflow_properties()
             elif workflow_name == 'PhotonPolarization':
                 spectra = self.resolve_spectra(['workflow2', 'results', 'spectrum_polarization'])
                 if spectra is not None:

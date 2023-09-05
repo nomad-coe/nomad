@@ -52,7 +52,7 @@ class Mesh(MSection):
     sampling_method = Quantity(
         type=MEnum(
             'Gamma-centered', 'Monkhorst-Pack', 'Gamma-offcenter', 'Line-path',
-            'Equidistant', 'Logarithmic', 'Gauss-Legendre', 'Gauss-Laguerre'
+            'Equidistant', 'Logarithmic', 'Tan', 'Gauss-Legendre', 'Gauss-Laguerre'
             'Clenshaw-Curtis', 'Newton-Cotes', 'Gauss-Hermite'
         ),
         shape=[],
@@ -74,6 +74,8 @@ class Mesh(MSection):
         | `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |
 
         | `'Logarithmic'`  | log distance 1D grid               |
+
+        | `'Tan'`  | Non-uniform tan mesh for 1D grids. More dense at low abs values of the points, while less dense for higher values |
 
         | `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |
 
@@ -1615,25 +1617,25 @@ class DMFT(MSection):
 
     m_def = Section(validate=False)
 
-    n_atoms_per_unit_cell = Quantity(
+    n_impurities = Quantity(
         type=np.int32,
         shape=[],
         description='''
-        Number of atoms per unit cell.
+        Number of impurities mapped from the correlated atoms in the unit cell.
         ''')
 
     n_correlated_orbitals = Quantity(
         type=np.int32,
-        shape=['n_atoms_per_unit_cell'],
+        shape=['n_impurities'],
         description='''
-        Number of correlated orbitals per atom in the unit cell.
+        Number of correlated orbitals per impurity.
         ''')
 
-    n_correlated_electrons = Quantity(
+    n_electrons = Quantity(
         type=np.float64,
-        shape=['n_atoms_per_unit_cell'],
+        shape=['n_impurities'],
         description='''
-        Number of correlated electrons per atom in the unit cell.
+        Initial number of valence electrons per impurity.
         ''')
 
     inverse_temperature = Quantity(

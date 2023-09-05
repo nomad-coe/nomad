@@ -22,6 +22,7 @@ import pytest
 
 from nomad import utils
 from nomad.utils import structlogging
+from nomad.metainfo.metainfo import MSection, Quantity, SubSection
 
 
 def test_decode_handle_id():
@@ -86,3 +87,33 @@ def test_uuid():
 def test_class_logger():
     logger = utils.ClassicLogger(__name__, test='value')
     logger.warn('hello world', test='other value')
+
+
+class TestSubSection(MSection):
+    name = Quantity(type=str)
+    subsection_number = Quantity(type=int)
+
+
+class TestSection(MSection):
+    quantity_section = Quantity(type=int)
+    subsection = SubSection(sub_section=TestSubSection, repeats=True)
+
+
+def test_extract_section():
+    test_section = TestSection(
+        quantity_section=5,
+        subsection=[TestSubSection(name='subsection1', subsection_number=1), TestSubSection(name='subsection2')]
+    )
+    # Check if quantities are properly extracted
+    assert utils.extract_section(test_section, ['quantity_section']) == 5
+    # Check if last section is properly extracted:
+    path = ['subsection']
+    assert utils.extract_section(test_section, path).name == 'subsection2'
+    # Check if last section in path is not a repeated section
+    assert not isinstance(utils.extract_section(test_section, path), list)
+    # Check if full_list works
+    assert isinstance(utils.extract_section(test_section, path, full_list=True), list)
+    assert len(utils.extract_section(test_section, path, full_list=True)) == 2
+    # Check if not section is reported if the last of the intermediate elements do not contain it
+    path.append('subsection_number')
+    assert not utils.extract_section(test_section, path)

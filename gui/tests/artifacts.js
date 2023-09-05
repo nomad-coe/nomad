@@ -2952,15 +2952,6 @@ window.nomadArtifacts = {
       "aggregatable": true,
       "suggestion": true
     },
-    "results.method.simulation.dmft.total_filling": {
-      "name": "total_filling",
-      "description": "Total filling of the correlated atoms in the unit cell per spin \u2208[0.0, 1.0]. E.g., half-filling\nis defined as 0.5.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "aggregatable": false
-    },
     "results.method.simulation.dmft.inverse_temperature": {
       "name": "inverse_temperature",
       "description": "Inverse temperature = 1/(kB*T).",
@@ -3008,6 +2999,21 @@ window.nomadArtifacts = {
       "unit": "joule",
       "shape": [],
       "aggregatable": false
+    },
+    "results.method.simulation.dmft.analytical_continuation": {
+      "name": "analytical_continuation",
+      "description": "Analytical continuation used to continuate the imaginary space Green's functions into\nthe real frequencies space.\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'Pade'` | Pade's approximant  | https://www.sciencedirect.com/science/article/pii/0021999173901277?via%3Dihub |\n\n| `'MaxEnt'` | Maximum Entropy method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.41.2380 |\n\n| `'SVD'` | Singular value decomposition | https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.75.517 |\n\n| `'Stochastic'` | Stochastic method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.57.10287 |",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "Pade",
+          "MaxEnt",
+          "SVD",
+          ""
+        ]
+      },
+      "shape": [],
+      "aggregatable": true
     },
     "results.method.simulation.precision.k_line_density": {
       "name": "k_line_density",
@@ -4736,7 +4742,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "sampling_method",
-                "description": "Method used to generate the mesh:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'Gamma-centered'` | Regular mesh is centered around Gamma. No offset. |\n\n| `'Monkhorst-Pack'` | Regular mesh with an offset of half the reciprocal lattice vector. |\n\n| `'Gamma-offcenter'` | Regular mesh with an offset that is neither `'Gamma-centered'`, nor `'Monkhorst-Pack'`. |\n\n| `'Line-path'` | Line path along high-symmetry points. Typically employed for simualting band structures. |\n\n| `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |\n\n| `'Logarithmic'`  | log distance 1D grid               |\n\n| `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |\n\n| `'Gauss-Laguerre'` | Quadrature rule for integration using Laguerre polynomials |\n\n| `'Clenshaw-Curtis'`  | Quadrature rule for integration using Chebyshev polynomials using discrete cosine transformations |\n\n| `'Gauss-Hermite'`  | Quadrature rule for integration using Hermite polynomials |",
+                "description": "Method used to generate the mesh:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'Gamma-centered'` | Regular mesh is centered around Gamma. No offset. |\n\n| `'Monkhorst-Pack'` | Regular mesh with an offset of half the reciprocal lattice vector. |\n\n| `'Gamma-offcenter'` | Regular mesh with an offset that is neither `'Gamma-centered'`, nor `'Monkhorst-Pack'`. |\n\n| `'Line-path'` | Line path along high-symmetry points. Typically employed for simualting band structures. |\n\n| `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |\n\n| `'Logarithmic'`  | log distance 1D grid               |\n\n| `'Tan'`  | Non-uniform tan mesh for 1D grids. More dense at low abs values of the points, while less dense for higher values |\n\n| `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |\n\n| `'Gauss-Laguerre'` | Quadrature rule for integration using Laguerre polynomials |\n\n| `'Clenshaw-Curtis'`  | Quadrature rule for integration using Chebyshev polynomials using discrete cosine transformations |\n\n| `'Gauss-Hermite'`  | Quadrature rule for integration using Hermite polynomials |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -4746,6 +4752,7 @@ window.nomadArtifacts = {
                     "Line-path",
                     "Equidistant",
                     "Logarithmic",
+                    "Tan",
                     "Gauss-Legendre",
                     "Gauss-LaguerreClenshaw-Curtis",
                     "Newton-Cotes",
@@ -7147,8 +7154,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
-                "name": "n_atoms_per_unit_cell",
-                "description": "Number of atoms per unit cell.",
+                "name": "n_impurities",
+                "description": "Number of impurities mapped from the correlated atoms in the unit cell.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int32"
@@ -7160,27 +7167,27 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "n_correlated_orbitals",
-                "description": "Number of correlated orbitals per atom in the unit cell.",
+                "description": "Number of correlated orbitals per impurity.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int32"
                 },
                 "shape": [
-                  "n_atoms_per_unit_cell"
+                  "n_impurities"
                 ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "n_correlated_electrons",
-                "description": "Number of correlated electrons per atom in the unit cell.",
+                "name": "n_electrons",
+                "description": "Initial number of valence electrons per impurity.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
                 },
                 "shape": [
-                  "n_atoms_per_unit_cell"
+                  "n_impurities"
                 ]
               },
               {
@@ -8965,8 +8972,8 @@ window.nomadArtifacts = {
                 "name": "n_orbitals",
                 "description": "Number of orbitals used in the projection.",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
+                  "type_kind": "numpy",
+                  "type_data": "int32"
                 },
                 "shape": []
               },
@@ -8977,8 +8984,8 @@ window.nomadArtifacts = {
                 "name": "n_atoms",
                 "description": "Number of atoms.",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
+                  "type_kind": "numpy",
+                  "type_data": "int32"
                 },
                 "shape": []
               },
@@ -8989,8 +8996,8 @@ window.nomadArtifacts = {
                 "name": "n_spin_channels",
                 "description": "Number of spin channels.",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
+                  "type_kind": "numpy",
+                  "type_data": "int32"
                 },
                 "shape": []
               }
@@ -9341,6 +9348,19 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
+                "name": "double_counting",
+                "description": "Double counting correction when performing Hubbard model calculations.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
                 "name": "change",
                 "description": "Stores the change of total energy with respect to the previous step.",
                 "categories": [
@@ -9356,7 +9376,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "fermi",
                 "description": "Fermi energy (separates occupied from unoccupied single-particle states)",
@@ -9373,7 +9393,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "name": "highest_occupied",
                 "description": "The highest occupied energy.",
@@ -9386,7 +9406,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "name": "lowest_unoccupied",
                 "description": "The lowest unoccupied energy.",
@@ -11410,19 +11430,33 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "name": "type",
+                "description": "Type of Green's function calculated from the mapping of the Hubbard-Kanamori model\ninto the Anderson impurity model. These calculations are converged if both types of\nGreen's functions converge to each other (G_impurity == G_lattice).",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "impurity",
+                    "lattice"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
                 "name": "matsubara_freq",
-                "description": "Matsubara frequencies (imaginary frequencies).",
+                "description": "Matsubara frequencies (imaginary frequencies). Can be either positives or both positives\nand negatives.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
                 },
                 "shape": [
-                  "2 * n_matsubara_freq"
+                  "*"
                 ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "tau",
                 "description": "Imaginary times.",
@@ -11436,7 +11470,21 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "frequencies",
+                "description": "Real space frequencies.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_frequencies"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "chemical_potential",
                 "description": "Chemical potential.",
@@ -11444,59 +11492,65 @@ window.nomadArtifacts = {
                   "type_kind": "numpy",
                   "type_data": "float64"
                 },
-                "unit": "electron_volt"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "self_energy_iw",
-                "description": "Self-energy matrix in Matsubara frequencies.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "complex128"
-                },
-                "shape": [
-                  "n_atoms_per_unit_cell",
-                  2,
-                  "n_correlated_orbitals",
-                  "2 * n_matsubara_freq"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "name": "greens_function_iw",
-                "description": "Green's function matrix in Matsubara frequencies.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "complex128"
-                },
-                "shape": [
-                  "n_atoms_per_unit_cell",
-                  2,
-                  "n_correlated_orbitals",
-                  "2 * n_matsubara_freq"
-                ]
+                "unit": "joule"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
-                "name": "greens_function_freq",
-                "description": "Green's function matrix in real frequencies.",
+                "name": "self_energy_iw",
+                "description": "Self-energy tensor in Matsubara frequencies.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "complex128"
-                }
+                },
+                "shape": [
+                  "n_atoms_per_unit_cell",
+                  2,
+                  "n_correlated_orbitals",
+                  "*"
+                ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
+                "name": "greens_function_iw",
+                "description": "Green's function tensor in Matsubara frequencies.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "n_atoms_per_unit_cell",
+                  2,
+                  "n_correlated_orbitals",
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "hybridization_function_iw",
+                "description": "Hybridization function tensor in Matsubara frequencies.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "n_atoms_per_unit_cell",
+                  2,
+                  "n_correlated_orbitals",
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
                 "name": "greens_function_tau",
-                "description": "Green's function matrix in tau (imaginary time).",
+                "description": "Green's function tensor in tau (imaginary time).",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "complex128"
@@ -11510,7 +11564,58 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "name": "self_energy_freq",
+                "description": "Self-energy tensor in real frequencies.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "n_atoms_per_unit_cell",
+                  2,
+                  "n_correlated_orbitals",
+                  "n_frequencies"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "greens_function_freq",
+                "description": "Green's function tensor in real frequencies.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "n_atoms_per_unit_cell",
+                  2,
+                  "n_correlated_orbitals",
+                  "n_frequencies"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
+                "m_parent_sub_section": "quantities",
+                "name": "hybridization_function_freq",
+                "description": "Hybridization function tensor in real frequencies.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "complex128"
+                },
+                "shape": [
+                  "n_atoms_per_unit_cell",
+                  2,
+                  "n_correlated_orbitals",
+                  "n_frequencies"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
                 "name": "orbital_occupations",
                 "description": "Orbital occupation per correlated atom in the unit cell and per spin.",
@@ -11526,7 +11631,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 13,
                 "m_parent_sub_section": "quantities",
                 "name": "quasiparticle_weights",
                 "description": "Quasiparticle weights of each orbital per site and spin. Calculated from:\n    Z = inv(1.0 - d [Re Sigma] / dw at w=0)\nit takes values \u2208 [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.",
@@ -16277,22 +16382,6 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.method.simulation.dmft.total_filling"
-                  ]
-                },
-                "name": "total_filling",
-                "description": "Total filling of the correlated atoms in the unit cell per spin \u2208[0.0, 1.0]. E.g., half-filling\nis defined as 0.5.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
                     "results.method.simulation.dmft.inverse_temperature"
                   ]
                 },
@@ -16307,7 +16396,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -16329,7 +16418,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -16347,7 +16436,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -16362,6 +16451,28 @@ window.nomadArtifacts = {
                 },
                 "shape": [],
                 "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.method.simulation.dmft.analytical_continuation"
+                  ]
+                },
+                "name": "analytical_continuation",
+                "description": "Analytical continuation used to continuate the imaginary space Green's functions into\nthe real frequencies space.\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'Pade'` | Pade's approximant  | https://www.sciencedirect.com/science/article/pii/0021999173901277?via%3Dihub |\n\n| `'MaxEnt'` | Maximum Entropy method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.41.2380 |\n\n| `'SVD'` | Singular value decomposition | https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.75.517 |\n\n| `'Stochastic'` | Stochastic method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.57.10287 |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "Pade",
+                    "MaxEnt",
+                    "SVD",
+                    ""
+                  ]
+                },
+                "shape": []
               }
             ]
           },
@@ -17134,6 +17245,20 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "name": "type",
+                "description": "Type of Green's function calculated from the mapping of the Hubbard-Kanamori model\ninto the Anderson impurity model. These calculations are converged if both types of\nGreen's functions converge to each other (G_impurity == G_lattice).",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "impurity",
+                    "lattice"
+                  ]
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
                 "name": "label",
                 "description": "Label to identify the Greens functions data, e.g. the method employed.",
                 "type": {
@@ -17143,109 +17268,135 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "tau",
-                "description": "Imaginary times.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_tau"
-                ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "real_greens_function_tau",
-                "description": "Real part (extraction done in normalizer) of the Green's function in tau (imaginary time).",
+                "name": "tau",
+                "description": "Array containing the set of discrete imaginary times.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_atoms_per_unit_cell",
-                  2,
-                  "n_correlated_orbitals",
-                  "n_tau"
-                ]
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/2"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "matsubara_freq",
-                "description": "Matsubara frequencies (imaginary frequencies).",
+                "description": "Array containing the set of discrete imaginary (Matsubara) frequencies.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "2 * n_matsubara_freq"
-                ]
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/1"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
-                "name": "imag_self_energy_iw",
-                "description": "Imaginary part (extraction done in normalizer) of the Self energy in Matsubara (imaginary frequency).",
+                "name": "frequencies",
+                "description": "Array containing the set of discrete real frequencies.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_atoms_per_unit_cell",
-                  2,
-                  "n_correlated_orbitals",
-                  "2 * n_matsubara_freq"
-                ]
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/3"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
-                "name": "orbital_occupations",
-                "description": "Orbital occupation per correlated atom in the unit cell and per spin.",
+                "name": "greens_function_tau",
+                "description": "Green's functions values in imaginary times.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_atoms_per_unit_cell",
-                  2,
-                  "n_correlated_orbitals"
-                ]
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/8"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
-                "name": "quasiparticle_weights",
-                "description": "Quasiparticle weights of each orbital per site and spin. Calculated from:\n    Z = inv(1.0 - d [Re Sigma] / dw at w=0)\nit takes values \u2208 [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.",
+                "name": "greens_function_iw",
+                "description": "Green's functions values in imaginary (Matsubara) frequencies.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_atoms_per_unit_cell",
-                  2,
-                  "n_correlated_orbitals"
-                ]
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/6"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
+                "name": "self_energy_iw",
+                "description": "Self-energy values in imaginary (Matsubara) frequencies.",
+                "type": {
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/5"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "name": "greens_function_freq",
+                "description": "Green's function values in real frequencies.",
+                "type": {
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/10"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "name": "self_energy_freq",
+                "description": "Self-energy values in real frequencies.",
+                "type": {
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/9"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "hybridization_function_freq",
+                "description": "Hybridization function values in real frequencies.",
+                "type": {
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/11"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
+                "m_parent_sub_section": "quantities",
+                "name": "orbital_occupations",
+                "description": "Orbital occupation per correlated atom in the unit cell and per spin.",
+                "type": {
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/12"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 12,
+                "m_parent_sub_section": "quantities",
+                "name": "quasiparticle_weights",
+                "description": "Quasiparticle weights of each orbital per site and spin. Calculated from:\n    Z = inv(1.0 - d [Re Sigma] / dw at w=0)\nit takes values \u2208 [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.",
+                "type": {
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/13"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 13,
+                "m_parent_sub_section": "quantities",
                 "name": "chemical_potential",
                 "description": "Chemical potential.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "unit": "electron_volt"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/2/section_definitions/29/quantities/4"
+                }
               }
             ]
           },
@@ -17395,7 +17546,7 @@ window.nomadArtifacts = {
                 "name": "volumes",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/53/quantities/1"
+                  "type_data": "/packages/18/section_definitions/56/quantities/1"
                 }
               },
               {
@@ -17405,7 +17556,7 @@ window.nomadArtifacts = {
                 "name": "energies_raw",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/53/quantities/2"
+                  "type_data": "/packages/18/section_definitions/56/quantities/2"
                 }
               },
               {
@@ -17415,7 +17566,7 @@ window.nomadArtifacts = {
                 "name": "energies_fit",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/18/section_definitions/52/quantities/1"
+                  "type_data": "/packages/18/section_definitions/55/quantities/1"
                 }
               }
             ]
@@ -70603,6 +70754,7 @@ window.nomadArtifacts = {
             "m_parent_index": 39,
             "m_parent_sub_section": "section_definitions",
             "name": "GWResults",
+            "description": "Groups DFT and GW outputs: band gaps, DOS, band structures. The ResultsNormalizer takes care of adding a label 'DFT' or 'GW' in the method `get_gw_workflow_properties`.",
             "base_sections": [
               "/packages/18/section_definitions/1"
             ],
@@ -70698,6 +70850,7 @@ window.nomadArtifacts = {
             "m_parent_index": 40,
             "m_parent_sub_section": "section_definitions",
             "name": "GWMethod",
+            "description": "Groups DFT and GW input methodologies: starting XC functional, electrons representation (basis set), GW method reference.",
             "base_sections": [
               "/packages/18/section_definitions/0"
             ],
@@ -70705,17 +70858,6 @@ window.nomadArtifacts = {
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "gw_method_ref",
-                "description": "Reference to the GW methodology.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/29"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "starting_point",
                 "description": "Reference to the starting point (XC functional or HF) used.",
@@ -70726,13 +70868,24 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "electrons_representation",
                 "description": "Reference to the basis set used.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/0/section_definitions/16"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "gw_method_ref",
+                "description": "Reference to the GW methodology.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/29"
                 }
               }
             ]
@@ -70742,6 +70895,7 @@ window.nomadArtifacts = {
             "m_parent_index": 41,
             "m_parent_sub_section": "section_definitions",
             "name": "GW",
+            "description": "The GW workflow is generated in an extra EntryArchive IF both the DFT SinglePoint and the GW SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
               "/packages/18/section_definitions/10"
             ],
@@ -70770,6 +70924,7 @@ window.nomadArtifacts = {
             "m_parent_index": 42,
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarizationResults",
+            "description": "Groups all polarization outputs: spectrum.",
             "base_sections": [
               "/packages/18/section_definitions/1"
             ],
@@ -70806,6 +70961,7 @@ window.nomadArtifacts = {
             "m_parent_index": 43,
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarizationMethod",
+            "description": "Defines the full macroscopic dielectric tensor methodology: BSE method reference.",
             "base_sections": [
               "/packages/18/section_definitions/0"
             ],
@@ -70828,6 +70984,7 @@ window.nomadArtifacts = {
             "m_parent_index": 44,
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarization",
+            "description": "The PhotonPolarization workflow is generated in an extra EntryArchive FOR all polarization EntryArchives present in the upload. It groups them for a set of given method parameters.\n\nThis entry is also recognized as the full macroscopic dielectric tensor entry (e.g. calculated\nvia BSE).",
             "base_sections": [
               "/packages/18/section_definitions/9"
             ],
@@ -70856,6 +71013,7 @@ window.nomadArtifacts = {
             "m_parent_index": 45,
             "m_parent_sub_section": "section_definitions",
             "name": "XSResults",
+            "description": "Groups DFT, GW and PhotonPolarization outputs: band gaps (DFT, GW), DOS (DFT, GW), band structures (DFT, GW), spectra (PhotonPolarization). The ResultsNormalizer takes\ncare of adding a label 'DFT' or 'GW' in the method `get_xs_workflow_properties`.",
             "base_sections": [
               "/packages/18/section_definitions/1"
             ],
@@ -70970,6 +71128,7 @@ window.nomadArtifacts = {
             "m_parent_index": 47,
             "m_parent_sub_section": "section_definitions",
             "name": "XS",
+            "description": "The XS workflow is generated in an extra EntryArchive IF both the DFT SinglePoint and the PhotonPolarization EntryArchives are present in the upload.",
             "base_sections": [
               "/packages/18/section_definitions/10"
             ],
@@ -70997,7 +71156,139 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 48,
             "m_parent_sub_section": "section_definitions",
+            "name": "MaxEntResults",
+            "description": "Groups DMFT and MaxEnt outputs: greens functions (DMFT, MaxEnt), band gaps (MaxEnt), DOS (MaxEnt), band structures (MaxEnt). The ResultsNormalizer takes care of adding a\nlabel 'DMFT' or 'MaxEnt' in the method `get_maxent_workflow_properties`.",
+            "base_sections": [
+              "/packages/18/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "greens_functions_dmft",
+                "description": "Ref to the DMFT Greens functions.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/29"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_maxent",
+                "description": "MaxEnt band gap.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "dos_maxent",
+                "description": "Ref to the MaxEnt density of states (also called spectral function).",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/17"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "greens_functions_maxent",
+                "description": "Ref to the MaxEnt Greens functions.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/2/section_definitions/29"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 49,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MaxEntMethod",
+            "description": "Groups DMFT and MaxEnt input methodologies: DMFT method references, MaxEnt method reference.",
+            "base_sections": [
+              "/packages/18/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "dmft_method_ref",
+                "description": "DMFT methodology reference.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/31"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "maxent_method_ref",
+                "description": "MaxEnt methodology reference.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/0/section_definitions/39"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 50,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MaxEnt",
+            "description": "The MaxEnt (Maximum Entropy) workflow is generated in an extra EntryArchive IF both the DMFT SinglePoint and the MaxEnt SinglePoint EntryArchives are present in the upload.",
+            "base_sections": [
+              "/packages/18/section_definitions/10"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "method",
+                "sub_section": "/packages/18/section_definitions/49"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "categories": [
+                  "/packages/16/category_definitions/0"
+                ],
+                "sub_section": "/packages/18/section_definitions/48"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 51,
+            "m_parent_sub_section": "section_definitions",
             "name": "DMFTResults",
+            "description": "Groups DFT, Projection and DMFT outputs: band gaps (all), DOS (DFT, Projection), band structures (DFT, Projection), Greens functions (DMFT). The ResultsNormalizer takes care\nof adding a label 'DFT', 'PROJECTION, or 'DMFT' in the method `get_dmft_workflow_properties`.",
             "base_sections": [
               "/packages/18/section_definitions/1"
             ],
@@ -71118,9 +71409,10 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 49,
+            "m_parent_index": 52,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFTMethod",
+            "description": "Groups DFT, Projection and DMFT input methodologies: starting XC functional, electrons representation (basis set), Projection method reference, DMFT method reference.",
             "base_sections": [
               "/packages/18/section_definitions/0"
             ],
@@ -71173,9 +71465,10 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 50,
+            "m_parent_index": 53,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFT",
+            "description": "The DMFT workflow is generated in an extra EntryArchive IF both the Projection SinglePoint and the DMFT SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
               "/packages/18/section_definitions/10"
             ],
@@ -71185,7 +71478,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/18/section_definitions/49"
+                "sub_section": "/packages/18/section_definitions/52"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -71195,13 +71488,13 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/16/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/48"
+                "sub_section": "/packages/18/section_definitions/51"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 51,
+            "m_parent_index": 54,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateMethod",
             "base_sections": [
@@ -71224,7 +71517,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 52,
+            "m_parent_index": 55,
             "m_parent_sub_section": "section_definitions",
             "name": "EOSFit",
             "description": "Section containing results of an equation of state fit.",
@@ -71323,7 +71616,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 53,
+            "m_parent_index": 56,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateResults",
             "base_sections": [
@@ -71379,14 +71672,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eos_fit",
-                "sub_section": "/packages/18/section_definitions/52",
+                "sub_section": "/packages/18/section_definitions/55",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 54,
+            "m_parent_index": 57,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfState",
             "base_sections": [
@@ -71398,7 +71691,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/18/section_definitions/51"
+                "sub_section": "/packages/18/section_definitions/54"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -71408,7 +71701,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/16/category_definitions/0"
                 ],
-                "sub_section": "/packages/18/section_definitions/53"
+                "sub_section": "/packages/18/section_definitions/56"
               }
             ]
           }

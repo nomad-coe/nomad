@@ -49,14 +49,6 @@ const FilterSubMenuDMFT = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputRange
-          quantity="results.method.simulation.dmft.total_filling"
-          visible={visible}
-          xs={12}
-          disableSearch
-        />
-      </InputGridItem>
-      <InputGridItem xs={12}>
-        <InputRange
           quantity="results.method.simulation.dmft.inverse_temperature"
           visible={visible}
           xs={12}
@@ -82,6 +74,14 @@ const FilterSubMenuDMFT = React.memo(({
       <InputGridItem xs={12}>
         <InputRange
           quantity="results.method.simulation.dmft.jh"
+          visible={visible}
+          xs={12}
+          disableSearch
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
+          quantity="results.method.simulation.dmft.analytical_continuation"
           visible={visible}
           xs={12}
           disableSearch

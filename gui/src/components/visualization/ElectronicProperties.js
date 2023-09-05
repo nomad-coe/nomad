@@ -38,12 +38,6 @@ const useStyles = makeStyles((theme) => {
     placeholder: {
       top: theme.spacing(0.7),
       bottom: theme.spacing(2)
-    },
-    regtau: {
-      height: '300px'
-    },
-    imsiw: {
-      height: '300px'
     }
   }
 })
@@ -120,11 +114,10 @@ const ElectronicProperties = React.memo(({
   // Custom layout if only Greens functions are available
   } else if (bs === false && dos === false && band_gap === false && brillouin_zone === false) {
     return <PropertyGrid>
-      <PropertyItem title="Green's functions" xs={12} height="auto">
+      <PropertyItem title="Green's functions" xs={12} height='auto'>
         <GreensFunctions
           data={gf}
           provenance={dmftprovenance}
-          classes={{regtau: styles.regtau, imsiw: styles.imsiw}}
         />
       </PropertyItem>
     </PropertyGrid>
@@ -165,11 +158,10 @@ const ElectronicProperties = React.memo(({
         <BandGap data={band_gap}/>
       </PropertyItem>
       {gf !== false &&
-        <PropertyItem title="Green's functions" xs={12} height="auto">
+        <PropertyItem title="Green's functions" xs={12} height='auto'>
           <GreensFunctions
             data={gf}
             provenance={dmftprovenance}
-            classes={{regtau: styles.regtau, imsiw: styles.imsiw}}
           />
         </PropertyItem>
       }

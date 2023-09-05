@@ -623,3 +623,30 @@ def traverse_reversed(archive: Any, path: List[str]) -> Any:
     for t in traverse(archive, path, 0):
         if t is not None:
             yield t
+
+
+def extract_section(root: Any, path: List[str], full_list: bool = False):
+    """Extracts a section from source following the path and the last elements of the section
+    lists. If full_list is True, the resolved section gives the full list instead of the
+    last element.
+
+    Args:
+        source: The root section.
+        path (str): List containing the sections to extract.
+        full_list (bool, optional): For the last element of path, if set to True returns the full
+            list instead. Defaults to False.
+
+    Returns:
+        root: The resolved section.
+    """
+    path_len = len(path) - 1
+    for index, section in enumerate(path):
+        try:
+            value = getattr(root, section)
+            if full_list and index == path_len:
+                root = value
+                break
+            root = value[-1] if isinstance(value, list) else value
+        except Exception:
+            return
+    return root

@@ -92,9 +92,9 @@ def test_dmft_workflow(dmft_workflow):
     workflow = dmft_workflow.workflow2
     assert workflow.name == 'DMFT'
     assert not workflow.method.projection_method_ref.wannier.is_maximally_localized
-    assert workflow.method.dmft_method_ref.n_atoms_per_unit_cell == 1
+    assert workflow.method.dmft_method_ref.n_impurities == 1
     assert workflow.method.dmft_method_ref.n_correlated_orbitals[0] == 3
-    assert workflow.method.dmft_method_ref.n_correlated_electrons == 1.0
+    assert workflow.method.dmft_method_ref.n_electrons[0] == 1.0
     assert workflow.method.dmft_method_ref.inverse_temperature.magnitude == 60.0
     assert workflow.method.dmft_method_ref.magnetic_state == 'paramagnetic'
     assert workflow.method.dmft_method_ref.impurity_solver == 'CT-HYB'
@@ -103,7 +103,6 @@ def test_dmft_workflow(dmft_workflow):
     assert results.method.workflow_name == 'DMFT'
     assert results.method.simulation.program_name == 'w2dynamics'
     assert results.method.simulation.dmft.impurity_solver_type == 'CT-HYB'
-    assert results.method.simulation.dmft.total_filling == 0.5 / 3.0
     assert results.method.simulation.dmft.inverse_temperature.magnitude == 60.0
     assert results.method.simulation.dmft.magnetic_state == 'paramagnetic'
     assert results.method.simulation.dmft.u.magnitude == 4.0e-19
@@ -116,6 +115,35 @@ def test_dmft_workflow(dmft_workflow):
     # TODO check why this testing is not passing
     #   * conftest seems to not be able to normalize the archive_dmft for the Greens functions, despite self_energy_iw is defined.
     # assert results.m_xpath('properties.electronic.greens_function_electronic')
+
+
+def test_maxent_workflow(maxent_workflow):
+    """Testing MaxEnt workflow entry"""
+    workflow = maxent_workflow.workflow2
+    assert workflow.name == 'MaxEnt'
+    assert workflow.method.dmft_method_ref.n_impurities == 1
+    assert workflow.method.dmft_method_ref.n_correlated_orbitals[0] == 3
+    assert workflow.method.dmft_method_ref.n_electrons[0] == 1.0
+    assert workflow.method.dmft_method_ref.inverse_temperature.magnitude == 60.0
+    assert workflow.method.dmft_method_ref.magnetic_state == 'paramagnetic'
+    assert workflow.method.dmft_method_ref.impurity_solver == 'CT-HYB'
+    assert workflow.method.maxent_method_ref
+    results = maxent_workflow.results
+    assert results.method.method_name == 'DMFT'
+    assert results.method.workflow_name == 'MaxEnt'
+    assert results.method.simulation.program_name == 'w2dynamics'
+    assert results.method.simulation.dmft.impurity_solver_type == 'CT-HYB'
+    assert results.method.simulation.dmft.inverse_temperature.magnitude == 60.0
+    assert results.method.simulation.dmft.magnetic_state == 'paramagnetic'
+    assert results.method.simulation.dmft.u.magnitude == 4.0e-19
+    assert results.method.simulation.dmft.jh.magnitude == 0.6e-19
+    assert results.method.simulation.dmft.analytical_continuation == 'MaxEnt'
+    assert results.m_xpath('properties.electronic.dos_electronic')
+    assert len(results.properties.electronic.dos_electronic) == 1
+    assert results.m_xpath('properties.electronic.greens_functions_electronic')
+    assert len(results.properties.electronic.greens_functions_electronic) == 2
+    assert results.properties.electronic.greens_functions_electronic[0].label == 'DMFT'
+    assert results.properties.electronic.greens_functions_electronic[1].label == 'MaxEnt'
 
 
 def test_bse_workflow(bse_workflow):

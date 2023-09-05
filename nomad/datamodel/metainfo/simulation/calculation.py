@@ -99,21 +99,21 @@ class Atomic(MSection):
         ''')
 
     n_orbitals = Quantity(
-        type=int,
+        type=np.int32,
         shape=[],
         description='''
         Number of orbitals used in the projection.
         ''')
 
     n_atoms = Quantity(
-        type=int,
+        type=np.int32,
         shape=[],
         description='''
         Number of atoms.
         ''')
 
     n_spin_channels = Quantity(
-        type=int,
+        type=np.int32,
         shape=[],
         description='''
         Number of spin channels.
@@ -499,6 +499,14 @@ class Energy(MSection):
         unit='joule',
         description='''
         Value of the internal energy.
+        ''')
+
+    double_counting = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description='''
+        Double counting correction when performing Hubbard model calculations.
         ''')
 
     # TODO remove this should be be entropy.correction
@@ -1598,11 +1606,20 @@ class GreensFunctions(MSection):
 
     m_def = Section(validate=False)
 
+    type = Quantity(
+        type=MEnum('impurity', 'lattice'),
+        description='''
+        Type of Green's function calculated from the mapping of the Hubbard-Kanamori model
+        into the Anderson impurity model. These calculations are converged if both types of
+        Green's functions converge to each other (G_impurity == G_lattice).
+        ''')
+
     matsubara_freq = Quantity(
         type=np.float64,
-        shape=['2 * n_matsubara_freq'],
+        shape=['*'],
         description='''
-        Matsubara frequencies (imaginary frequencies).
+        Matsubara frequencies (imaginary frequencies). Can be either positives or both positives
+        and negatives.
         ''')
 
     tau = Quantity(
@@ -1612,38 +1629,67 @@ class GreensFunctions(MSection):
         Imaginary times.
         ''')
 
+    frequencies = Quantity(
+        type=np.float64,
+        shape=['n_frequencies'],
+        description='''
+        Real space frequencies.
+        ''')
+
     chemical_potential = Quantity(
         type=np.float64,
-        unit='electron_volt',
+        unit='joule',
         description='''
         Chemical potential.
         ''')
 
     self_energy_iw = Quantity(
         type=np.complex128,
-        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '2 * n_matsubara_freq'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '*'],
         description='''
-        Self-energy matrix in Matsubara frequencies.
+        Self-energy tensor in Matsubara frequencies.
         ''')
 
     greens_function_iw = Quantity(
         type=np.complex128,
-        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '2 * n_matsubara_freq'],
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '*'],
         description='''
-        Green's function matrix in Matsubara frequencies.
+        Green's function tensor in Matsubara frequencies.
         ''')
 
-    greens_function_freq = Quantity(
+    hybridization_function_iw = Quantity(
         type=np.complex128,
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '*'],
         description='''
-        Green's function matrix in real frequencies.
+        Hybridization function tensor in Matsubara frequencies.
         ''')
 
     greens_function_tau = Quantity(
         type=np.complex128,
         shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_tau'],
         description='''
-        Green's function matrix in tau (imaginary time).
+        Green's function tensor in tau (imaginary time).
+        ''')
+
+    self_energy_freq = Quantity(
+        type=np.complex128,
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_frequencies'],
+        description='''
+        Self-energy tensor in real frequencies.
+        ''')
+
+    greens_function_freq = Quantity(
+        type=np.complex128,
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_frequencies'],
+        description='''
+        Green's function tensor in real frequencies.
+        ''')
+
+    hybridization_function_freq = Quantity(
+        type=np.complex128,
+        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_frequencies'],
+        description='''
+        Hybridization function tensor in real frequencies.
         ''')
 
     orbital_occupations = Quantity(
