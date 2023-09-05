@@ -1,0 +1,8 @@
+data:
+  m_def: nomad.datamodel.metainfo.downloads.Downloads
+  mainfiles:
+    - emnion.archive.json
+  downloads:
+    - url: https://zenodo.org/record/7986279/files/ger_berlin_haas_nionswift_multimodal.zip?download=1
+      output: ger_berlin_haas_nionswift_multimodal.zip
+      extract: true

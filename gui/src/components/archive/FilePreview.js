@@ -25,6 +25,7 @@ import InfiniteScroll from 'react-infinite-scroller'
 import { useApi } from '../api'
 import { apiBase } from '../../config'
 import { parseCifStructures } from 'crystcif-parse'
+import H5Web from '../visualization/H5Web'
 import Structure from '../visualization/Structure'
 import { isWaitingForUpdateTestId } from '../../utils'
 import {useLane} from './Browser'
@@ -99,6 +100,13 @@ const viewerPDF = {
   }
 }
 
+const viewerHdfFive = {
+  name: 'hdf5',
+  fileExtensions: ['h4', 'hd4', 'hdf4', 'hdf', 'h5', 'hd5', 'hdf5', 'hd5', 'nxs', 'h5oina', 'edaxh5', 'emd', 'dream3d'],
+  maxSizeAutoPreview: 10e6,
+  width: 'fit-content',
+  render: ({uploadId, path}) => <H5Web upload_id={uploadId} filename={path}/>
+}
 const viewerCif = {
   name: 'cif',
   fileExtensions: ['cif'],
@@ -124,7 +132,8 @@ const viewerCif = {
     )
   }
 }
-export const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerCif]
+
+export const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHdfFive, viewerCif]
 
 const FilePreview = React.memo(({uploadId, path, size}) => {
   const classes = useFilePreviewStyles()

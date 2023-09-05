@@ -56399,6 +56399,7 @@ window.nomadArtifacts = {
                     "NXaberration_model",
                     "NXaberration_model_ceos",
                     "NXaberration_model_nion",
+                    "NXactivity",
                     "NXadc",
                     "NXamplifier",
                     "NXaperture_em",
@@ -56452,6 +56453,7 @@ window.nomadArtifacts = {
                     "NXcg_unit_normal_set",
                     "NXchamber",
                     "NXchemical_composition",
+                    "NXchemical_process",
                     "NXcircuit",
                     "NXcircuit_board",
                     "NXclustering",
@@ -56525,6 +56527,7 @@ window.nomadArtifacts = {
                     "NXoptical_system_em",
                     "NXorientation_set",
                     "NXpeak",
+                    "NXphysical_process",
                     "NXpid",
                     "NXpolarizer_opt",
                     "NXpositioner_sts",
@@ -56536,11 +56539,15 @@ window.nomadArtifacts = {
                     "NXreflectron",
                     "NXregion",
                     "NXregistration",
+                    "NXrotation_set",
+                    "NXsample_component_set",
+                    "NXsample_history",
                     "NXscanbox_em",
                     "NXsensor_scan",
                     "NXsensor_sts",
                     "NXseparator",
                     "NXsimilarity_grouping",
+                    "NXsingle_crystal",
                     "NXslip_system_set",
                     "NXsnsevent",
                     "NXsnshisto",
@@ -56555,7 +56562,9 @@ window.nomadArtifacts = {
                     "NXstage_lab",
                     "NXsts",
                     "NXsubsampling_filter",
+                    "NXsubstance",
                     "NXtransmission",
+                    "NXunit_cell",
                     "NXwaveplate",
                     "NXxpcs",
                     "NXroot"
@@ -74551,13 +74560,23 @@ window.nomadArtifacts = {
       },
       "apm": {
         "path": "examples/data/uploads/apm.zip",
-        "title": "Electronic Lab Notebook for Atom Probe Microscopy (APM)",
-        "description": "This is an example for atom probe microscopy.\nThe example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** with which users can enter metadata that are usually\nnot stored in vendor or community file formats. The example serves two\npurposes. On the one hand it shows how custom NOMAD *schema* can be\ncreated for a research community, here atom probe. On the other hand it\nshows how all required data in a NeXus NXapm file can be added to supplement\ncontent from vendor and community files.\n"
+        "title": "Atom Probe Microscopy",
+        "description": "This is an example for atom probe microscopy offering\nan atom-probe-specific custom schema for an ELN and aligned NeXus data schema\n(NXapm) supporting standardization, parsing capabilities for the most frequently\nused file formats (POS, ePOS, APT) for storing reconstruction and ranging\ndefinitions (RNG, RRNG), real world example data, and a docker container apmtools\nwhich contains configured open-source tools for analyzing atom probe dataset\nfor exploring composition and microstructural features described using methods\nfrom the research fields of computational geometry and materials engineering.\n"
       },
       "em_spctrscpy": {
         "path": "examples/data/uploads/em_spctrscpy.zip",
-        "title": "Electronic Lab Notebook for Electron Microscopy (EM)",
-        "description": "This is an example for electron microscopy.\nSpecifically for spectroscopy methods in the SEM and TEM, exemplified\nfor energy-dispersive X-ray (EDXS/EDS) spectroscopy and\nelectron energy loss spectroscopy (EELS).\nThe example contains a custom NOMAD *schema* to create an **Electronic\nLab Notebook (ELN)** with which users can enter metadata that are usually\nnot stored in vendor or community file formats. The example serves two\npurposes. On the one hand it shows how custom NOMAD *schema* can be\ncreated for a research community, here electron microscopy. On the other hand\nit shows how required data in a NeXus NXem file can be added to supplement\ncontent from vendor and community files.\n"
+        "title": "Spectroscopy Experiments with Electron Microscopy",
+        "description": "This is an example for scanning and/or transmission electron microscopy offering\nexamples how NOMAD can be customized to support spectroscopy methods like\nenergy-dispersive X-ray (EDXS/EDS) and electron energy loss spectroscopy (EELS).\nThe example offers a domain-specific custom schema for an ELN and aligned NeXus\ndata schema (NXem) supporting standardization, parsing capabilities for some\nexamples of file formats supported via hyperspy and third-party tools.\nExamples implement how to parse data from DM3, Velox EMD and Bruker BCF files.\n"
+      },
+      "em_om": {
+        "path": "examples/data/uploads/em_om.zip",
+        "title": "Orientation Microscopy with Electron Microscopy",
+        "description": "This is an example for scanning and/or transmission electron microscopy offering\na proof-of-concept how NOMAD can be customized to support orientation microscopy\nmethods and thus one large group of diffraction-based methods in an electron\nmicroscope.\nSpecifically, the example shows how electron backscatter diffraction as a\ntechnique can be conceptually represented in a research data management system.\nThe example offers a domain-specific custom schema for storing EBSD data and\nrelated practical steps and mathematical conventions assumed including an aligned\nNeXus data schema (NXem_ebsd) as a draft proposal for convincing why more\nstandardization in the research field of orientation microscopy is useful.\nFurthermore, the example comes with real world data from multiple sources\ndifferent tools/analysis strategies used. The example includes a set of parsers\nusing the pynxtools library which implements proof-of-concepts how EBSD data\nin different representation can be loaded (HDF5-based files from technology\npartners exemplified for H5OINA, analysis results from third-party community\nsoftware like MTex, how to interface with an use the pyxem/orix/kikuchipy library,\nand an example of correlative studies where a set of serial-sectioning\norientation maps is processed into a three-dimensionally reconstructed\nmicrostructure using the popular community tool DREAM.3D.\nFeedback from the EBSD community is welcome to substantially enhance\nthe capabilities of the underlying tools, specifically pynxtools to\noffer a library that can be used in research data management systems\nsuch as but not exclusively NOMAD OASIS.\n"
+      },
+      "em_nion": {
+        "path": "examples/data/uploads/em_nion.zip",
+        "title": "Reading electron microscopy data from compressed nionswift project files",
+        "description": "This is an initial implementation and draft example using the pynxtools\nlibrary capabilities and em_nion reader to show how data can be read\ndirectly from nionswift project files and then mapped using mapping\ntables on an instance of the NeXus NXem application definition.\n"
       },
       "iv_temp": {
         "path": "examples/data/uploads/iv_temp.zip",
@@ -74568,7 +74587,7 @@ window.nomadArtifacts = {
   },
   "northTools": {
     "jupyter": {
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:latest",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:v0.0.1",
       "description": "### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.",
       "short_description": "Basic jupyter run with an empty notebook or on given notebook file.",
       "cmd": null,
@@ -74592,7 +74611,7 @@ window.nomadArtifacts = {
       "external_mounts": []
     },
     "nionswift": {
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop:latest",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop",
       "description": "Run Nion Swift to analyze data.",
       "short_description": "Run NionSwift to analyze data as well as prepare focus series reconstructions",
       "cmd": null,
@@ -74610,7 +74629,7 @@ window.nomadArtifacts = {
       "external_mounts": []
     },
     "nexustools": {
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop:latest",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop",
       "description": "Includes multiple NeXus tools for visualization and analysis.",
       "short_description": null,
       "cmd": null,
@@ -74685,7 +74704,7 @@ window.nomadArtifacts = {
       "external_mounts": []
     },
     "xps": {
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter:0.1",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter",
       "description": "Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS xml files into NeXus.",
       "short_description": "An example for analyzing XPS data.",
       "cmd": null,
@@ -74712,7 +74731,7 @@ window.nomadArtifacts = {
       "external_mounts": []
     },
     "sts": {
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter:latest",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter",
       "description": "AT this moment, the reader works for two types of experiments, Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can only transform the data from Nanonis machine generated files into standarised nexus application definition NXsts. The present version of STS reader can handle files from two specific software versions generic 5e and genric 4.5.",
       "short_description": "An example for analyzing SPM (STM /STS) experiment.",
       "cmd": null,
@@ -74754,7 +74773,7 @@ window.nomadArtifacts = {
     },
     "apmtools": {
       "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop",
-      "description": "Miscellaneous tools from the atom probe community:\nCurrently the Leoben APT_analyzer and the paraprobe-toolbox.",
+      "description": "Miscellaneous tools from the atom probe community:\nCurrently APTyzer, paraprobe-toolbox, and APAV",
       "short_description": "An example for analyzing atom probe data.",
       "cmd": null,
       "path_prefix": null,

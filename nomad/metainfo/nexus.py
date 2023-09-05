@@ -526,6 +526,32 @@ def __create_class_section(xml_node: ET.Element) -> Section:
     return class_section
 
 
+def __find_cycles(graph):
+    def dfs(node, visited, path):
+        visited.add(node)
+        path.append(node)
+
+        for neighbor in graph.get(node, set()):
+            if neighbor in path:
+                # Found a cycle
+                cycle_start = path.index(neighbor)
+                cycle = path[cycle_start:]
+                cycles.append(cycle)
+            elif neighbor not in visited:
+                dfs(neighbor, visited, path)
+
+        path.pop()
+
+    cycles = []
+    visited = set()
+
+    for node in graph:
+        if node not in visited:
+            dfs(node, visited, [])
+
+    return cycles
+
+
 def __sort_nxdl_files(paths):
     '''
     Sort all definitions based on dependencies
@@ -550,10 +576,12 @@ def __sort_nxdl_files(paths):
                     dependency_list.append(child.get('type'))
             name_dependency_map[xml_name] = set(dependency_list)
 
-    # manually remove deprecated circular dependency
-    name_dependency_map['NXgeometry'].remove('NXorientation')
-    name_dependency_map['NXgeometry'].remove('NXtranslation')
+    # Find cycles and remove them
+    cycles = __find_cycles(name_dependency_map)
+    for cycle in cycles:
+        name_dependency_map[cycle[-2]].remove(cycle[-1])
 
+    # this sorting can be skipped one should create empty classes instead
     sorted_nodes = toposort_flatten(name_dependency_map)
     validated_names = []
     for node in sorted_nodes:

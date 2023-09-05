@@ -1,8 +1,8 @@
 data:
   m_def: nomad.datamodel.metainfo.downloads.Downloads
   mainfiles:
-    - em.archive.json
+    - emspctrscpy.archive.json
   downloads:
-    - url: https://www.zenodo.org/record/7050774/files/em-spctrscpy-sprint9-example.zip?download=1
-      output: em-spctrscpy-sprint9-example.zip
+    - url: https://www.zenodo.org/record/7908429/files/EM.Various.Datasets.1.zip?download=1
+      output: EM.Various.Datasets.1.zip
       extract: true

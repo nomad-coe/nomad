@@ -1,0 +1,65 @@
+calibration:
+  origin: unknown.vendorfile
+  path: unknown
+commercial_on_the_fly_indexing:
+  program: unknown
+  program__attr_version: unknown
+  results_file: unknown.vendorfile
+detector_reference_frame:
+  origin: front_top_left
+  reference_frame_type: right_handed_cartesian
+  xaxis_direction: east
+  yaxis_direction: in
+  zaxis_direction: north
+entry:
+  attr_version: nexus-fairmat-proposal successor of 9636feecb79bb32b828b1a9804269573256d7696
+  definition: NXem_ebsd
+  end_time: '2023-05-28T19:01:00+00:00'
+  program: nexusutils/dataconverter/readers/em_om.py
+  program__attr_version: undefined
+  start_time: '2023-05-28T19:01:00+00:00'
+  workflow_description: em_ebsd example forsterite
+  workflow_identifier: emebsd
+gnomonic_projection:
+  gnomonic_projection_reference_frame:
+    origin: in_the_pattern_centre
+    reference_frame_type: right_handed_cartesian
+    xaxis_direction: east
+    yaxis_direction: in
+    zaxis_direction: north
+  method: backscatter
+  pattern_centre:
+    xaxis_boundary_convention: top
+    xaxis_normalization_direction: east
+    yaxis_boundary_convention: top
+    yaxis_normalization_direction: south
+indexing:
+  method: hough_transform
+measurement:
+  origin: unknown.vendorfile
+  path: unknown
+processing_reference_frame:
+  origin: front_top_left
+  reference_frame_type: right_handed_cartesian
+  xaxis_alias: rolling direction
+  xaxis_direction: east
+  yaxis_alias: transverse direction
+  yaxis_direction: in
+  zaxis_alias: normal direction
+  zaxis_direction: north
+rotation_conventions:
+  axis_angle_convention: rotation_angle_on_interval_zero_to_pi
+  euler_angle_convention: zxz
+  rotation_convention: passive
+  sign_convention: p_plus_one
+  three_dimensional_rotation_handedness: counter_clockwise
+sample_reference_frame:
+  origin: front_top_left
+  reference_frame_type: right_handed_cartesian
+  xaxis_direction: east
+  yaxis_direction: in
+  zaxis_direction: north
+user:
+- affiliation: FAIRmat
+  name: MarkusK
+- name: Ralf Hielscher

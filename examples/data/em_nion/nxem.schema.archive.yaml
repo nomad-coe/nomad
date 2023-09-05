@@ -9,11 +9,10 @@ definitions:
       base_sections:
         - 'nomad.datamodel.metainfo.eln.NexusDataConverter'
         - 'nomad.datamodel.data.EntryData'
-      # base_section: nomad.datamodel.data.EntryData
       m_annotations:
         # Here you can set your default values for the reader and nxdl.
         template: 
-          reader: em_spctrscpy
+          reader: em_nion
           nxdl: NXem.nxdl
         # Listing quantities in the hide component will not show them in the ELN.
         # This would be useful to make the default values set in `template` fixed.

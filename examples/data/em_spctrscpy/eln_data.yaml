@@ -1,61 +1,55 @@
 em_lab:
   detector:
-  - type: EDS detector
+  - local_name: superscan
   ebeam_column:
     aberration_correction:
       applied: true
     aperture_em:
-    - name: C1
-      value: 4
-    electron_gun:
-      emitter_type: cold_cathode_field_emitter
+    - name: ap1
+      value: 2.0
+    electron_source:
+      emitter_type: field_emission
+      name: mysource
       voltage:
-        unit: V
-        value: 200000
+        unit: kV
+        value: 60.0
   fabrication:
-    capabilities: '---'
-    identifier: talos
-    model: TALOS
-    vendor: FEI
-  instrument_name: TALOS
-  location: fEPFL
+    capabilities: irrelevant for this example
+    identifier: n/a
+    model: Nion Hermes
+    vendor: Nion Co.
+  instrument_name: Nion
+  location: Berlin
   optical_system_em:
     beam_current:
-      unit: A
-      value: 1.2e-11
+      unit: pA
+      value: 12.0
     beam_current_description: estimated
-    magnification: 610000
-    semi_convergence_angle:
-      unit: rad
-      value: 0.2
   stage_lab:
-    description: double tilt
-    name: nothing
+    description: some stage
+    name: kleindiek
 entry:
-  attr_version: nexus-fairmat-proposal successor of 50433d9039b3f33299bab338998acb5335cd8951
+  attr_version: nexus-fairmat-proposal successor of 9636feecb79bb32b828b1a9804269573256d7696
   definition: NXem
-  end_time: '2022-09-21T19:16:00+00:00'
-  experiment_description: 1613_si
-  experiment_identifier: 1613_si
-  program: Velox
-  program__attr_version: v6.8
-  start_time: '2022-09-20T19:16:00+00:00'
+  end_time: '2023-05-28T19:10:00+00:00'
+  experiment_description: DigitalMicrograph Test
+  experiment_identifier: Benedikt
+  program: DigitalMicrograph
+  program__attr_version: '1.0'
+  start_time: '2023-05-28T19:10:00+00:00'
 sample:
   atom_types:
-  - Al
-  - Nd
-  - O
-  description: test
+  - Gd
+  description: nothing
   method: experiment
-  name: 1613_Si
-  preparation_date: '2022-09-15T19:15:00+00:00'
+  name: DM
+  preparation_date: '2023-05-15T19:12:00+00:00'
   sample_history: unknown
-  short_title: '1613'
+  short_title: unknown
   thickness:
-    unit: m
-    value: 2.0e-08
+    unit: nm
+    value: 200000000.0
 user:
-- name: MarkusK
-  orcid: '0000'
-- email: '----'
-  name: MarkusS
+- affiliation: FAIRmat
+  name: MarkusK
+- name: Benedikt Haas

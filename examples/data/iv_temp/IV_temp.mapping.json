@@ -34,6 +34,7 @@
     "/ENTRY[entry]/PROCESS[process]/program": "Bluesky",
     "/ENTRY[entry]/PROCESS[process]/program/@version": "/metadata_start/versions/bluesky",
     "/ENTRY[entry]/SAMPLE[sample]/name": "/metadata_start/sample/Name",
+    "/ENTRY[entry]/SAMPLE[sample]/atom_types": "Si, C",
     "/ENTRY[entry]/USER[user]/email": "/metadata_start/user/E-Mail",
     "/ENTRY[entry]/USER[user]/name": "/metadata_start/user/Name",
     "/ENTRY[entry]/definition": "NXiv_temp",
