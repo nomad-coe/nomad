@@ -2347,6 +2347,9 @@ class Thermodynamics(SerialSimulation):
 
 
 class GWResults(SimulationWorkflowResults):
+    '''Groups DFT and GW outputs: band gaps, DOS, band structures. The ResultsNormalizer
+    takes care of adding a label 'DFT' or 'GW' in the method `get_gw_workflow_properties`.
+    '''
 
     band_gap_dft = Quantity(
         type=Reference(BandGap),
@@ -2392,12 +2395,9 @@ class GWResults(SimulationWorkflowResults):
 
 
 class GWMethod(SimulationWorkflowMethod):
-
-    gw_method_ref = Quantity(
-        type=Reference(GWMethodology),
-        description='''
-        Reference to the GW methodology.
-        ''')
+    '''Groups DFT and GW input methodologies: starting XC functional, electrons
+    representation (basis set), GW method reference.
+    '''
 
     starting_point = Quantity(
         type=Reference(XCFunctional),
@@ -2411,8 +2411,17 @@ class GWMethod(SimulationWorkflowMethod):
         Reference to the basis set used.
         ''')
 
+    gw_method_ref = Quantity(
+        type=Reference(GWMethodology),
+        description='''
+        Reference to the GW methodology.
+        ''')
+
 
 class GW(SerialSimulation):
+    '''The GW workflow is generated in an extra EntryArchive IF both the DFT SinglePoint
+    and the GW SinglePoint EntryArchives are present in the upload.
+    '''
 
     method = SubSection(sub_section=GWMethod)
 
@@ -2421,18 +2430,15 @@ class GW(SerialSimulation):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        if not self.method:
-            self.method = GWMethod()
-
-        if not self.results:
-            self.results = GWResults()
-
         if len(self.tasks) != 2:
             logger.error('Expected two tasks.')
             return
 
         dft_task = self.tasks[0]
         gw_task = self.tasks[1]
+
+        if not self.results:
+            self.results = GWResults()
 
         for name, section in self.results.m_def.all_quantities.items():
             calc_name = '_'.join(name.split('_')[:-1])
@@ -2448,6 +2454,8 @@ class GW(SerialSimulation):
 
 
 class PhotonPolarizationResults(SimulationWorkflowResults):
+    '''Groups all polarization outputs: spectrum.
+    '''
 
     n_polarizations = Quantity(
         type=np.int32,
@@ -2464,6 +2472,9 @@ class PhotonPolarizationResults(SimulationWorkflowResults):
 
 
 class PhotonPolarizationMethod(SimulationWorkflowMethod):
+    '''Defines the full macroscopic dielectric tensor methodology: BSE method reference.
+    '''
+    # TODO add TDDFT methodology reference.
 
     bse_method_ref = Quantity(
         type=Reference(BSEMethodology),
@@ -2473,6 +2484,12 @@ class PhotonPolarizationMethod(SimulationWorkflowMethod):
 
 
 class PhotonPolarization(ParallelSimulation):
+    '''The PhotonPolarization workflow is generated in an extra EntryArchive FOR all polarization
+    EntryArchives present in the upload. It groups them for a set of given method parameters.
+
+    This entry is also recognized as the full macroscopic dielectric tensor entry (e.g. calculated
+    via BSE).
+    '''
 
     method = SubSection(sub_section=PhotonPolarizationMethod)
 
@@ -2481,24 +2498,12 @@ class PhotonPolarization(ParallelSimulation):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        if not self.method:
-            self.method = PhotonPolarizationMethod()
-            if not self.inputs:
-                self.inputs.append(Link(name=_workflow_method_name, section=self.method))
-                # link method also to first task
-                if self.tasks:
-                    self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
-
-        if not self.results:
-            self.results = PhotonPolarizationResults()
-            if not self.outputs:
-                self.outputs.append(Link(name=_workflow_results_name, section=self.results))
-                # link results also to last task
-                if self.tasks:
-                    self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
-
 
 class XSResults(SimulationWorkflowResults):
+    '''Groups DFT, GW and PhotonPolarization outputs: band gaps (DFT, GW), DOS (DFT, GW),
+    band structures (DFT, GW), spectra (PhotonPolarization). The ResultsNormalizer takes
+    care of adding a label 'DFT' or 'GW' in the method `get_xs_workflow_properties`.
+    '''
 
     band_gap_dft = Quantity(
         type=Reference(BandGap),
@@ -2551,6 +2556,10 @@ class XSMethod(SimulationWorkflowMethod):
 
 
 class XS(SerialSimulation):
+    '''The XS workflow is generated in an extra EntryArchive IF both the DFT SinglePoint
+    and the PhotonPolarization EntryArchives are present in the upload.
+    '''
+    # TODO extend to reference a GW SinglePoint.
 
     method = SubSection(sub_section=XSMethod)
 
@@ -2558,12 +2567,6 @@ class XS(SerialSimulation):
 
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
-
-        if not self.method:
-            self.method = XSMethod()
-
-        if not self.results:
-            self.results = XSResults()
 
         if len(self.tasks) < 2:
             logger.error('Expected more than one task: DFT+PhotonPolarization or DFT+GW+PhotonPolarization.')
@@ -2576,6 +2579,9 @@ class XS(SerialSimulation):
         if xs_tasks[0].task.m_def.name != 'PhotonPolarization':
             gw_task = xs_tasks[0]
             xs_tasks.pop(0)  # we delete the [0] element associated with GW in case DFT+GW+PhotonPolarization workflow
+
+        if not self.results:
+            self.results = XSResults()
 
         for name, section in self.results.m_def.all_quantities.items():
             calc_name = '_'.join(name.split('_')[:-1])
@@ -2601,7 +2607,99 @@ class XS(SerialSimulation):
                 self.results.m_add_sub_section(XSResults.spectra, photon_results)
 
 
+class MaxEntResults(SimulationWorkflowResults):
+    '''Groups DMFT and MaxEnt outputs: greens functions (DMFT, MaxEnt), band gaps (MaxEnt),
+    DOS (MaxEnt), band structures (MaxEnt). The ResultsNormalizer takes care of adding a
+    label 'DMFT' or 'MaxEnt' in the method `get_maxent_workflow_properties`.
+    '''
+
+    greens_functions_dmft = Quantity(
+        type=Reference(GreensFunctions),
+        shape=['*'],
+        description='''
+        Ref to the DMFT Greens functions.
+        ''')
+
+    band_gap_maxent = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+        MaxEnt band gap.
+        ''')
+
+    dos_maxent = Quantity(
+        type=Reference(Dos),
+        shape=['*'],
+        description='''
+        Ref to the MaxEnt density of states (also called spectral function).
+        ''')
+
+    greens_functions_maxent = Quantity(
+        type=Reference(GreensFunctions),
+        shape=['*'],
+        description='''
+        Ref to the MaxEnt Greens functions.
+        ''')
+
+
+class MaxEntMethod(SimulationWorkflowMethod):
+    '''Groups DMFT and MaxEnt input methodologies: DMFT method references, MaxEnt method reference.
+    '''
+
+    dmft_method_ref = Quantity(
+        type=Reference(DMFTMethodology),
+        description='''
+        DMFT methodology reference.
+        ''')
+
+    # TODO define MaxEnt metainfo in Method
+    maxent_method_ref = Quantity(
+        type=Reference(Method),
+        description='''
+        MaxEnt methodology reference.
+        ''')
+
+
+class MaxEnt(SerialSimulation):
+    '''The MaxEnt (Maximum Entropy) workflow is generated in an extra EntryArchive IF both
+    the DMFT SinglePoint and the MaxEnt SinglePoint EntryArchives are present in the upload.
+    '''
+
+    method = SubSection(sub_section=MaxEntMethod)
+
+    results = SubSection(sub_section=MaxEntResults)
+
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
+        if len(self.tasks) != 2:
+            logger.error('Expected two tasks: DMFT and MaxEnt SinglePoint tasks')
+            return
+
+        dmft_task = self.tasks[0]
+        maxent_task = self.tasks[1]
+
+        if not self.results:
+            self.results = MaxEntResults()
+
+        for name, section in self.results.m_def.all_quantities.items():
+            calc_name = '_'.join(name.split('_')[:-1])
+            if calc_name in ['dos', 'band_structure']:
+                calc_name = f'{calc_name}_electronic'
+            calc_section = []
+            if 'dmft' in name:
+                calc_section = getattr(dmft_task.outputs[-1].section, calc_name)
+            elif 'maxent' in name:
+                calc_section = getattr(maxent_task.outputs[-1].section, calc_name)
+            if calc_section:
+                self.results.m_set(section, calc_section)
+
+
 class DMFTResults(SimulationWorkflowResults):
+    '''Groups DFT, Projection and DMFT outputs: band gaps (all), DOS (DFT, Projection), band
+    structures (DFT, Projection), Greens functions (DMFT). The ResultsNormalizer takes care
+    of adding a label 'DFT', 'PROJECTION, or 'DMFT' in the method `get_dmft_workflow_properties`.
+    '''
 
     band_gap_dft = Quantity(
         type=Reference(BandGap),
@@ -2661,6 +2759,9 @@ class DMFTResults(SimulationWorkflowResults):
 
 
 class DMFTMethod(SimulationWorkflowMethod):
+    '''Groups DFT, Projection and DMFT input methodologies: starting XC functional, electrons
+    representation (basis set), Projection method reference, DMFT method reference.
+    '''
 
     starting_point = Quantity(
         type=Reference(XCFunctional),
@@ -2688,6 +2789,10 @@ class DMFTMethod(SimulationWorkflowMethod):
 
 
 class DMFT(SerialSimulation):
+    '''The DMFT workflow is generated in an extra EntryArchive IF both the Projection SinglePoint
+    and the DMFT SinglePoint EntryArchives are present in the upload.
+    '''
+    # TODO extend to reference a DFT SinglePoint.
 
     method = SubSection(sub_section=DMFTMethod)
 
@@ -2696,28 +2801,15 @@ class DMFT(SerialSimulation):
     def normalize(self, archive, logger):
         super().normalize(archive, logger)
 
-        if not self.method:
-            self.method = DMFTMethod()
-            if not self.inputs:
-                self.inputs.append(Link(name=_workflow_method_name, section=self.method))
-                # link method also to first task
-                if self.tasks:
-                    self.tasks[0].inputs.append(Link(name=_workflow_method_name, section=self.method))
-
-        if not self.results:
-            self.results = DMFTResults()
-            if not self.outputs:
-                self.outputs.append(Link(name=_workflow_results_name, section=self.results))
-                # link results also to last task
-                if self.tasks:
-                    self.tasks[-1].inputs.append(Link(name=_workflow_results_name, section=self.results))
-
         if len(self.tasks) != 2:
             logger.error('Expected two tasks: Projection and DMFT SinglePoint tasks')
             return
 
         proj_task = self.tasks[0]
         dmft_task = self.tasks[1]
+
+        if not self.results:
+            self.results = DMFTResults()
 
         for name, section in self.results.m_def.all_quantities.items():
             calc_name = '_'.join(name.split('_')[:-1])

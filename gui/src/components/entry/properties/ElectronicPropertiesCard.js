@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -18,10 +17,10 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-import { isEmpty } from 'lodash'
 import { resolveInternalRef } from '../../../utils'
 import { PropertyCard } from './PropertyCard'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
+import { resolveGreensFunctions } from '../../visualization/GreensFunctions'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   // Find out which properties are present
@@ -35,11 +34,9 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
 
   let dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
   let bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
-  let gfReferences = archive?.results?.properties?.electronic?.greens_functions_electronic || []
   const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
   if (!Array.isArray(bsReferences)) bsReferences = [bsReferences]
   if (!Array.isArray(dosReferences)) dosReferences = [dosReferences]
-  if (!Array.isArray(gfReferences)) gfReferences = [gfReferences]
 
   // Resolve DOS data
   let dos = hasDos ? undefined : false
@@ -126,18 +123,7 @@ const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   }
 
   // Resolve Greens functions data
-  let gf = hasGf ? undefined : false
-  if (hasGf) {
-    if (!isEmpty(gfReferences)) {
-      const reference = gfReferences[0]
-      gf = {
-        tau: reference.tau,
-        regtau: reference.real_greens_function_tau,
-        iw: reference.matsubara_freq,
-        imsiw: reference.imag_self_energy_iw
-      }
-    }
-  }
+  const gf = resolveGreensFunctions(properties, archive, pattern)
 
   return <PropertyCard title="Electronic properties">
     <ElectronicProperties

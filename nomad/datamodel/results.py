@@ -1812,14 +1812,6 @@ class DMFT(MSection):
             Elasticsearch(suggestion='default')
         ]
     )
-    total_filling = Quantity(
-        type=np.float64,
-        description='''
-        Total filling of the correlated atoms in the unit cell per spin ∈[0.0, 1.0]. E.g., half-filling
-        is defined as 0.5.
-        ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
     inverse_temperature = DMFTMethod.inverse_temperature.m_copy(
         a_elasticsearch=[
             Elasticsearch(material_entry_type)
@@ -1840,6 +1832,27 @@ class DMFT(MSection):
         a_elasticsearch=[
             Elasticsearch(material_entry_type)
         ]
+    )
+    analytical_continuation = Quantity(
+        type=MEnum('Pade', 'MaxEnt', 'SVD', ''),
+        shape=[],
+        description='''
+        Analytical continuation used to continuate the imaginary space Green's functions into
+        the real frequencies space.
+
+        | Name           | Description         | Reference                        |
+
+        | -------------- | ------------------- | -------------------------------- |
+
+        | `'Pade'` | Pade's approximant  | https://www.sciencedirect.com/science/article/pii/0021999173901277?via%3Dihub |
+
+        | `'MaxEnt'` | Maximum Entropy method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.41.2380 |
+
+        | `'SVD'` | Singular value decomposition | https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.75.517 |
+
+        | `'Stochastic'` | Stochastic method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.57.10287 |
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
 
@@ -2158,30 +2171,86 @@ class GreensFunctionsElectronic(MSection):
         Base class for Green's functions information.
         ''',
     )
+    type = GreensFunctionsCalculation.type.m_copy()
     label = Quantity(
         type=str,
         description='''
         Label to identify the Greens functions data, e.g. the method employed.
         ''')
-    tau = GreensFunctionsCalculation.tau.m_copy()
-    real_greens_function_tau = Quantity(
-        type=np.float64,
-        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', 'n_tau'],
+    tau = Quantity(
+        type=GreensFunctionsCalculation.tau,
         description='''
-        Real part (extraction done in normalizer) of the Green's function in tau (imaginary time).
-        '''
+        Array containing the set of discrete imaginary times.
+        ''',
     )
-    matsubara_freq = GreensFunctionsCalculation.matsubara_freq.m_copy()
-    imag_self_energy_iw = Quantity(
-        type=np.float64,
-        shape=['n_atoms_per_unit_cell', 2, 'n_correlated_orbitals', '2 * n_matsubara_freq'],
+    matsubara_freq = Quantity(
+        type=GreensFunctionsCalculation.matsubara_freq,
         description='''
-        Imaginary part (extraction done in normalizer) of the Self energy in Matsubara (imaginary frequency).
-        '''
+        Array containing the set of discrete imaginary (Matsubara) frequencies.
+        ''',
     )
-    orbital_occupations = GreensFunctionsCalculation.orbital_occupations.m_copy()
-    quasiparticle_weights = GreensFunctionsCalculation.quasiparticle_weights.m_copy()
-    chemical_potential = GreensFunctionsCalculation.chemical_potential.m_copy()
+    frequencies = Quantity(
+        type=GreensFunctionsCalculation.frequencies,
+        description='''
+        Array containing the set of discrete real frequencies.
+        ''',
+    )
+    greens_function_tau = Quantity(
+        type=GreensFunctionsCalculation.greens_function_tau,
+        description='''
+        Green's functions values in imaginary times.
+        ''',
+    )
+    greens_function_iw = Quantity(
+        type=GreensFunctionsCalculation.greens_function_iw,
+        description='''
+        Green's functions values in imaginary (Matsubara) frequencies.
+        ''',
+    )
+    self_energy_iw = Quantity(
+        type=GreensFunctionsCalculation.self_energy_iw,
+        description='''
+        Self-energy values in imaginary (Matsubara) frequencies.
+        ''',
+    )
+    greens_function_freq = Quantity(
+        type=GreensFunctionsCalculation.greens_function_freq,
+        description='''
+        Green's function values in real frequencies.
+        ''',
+    )
+    self_energy_freq = Quantity(
+        type=GreensFunctionsCalculation.self_energy_freq,
+        description='''
+        Self-energy values in real frequencies.
+        ''',
+    )
+    hybridization_function_freq = Quantity(
+        type=GreensFunctionsCalculation.hybridization_function_freq,
+        description='''
+        Hybridization function values in real frequencies.
+        ''',
+    )
+    orbital_occupations = Quantity(
+        type=GreensFunctionsCalculation.orbital_occupations,
+        description='''
+        Orbital occupation per correlated atom in the unit cell and per spin.
+        ''',
+    )
+    quasiparticle_weights = Quantity(
+        type=GreensFunctionsCalculation.quasiparticle_weights,
+        description='''
+        Quasiparticle weights of each orbital per site and spin. Calculated from:
+            Z = inv(1.0 - d [Re Sigma] / dw at w=0)
+        it takes values ∈ [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.
+        ''',
+    )
+    chemical_potential = Quantity(
+        type=GreensFunctionsCalculation.chemical_potential,
+        description='''
+        Chemical potential.
+        ''',
+    )
 
 
 class HeatCapacityConstantVolume(MSection):

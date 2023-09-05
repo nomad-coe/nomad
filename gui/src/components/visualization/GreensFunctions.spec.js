@@ -20,13 +20,19 @@ import { renderNoAPI } from '../conftest.spec'
 import { expectPlot, VisualizationState } from './conftest.spec'
 import GreensFunctions, { gfError } from './GreensFunctions'
 
+const greens_function_freq_im = 'gfs-greens_function_freq_im-placeholder'
+
 test.each([
-  ['no data', VisualizationState.NoData, false, undefined, undefined, undefined, undefined],
-  ['loading', VisualizationState.Loading, undefined, undefined, undefined, 'greens-functions-regtau', 'greens-functions-imsiw'],
-  ['error: invalid data layout', VisualizationState.Error, {invalid: 'data'}, undefined, undefined, undefined, undefined],
-  ['valid', VisualizationState.Success, {tau: [0, 1, 2], regtau: [[[[1, 0, 1]], [[1, 0, 1]]]], iw: [-1, 0, 1], imsiw: [[[[1, 0, 1]], [[1, 0, 1]]]]}, {magnetic_state: 'paramagnetic'}, undefined, 'greens-functions-regtau', 'greens-functions-imsiw']
-])('greens functions: %s', async (id, state, data, provenance, classes, regtauTestID, imsiwTestID) => {
-  renderNoAPI(<GreensFunctions data={data} provenance={provenance} classes={classes} />)
-  await expectPlot(state, regtauTestID, gfError)
-  await expectPlot(state, imsiwTestID, gfError)
+  ['no data', VisualizationState.NoData, {greens_function_freq_im: false}, undefined],
+  ['loading', VisualizationState.Loading, {greens_function_freq_im: undefined}, undefined],
+  ['error: invalid data layout', VisualizationState.Error, {invalid: 'data'}, undefined],
+  [
+    'valid',
+    VisualizationState.Success,
+    {greens_function_freq_im: [{x: [0, 1], y: [[0, 1]]}]},
+    {magnetic_state: 'paramagnetic'}
+  ]
+])('greens functions: %s', async (id, state, data, provenance) => {
+  renderNoAPI(<GreensFunctions data={data} provenance={provenance} />)
+  await expectPlot(state, greens_function_freq_im, gfError)
 })

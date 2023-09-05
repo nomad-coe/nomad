@@ -403,6 +403,10 @@ plugins = Plugins(options={
         python_package='electronicparsers.ocean',
         mainfile_mime_re=r'(application/.*)|(text/.*)',
         mainfile_contents_dict={'__has_all_keys': ['bse', 'structure', 'screen', 'calc']}),
+    'parsers/edmft': Parser(
+        python_package='electronicparsers.edmft',
+        mainfile_name_re=(r'^.*\.(out)$'),
+        mainfile_contents_re=r'\-\-\-\s*Preparing GF calculation\s*\-\-\-'),
     'parsers/nexus': Parser(
         python_package='nomad.parsing.nexus',
         mainfile_mime_re=r'(application/.*)|(text/.*)',

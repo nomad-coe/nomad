@@ -68,7 +68,8 @@ from nomad.datamodel.metainfo.workflow import (
 )
 from nomad.datamodel.metainfo.simulation.workflow import (
     GWMethod, GW as GWworkflow, DMFTMethod, DMFT as DMFTworkflow, PhotonPolarization,
-    PhotonPolarizationMethod, PhotonPolarizationResults, XS as XSworkflow
+    PhotonPolarizationMethod, PhotonPolarizationResults, XS as XSworkflow, MaxEntMethod,
+    MaxEnt as MaxEntworkflow
 )
 from nomad.datamodel.metainfo.measurements import (
     Measurement, Sample, EELSMeasurement, Spectrum, Instrument
@@ -231,11 +232,25 @@ def get_template_dmft() -> EntryArchive:
     input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19))
     method_dmft = run.m_create(Method)
     method_dmft.dmft = DMFT(
-        impurity_solver='CT-HYB', n_atoms_per_unit_cell=1, n_correlated_electrons=1.0, n_correlated_orbitals=[3.0],
+        impurity_solver='CT-HYB', n_impurities=1, n_electrons=[1.0], n_correlated_orbitals=[3.0],
         inverse_temperature=60.0, magnetic_state='paramagnetic')
     method_dmft.starting_method_ref = input_method
     scc = run.calculation[-1]
     scc.method_ref = method_dmft
+    template.workflow2 = SinglePoint()
+    return template
+
+
+def get_template_maxent() -> EntryArchive:
+    '''Returns a basic archive template for a MaxEnt analytical continuation calculation.
+    '''
+    # TODO update when MaxEnt methodology is defined
+    template = get_template_computation()
+    run = template.run[-1]
+    run.program = Program(name='w2dynamics')
+    method = run.m_create(Method)
+    scc = run.calculation[-1]
+    scc.method_ref = method
     template.workflow2 = SinglePoint()
     return template
 
@@ -560,6 +575,49 @@ def get_template_dmft_workflow() -> EntryArchive:
     workflow.m_add_sub_section(DMFTworkflow.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
     workflow.m_add_sub_section(DMFTworkflow.tasks, task_proj)
     workflow.m_add_sub_section(DMFTworkflow.tasks, task_dmft)
+    template.workflow2 = workflow
+    return template
+
+
+def get_template_maxent_workflow() -> EntryArchive:
+    # Defining Projection and DMFT SinglePoint archives and adding band_structure and greens_functions to them.
+    archive_dmft = get_template_dmft()
+    archive_maxent = get_template_maxent()
+    archive_dmft = add_template_greens_functions(archive_dmft)
+    archive_maxent = add_template_greens_functions(archive_maxent)
+    # Normalizing SinglePoint archives BEFORE defining the DMFT workflow entry
+    run_normalize(archive_dmft)
+    run_normalize(archive_maxent)
+    # Defining Projection and DMFT tasks for later the DMFT workflow
+    task_dmft = TaskReference(task=archive_dmft.workflow2)
+    task_dmft.name = 'DMFT'
+    task_dmft.inputs = [Link(name='Input structure', section=archive_dmft.run[-1].system[-1])]
+    task_dmft.outputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
+    task_maxent = TaskReference(task=archive_dmft.workflow2)
+    task_maxent.name = 'MaxEnt Sigma'
+    task_maxent.inputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
+    task_maxent.outputs = [Link(name='Output MaxEnt Sigma calculation', section=archive_maxent.run[-1].calculation[-1])]
+    # DMFT workflow entry (no need of creating Method)
+    template = EntryArchive()
+    run = template.m_create(Run)
+    run.program = archive_dmft.run[-1].program
+    run.system = archive_dmft.run[-1].system
+    scc = run.m_create(Calculation)
+    scc.system_ref = run.system[-1]
+    template = add_template_dos(template)
+    workflow = MaxEntworkflow()
+    workflow.name = 'MaxEnt'
+    workflow_method = MaxEntMethod(
+        dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
+        maxent_method_ref=archive_maxent.run[-1].method[-1])
+    workflow.m_add_sub_section(MaxEntworkflow.method, workflow_method)
+    workflow.m_add_sub_section(MaxEntworkflow.inputs, Link(name='Input structure', section=archive_dmft.run[-1].system[-1]))
+    outputs = [
+        Link(name='Output MaxEnt Sigma calculation', section=archive_dmft.run[-1].calculation[-1]),
+        Link(name='Output MaxEnt calculation', section=template.run[-1].calculation[-1])]
+    workflow.outputs = outputs
+    workflow.m_add_sub_section(MaxEntworkflow.tasks, task_dmft)
+    workflow.m_add_sub_section(MaxEntworkflow.tasks, task_maxent)
     template.workflow2 = workflow
     return template
 
@@ -1074,8 +1132,15 @@ def gw_workflow() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dmft_workflow() -> EntryArchive:
-    '''DMFT workflow (Projection+GW) EntryArchive.'''
+    '''DMFT workflow (Projection+DMFT) EntryArchive.'''
     template = get_template_dmft_workflow()
+    return run_normalize(template)
+
+
+@pytest.fixture(scope='session')
+def maxent_workflow() -> EntryArchive:
+    '''MaxEnt workflow (DMFT+MaxEnt Sigma) EntryArchive.'''
+    template = get_template_maxent_workflow()
     return run_normalize(template)
 
 

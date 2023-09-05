@@ -156,7 +156,11 @@ class MethodNormalizer():
         elif method.workflow_name == 'DMFT':
             repr_method = self.entry_archive.workflow2.method.dmft_method_ref  # DMFT method
             repr_method = repr_method.m_parent
-            method_name = f'Projection+DMFT'
+            method_name = 'Projection+DMFT'
+        elif method.workflow_name == 'MaxEnt':
+            repr_method = self.entry_archive.workflow2.method.dmft_method_ref  # DMFT method
+            repr_method = repr_method.m_parent
+            method_name = 'DMFT+MaxEnt'
         # if only one method is specified, use it directly
         elif n_methods == 1:
             repr_method = methods[0]
@@ -238,7 +242,7 @@ class MethodNormalizer():
         elif self.method_name in ['Projection']:  # TODO extend for 'DFT+Projection'
             simulation = ProjectionMethod(
                 self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
-        elif self.method_name in ['DMFT', 'Projection+DMFT']:  # TODO extend for 'DFT+DMFT', 'DFT+Projection+DMFT'
+        elif self.method_name in ['DMFT', 'Projection+DMFT', 'DMFT+MaxEnt']:  # TODO extend for 'DFT+DMFT', 'DFT+Projection+DMFT'
             simulation = DMFTMethod(
                 self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
         else:
@@ -789,15 +793,18 @@ class DMFTMethod(ElectronicMethod):
         self._method.method_name = 'DMFT'
         dmft = DMFT()
         dmft.impurity_solver_type = self._repr_method.dmft.impurity_solver
-        dmft.total_filling = 0.5 * np.sum(self._repr_method.dmft.n_correlated_electrons) / np.sum(self._repr_method.dmft.n_correlated_orbitals)
         dmft.inverse_temperature = self._repr_method.dmft.inverse_temperature
         dmft.magnetic_state = self._repr_method.dmft.magnetic_state
-        # TODO update U to be U/W (W == kinetic energy) when resolving (DFT+)Projection+DMFT
-        model_hamiltonian = self._repr_method.starting_method_ref.lattice_model_hamiltonian
-        if model_hamiltonian is not None:
-            if model_hamiltonian[0].hubbard_kanamori_model is not None:
-                dmft.u = model_hamiltonian[0].hubbard_kanamori_model[0].u  # taking U,JH values from the first atom
-                dmft.jh = model_hamiltonian[0].hubbard_kanamori_model[0].jh
+        # taking U,JH values from the first atom
+        if self._repr_method.m_xpath('starting_method_ref.lattice_model_hamiltonian'):
+            hubbard_parameters = self._repr_method.starting_method_ref.lattice_model_hamiltonian[0].hubbard_kanamori_model[0]
+        elif self._repr_method.m_xpath('starting_method_ref.atom_parameters'):
+            hubbard_parameters = self._repr_method.starting_method_ref.atom_parameters[0].hubbard_kanamori_model
+        if hubbard_parameters is not None:
+            dmft.u = hubbard_parameters.u
+            dmft.jh = hubbard_parameters.jh
+        if self._method_name == 'DMFT+MaxEnt':
+            dmft.analytical_continuation = 'MaxEnt'
         simulation.dmft = dmft
         return simulation
 

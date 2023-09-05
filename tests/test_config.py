@@ -106,7 +106,7 @@ def test_parser_plugins():
     parsers = [
         plugin for plugin in config.plugins.options.values()
         if isinstance(plugin, Parser)]
-    assert len(parsers) == 67
+    assert len(parsers) == 68
 
 
 def test_plugin_polymorphism():
