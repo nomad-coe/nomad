@@ -1935,20 +1935,11 @@ class Simulation(MSection):
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
     precision = SubSection(sub_section=Precision.m_def, repeats=False)
 
-class XRD(MSection):
+class XRDMethod(MSection):
     m_def = Section(
         description='''
         Methodology for an X-Ray Diffraction measurement.
         '''
-    )
-    incident_beam_wavelength = Quantity(
-        links=['http://purl.obolibrary.org/obo/BFO_0000001'], #TODO put link to incident_wavelength nexus concept
-        description='''
-        The wavelength of the incident beam.
-        ''',
-        type=np.float64,
-        unit='m',
-        a_elasticsearch=Elasticsearch(material_entry_type),
     )
     diffraction_method_name = Quantity(
         type=MEnum(
@@ -1982,7 +1973,7 @@ class MeasurementMethod(MSection):
         Contains method details for a measurement entry.
         '''
     )
-    xrd = SubSection(sub_section=XRD.m_def, repeats=False)
+    xrd = SubSection(sub_section=XRDMethod.m_def, repeats=False)
 
 class Method(MSection):
     m_def = Section(
@@ -2710,9 +2701,18 @@ class DiffractionPattern(MSection):
         Diffraction pattern.
         ''',
     )
+    incident_beam_wavelength = Quantity(
+        links=['https://manual.nexusformat.org/classes/base_classes/NXbeam.html#nxbeam-incident-wavelength-field'],
+        description='''
+        The wavelength of the incident beam.
+        ''',
+        type=np.float64,
+        unit='m',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
     two_theta_angles = Quantity(
         # type=Dos.energies,
-        type=np.float64, #TODO convert to reference when schema is in place
+        type=np.float64,  #TODO convert to reference when schema is in place
         unit='degree',
         shape=['*'],
         description='''
@@ -2721,12 +2721,16 @@ class DiffractionPattern(MSection):
     )
     intensity = Quantity(
         # type=DosValues,
-        type=np.float64, #TODO convert to reference when schema is in place
+        type=np.float64,  #TODO convert to reference when schema is in place
         shape=['*'],
         description='''
         Array containing the set of intensities.
         ''',
     )
+    q_vector = Quantity(
+        type=np.dtype(np.float64), shape=['*'],
+        unit='meter**(-1)',
+        description='The scattering vector *Q*.')
 
 
 class StructuralProperties(MSection):

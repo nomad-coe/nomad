@@ -3082,16 +3082,6 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
-    "results.method.measurement.xrd.incident_beam_wavelength": {
-      "name": "incident_beam_wavelength",
-      "description": "The wavelength of the incident beam.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "meter",
-      "aggregatable": false
-    },
     "results.method.measurement.xrd.diffraction_method_name": {
       "name": "diffraction_method_name",
       "description": "The diffraction method used to obtain the diffraction pattern.\n| X-ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
@@ -3248,6 +3238,16 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true
+    },
+    "results.properties.structural.diffraction_pattern.incident_beam_wavelength": {
+      "name": "incident_beam_wavelength",
+      "description": "The wavelength of the incident beam.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "meter",
+      "aggregatable": false
     },
     "results.properties.dynamical.mean_squared_displacement.type": {
       "name": "type",
@@ -16861,32 +16861,12 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
-            "name": "XRD",
+            "name": "XRDMethod",
             "description": "\n        Methodology for an X-Ray Diffraction measurement.\n        ",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.method.measurement.xrd.incident_beam_wavelength"
-                  ]
-                },
-                "name": "incident_beam_wavelength",
-                "description": "The wavelength of the incident beam.",
-                "links": [
-                  "http://purl.obolibrary.org/obo/BFO_0000001"
-                ],
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "unit": "meter"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -18482,6 +18462,26 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.structural.diffraction_pattern.incident_beam_wavelength"
+                  ]
+                },
+                "name": "incident_beam_wavelength",
+                "description": "The wavelength of the incident beam.",
+                "links": [
+                  "https://manual.nexusformat.org/classes/base_classes/NXbeam.html#nxbeam-incident-wavelength-field"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "meter"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
                 "name": "two_theta_angles",
                 "description": "Array containing the set of 2-theta angles.",
                 "type": {
@@ -18495,7 +18495,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "intensity",
                 "description": "Array containing the set of intensities.",
@@ -18506,6 +18506,21 @@ window.nomadArtifacts = {
                 "shape": [
                   "*"
                 ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "q_vector",
+                "description": "The scattering vector *Q*.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "1 / meter"
               }
             ]
           },
