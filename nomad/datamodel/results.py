@@ -1950,7 +1950,7 @@ class XRD(MSection):
         unit='m',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    diffraction_method = Quantity(
+    diffraction_method_name = Quantity(
         type=MEnum(
             [
                 "Powder X-ray Diffraction (PXRD)",
@@ -1959,6 +1959,7 @@ class XRD(MSection):
                 "Small-Angle X-ray Scattering (SAXS)",
                 "X-ray Reflectivity (XRR)",
                 "Grazing Incidence X-ray Diffraction (GIXRD)",
+                config.services.unavailable_value
             ]
         ),
         description='''
@@ -1975,7 +1976,7 @@ class XRD(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
-class Measurement(MSection):
+class MeasurementMethod(MSection):
     m_def = Section(
         description='''
         Contains method details for a measurement entry.
@@ -2702,6 +2703,31 @@ class RadialDistributionFunction(MDPropertySection):
     frame_end = RadialDistributionFunctionValues.frame_end.m_copy()
 
 
+class DiffractionPattern(MSection):
+    m_def = Section(
+        description='''
+        Diffraction pattern.
+        ''',
+    )
+    two_theta_angles = Quantity(
+        # type=Dos.energies,
+        type=np.float64, #TODO convert to reference when schema is in place
+        unit='degree',
+        shape=['*'],
+        description='''
+        Array containing the set of 2-theta angles.
+        ''',
+    )
+    intensity = Quantity(
+        # type=DosValues,
+        type=np.float64, #TODO convert to reference when schema is in place
+        shape=['*'],
+        description='''
+        Array containing the set of intensities.
+        ''',
+    )
+
+
 class StructuralProperties(MSection):
     m_def = Section(
         description='''
@@ -2718,6 +2744,7 @@ class StructuralProperties(MSection):
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
+    diffraction_pattern = SubSection(sub_section=DiffractionPattern.m_def, repeats=False)
 
 
 class MeanSquaredDisplacement(MDPropertySection):
