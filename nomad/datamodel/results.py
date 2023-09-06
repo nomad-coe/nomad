@@ -1972,7 +1972,12 @@ class Method(MSection):
         ''',
     )
     method_name = Quantity(
-        type=MEnum(['DFT', 'Projection', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS', config.services.unavailable_value]),
+        type=MEnum(
+            [
+                'DFT', 'Projection', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS',
+                'XRD', config.services.unavailable_value
+            ]
+        ),
         description='''
         Common name for the used method.
         ''',
