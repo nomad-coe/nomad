@@ -2044,6 +2044,7 @@ class Method(MSection):
         Elasticsearch(suggestion='default')
     ]
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
+    measurement = SubSection(sub_section=MeasurementMethod.m_def, repeats=False)
 
 
 class MolecularDynamics(MSection):
