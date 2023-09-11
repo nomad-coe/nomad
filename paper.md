@@ -93,6 +93,9 @@ authors:
   - name: Martin Kuban
     email: kuban@physik.hu-berlin.de
     affiliation: 1
+  - name: Cuauhtemoc Salazar
+    email: cuauhtemoc.salazar@physik.hu-berlin.de
+    affiliation: 1
   - name: Pavel Ondračka
     email: ondracka@mail.muni.cz
     affiliation: 4
@@ -176,8 +179,9 @@ uses NOMAD software as the bases for its federated FAIR data infrastructure [@sc
 software implementation) for materials science databases. NOMAD provides an implementation
 of the OPTIMADE specification and is an active part of the OPTIMADE consortium.
 
-Other materials science databases (and the respective software) focus on only publishing
-data that were produced by the group behind the database itself. Typical examples are databases of
+Other materials science databases (and the respective software) focus on publishing data that were 
+produced with a specific framework and carefully curated by the group behind the database.
+Typical examples are databases of
 high-throughput simulations that try to systematically explore theoretical materials. Three
 of the larger databases of this kind are the [Materials Project](https://materialsproject.org/)
 [@jain:2013], [AFLOW](https://aflow.org/) [@curtarolo:2012], and [OQMD](https://oqmd.org/) [@saal:2013].
