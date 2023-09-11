@@ -21,7 +21,7 @@ import { useTheme } from '@material-ui/core/styles'
 import { MoreVert } from '@material-ui/icons'
 import Plot from '../plotting/Plot'
 import { add, mergeObjects } from '../../utils'
-import { Quantity, Unit } from '../../units'
+import { Quantity, Unit, useUnits } from '../../units'
 import { withErrorHandler } from '../ErrorHandler'
 import { Action } from '../Actions'
 import { msgNormalizationWarning } from '../../config'
@@ -35,11 +35,12 @@ const DOS = React.memo(({
   data,
   layout,
   className,
-  units,
   type,
   'data-testid': testID,
   ...other
 }) => {
+  const units = useUnits()
+
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {
     const defaultLayout = {
@@ -212,7 +213,7 @@ const DOS = React.memo(({
       data-testid={testID}
       className={className}
       actions={
-        <Action tooltip='Options' onClick={openMenu}>
+        <Action tooltip='Options' onClick={openMenu} data-testid="dos-options-menu">
           <MoreVert/>
         </Action>
       }
@@ -220,24 +221,25 @@ const DOS = React.memo(({
     >
     </Plot>
     <Menu
-      id='settings-menu'
       anchorEl={anchorEl}
       getContentAnchorEl={null}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       keepMounted
-        open={open}
-        onClose={closeMenu}
+      open={open}
+      onClose={closeMenu}
     >
       <MenuItem key='normalization'>
-        <FormControlLabel control={
-          <Checkbox
-            onChange={() => {
-              setDosNormalize(data[0].normalization_factors ? (dosNormalize) => !dosNormalize : false)
-            }}
-            color="primary"
-            checked={dosNormalize}
-          />
+        <FormControlLabel
+          control={
+            <Checkbox
+              onChange={() => {
+                setDosNormalize(data[0].normalization_factors ? (dosNormalize) => !dosNormalize : false)
+              }}
+              color="primary"
+              checked={dosNormalize}
+              disabled={!data?.[0]?.normalization_factors}
+            />
           }
           label='Normalize intensities'
         />
@@ -259,7 +261,6 @@ DOS.propTypes = {
   ]),
   layout: PropTypes.object,
   className: PropTypes.string,
-  units: PropTypes.object, // Contains the unit configuration
   type: PropTypes.string, // Type of band structure: electronic or vibrational
   'data-testid': PropTypes.string
 }
