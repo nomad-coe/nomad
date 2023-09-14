@@ -11,15 +11,18 @@ tags:
 authors:
   - name: Markus Scheidgen
     email: markus.scheidgen@physik.hu-berlin.de
+    orcid: 0000-0002-8038-2277
     corresponding: true
     equal-contrib: true
     affiliation: 1
   - name: Lauri Himanen
     email: lauri.himanen@gmail.com
+    orcid: 0000-0002-3130-8193
     equal-contrib: true
     affiliation: 1
   - name: Alvin Noe Ladines
     email: ladinesalvinnoe@gmail.com
+    orcid: 0000-0003-0077-2097
     equal-contrib: true
     affiliation: 1
   - name: David Sikter
@@ -28,6 +31,7 @@ authors:
     affiliation: 1
   - name: Mohammad Nakhaee
     email: mohammad.nakhaee@physik.hu-berlin.de
+    orcid: 0000-0003-4146-0129
     equal-contrib: true
     affiliation: 1
   - name: Ádám Fekete
@@ -36,6 +40,7 @@ authors:
     affiliation: 1
   - name: Theodore Chang
     email: theodore.chang@physik.hu-berlin.de
+    orcid: 0000-0002-4911-0230
     equal-contrib: true
     affiliation: 1
   - name: Amir Golparvar
@@ -47,18 +52,21 @@ authors:
     affiliation: 1
   - name: Sandor Brockhauser
     email: sandor.brockhauser@physik.hu-berlin.de
+    orcid: 0000-0002-9700-4803
     affiliation: 1
   - name: Sebastian Brückner
     email: sebastian.brueckner@ikz-berlin.de
     affiliation: 2
   - name: Luca M. Ghiringhelli
     email: luca.ghiringhelli@physik.hu-berlin.de
+    orcid: 0000-0001-5099-3029
     affiliation: 1
   - name: Felix Dietrich
-    email: felix.dietrich@tum.de
+    email: felix.dietrich@tum.de    
     affiliation: 3
   - name: Daniel Lehmberg
     email: d.lehmberg@tum.de
+    orcid: 0000-0002-4012-5014
     affiliation: 3
   - name: Thea Denell
     email: denell@physik.hu-berlin.de
@@ -74,18 +82,22 @@ authors:
     affiliation: 1
   - name: Florian Dobener
     email: florian.dobener@physik.hu-berlin.de
+    orcid: 0000-0003-1987-6224
     affiliation: 1
   - name: Markus Kühbach
     email: markus.kuehbach@physik.hu-berlin.de
+    orcid: 0000-0002-7117-5196
     affiliation: 1
   - name: Rubel Mozumder
     email: mozumder@physik.hu-berlin.de
     affiliation: 1
   - name: Joseph F. Rudzinski
     email: joseph.rudzinski@physik.hu-berlin.de
+    orcid: 0000-0003-3403-640X
     affiliation: 1
   - name: Nathan Daelman
     email: ndaelman@physik.hu-berlin.de
+    orcid: 0000-0002-7647-1816
     affiliation: 1
   - name: José M. Pizarro
     email: jose.pizarro@physik.hu-berlin.de
@@ -95,15 +107,19 @@ authors:
     affiliation: 1
   - name: Cuauhtemoc Salazar
     email: cuauhtemoc.salazar@physik.hu-berlin.de
+    orcid: 0000-0002-9635-5062
     affiliation: 1
   - name: Pavel Ondračka
     email: ondracka@mail.muni.cz
+    orcid: 0000-0003-0729-629X
     affiliation: 4
   - name: Hans-Joachim Bungartz
     email: bungartz@cit.tum.de
+    orcid: 0000-0002-0171-0712
     affiliation: 3
   - name: Claudia Draxl
     email: claudia.draxl@physik.hu-berlin.de
+    orcid: 0000-0003-3523-6657
     affiliation: 1
 affiliations:
   - name: Department of Physics, Humboldt-Universität zu Berlin, Berlin, Germany
