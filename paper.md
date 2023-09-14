@@ -143,8 +143,7 @@ artifacts, communities face new challenges in making data findable, accessible, 
 and reproducible (FAIR) [@wilkinson:2016]. A key factor to FAIR data, is to combine data with meta-data
 and to put all data into machine and human comprehensible representations [@ghiringhelli:2017; @ghiringhelli:2022].
 
-Materials scientists require effective solutions for managing their research data, but they cannot and
-should not develop their own individual solutions. Hence, there is great demand in services (and software to run such services) that provide the mentioned features and make data FAIR.
+Materials scientists require effective solutions for managing their research data, but they should not have to develop their own individual solutions. Hence, there is great demand in services (and software to run such services) that provide the mentioned features and make data FAIR.
 This is evident in the great number of published datasets on services like [NOMAD](https://nomad-lab.eu) [@draxl:2018] (the main deployment of the NOMAD software), and an increasing number of materials science databases that all (re-)implement very similar functionality to publish their data.
 
 NOMAD addresses these needs in two ways. First, NOMAD improves the data-driven workflows of individuals
