@@ -38,7 +38,7 @@ class ORJSONResponse(JSONResponse):
     media_type = "application/json"
 
     def render(self, content: Any) -> bytes:
-        return orjson.dumps(content, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)  # type: ignore
+        return orjson.dumps(content, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)  # pylint: disable=maybe-no-member
 
 
 app = FastAPI(
