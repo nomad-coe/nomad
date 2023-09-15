@@ -667,7 +667,7 @@ class GeneralReader:
             return upload_id
 
         # to convert datetime to string
-        return orjson.loads(upload_to_pydantic(upload).json())
+        return orjson.loads(upload_to_pydantic(upload).json())  # pylint: disable=maybe-no-member
 
     @functools.lru_cache(maxsize=128)
     def retrieve_entry(self, entry_id: str) -> str | dict:
@@ -680,7 +680,7 @@ class GeneralReader:
                 error_type=QueryError.NOACCESS)
             return entry_id
 
-        return orjson.loads(entry_to_pydantic(
+        return orjson.loads(entry_to_pydantic(  # pylint: disable=maybe-no-member
             Entry.objects(entry_id=entry_id).first(),
             add_es_metadata=GeneralReader.__ES_METADATA__,
             user=self.user
@@ -912,11 +912,11 @@ class MongoReader(GeneralReader):
                 pagination_response.next_page_after_value = _pick_id(mongo_result[size])
 
         if transformer == upload_to_pydantic:
-            mongo_dict = {v['upload_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}
+            mongo_dict = {v['upload_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}  # pylint: disable=maybe-no-member
         elif transformer == dataset_to_pydantic:
-            mongo_dict = {v['dataset_id']: v for v in [orjson.loads(transformer(item)) for item in mongo_result]}
+            mongo_dict = {v['dataset_id']: v for v in [orjson.loads(transformer(item)) for item in mongo_result]}  # pylint: disable=maybe-no-member
         else:
-            mongo_dict = {v['entry_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}
+            mongo_dict = {v['entry_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}  # pylint: disable=maybe-no-member
 
         return mongo_dict, pagination_response
 

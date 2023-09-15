@@ -70,9 +70,9 @@ def dump_json(data):
 
         raise TypeError
 
-    return orjson.dumps(
+    return orjson.dumps(  # pylint: disable=maybe-no-member
         data, default=default,
-        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)  # pylint: disable=maybe-no-member
 
 
 default_hash_len = 28

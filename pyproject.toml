@@ -19,7 +19,7 @@ dependencies = [
     'cachetools>=4.2.4',
     'docstring-parser>=0.12',
     'pint==0.17',
-    'orjson==3.6.0',
+    'orjson==3.9.4',
     'click>=7.1.2',
     'requests>=2.27.1',
     'pytz>=2022.7.1',

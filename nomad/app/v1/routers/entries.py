@@ -852,8 +852,8 @@ def _answer_entries_archive_download_request(
             try:
                 archive_data = _read_archive(entry_metadata, uploads, required_reader)
 
-                f = io.BytesIO(orjson.dumps(
-                    archive_data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))
+                f = io.BytesIO(orjson.dumps(  # pylint: disable=maybe-no-member
+                    archive_data, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS))  # pylint: disable=maybe-no-member
 
                 yield StreamedFile(path=path, f=f, size=f.getbuffer().nbytes)
             except KeyError as e:
