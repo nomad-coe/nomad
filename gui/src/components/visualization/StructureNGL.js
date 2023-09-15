@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -26,9 +27,9 @@ import React, {
 import { useResizeDetector } from 'react-resize-detector'
 import { makeStyles } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import { isNil, isEqual } from 'lodash'
-import { Stage } from 'ngl'
-import StructureBase from './StructureBase'
+import { isNil, isEqual, range } from 'lodash'
+import { Stage, Vector3 } from 'ngl'
+import StructureBase, { WrapMode } from './StructureBase'
 import * as THREE from 'three'
 import { withErrorHandler } from '../ErrorHandler'
 import { useAsyncError } from '../../hooks'
@@ -66,7 +67,8 @@ const StructureNGL = React.memo(({
   const [showCell, setShowCell] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [disableShowLatticeConstants, setDisableShowLatticeContants] = useState(true)
-  const [wrap, setWrap] = useState(true)
+  const [wrapMode, setWrapMode] = useState(WrapMode.Wrap)
+  const [disableWrapMode, setDisableWrapMode] = useState(false)
   const [disableShowCell, setDisableShowCell] = useState(false)
   const [disableShowBonds, setDisableShowBonds] = useState(false)
   const stageRef = useRef()
@@ -78,6 +80,7 @@ const StructureNGL = React.memo(({
   const alignmentRef = useRef()
   const rotationsRef = useRef()
   const representationMap = useRef({})
+  const representationRef = useRef()
   const selectionRef = useRef()
   const { api } = useApi()
   const asyncError = useAsyncError()
@@ -161,11 +164,10 @@ const StructureNGL = React.memo(({
   }, [render])
 
   // Toggles position wrapping on all components
-  const handleWrap = useCallback((value) => {
-    setWrap(value)
-    for (const component of Object.values(componentsRef.current)) {
-      wrapPositions(component, value)
-    }
+  const handleWrapModeChange = useCallback((event) => {
+    setWrapMode(event.target.value)
+    representationRef.current.wrapMode = event.target.value
+    wrapRepresentation(componentRef.current, representationRef.current)
     componentRef.current.autoView(selectionRef.current)
   }, [])
 
@@ -205,6 +207,10 @@ const StructureNGL = React.memo(({
   const handleReset = useCallback(() => {
     view()
     componentRef.current.autoView(selectionRef.current)
+    // Autoview does not work nicely for single atoms: here we zoom back manually
+    if (representationRef?.current?.indices?.length === 1) {
+      componentRef.current.stage.viewerControls.zoom(-35)
+    }
   }, [view])
 
   // Resizes the canvas to fit current parent
@@ -264,6 +270,7 @@ const StructureNGL = React.memo(({
     // Load the structure if not already cached
     const format = 'pdb'
     let component = componentsRef.current[componentKey]
+    let root
     if (!component) {
       const systemResponse = await api.get(
         `systems/${entryId}`,
@@ -309,7 +316,7 @@ const StructureNGL = React.memo(({
           ? top
           : getRoot(topologyMap[top.parent_system])
       }
-      const root = getRoot(system)
+      root = getRoot(system)
 
       // Recursively add a new representation for each child that does not have
       // it's own component
@@ -317,10 +324,13 @@ const StructureNGL = React.memo(({
         const structuralType = top.structural_type
         const isMonomer = structuralType === 'monomer'
         const isMolecule = structuralType === 'molecule'
-        const sele = top.indices
-          ? `@${((isMolecule || isMonomer)
+        const indices = top.indices
+          ? ((isMolecule || isMonomer)
             ? top.indices[0]
-            : top.indices).flat().join(',')}`
+            : top.indices).flat()
+          : range(top.n_atoms)
+        const sele = top.indices
+          ? `@${indices.join(',')}`
           : 'all'
 
         // Add representation for the bonds
@@ -338,7 +348,9 @@ const StructureNGL = React.memo(({
         representationMap.current[top.system_id] = {
           bonds: bondRepr,
           atoms: atomRepr,
-          sele: sele
+          sele: sele,
+          indices: indices,
+          wrapMode: (isMonomer || isMolecule) ? WrapMode.Unwrap : WrapMode.Wrap
         }
         for (const child of top.child_systems || []) {
           if (!child.atoms) addRepresentation(child)
@@ -419,16 +431,13 @@ const StructureNGL = React.memo(({
         component.basis = basis
         component.pbc = pbc
         component.latticeConstants = latticeConstants
-
-        // Perform a default wrap for the component
-        wrapPositions(component, wrap)
       }
     }
     componentRef.current = component
     componentsRef.current[componentKey] = component
+
   // We dont want this effect to react to 'wrap'
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, wrapPositions])
+  }, [api])
 
   // Called whenever the system changes. Loads the structure asynchronously.
   useEffect(() => {
@@ -476,7 +485,9 @@ const StructureNGL = React.memo(({
     const isMonomerGroup = isGroup && isEqual(child_types, new Set(['monomer']))
 
     // Determine the selection to center on.
-    selectionRef.current = representationMap.current[independent ? selected : topParent]?.sele
+    const representation = representationMap.current[independent ? selected : topParent]
+    representationRef.current = representation
+    selectionRef.current = representation?.sele
 
     // Determine the selections to show opaque
     const opaque = new Set([selected])
@@ -494,6 +505,8 @@ const StructureNGL = React.memo(({
       handleShowLatticeConstants(false, false)
     }
     setDisableShowCell(!cellVisible)
+    setDisableWrapMode(!independent)
+    setWrapMode(representation.wrapMode)
     setDisableShowLatticeContants(!cellVisible)
 
     // Loop through representations and set the correct visualization
@@ -510,6 +523,7 @@ const StructureNGL = React.memo(({
         value.bonds.setVisibility(false)
       }
     }
+    wrapRepresentation(componentRef.current, representation)
 
     // Configure and reset the view based on the basis vectors.
     const nBasis = 3
@@ -519,8 +533,8 @@ const StructureNGL = React.memo(({
     }
     handleReset()
     setLoading(false)
-  // We don't want this effect to react to 'showCell', 'showBonds' or
-  // 'showLatticeParameters'
+  // We don't want this effect to react to 'showCell', 'showBonds',
+  // 'showLatticeParameters', or 'wrapMode'
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, system, ready, handleShowCell, handleShowLatticeConstants, handleReset])
 
@@ -528,8 +542,9 @@ const StructureNGL = React.memo(({
     onTakeScreenshot={handleTakeScreenshot}
     onFullscreen={handleFullscreen}
     onReset={handleReset}
-    wrap={wrap}
-    onWrap={handleWrap}
+    wrapMode={wrapMode}
+    onWrapModeChange={handleWrapModeChange}
+    disableWrapMode={disableWrapMode}
     showLatticeConstants={showLatticeConstants}
     onShowLatticeConstants={handleShowLatticeConstants}
     disableShowLatticeConstants={disableShowLatticeConstants}
@@ -1177,13 +1192,15 @@ function addObject3DToStage(object, stage) {
 }
 
 /**
- * For wrapping and unwrapping atom positions.
+ * For setting the positions according to the currently set wrapmode.
  *
- * @param {ngl.Component} component The ngl component to wrap
- * @param {bool} wrap Whether to use wrapped coordinates.
+ * @param {ngl.Component} component The ngl component
+ * @param {ngl.Representation} representation The ngl representation
  */
-function wrapPositions(component, wrap) {
+function wrapRepresentation(component, representation) {
   let posNew
+  const indices = representation.indices
+  const wrapMode = representation.wrapMode
   const basis = component.basis
   const cartToFrac = component.cartToFrac
   const fracToCart = component.fracToCart
@@ -1194,58 +1211,89 @@ function wrapPositions(component, wrap) {
 
   // Gather and store the original cartesian positions if they are not already
   // resolved.
-  if (isNil(component.posCart)) {
-    component.posCart = []
-    component.structure.eachAtom(ap => {
-      component.posCart.push(ap.positionToVector3(new THREE.Vector3()))
-    })
+  if (isNil(representation.posCart)) {
+    representation.posCart = []
+    for (const index of indices) {
+      const ap = component.structure.getAtomProxy(index)
+      representation.posCart.push(ap.positionToVector3(new THREE.Vector3()))
+    }
   }
 
-  // Create wrapped positions
-  if (wrap) {
-    if (!isNil(component.posWrap)) {
-      posNew = component.posWrap
+  // Use wrapped positions
+  if (wrapMode === WrapMode.Wrap) {
+    if (!isNil(representation.posWrap)) {
+      posNew = representation.posWrap
     } else {
-      posNew = component.posCart.map(pos => {
+      posNew = representation.posCart.map(pos => {
         return pos.clone().applyMatrix4(cartToFrac)
       })
-      const eps = 1e-2
-      const epsArray = new THREE.Vector3(eps, eps, eps).applyMatrix4(cartToFrac).toArray()
-      const center = [0.5, 0.5, 0.5] // Positions will be nearest to this location
-      const shift = center.map((center, i) => pbc[i] ? center - 0.5 - epsArray[i] : 0)
-      for (let len = posNew.length, i = 0; i < len; ++i) {
-        const iFracPos = posNew[i]
-        for (let i = 0; i < 3; ++i) {
-          if (!pbc[i]) continue
-          const comp = iFracPos.getComponent(i)
-          let remainder = ((comp - shift[i]) % 1) + shift[i]
-          // Unlike in python, remainder in javascript can be negative
-          if (remainder < -epsArray[i]) remainder += 1
-          iFracPos.setComponent(i, remainder)
-        }
-      }
+      wrapPositions(posNew, cartToFrac, pbc)
       posNew = posNew.map(pos => pos.applyMatrix4(fracToCart))
-      component.posWrap = posNew
+      representation.posWrap = posNew
     }
-  // Use original cartesian positions
+  // Use unwrapped positions
+  } else if (wrapMode === WrapMode.Unwrap) {
+    if (!isNil(representation.posUnwrap)) {
+      posNew = representation.posUnwrap
+    } else {
+      const posFrac = representation.posCart.map(pos => {
+        return pos.clone().applyMatrix4(cartToFrac)
+      })
+      const centerOfPos = getCenterOfPositions(posFrac, component.pbc)
+      posNew = posFrac.map(pos => pos.add(new Vector3(0.5, 0.5, 0.5).sub(centerOfPos)))
+      wrapPositions(posNew, cartToFrac, pbc)
+      posNew = posNew.map(pos => pos.applyMatrix4(fracToCart))
+      representation.posUnwrap = posNew
+    }
+  // Use original positions
+  } else if (wrapMode === WrapMode.Original) {
+    posNew = representation.posCart
   } else {
-    posNew = component.posCart
+    throw Error('Invalid wrapmode provided.')
   }
 
   // Set new positions within the structure data. This follows roughly the
   // Structure.updatePosition()-function in NGL.
   let i = 0
-  component.structure.eachAtom((ap) => {
+  for (const index of indices) {
+    const ap = component.structure.getAtomProxy(index)
     ap.positionFromVector3(posNew[i])
     ++i
-  })
-  component.structure._hasCoords = undefined
-  component.structure.refreshPosition()
+  }
+
   // This updates the actual visuals. TODO: not sure why this is producing an
   // exception, ignored for now.
+  component.structure._hasCoords = undefined
+  component.structure.refreshPosition()
   try {
     component.updateRepresentations()
   } catch {
+  }
+}
+
+/**
+ * Wraps fractional positions within a cell respecting periodic boundary
+ * conditions. Wrapping is done in place.
+ *
+ * @param {THREE.Vector3[]} posFrac Positions to wrap
+ * @param {THREE.Matrix4} cartToFrac Matrix to convert cartesian positions to fractional
+ * @param {bool[]} pbc Periodic boundary conditions for each lattice vector
+ */
+function wrapPositions(posFrac, cartToFrac, pbc) {
+  const eps = 1e-2
+  const epsArray = new THREE.Vector3(eps, eps, eps).applyMatrix4(cartToFrac).toArray()
+  const center = [0.5, 0.5, 0.5] // Positions will be nearest to this location
+  const shift = center.map((center, i) => pbc[i] ? center - 0.5 - epsArray[i] : 0)
+  for (let len = posFrac.length, i = 0; i < len; ++i) {
+    const iFracPos = posFrac[i]
+    for (let i = 0; i < 3; ++i) {
+      if (!pbc[i]) continue
+      const comp = iFracPos.getComponent(i)
+      let remainder = ((comp - shift[i]) % 1) + shift[i]
+      // Unlike in python, remainder in javascript can be negative
+      if (remainder < -epsArray[i]) remainder += 1
+      iFracPos.setComponent(i, remainder)
+    }
   }
 }
 
@@ -1258,4 +1306,47 @@ const vdwRadii = {
 }
 const elementColors = {
   'H': 0xFFFFFF, 'HE': 0xD9FFFF, 'LI': 0xCC80FF, 'BE': 0xC2FF00, 'B': 0xFFB5B5, 'C': 0x909090, 'N': 0x3050F8, 'O': 0xFF0D0D, 'F': 0x90E050, 'NE': 0xB3E3F5, 'NA': 0xAB5CF2, 'MG': 0x8AFF00, 'AL': 0xBFA6A6, 'SI': 0xF0C8A0, 'P': 0xFF8000, 'S': 0xFFFF30, 'CL': 0x1FF01F, 'AR': 0x80D1E3, 'K': 0x8F40D4, 'CA': 0x3DFF00, 'SC': 0xE6E6E6, 'TI': 0xBFC2C7, 'V': 0xA6A6AB, 'CR': 0x8A99C7, 'MN': 0x9C7AC7, 'FE': 0xE06633, 'CO': 0xF090A0, 'NI': 0x50D050, 'CU': 0xC88033, 'ZN': 0x7D80B0, 'GA': 0xC28F8F, 'GE': 0x668F8F, 'AS': 0xBD80E3, 'SE': 0xFFA100, 'BR': 0xA62929, 'KR': 0x5CB8D1, 'RB': 0x702EB0, 'SR': 0x00FF00, 'Y': 0x94FFFF, 'ZR': 0x94E0E0, 'NB': 0x73C2C9, 'MO': 0x54B5B5, 'TC': 0x3B9E9E, 'RU': 0x248F8F, 'RH': 0x0A7D8C, 'PD': 0x006985, 'AG': 0xC0C0C0, 'CD': 0xFFD98F, 'IN': 0xA67573, 'SN': 0x668080, 'SB': 0x9E63B5, 'TE': 0xD47A00, 'I': 0x940094, 'XE': 0x940094, 'CS': 0x57178F, 'BA': 0x00C900, 'LA': 0x70D4FF, 'CE': 0xFFFFC7, 'PR': 0xD9FFC7, 'ND': 0xC7FFC7, 'PM': 0xA3FFC7, 'SM': 0x8FFFC7, 'EU': 0x61FFC7, 'GD': 0x45FFC7, 'TB': 0x30FFC7, 'DY': 0x1FFFC7, 'HO': 0x00FF9C, 'ER': 0x00E675, 'TM': 0x00D452, 'YB': 0x00BF38, 'LU': 0x00AB24, 'HF': 0x4DC2FF, 'TA': 0x4DA6FF, 'W': 0x2194D6, 'RE': 0x267DAB, 'OS': 0x266696, 'IR': 0x175487, 'PT': 0xD0D0E0, 'AU': 0xFFD123, 'HG': 0xB8B8D0, 'TL': 0xA6544D, 'PB': 0x575961, 'BI': 0x9E4FB5, 'PO': 0xAB5C00, 'AT': 0x754F45, 'RN': 0x428296, 'FR': 0x420066, 'RA': 0x007D00, 'AC': 0x70ABFA, 'TH': 0x00BAFF, 'PA': 0x00A1FF, 'U': 0x008FFF, 'NP': 0x0080FF, 'PU': 0x006BFF, 'AM': 0x545CF2, 'CM': 0x785CE3, 'BK': 0x8A4FE3, 'CF': 0xA136D4, 'ES': 0xB31FD4, 'FM': 0xB31FBA, 'MD': 0xB30DA6, 'NO': 0xBD0D87, 'LR': 0xC70066, 'RF': 0xCC0059, 'DB': 0xD1004F, 'SG': 0xD90045, 'BH': 0xE00038, 'HS': 0xE6002E, 'MT': 0xEB0026, 'DS': 0xFFFFFF, 'RG': 0xFFFFFF, 'CN': 0xFFFFFF, 'UUT': 0xFFFFFF, 'FL': 0xFFFFFF, 'UUP': 0xFFFFFF, 'LV': 0xFFFFFF, 'UUH': 0xFFFFFF, 'D': 0xFFFFC0, 'T': 0xFFFFA0
+}
+
+/**
+ * Calculates the center of positions and also takes the periodicity of the
+ * system into account.
+ *
+ * The algorithm is replicated from:
+ * https://en.wikipedia.org/wiki/Center_of_mass#Systems_with_periodic_boundary_conditions
+ *
+ * @param {*} relative_positions
+ * @param {*} cell
+ * @param {*} pbc
+ * @returns
+ */
+function getCenterOfPositions(posFrac, pbc) {
+  const center = new Vector3()
+  const total = posFrac.length
+  for (const iComp of [0, 1, 2]) {
+      const iPbc = pbc[iComp]
+      let centerComp
+      if (iPbc) {
+        let xiSum = 0
+        let zetaSum = 0
+        for (const pos of posFrac) {
+          const component = pos.getComponent(iComp)
+          const theta = component * 2 * Math.PI
+          xiSum += Math.cos(theta)
+          zetaSum += Math.sin(theta)
+        }
+        const xiMean = xiSum / total
+        const zetaMean = zetaSum / total
+        const thetaMean = Math.atan2(-zetaMean, -xiMean) + Math.PI
+        centerComp = thetaMean / (2 * Math.PI)
+      } else {
+        let sum = 0
+        for (const pos of posFrac) {
+          sum += pos.getComponent(iComp)
+        }
+        centerComp = sum / posFrac.length
+      }
+      center.setComponent(iComp, centerComp)
+  }
+  return center
 }
