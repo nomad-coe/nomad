@@ -25,8 +25,13 @@ import {
   Button,
   Menu,
   MenuItem,
+  Tooltip,
   Typography,
-  FormControlLabel
+  FormControl,
+  FormLabel,
+  FormControlLabel,
+  Radio,
+  RadioGroup
 } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import {
@@ -47,6 +52,11 @@ import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { isNil } from 'lodash'
 import { Quantity } from '../../units'
 
+export const WrapMode = {
+  Original: "original",
+  Wrap: "wrap",
+  Unwrap: "unwrap"
+}
 /**
  * Used to control a 3D system visualization that is implemented in the
  * 'children' prop. This allows for an easier change of visualization
@@ -84,6 +94,11 @@ const useStyles = makeStyles((theme) => {
     title: {
       marginBottom: theme.spacing(1)
     },
+    menuItem: {
+      margin: theme.spacing(2),
+      marginTop: theme.spacing(1),
+      marginBottom: theme.spacing(1)
+    },
     canvas: {
       position: 'relative',
       flex: 1,
@@ -94,9 +109,9 @@ const useStyles = makeStyles((theme) => {
   }
 })
 const StructureBase = React.memo(({
-  wrap,
-  onWrap,
-  disableWrap,
+  wrapMode,
+  onWrapModeChange,
+  disableWrapMode,
   showLatticeConstants,
   onShowLatticeConstants,
   disableShowLatticeConstants,
@@ -137,9 +152,9 @@ const StructureBase = React.memo(({
     onShowBonds && onShowBonds(value, render)
   }, [onShowBonds])
 
-  const handleWrap = useCallback((value, showBonds, render = false) => {
-    onWrap && onWrap(value, showBonds, render)
-  }, [onWrap])
+  const handleWrapModeChange = useCallback((value, showBonds, render = false) => {
+    onWrapModeChange && onWrapModeChange(value, showBonds, render)
+  }, [onWrapModeChange])
 
   const handleShowLatticeConstants = useCallback((value, render = false) => {
     onShowLatticeConstants && onShowLatticeConstants(value, render)
@@ -261,58 +276,68 @@ const StructureBase = React.memo(({
             open={open}
             onClose={closeMenu}
           >
-          <MenuItem key='show-bonds'>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showBonds}
-                  disabled={disableShowBonds}
-                  onChange={(event) => { setShowBonds(!showBonds, true) }}
-                  color='primary'
-                />
-              }
-              label='Show bonds'
-            />
-          </MenuItem>
-          <MenuItem key='show-axis'>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showLatticeConstants}
-                  disabled={disableShowLatticeConstants}
-                  onChange={(event) => { handleShowLatticeConstants(!showLatticeConstants, true) }}
-                  color='primary'
-                />
-              }
-              label='Show lattice constants'
-            />
-          </MenuItem>
-          <MenuItem key='show-cell'>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showCell}
-                  disabled={disableShowCell}
-                  onChange={(event) => { setShowCell(!showCell, true) }}
-                  color='primary'
-                />
-              }
-              label='Show simulation cell'
-            />
-          </MenuItem>
-          <MenuItem key='wrap'>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={wrap}
-                  disabled={disableWrap}
-                  onChange={(event) => { handleWrap(!wrap, showBonds, true) }}
-                  color='primary'
-                />
-              }
-              label='Wrap positions'
-            />
-          </MenuItem>
+            <MenuItem key='show-bonds'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showBonds}
+                    disabled={disableShowBonds}
+                    onChange={(event) => { setShowBonds(!showBonds, true) }}
+                    color='primary'
+                  />
+                }
+                label='Show bonds'
+              />
+            </MenuItem>
+            <MenuItem key='show-axis'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showLatticeConstants}
+                    disabled={disableShowLatticeConstants}
+                    onChange={(event) => { handleShowLatticeConstants(!showLatticeConstants, true) }}
+                    color='primary'
+                  />
+                }
+                label='Show lattice constants'
+              />
+            </MenuItem>
+            <MenuItem key='show-cell'>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={showCell}
+                    disabled={disableShowCell}
+                    onChange={(event) => { setShowCell(!showCell, true) }}
+                    color='primary'
+                  />
+                }
+                label='Show simulation cell'
+              />
+            </MenuItem>
+            <FormControl key='wrap' component="fieldset" className={styles.menuItem}>
+              <FormLabel component="legend">Wrap mode</FormLabel>
+              <RadioGroup
+                value={wrapMode}
+                onChange={handleWrapModeChange}
+                >
+                {Object.entries(WrapMode).map(([key, value]) =>
+                  <FormControlLabel
+                    key={key}
+                    value={value}
+                    control={<Radio color="primary" disabled={disableWrapMode}/>}
+                    label={<Tooltip
+                      title={{
+                        [WrapMode.Original]: 'Original positions',
+                        [WrapMode.Wrap]: 'Positions wrapped inside the cell respecting periodic boundary conditions',
+                        [WrapMode.Unwrap]: 'Reconstructs positions so that small structures are not split by periodic cell boundary.'
+                      }[value]}>
+                        <span>{key}</span>
+                    </Tooltip>}
+                  />
+                )}
+              </RadioGroup>
+            </FormControl>
           </Menu>
         </div>
       </div>
@@ -321,9 +346,9 @@ const StructureBase = React.memo(({
 })
 
 StructureBase.propTypes = {
-  wrap: PropTypes.bool,
-  onWrap: PropTypes.func,
-  disableWrap: PropTypes.bool,
+  wrapMode: PropTypes.bool,
+  onWrapModeChange: PropTypes.func,
+  disableWrapMode: PropTypes.bool,
   showLatticeConstants: PropTypes.bool,
   onShowLatticeConstants: PropTypes.func,
   disableShowLatticeConstants: PropTypes.bool,
