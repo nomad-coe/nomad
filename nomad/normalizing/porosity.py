@@ -343,31 +343,34 @@ def get_contents(filename):
     return contents
 
 
-def zeo_calculation(ase_atom, probe_radius=1.8, number_of_steps=5000):
+def zeo_calculation(ase_atom, probe_radius=1.8, number_of_steps=5000, high_accuracy=True):
     '''
     Main script to compute geometric structure of porous systems.
-    The focus here is on MOF, but the script can run on any periodic
-    system.
-    The script computes the accesible surface area, accessible volume
-    and the pore geometry.There are many more outputs which can be extracted
-    from ,vol_str and sa_str.
-    More there are also other computation that can be done. Check out the
-    test directory in dependencies/pyzeo/test. Else contact bafgreat@gmail.com
+    The focus here is on MOF, but the script can run on any porous periodic
+    system. The script computes the accesible surface area, accessible volume
+    and the pore geometry. There are many more outputs which can be extracted
+    from ,vol_str and sa_str. Moreover there are also other computation that can be done.
+    Check out the test directory in dependencies/pyzeo/test. Else contact bafgreat@gmail.com
     if you need more output and can't figure it out.
     Main parameter:
-        ase atom object
+        ase_atom: ase atom object
+        probe_radius: The radius of the probe. Here 1.86 is used as default
+        number_of_steps: Number of GCMC simulation cycles
+        high_accuracy: key to determine where to perform high accuracy computation
     return
         python dictionary containing
-        1) Accessible volume fraction
+        1) Accessible volume void fraction
         2) Accessible volume (A^3)
         3) Accessible surface area (A^2)
-        4) List of the surface area along identified pockets (A^2)
-        5) Largest cavity diameter:The largest sphere that can
-        be inserted system without overlapping with any of the atoms
-        6) Free sphere
-        7) Pore limiting diameter: The largest sphere that can freely
-        diffuse through the porous network without overlapping with
-        any of the atoms
+        4) Number_of_channels: Number of channels present in the porous system, which correspond to the number of
+                               pores within the system
+        5) LCD_A: The largest cavity diameter is the largest sphere that can be inserted in a porous
+                  system without overlapping with any of the atoms in the system.
+        6) lfpd_A:The largest included sphere along free sphere path is
+                  largest sphere that can be inserted in the pore
+        7) PLD_A:The pore limiting diameter is the largest sphere that can freely
+                 diffuse through the porous network without overlapping with any
+                 of the atoms in the system
     '''
     tmp_cssr = 'tmp.cssr'
     tmp_out = 'tmp.res'
@@ -376,8 +379,11 @@ def zeo_calculation(ase_atom, probe_radius=1.8, number_of_steps=5000):
     parameters = {}
     atmnet = AtomNetwork.read_from_CSSR(tmp_cssr)
     vol_str = volume(
-        atmnet, probe_radius, probe_radius, number_of_steps, high_accuracy=False)
-    vol_str = vol_str.decode("utf-8").split()
+        atmnet, probe_radius, probe_radius, number_of_steps, high_accuracy=high_accuracy)
+    if high_accuracy is True:
+        vol_str = vol_str[0].decode("utf-8").split()
+    else:
+        vol_str = vol_str.decode("utf-8").split()
     parameters['AV_Volume_fraction'] = np.float64(vol_str[10])
     parameters['AV'] = np.float64(vol_str[8])
     sa_str = surface_area(atmnet, probe_radius, probe_radius,
