@@ -68895,7 +68895,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "reference_temperature",
-                "description": "The target temperature for the simulation. In case of an annealing procedure, this corresponds to the initial reference temperature.",
+                "description": "The target temperature for the simulation.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -68933,35 +68933,12 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
-                "name": "frame_start",
-                "description": "Trajectory frame number where this thermostating starts in case of an annealing procedure.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "name": "frame_end",
-                "description": "Trajectory frame number where this thermostating ends in case of an annealing procedure.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "name": "annealing_type",
-                "description": "Type of annealing procedure. Can be \"linear\" or \"exponential\".\nIf linear, \"annealing_delta\" specifies the corresponding parameter.\nIf exponential, \"annealing_factor\" specifies the corresponding parameter.",
+                "name": "temperature_profile",
+                "description": "Type of annealing procedure. Can be \"constant\", \"linear\", or \"exponential\".\nIf linear, \"temperature_update_delta\" specifies the corresponding parameter.\nIf exponential, \"temperature_update_factor\" specifies the corresponding parameter.",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
+                    "constant",
                     "linear",
                     "exponential"
                   ]
@@ -68970,9 +68947,35 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "reference_temperature_start",
+                "description": "The target temperature for the simulation.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "kelvin"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "reference_temperature_end",
+                "description": "The target temperature for the simulation.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "kelvin"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
-                "name": "annealing_frequency",
+                "name": "temperature_update_frequency",
                 "description": "Number of simulation steps between changing the target temperature.",
                 "type": {
                   "type_kind": "python",
@@ -68984,7 +68987,7 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
-                "name": "annealing_delta",
+                "name": "temperature_update_delta",
                 "description": "Amount to be added (subtracted if negative) to reference_temperature at a frequency of annealing_frequency when annealing_type is linear.",
                 "type": {
                   "type_kind": "numpy",
@@ -68996,11 +68999,35 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
-                "name": "annealing_factor",
+                "name": "temperature_update_factor",
                 "description": "Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "temperature_update_frame_start",
+                "description": "Trajectory frame number where this thermostating starts in case of an annealing procedure.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
+                "m_parent_sub_section": "quantities",
+                "name": "temperature_update_frame_end",
+                "description": "Trajectory frame number where this thermostating ends in case of an annealing procedure.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
                 },
                 "shape": []
               }

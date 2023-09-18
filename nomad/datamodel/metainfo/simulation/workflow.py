@@ -1019,7 +1019,7 @@ class ThermostatParameters(MSection):
         shape=[],
         unit='kelvin',
         description='''
-        The target temperature for the simulation. In case of an annealing procedure, this corresponds to the initial reference temperature.
+        The target temperature for the simulation.
         ''')
 
     coupling_constant = Quantity(
@@ -1039,48 +1039,64 @@ class ThermostatParameters(MSection):
         The effective or fictitious mass of the temperature resevoir.
         ''')
 
-    frame_start = Quantity(
-        type=int,
+    temperature_profile = Quantity(
+        type=MEnum('constant', 'linear', 'exponential'),
         shape=[],
         description='''
-        Trajectory frame number where this thermostating starts in case of an annealing procedure.
+        Type of annealing procedure. Can be "constant", "linear", or "exponential".
+        If linear, "temperature_update_delta" specifies the corresponding parameter.
+        If exponential, "temperature_update_factor" specifies the corresponding parameter.
         ''')
 
-    frame_end = Quantity(
-        type=int,
+    reference_temperature_start = Quantity(
+        type=np.float64,
         shape=[],
+        unit='kelvin',
         description='''
-        Trajectory frame number where this thermostating ends in case of an annealing procedure.
+        The target temperature for the simulation.
         ''')
 
-    annealing_type = Quantity(
-        type=MEnum('linear', 'exponential'),
+    reference_temperature_end = Quantity(
+        type=np.float64,
         shape=[],
+        unit='kelvin',
         description='''
-        Type of annealing procedure. Can be "linear" or "exponential".
-        If linear, "annealing_delta" specifies the corresponding parameter.
-        If exponential, "annealing_factor" specifies the corresponding parameter.
+        The target temperature for the simulation.
         ''')
 
-    annealing_frequency = Quantity(
+    temperature_update_frequency = Quantity(
         type=int,
         shape=[],
         description='''
         Number of simulation steps between changing the target temperature.
         ''')
 
-    annealing_delta = Quantity(
+    temperature_update_delta = Quantity(
         type=np.float64,
         shape=[],
         description='''
         Amount to be added (subtracted if negative) to reference_temperature at a frequency of annealing_frequency when annealing_type is linear.
         ''')
 
-    annealing_factor = Quantity(
+    temperature_update_factor = Quantity(
         type=np.float64,
         shape=[],
         description='''
         Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.
+        ''')
+
+    temperature_update_frame_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory frame number where this thermostating starts in case of an annealing procedure.
+        ''')
+
+    temperature_update_frame_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory frame number where this thermostating ends in case of an annealing procedure.
         ''')
 
 
