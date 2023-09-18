@@ -1935,6 +1935,7 @@ class Simulation(MSection):
     quantum_cms = SubSection(sub_section=QuantumCMS.m_def, repeats=False)
     precision = SubSection(sub_section=Precision.m_def, repeats=False)
 
+
 class XRDMethod(MSection):
     m_def = Section(
         description='''
@@ -1964,8 +1965,12 @@ class XRDMethod(MSection):
         | **X-ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |
         | **Grazing Incidence X-ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |
         ''',
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
     )
+
 
 class MeasurementMethod(MSection):
     m_def = Section(
@@ -1974,6 +1979,7 @@ class MeasurementMethod(MSection):
         '''
     )
     xrd = SubSection(sub_section=XRDMethod.m_def, repeats=False)
+
 
 class Method(MSection):
     m_def = Section(
@@ -2712,7 +2718,7 @@ class DiffractionPattern(MSection):
     )
     two_theta_angles = Quantity(
         # type=Dos.energies,
-        type=np.float64,  #TODO convert to reference when schema is in place
+        type=np.float64,  # TODO convert to reference when schema is in place
         unit='degree',
         shape=['*'],
         description='''
@@ -2721,7 +2727,7 @@ class DiffractionPattern(MSection):
     )
     intensity = Quantity(
         # type=DosValues,
-        type=np.float64,  #TODO convert to reference when schema is in place
+        type=np.float64,  # TODO convert to reference when schema is in place
         shape=['*'],
         description='''
         Array containing the set of intensities.
