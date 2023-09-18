@@ -1019,7 +1019,7 @@ class ThermostatParameters(MSection):
         shape=[],
         unit='kelvin',
         description='''
-        The target temperature for the simulation.
+        The target temperature for the simulation. In case of an annealing procedure, this corresponds to the initial reference temperature.
         ''')
 
     coupling_constant = Quantity(
@@ -1043,14 +1043,44 @@ class ThermostatParameters(MSection):
         type=int,
         shape=[],
         description='''
-        Trajectory frame number where this thermostating starts.
+        Trajectory frame number where this thermostating starts in case of an annealing procedure.
         ''')
 
     frame_end = Quantity(
         type=int,
         shape=[],
         description='''
-        Trajectory frame number where this thermostating ends.
+        Trajectory frame number where this thermostating ends in case of an annealing procedure.
+        ''')
+
+    annealing_type = Quantity(
+        type=MEnum('linear', 'exponential'),
+        shape=[],
+        description='''
+        Type of annealing procedure. Can be "linear" or "exponential".
+        If linear, "annealing_delta" specifies the corresponding parameter.
+        If exponential, "annealing_factor" specifies the corresponding parameter.
+        ''')
+
+    annealing_frequency = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of simulation steps between changing the target temperature.
+        ''')
+
+    annealing_delta = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Amount to be added (subtracted if negative) to reference_temperature at a frequency of annealing_frequency when annealing_type is linear.
+        ''')
+
+    annealing_factor = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.
         ''')
 
 class BarostatParameters(MSection):
