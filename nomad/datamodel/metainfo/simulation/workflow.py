@@ -970,7 +970,7 @@ class ThermostatParameters(MSection):
 
     thermostat_type = Quantity(
         type=MEnum('andersen', 'berendsen', 'brownian', 'langevin_goga', 'langevin_schneider', 'nose_hoover', 'velocity_rescaling',
-                   'velocity_rescaling_langevin'),
+                   'velocity_rescaling_langevin', 'velocity_rescaling_woodcock'),
         shape=[],
         description='''
         The name of the thermostat used for temperature control. If skipped or an empty string is used, it
@@ -1009,6 +1009,9 @@ class ThermostatParameters(MSection):
 
         | `"velocity_rescaling_langevin"` | G. Bussi and M. Parrinello,
         [Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |
+
+        | `"velocity_rescaling_woodcock"` | L. V. Woodcock,
+        [Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |
         ''')
 
     reference_temperature = Quantity(
