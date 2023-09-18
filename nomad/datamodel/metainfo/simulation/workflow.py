@@ -1039,6 +1039,19 @@ class ThermostatParameters(MSection):
         The effective or fictitious mass of the temperature resevoir.
         ''')
 
+    frame_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory frame number where this thermostating starts.
+        ''')
+
+    frame_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory frame number where this thermostating ends.
+        ''')
 
 class BarostatParameters(MSection):
     '''
@@ -1130,6 +1143,19 @@ class BarostatParameters(MSection):
         the input/output files.
         ''')
 
+    frame_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory frame number where this barostating starts.
+        ''')
+
+    frame_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory frame number where this barostating ends.
+        ''')
 
 class MolecularDynamicsMethod(SimulationWorkflowMethod):
 
@@ -1229,9 +1255,9 @@ class MolecularDynamicsMethod(SimulationWorkflowMethod):
         The number of timesteps between saving the thermodynamic quantities.
         ''')
 
-    thermostat_parameters = SubSection(sub_section=ThermostatParameters.m_def, repeats=False)
+    thermostat_parameters = SubSection(sub_section=ThermostatParameters.m_def, repeats=True)
 
-    barostat_parameters = SubSection(sub_section=BarostatParameters.m_def, repeats=False)
+    barostat_parameters = SubSection(sub_section=BarostatParameters.m_def, repeats=True)
 
 
 class EnsemblePropertyValues(MSection):
