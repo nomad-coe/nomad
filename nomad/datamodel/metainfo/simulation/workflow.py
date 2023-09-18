@@ -1083,6 +1083,7 @@ class ThermostatParameters(MSection):
         Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.
         ''')
 
+
 class BarostatParameters(MSection):
     '''
     Section containing the parameters pertaining to the barostat for a molecular dynamics run.
@@ -1186,6 +1187,7 @@ class BarostatParameters(MSection):
         description='''
         Trajectory frame number where this barostating ends.
         ''')
+
 
 class MolecularDynamicsMethod(SimulationWorkflowMethod):
 

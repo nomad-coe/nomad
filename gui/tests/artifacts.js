@@ -68873,7 +68873,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "thermostat_type",
-                "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |",
+                "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |\n\n| `\"velocity_rescaling_woodcock\"` | L. V. Woodcock,\n[Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -68884,7 +68884,8 @@ window.nomadArtifacts = {
                     "langevin_schneider",
                     "nose_hoover",
                     "velocity_rescaling",
-                    "velocity_rescaling_langevin"
+                    "velocity_rescaling_langevin",
+                    "velocity_rescaling_woodcock"
                   ]
                 },
                 "shape": []
@@ -68894,7 +68895,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "reference_temperature",
-                "description": "The target temperature for the simulation.",
+                "description": "The target temperature for the simulation. In case of an annealing procedure, this corresponds to the initial reference temperature.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -68927,6 +68928,81 @@ window.nomadArtifacts = {
                 },
                 "shape": [],
                 "unit": "kilogram"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "frame_start",
+                "description": "Trajectory frame number where this thermostating starts in case of an annealing procedure.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "frame_end",
+                "description": "Trajectory frame number where this thermostating ends in case of an annealing procedure.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "annealing_type",
+                "description": "Type of annealing procedure. Can be \"linear\" or \"exponential\".\nIf linear, \"annealing_delta\" specifies the corresponding parameter.\nIf exponential, \"annealing_factor\" specifies the corresponding parameter.",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "linear",
+                    "exponential"
+                  ]
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "annealing_frequency",
+                "description": "Number of simulation steps between changing the target temperature.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "name": "annealing_delta",
+                "description": "Amount to be added (subtracted if negative) to reference_temperature at a frequency of annealing_frequency when annealing_type is linear.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "name": "annealing_factor",
+                "description": "Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": []
               }
             ]
           },
@@ -69018,6 +69094,30 @@ window.nomadArtifacts = {
                   3
                 ],
                 "unit": "1 / pascal"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "frame_start",
+                "description": "Trajectory frame number where this barostating starts.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "frame_end",
+                "description": "Trajectory frame number where this barostating ends.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
               }
             ]
           },
@@ -69158,7 +69258,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermostat_parameters",
                 "sub_section": "/packages/18/section_definitions/14",
-                "repeats": false
+                "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -69166,7 +69266,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "barostat_parameters",
                 "sub_section": "/packages/18/section_definitions/15",
-                "repeats": false
+                "repeats": true
               }
             ]
           },
