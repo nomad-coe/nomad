@@ -3097,7 +3097,8 @@ window.nomadArtifacts = {
           "unavailable"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "suggestion": true
     },
     "results.properties.n_calculations": {
       "name": "n_calculations",
@@ -16870,7 +16871,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.method.measurement.xrd.diffraction_method_name"
+                    "results.method.measurement.xrd.diffraction_method_name",
+                    "results.method.measurement.xrd.diffraction_method_name__suggestion"
                   ]
                 },
                 "name": "diffraction_method_name",
