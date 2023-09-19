@@ -2755,7 +2755,7 @@ class StructuralProperties(MSection):
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
-    diffraction_pattern = SubSection(sub_section=DiffractionPattern.m_def, repeats=False)
+    diffraction_pattern = SubSection(sub_section=DiffractionPattern.m_def, repeats=True)
 
 
 class MeanSquaredDisplacement(MDPropertySection):
