@@ -68895,7 +68895,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "reference_temperature",
-                "description": "The target temperature for the simulation.",
+                "description": "The target temperature for the simulation. Typically used when temperature_profile is \"constant\".",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -68934,7 +68934,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "temperature_profile",
-                "description": "Type of annealing procedure. Can be \"constant\", \"linear\", or \"exponential\".\nIf linear, \"temperature_update_delta\" specifies the corresponding parameter.\nIf exponential, \"temperature_update_factor\" specifies the corresponding parameter.",
+                "description": "Type of temperature control (i.e., annealing) procedure. Can be \"constant\" (no annealing), \"linear\", or \"exponential\".\nIf linear, \"temperature_update_delta\" specifies the corresponding update parameter.\nIf exponential, \"temperature_update_factor\" specifies the corresponding update parameter.",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -68950,7 +68950,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "reference_temperature_start",
-                "description": "The target temperature for the simulation.",
+                "description": "The initial target temperature for the simulation. Typically used when temperature_profile is \"linear\" or \"exponential\".",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -68963,7 +68963,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "reference_temperature_end",
-                "description": "The target temperature for the simulation.",
+                "description": "The final target temperature for the simulation.  Typically used when temperature_profile is \"linear\" or \"exponential\".",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -68988,7 +68988,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "name": "temperature_update_delta",
-                "description": "Amount to be added (subtracted if negative) to reference_temperature at a frequency of annealing_frequency when annealing_type is linear.",
+                "description": "Amount to be added (subtracted if negative) to the current reference_temperature\nat a frequency of temperature_update_frequency when temperature_profile is \"linear\".\nThe reference temperature is then replaced by this new value until the next update.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -69000,7 +69000,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
                 "name": "temperature_update_factor",
-                "description": "Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.",
+                "description": "Factor to be multiplied to the current reference_temperature at a frequency of temperature_update_frequency when temperature_profile is exponential.\nThe reference temperature is then replaced by this new value until the next update.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -69011,8 +69011,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
-                "name": "temperature_update_frame_start",
-                "description": "Trajectory frame number where this thermostating starts in case of an annealing procedure.",
+                "name": "step_start",
+                "description": "Trajectory step where this thermostating starts.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"
@@ -69023,8 +69023,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
-                "name": "temperature_update_frame_end",
-                "description": "Trajectory frame number where this thermostating ends in case of an annealing procedure.",
+                "name": "step_end",
+                "description": "Trajectory step number where this thermostating ends.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"
@@ -69079,7 +69079,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "reference_pressure",
-                "description": "The target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions\nalong the diagonal, and coupling between directions on the off-diagonal.",
+                "description": "The target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions\nalong the diagonal, and coupling between directions on the off-diagonal. Typically used when pressure_profile is \"constant\".",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -69126,8 +69126,56 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
-                "name": "frame_start",
-                "description": "Trajectory frame number where this barostating starts.",
+                "name": "pressure_profile",
+                "description": "Type of pressure control procedure. Can be \"constant\" (no annealing), \"linear\", or \"exponential\".\nIf linear, \"pressure_update_delta\" specifies the corresponding update parameter.\nIf exponential, \"pressure_update_factor\" specifies the corresponding update parameter.",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "constant",
+                    "linear",
+                    "exponential"
+                  ]
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "reference_pressure_start",
+                "description": "The initial target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions\nalong the diagonal, and coupling between directions on the off-diagonal. Typically used when pressure_profile is \"linear\" or \"exponential\".",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  3,
+                  3
+                ],
+                "unit": "pascal"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "reference_pressure_end",
+                "description": "The final target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions\nalong the diagonal, and coupling between directions on the off-diagonal.  Typically used when pressure_profile is \"linear\" or \"exponential\".",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  3,
+                  3
+                ],
+                "unit": "pascal"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "name": "pressure_update_frequency",
+                "description": "Number of simulation steps between changing the target pressure.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"
@@ -69136,10 +69184,46 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
-                "name": "frame_end",
-                "description": "Trajectory frame number where this barostating ends.",
+                "name": "pressure_update_delta",
+                "description": "Amount to be added (subtracted if negative) to the current reference_pressure\nat a frequency of pressure_update_frequency when pressure_profile is \"linear\".\nThe pressure temperature is then replaced by this new value until the next update.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "pressure_update_factor",
+                "description": "Factor to be multiplied to the current reference_pressure at a frequency of pressure_update_frequency when pressure_profile is exponential.\nThe reference pressure is then replaced by this new value until the next update.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
+                "m_parent_sub_section": "quantities",
+                "name": "step_start",
+                "description": "Trajectory step where this barostating starts.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 12,
+                "m_parent_sub_section": "quantities",
+                "name": "step_end",
+                "description": "Trajectory step number where this barostating ends.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "int"

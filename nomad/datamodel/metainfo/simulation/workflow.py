@@ -1259,7 +1259,6 @@ class BarostatParameters(MSection):
         ''')
 
 
-
 class MolecularDynamicsMethod(SimulationWorkflowMethod):
 
     thermodynamic_ensemble = Quantity(
