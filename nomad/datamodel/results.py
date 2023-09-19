@@ -2734,7 +2734,8 @@ class DiffractionPattern(MSection):
         ''',
     )
     q_vector = Quantity(
-        type=np.dtype(np.float64), shape=['*'],
+        type=np.dtype(np.float64),
+        shape=['*'],
         unit='meter**(-1)',
         description='The scattering vector *Q*.')
 
@@ -2755,7 +2756,11 @@ class StructuralProperties(MSection):
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
-    diffraction_pattern = SubSection(sub_section=DiffractionPattern.m_def, repeats=True)
+    diffraction_pattern = SubSection(
+        sub_section=DiffractionPattern.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
 
 
 class MeanSquaredDisplacement(MDPropertySection):

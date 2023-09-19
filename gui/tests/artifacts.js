@@ -3084,16 +3084,16 @@ window.nomadArtifacts = {
     },
     "results.method.measurement.xrd.diffraction_method_name": {
       "name": "diffraction_method_name",
-      "description": "The diffraction method used to obtain the diffraction pattern.\n| X-ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
+      "description": "The diffraction method used to obtain the diffraction pattern.\n| X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-Ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
       "type": {
         "type_kind": "Enum",
         "type_data": [
-          "Powder X-ray Diffraction (PXRD)",
-          "Single Crystal X-ray Diffraction (SCXRD)",
-          "High-Resolution X-ray Diffraction (HRXRD)",
-          "Small-Angle X-ray Scattering (SAXS)",
-          "X-ray Reflectivity (XRR)",
-          "Grazing Incidence X-ray Diffraction (GIXRD)",
+          "Powder X-Ray Diffraction (PXRD)",
+          "Single Crystal X-Ray Diffraction (SCXRD)",
+          "High-Resolution X-Ray Diffraction (HRXRD)",
+          "Small-Angle X-Ray Scattering (SAXS)",
+          "X-Ray Reflectivity (XRR)",
+          "Grazing Incidence X-Ray Diffraction (GIXRD)",
           "unavailable"
         ]
       },
@@ -4441,8 +4441,8 @@ window.nomadArtifacts = {
     "results.properties.structural.diffraction_pattern": {
       "name": "diffraction_pattern",
       "description": "\n        Diffraction pattern.\n        ",
-      "nested": false,
-      "repeats": false
+      "nested": true,
+      "repeats": true
     },
     "results.properties.dynamical": {
       "name": "dynamical",
@@ -16876,16 +16876,16 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "diffraction_method_name",
-                "description": "The diffraction method used to obtain the diffraction pattern.\n| X-ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
+                "description": "The diffraction method used to obtain the diffraction pattern.\n| X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-Ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
-                    "Powder X-ray Diffraction (PXRD)",
-                    "Single Crystal X-ray Diffraction (SCXRD)",
-                    "High-Resolution X-ray Diffraction (HRXRD)",
-                    "Small-Angle X-ray Scattering (SAXS)",
-                    "X-ray Reflectivity (XRR)",
-                    "Grazing Incidence X-ray Diffraction (GIXRD)",
+                    "Powder X-Ray Diffraction (PXRD)",
+                    "Single Crystal X-Ray Diffraction (SCXRD)",
+                    "High-Resolution X-Ray Diffraction (HRXRD)",
+                    "Small-Angle X-Ray Scattering (SAXS)",
+                    "X-Ray Reflectivity (XRR)",
+                    "Grazing Incidence X-Ray Diffraction (GIXRD)",
                     "unavailable"
                   ]
                 }
@@ -18563,9 +18563,14 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "diffraction_pattern"
+                  ]
+                },
                 "name": "diffraction_pattern",
                 "sub_section": "/packages/4/section_definitions/56",
-                "repeats": false
+                "repeats": true
               }
             ]
           },
