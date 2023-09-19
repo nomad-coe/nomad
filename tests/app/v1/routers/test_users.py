@@ -18,7 +18,8 @@
 #
 
 import pytest
-from tests.conftest import test_users as conf_test_users, test_user_uuid as conf_test_user_uuid
+from tests.conftest import (test_users as conf_test_users,
+                            test_user_uuid as conf_test_user_uuid)
 
 
 def assert_user(user, expected_user):
@@ -27,8 +28,10 @@ def assert_user(user, expected_user):
     assert 'email' not in user
 
 
-def test_me(client, test_user_auth):
+def test_me(client, test_user_auth, app_token_auth):
     response = client.get('users/me', headers=test_user_auth)
+    assert response.status_code == 200
+    response = client.get('users/me', headers=app_token_auth)
     assert response.status_code == 200
 
 

@@ -202,6 +202,10 @@ class Services(NomadSettings):
         Value that is used in `results` section Enum fields (e.g. system type, spacegroup, etc.)
         to indicate that the value could not be determined.
     ''')
+    app_token_max_expires_in = Field(1 * 24 * 60 * 60, description='''
+        Maximum expiration time for an app token in seconds. Requests with a higher value
+        will be declined.
+    ''')
 
 
 class Meta(NomadSettings):

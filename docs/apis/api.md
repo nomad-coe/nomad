@@ -390,6 +390,21 @@ To use authentication in the dashboard, simply use the Authorize button. The
 dashboard GUI will manage the access token and use it while you try out the various
 operations.
 
+#### App token
+
+If the short-term expiration of the default *access token* does not suit your needs,
+you can request an *app token* with a user-defined expiration. For example, you can
+send the GET request `/auth/app_token?expires_in=86400` together with some way of
+authentication, e.g. header `Authorization: Bearer <access token>`. The API will return
+an app token, which is valid for 24 hours in subsequent request headers with the format
+`Authorization: Bearer <app token>`. The request will be declined if the expiration is
+larger than the maximum expiration defined by the API config.
+
+!!! warning
+    Despite the name, the app token is used to impersonate the user who requested it.
+    It does not discern between different uses and will only become invalid once it
+    expires (or when the API's secret is changed).
+
 ## Search for entries
 
 See [getting started](#getting-started) for a typical search example. Combine the [different
