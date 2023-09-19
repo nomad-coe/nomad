@@ -128,7 +128,7 @@ affiliations:
     index: 2
   - name: Department of Informatics, Technical University of Munich, Munich, Germany
     index: 3
-  - name: Department of Physical Electronics, Masaryk University, Brno, Czech Republic
+  - name: Department of Plasma Physics and Technology, Masaryk University, Brno, Czech Republic
     index: 4
 date: 20 March 2023
 bibliography: paper.bib
