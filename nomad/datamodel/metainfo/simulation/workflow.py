@@ -1019,7 +1019,7 @@ class ThermostatParameters(MSection):
         shape=[],
         unit='kelvin',
         description='''
-        The target temperature for the simulation.
+        The target temperature for the simulation. Typically used when temperature_profile is "constant".
         ''')
 
     coupling_constant = Quantity(
@@ -1043,9 +1043,9 @@ class ThermostatParameters(MSection):
         type=MEnum('constant', 'linear', 'exponential'),
         shape=[],
         description='''
-        Type of annealing procedure. Can be "constant", "linear", or "exponential".
-        If linear, "temperature_update_delta" specifies the corresponding parameter.
-        If exponential, "temperature_update_factor" specifies the corresponding parameter.
+        Type of temperature control (i.e., annealing) procedure. Can be "constant" (no annealing), "linear", or "exponential".
+        If linear, "temperature_update_delta" specifies the corresponding update parameter.
+        If exponential, "temperature_update_factor" specifies the corresponding update parameter.
         ''')
 
     reference_temperature_start = Quantity(
@@ -1053,7 +1053,7 @@ class ThermostatParameters(MSection):
         shape=[],
         unit='kelvin',
         description='''
-        The target temperature for the simulation.
+        The initial target temperature for the simulation. Typically used when temperature_profile is "linear" or "exponential".
         ''')
 
     reference_temperature_end = Quantity(
@@ -1061,7 +1061,7 @@ class ThermostatParameters(MSection):
         shape=[],
         unit='kelvin',
         description='''
-        The target temperature for the simulation.
+        The final target temperature for the simulation.  Typically used when temperature_profile is "linear" or "exponential".
         ''')
 
     temperature_update_frequency = Quantity(
@@ -1075,28 +1075,31 @@ class ThermostatParameters(MSection):
         type=np.float64,
         shape=[],
         description='''
-        Amount to be added (subtracted if negative) to reference_temperature at a frequency of annealing_frequency when annealing_type is linear.
+        Amount to be added (subtracted if negative) to the current reference_temperature
+        at a frequency of temperature_update_frequency when temperature_profile is "linear".
+        The reference temperature is then replaced by this new value until the next update.
         ''')
 
     temperature_update_factor = Quantity(
         type=np.float64,
         shape=[],
         description='''
-        Factor to be multiplied to reference_temperature at a frequency of annealing frequency when annealing_type is exponential.
+        Factor to be multiplied to the current reference_temperature at a frequency of temperature_update_frequency when temperature_profile is exponential.
+        The reference temperature is then replaced by this new value until the next update.
         ''')
 
-    temperature_update_frame_start = Quantity(
+    step_start = Quantity(
         type=int,
         shape=[],
         description='''
-        Trajectory frame number where this thermostating starts in case of an annealing procedure.
+        Trajectory step where this thermostating starts.
         ''')
 
-    temperature_update_frame_end = Quantity(
+    step_end = Quantity(
         type=int,
         shape=[],
         description='''
-        Trajectory frame number where this thermostating ends in case of an annealing procedure.
+        Trajectory step number where this thermostating ends.
         ''')
 
 
@@ -1166,7 +1169,7 @@ class BarostatParameters(MSection):
         unit='pascal',
         description='''
         The target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions
-        along the diagonal, and coupling between directions on the off-diagonal.
+        along the diagonal, and coupling between directions on the off-diagonal. Typically used when pressure_profile is "constant".
         ''')
 
     coupling_constant = Quantity(
@@ -1190,19 +1193,71 @@ class BarostatParameters(MSection):
         the input/output files.
         ''')
 
-    frame_start = Quantity(
-        type=int,
+    pressure_profile = Quantity(
+        type=MEnum('constant', 'linear', 'exponential'),
         shape=[],
         description='''
-        Trajectory frame number where this barostating starts.
+        Type of pressure control procedure. Can be "constant" (no annealing), "linear", or "exponential".
+        If linear, "pressure_update_delta" specifies the corresponding update parameter.
+        If exponential, "pressure_update_factor" specifies the corresponding update parameter.
         ''')
 
-    frame_end = Quantity(
+    reference_pressure_start = Quantity(
+        type=np.float64,
+        shape=[3, 3],
+        unit='pascal',
+        description='''
+        The initial target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions
+        along the diagonal, and coupling between directions on the off-diagonal. Typically used when pressure_profile is "linear" or "exponential".
+        ''')
+
+    reference_pressure_end = Quantity(
+        type=np.float64,
+        shape=[3, 3],
+        unit='pascal',
+        description='''
+        The final target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions
+        along the diagonal, and coupling between directions on the off-diagonal.  Typically used when pressure_profile is "linear" or "exponential".
+        ''')
+
+    pressure_update_frequency = Quantity(
         type=int,
         shape=[],
         description='''
-        Trajectory frame number where this barostating ends.
+        Number of simulation steps between changing the target pressure.
         ''')
+
+    pressure_update_delta = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Amount to be added (subtracted if negative) to the current reference_pressure
+        at a frequency of pressure_update_frequency when pressure_profile is "linear".
+        The pressure temperature is then replaced by this new value until the next update.
+        ''')
+
+    pressure_update_factor = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Factor to be multiplied to the current reference_pressure at a frequency of pressure_update_frequency when pressure_profile is exponential.
+        The reference pressure is then replaced by this new value until the next update.
+        ''')
+
+    step_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory step where this barostating starts.
+        ''')
+
+    step_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory step number where this barostating ends.
+        ''')
+
 
 
 class MolecularDynamicsMethod(SimulationWorkflowMethod):
