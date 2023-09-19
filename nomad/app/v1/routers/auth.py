@@ -20,7 +20,7 @@ import hmac
 import hashlib
 import uuid
 import requests
-from typing import Callable, cast
+from typing import Callable, cast, Union
 from inspect import Parameter, signature
 from functools import wraps
 from fastapi import APIRouter, Depends, Query as FastApiQuery, Request, HTTPException, status
@@ -51,6 +51,10 @@ class SignatureToken(BaseModel):
     signature_token: str
 
 
+class AppToken(BaseModel):
+    app_token: str
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f'{root_path}/auth/token', auto_error=False)
 
 
@@ -64,7 +68,6 @@ def create_user_dependency(
     Creates a dependency for getting the authenticated user. The parameters define if
     the authentication is required or not, and which authentication methods are allowed.
     '''
-
     def user_dependency(**kwargs) -> User:
         user = None
         if basic_auth_allowed:
@@ -180,17 +183,26 @@ def _get_user_basic_auth(form_data: OAuth2PasswordRequestForm) -> User:
 def _get_user_bearer_token_auth(bearer_token: str) -> User:
     '''
     Verifies bearer_token (throwing exception if illegal value provided) and returns the
-    corresponding user object, or None, if no bearer_token provided.
+    corresponding user object, or None if no bearer_token provided.
     '''
-    if bearer_token:
-        try:
-            user = cast(datamodel.User, infrastructure.keycloak.tokenauth(bearer_token))
+    if not bearer_token:
+        return None
+
+    try:
+        unverified_payload = jwt.decode(bearer_token, options={"verify_signature": False})
+        if unverified_payload.keys() == set(['user', 'exp']):
+            user = _get_user_from_simple_token(bearer_token)
             return user
-        except infrastructure.KeycloakError as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=str(e), headers={'WWW-Authenticate': 'Bearer'})
-    return None
+    except jwt.exceptions.DecodeError:
+        pass  # token could be non-JWT, e.g. for testing
+
+    try:
+        user = cast(datamodel.User, infrastructure.keycloak.tokenauth(bearer_token))
+        return user
+    except infrastructure.KeycloakError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e), headers={'WWW-Authenticate': 'Bearer'})
 
 
 def _get_user_upload_token_auth(upload_token: str) -> User:
@@ -227,21 +239,8 @@ def _get_user_signature_token_auth(signature_token: str, request: Request) -> Us
     corresponding user object, or None, if no upload_token provided.
     '''
     if signature_token:
-        try:
-            decoded = jwt.decode(signature_token, config.services.api_secret, algorithms=['HS256'])
-            return datamodel.User.get(user_id=decoded['user'])
-        except KeyError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Token with invalid/unexpected payload.')
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Expired token.')
-        except jwt.InvalidTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Invalid token.')
+        user = _get_user_from_simple_token(signature_token)
+        return user
     elif request:
         auth_cookie = request.cookies.get('Authorization')
         if auth_cookie:
@@ -259,6 +258,28 @@ def _get_user_signature_token_auth(signature_token: str, request: Request) -> Us
                 pass
 
     return None
+
+
+def _get_user_from_simple_token(token):
+    '''
+    Verifies a simple token (throwing exception if illegal value provided) and returns the
+    corresponding user object, or None if no token was provided.
+    '''
+    try:
+        decoded = jwt.decode(token, config.services.api_secret, algorithms=['HS256'])
+        return datamodel.User.get(user_id=decoded['user'])
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Token with invalid/unexpected payload.')
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Expired token.')
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid token.')
 
 
 _bad_credentials_response = status.HTTP_401_UNAUTHORIZED, {
@@ -287,7 +308,6 @@ async def get_token(form_data: OAuth2PasswordRequestForm = Depends()):
     You only need to provide `username` and `password` values. You can ignore the other
     parameters.
     '''
-
     try:
         access_token = infrastructure.keycloak.basicauth(
             form_data.username, form_data.password)
@@ -311,7 +331,6 @@ async def get_token_via_query(username: str, password: str):
     This is an convenience alternative to the **POST** version of this operation.
     It allows you to retrieve an *access token* by providing username and password.
     '''
-
     try:
         access_token = infrastructure.keycloak.basicauth(username, password)
     except infrastructure.KeycloakError:
@@ -328,21 +347,51 @@ async def get_token_via_query(username: str, password: str):
     tags=[default_tag],
     summary='Get a signature token',
     response_model=SignatureToken)
-async def get_signature_token(user: User = Depends(create_user_dependency())):
+async def get_signature_token(
+        user: Union[User, None] = Depends(create_user_dependency(required=True))):
     '''
     Generates and returns a signature token for the authenticated user. Authentication
     has to be provided with another method, e.g. access token.
     '''
-
-    expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=10)
-    signature_token = jwt.encode(
-        dict(user=user.user_id, exp=expires_at),
-        config.services.api_secret, 'HS256')
-
+    signature_token = generate_simple_token(user.user_id, expires_in=10)
     return {'signature_token': signature_token}
 
 
+@router.get(
+    '/app_token',
+    tags=[default_tag],
+    summary='Get an app token',
+    response_model=AppToken)
+async def get_app_token(
+        expires_in: int = FastApiQuery(gt=0, le=config.services.app_token_max_expires_in),
+        user: User = Depends(create_user_dependency(required=True))):
+    '''
+    Generates and returns an app token with the requested expiration time for the
+    authenticated user. Authentication has to be provided with another method,
+    e.g. access token.
+
+    This app token can be used like the access token (see `/auth/token`) on subsequent API
+    calls to authenticate you using the HTTP header `Authorization: Bearer <app token>`.
+    It is provided for user convenience as a shorter token with a user-defined (probably
+    longer) expiration time than the access token.
+    '''
+    app_token = generate_simple_token(user.user_id, expires_in)
+    return {'app_token': app_token}
+
+
+def generate_simple_token(user_id, expires_in: int):
+    '''
+    Generates and returns JWT encoding just user_id and expiration time, signed with the
+    API secret.
+    '''
+    expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=expires_in)
+    payload = dict(user=user_id, exp=expires_at)
+    token = jwt.encode(payload, config.services.api_secret, 'HS256')
+    return token
+
+
 def generate_upload_token(user):
+    '''Generates and returns upload token for user.'''
     payload = uuid.UUID(user.user_id).bytes
     signature = hmac.new(
         bytes(config.services.api_secret, 'utf-8'),

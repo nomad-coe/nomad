@@ -21,34 +21,43 @@ from fastapi.testclient import TestClient
 
 from nomad.app.main import app
 from nomad.datamodel import User
-from nomad.app.v1.routers.auth import generate_upload_token
+from nomad.app.v1.routers.auth import generate_upload_token, generate_simple_token
 
 
-def create_auth_headers(user: User):
-    return {
-        'Authorization': 'Bearer %s' % user.user_id
-    }
+def create_auth_headers(token: str):
+    return {'Authorization': f'Bearer {token}'}
 
 
 @pytest.fixture(scope='module')
 def test_user_auth(test_user: User):
-    return create_auth_headers(test_user)
+    return create_auth_headers(test_user.user_id)
 
 
 @pytest.fixture(scope='module')
 def other_test_user_auth(other_test_user: User):
-    return create_auth_headers(other_test_user)
+    return create_auth_headers(other_test_user.user_id)
 
 
 @pytest.fixture(scope='module')
 def admin_user_auth(admin_user: User):
-    return create_auth_headers(admin_user)
+    return create_auth_headers(admin_user.user_id)
+
+
+@pytest.fixture(scope='module')
+def invalid_user_auth():
+    return create_auth_headers("invalid.bearer.token")
+
+
+@pytest.fixture(scope='module')
+def app_token_auth(test_user: User):
+    app_token = generate_simple_token(test_user.user_id, expires_in=3600)
+    return create_auth_headers(app_token)
 
 
 @pytest.fixture(scope='module')
 def test_auth_dict(
         test_user, other_test_user, admin_user,
-        test_user_auth, other_test_user_auth, admin_user_auth):
+        test_user_auth, other_test_user_auth, admin_user_auth, invalid_user_auth):
     '''
     Returns a dictionary of the form {user_name: (auth_headers, token)}. The key 'invalid'
     contains an example of invalid credentials, and the key None contains (None, None).
@@ -57,7 +66,7 @@ def test_auth_dict(
         'test_user': (test_user_auth, generate_upload_token(test_user)),
         'other_test_user': (other_test_user_auth, generate_upload_token(other_test_user)),
         'admin_user': (admin_user_auth, generate_upload_token(admin_user)),
-        'invalid': ({'Authorization': 'Bearer JUST-MADE-IT-UP'}, 'invalid.token'),
+        'invalid': (invalid_user_auth, 'invalid.upload.token'),
         None: (None, None)}
 
 
