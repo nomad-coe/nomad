@@ -2505,6 +2505,7 @@ window.nomadArtifacts = {
           "BSE",
           "EELS",
           "XPS",
+          "XRD",
           "unavailable"
         ]
       },
@@ -3081,6 +3082,24 @@ window.nomadArtifacts = {
       "shape": [],
       "aggregatable": false
     },
+    "results.method.measurement.xrd.diffraction_method_name": {
+      "name": "diffraction_method_name",
+      "description": "The diffraction method used to obtain the diffraction pattern.\n| X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-Ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
+      "type": {
+        "type_kind": "Enum",
+        "type_data": [
+          "Powder X-Ray Diffraction (PXRD)",
+          "Single Crystal X-Ray Diffraction (SCXRD)",
+          "High-Resolution X-Ray Diffraction (HRXRD)",
+          "Small-Angle X-Ray Scattering (SAXS)",
+          "X-Ray Reflectivity (XRR)",
+          "Grazing Incidence X-Ray Diffraction (GIXRD)",
+          "unavailable"
+        ]
+      },
+      "aggregatable": true,
+      "suggestion": true
+    },
     "results.properties.n_calculations": {
       "name": "n_calculations",
       "description": "The number of performed single configuration calculations.'",
@@ -3220,6 +3239,16 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true
+    },
+    "results.properties.structural.diffraction_pattern.incident_beam_wavelength": {
+      "name": "incident_beam_wavelength",
+      "description": "The wavelength of the incident beam.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "meter",
+      "aggregatable": false
     },
     "results.properties.dynamical.mean_squared_displacement.type": {
       "name": "type",
@@ -4349,6 +4378,18 @@ window.nomadArtifacts = {
       "nested": false,
       "repeats": false
     },
+    "results.method.measurement": {
+      "name": "measurement",
+      "description": "\n        Contains method details for a measurement entry.\n        ",
+      "nested": false,
+      "repeats": false
+    },
+    "results.method.measurement.xrd": {
+      "name": "xrd",
+      "description": "\n        Methodology for an X-Ray Diffraction measurement.\n        ",
+      "nested": false,
+      "repeats": false
+    },
     "results.properties": {
       "name": "properties",
       "description": "\n        Contains the physical properties that have been calculated or used in\n        this entry.\n        ",
@@ -4395,6 +4436,12 @@ window.nomadArtifacts = {
       "name": "molecular_dynamics",
       "description": "\n        Methodology for molecular dynamics.\n        ",
       "nested": false,
+      "repeats": true
+    },
+    "results.properties.structural.diffraction_pattern": {
+      "name": "diffraction_pattern",
+      "description": "\n        Diffraction pattern.\n        ",
+      "nested": true,
       "repeats": true
     },
     "results.properties.dynamical": {
@@ -16815,6 +16862,57 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
+            "name": "XRDMethod",
+            "description": "\n        Methodology for an X-Ray Diffraction measurement.\n        ",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.method.measurement.xrd.diffraction_method_name",
+                    "results.method.measurement.xrd.diffraction_method_name__suggestion"
+                  ]
+                },
+                "name": "diffraction_method_name",
+                "description": "The diffraction method used to obtain the diffraction pattern.\n| X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-Ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "Powder X-Ray Diffraction (PXRD)",
+                    "Single Crystal X-Ray Diffraction (SCXRD)",
+                    "High-Resolution X-Ray Diffraction (HRXRD)",
+                    "Small-Angle X-Ray Scattering (SAXS)",
+                    "X-Ray Reflectivity (XRR)",
+                    "Grazing Incidence X-Ray Diffraction (GIXRD)",
+                    "unavailable"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 26,
+            "m_parent_sub_section": "section_definitions",
+            "name": "MeasurementMethod",
+            "description": "\n        Contains method details for a measurement entry.\n        ",
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "xrd",
+                "sub_section": "/packages/4/section_definitions/25",
+                "repeats": false
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 27,
+            "m_parent_sub_section": "section_definitions",
             "name": "Method",
             "description": "\n        Contains a summary of the methodology that has been used in this entry.\n        This methodology applies to all of the reported properties and\n        determines the result of a single energy evalution. The individual\n        properties may be further methodological details affect e.g. the\n        sampling.\n        ",
             "quantities": [
@@ -16879,6 +16977,7 @@ window.nomadArtifacts = {
                     "BSE",
                     "EELS",
                     "XPS",
+                    "XRD",
                     "unavailable"
                   ]
                 }
@@ -16908,12 +17007,20 @@ window.nomadArtifacts = {
                 "name": "simulation",
                 "sub_section": "/packages/4/section_definitions/24",
                 "repeats": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "measurement",
+                "sub_section": "/packages/4/section_definitions/26",
+                "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 26,
+            "m_parent_index": 28,
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamics",
             "description": "\n        Methodology for molecular dynamics.\n        ",
@@ -16962,7 +17069,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 27,
+            "m_parent_index": 29,
             "m_parent_sub_section": "section_definitions",
             "name": "MDProvenance",
             "description": "\n        Contains provenance information for properties derived from molecular\n        dynamics simulations.\n        ",
@@ -16975,14 +17082,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "molecular_dynamics",
-                "sub_section": "/packages/4/section_definitions/26",
+                "sub_section": "/packages/4/section_definitions/28",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 28,
+            "m_parent_index": 30,
             "m_parent_sub_section": "section_definitions",
             "name": "MDPropertySection",
             "description": "\n        Base class for referring to molecular dynamics properties.\n        ",
@@ -16995,14 +17102,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/4/section_definitions/27",
+                "sub_section": "/packages/4/section_definitions/29",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 29,
+            "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
             "name": "DOS",
             "description": "\n        Base class for density of states information.\n        ",
@@ -17036,22 +17143,22 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 30,
+            "m_parent_index": 32,
             "m_parent_sub_section": "section_definitions",
             "name": "DOSPhonon",
             "description": "\n        Contains the total phonon density of states.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/29"
+              "/packages/4/section_definitions/31"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 31,
+            "m_parent_index": 33,
             "m_parent_sub_section": "section_definitions",
             "name": "DOSElectronic",
             "description": "\n        Contains the total electronic density of states.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/29"
+              "/packages/4/section_definitions/31"
             ],
             "quantities": [
               {
@@ -17113,7 +17220,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 32,
+            "m_parent_index": 34,
             "m_parent_sub_section": "section_definitions",
             "name": "BandStructure",
             "description": "\n        Base class for band structure information.\n        ",
@@ -17170,22 +17277,22 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 33,
+            "m_parent_index": 35,
             "m_parent_sub_section": "section_definitions",
             "name": "BandStructurePhonon",
             "description": "\n        This section stores information on a vibrational band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/32"
+              "/packages/4/section_definitions/34"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 34,
+            "m_parent_index": 36,
             "m_parent_sub_section": "section_definitions",
             "name": "BandStructureElectronic",
             "description": "\n        This section stores information on a electonic band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/32"
+              "/packages/4/section_definitions/34"
             ],
             "quantities": [
               {
@@ -17236,7 +17343,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 35,
+            "m_parent_index": 37,
             "m_parent_sub_section": "section_definitions",
             "name": "GreensFunctionsElectronic",
             "description": "\n        Base class for Green's functions information.\n        ",
@@ -17402,7 +17509,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 36,
+            "m_parent_index": 38,
             "m_parent_sub_section": "section_definitions",
             "name": "HeatCapacityConstantVolume",
             "description": "\n        Contains the values of the specific (per mass) and isochoric (constant\n        volume) heat capacity at different temperatures.\n        ",
@@ -17434,7 +17541,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 37,
+            "m_parent_index": 39,
             "m_parent_sub_section": "section_definitions",
             "name": "EnergyFreeHelmholtz",
             "description": "\n        Contains the values of the Helmholtz free energy per atom at constant\n        volume and at different temperatures.\n        ",
@@ -17466,7 +17573,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 38,
+            "m_parent_index": 40,
             "m_parent_sub_section": "section_definitions",
             "name": "VibrationalProperties",
             "description": "\n        Vibrational properties.\n        ",
@@ -17476,7 +17583,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_phonon",
-                "sub_section": "/packages/4/section_definitions/33",
+                "sub_section": "/packages/4/section_definitions/35",
                 "repeats": false
               },
               {
@@ -17484,7 +17591,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_phonon",
-                "sub_section": "/packages/4/section_definitions/30",
+                "sub_section": "/packages/4/section_definitions/32",
                 "repeats": false
               },
               {
@@ -17492,7 +17599,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "heat_capacity_constant_volume",
-                "sub_section": "/packages/4/section_definitions/36",
+                "sub_section": "/packages/4/section_definitions/38",
                 "repeats": false
               },
               {
@@ -17500,14 +17607,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_free_helmholtz",
-                "sub_section": "/packages/4/section_definitions/37",
+                "sub_section": "/packages/4/section_definitions/39",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 39,
+            "m_parent_index": 41,
             "m_parent_sub_section": "section_definitions",
             "name": "EnergyVolumeCurve",
             "description": "\n        Energy volume curve.\n        ",
@@ -17573,7 +17680,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 40,
+            "m_parent_index": 42,
             "m_parent_sub_section": "section_definitions",
             "name": "BulkModulus",
             "description": "\n        Contains bulk modulus values calculated with different methodologies.\n        ",
@@ -17629,7 +17736,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 41,
+            "m_parent_index": 43,
             "m_parent_sub_section": "section_definitions",
             "name": "ShearModulus",
             "description": "\n        Contains shear modulus values calculated with different methodologies.\n        ",
@@ -17676,7 +17783,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 42,
+            "m_parent_index": 44,
             "m_parent_sub_section": "section_definitions",
             "name": "GeometryOptimization",
             "description": "\n        Geometry optimization results and settings.\n        ",
@@ -17829,7 +17936,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 43,
+            "m_parent_index": 45,
             "m_parent_sub_section": "section_definitions",
             "name": "MechanicalProperties",
             "description": "\n        Mechanical properties.\n        ",
@@ -17839,7 +17946,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_volume_curve",
-                "sub_section": "/packages/4/section_definitions/39",
+                "sub_section": "/packages/4/section_definitions/41",
                 "repeats": true
               },
               {
@@ -17852,7 +17959,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "bulk_modulus",
-                "sub_section": "/packages/4/section_definitions/40",
+                "sub_section": "/packages/4/section_definitions/42",
                 "repeats": true
               },
               {
@@ -17865,14 +17972,14 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "shear_modulus",
-                "sub_section": "/packages/4/section_definitions/41",
+                "sub_section": "/packages/4/section_definitions/43",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 44,
+            "m_parent_index": 46,
             "m_parent_sub_section": "section_definitions",
             "name": "ElectronicProperties",
             "description": "\n        Electronic properties.\n        ",
@@ -17895,7 +18002,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_electronic",
-                "sub_section": "/packages/4/section_definitions/31",
+                "sub_section": "/packages/4/section_definitions/33",
                 "repeats": true
               },
               {
@@ -17903,7 +18010,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_electronic",
-                "sub_section": "/packages/4/section_definitions/34",
+                "sub_section": "/packages/4/section_definitions/36",
                 "repeats": true
               },
               {
@@ -17911,14 +18018,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "greens_functions_electronic",
-                "sub_section": "/packages/4/section_definitions/35",
+                "sub_section": "/packages/4/section_definitions/37",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 45,
+            "m_parent_index": 47,
             "m_parent_sub_section": "section_definitions",
             "name": "QuantityDynamic",
             "description": "\n        Contains the values for a quantity at different times.\n        ",
@@ -17964,12 +18071,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 46,
+            "m_parent_index": 48,
             "m_parent_sub_section": "section_definitions",
             "name": "VolumeDynamic",
             "description": "\n        Contains volume values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/45"
+              "/packages/4/section_definitions/47"
             ],
             "quantities": [
               {
@@ -17989,12 +18096,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 47,
+            "m_parent_index": 49,
             "m_parent_sub_section": "section_definitions",
             "name": "PressureDynamic",
             "description": "\n        Contains pressure values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/45"
+              "/packages/4/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18014,12 +18121,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 48,
+            "m_parent_index": 50,
             "m_parent_sub_section": "section_definitions",
             "name": "TemperatureDynamic",
             "description": "\n        Contains temperature values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/45"
+              "/packages/4/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18039,12 +18146,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 49,
+            "m_parent_index": 51,
             "m_parent_sub_section": "section_definitions",
             "name": "EnergyDynamic",
             "description": "\n        Contains energy values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/45"
+              "/packages/4/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18064,12 +18171,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 50,
+            "m_parent_index": 52,
             "m_parent_sub_section": "section_definitions",
             "name": "Trajectory",
             "description": "\n        Thermodynamic properties reported for an ensemble evolving in time.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/28"
+              "/packages/4/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18103,7 +18210,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "temperature",
-                "sub_section": "/packages/4/section_definitions/48",
+                "sub_section": "/packages/4/section_definitions/50",
                 "repeats": false
               },
               {
@@ -18111,7 +18218,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "pressure",
-                "sub_section": "/packages/4/section_definitions/47",
+                "sub_section": "/packages/4/section_definitions/49",
                 "repeats": false
               },
               {
@@ -18119,7 +18226,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "volume",
-                "sub_section": "/packages/4/section_definitions/46",
+                "sub_section": "/packages/4/section_definitions/48",
                 "repeats": false
               },
               {
@@ -18127,14 +18234,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_potential",
-                "sub_section": "/packages/4/section_definitions/49",
+                "sub_section": "/packages/4/section_definitions/51",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 51,
+            "m_parent_index": 53,
             "m_parent_sub_section": "section_definitions",
             "name": "ThermodynamicProperties",
             "description": "\n        Thermodynamic properties.\n        ",
@@ -18149,20 +18256,20 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "trajectory",
-                "sub_section": "/packages/4/section_definitions/50",
+                "sub_section": "/packages/4/section_definitions/52",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 52,
+            "m_parent_index": 54,
             "m_parent_sub_section": "section_definitions",
             "name": "RadiusOfGyration",
             "description": "\n        Contains Radius of Gyration values as a trajectory.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/45",
-              "/packages/4/section_definitions/28"
+              "/packages/4/section_definitions/47",
+              "/packages/4/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18232,12 +18339,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 53,
+            "m_parent_index": 55,
             "m_parent_sub_section": "section_definitions",
             "name": "RadialDistributionFunction",
             "description": "\n        Radial distribution function.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/28"
+              "/packages/4/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18348,7 +18455,80 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 54,
+            "m_parent_index": 56,
+            "m_parent_sub_section": "section_definitions",
+            "name": "DiffractionPattern",
+            "description": "\n        Diffraction pattern.\n        ",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.structural.diffraction_pattern.incident_beam_wavelength"
+                  ]
+                },
+                "name": "incident_beam_wavelength",
+                "description": "The wavelength of the incident beam.",
+                "links": [
+                  "https://manual.nexusformat.org/classes/base_classes/NXbeam.html#nxbeam-incident-wavelength-field"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "meter"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "two_theta_angles",
+                "description": "Array containing the set of 2-theta angles.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "degree"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "intensity",
+                "description": "Array containing the set of intensities.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "q_vector",
+                "description": "The scattering vector *Q*.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "1 / meter"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 57,
             "m_parent_sub_section": "section_definitions",
             "name": "StructuralProperties",
             "description": "\n        Structural properties.\n        ",
@@ -18363,7 +18543,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "radial_distribution_function",
-                "sub_section": "/packages/4/section_definitions/53",
+                "sub_section": "/packages/4/section_definitions/55",
                 "repeats": true
               },
               {
@@ -18376,19 +18556,32 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/4/section_definitions/52",
+                "sub_section": "/packages/4/section_definitions/54",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "diffraction_pattern"
+                  ]
+                },
+                "name": "diffraction_pattern",
+                "sub_section": "/packages/4/section_definitions/56",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 55,
+            "m_parent_index": 58,
             "m_parent_sub_section": "section_definitions",
             "name": "MeanSquaredDisplacement",
             "description": "\n        Mean Squared Displacements.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/28"
+              "/packages/4/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18561,7 +18754,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 56,
+            "m_parent_index": 59,
             "m_parent_sub_section": "section_definitions",
             "name": "DynamicalProperties",
             "description": "\n        Dynamical properties.\n        ",
@@ -18576,14 +18769,14 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "mean_squared_displacement",
-                "sub_section": "/packages/4/section_definitions/55",
+                "sub_section": "/packages/4/section_definitions/58",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 57,
+            "m_parent_index": 60,
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCell",
             "description": "\n        Properties of solar cells.\n        ",
@@ -18855,7 +19048,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 58,
+            "m_parent_index": 61,
             "m_parent_sub_section": "section_definitions",
             "name": "OptoelectronicProperties",
             "description": "\n        Optoelectronic properties.\n        ",
@@ -18865,14 +19058,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "solar_cell",
-                "sub_section": "/packages/4/section_definitions/57",
+                "sub_section": "/packages/4/section_definitions/60",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 59,
+            "m_parent_index": 62,
             "m_parent_sub_section": "section_definitions",
             "name": "EELSInstrument",
             "description": "\n        Base class for an EELS instrument.\n        ",
@@ -19016,7 +19209,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 60,
+            "m_parent_index": 63,
             "m_parent_sub_section": "section_definitions",
             "name": "EELSMethodology",
             "description": "\n        Base class for the EELS methodology.\n        ",
@@ -19093,7 +19286,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 61,
+            "m_parent_index": 64,
             "m_parent_sub_section": "section_definitions",
             "name": "SpectraProvenance",
             "description": "\n        Contains provenance information (mainly the methodology section) for spectra properties\n        derived from an experiment or a calculation.\n        ",
@@ -19106,7 +19299,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eels",
-                "sub_section": "/packages/4/section_definitions/60"
+                "sub_section": "/packages/4/section_definitions/63"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -19120,7 +19313,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 62,
+            "m_parent_index": 65,
             "m_parent_sub_section": "section_definitions",
             "name": "Spectra",
             "description": "\n        Base class for Spectra calculation information as obtained from an experiment or a computation.\n        ",
@@ -19229,13 +19422,13 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/4/section_definitions/61"
+                "sub_section": "/packages/4/section_definitions/64"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 63,
+            "m_parent_index": 66,
             "m_parent_sub_section": "section_definitions",
             "name": "SpectroscopicProperties",
             "description": "\n        Spectroscopic properties.\n        ",
@@ -19250,14 +19443,14 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "spectra",
-                "sub_section": "/packages/4/section_definitions/62",
+                "sub_section": "/packages/4/section_definitions/65",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 64,
+            "m_parent_index": 67,
             "m_parent_sub_section": "section_definitions",
             "name": "Properties",
             "description": "\n        Contains the physical properties that have been calculated or used in\n        this entry.\n        ",
@@ -19306,7 +19499,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "structural",
-                "sub_section": "/packages/4/section_definitions/54",
+                "sub_section": "/packages/4/section_definitions/57",
                 "repeats": false
               },
               {
@@ -19314,7 +19507,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dynamical",
-                "sub_section": "/packages/4/section_definitions/56",
+                "sub_section": "/packages/4/section_definitions/59",
                 "repeats": false
               },
               {
@@ -19330,7 +19523,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "vibrational",
-                "sub_section": "/packages/4/section_definitions/38",
+                "sub_section": "/packages/4/section_definitions/40",
                 "repeats": false
               },
               {
@@ -19338,7 +19531,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
-                "sub_section": "/packages/4/section_definitions/44",
+                "sub_section": "/packages/4/section_definitions/46",
                 "repeats": false
               },
               {
@@ -19346,7 +19539,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "optoelectronic",
-                "sub_section": "/packages/4/section_definitions/58",
+                "sub_section": "/packages/4/section_definitions/61",
                 "repeats": false
               },
               {
@@ -19354,7 +19547,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mechanical",
-                "sub_section": "/packages/4/section_definitions/43",
+                "sub_section": "/packages/4/section_definitions/45",
                 "repeats": false
               },
               {
@@ -19362,7 +19555,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermodynamic",
-                "sub_section": "/packages/4/section_definitions/51",
+                "sub_section": "/packages/4/section_definitions/53",
                 "repeats": false
               },
               {
@@ -19370,7 +19563,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectroscopic",
-                "sub_section": "/packages/4/section_definitions/63",
+                "sub_section": "/packages/4/section_definitions/66",
                 "repeats": false
               },
               {
@@ -19378,14 +19571,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "geometry_optimization",
-                "sub_section": "/packages/4/section_definitions/42",
+                "sub_section": "/packages/4/section_definitions/44",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 65,
+            "m_parent_index": 68,
             "m_parent_sub_section": "section_definitions",
             "name": "ELN",
             "quantities": [
@@ -19527,7 +19720,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 66,
+            "m_parent_index": 69,
             "m_parent_sub_section": "section_definitions",
             "name": "Results",
             "description": "\n        Contains a summary of the entry contents.\n        ",
@@ -19545,7 +19738,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/4/section_definitions/25",
+                "sub_section": "/packages/4/section_definitions/27",
                 "repeats": false
               },
               {
@@ -19553,7 +19746,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "properties",
-                "sub_section": "/packages/4/section_definitions/64",
+                "sub_section": "/packages/4/section_definitions/67",
                 "repeats": false
               },
               {
@@ -19561,7 +19754,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eln",
-                "sub_section": "/packages/4/section_definitions/65",
+                "sub_section": "/packages/4/section_definitions/68",
                 "repeats": false
               }
             ]
@@ -62110,7 +62303,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/16/category_definitions/0"
                 ],
-                "sub_section": "/packages/4/section_definitions/66"
+                "sub_section": "/packages/4/section_definitions/69"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",

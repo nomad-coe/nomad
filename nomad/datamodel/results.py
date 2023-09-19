@@ -1936,6 +1936,51 @@ class Simulation(MSection):
     precision = SubSection(sub_section=Precision.m_def, repeats=False)
 
 
+class XRDMethod(MSection):
+    m_def = Section(
+        description='''
+        Methodology for an X-Ray Diffraction measurement.
+        '''
+    )
+    diffraction_method_name = Quantity(
+        type=MEnum(
+            [
+                "Powder X-Ray Diffraction (PXRD)",
+                "Single Crystal X-Ray Diffraction (SCXRD)",
+                "High-Resolution X-Ray Diffraction (HRXRD)",
+                "Small-Angle X-Ray Scattering (SAXS)",
+                "X-Ray Reflectivity (XRR)",
+                "Grazing Incidence X-Ray Diffraction (GIXRD)",
+                config.services.unavailable_value
+            ]
+        ),
+        description='''
+        The diffraction method used to obtain the diffraction pattern.
+        | X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |
+        |------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+        | **Powder X-Ray Diffraction (PXRD)**                        | The term "powder" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |
+        | **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |
+        | **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |
+        | **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |
+        | **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |
+        | **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
+
+
+class MeasurementMethod(MSection):
+    m_def = Section(
+        description='''
+        Contains method details for a measurement entry.
+        '''
+    )
+    xrd = SubSection(sub_section=XRDMethod.m_def, repeats=False)
+
+
 class Method(MSection):
     m_def = Section(
         description='''
@@ -1972,7 +2017,12 @@ class Method(MSection):
         ''',
     )
     method_name = Quantity(
-        type=MEnum(['DFT', 'Projection', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS', config.services.unavailable_value]),
+        type=MEnum(
+            [
+                'DFT', 'Projection', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS',
+                'XRD', config.services.unavailable_value
+            ]
+        ),
         description='''
         Common name for the used method.
         ''',
@@ -1991,6 +2041,7 @@ class Method(MSection):
         Elasticsearch(suggestion='default')
     ]
     simulation = SubSection(sub_section=Simulation.m_def, repeats=False)
+    measurement = SubSection(sub_section=MeasurementMethod.m_def, repeats=False)
 
 
 class MolecularDynamics(MSection):
@@ -2650,6 +2701,45 @@ class RadialDistributionFunction(MDPropertySection):
     frame_end = RadialDistributionFunctionValues.frame_end.m_copy()
 
 
+class DiffractionPattern(MSection):
+    m_def = Section(
+        description='''
+        Diffraction pattern.
+        ''',
+    )
+    incident_beam_wavelength = Quantity(
+        links=['https://manual.nexusformat.org/classes/base_classes/NXbeam.html#nxbeam-incident-wavelength-field'],
+        description='''
+        The wavelength of the incident beam.
+        ''',
+        type=np.float64,
+        unit='m',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    two_theta_angles = Quantity(
+        # type=Dos.energies,
+        type=np.float64,  # TODO convert to reference when schema is in place
+        unit='degree',
+        shape=['*'],
+        description='''
+        Array containing the set of 2-theta angles.
+        ''',
+    )
+    intensity = Quantity(
+        # type=DosValues,
+        type=np.float64,  # TODO convert to reference when schema is in place
+        shape=['*'],
+        description='''
+        Array containing the set of intensities.
+        ''',
+    )
+    q_vector = Quantity(
+        type=np.dtype(np.float64),
+        shape=['*'],
+        unit='meter**(-1)',
+        description='The scattering vector *Q*.')
+
+
 class StructuralProperties(MSection):
     m_def = Section(
         description='''
@@ -2663,6 +2753,11 @@ class StructuralProperties(MSection):
     )
     radius_of_gyration = SubSection(
         sub_section=RadiusOfGyration.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+    diffraction_pattern = SubSection(
+        sub_section=DiffractionPattern.m_def,
         repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
