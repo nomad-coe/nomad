@@ -30,6 +30,7 @@ from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference,
     Package
 from .query import ArchiveQueryError, to_json, _query_archive_key_pattern, _extract_key_and_index, _extract_child
 from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict
+from .storage_v2 import ArchiveDict as NewArchiveDict
 from ..datamodel.context import parse_path, ServerContext
 
 
@@ -443,10 +444,13 @@ class RequiredReader:
         if archive_item is None:
             return None  # type: ignore
 
-        archive_item = to_json(archive_item)
         result: dict = {}
 
-        if isinstance(archive_item, dict) and 'm_def' in archive_item:
+        # avoid the bug in the old reader that primitive key-value is not included in toc
+        if isinstance(archive_item, ArchiveDict):
+            archive_item = to_json(archive_item)
+
+        if isinstance(archive_item, (dict, NewArchiveDict)) and 'm_def' in archive_item:
             dataset = dataset.replace(definition=self._resolve_definition(
                 dataset.upload_id, archive_item['m_def'].split('@')[0], dataset.archive_root))
             result['m_def'] = archive_item['m_def']
@@ -459,7 +463,7 @@ class RequiredReader:
                 return self._resolve_refs(dataset.definition, archive_item, dataset)
 
             if directive in ['*', 'include']:
-                return archive_item
+                return to_json(archive_item)
 
             raise ArchiveQueryError(f'unknown directive {required}')
 

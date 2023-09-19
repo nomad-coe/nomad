@@ -270,6 +270,83 @@ def _query_uploads(
 
 @uploads.command(help='List selected uploads')
 @click.argument('UPLOADS', nargs=-1)
+@click.option('--required', type=str, help='The required in JSON format')
+@click.option('-o', '--output', type=str, help='The file to write data to')
+@click.pass_context
+def export(ctx, uploads, required, output: str):
+    import sys
+    from nomad.processing import Entry
+    from nomad.utils import get_logger
+    from nomad.files import UploadFiles
+    from nomad.archive import ArchiveQueryError, RequiredReader
+    import time
+    import zipfile
+
+    logger = get_logger(__name__)
+
+    if not output:
+        logger.error('no output given')
+        sys.exit(1)
+
+    if not output.endswith('.zip'):
+        logger.error('only zip output is supported')
+        sys.exit(1)
+
+    output_file = zipfile.ZipFile(output, 'w', allowZip64=True)
+
+    def write(entry_id, archive_data):
+        archive_json = json.dumps(archive_data)
+        output_file.writestr(f'{entry_id}.json', archive_json, compress_type=zipfile.ZIP_DEFLATED)
+
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+
+    try:
+        required_data = json.loads(required)
+    except Exception as e:
+        logger.error('could not parse required', exc_info=e)
+        sys.exit(1)
+
+    try:
+        required_reader = RequiredReader(required_data)
+    except Exception as e:
+        logger.error('could not validate required', exc_info=e)
+        sys.exit(1)
+
+    def get_rss():
+        return time.time()
+
+    start_time = get_rss()
+
+    upload_count = 0
+    total_count = 0
+    for upload in uploads:
+        upload_id = upload.upload_id
+        upload_files = UploadFiles.get(upload_id)
+        upload_count += 1
+        entry_ids = list(entry.entry_id for entry in Entry.objects(upload_id=upload_id))
+        entry_count = 0
+        for entry_id in entry_ids:
+            entry_count += 1
+            total_count += 1
+            try:
+                archive = upload_files.read_archive(entry_id, use_blocked_toc=False)
+                archive_data = required_reader.read(archive, entry_id, upload_id)
+                write(entry_id, archive_data)
+            except ArchiveQueryError as e:
+                logger.error('could not read archive', exc_info=e, entry_id=entry_id)
+            except KeyError as e:
+                logger.error('missing archive', exc_info=e, entry_id=entry_id)
+
+            if total_count % 100 == 0:
+                print(f'{upload_count:5}/{len(uploads)} {entry_count:5}/{len(entry_ids)} {total_count:5} {((get_rss() - start_time))} {upload_id}')
+
+        upload_files.close()
+
+    output_file.close()
+
+
+@uploads.command(help='List selected uploads')
+@click.argument('UPLOADS', nargs=-1)
 @click.option('-e', '--entries', is_flag=True, help='Show details about entries.')
 @click.option('--ids', is_flag=True, help='Only show a list of ids.')
 @click.option('--json', is_flag=True, help='Output a JSON array of ids.')
