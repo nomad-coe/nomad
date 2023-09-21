@@ -41,6 +41,12 @@ Omitted versions are plain bugfix releases with only minor changes and fixes. Th
 file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
 contains much more detailed information about changes and fixes in the released versions.
 
+### v1.2.1
+- CLI utility to export archive data
+- Added authentication for mongo and elastic use
+- YAML linting plugin for NOMAD schemas
+- Refactored the tabular parser
+
 ### v1.2.0
 - Restructured documentation
 - More how-to guides and learning material
