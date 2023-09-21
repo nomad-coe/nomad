@@ -970,7 +970,7 @@ class ThermostatParameters(MSection):
 
     thermostat_type = Quantity(
         type=MEnum('andersen', 'berendsen', 'brownian', 'langevin_goga', 'langevin_schneider', 'nose_hoover', 'velocity_rescaling',
-                   'velocity_rescaling_langevin'),
+                   'velocity_rescaling_langevin', 'velocity_rescaling_woodcock'),
         shape=[],
         description='''
         The name of the thermostat used for temperature control. If skipped or an empty string is used, it
@@ -1009,6 +1009,9 @@ class ThermostatParameters(MSection):
 
         | `"velocity_rescaling_langevin"` | G. Bussi and M. Parrinello,
         [Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |
+
+        | `"velocity_rescaling_woodcock"` | L. V. Woodcock,
+        [Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |
         ''')
 
     reference_temperature = Quantity(
@@ -1016,7 +1019,7 @@ class ThermostatParameters(MSection):
         shape=[],
         unit='kelvin',
         description='''
-        The target temperature for the simulation.
+        The target temperature for the simulation. Typically used when temperature_profile is "constant".
         ''')
 
     coupling_constant = Quantity(
@@ -1034,6 +1037,69 @@ class ThermostatParameters(MSection):
         unit='kilogram',
         description='''
         The effective or fictitious mass of the temperature resevoir.
+        ''')
+
+    temperature_profile = Quantity(
+        type=MEnum('constant', 'linear', 'exponential'),
+        shape=[],
+        description='''
+        Type of temperature control (i.e., annealing) procedure. Can be "constant" (no annealing), "linear", or "exponential".
+        If linear, "temperature_update_delta" specifies the corresponding update parameter.
+        If exponential, "temperature_update_factor" specifies the corresponding update parameter.
+        ''')
+
+    reference_temperature_start = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='kelvin',
+        description='''
+        The initial target temperature for the simulation. Typically used when temperature_profile is "linear" or "exponential".
+        ''')
+
+    reference_temperature_end = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='kelvin',
+        description='''
+        The final target temperature for the simulation.  Typically used when temperature_profile is "linear" or "exponential".
+        ''')
+
+    temperature_update_frequency = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of simulation steps between changing the target temperature.
+        ''')
+
+    temperature_update_delta = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Amount to be added (subtracted if negative) to the current reference_temperature
+        at a frequency of temperature_update_frequency when temperature_profile is "linear".
+        The reference temperature is then replaced by this new value until the next update.
+        ''')
+
+    temperature_update_factor = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Factor to be multiplied to the current reference_temperature at a frequency of temperature_update_frequency when temperature_profile is exponential.
+        The reference temperature is then replaced by this new value until the next update.
+        ''')
+
+    step_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory step where this thermostating starts.
+        ''')
+
+    step_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory step number where this thermostating ends.
         ''')
 
 
@@ -1103,7 +1169,7 @@ class BarostatParameters(MSection):
         unit='pascal',
         description='''
         The target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions
-        along the diagonal, and coupling between directions on the off-diagonal.
+        along the diagonal, and coupling between directions on the off-diagonal. Typically used when pressure_profile is "constant".
         ''')
 
     coupling_constant = Quantity(
@@ -1125,6 +1191,71 @@ class BarostatParameters(MSection):
         along the diagonal, and coupling between directions on the off-diagonal. If None, it may indicate that these values
         are incorporated into the coupling_constant, or simply that the software used uses a fixed value that is not available in
         the input/output files.
+        ''')
+
+    pressure_profile = Quantity(
+        type=MEnum('constant', 'linear', 'exponential'),
+        shape=[],
+        description='''
+        Type of pressure control procedure. Can be "constant" (no annealing), "linear", or "exponential".
+        If linear, "pressure_update_delta" specifies the corresponding update parameter.
+        If exponential, "pressure_update_factor" specifies the corresponding update parameter.
+        ''')
+
+    reference_pressure_start = Quantity(
+        type=np.float64,
+        shape=[3, 3],
+        unit='pascal',
+        description='''
+        The initial target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions
+        along the diagonal, and coupling between directions on the off-diagonal. Typically used when pressure_profile is "linear" or "exponential".
+        ''')
+
+    reference_pressure_end = Quantity(
+        type=np.float64,
+        shape=[3, 3],
+        unit='pascal',
+        description='''
+        The final target pressure for the simulation, stored in a 3x3 matrix, indicating the values for individual directions
+        along the diagonal, and coupling between directions on the off-diagonal.  Typically used when pressure_profile is "linear" or "exponential".
+        ''')
+
+    pressure_update_frequency = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Number of simulation steps between changing the target pressure.
+        ''')
+
+    pressure_update_delta = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Amount to be added (subtracted if negative) to the current reference_pressure
+        at a frequency of pressure_update_frequency when pressure_profile is "linear".
+        The pressure temperature is then replaced by this new value until the next update.
+        ''')
+
+    pressure_update_factor = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Factor to be multiplied to the current reference_pressure at a frequency of pressure_update_frequency when pressure_profile is exponential.
+        The reference pressure is then replaced by this new value until the next update.
+        ''')
+
+    step_start = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory step where this barostating starts.
+        ''')
+
+    step_end = Quantity(
+        type=int,
+        shape=[],
+        description='''
+        Trajectory step number where this barostating ends.
         ''')
 
 
@@ -1226,9 +1357,9 @@ class MolecularDynamicsMethod(SimulationWorkflowMethod):
         The number of timesteps between saving the thermodynamic quantities.
         ''')
 
-    thermostat_parameters = SubSection(sub_section=ThermostatParameters.m_def, repeats=False)
+    thermostat_parameters = SubSection(sub_section=ThermostatParameters.m_def, repeats=True)
 
-    barostat_parameters = SubSection(sub_section=BarostatParameters.m_def, repeats=False)
+    barostat_parameters = SubSection(sub_section=BarostatParameters.m_def, repeats=True)
 
 
 class EnsemblePropertyValues(MSection):

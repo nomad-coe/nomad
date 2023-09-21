@@ -1288,6 +1288,8 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                 'System times are not equally spaced. Cannot set system times in MDA universe.'
                 ' MDA universe will contain non-physical times and timestep.')
 
+    system_timestep = ureg.convert(system_timestep, system_timestep._units, ureg.picoseconds)
+
     # create the Universe
     metainfo_universe = create_empty_universe(
         n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments,

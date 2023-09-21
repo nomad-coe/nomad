@@ -305,22 +305,22 @@ def test_rdf_and_msd(workflow_archive):
 
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].label == '0'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].n_times == 54
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[13].magnitude == approx(1.3 * 10**(-11))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[13].magnitude == approx(1.3 * 10**(-12))
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].times[13].units == 'second'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].magnitude == approx(8.98473539965496 * 10**(-19))
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].value[32].units == 'meter^2'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(6.09812270414572 * 10**(-9))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.magnitude == approx(6.09812270414572 * 10**(-8))
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.value.units == 'meter^2/second'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.error_type == 'Pearson correlation coefficient'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[0].diffusion_constant.errors == approx(0.9924847048341159)
 
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].label == '1'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].n_times == 54
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].times[13].magnitude == approx(1.3 * 10**(-11))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].times[13].magnitude == approx(1.3 * 10**(-12))
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].times[13].units == 'second'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].value[32].magnitude == approx(8.448369705677565 * 10**(-19))
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].value[32].units == 'meter^2'
-    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.value.magnitude == approx(5.094072039759048 * 10**(-9))
+    assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.value.magnitude == approx(5.094072039759048 * 10**(-8))
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.value.units == 'meter^2/second'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.error_type == 'Pearson correlation coefficient'
     assert section_md.mean_squared_displacements[0].mean_squared_displacement_values[1].diffusion_constant.errors == approx(0.9965870174917716)
