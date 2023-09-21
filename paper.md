@@ -21,12 +21,13 @@ authors:
     equal-contrib: true
     affiliation: 1
   - name: Alvin Noe Ladines
-    email: ladinesalvinnoe@gmail.com
+    email: alvin.noe.ladines@physik.hu-berlin.de
     orcid: 0000-0003-0077-2097
     equal-contrib: true
     affiliation: 1
   - name: David Sikter
     email: david.sikter@physik.hu-berlin.de
+    orcid: 0000-0002-2102-7160
     equal-contrib: true
     affiliation: 1
   - name: Mohammad Nakhaee
@@ -36,6 +37,7 @@ authors:
     affiliation: 1
   - name: Ádám Fekete
     email: adam@fekete.co.uk
+    orcid: 0000-0002-6263-897X
     equal-contrib: true
     affiliation: 1
   - name: Theodore Chang
@@ -45,10 +47,12 @@ authors:
     affiliation: 1
   - name: Amir Golparvar
     email: amir.golparvar@physik.hu-berlin.de
+    orcid: 0000-0002-2412-6615
     equal-contrib: true
     affiliation: 1
   - name: José A. Márquez
     email: jose.marquez@physik.hu-berlin.de
+    orcid: 0000-0002-8173-2566
     affiliation: 1
   - name: Sandor Brockhauser
     email: sandor.brockhauser@physik.hu-berlin.de
@@ -56,13 +60,15 @@ authors:
     affiliation: 1
   - name: Sebastian Brückner
     email: sebastian.brueckner@ikz-berlin.de
+    orcid: 0000-0002-5969-847X
     affiliation: 2
   - name: Luca M. Ghiringhelli
     email: luca.ghiringhelli@physik.hu-berlin.de
     orcid: 0000-0001-5099-3029
     affiliation: 1
   - name: Felix Dietrich
-    email: felix.dietrich@tum.de    
+    email: felix.dietrich@tum.de
+    orcid: 0000-0002-2906-1769
     affiliation: 3
   - name: Daniel Lehmberg
     email: d.lehmberg@tum.de
@@ -70,15 +76,19 @@ authors:
     affiliation: 3
   - name: Thea Denell
     email: denell@physik.hu-berlin.de
+    orcid: 0009-0000-7185-9363
     affiliation: 1
   - name: Andrea Albino
     email: andrea.albino@physik.hu-berlin.de
+    orcid: 0000-0001-9280-7431
     affiliation: 1
   - name: Hampus Näsström
     email: hampus.naesstroem@physik.hu-berlin.de
+    orcid: 0000-0002-3264-1692
     affiliation: 1
   - name: Sherjeel Shabih
     email: sherjeel.shabih@physik.hu-berlin.de
+    orcid: 0009-0008-6635-4465
     affiliation: 1
   - name: Florian Dobener
     email: florian.dobener@physik.hu-berlin.de
@@ -90,6 +100,7 @@ authors:
     affiliation: 1
   - name: Rubel Mozumder
     email: mozumder@physik.hu-berlin.de
+    orcid: 0009-0007-5926-6646
     affiliation: 1
   - name: Joseph F. Rudzinski
     email: joseph.rudzinski@physik.hu-berlin.de
@@ -101,9 +112,11 @@ authors:
     affiliation: 1
   - name: José M. Pizarro
     email: jose.pizarro@physik.hu-berlin.de
+    orcid: 0000-0002-6751-8192
     affiliation: 1
   - name: Martin Kuban
     email: kuban@physik.hu-berlin.de
+    orcid: 0000-0002-1619-2460
     affiliation: 1
   - name: Cuauhtemoc Salazar
     email: cuauhtemoc.salazar@physik.hu-berlin.de
@@ -128,7 +141,7 @@ affiliations:
     index: 2
   - name: Department of Informatics, Technical University of Munich, Munich, Germany
     index: 3
-  - name: Department of Physical Electronics, Masaryk University, Brno, Czech Republic
+  - name: Department of Plasma Physics and Technology, Masaryk University, Brno, Czech Republic
     index: 4
 date: 20 March 2023
 bibliography: paper.bib
@@ -156,8 +169,8 @@ and documenting all produced research data and meta-data.
 
 While individual researchers struggle with organizing and analyzing more and more data
 artifacts, communities face new challenges in making data findable, accessible, inter-operable,
-and reproducible (FAIR) [@wilkinson:2016]. A key factor to FAIR data, is to combine data with meta-data
-and to put all data into machine and human comprehensible representations [@ghiringhelli:2017; @ghiringhelli:2022].
+and reproducible (FAIR) [@wilkinson:2016]. A key factor to FAIR data is to combine data with meta-data
+and to put all data into machine and human comprehensible representations [@ghiringhelli:2017; @ghiringhelli:2023].
 
 Materials scientists require effective solutions for managing their research data, but they should not have to develop their own individual solutions. Hence, there is great demand in services (and software to run such services) that provide the mentioned features and make data FAIR.
 This is evident in the great number of published datasets on services like [NOMAD](https://nomad-lab.eu) [@draxl:2018] (the main deployment of the NOMAD software), and an increasing number of materials science databases that all (re-)implement very similar functionality to publish their data.
@@ -185,7 +198,7 @@ about privacy or security. It should be noted that there is the possibility to t
 between different installations, and in order to adhere to the FAIR principles, the data (or
 at least meta-data) in these Oases would ideally be transferred to the public NOMAD service.
 NOMAD Oasis is used by an increasing number of research institutes. NOMAD Oasis can be used freely
-as per our OSI license following the instruction in the [NOMAD documentation](https://nomad-lab.eu/prod/v1/docs/oasis.html).
+as per our OSI license following the instruction in the [NOMAD documentation](https://nomad-lab.eu/docs).
 
 The [NFDI consortium FAIRmat](https://www.fairmat-nfdi.eu/fairmat)
 uses NOMAD software as the bases for its federated FAIR data infrastructure [@scheffler:2022].
@@ -194,7 +207,7 @@ uses NOMAD software as the bases for its federated FAIR data infrastructure [@sc
 software implementation) for materials science databases. NOMAD provides an implementation
 of the OPTIMADE specification and is an active part of the OPTIMADE consortium.
 
-Other materials science databases (and the respective software) focus on publishing data that were 
+Other materials science databases (and the respective software) focus on publishing data that were
 produced with a specific framework and carefully curated by the group behind the database.
 Typical examples are databases of
 high-throughput simulations that try to systematically explore theoretical materials. Three
@@ -214,8 +227,8 @@ a file-format standard, schemas, and tools for experimental materials science da
 # Acknowledgements
 
 NOMAD software development is funded by the the German National Research Data
- Infrastructure (NDFI) consortia FAIRmat (Deutsche Forschungsgemeinschaft DFG, 460197019) and the NOMAD CoE (EU Horizon 2020, 951786), 
-previous financial support was provided by the NOMAD CoE (EU Horizon 2020, 676580) and the Max-Planck Netzwerk BigMax. 
-The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's github and operating the public NOMAD service. 
+ Infrastructure (NFDI) consortium FAIRmat (Deutsche Forschungsgemeinschaft DFG, 460197019) and the NOMAD CoE (EU Horizon 2020, 951786),
+previous financial support was provided by the NOMAD CoE (EU Horizon 2020, 676580) and the Max-Planck Network BigMax.
+The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's github and operating the public NOMAD service.
 
 # References
