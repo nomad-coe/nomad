@@ -4,6 +4,7 @@ import { appBase } from '../../config'
 import { H5GroveProvider, App } from '@h5web/app'
 import { useApi } from '../api'
 import { useErrors } from '../errors'
+import axios from 'axios'
 
 import '@h5web/lib/dist/styles.css'
 import '@h5web/app/dist/styles.css'
@@ -34,6 +35,15 @@ const H5Web = ({upload_id, filename, initialPath, explorerOpen}) => {
       <H5GroveProvider
         url={appBase + '/h5grove/'}
         filepath={filepath}
+        getExportURL={(format, dataset, selection) => async () => {
+          const response = await axios.get(appBase + '/h5grove/data/', {
+            params: {
+              file: filepath, upload_id: upload_id, format, path: dataset.path
+            },
+            headers: {Authorization: "Bearer " + api?.keycloak?.token}
+          })
+          return new File([response.data], "test." + format)
+        }}
         axiosConfig={{params: {file: filepath, upload_id: upload_id}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
       >
         <App disableDarkMode initialPath={initialPath} explorerOpen={explorerOpen}/>

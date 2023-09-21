@@ -12,7 +12,8 @@ module.exports = {
     },
     "globals": {
         "fetch": false,
-        "browser": true
+        "browser": true,
+        "File": true
     },
     "plugins": [
         "react", "react-hooks", "testing-library", "jest"
