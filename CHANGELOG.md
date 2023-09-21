@@ -1,4 +1,44 @@
 
+## 1.2.1 (2023-09-21)
+
+### Added (8 changes)
+
+- [CLI utility to export archive data.](nomad-lab/nomad-FAIR@88c59a988e2cfafa321466b2aadef70ef16f74ed) ([merge request](nomad-lab/nomad-FAIR!1452))
+- [Added Activity ID to ExperiementStep](nomad-lab/nomad-FAIR@1ff3610d114820df24b5cfd7a77415b1707a2893) ([merge request](nomad-lab/nomad-FAIR!1456))
+- [Added oasis registration link to the docs.](nomad-lab/nomad-FAIR@3b06ce9a083414da1340be14bbbc48a525436c10) ([merge request](nomad-lab/nomad-FAIR!1450))
+- [Added authentication for mongo and elastic use.](nomad-lab/nomad-FAIR@c1f4147dddbaf6def6e831bd924a170a401b7db8) ([merge request](nomad-lab/nomad-FAIR!1332))
+- [Added YAML linting plugin for NOMAD schemas.](nomad-lab/nomad-FAIR@d6ae88b6a84a7505d0f85d43a9e12a544c3780a0) ([merge request](nomad-lab/nomad-FAIR!1439))
+- [Added System and PureSubstance components for CompositeSystem, added...](nomad-lab/nomad-FAIR@03b23a052eb6d6c2e0cf06596c73b64ec2518f8a) ([merge request](nomad-lab/nomad-FAIR!1385))
+- [Added better search filters when searching for custom schemas.](nomad-lab/nomad-FAIR@d97d90e2c993fad1e5a199e6e7d03c36757578f4) ([merge request](nomad-lab/nomad-FAIR!1335))
+- [Resolve "Refactoring tabular parser"](nomad-lab/nomad-FAIR@1a68e76252f6da76aab40eff7250d99119d9b8e1) ([merge request](nomad-lab/nomad-FAIR!1377))
+
+### Fixed (13 changes)
+
+- [Update parser](nomad-lab/nomad-FAIR@44043007d27552044407af750d7c45e7c241292b) ([merge request](nomad-lab/nomad-FAIR!1458))
+- [Resolve "ReadableIdentifiers Normalizers Fails"](nomad-lab/nomad-FAIR@e9726fac65e8b8882063ab1888e883974ec898a7) ([merge request](nomad-lab/nomad-FAIR!1454))
+- [Fixed the condition for maximum numbers of uploads.](nomad-lab/nomad-FAIR@6743000803b8af28481c1eacdd91d2b6a1b5ed96) ([merge request](nomad-lab/nomad-FAIR!1446))
+- [Fixed issue with inconsistent upload status icon usage, added more consistent...](nomad-lab/nomad-FAIR@91f57ea304e360f0e58febd59a93c97c26161bf5) ([merge request](nomad-lab/nomad-FAIR!1428))
+- [Fixed issues with zero values and redundant API calls in the user defined quantities menu.](nomad-lab/nomad-FAIR@ee5228bfc5d40ecf8385b0f9bcf18c20dad7bf71) ([merge request](nomad-lab/nomad-FAIR!1423))
+- [Fixed issue when stripping debug symbols from shared object files.](nomad-lab/nomad-FAIR@6500857b05cea0d9839e3c67b6b12ee269a66832) ([merge request](nomad-lab/nomad-FAIR!1409))
+- [Fixed problem with hardcoded jupyter keycloak realm.](nomad-lab/nomad-FAIR@a1ed9d4eec3e45a88868e748afd5b1a6e0a3a1a6) ([merge request](nomad-lab/nomad-FAIR!1407))
+- [Fixed issue with loading the custom quantities menu.](nomad-lab/nomad-FAIR@1ea52c685972e58938a735d6a05b54feda2c5ffb) ([merge request](nomad-lab/nomad-FAIR!1420))
+- [Fixed issue with reading boolean values from VASP INCAR and OUTCAR files.](nomad-lab/nomad-FAIR@1e47e7e4f43577466a4cbdc6876a56f3aeee20d8) ([merge request](nomad-lab/nomad-FAIR!1419))
+- [Update parser ref](nomad-lab/nomad-FAIR@2a333c2ff1e8a431f732fb8561b190a08a6fb938) ([merge request](nomad-lab/nomad-FAIR!1418))
+- [Fixing problem with removing archives generated with tabular parser entry mode](nomad-lab/nomad-FAIR@fe7e50447a6254fb2a0c1a15ae625ceb6722739d) ([merge request](nomad-lab/nomad-FAIR!1417))
+- [Fixed issue with row action visuals.](nomad-lab/nomad-FAIR@651a2f3c2be27b63eaee10362b76befb99135c79) ([merge request](nomad-lab/nomad-FAIR!1412))
+- [Fixed the missing call to generate_docs_artifacts in the setup_dev_env.sh.](nomad-lab/nomad-FAIR@035e1f43745d5422514d06187b675f89e2a39628)
+
+### Changed (8 changes)
+
+- [Removed obsolete elk csv to md script.](nomad-lab/nomad-FAIR@e50dc0fc009815e8c4127cf1fa7c195e6e683e8c) ([merge request](nomad-lab/nomad-FAIR!1332))
+- [Command line `--parser` now skips parser matching](nomad-lab/nomad-FAIR@b230af63d027c86828b71e1b7639de9448a9564c) ([merge request](nomad-lab/nomad-FAIR!1233))
+- [Improved styling and navigation when browsing nexus files](nomad-lab/nomad-FAIR@5a4184d2cca2ed73d5113de2202d5bd6c8ef1fd6) ([merge request](nomad-lab/nomad-FAIR!1397))
+- [Improved the handling of dynamically resolved filters in SearchContext.](nomad-lab/nomad-FAIR@e3248fdaa5a1c7cebae25102f0c464cb1587229d) ([merge request](nomad-lab/nomad-FAIR!1433))
+- [Changed the coloring and texts in the upload page to make typical upload...](nomad-lab/nomad-FAIR@8d3a24996f807340227bd73f006b0493a6debe8b) ([merge request](nomad-lab/nomad-FAIR!1425))
+- [Updated the documentation on mounting plugins within docker.](nomad-lab/nomad-FAIR@c0b0747a9a0bbcbdb3f6ccf4833a65354dfd7bea) ([merge request](nomad-lab/nomad-FAIR!1422))
+- [Refactored periodic table componeng using SVG.](nomad-lab/nomad-FAIR@ad3a56f8ab0a6a2fabcd0ad1f0a9334eaa8a4b53) ([merge request](nomad-lab/nomad-FAIR!1415))
+- [Removed outdated information about using parsers from the parser projects.](nomad-lab/nomad-FAIR@b41131f576d3fd3574d0e81f67b3c180ebec48b3)
+
 ## 1.1.9 (2023-03-31)
 
 ### Added (10 changes)
