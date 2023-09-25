@@ -96,6 +96,7 @@ export const SearchContext = React.memo(({
   initialPagination,
   initialDashboard,
   initialFilters,
+  initialFilterValues,
   children
 }) => {
   const {api, user} = useApi()
@@ -276,11 +277,11 @@ export const SearchContext = React.memo(({
       }
     }
     return [
-      queryURL,
+      {...(initialFilterValues || {}), ...queryURL},
       initialAggs,
       filterDefaults
     ]
-  }, [filtersStaticData, filtersStatic, filtersStaticAbbreviations])
+  }, [filtersStaticData, filtersStatic, filtersStaticAbbreviations, initialFilterValues])
 
   // Atoms + setters and getters are used instead of regular React states to
   // avoid re-rendering components that are not depending on these values. The
@@ -1530,6 +1531,7 @@ SearchContext.propTypes = {
   initialPagination: PropTypes.object,
   initialDashboard: PropTypes.object,
   initialFilters: PropTypes.object, // Determines which filters are available
+  initialFilterValues: PropTypes.object, // Here one can provide default filter values
   children: PropTypes.node
 }
 

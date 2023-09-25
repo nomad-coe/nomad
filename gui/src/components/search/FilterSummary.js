@@ -26,8 +26,8 @@ import { useUnits } from '../../units'
 import { DType } from '../../utils'
 
 /**
- * Displays a summary for the given subset of filters. Each filter value is
- * displayed as a chip.
+ * Smart component that displays a set of FilterGroups and FilterChips for
+ * the given quantities.
  */
 const typesWithLabel = new Set([DType.Boolean, DType.Int, DType.Float])
 const useStyles = makeStyles(theme => {
@@ -75,8 +75,7 @@ const FilterSummary = React.memo(({
     }
     // If query has multiple elements, we display a chip for each. For
     // numerical values we also display the quantity name.
-    const {metaType, serializerPretty, customSerialization} = filterData[name]
-    const serializer = serializerPretty
+    const {metaType, serializerPretty: serializer, customSerialization} = filterData[name]
     const isArray = filterValue instanceof Array
     const isSet = filterValue instanceof Set
     const isObj = isPlainObject(filterValue)
@@ -91,7 +90,6 @@ const FilterSummary = React.memo(({
     if (customSerialization) {
       const item = <FilterChip
         locked={locked}
-        quantity={name}
         label={serializer(filterValue)}
         onDelete={() => {
           onDelete(undefined)
@@ -100,11 +98,11 @@ const FilterSummary = React.memo(({
       newChips.push({comp: item, op})
     } else if (isArray || isSet) {
       filterValue.forEach((value, index) => {
+        console.log(value)
         const displayValue = serializer(value, units)
         const item = <FilterChip
           locked={locked}
-          quantity={name}
-          label={typesWithLabel.has(metaType) ? `${label} = ${displayValue}` : displayValue}
+          label={typesWithLabel.has(metaType) ? `${label}=${displayValue}` : displayValue}
           onDelete={() => {
             let newValue
             if (isSet) {
@@ -136,7 +134,6 @@ const FilterSummary = React.memo(({
         }
         const item = <FilterChip
           locked={locked}
-          quantity={name}
           label={content}
           onDelete={() => {
             onDelete(undefined)
@@ -147,7 +144,6 @@ const FilterSummary = React.memo(({
     } else {
       const item = <FilterChip
         locked={locked}
-        quantity={name}
         label={`${label}=${serializer(filterValue)}`}
         onDelete={() => {
           onDelete(undefined)
