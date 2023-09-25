@@ -568,6 +568,8 @@ export function getSerializer(dtype, pretty = true) {
       }
       return pretty ? format(new Date(value), dateFormat) : value
     }
+  } else if (dtype === DType.Boolean) {
+    return (value) => value ? 'true' : 'false'
   } else {
     return (value) => value
   }
@@ -622,6 +624,25 @@ export function getDeserializer(dtype, dimension) {
         return value
       }
       return parseInt(value)
+    }
+  } else if (dtype === DType.Boolean) {
+    return (value) => {
+      if (isNil(value)) {
+        return value
+      }
+      let newValue = value
+      if (isString(value)) {
+        const lowercase = value.toLowerCase()
+        const keywords = {
+          true: true,
+          false: false
+        }
+        newValue = keywords[lowercase]
+        if (isNil(newValue)) {
+          throw Error(`Could not parse boolean value from ${value}`)
+        }
+      }
+      return newValue
     }
   } else {
     return (value) => {

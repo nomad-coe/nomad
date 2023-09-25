@@ -39,7 +39,6 @@ const useStyles = makeStyles(theme => ({
   }
 }))
 export const FilterChip = React.memo(({
-  quantity,
   label,
   onDelete,
   color,
@@ -62,7 +61,6 @@ export const FilterChip = React.memo(({
 })
 
 FilterChip.propTypes = {
-  quantity: PropTypes.string,
   label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   onDelete: PropTypes.func,
   color: PropTypes.string,

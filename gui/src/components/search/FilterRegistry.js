@@ -40,7 +40,7 @@ const idSolarCell = 'solarcell'
 const idVibrational = 'vibrational'
 const idMechanical = 'mechanical'
 const idSpectroscopic = 'spectroscopic'
-const idThermodynamic = 'thermodynamic'
+const idMolecularDynamics = 'molecular_dynamics'
 const idGeometryOptimization = 'geometry_optimization'
 const idELN = 'eln'
 const idCustomQuantities = 'custom_quantities'
@@ -452,7 +452,7 @@ registerFilter(
 )
 registerFilter(
   'results.properties.thermodynamic.trajectory',
-  idThermodynamic,
+  idMolecularDynamics,
   nestedQuantity,
   [
     {name: 'available_properties', ...termQuantityAll},
@@ -581,7 +581,7 @@ registerFilterOptions(
 // Thermodynamical properties: subset of results.properties.available_properties
 registerFilterOptions(
   'thermodynamic_properties',
-  idThermodynamic,
+  idMolecularDynamics,
   'results.properties.available_properties',
   'Thermodynamic Properties',
   'The thermodynamic properties that are present.',
