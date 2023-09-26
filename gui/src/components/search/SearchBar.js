@@ -258,7 +258,7 @@ const SearchBar = React.memo(({
         }
         quantityFullname = fullName
         const dtype = getDatatype(quantityFullname)
-        if (numericTypes.has(dtype)) {
+        if (!numericTypes.has(dtype)) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
