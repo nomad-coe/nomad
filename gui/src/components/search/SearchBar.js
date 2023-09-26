@@ -185,23 +185,33 @@ const SearchBar = React.memo(({
     let quantityFullname
     let queryValue
 
-    // Equality query
-    const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
-    if (equals) {
-      const quantityName = equals[1]
-      const [fullName, error] = checkMetainfo(quantityName)
-      quantityFullname = fullName
-      if (error) {
-        setError(error)
-        return
-      }
-      try {
-        queryValue = parseQuery(quantityFullname, equals[2], units)
-      } catch (error) {
-        setError(`Invalid value for this metainfo. Please check your syntax.`)
-        return
-      }
+    // Presence query
+    const presence = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*\\*\\s*$`))
+    if (presence) {
+      quantityFullname = `quantities`
+      queryValue = parseQuery(quantityFullname, presence[1], units) // are units still necessary?
       valid = true
+    }
+
+    // Equality query
+    if (!valid) {
+      const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
+      if (equals) {
+        const quantityName = equals[1]
+        const [fullName, error] = checkMetainfo(quantityName)
+        quantityFullname = fullName
+        if (error) {
+          setError(error)
+          return
+        }
+        try {
+          queryValue = parseQuery(quantityFullname, equals[2], units)
+        } catch (error) {
+          setError(`Invalid value for this metainfo. Please check your syntax.`)
+          return
+        }
+        valid = true
+      }
     }
 
     // Simple LTE/GTE query
