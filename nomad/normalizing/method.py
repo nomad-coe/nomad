@@ -250,12 +250,12 @@ class MethodNormalizer():
 
         # Fill meshes
         if self.run.m_xpath('method[-1].frequency_mesh'):
-            freq_mesh = self.run.method[-1].frequency_mesh
-            freq_mesh.dimensionality = 1 if freq_mesh.dimensionality is None else freq_mesh.dimensionality
+            for freq_mesh in self.run.method[-1].frequency_mesh:
+                freq_mesh.dimensionality = 1 if freq_mesh.dimensionality is None else freq_mesh.dimensionality
 
         if self.run.m_xpath('method[-1].time_mesh'):
-            time_mesh = self.run.method[-1].time_mesh
-            time_mesh.dimensionality = 1 if time_mesh.dimensionality is None else time_mesh.dimensionality
+            for time_mesh in self.run.method[-1].time_mesh:
+                time_mesh.dimensionality = 1 if time_mesh.dimensionality is None else time_mesh.dimensionality
 
         if self.run.m_xpath('method[-1].k_mesh'):
             k_mesh = self.run.method[-1].k_mesh
