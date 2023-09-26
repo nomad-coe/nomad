@@ -501,10 +501,9 @@ class Energy(MSection):
         Value of the internal energy.
         ''')
 
-    double_counting = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='joule',
+    double_counting = SubSection(
+        sub_section=EnergyEntry.m_def,
+        categories=[FastAccess],
         description='''
         Double counting correction when performing Hubbard model calculations.
         ''')

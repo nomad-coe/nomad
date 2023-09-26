@@ -5422,6 +5422,17 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
+                "name": "atom_index",
+                "description": "The atom index with respect to the parsed system atoms section.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
                 "name": "n_valence_electrons",
                 "description": "Number of valence electrons.",
                 "type": {
@@ -5432,7 +5443,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "n_core_electrons",
                 "description": "Number of core electrons.",
@@ -5444,7 +5455,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "label",
                 "description": "String used to identify the atoms of this kind. This should correspond to the\natom labels of the configuration. It is possible for one atom kind to have\nmultiple labels (in order to allow two atoms of the same kind to have two\ndifferently defined sets of atom-centered basis functions or two different pseudo-\npotentials). Atom kind is typically the symbol of the atomic species but it can be\nalso a ghost or pseudo-atom.",
@@ -5456,7 +5467,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "mass",
                 "description": "Mass of the atom.",
@@ -5469,7 +5480,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "pseudopotential_name",
                 "description": "Name identifying the pseudopotential used.",
@@ -5481,7 +5492,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "name": "n_orbitals",
                 "description": "Number of active orbitals of the atom.",
@@ -5493,7 +5504,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "name": "orbitals",
                 "description": "Label of the active orbitals of the atoms.",
@@ -5507,7 +5518,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 9,
                 "m_parent_sub_section": "quantities",
                 "name": "onsite_energies",
                 "description": "Values of the atomic onsite energy corresponding to each orbital.",
@@ -5522,7 +5533,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "name": "charge",
                 "description": "Total charge of the atom.",
@@ -5535,7 +5546,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 10,
+                "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
                 "name": "charges",
                 "description": "Values of the charge corresponding to each orbital.",
@@ -6809,23 +6820,6 @@ window.nomadArtifacts = {
                 "shape": [
                   "n_neighbors"
                 ]
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "projection_matrix",
-                "description": "Projection matrices from Bloch bands to virtual projected orbitals.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "complex128"
-                },
-                "shape": [
-                  "*",
-                  "*",
-                  "*",
-                  "*"
-                ]
               }
             ],
             "sub_sections": [
@@ -7851,14 +7845,16 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "frequency_mesh",
-                "sub_section": "/packages/0/section_definitions/3"
+                "sub_section": "/packages/0/section_definitions/3",
+                "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "time_mesh",
-                "sub_section": "/packages/0/section_definitions/4"
+                "sub_section": "/packages/0/section_definitions/4",
+                "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9395,19 +9391,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
-                "name": "double_counting",
-                "description": "Double counting correction when performing Hubbard model calculations.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "joule"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
                 "name": "change",
                 "description": "Stores the change of total energy with respect to the previous step.",
                 "categories": [
@@ -9423,7 +9406,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
                 "name": "fermi",
                 "description": "Fermi energy (separates occupied from unoccupied single-particle states)",
@@ -9440,7 +9423,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "highest_occupied",
                 "description": "The highest occupied energy.",
@@ -9453,7 +9436,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "name": "lowest_unoccupied",
                 "description": "The lowest unoccupied energy.",
@@ -9643,13 +9626,24 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 21,
                 "m_parent_sub_section": "sub_sections",
+                "name": "double_counting",
+                "description": "Double counting correction when performing Hubbard model calculations.",
+                "categories": [
+                  "/packages/16/category_definitions/0"
+                ],
+                "sub_section": "/packages/2/section_definitions/4"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 22,
+                "m_parent_sub_section": "sub_sections",
                 "name": "correction_entropy",
                 "description": "Entropy correction to the potential energy to compensate for the change in\noccupation so that forces at finite T do not need to keep the change of occupation\nin account. Defined consistently with XC_method.",
                 "sub_section": "/packages/2/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 22,
+                "m_parent_index": 23,
                 "m_parent_sub_section": "sub_sections",
                 "name": "correction_hartree",
                 "description": "Correction to the density-density electrostatic energy in the sum of eigenvalues\n(that uses the mixed density on one side), and the fully consistent density-\ndensity electrostatic energy. Defined consistently with XC_method.",
@@ -9657,7 +9651,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 23,
+                "m_parent_index": 24,
                 "m_parent_sub_section": "sub_sections",
                 "name": "correction_xc",
                 "description": "Correction to energy_XC.",
@@ -9665,7 +9659,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 24,
+                "m_parent_index": 25,
                 "m_parent_sub_section": "sub_sections",
                 "name": "kinetic",
                 "description": "Contains the value and information regarding the kinetic energy.",
@@ -9673,7 +9667,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 25,
+                "m_parent_index": 26,
                 "m_parent_sub_section": "sub_sections",
                 "name": "potential",
                 "description": "Contains the value and information regarding the potential energy.",
@@ -9681,7 +9675,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 26,
+                "m_parent_index": 27,
                 "m_parent_sub_section": "sub_sections",
                 "name": "pressure_volume_work",
                 "description": "Contains the value and information regarding the instantaneous pV work.",

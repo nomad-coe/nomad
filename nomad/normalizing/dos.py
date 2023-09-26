@@ -103,6 +103,11 @@ class DosNormalizer(Normalizer):
     def add_electronic_normalization_factor(self, calc, dos):
         """Returns a factor that returns a size intensive electronic DOS.
         The values are divided by integral(DOS, lowest state, Fermi energy), or likewise sum(<atomic numbers>)."""
+        if not calc.system_ref:
+            self.logger.warning(
+                'Could not resolve the system reference from calculation.system_ref, '
+                'thus electronic normalization factor not reported.')
+            return
         atoms = calc.system_ref.atoms
         if not len(dos.total):
             self.logger.warning(

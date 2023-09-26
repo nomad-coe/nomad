@@ -461,6 +461,12 @@ class AtomParameters(MSection):
         Atomic number (number of protons) of this atom kind, use 0 if not an atom.
         ''')
 
+    atom_index = Quantity(
+        type=np.int32,
+        description='''
+        The atom index with respect to the parsed system atoms section.
+        ''')
+
     n_valence_electrons = Quantity(
         type=np.float64,
         shape=[],
@@ -1364,15 +1370,6 @@ class LatticeModelHamiltonian(MSection):
         Hopping parameters for simple models, with [t, t`, t``, etc].
         ''')
 
-    # TODO determine standard dimensions for projection_matrix:
-    #   KMesh.n_points x n_atoms_per_unit_cell x n_orbitals? x n_bands?
-    projection_matrix = Quantity(
-        type=np.complex128,
-        shape=['*', '*', '*', '*'],
-        description='''
-        Projection matrices from Bloch bands to virtual projected orbitals.
-        ''')
-
     hopping_matrix = SubSection(sub_section=HoppingMatrix.m_def, repeats=False)
 
     hubbard_kanamori_model = SubSection(sub_section=HubbardKanamoriModel.m_def, repeats=True)
@@ -2057,9 +2054,9 @@ class Method(ArchiveSection):
 
     k_mesh = SubSection(sub_section=KMesh.m_def)
 
-    frequency_mesh = SubSection(sub_section=FrequencyMesh.m_def)
+    frequency_mesh = SubSection(sub_section=FrequencyMesh.m_def, repeats=True)
 
-    time_mesh = SubSection(sub_section=TimeMesh.m_def)
+    time_mesh = SubSection(sub_section=TimeMesh.m_def, repeats=True)
 
     electronic = SubSection(sub_section=Electronic.m_def)
 
