@@ -288,7 +288,7 @@ class MatchingParser(Parser):
 
         def match(value, reference):
             if not isinstance(value, dict):
-                equal = value == reference[()]
+                equal = value == (reference[()] if isinstance(reference, h5py.Dataset) else reference)
                 return equal.all() if isinstance(equal, np.ndarray) else equal
 
             if not hasattr(reference, 'keys'):
@@ -300,8 +300,11 @@ class MatchingParser(Parser):
                 if key == '__has_key':
                     matches.append(val in reference_keys)
                 elif key == '__has_all_keys':
-                    assert isinstance(val, list)
+                    assert isinstance(val, list) and isinstance(reference_keys, list)
                     matches.append(False not in [v in reference_keys for v in val])
+                elif key == '__has_only_keys':
+                    assert isinstance(val, list) and isinstance(reference_keys, list)
+                    matches.append(False not in [v in val for v in reference_keys])
                 else:
                     if key not in reference_keys:
                         matches.append(False)
@@ -321,6 +324,29 @@ class MatchingParser(Parser):
                 try:
                     with h5py.File(filename) as f:
                         is_match = match(self._mainfile_contents_dict, f)
+                except Exception:
+                    pass
+            elif re.match(r'.+\.(?:csv|xlsx?)$', filename):
+                from nomad.parsing.tabular import read_table_data
+                try:
+                    data: Dict[str, Any] = {}
+                    table_data = read_table_data(filename)
+                    for sheet_name in table_data:
+                        data.setdefault(sheet_name, {})
+                        nrow = 0
+                        for column_name in table_data[sheet_name][0].keys():
+                            column_values = list(table_data[sheet_name][0][column_name].values())
+                            if not nrow:
+                                for n, row in enumerate(column_values):
+                                    if not str(row).strip().startswith('#'):
+                                        nrow = n
+                                        break
+                            if nrow:
+                                data[sheet_name][column_values[nrow]] = column_values[nrow + 1:]
+                            else:
+                                data[column_name] = column_values
+
+                    is_match = match(self._mainfile_contents_dict, data)
                 except Exception:
                     pass
             if not is_match:
