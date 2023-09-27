@@ -19,42 +19,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import { useLocation } from 'react-router-dom'
-import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Button, Link } from '@material-ui/core'
+import { Snackbar, SnackbarContent, IconButton, Link as MuiLink, Link } from '@material-ui/core'
 import UnderstoodIcon from '@material-ui/icons/Check'
-import ReloadIcon from '@material-ui/icons/Replay'
 import { amber } from '@material-ui/core/colors'
 import AppBar, { appBarHeight } from './AppBar'
 import { guiBase, version } from '../../config'
 import { Routes } from './Routes'
-import { usePWA } from '../PWA'
 import { ErrorBoundary } from '../errors'
 import { useCookies } from 'react-cookie'
 
 export const ScrollContext = React.createContext({scrollParentRef: null})
-
-function ReloadSnack() {
-  const {showReload, reloadPage} = usePWA()
-
-  return <Snackbar
-    anchorOrigin={{
-      vertical: 'bottom',
-      horizontal: 'left'
-    }}
-    open={showReload}
-  >
-    <SnackbarContent
-      message={<span>There is a new NOMAD version. Please reload the app.</span>}
-      action={[
-        <Button
-          key={0} color="inherit" startIcon={<ReloadIcon/>}
-          onClick={() => reloadPage()}
-        >
-          reload
-        </Button>
-      ]}
-    />
-  </Snackbar>
-}
 
 const useTermsSnackStyles = makeStyles(theme => ({
   termsLink: {
@@ -178,7 +152,6 @@ export default function Navigation() {
   return (
     <div className={classes.root}>
       <div className={classes.appFrame}>
-        <ReloadSnack/>
         <ErrorBoundary>
           <BetaSnack />
           <TermsSnack />

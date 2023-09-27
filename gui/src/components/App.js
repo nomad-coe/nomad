@@ -29,7 +29,6 @@ import Keycloak from 'keycloak-js'
 import { ReactKeycloakProvider } from '@react-keycloak/web'
 import { MuiThemeProvider } from '@material-ui/core/styles'
 import { ErrorSnacks, ErrorBoundary } from './errors'
-import { PWAProvider } from './PWA'
 import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
@@ -55,29 +54,27 @@ export default function App() {
     >
       <RecoilRoot>
         <APIProvider>
-          <PWAProvider>
-            <MuiPickersUtilsProvider utils={DateFnsUtils}>
-              <ErrorSnacks>
-                <ErrorBoundary>
-                  <DataStore>
-                    <GlobalMetainfo>
-                      <Router history={history}>
-                        <QueryParamProvider ReactRouterRoute={Route}>
-                          <MuiThemeProvider theme={nomadTheme}>
-                            <CssBaseline />
-                            <GlobalLoginRequired>
-                              <Navigation />
-                              <GUIMenu/>
-                            </GlobalLoginRequired>
-                          </MuiThemeProvider>
-                        </QueryParamProvider>
-                      </Router>
-                    </GlobalMetainfo>
-                  </DataStore>
-                </ErrorBoundary>
-              </ErrorSnacks>
-            </MuiPickersUtilsProvider>
-          </PWAProvider>
+          <MuiPickersUtilsProvider utils={DateFnsUtils}>
+            <ErrorSnacks>
+              <ErrorBoundary>
+                <DataStore>
+                  <GlobalMetainfo>
+                    <Router history={history}>
+                      <QueryParamProvider ReactRouterRoute={Route}>
+                        <MuiThemeProvider theme={nomadTheme}>
+                          <CssBaseline />
+                          <GlobalLoginRequired>
+                            <Navigation />
+                            <GUIMenu/>
+                          </GlobalLoginRequired>
+                        </MuiThemeProvider>
+                      </QueryParamProvider>
+                    </Router>
+                  </GlobalMetainfo>
+                </DataStore>
+              </ErrorBoundary>
+            </ErrorSnacks>
+          </MuiPickersUtilsProvider>
         </APIProvider>
       </RecoilRoot>
     </ReactKeycloakProvider>
