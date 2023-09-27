@@ -319,7 +319,11 @@ class ExampleParser(MatchingParser):
   directory matches `mainfile_name_re`.
 
 - `mainfile_contents_dict`: A dictionary to match the contents of the file. If provided,
-  it will load the file and match the value of the key(s) provided.
+  it will load the file and match the value of the key(s) provided. One can also specify
+  the keys that should be present by using the tags `__has_key`, `__has_all_keys`
+  and `__has_only_keys`. For example, one can have
+  `{'program': {'__has_all_keys': ['version', 'name']}}` to specify that `version` and `name`
+  must be present in the file to be matched.
 
 Not all of these attributes have to be used. Those that are given must all match in order
 to use the parser on a file.
