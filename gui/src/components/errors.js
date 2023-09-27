@@ -19,7 +19,6 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { SnackbarContent, IconButton, Snackbar, withStyles } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
-import { pwaRegistrationRef } from './PWA'
 
 export class VersionMismatch extends Error {
   constructor(msg) {
@@ -147,12 +146,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.log('caught error in boundary', error, errorInfo, pwaRegistrationRef)
-    // check for a newer version of the app
-    if (pwaRegistrationRef.current) {
-      console.log('try service worker update')
-      pwaRegistrationRef.current.update()
-    }
+    console.log('caught error in boundary', error, errorInfo)
     if (this.context) {
       this.context.raiseError('There has been a Javascript error.')
     }
