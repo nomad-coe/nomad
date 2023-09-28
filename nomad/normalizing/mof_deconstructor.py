@@ -231,6 +231,13 @@ def dfsutil_graph_method(graph, temp, node, visited):
     return temp
 
 
+def longest_list(lst):
+    '''
+    return longest list in list of list
+    '''
+    return max(lst, key=len)
+
+
 def remove_unbound_guest(ase_atom):
     '''
     A simple script to remove guest from a metal organic framework.
@@ -264,7 +271,6 @@ def remove_unbound_guest(ase_atom):
             pymat_graph = connected_components(coordination_graph)
             if len(pymat_graph) == 1:
                 polymeric_indices.append(i)
-
         if len(polymeric_indices) > 0:
             Graphs = [StructureGraph.with_local_env_strategy(AseAtomsAdaptor.get_structure(
                 ase_atom[fragments[i]]), JmolNN()) for i in polymeric_indices]
@@ -278,9 +284,12 @@ def remove_unbound_guest(ase_atom):
             mof_indices = []
             for frag_indices in temp_indices:
                 mof_indices.extend(fragments[frag_indices])
-            return mof_indices
+            if len(mof_indices) == 0:
+                return longest_list(fragments)
+            else:
+                return mof_indices
         else:
-            return sum(sum(fragments, []))
+            return sum(fragments, [])
 
 
 def connected_components(graph):
@@ -528,6 +537,68 @@ def find_carbonyl_sulphate(ase_atom):
     return sulphate
 
 
+def find_sulfides(ase_atom):
+    '''
+    A simple aglorimth to search for sulfides.
+     S
+     |
+    -C
+     |
+     S
+
+    Parameters:
+    -----------
+    ase_atom: ASE atom
+
+    Returns
+    -------
+    dictionary of key = carbon index and values = sulphur index
+    '''
+    graph, _ = compute_ase_neighbour(ase_atom)
+    sulfides = {}
+    for atoms in ase_atom:
+        if atoms.symbol == 'C':
+            index = atoms.index
+            sulphure_atoms = [i for i in graph[index]
+                              if ase_atom[i].symbol == 'S']
+            if len(sulphure_atoms) == 2:
+                sulphure_to_metal = sum(
+                    [[j for j in graph[i] if ase_atom[j].symbol in transition_metals()] for i in sulphure_atoms], [])
+                if len(sulphure_to_metal) > 0:
+                    sulfides[index] = sulphure_atoms
+    return sulfides
+
+
+def find_phosphate(ase_atom):
+    '''
+    A simple algorithm to search for Carbonyl sulphate found in the system.
+       O
+       |
+      -P-o
+       |
+       O
+    Parameters:
+    -----------
+    ase_atom: ASE atom
+
+    Returns
+    -------
+    dictionary of key = carbon index and values = oxygen index
+    '''
+    graph, _ = compute_ase_neighbour(ase_atom)
+    phosphate = {}
+    for atoms in ase_atom:
+        if atoms.symbol == 'P':
+            index = atoms.index
+            oxygen = [i for i in graph[index] if ase_atom[i].symbol == 'O']
+            if len(oxygen) >= 1:
+                oxy_metal = sum(
+                    [[j for j in graph[i] if ase_atom[j].symbol in transition_metals()] for i in oxygen], [])
+                if len(oxy_metal) > 0:
+                    phosphate[index] = oxygen
+    return phosphate
+
+
 def secondary_building_units(ase_atom):
     """
     1) Search for all carboxylate that are connected to a metal.
@@ -553,8 +624,13 @@ def secondary_building_units(ase_atom):
     bonds_to_break = []
     carboxylates = find_carboxylates(ase_atom)
     all_sulphates = find_carbonyl_sulphate(ase_atom)
+    all_sulfides = find_sulfides(ase_atom)
+    all_phosphates = find_phosphate(ase_atom)
+    seen_phosphorous = []
+    seen_carbon = []
     for atoms in graph:
         if atoms in list(carboxylates.keys()):
+            seen_carbon.append(atoms)
             connected = graph[atoms]
             all_carbon_indices = [
                 i for i in connected if ase_atom[i].symbol == 'C']
@@ -570,15 +646,34 @@ def secondary_building_units(ase_atom):
                 bonds_to_break.append([atoms] + S_indx)
                 atom_pairs_at_breaking_point[atoms] = S_indx[0]
 
-        if ase_atom[atoms].symbol == 'C':
+        if atoms in list(all_sulfides.keys()):
+            seen_carbon.append(atoms)
             connected = graph[atoms]
-            oxygens = [i for i in connected if ase_atom[i].symbol == 'O']
-            if len(oxygens) == 1:
-                oxy_metal = [
-                    i for i in oxygens if ase_atom[i].symbol in transition_metals()]
-                if len(oxy_metal) == 1:
-                    atom_pairs_at_breaking_point[oxygens[0]] = oxy_metal[0]
-                    bonds_to_break.append([oxygens] + oxy_metal)
+            all_carbon_indices = [
+                i for i in connected if ase_atom[i].symbol == 'C']
+            all_nitrogens = [i for i in connected if ase_atom[i].symbol == 'N']
+            # S_indx = [i for i in connected if ase_atom[i].symbol == 'S']
+            if len(all_carbon_indices) == 1:
+                bonds_to_break.append([atoms] + all_carbon_indices)
+                atom_pairs_at_breaking_point[atoms] = all_carbon_indices[0]
+            if len(all_nitrogens) == 1:
+                bonds_to_break.append([atoms] + all_nitrogens)
+                atom_pairs_at_breaking_point[atoms] = all_nitrogens[0]
+            # if len(S_indx) == 1:
+            #     bonds_to_break.append([atoms] + S_indx)
+            #     atom_pairs_at_breaking_point[atoms] = S_indx[0]
+        if ase_atom[atoms].symbol == 'C':
+            if atoms not in seen_carbon:
+                connected = graph[atoms]
+                oxygens = [i for i in connected if ase_atom[i].symbol == 'O']
+                if len(oxygens) == 1:
+                    oxy_metal = [
+                        i for i in oxygens if ase_atom[i].symbol in transition_metals()]
+                    oxy_metal = [
+                        i for i in oxy_metal if i not in porphyrin_checker]
+                    if len(oxy_metal) == 1:
+                        atom_pairs_at_breaking_point[oxygens[0]] = oxy_metal[0]
+                        bonds_to_break.append([oxygens] + oxy_metal)
 
         if atoms in list(all_sulphates.keys()):
             connected = graph[atoms]
@@ -592,6 +687,7 @@ def secondary_building_units(ase_atom):
                 for oxy in oxygen:
                     metal = [i for i in graph[oxy]
                              if ase_atom[i].symbol in transition_metals()]
+                    metal = [i for i in metal if i not in porphyrin_checker]
                     if len(metal) > 0:
                         for met in metal:
                             atom_pairs_at_breaking_point[oxy] = met
@@ -599,11 +695,13 @@ def secondary_building_units(ase_atom):
 
         if ase_atom[atoms].symbol == 'O':
             seen = sum(list(carboxylates.values())
-                       + list(all_sulphates.values()), [])
+                       + list(all_sulphates.values())
+                       + list(all_phosphates.values()), [])
             if atoms not in seen:
                 connected = graph[atoms]
                 metal = [
                     i for i in connected if ase_atom[i].symbol in transition_metals()]
+                metal = [i for i in metal if i not in porphyrin_checker]
                 Nitrogen = [i for i in connected if ase_atom[i].symbol == 'N']
                 carbon = [i for i in connected if ase_atom[i].symbol
                           == 'C' and i not in list(carboxylates.keys())]
@@ -638,13 +736,32 @@ def secondary_building_units(ase_atom):
                     bonds_to_break.append([atoms] + metal)
 
         if ase_atom[atoms].symbol == 'S':
+            seen = sum(list(all_sulfides.values()), [])
+            if atoms not in seen:
+                connected = graph[atoms]
+                metal = [
+                    i for i in connected if ase_atom[i].symbol in transition_metals()]
+                if len(metal) > 0:
+                    for met in metal:
+                        atom_pairs_at_breaking_point[atoms] = met
+                        bonds_to_break.append([atoms, met])
+
+        if atoms in list(all_phosphates.keys()):
+            seen_phosphorous.append(atoms)
             connected = graph[atoms]
-            metal = [
-                i for i in connected if ase_atom[i].symbol in transition_metals()]
-            if len(metal) > 0:
-                for met in metal:
-                    atom_pairs_at_breaking_point[atoms] = met
-                    bonds_to_break.append([atoms, met])
+            all_carbon_indices = [
+                i for i in connected if ase_atom[i].symbol == 'C']
+            all_nitrogens = [i for i in connected if ase_atom[i].symbol == 'N']
+            S_indx = [i for i in connected if ase_atom[i].symbol == 'S']
+            if len(all_carbon_indices) == 1:
+                bonds_to_break.append([atoms] + all_carbon_indices)
+                atom_pairs_at_breaking_point[atoms] = all_carbon_indices[0]
+            if len(all_nitrogens) == 1:
+                bonds_to_break.append([atoms] + all_nitrogens)
+                atom_pairs_at_breaking_point[atoms] = all_nitrogens[0]
+            if len(S_indx) == 1:
+                bonds_to_break.append([atoms] + S_indx)
+                atom_pairs_at_breaking_point[atoms] = S_indx[0]
 
         if ase_atom[atoms].symbol == 'P':
             '''
@@ -653,23 +770,26 @@ def secondary_building_units(ase_atom):
             2) Look for all it's neigbours
             3) Look for neigbours that are not connected to metal or hydrogen.
             '''
-            connected = graph[atoms]
-            # not_connected_to_metal_or_hygrogen = [[i for i in graph[j] if ase_atom[i].symbol not in transition_metals() or ase_atom[i].symbol != 'H'] for j in connected]
+            # seen = list(all_phosphates.keys())
+            if atoms not in seen_phosphorous:
+                connected = graph[atoms]
+                # not_connected_to_metal_or_hygrogen = [[i for i in graph[j] if ase_atom[i].symbol not in transition_metals() or ase_atom[i].symbol != 'H'] for j in connected]
 
-            metal_oxy = [[i for i in graph[j] if ase_atom[i].symbol in transition_metals()]
-                         for j in connected]
+                metal_oxy = [[i for i in graph[j] if ase_atom[i].symbol in transition_metals()]
+                             for j in connected]
 
-            metal = sum(metal_oxy, [])
-            closest_atoms = sum(
-                [[i for i in graph[j] if i != atoms and not ase_atom[i].symbol in transition_metals()] for j in connected], [])
+                metal = sum(metal_oxy, [])
+                metal = [i for i in metal if i not in porphyrin_checker]
+                closest_atoms = sum(
+                    [[i for i in graph[j] if i != atoms and not ase_atom[i].symbol in transition_metals()] for j in connected], [])
 
-            if len(metal) > 0:
-                all_carbon_indices = sum([[i for i in graph[j] if i in connected]
-                                          for j in closest_atoms], [])
-                for frag in all_carbon_indices:
-                    atom_pairs_at_breaking_point[atoms] = frag
-                    atom_pairs_at_breaking_point[frag] = atoms
-                    bonds_to_break.append([atoms, frag])
+                if len(metal) > 0:
+                    all_carbon_indices = sum([[i for i in graph[j] if i in connected]
+                                              for j in closest_atoms], [])
+                    for frag in all_carbon_indices:
+                        atom_pairs_at_breaking_point[atoms] = frag
+                        atom_pairs_at_breaking_point[frag] = atoms
+                        bonds_to_break.append([atoms, frag])
 
         if ase_atom[atoms].symbol == 'B':
             '''
@@ -681,6 +801,7 @@ def secondary_building_units(ase_atom):
                          for j in connected]
 
             metal_connect = sum(metal_oxy, [])
+            metal = [i for i in metal if i not in porphyrin_checker]
             if len(metal_connect) > 0:
                 for frag in metal_connect:
                     atom_pairs_at_breaking_point[frag[0]] = frag[1]
@@ -737,15 +858,18 @@ def ligands_and_metal_clusters(ase_atom):
     bonds_to_break = []
     carboxylates = find_carboxylates(ase_atom)
     all_sulphates = find_carbonyl_sulphate(ase_atom)
-    Seen_oxygen = []
+    all_sulfides = find_sulfides(ase_atom)
+    all_phosphates = find_phosphate(ase_atom)
+    seen_sulphure = sum(list(all_sulfides.values()), [])
+
     for atoms in graph:
         if atoms in list(carboxylates.keys()):
             oxygen = carboxylates[atoms]
             for oxy in oxygen:
                 metal = [i for i in graph[oxy]
                          if ase_atom[i].symbol in transition_metals()]
+                metal = [i for i in metal if i not in porphyrin_checker]
                 if len(metal) > 0:
-                    Seen_oxygen.append(oxy)
                     for met in metal:
                         bonds_to_break.append([atoms] + [met])
                         atom_pairs_at_breaking_point[atoms] = met
@@ -757,36 +881,52 @@ def ligands_and_metal_clusters(ase_atom):
             for oxy in oxygen:
                 metal = [i for i in graph[oxy]
                          if ase_atom[i].symbol in transition_metals()]
+                metal = [i for i in metal if i not in porphyrin_checker]
                 if len(metal) > 0:
                     for met in metal:
                         bonds_to_break.append([oxy] + [met])
                         atom_pairs_at_breaking_point[oxy] = met
 
-        if ase_atom[atoms].symbol == 'N':
+        if atoms in list(all_sulfides.keys()):
+            sulphure = all_sulfides[atoms]
             connected = graph[atoms]
-            metal = [
-                i for i in connected if ase_atom[i].symbol in transition_metals()]
-            if len(metal) > 0 and atoms not in porphyrin_checker:
-                for met in metal:
-                    bonds_to_break.append([atoms, met])
-                    atom_pairs_at_breaking_point[atoms] = met
+            for sulf in sulphure:
+                metal = [i for i in graph[sulf]
+                         if ase_atom[i].symbol in transition_metals()]
+                metal = [i for i in metal if i not in porphyrin_checker]
+                if len(metal) > 0:
+                    for met in metal:
+                        bonds_to_break.append([sulf, met])
+                        atom_pairs_at_breaking_point[sulf] = met
+
+        if ase_atom[atoms].symbol == 'N':
+            if atoms not in porphyrin_checker:
+                connected = graph[atoms]
+                metal = [
+                    i for i in connected if ase_atom[i].symbol in transition_metals()]
+                if len(metal) > 0 and atoms not in porphyrin_checker:
+                    for met in metal:
+                        bonds_to_break.append([atoms, met])
+                        atom_pairs_at_breaking_point[atoms] = met
                 # atom_pairs_at_breaking_point [metal[0]] = atoms
 
         if ase_atom[atoms].symbol == 'S':
-            connected = graph[atoms]
-            metal = [
-                i for i in connected if ase_atom[i].symbol in transition_metals()]
-            if len(metal) > 0:
+            if atoms not in seen_sulphure:
+                connected = graph[atoms]
+                metal = [
+                    i for i in connected if ase_atom[i].symbol in transition_metals()]
+                metal = [i for i in metal if i not in porphyrin_checker]
                 if len(metal) > 0:
                     for met in metal:
                         bonds_to_break.append([atoms] + [met])
                         atom_pairs_at_breaking_point[atoms] = met
 
         if ase_atom[atoms].symbol == 'O':
-            # if not atoms in Seen_oxygen:
+
             connected = graph[atoms]
             metal = [
                 i for i in connected if ase_atom[i].symbol in transition_metals()]
+            metal = [i for i in metal if i not in porphyrin_checker]
             Nitrogen = [i for i in connected if ase_atom[i].symbol == 'N']
             carbon = [i for i in connected if ase_atom[i].symbol == 'C']
             if len(metal) > 0 and len(carbon) == 1:
@@ -811,18 +951,20 @@ def ligands_and_metal_clusters(ase_atom):
             '''
             Find the carbon closest to P, which is not bonded to a metal and cut
             '''
-            connected = [i for i in graph[atoms]
-                         if ase_atom[i].symbol not in transition_metals()]
-            metal_oxy = [[i for i in graph[j] if ase_atom[i].symbol in transition_metals()]
-                         for j in connected]
+            if atoms not in list(all_phosphates.keys()):
+                connected = [i for i in graph[atoms]
+                             if ase_atom[i].symbol not in transition_metals()]
+                metal_oxy = [[i for i in graph[j] if ase_atom[i].symbol in transition_metals()]
+                             for j in connected]
 
-            metal = sum(metal_oxy, [])
-            closest_atoms = sum([[[i, j] for i in graph[j] if i != atoms and ase_atom[i].symbol in
-                                  transition_metals()]for j in connected], [])
+                metal = sum(metal_oxy, [])
+                metal = [i for i in metal if i not in porphyrin_checker]
+                closest_atoms = sum([[[i, j] for i in graph[j] if i != atoms and ase_atom[i].symbol in
+                                    transition_metals()]for j in connected], [])
 
-            for frag in closest_atoms:
-                bonds_to_break.append(frag)
-                atom_pairs_at_breaking_point[frag[0]] = frag[1]
+                for frag in closest_atoms:
+                    bonds_to_break.append(frag)
+                    atom_pairs_at_breaking_point[frag[0]] = frag[1]
 
     for bonds in bonds_to_break:
         bond_matrix[bonds[0], bonds[1]] = 0
