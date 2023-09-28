@@ -95,6 +95,7 @@ gitpython==3.1.24         # via -r requirements.txt, nomad-lab (pyproject.toml)
 greenlet==2.0.1           # via -r requirements.txt, sqlalchemy
 griddataformats==0.7.0    # via -r requirements.txt, mdanalysis
 gsd==2.7.0                # via -r requirements.txt, mdanalysis
+gunicorn==21.2.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 h11==0.14.0               # via -r requirements.txt, httpcore, uvicorn
 h5grove[fastapi]==1.3.0   # via -r requirements.txt, nomad-lab (pyproject.toml)
 h5py==3.6.0               # via -r requirements.txt, h5grove, hyperspy, ifes-apt-tc-data-modeling, kikuchipy, nionswift, nomad-lab (pyproject.toml), orix, phonopy, pyfai, silx
@@ -195,7 +196,7 @@ openpyxl==3.1.2           # via -r requirements.txt, nomad-lab (pyproject.toml)
 optimade[mongo]==0.22.1   # via -r requirements.txt, nomad-lab (pyproject.toml)
 orix==0.11.1              # via -r requirements.txt, diffsims, kikuchipy, pyxem
 orjson==3.9.4             # via -r requirements.txt, h5grove, nomad-lab (pyproject.toml)
-packaging==23.0           # via -r requirements.txt, build, dask, docker, hyperspy, ipykernel, matplotlib, mdanalysis, mkdocs, mongomock, pint, pooch, pytest, scikit-image, sphinx
+packaging==23.0           # via -r requirements.txt, build, dask, docker, gunicorn, hyperspy, ipykernel, matplotlib, mdanalysis, mkdocs, mongomock, pint, pooch, pytest, scikit-image, sphinx
 palettable==3.3.0         # via -r requirements.txt, pymatgen
 pamela==1.0.0             # via -r requirements.txt, jupyterhub
 pandas==1.3.5             # via -r requirements.txt, ifes-apt-tc-data-modeling, nomad-lab (pyproject.toml), panedr, pymatgen, xarray

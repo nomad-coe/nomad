@@ -24,8 +24,6 @@ gui:
 
 app:
   replicas: 4
-  worker: 4
-  threads: 4
   nomadNodeType: "public"
 
 worker:

@@ -150,6 +150,10 @@ class Services(NomadSettings):
     api_secret = Field('defaultApiSecret', description='''
         A secret that is used to issue download and other tokens.
     ''')
+    api_timeout = Field(120, description='''
+        If the NOMAD app is run with gunicorn as process manager, this timeout (in s) is passed
+        and worker processes will be restarted, if they do not respond in time.
+    ''')
     https = Field(False, description='''
         Set to `True`, if external clients are using *SSL* to connect to this installation.
         Requires to setup a reverse-proxy (e.g. the one used in the docker-compose

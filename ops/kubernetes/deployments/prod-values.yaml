@@ -28,8 +28,8 @@ gui:
         exclude: ["relatedResources", "workflow"]
 
 app:
-  replicas: 8
-  worker: 4
+  replicas: 4
+  worker: 8
   nomadNodeType: "public"
 
 worker:

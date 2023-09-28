@@ -10,7 +10,7 @@ metadata:
 data:
   uvicorn.log.conf: |
     [loggers]
-    keys=root, uvicorn.access
+    keys=root, uvicorn.access, gunicorn.access
 
     [handlers]
     keys=console, logstash
@@ -26,6 +26,11 @@ data:
     level=INFO
     handlers=console, logstash
     qualname=uvicorn.access
+
+    [logger_gunicorn.access]
+    level=INFO
+    handlers=console, logstash
+    qualname=gunicorn.access
 
     [handler_console]
     class=StreamHandler
@@ -172,15 +177,15 @@ spec:
             path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
           initialDelaySeconds: 60
-          periodSeconds: 30
-          timeoutSeconds: 5
+          periodSeconds: 60
+          timeoutSeconds: {{ .Values.proxy.timeout }}
         readinessProbe:
           httpGet:
             path: "{{ .Values.proxy.external.path }}/alive"
             port: 8000
           initialDelaySeconds: 60
-          periodSeconds: 15
-          timeoutSeconds: 5
+          periodSeconds: 30
+          timeoutSeconds: 15
       nodeSelector:
         nomadtype: {{ .Values.app.nomadNodeType }}
       imagePullSecrets:

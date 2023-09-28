@@ -163,16 +163,18 @@ spec:
           name: log
         livenessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/gui/index.html"
+            path: "{{ .Values.proxy.external.path }}/alive"
             port: 80
           initialDelaySeconds: 60
-          periodSeconds: 15
+          periodSeconds: 60
+          timeoutSeconds: {{ .Values.proxy.timeout }}
         readinessProbe:
           httpGet:
-            path: "{{ .Values.proxy.external.path }}/gui/index.html"
+            path: "{{ .Values.proxy.external.path }}/alive"
             port: 80
           initialDelaySeconds: 60
-          periodSeconds: 3
+          periodSeconds: 30
+          timeoutSeconds: 10
       nodeSelector:
         nomadtype: public
       volumes:

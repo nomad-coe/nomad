@@ -20,7 +20,6 @@ gui:
 
 app:
   replicas: 2
-  worker: 4
 
 worker:
   replicas: 1
