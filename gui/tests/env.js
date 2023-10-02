@@ -11,6 +11,7 @@ window.nomadEnv = {
   "version": {},
   "globalLoginRequired": false,
   "servicesUploadLimit": 10,
+  "appTokenMaxExpiresIn": 86400,
   "ui": {
     "app_base": "http://localhost:8000/fairdi/nomad/latest",
     "north_base": "http://localhost:9000/fairdi/nomad/latest/north",
