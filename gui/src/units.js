@@ -600,6 +600,19 @@ export class Quantity {
   toSystem(system) {
     return new Quantity(this.normalized_value, this.unit.toSystem(system), true)
   }
+
+  /**
+   * Checks if the given Quantity is equal to this one.
+   * @param {Quantity} quantity Quantity to compare to
+   * @returns boolean Whether quantities are equal
+   */
+  equal(quantity) {
+    if (quantity instanceof Quantity) {
+      return this.normalized_value === quantity.normalized_value && this.unit.equalBase(quantity.unit)
+    } else {
+      throw Error('The given value is not an instance of Quantity.')
+    }
+  }
 }
 
 /**

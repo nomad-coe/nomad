@@ -593,8 +593,8 @@ export function serializeMetainfo(quantity, value, units) {
 /**
  * Returns a function that can be used to deserialize values for a given datatype.
  * @param {string} dtype The datatype
- * @param {bool} pretty Whether to deserialize using a prettier, but possibly
- * lossy format.
+ * @param {string} dimension Optional dimension for the filter. Used to
+ *   determine default unit when a dimensionless value is given.
  *
  * @return {func} Function for deserializing values with the given datatype.
  */
@@ -611,10 +611,10 @@ export function getDeserializer(dtype, dimension) {
           throw Error(`Could not parse the number ${split[0]}`)
         }
         return split.length === 1
-          ? new Quantity(value, units?.[dimension] || 'dimensionless')
+          ? new Quantity(value, units?.[dimension]?.name || 'dimensionless')
           : new Quantity(value, split[1])
       } if (isNumber(value)) {
-        return new Quantity(value, units?.[dimension] || 'dimensionless')
+        return new Quantity(value, units?.[dimension]?.name || 'dimensionless')
       }
       return value
     }
