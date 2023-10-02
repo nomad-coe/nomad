@@ -18,6 +18,8 @@
 
 import pytest
 
+from nomad import config
+
 
 def test_alive(client):
     rv = client.get('/alive')
@@ -27,13 +29,28 @@ def test_alive(client):
 def test_docs(client):
     rv = client.get('/docs/index.html')
     assert rv.status_code == 200
-    assert 'no-cache, no-store, must-revalidate' in rv.headers['Cache-Control']
-    rv = client.get('/docs/oasis.html')
+    assert 'max-age=0, must-revalidate' in rv.headers['Cache-Control']
+    assert 'Etag' in rv.headers
+
+    rv = client.get('/docs/assets/favicon.png')
     assert rv.status_code == 200
-    assert 'Cache-Control' not in rv.headers
+    assert f'max-age={config.services.image_resource_http_max_age}, must-revalidate' in rv.headers['Cache-Control']
+    assert 'Etag' in rv.headers
 
 
 @pytest.mark.parametrize('path', ['env.js', 'artifacts.js'])
-def test_gui(client, path):
+def test_gui(client, path, monkeypatch):
+    monkeypatch.setattr('nomad.app.main.GuiFiles.gui_env_data', 'env.js')
+    monkeypatch.setattr('nomad.app.main.GuiFiles.gui_artifacts_data', 'artifacts.js')
+    monkeypatch.setattr('nomad.app.main.GuiFiles.gui_data_etag', 'etag')
+
     rv = client.get(f'/gui/{path}')
+    assert rv.status_code == 200
+    assert rv.text == path
+    assert rv.headers.get('Etag') == 'etag'
+
+    rv = client.get(f'/gui/{path}', headers={'if-none-match': 'etag'})
+    assert rv.status_code == 304
+
+    rv = client.get(f'/gui/{path}', headers={'if-none-match': 'different-etag'})
     assert rv.status_code == 200

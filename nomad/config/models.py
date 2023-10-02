@@ -206,6 +206,10 @@ class Services(NomadSettings):
         Maximum expiration time for an app token in seconds. Requests with a higher value
         will be declined.
     ''')
+    image_resource_http_max_age = Field(7 * 24 * 60 * 60, description='''
+        Used for the max_age cache-control directive on statically served image
+        resources.
+    ''')
 
 
 class Meta(NomadSettings):

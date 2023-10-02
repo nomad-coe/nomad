@@ -16,7 +16,9 @@
 # limitations under the License.
 #
 
+import re
 import os
+import hashlib
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
@@ -25,6 +27,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
+from starlette.datastructures import Headers
 
 from nomad import config, infrastructure
 from .dcat.main import app as dcat_app
@@ -79,27 +82,58 @@ configured_gui_folder = os.path.join(gui_folder, '../.gui_configured')
 if os.path.exists(configured_gui_folder):
     gui_folder = configured_gui_folder
 
-app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder, check_dir=False), name='dist', )
-app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs')
-
 
 class GuiFiles(StaticFiles):
 
     gui_artifacts_data = None
     gui_env_data = None
+    gui_data_etag = None
 
     async def get_response(self, path: str, scope) -> Response:
+        if path not in ['env.js', 'artifacts.js']:
+            return await super().get_response(path, scope)
+
+        request_headers = Headers(scope=scope)
+        client_etag = None
+        if 'if-none-match' in request_headers:
+            client_etag = request_headers['if-none-match']
+        if 'if-match' in request_headers:
+            client_etag = request_headers['if-match']
+
+        status_code = 200
+        if client_etag == GuiFiles.gui_data_etag:
+            if 'if-none-match' in request_headers:
+                status_code = 304
+            if 'if-match' in request_headers:
+                status_code = 412
+
+        assert GuiFiles.gui_data_etag is not None, 'Etag for gui data was not initialized'
+
+        if status_code != 200:
+            return Response(
+                status_code=status_code,
+                media_type='application/javascript',
+                headers=dict(Etag=GuiFiles.gui_data_etag))
+
         if path == 'env.js':
             return PlainTextResponse(
-                GuiFiles.gui_env_data, status_code=200, media_type='application/javascript')
+                GuiFiles.gui_env_data,
+                status_code=status_code,
+                media_type='application/javascript',
+                headers=dict(Etag=GuiFiles.gui_data_etag))
 
         if path == 'artifacts.js':
             return PlainTextResponse(
-                GuiFiles.gui_artifacts_data, status_code=200, media_type='application/javascript')
+                GuiFiles.gui_artifacts_data,
+                status_code=status_code,
+                media_type='application/javascript',
+                headers=dict(Etag=GuiFiles.gui_data_etag))
 
         return await super().get_response(path, scope)
 
 
+app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder, check_dir=False), name='dist', )
+app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs')
 app.mount(f'{app_base}/gui', GuiFiles(directory=gui_folder, check_dir=False), name='gui')
 
 
@@ -122,6 +156,10 @@ async def startup_event():
 
     from nomad.cli.dev import get_gui_config
     GuiFiles.gui_env_data = get_gui_config()
+
+    gui_data = GuiFiles.gui_env_data + GuiFiles.gui_artifacts_data
+    GuiFiles.gui_data_etag = hashlib.md5(
+        gui_data.encode(), usedforsecurity=False).hexdigest()
 
     infrastructure.setup()
 
@@ -188,11 +226,26 @@ async def health():
     return {'healthcheck': 'ok'}
 
 
+max_cache_ages = {
+    r'\.[a-f0-9]+\.chunk\.(js|css)$': 3600 * 24 * 7,
+    r'\.(html|js|css)$': 0,
+    r'\.(png|jpg|gif|jpeg|ico)$': config.services.image_resource_http_max_age,
+}
+
+
 @app.middleware('http')
 async def add_header(request: Request, call_next):
     response = await call_next(request)
-    if str(request.url).endswith('index.html'):
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    if str(request.url).endswith('.js'):
-        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+
+    max_age = None
+    for key, value in max_cache_ages.items():
+        if re.search(key, str(request.url)):
+            max_age = value
+            break
+
+    if max_age is not None:
+        response.headers['Cache-Control'] = f'max-age={max_age}, must-revalidate'
+    else:
+        response.headers['Cache-Control'] = f'max-age=0, no-cache, no-store, must-revalidate'
+
     return response
