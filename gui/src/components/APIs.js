@@ -19,6 +19,7 @@ import { makeStyles } from '@material-ui/core'
 import React from 'react'
 import { apiBase, appBase } from '../config'
 import Markdown from './Markdown'
+import AppTokenForm from './AppTokenForm'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -54,6 +55,19 @@ export default function About() {
       Another [tutorial covers how to install and use NOMAD's Python client library](${appBase}/docs/archive_tutorial.html).
       The [NOMAD Analytics Toolkit](https://nomad-lab.eu/AIToolkit) allows to use
       this without installation and directly on NOMAD servers.
+
+      ###  App token
+
+      Next to the usual access token based on OpenID Connect, we provide an
+      [app token](${appBase}/docs/apis/api.html#app-token) with custom expiration date.
+      You may request one via the [API](${apiBase}/v1/extensions/docs) or the following form:
+    `}</Markdown>
+
+    <AppTokenForm />
+
+    <Markdown>{`
+
+      ### Old API
 
       You can still use NOMAD's old REST API. The data it provides might miss the most
       recent contributions:

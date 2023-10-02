@@ -204,7 +204,7 @@ def parser_metadata():
 
 
 def get_gui_config() -> str:
-    '''Create a simplified and strippped version of the nomad.yaml contents that
+    '''Create a simplified and stripped version of the nomad.yaml contents that
     is used by the GUI.
 
     Args:
@@ -227,6 +227,7 @@ def get_gui_config() -> str:
         'version': config.meta.beta if config.meta.beta else {},
         'globalLoginRequired': config.oasis.allowed_users is not None,
         'servicesUploadLimit': config.services.upload_limit,
+        'appTokenMaxExpiresIn': config.services.app_token_max_expires_in,
         'ui': config.ui.dict(exclude_none=True) if config.ui else {}
     }
 
