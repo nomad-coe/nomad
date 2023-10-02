@@ -137,6 +137,8 @@ export const Range = React.memo(({
   const [range, setRange] = useState({gte: undefined, lte: undefined})
   const [minError, setMinError] = useState(false)
   const [maxError, setMaxError] = useState(false)
+  const [minInclusive, setMinInclusive] = useState(true)
+  const [maxInclusive, setMaxInclusive] = useState(true)
   const highlight = Boolean(filter)
   const inputVariant = useRecoilValue(guiState('inputVariant'))
   disableHistogram = isNil(disableHistogram) ? !isStatisticsEnabled : disableHistogram
@@ -183,12 +185,12 @@ export const Range = React.memo(({
   // Aggregation when the statistics are enabled: a histogram aggregation with
   // extended bounds based on the currently set filter range. Note: the config
   // should be memoed in order to prevent re-renders.
-  const minRef = useRef(fromFilter(filter?.gte))
-  const maxRef = useRef(fromFilter(filter?.lte))
+  const minRef = useRef(fromFilter(isNil(filter?.gte) ? filter?.gt : filter?.gte))
+  const maxRef = useRef(fromFilter(isNil(filter?.lte) ? filter?.lt : filter?.lte))
   const aggHistogramConfig = useMemo(() => {
     const filterBounds = (filter) ? {
-      min: fromFilter(filter.gte),
-      max: fromFilter(filter.lte)
+      min: fromFilter(isNil(filter.gte) ? filter.gt : filter.gte),
+      max: fromFilter(isNil(filter.lte) ? filter.lt : filter.lte)
     } : undefined
     let exclude_from_search
     let extended_bounds
@@ -324,6 +326,8 @@ export const Range = React.memo(({
     let gte
     let min
     let max
+    let minInc = true
+    let maxInc = true
 
     // Helper functions for determining the min/max boundaries.
     const limit = (global, filter, min) => {
@@ -350,10 +354,17 @@ export const Range = React.memo(({
         lte = filter.toSI().value()
         min = limitMin(minGlobalSI, gte)
         max = limitMax(maxGlobalSI, lte)
-      // A range is given
+      // A range is given. For visualization purposes open-ended queries are
+      // displayed as well, although making such queries is currently not
+      // supported.
       } else {
-        gte = filter.gte instanceof Quantity ? filter.gte.toSI().value() : filter.gte
-        lte = filter.lte instanceof Quantity ? filter.lte.toSI().value() : filter.lte
+        minInc = isNil(filter.gt)
+        maxInc = isNil(filter.lt)
+        gte = filter.gte || filter.gt
+        lte = filter.lte || filter.lt
+        gte = gte instanceof Quantity ? gte.toSI().value() : gte
+        lte = lte instanceof Quantity ? lte.toSI().value() : lte
+
         if (isNil(gte)) {
           min = limitMin(minGlobalSI, lte)
           gte = min
@@ -369,6 +380,8 @@ export const Range = React.memo(({
       }
       minRef.current = min
       maxRef.current = max
+      setMinInclusive(minInc)
+      setMaxInclusive(maxInc)
       setMinLocal(min)
       setMaxLocal(max)
       setRange({gte: gte, lte: lte})
@@ -512,6 +525,8 @@ export const Range = React.memo(({
       setRange({gte: value[0], lte: value[1]})
       setMinInput(toInternal(value[0]))
       setMaxInput(toInternal(value[1]))
+      setMinInclusive(true)
+      setMaxInclusive(true)
       setMaxError()
       setMinError()
     }
@@ -634,6 +649,8 @@ export const Range = React.memo(({
               handleRangeChange(event, value, false)
               handleRangeCommit(event, value)
             }}
+            minXInclusive={minInclusive}
+            maxXInclusive={maxInclusive}
             data-testid={`${testID}-histogram`}
           />
         }

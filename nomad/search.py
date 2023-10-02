@@ -1087,8 +1087,14 @@ def _buckets_to_interval(
         interval = None
         extended_bounds = agg.extended_bounds
         if agg.extended_bounds:
-            min_value = extended_bounds.min if min_value is None else min(min_value, extended_bounds.min)
-            max_value = extended_bounds.max if max_value is None else max(max_value, extended_bounds.max)
+            if min_value is not None and extended_bounds.min is not None:
+                min_value = min(min_value, extended_bounds.min)
+            else:
+                min_value = extended_bounds.min if min_value is None else min_value
+            if max_value is not None and extended_bounds.max is not None:
+                max_value = max(max_value, extended_bounds.max)
+            else:
+                max_value = extended_bounds.max if max_value is None else max_value
         if min_value is not None and max_value is not None:
             interval = 0 if max_value == min_value else ((1 + 1e-8) * max_value - min_value) / agg.buckets
             quantity = validate_quantity(agg.quantity, doc_type=index.doc_type)
