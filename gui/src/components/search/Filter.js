@@ -165,7 +165,7 @@ export class Filter {
     this.customSerialization = !!params?.serializerExact
     this.serializerExact = params?.serializerExact || getSerializer(this.dtype, false)
     this.serializerPretty = params?.serializerPretty || getSerializer(this.dtype, true)
-    this.deserializer = params?.deserializer || getDeserializer(this.dtype, def?.dimension)
+    this.deserializer = params?.deserializer || getDeserializer(this.dtype, this.dimension)
     this.aggregatable = def?.aggregatable === undefined ? false : def?.aggregatable
     this.widget = params?.widget || getWidgetConfig(this.dtype, def?.aggregatable)
 
