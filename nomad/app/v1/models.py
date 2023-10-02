@@ -883,11 +883,11 @@ class TermsAggregation(BucketAggregation):
 
 
 class Bounds(BaseModel):
-    min: float = Field(
+    min: Optional[float] = Field(
         description=strip('''
         Start value for the histogram.
         '''))
-    max: float = Field(
+    max: Optional[float] = Field(
         description=strip('''
         Ending value for the histogram.
         '''))
@@ -896,8 +896,9 @@ class Bounds(BaseModel):
     def check_order(cls, values):  # pylint: disable=no-self-argument
         min = values.get('min')
         max = values.get('max')
-        if min > max:
-            raise ValueError('The maximum value should be greater than the minimum value.')
+        if min is not None and max is not None:
+            if min > max:
+                raise ValueError('The maximum value should be greater than the minimum value.')
         return values
 
 

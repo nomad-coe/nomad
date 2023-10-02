@@ -113,11 +113,28 @@ const PlotHistogram = React.memo(({
   onRangeChange,
   onRangeCommit,
   onClick,
+  minXInclusive,
+  maxXInclusive,
   className,
   classes,
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
+  const useDynamicStyles = makeStyles((theme) => {
+    const color = highlight ? theme.palette.secondary.main : theme.palette.primary.main
+    return {
+      thumb: {
+        'border': `2px solid ${color}`,
+        '&[data-index="0"]': {
+          backgroundColor: minXInclusive ? color : 'white'
+        },
+        '&[data-index="1"]': {
+          backgroundColor: maxXInclusive ? color : 'white'
+        }
+      }
+    }
+  })
+  const dynamicStyles = useDynamicStyles()
   const scaler = useMemo(() => getScaler(scale), [scale])
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const oldRangeRef = useRef()
@@ -330,7 +347,7 @@ const PlotHistogram = React.memo(({
               onChange={handleRangeChange}
               onChangeCommitted={handleRangeCommit}
               valueLabelDisplay="off"
-              classes={{thumb: styles.thumb}}
+              classes={{thumb: styles.thumb && dynamicStyles.thumb}}
               className={styles.slider}
             />
           }
@@ -374,6 +391,10 @@ PlotHistogram.propTypes = {
   disableSlider: PropTypes.bool,
   /* Function to call when a histogram bar has been clicked */
   onClick: PropTypes.func,
+  /* Whether the min slider is inclusive (=min value is included) */
+  minXInclusive: PropTypes.bool,
+  /* Whether the max slider is inclusive (=max value is included) */
+  maxXInclusive: PropTypes.bool,
   onRangeChange: PropTypes.func,
   onRangeCommit: PropTypes.func,
   className: PropTypes.string,
