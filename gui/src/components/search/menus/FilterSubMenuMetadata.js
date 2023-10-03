@@ -229,6 +229,14 @@ const FilterSubMenuMetadata = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
+          quantity="upload_name"
+          visible={visible}
+          disableStatistics
+          disableOptions
+        />
+      </InputGridItem>
+      <InputGridItem xs={12}>
+        <InputField
           quantity="results.material.material_id"
           visible={visible}
           disableStatistics

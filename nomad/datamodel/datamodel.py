@@ -398,7 +398,10 @@ class EntryMetadata(MSection):
     upload_name = Quantity(
         type=str, categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The user provided upload name',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion="default"),
+        ])
 
     upload_create_time = Quantity(
         type=Datetime, categories=[MongoUploadMetadata, EditableUserMetadata],
