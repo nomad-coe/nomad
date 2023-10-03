@@ -16,7 +16,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "suggestion": true
     },
     "upload_create_time": {
       "name": "upload_create_time",
@@ -61303,7 +61304,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "upload_name"
+                    "upload_name",
+                    "upload_name__suggestion"
                   ]
                 },
                 "name": "upload_name",
