@@ -41,7 +41,7 @@ import { WidgetScatterPlotEdit, schemaWidgetScatterPlot } from './WidgetScatterP
 import { WidgetHistogramEdit, schemaWidgetHistogram } from './WidgetHistogram'
 import { WidgetTermsEdit, schemaWidgetTerms } from './WidgetTerms'
 import { WidgetPeriodicTableEdit, schemaWidgetPeriodicTable } from './WidgetPeriodicTable'
-import { JsonEditor } from '../../archive/SectionEditor'
+import InputConfig from '../input/InputConfig'
 import Markdown from '../../Markdown'
 import { isArray } from 'lodash'
 import { getWidgetsObject } from './Widget'
@@ -106,9 +106,9 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
-      type: 'scatterplot',
       size: 1000,
-      autorange: true
+      autorange: true,
+      type: 'scatterplot'
     }
     addWidget(id, value)
   }, [addWidget])
@@ -129,9 +129,9 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
-      type: 'periodictable',
+      scale: 'linear',
       quantity: 'results.material.elements',
-      scale: 'linear'
+      type: 'periodictable'
     }
     addWidget(id, value)
   }, [addWidget])
@@ -152,10 +152,10 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
-      type: 'histogram',
       autorange: false,
       nbins: 30,
-      scale: 'linear'
+      scale: 'linear',
+      type: 'histogram'
     }
     addWidget(id, value)
   }, [addWidget])
@@ -176,8 +176,8 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
-      type: 'terms',
-      scale: 'linear'
+      scale: 'linear',
+      type: 'terms'
     }
     addWidget(id, value)
   }, [addWidget])
@@ -224,12 +224,12 @@ const Dashboard = React.memo(() => {
         </Action>
         <Action
           tooltip=""
-          ButtonComponent={DashboardJSONButton}
+          ButtonComponent={DashboardExportButton}
           ButtonProps={{
             tooltip: "Dashboard export/import",
             title: "Dashboard export/import",
             DialogProps: {
-              maxWidth: "lg",
+              maxWidth: "md",
               fullWidth: true
             },
             ButtonProps: {
@@ -279,13 +279,20 @@ DashboardAction.propTypes = {
   children: PropTypes.node
 }
 
+const schemas = {
+  scatterplot: schemaWidgetScatterPlot,
+  periodictable: schemaWidgetPeriodicTable,
+  histogram: schemaWidgetHistogram,
+  terms: schemaWidgetTerms
+}
+
 /**
  * A button that displays a dialog that can be used to modify the current
  * dashboard setup.
  */
-export const DashboardJSONButton = React.memo((props) => {
+export const DashboardExportButton = React.memo((props) => {
   const {tooltip, title, DialogProps, ButtonProps} = props
-  const { useWidgetsState } = useSearchContext()
+  const {useWidgetsState} = useSearchContext()
   const [widgets, setWidgets] = useWidgetsState()
   const [widgetExport, setWidgetExport] = useState()
   const [widgetImport, setWidgetImport] = useState()
@@ -298,13 +305,19 @@ export const DashboardJSONButton = React.memo((props) => {
     const exp = Object
       .values(widgets)
       .map((widget) => {
-        const schemas = {
-          scatterplot: schemaWidgetScatterPlot,
-          periodictable: schemaWidgetPeriodicTable,
-          histogram: schemaWidgetHistogram,
-          terms: schemaWidgetTerms
+        const schema = schemas[widget.type]
+        const casted = schema?.cast(widget, {stripUnknown: true})
+        // Perform custom sort: type first, layout last
+        const sorted = {}
+        if (casted['type']) sorted['type'] = casted['type']
+        const fields = new Set(['type', 'layout'])
+        for (const [key, value] of Object.entries(casted)) {
+          if (!fields.has(key)) {
+            sorted[key] = value
+          }
         }
-        return schemas[widget.type]?.cast(widget, {stripUnknown: true})
+        if (casted['layout']) sorted['layout'] = casted['layout']
+        return sorted
       })
       setWidgetExport(exp)
   }, [open, widgets])
@@ -315,12 +328,6 @@ export const DashboardJSONButton = React.memo((props) => {
     let error
     for (const widget of data) {
       const type = widget.type
-      const schemas = {
-        scatterplot: schemaWidgetScatterPlot,
-        periodictable: schemaWidgetPeriodicTable,
-        histogram: schemaWidgetHistogram,
-        terms: schemaWidgetTerms
-      }
       const schema = schemas[type]
       if (!schema) return
       try {
@@ -355,13 +362,16 @@ export const DashboardJSONButton = React.memo((props) => {
     <Dialog {...DialogProps} open={open}>
       {title && <DialogTitle>{title}</DialogTitle>}
       <DialogContent>
-        <Markdown text="The current dashboard configuration in JSON. You can modify it here directly and save it to update the dashboard."/>
-        <JsonEditor
+        <Markdown text="The current dashboard configuration in YAML. You can modify it here directly and save it to update the dashboard."/>
+        <InputConfig
           data={widgetExport}
+          format='YAML'
+          maxRows={30}
+          minRows={30}
           onChange={handleChange}
           error={widgetImportError}
           onError={setWidgetImportError}
-        ></JsonEditor>
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={() => setOpen(false)}>
@@ -374,7 +384,7 @@ export const DashboardJSONButton = React.memo((props) => {
     </Dialog>
   </ContentButton>
 })
-DashboardJSONButton.propTypes = {
+DashboardExportButton.propTypes = {
   label: PropTypes.string,
   title: PropTypes.string,
   tooltip: PropTypes.string,

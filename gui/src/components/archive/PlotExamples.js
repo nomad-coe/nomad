@@ -22,7 +22,7 @@ import { Code } from '../buttons/SourceDialogButton'
 import { stripIndent } from '../../utils'
 import { SectionPlots } from './ArchiveBrowser'
 import { useGlobalMetainfo } from './metainfo'
-import { JsonEditor } from './SectionEditor'
+import InputConfig from '../search/input/InputConfig'
 import Typography from '@material-ui/core/Typography'
 
 const pvdSection = {
@@ -237,7 +237,7 @@ export function PlotExamples() {
           </Card>
         </Box>
         <Box width={'50%'} marginLeft={6} marginRight={6}>
-          <JsonEditor
+          <InputConfig
             data={plots[index]}
             onChange={data => handleJsonChange(data, index)}
           />

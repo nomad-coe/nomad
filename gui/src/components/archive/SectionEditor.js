@@ -16,70 +16,18 @@
  * limitations under the License.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useRef } from 'react'
 import PropTypes from 'prop-types'
-import { Box, makeStyles, TextField } from '@material-ui/core'
+import { Box, makeStyles } from '@material-ui/core'
 import { useEntryStore } from '../entry/EntryContext'
-import { extend, isNil } from 'lodash'
+import { extend } from 'lodash'
 import ListEditQuantity from '../editQuantity/ListEditQuantity'
+import InputConfig from '../search/input/InputConfig'
 import { editQuantityComponents } from '../editQuantity/EditQuantity'
 import { QuantityMDef } from './metainfo'
 import {getAllVisibleProperties} from './ArchiveBrowser'
 import {QuantityRow, QuantityTable} from '../Quantity'
 import {PropertyPreview} from '../entry/properties/SectionCard'
-
-export const JsonEditor = React.memo(function JsonEditor({data, onChange, error, onError}) {
-  const controlledError = useRef(error !== undefined)
-  const [json, setJson] = useState()
-  const [errorInternal, setErrorInternal] = useState()
-  const errorFinal = error || errorInternal
-
-  useEffect(() => {
-    setJson(data
-      ? JSON.stringify(
-        data,
-        (k, v) => { return v === Infinity ? "Infinity" : v },
-        2)
-      : ''
-    )
-  }, [data])
-
-  const handleError = useCallback((e) => {
-    if (!controlledError.current) {
-      setErrorInternal(e)
-      onError && onError(e)
-    } else {
-      if (!isNil(e)) onError && onError(e)
-    }
-  }, [onError])
-
-  const handleChange = useCallback((event) => {
-    const value = event.target.value
-    setJson(value)
-    try {
-      const data = JSON.parse(value)
-      onChange && onChange(data)
-      handleError(null)
-    } catch (e) {
-      handleError('This is not JSON: ' + e)
-    }
-  }, [onChange, setJson, handleError])
-
-  return (
-    <TextField
-      fullWidth label="JSON" error={!!errorFinal}
-      helperText={errorFinal}
-      variant="filled" multiline maxRows={20}
-      value={json} onChange={handleChange}
-    />
-  )
-})
-JsonEditor.propTypes = {
-  data: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
-  onChange: PropTypes.func,
-  error: PropTypes.string,
-  onError: PropTypes.func
-}
 
 const PropertyEditor = React.memo(function PropertyEditor({quantityDef, value, onChange}) {
   const editAnnotations = quantityDef.m_annotations?.eln || []
@@ -177,7 +125,7 @@ const SectionEditor = React.memo(function SectionEditor({sectionDef, section, on
       {showJson
         ? (
           <Box height={rootRef.current?.clientHeight} marginY={1}>
-            <JsonEditor data={jsonData} onChange={handleJsonChange} />
+            <InputConfig data={jsonData} onChange={handleJsonChange} />
           </Box>
         ) : (
           allVisibleQuantities.map(quantity => (
