@@ -11963,23 +11963,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
-                "name": "time_calculation",
-                "description": "Stores the wall-clock time needed for a calculation i.e. the real time that has\nbeen elapsed from start to end.",
-                "categories": [
-                  "/packages/2/category_definitions/2",
-                  "/packages/2/category_definitions/1"
-                ],
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
-                "m_parent_sub_section": "quantities",
                 "name": "calculation_converged",
                 "description": "Indicates whether a the calculation is converged.",
                 "type": {
@@ -11990,7 +11973,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "name": "hessian_matrix",
                 "description": "The matrix with the second derivative of the energy with respect to atom\ndisplacements.",
@@ -12007,7 +11990,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 9,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "name": "spin_S2",
                 "description": "Stores the value of the total spin moment operator $S^2$ for the converged\nwavefunctions calculated with the XC_method. It can be used to calculate the spin\ncontamination in spin-unrestricted calculations.",
@@ -12019,13 +12002,30 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "name": "time_calculation",
+                "description": "Stores the wall-clock time needed to complete the calculation i.e. the real time\nthat has elapsed from start to end of calculation.",
+                "categories": [
+                  "/packages/2/category_definitions/2",
+                  "/packages/2/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "name": "time_physical",
-                "description": "The elapsed time with respect to the start of the simulation.",
+                "description": "The elapsed real time at the end of the calculation with respect to the start of\nthe simulation.",
                 "type": {
                   "type_kind": "numpy",
-                  "type_data": "int32"
+                  "type_data": "float64"
                 },
                 "shape": [],
                 "unit": "second"
