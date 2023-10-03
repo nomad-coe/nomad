@@ -35,6 +35,9 @@
 #
 from nomad.metainfo import Environment
 from .run import Run
+from .calculation import Calculation
+from .method import Method
+from .system import System
 from . import run
 from . import method
 from . import calculation

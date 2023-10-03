@@ -1874,16 +1874,6 @@ class BaseCalculation(ArchiveSection):
         decomposed simulation that needs to be connected.
         ''')
 
-    time_calculation = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='second',
-        description='''
-        Stores the wall-clock time needed for a calculation i.e. the real time that has
-        been elapsed from start to end.
-        ''',
-        categories=[TimeInfo, AccessoryInfo])
-
     calculation_converged = Quantity(
         type=bool,
         shape=[],
@@ -1908,12 +1898,23 @@ class BaseCalculation(ArchiveSection):
         contamination in spin-unrestricted calculations.
         ''')
 
-    time_physical = Quantity(
-        type=np.dtype(np.int32),
+    time_calculation = Quantity(
+        type=np.dtype(np.float64),
         shape=[],
         unit='second',
         description='''
-        The elapsed time with respect to the start of the simulation.
+        Stores the wall-clock time needed to complete the calculation i.e. the real time
+        that has elapsed from start to end of calculation.
+        ''',
+        categories=[TimeInfo, AccessoryInfo])
+
+    time_physical = Quantity(
+        type=np.dtype(np.float64),
+        shape=[],
+        unit='second',
+        description='''
+        The elapsed real time at the end of the calculation with respect to the start of
+        the simulation.
         ''')
 
     energy = SubSection(sub_section=Energy.m_def, categories=[FastAccess])

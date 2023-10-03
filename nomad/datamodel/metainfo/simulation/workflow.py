@@ -59,11 +59,12 @@ def resolve_difference(values):
     return delta_values
 
 
-_input_structure_name = 'Input structure'
-_output_structure_name = 'Output structure'
+_input_system_name = 'Input structure'
+_output_system_name = 'Output structure'
 _input_method_name = 'Input method'
+_input_calculation_name = 'Input calculation'
 _output_calculation_name = 'Output calculation'
-_workflow_method_name = 'Workflow parameters'
+_workflow_method_name = 'Workflow method'
 _workflow_results_name = 'Workflow results'
 
 
@@ -139,15 +140,15 @@ class SimulationWorkflow(Workflow):
             logger.warning('System, method and calculation required for normalization.')
             pass
 
-        if not self._calculations or not self._systems:
+        if not self._calculations:
             return
 
         if not self.inputs:
             if self._systems:
                 self.m_add_sub_section(
-                    Workflow.inputs, Link(name=_input_structure_name, section=self._systems[0]))
+                    Workflow.inputs, Link(name=_input_system_name, section=self._systems[0]))
 
-            if self.method:
+            if self.method is not None:
                 self.m_add_sub_section(
                     Workflow.inputs, Link(name=_workflow_method_name, section=self.method))
 
@@ -161,9 +162,60 @@ class SimulationWorkflow(Workflow):
                 self.m_add_sub_section(
                     Workflow.outputs, Link(name=_output_calculation_name, section=self._calculations[-1]))
 
-            if self.results:
+            if self.results is not None:
                 self.m_add_sub_section(
                     Workflow.outputs, Link(name=_workflow_results_name, section=self.results))
+
+        if not self.tasks:
+            current_step = 1
+            current_time = None
+            inputs = []
+            add_inputs, add_outputs = False, False
+            tasks = []
+            for n, calc in enumerate(self._calculations):
+                if calc.time_physical is None or calc.time_calculation is None:
+                    # all calculation sections should have time info inorder to create workflow tasks
+                    tasks = []
+                    break
+
+                task = Task(outputs=[Link(name=_output_calculation_name, section=calc)])
+                # successive tasks in serial if overlap in time duration exists
+                if current_time is None:
+                    current_time = calc.time_physical
+                start_time = calc.time_physical - calc.time_calculation
+                if start_time and (start_time > current_time or np.isclose(start_time, current_time)):
+                    task.inputs = inputs
+                    inputs = []
+                    current_step += 1
+                else:
+                    if tasks:
+                        for input in tasks[-1].inputs:
+                            if input.name == _input_method_name:
+                                continue
+                            task.m_add_sub_section(Task.inputs, input)
+                if calc.method_ref:
+                    task.m_add_sub_section(Task.inputs, Link(name=_input_method_name, section=calc.method_ref))
+                if calc.system_ref:
+                    inputs.append(Link(name=_input_system_name, section=calc.system_ref))
+                    task.m_add_sub_section(Task.outputs, Link(name=_output_system_name, section=calc.system_ref))
+                else:
+                    inputs.append(Link(name=_input_calculation_name, section=calc))
+                task.name = f'Step {current_step}'
+                tasks.append(task)
+                current_time = max(current_time, calc.time_physical)
+                # add input if first calc in tasks
+                add_inputs = add_inputs or n == 0
+                # add output if last calc in tasks
+                add_outputs = add_outputs or n == len(self._calculations) - 1
+            for task in tasks:
+                # add workflow inputs to first parallel tasks
+                if task.name == 'Step 1' and add_inputs:
+                    task.inputs.extend([input for input in self.inputs if input not in task.inputs])
+                # add outputs of last parallel tasks to workflow outputs
+                if task.name == f'Step {current_step}' and add_outputs:
+                    self.outputs.extend([output for output in task.outputs if output not in self.outputs])
+
+            self.tasks = tasks
 
 
 class Decomposition(MSection):
@@ -553,7 +605,7 @@ class SinglePoint(SimulationWorkflow):
             task = Task()
             if self._systems:
                 task.m_add_sub_section(
-                    Task.inputs, Link(name=_input_structure_name, section=self._systems[0]))
+                    Task.inputs, Link(name=_input_system_name, section=self._systems[0]))
             if self._methods:
                 task.m_add_sub_section(
                     Task.inputs, Link(name=_input_method_name, section=self._methods[0]))
@@ -635,9 +687,9 @@ class ParallelSimulation(SimulationWorkflow):
             for n, calculation in enumerate(self._calculations):
                 inputs, outputs = [], [Link(name=_output_calculation_name, section=calculation)]
                 if self._calculations[n].system_ref:
-                    inputs.append(Link(name=_input_structure_name, section=self._calculations[n].system_ref))
+                    inputs.append(Link(name=_input_system_name, section=self._calculations[n].system_ref))
                 elif len(self._calculations) == len(self._systems):
-                    inputs.append(Link(name=_input_structure_name, section=self._systems[n]))
+                    inputs.append(Link(name=_input_system_name, section=self._systems[n]))
                 else:
                     continue
                 if self._calculations[n].method_ref:
@@ -662,12 +714,12 @@ class SerialSimulation(SimulationWorkflow):
                     if not input_structure:
                         input_structure = previous_structure
                     if input_structure:
-                        inputs.append(Link(name=_input_structure_name, section=input_structure))
+                        inputs.append(Link(name=_input_system_name, section=input_structure))
                     previous_structure = calculation.system_ref
-                    outputs.append(Link(name=_output_structure_name, section=calculation.system_ref))
+                    outputs.append(Link(name=_output_system_name, section=calculation.system_ref))
                 elif len(self._calculations) == len(self._systems):
-                    inputs.append(Link(name=_input_structure_name, section=self.input_structure if n == 0 else self._systems[n - 1]))
-                    outputs.append(Link(name=_output_structure_name, section=self._systems[n]))
+                    inputs.append(Link(name=_input_system_name, section=self.input_structure if n == 0 else self._systems[n - 1]))
+                    outputs.append(Link(name=_output_system_name, section=self._systems[n]))
                 else:
                     continue
                 if calculation.method_ref:
