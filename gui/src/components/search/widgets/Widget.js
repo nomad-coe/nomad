@@ -97,17 +97,17 @@ export const schemaLayout = object({
   minH: number().integer()
 })
 export const schemaWidget = object({
-  id: string().strip(),
   type: string().required(),
-  editing: string().strip(),
-  visible: string().strip(),
   layout: object({
     sm: schemaLayout,
     md: schemaLayout,
     lg: schemaLayout,
     xl: schemaLayout,
     xxl: schemaLayout
-  })
+  }),
+  id: string().strip(),
+  editing: string().strip(),
+  visible: string().strip()
 })
 
 /**
