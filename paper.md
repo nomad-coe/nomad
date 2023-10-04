@@ -139,7 +139,7 @@ affiliations:
     index: 1
   - name: Leibniz Institut für Kristallzüchtung, Berlin, Germany
     index: 2
-  - name: Department of Informatics, Technical University of Munich, Munich, Germany
+  - name: School of Computation, Information and Technology, Technical University of Munich, Munich, Germany
     index: 3
   - name: Department of Plasma Physics and Technology, Masaryk University, Brno, Czech Republic
     index: 4
@@ -151,8 +151,8 @@ bibliography: paper.bib
 
 Materials science research is becoming increasingly data-driven, which requires more effort to manage, share, and publish data.
 NOMAD is a web-based application that provides data management for materials science research data.
-In addition to core data management functions like uploading and sharing files, NOMAD allows structured data entry using customizable forms providing the software with electronic laboratory notebook (ELN) functionalities.
-It automatically extracts rich metadata from supported file formats, normalizes and converts data from these formats, and provides a faceted search with materials science-specific filters based on extracted metadata.
+In addition to core data management functions like uploading and sharing files, NOMAD allows for entering structured data using customizable forms providing the software with electronic laboratory notebook (ELN) functionalities.
+It automatically extracts rich meta-data from supported file formats, normalizes and converts data from these formats, and provides a faceted search with materials science-specific filters based on extracted meta-data.
 NOMAD integrates data analysis and machine learning tools.
 Installations of NOMAD can be connected to share data between research institutes and can publish data to an open central NOMAD service.
 The NOMAD software is distributed as a Docker image to create data management services and as a Python package to automate the client's use of these services.
@@ -179,8 +179,8 @@ NOMAD addresses these needs in two ways. First, NOMAD improves the data-driven w
 and small labs by formalizing data acquisition, organizing and sharing data, homogenizing and normalizing data
 for analysis, and integrating with analysis tools.
 This way, NOMAD provides the incentives and tools for research individuals
-to put the necessary efforts into preparing FAIR (meta-)data. Secondly, NOMAD allows to share or
-publish prepared data and can be used by communities as a repository for FAIR data.
+to put the necessary efforts into preparing FAIR (meta-)data. Secondly, NOMAD allows for sharing and
+publishing prepared data and can be used by communities as a repository for FAIR data.
 
 # Usage of NOMAD and related software
 
@@ -201,11 +201,11 @@ NOMAD Oasis is used by an increasing number of research institutes. NOMAD Oasis 
 as per our OSI license following the instruction in the [NOMAD documentation](https://nomad-lab.eu/docs).
 
 The [NFDI consortium FAIRmat](https://www.fairmat-nfdi.eu/fairmat)
-uses NOMAD software as the bases for its federated FAIR data infrastructure [@scheffler:2022].
+uses NOMAD software as the basis for its federated FAIR data infrastructure [@scheffler:2022].
 
 [OPTIMADE](https://www.optimade.org/) [@andersen:2021] is an API specification (with associated
 software implementation) for materials science databases. NOMAD provides an implementation
-of the OPTIMADE specification and is an active part of the OPTIMADE consortium.
+of the OPTIMADE specification and is an active member of the OPTIMADE consortium.
 
 Other materials science databases (and the respective software) focus on publishing data that were
 produced with a specific framework and carefully curated by the group behind the database.
@@ -218,17 +218,17 @@ allows scientists to design and run simulation workflows. AiiDA data can be publ
 to AiiDA's [materialscloud](https://www.materialscloud.org/). There are also examples for experimental
 materials science databases, e.g. [HTEM](https://data.nrel.gov/submissions/75) [@zakutayev:2018].
 
-NOMAD relies on many open source packages; a few more notable ones from the materials
+NOMAD relies on many open-source packages; a few more notable ones from the materials
 science domains are: *MatID*, a software package to identify material structure system types and symmetries [@himanen:2018],
 *ASE*, a software package to manipulate material structures in Python [@larsen:2017],
-pymatgen, open-source python library for materials analysis [@ong:2013], and *NeXus*,
+pymatgen, an open-source python library for materials analysis [@ong:2013], and *NeXus*,
 a file-format standard, schemas, and tools for experimental materials science data [@konnecke:2015].
 
 # Acknowledgements
 
-NOMAD software development is funded by the the German National Research Data
- Infrastructure (NFDI) consortium FAIRmat (Deutsche Forschungsgemeinschaft DFG, 460197019) and the NOMAD CoE (EU Horizon 2020, 951786),
-previous financial support was provided by the NOMAD CoE (EU Horizon 2020, 676580) and the Max-Planck Network BigMax.
-The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's github and operating the public NOMAD service.
+NOMAD software development is funded by the German National Research Data
+ Infrastructure (NDFI) consortia FAIRmat (Deutsche Forschungsgemeinschaft DFG, 460197019) and the NOMAD CoE (EU Horizon 2020, 951786), 
+previous financial support was provided by the NOMAD CoE (EU Horizon 2020, 676580) and the Max-Planck Network BigMax. 
+The Max Planck Computing and Data Facility (MPCDF) is hosting NOMAD's GitHub and operating the public NOMAD service. 
 
 # References
