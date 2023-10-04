@@ -104,6 +104,7 @@ infrastructure = [
     'oauthenticator==15.1.0',
     'validators==0.18.2',
     'joblib>=1.1.0',
+    'gunicorn>=21.2.0,<22.0.0',
     'importlib-metadata~=4.13.0' # Needed because of https://github.com/python/importlib_metadata/issues/411
 ]
 dev = [

@@ -43,6 +43,7 @@ def worker():
 @click.option('--host', type=str, help='Passed to uvicorn host parameter.')
 @click.option('--port', type=int, help='Passed to uvicorn host parameter.')
 @click.option('--log-config', type=str, help='Passed to uvicorn log-config parameter.')
+@click.option('--gunicorn', is_flag=True, type=bool, help='Run app with gunicorn.')
 @click.option('--workers', type=int, help='Passed to uvicorn workers parameter.')
 def app(with_gui: bool, **kwargs):
     run_app(with_gui=with_gui, **kwargs)
@@ -56,7 +57,7 @@ def logtransfer():
     start_logtransfer_service()
 
 
-def run_app(with_gui: bool = False, **kwargs):
+def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, log_config: str = None, **kwargs):
     config.meta.service = 'app'
 
     if with_gui:
@@ -93,17 +94,48 @@ def run_app(with_gui: bool = False, **kwargs):
         config.ui.app_base = f'{config.services.api_base_path.rstrip("/")}'
         config.ui.north_base = f'{config.services.api_base_path.rstrip("/")}/north'
 
-    from uvicorn import Server, Config
     from nomad.utils import get_logger
 
-    uv_config = Config(
-        'nomad.app.main:app',
-        log_level='info',
-        **{k: v for k, v in kwargs.items() if v is not None})
+    if gunicorn:
+        from gunicorn.app.wsgiapp import WSGIApplication
+        import logging.config
 
-    server = Server(config=uv_config)
-    get_logger(__name__).info('created uvicorn server', data=uv_config.__dict__)
-    server.run()
+        if log_config:
+            logging.config.fileConfig(log_config)
+
+        if not kwargs.get('workers', None):
+            kwargs['workers'] = 4
+
+        class App(WSGIApplication):
+            def __init__(self):
+                self.app_uri = 'nomad.app.main:app'
+                super().__init__()
+
+            def load_config(self):
+                self.cfg.set('timeout', config.services.api_timeout)
+                self.cfg.set('worker_class', 'uvicorn.workers.UvicornWorker')
+                if host:
+                    self.cfg.set('bind', host)
+                for key, value in kwargs.items():
+                    if key in self.cfg.settings and value is not None:
+                        self.cfg.set(key, value)
+
+        gunicorn_app = App()
+        get_logger(__name__).info('created gunicorn server', data=str(gunicorn_app.cfg))
+        gunicorn_app.run()
+    else:
+        from uvicorn import Server, Config
+
+        uv_config = Config(
+            'nomad.app.main:app',
+            log_level='info',
+            host=host,
+            log_config=log_config,
+            **{k: v for k, v in kwargs.items() if v is not None})
+
+        server = Server(config=uv_config)
+        get_logger(__name__).info('created uvicorn server', data=uv_config.__dict__)
+        server.run()
 
 
 def run_worker():

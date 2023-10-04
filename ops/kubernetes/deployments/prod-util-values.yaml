@@ -24,7 +24,6 @@ gui:
 
 app:
   replicas: 1
-  worker: 1
   nomadNodeType: "public"
 
 celery:
