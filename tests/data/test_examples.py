@@ -65,21 +65,83 @@ def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
         assert archive.m_xpath(xpath) is not None
 
 
-@pytest.mark.parametrize('test_files', [
+@pytest.mark.parametrize('test_files,number_of_entries', [
     pytest.param([
         'examples/data/docs/tabular-parser-entry-mode.archive.yaml',
         'examples/data/docs/tabular-parser-entry-mode.xlsx'
-    ], id='simple_entry_mode'),
+    ], 5, id='simple_entry_mode'),
     pytest.param([
         'examples/data/docs/tabular-parser-complex.archive.yaml',
         'examples/data/docs/data_file_1.csv',
         'examples/data/docs/data_file_2.csv'
-    ], id='complex_entry_mode')
+    ], 6, id='complex_entry_mode')
 ])
-def test_sample_entry_mode(test_files, mongo, test_user, raw_files, monkeypatch, proc_infra):
+def test_sample_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra, test_files, number_of_entries):
     upload = _create_upload('test_upload_id', test_user.user_id, test_files)
     assert upload is not None
-    assert upload.processed_entries_count == 6
+    assert upload.processed_entries_count == number_of_entries
 
     for entry in Entry.objects(upload_id='test_upload_id'):
         assert entry.process_status == ProcessStatus.SUCCESS
+
+
+@pytest.mark.parametrize('test_files, status', [
+    pytest.param([
+        'examples/data/docs/tabular-parser_1_column_current-entry_to-root.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_1'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_2_column_current-entry_to-path.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_2'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_3_row_current-entry_to-path.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_3'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_4_column_single-new-entry_to-path.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_4'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_5_row_single-new-entry_to-path.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_5'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_6_row_multiple-new-entries_to-root.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_6'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_7_row_multiple-new-entries_to-path.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_7'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_8_row_current-entry_to-path_subsubsection.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_8'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_np1_row_current-entry_to-root.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_9'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_np2_column_single-new-entry_to-root.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_10'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_np3_row_single-new-entry_to-root.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_11'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_np4_column_multiple-new-entries_to-root.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_12'),
+    pytest.param([
+        'examples/data/docs/tabular-parser_np5_column_multiple-new-entries_to-path.archive.yaml',
+        'examples/data/docs/test.xlsx'
+    ], ProcessStatus.SUCCESS, id='test_13'),
+])
+def test_tabular_doc_examples(mongo, test_user, raw_files, monkeypatch, proc_infra, test_files, status):
+    upload = _create_upload('test_upload_id', test_user.user_id, test_files)
+    assert upload is not None
+
+    for entry in Entry.objects(upload_id='test_upload_id'):
+        assert entry.process_status == status

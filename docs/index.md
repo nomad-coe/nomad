@@ -24,12 +24,19 @@ NOMAD is useful for scientists that work with data, for research groups that nee
 
 ### Tutorial
 
-This series of [short videos will guide you through the main functionality of NOMAD](tutorial.md).
-It covers th whole publish, explore, analyze cycle:
+A series of tutorials will guide you through the main functionality of NOMAD.
 
-- Upload and publish your own data
-- Use the search interface to identify interesting data
-- Use the API to search and access processed data for analysis
+- [Upload and publish your own data](tutorial/upload_publish.md)
+- [Use the search interface to identify interesting data](tutorial/explore.md)
+- [Use the API to search and access processed data for analysis](tutorial/access_api.md)
+- [Find and use the automations of the built-in schemas available in NOMAD](tutorial/builtin.md)
+- [Create and use custom schemas in NOMAD](tutorial/custom.md)
+- [Customization at its best: user-defined schema and automation](tutorial/plugins.md)
+- [Third-party ELN integration](tutorial/third_party.md)
+
+- [Example data and exercises](https://www.fairmat-nfdi.eu/events/fairmat-tutorial-1/tutorial-1-materials)
+- [More videos and tutorials on YouTube](https://youtube.com/playlist?list=PLrRaxjvn6FDW-_DzZ4OShfMPcTtnFoynT)
+
 
 </div>
 <div markdown="block">

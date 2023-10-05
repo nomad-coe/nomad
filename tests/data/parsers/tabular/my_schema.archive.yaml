@@ -12,11 +12,10 @@ definitions:
                             parsing_options:
                                 comment: '#'
                             mapping_options:
-                                -   mapping_mode: entry
+                                -   mapping_mode: row
                                     file_mode: multiple_new_entries
-                                    with_file: true
                                     sections:
-                                        -  root
+                                        -  '#root'
                 my_quantity_1:
                     type: str
                     m_annotations:

@@ -62,28 +62,6 @@ specific types of data.
   </figcaption>
 </figure>
 
-### Shared entry structure
-
-The processed data (archive) of each entry share the same structure. They all instantiate
-the same root section `EntryArchive`. They all share common sections `metadata:EntryMetadata`
-and `results:Results`. They also all contain a *data* section, but the used section
-definition varies depending on the type of data of the specific entry. There is the
-literal `data:EntryData` sub-section. Here `EntryData` is abstract and specific entries
-will use concrete definitions that inherit from `EntryData`. There are also specific *data*
-sections, like `run` for simulation data and `nexus` for nexus data.
-
-!!! attention
-    The results, originally only designed for computational data, will soon be revised
-    an replaced by a different section. However, the necessity and function of a section
-    like this remains.
-
-<figure markdown>
-  ![schema language](super_structure.png)
-  <figcaption>
-    All entries instantiate the same section share the same structure.
-  </figcaption>
-</figure>
-
 ### Base sections
 
 Base section is a very loose category. In principle, every section definition can be
@@ -148,7 +126,7 @@ and browse based on sub-sections, or explore the Metainfo through packages.
 
 To see all user provided uploaded schemas, you can use a [search for the sub-section `definition`](https://nomad-lab.eu/prod/v1/gui/search/entries?quantities=definitions).
 The sub-section `definition` is a top-level `EntryArchive` sub-section. See also our
-[how-to on writing and uploading schemas](http://127.0.0.1:8001/schemas/basics.html#uploading-schemas).
+[how-to on writing and uploading schemas](../schemas/basics.md#uploading-schemas).
 
 ### Contributing to the Metainfo
 
@@ -167,7 +145,7 @@ schemas, you most likely also upload data in archive files (or use ELNs to edit 
 Here you can also provide schemas and data in the same file. In many case
 specific schemas will be small and only re-combine existing base sections.
 See also our
-[how-to on writing schemas](http://127.0.0.1:8001/schemas/basics.html).
+[how-to on writing schemas](../schemas/basics.md).
 
 ## Data
 
@@ -180,7 +158,45 @@ The Metainfo has many serialized forms. You can write `.archive.json` or `.archi
 files yourself. NOMAD internally stores all processed data in [message pack](https://msgpack.org/). Some
 of the data is stored in mongodb or elasticsearch. When you request processed data via
 API, you receive it in JSON. When you use the [ArchiveQuery](../apis/archive_query.md), all data is represented
-as Python objects (see also [here](http://127.0.0.1:8001/plugins/schemas.html#starting-example)).
+as Python objects (see also [here](../plugins/schemas.md#starting-example)).
 
 No matter what the representation is, you can rely on the structure, names, types, shapes, and units
 defined in the schema to interpret the data.
+
+## Archive files: a shared entry structure
+
+Broadening the discussion on the *entry* files that one can find in NOMAD, both [schemas](#schema) or [processed data](#data) are serialized as the same kind of *archive file*, either `.archive.json` or `.archive.yaml`.
+
+The NOMAD archive file is indeed composed by several sections.
+
+NOMAD archive file:`EntryArchive`
+
+* definitions: `Definitions`
+* metadata: `EntryMetadata`
+* data: `EntryData`
+* run: `Run`
+* nexus: `Nexus`
+* workflow: `Workflow`
+* results: `Results`
+
+They all instantiate the same root section `EntryArchive`. They all share common sections `metadata:Metadata`
+and `results:Results`. They also all contain a *data* section, but the used section
+definition varies depending on the type of data of the specific entry. There is the
+literal `data:EntryData` sub-section. Here `EntryData` is abstract and specific entries
+will use concrete definitions that inherit from `EntryData`. There are also specific *data*
+sections, like `run` for simulation data and `nexus` for nexus data.
+
+!!! note
+    As shown in [Uploading schemas](../schemas/basics.md#uploading-schemas), one can, in principle, create an archive file with both `definitions` and one of the *data* sections filled, although this is not always desired because it will stick together a schema and a particular instance of that schema. They should be kept separate so that it is still possible to generate new data files from the same schema file.
+
+!!! attention
+    The results, originally only designed for computational data, will soon be revised
+    an replaced by a different section. However, the necessity and function of a section
+    like this remains.
+
+<figure markdown>
+  ![schema language](super_structure.png)
+  <figcaption>
+    All entries instantiate the same section share the same structure.
+  </figcaption>
+</figure>

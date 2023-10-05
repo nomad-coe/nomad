@@ -2,7 +2,7 @@ This guide is about using NOMAD's REST APIs directly, e.g. via Python's *request
 
 To access the processed data with our client library `nomad-lab` follow
 [How to access the processed data](archive_query.md). You watch our
-[video tutorial on the API](../tutorial.md#access-data-via-api).
+[video tutorial on the API](../tutorial/access_api.md#access-data-via-api).
 
 ## Different options to use the API
 

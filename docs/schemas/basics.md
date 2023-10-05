@@ -1,6 +1,6 @@
 # Write NOMAD Schemas in YAML
 
-This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information visit the [learn section on schemas](../learn/data.md).
+This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information on how an archive file is composed, visit the [learn section on schemas](../learn/data.md).
 
 ## Example data
 

@@ -1,0 +1,59 @@
+definitions:
+  name: 'My test ELN 5'
+  sections:
+    MySection5:
+      base_sections:
+       - nomad.datamodel.data.EntryData
+       - nomad.parsing.tabular.TableData
+      m_annotations:
+        eln:
+      quantities:
+        data_file:
+          type: str
+          default: test.xlsx
+          m_annotations:
+            tabular_parser:
+              parsing_options:
+                comment: '#'
+              mapping_options:
+                - mapping_mode: row
+                  file_mode: single_new_entry
+                  sections:
+                    - my_subsection_5/my_repeated_sub_section
+            browser:
+              adaptor: RawFileAdaptor
+            eln:
+              component: FileEditQuantity
+      sub_sections:
+        my_subsection_5:
+          section:
+            m_annotations:
+              eln:
+            quantities:
+              my_ref_quantity:
+                type: '#/MySubSection5'
+                m_annotations:
+                  eln:
+                    component: ReferenceEditQuantity
+    MySubSection5:
+      base_sections:
+      - nomad.datamodel.data.EntryData
+      m_annotations:
+        eln:
+      more:
+        label_quantity: my_quantity_1
+      sub_sections:
+        my_repeated_sub_section:
+          repeats: true
+          section:
+            quantities:
+              my_quantity_1:
+                type: str
+                m_annotations:
+                  tabular:
+                    name: "My header 1"
+              my_quantity_2:
+                type: str
+                m_annotations:
+                  tabular:
+                    name: "My header 2"

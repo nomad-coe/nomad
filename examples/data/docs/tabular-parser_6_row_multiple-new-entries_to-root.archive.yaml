@@ -1,0 +1,38 @@
+definitions:
+  name: 'My test ELN 6'
+  sections:
+    MySection6:
+      base_sections:
+       - nomad.datamodel.data.EntryData
+       - nomad.parsing.tabular.TableData
+      m_annotations:
+        eln:
+      more:
+        label_quantity: my_quantity_1
+      quantities:
+        data_file:
+          type: str
+          default: test.xlsx
+          m_annotations:
+            tabular_parser:
+              parsing_options:
+                comment: '#'
+              mapping_options:
+                - mapping_mode: row
+                  file_mode: multiple_new_entries
+                  sections:
+                    - '#root'
+            browser:
+              adaptor: RawFileAdaptor
+            eln:
+              component: FileEditQuantity
+        my_quantity_1:
+          type: str
+          m_annotations:
+            tabular:
+              name: "My header 1"
+        my_quantity_2:
+          type: str
+          m_annotations:
+            tabular:
+              name: "My header 2"

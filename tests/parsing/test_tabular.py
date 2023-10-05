@@ -310,7 +310,7 @@ def test_tabular_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra
     upload.process_upload()
     upload.block_until_complete()
     assert upload is not None
-    assert upload.processed_entries_count == 2
+    assert upload.processed_entries_count == 1
 
     for entry in Entry.objects(upload_id='test_upload_id'):
         assert entry.process_status == ProcessStatus.SUCCESS
@@ -477,10 +477,21 @@ def test_tabular_row_mode(raw_files, monkeypatch, test_case, section_placeholder
                                 tabular_parser:
                                     parsing_options:
                                       comment: '#'
+                                    mapping_options:
+                                    -   mapping_mode: column
+                                        file_mode: current_entry
+                                        sections:
+                                        -   '#root'
                             header_0:
+                                m_annotations:
+                                    tabular:
+                                        name: header_0
                                 type: str
                             header_1:
                                 type: str
+                                m_annotations:
+                                    tabular:
+                                        name: header_1
             data:
                 m_def: MyTable
                 data_file: test.my_schema.archive.csv
@@ -651,7 +662,7 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
         strip('''
             header_0,header_1
             a,b
-        '''), id='checkoing checkbox'
+        '''), id='checking checkbox'
     ),
     pytest.param(
         strip('''
@@ -722,7 +733,7 @@ def test_tabular_checkbox(raw_files, monkeypatch, schema, content):
         assert main_archive.data.fill_archive_from_datafile is True
         main_archive.data.MySubsection[0].header_0 = 'c'
         run_normalize(main_archive)
-        assert main_archive.data.MySubsection[0].header_0 == 'a'
+        assert main_archive.data.MySubsection[0].header_0 == 'c'
 
 
 def get_files(schema=None, content=None):

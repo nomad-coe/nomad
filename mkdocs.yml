@@ -4,18 +4,25 @@ site_description: |
 site_author: The NOMAD Authors
 nav:
   - Home: index.md
-  - Tutorial: tutorial.md
+  - Tutorial:
+    - Uploading and publishing data: tutorial/upload_publish.md
+    - Exploring data on: tutorial/explore.md
+    - Access data via API: tutorial/access_api.md
+    - Built in schemas: tutorial/builtin.md
+    - Custom schemas: tutorial/custom.md
+    - Plugins: tutorial/plugins.md
+    - Third-party integration: tutorial/third_party.md
   - How-to guides:
     - Data Management:
       - How to upload/publish data: data/upload.md
       - How to use ELNs: data/eln.md
       - How to explore data: data/explore.md
       - How to use NORTH: data/north.md
-    - Schemas:
+    - Customize Schemas:
       - How to write a schema: schemas/basics.md
       - How to define ELNs: schemas/elns.md
       - How to use base sections: schemas/base_sections.md
-      - How to define tabular data: schemas/tabular.md
+      - How to use tabular parser: schemas/tabular.md
       - How to define workflows: schemas/workflows.md
       - How to reference hdf5: schemas/hdf5.md
     - Programming interfaces:

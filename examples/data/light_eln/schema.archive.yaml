@@ -54,7 +54,7 @@ definitions:
       base_section: nomad.datamodel.metainfo.eln.Process
       quantities:
         instrument:
-          type: Instrument
+          type: '#/Instrument'
           m_annotations:
             eln:
               component: ReferenceEditQuantity
@@ -65,8 +65,9 @@ definitions:
         template:
           processes:
             pvd_evaporation: {}
+        eln:
       base_sections:
-        - 'nomad.datamodel.metainfo.eln.Sample'
+        - 'nomad.datamodel.metainfo.basesections.CompositeSystem'
         - 'nomad.datamodel.data.EntryData'
       quantities:
         name:
@@ -88,7 +89,7 @@ definitions:
             eln:
               component: AutocompleteEditQuantity  # Allows to edit enums with an auto complete text form field
         chemicals:
-          type: Chemical  # Types can also be other sections. This allows to reference a different section.
+          type: '#/Chemical'  # Types can also be other sections. This allows to reference a different section.
           shape: ['*']
           m_annotations:
             eln:
@@ -154,8 +155,14 @@ definitions:
                         # quantities in this section (and sub_section) with the column
                         # data of .csv or .xlsx files. There is also a mode option that by default, is set to column.
                         tabular_parser:
-                          sep: '\t'
-                          comment: '#'
+                          parsing_options:
+                            comment: '#'
+                            sep: '\t'
+                          mapping_options:
+                            - mapping_mode: column
+                              file_mode: current_entry
+                              sections:
+                                - '#root'
                         browser:
                           adaptor: RawFileAdaptor  # Allows to navigate to files in the data browser
                         eln:
@@ -175,7 +182,8 @@ definitions:
                       unit: mbar
                       m_annotations:
                         eln:
-                          defaultDisplayUnit: mbar
+                          # component: NumberEditQuantity
+                          # defaultDisplayUnit: mbar  ## MUST NOT BE AN ARRAY FOR THIS https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/issues/932
                         tabular:
                           name: Vacuum Pressure1
                         plot:
