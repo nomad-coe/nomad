@@ -197,8 +197,8 @@ are too large to be conveniently transferred over the public internet, or when t
 about privacy or security. It should be noted that there is the possibility to transfer data
 between different installations, and in order to adhere to the FAIR principles, the data (or
 at least meta-data) in these Oases would ideally be transferred to the public NOMAD service.
-NOMAD Oasis is used by an increasing number of research institutes. NOMAD Oasis can be used freely
-as per our OSI license following the instruction in the [NOMAD documentation](https://nomad-lab.eu/docs).
+NOMAD Oasis is used by an increasing number of research institutes. 
+NOMAD Oasis can be used freely, is available open source under the [Apache License 2.0](https://github.com/nomad-coe/nomad/blob/develop/LICENSE), and detailed instructions are available in the [NOMAD documentation](https://nomad-lab.eu/docs).
 
 The [NFDI consortium FAIRmat](https://www.fairmat-nfdi.eu/fairmat)
 uses NOMAD software as the basis for its federated FAIR data infrastructure [@scheffler:2022].
