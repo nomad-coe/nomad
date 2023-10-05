@@ -16,8 +16,7 @@
 # limitations under the License.
 #
 import os
-import time
-from typing import List, Dict, Callable, Set, Any, Tuple, Iterator, Union, Iterable, cast
+from typing import List, Dict, Callable, Set, Any, Tuple, Iterator, Union, Iterable
 
 import pandas as pd
 from memoization import cached
@@ -30,11 +29,9 @@ import yaml
 from nomad import utils
 from nomad.parsing import MatchingParser
 from nomad.units import ureg
-from nomad.datamodel import EntryArchive, EntryMetadata
-from nomad.datamodel.data import ArchiveSection, EntryData
+from nomad.datamodel.data import ArchiveSection
 from nomad.metainfo import Section, Quantity, Package, Reference, MSection, Property
-from nomad.metainfo.metainfo import MetainfoError, SubSection, MProxy, SectionProxy
-from nomad.datamodel.context import Context
+from nomad.metainfo.metainfo import MetainfoError, SubSection, MProxy
 from nomad.datamodel.metainfo.annotations import TabularAnnotation, TabularParserAnnotation, TabularFileModeEnum, \
     TabularMode
 from nomad.metainfo.util import MSubSectionList
@@ -47,7 +44,12 @@ from nomad.utils import generate_entry_id
 m_package = Package()
 
 
-def create_archive(entry_dict, context, file_name, file_type):
+root_mapping = {
+    'root': '#root'
+}
+
+
+def create_archive(entry_dict, context, file_name, file_type, logger):
     if not context.raw_path_exists(file_name):
         with context.raw_file(file_name, 'w') as outfile:
             if file_type == 'json':
@@ -55,6 +57,10 @@ def create_archive(entry_dict, context, file_name, file_type):
             elif file_type == 'yaml':
                 yaml.dump(entry_dict, outfile)
         context.upload.process_updated_raw_file(file_name, allow_modify=True)
+    else:
+        logger.error(
+            f'{file_name} archive file already exists.'
+            f'If you intend to reprocess the older archive file, remove the existing one and run reprocessing again.')
 
 
 def traverse_to_target_data_file(section, path_list: List[str]):
@@ -66,20 +72,6 @@ def traverse_to_target_data_file(section, path_list: List[str]):
             return traverse_to_target_data_file(getattr(section, temp), path_list)
         except AttributeError:
             raise MetainfoError(f'The path {temp} in path_to_data_file does not exist')
-
-
-class TableRow(EntryData):
-    ''' Represents the data in one row of a table. '''
-    table_ref = Quantity(
-        type=Reference(SectionProxy('Table')),
-        description='A reference to the table that this row is contained in.')
-
-
-class Table(EntryData):
-    ''' Represents a table with many rows. '''
-    row_refs = Quantity(
-        type=Reference(TableRow.m_def), shape=['*'],
-        description='References that connect to each row. Each row is stored in it individual entry.')
 
 
 class TabularParserError(Exception):
@@ -106,7 +98,9 @@ class TableData(ArchiveSection):
             for quantity_def in self.m_def.all_quantities.values():
                 annotation = quantity_def.m_get_annotations('tabular_parser')
                 annotation = annotation[0] if isinstance(annotation, list) else annotation
-                if annotation:
+                # this normalizer potentially creates new archives,.to avoid recursive call of the normalizer created by
+                # this normalizer, we check for if the parent is already parsed
+                if annotation and not archive.data.m_parent.metadata.entry_name:
                     self.tabular_parser(quantity_def, archive, logger, annotation)
 
     def tabular_parser(self, quantity_def: Quantity, archive, logger, annotation: TabularParserAnnotation):
@@ -138,30 +132,6 @@ class TableData(ArchiveSection):
         with archive.m_context.raw_file(data_file) as f:
             data = read_table_data(data_file, f, **parsing_options)
 
-        # Checking for any quantities in the root level of the TableData that is
-        # supposed to be filled from the excel file
-        for quantity_name, quantity in self.m_def.all_properties.items():
-            if isinstance(quantity, Quantity) and getattr(self, quantity_name) is None and \
-                    quantity.m_get_annotations('tabular') is not None:
-                col_data = quantity.m_get_annotations('tabular').name
-                if '/' in col_data:
-                    # extract the sheet & col names if there is a '/' in the 'name'
-                    sheet_name, col_name = col_data.split('/')
-                    if sheet_name not in list(data):
-                        continue
-                    try:
-                        df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
-                        self.m_set(quantity, np.array(df.loc[:, col_name]))
-                    except Exception:
-                        continue
-                else:
-                    # Otherwise, assume the sheet_name is the first sheet of Excel/csv
-                    try:
-                        df = pd.DataFrame.from_dict(data.iloc[0, 0])
-                        self.m_set(quantity, np.array(df.loc[:, col_data]))
-                    except Exception:
-                        continue
-
         mapping_options = annotation.mapping_options
         if mapping_options:
             for mapping_option in mapping_options:
@@ -170,72 +140,56 @@ class TableData(ArchiveSection):
                     mapping_mode = mapping_option.mapping_mode
                     column_sections = mapping_option.sections if mapping_mode == TabularMode.column else None
                     row_sections = mapping_option.sections if mapping_mode == TabularMode.row else None
-                    entry_sections = mapping_option.sections if mapping_mode == TabularMode.entry else None
-                    with_file = mapping_option.with_file
                 except Exception:
-                    raise TabularParserError("Couldn't extract the list of mapping_options. Double-check the mapping_options")
+                    raise TabularParserError(
+                        "Couldn't extract the list of mapping_options. Double-check the mapping_options")
 
                 if file_mode == TabularFileModeEnum.current_entry:
+                    # Checking for any quantities in the root level of the TableData that is
+                    # supposed to be filled from the excel file
+                    for quantity_name, quantity in self.m_def.all_properties.items():
+                        if isinstance(quantity, Quantity) and getattr(self, quantity_name) is None and \
+                                quantity.m_get_annotations('tabular') is not None:
+                            col_data = quantity.m_get_annotations('tabular').name
+                            if '/' in col_data:
+                                # extract the sheet & col names if there is a '/' in the 'name'
+                                sheet_name, col_name = col_data.split('/')
+                                if sheet_name not in list(data):
+                                    continue
+                                try:
+                                    df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
+                                    self.m_set(quantity, np.array(df.loc[:, col_name]))
+                                except Exception:
+                                    continue
+                            else:
+                                # Otherwise, assume the sheet_name is the first sheet of Excel/csv
+                                try:
+                                    df = pd.DataFrame.from_dict(data.iloc[0, 0])
+                                    self.m_set(quantity, np.array(df.loc[:, col_data]))
+                                except Exception:
+                                    continue
                     if column_sections:
                         _parse_column_mode(self, column_sections, data, logger=logger)
                     if row_sections:
                         _parse_row_mode(self, row_sections, data, logger)
 
                 if file_mode == TabularFileModeEnum.multiple_new_entries:
-                    for entry_section in entry_sections:
-                        if entry_section == 'root':
-                            self._parse_entry_mode(data, self.m_def, archive, with_file, mode='root', logger=logger)
+                    for row_section in row_sections:
+                        if row_section == root_mapping['root']:
+                            self._parse_entry_mode(data, self.m_def, archive, is_root=root_mapping['root'], logger=logger)
                         else:
-                            entry_section_list = entry_section.split('/')
+                            entry_section_list = row_section.split('/')
                             entry_section_instance = create_subsection(
                                 self.m_def.all_properties[entry_section_list.pop(0)],
                                 entry_section_list)
 
-                            self._parse_entry_mode(data, entry_section_instance, archive, with_file, logger=logger)
+                            self._parse_entry_mode(data, entry_section_instance, archive, logger=logger)
 
                 if file_mode == TabularFileModeEnum.single_new_entry:
-                    section = self.m_def.all_properties[row_sections[0].split('/')[0]].sub_section.section_cls()
                     if column_sections:
-                        parse_columns(data, section)
+                        self._parse_single_new_entry(parse_columns, data, column_sections, archive, logger)
                     if row_sections:
-                        # If there is a match, then remove the matched sections from row_sections so the main entry
-                        # does not populate the matched row_section
-                        is_quantity_def = False
-                        for quantity_def in section.m_def.all_quantities.values():
-                            if isinstance(quantity_def.type, Reference):
-                                try:
-                                    section_to_entry = quantity_def.type.target_section_def.section_cls()
-                                    is_quantity_def = True
-                                except AttributeError:
-                                    continue
-                        if not is_quantity_def:
-                            raise TabularParserError(
-                                f"No reference quantity is defined in {row_sections[0].split('/')[0]} section.")
-                        matched_rows = [re.sub(r"^.*?\/", "", row) for row in row_sections]
-                        _parse_row_mode(section_to_entry, matched_rows, data, logger)
-
-                        child_archive = EntryArchive(
-                            data=section_to_entry,
-                            m_context=archive.m_context,
-                            metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=section.m_def.name))
-
-                        filename = f'{section.m_def.name}.archive.yaml'
-                        create_archive(child_archive.m_to_dict(), archive.m_context, filename, 'yaml')
-
-                        child_entry_id = generate_entry_id(archive.m_context.upload_id, filename, None)
-                        entry_id_dct = {filename: child_entry_id}
-                        ref_quantity_proxy = MProxy(
-                            m_proxy_value=f'../upload/archive/{child_entry_id}#/data',
-                            m_proxy_context=self.m_context)
-                        section.m_set(quantity_def, ref_quantity_proxy)
-
-                        if hasattr(self, row_sections[0].split('/')[0]):
-                            setattr(self, row_sections[0].split('/')[0], None)
-                        self.m_add_sub_section(
-                            self.m_def.all_properties[row_sections[0].split('/')[0]], section, -1)
-
-                        if not with_file:
-                            _delete_entry_file(entry_id_dct, archive, logger=logger)
+                        self._parse_single_new_entry(_parse_row_mode, data, row_sections, archive, logger)
 
         else:
             parse_columns(data, self)
@@ -248,10 +202,63 @@ class TableData(ArchiveSection):
         except AttributeError:
             self.fill_archive_from_datafile = False
 
-    def _parse_entry_mode(self, data, subsection_def, archive, with_file, mode=None, logger=None):
+    def _parse_single_new_entry(self, parser, data, section_list, archive, logger):
+        for single_entry_section in section_list:
+            target_section_str = single_entry_section.split('/')[0] if '/' in single_entry_section else single_entry_section
+            if target_section_str == root_mapping['root']:
+                target_section = self.m_def.section_cls()
+                section_to_entry = target_section
+            elif target_section_str in single_entry_section:
+                target_section = self.m_def.all_properties[target_section_str].sub_section.section_cls()
+                section_to_entry = target_section
+            is_quantity_def = False
+            for quantity_def in target_section.m_def.all_quantities.values():
+                if isinstance(quantity_def.type, Reference):
+                    try:
+                        section_to_entry = quantity_def.type.target_section_def.section_cls()
+                        is_quantity_def = True
+                    except AttributeError:
+                        continue
+            if not is_quantity_def:
+                pass
+                # raise TabularParserError(
+                #     f"To create a new entry from {target_section_str}, it should be of type Reference.")
+            if parser.__code__.co_argcount == 2:
+                parser(data, section_to_entry)
+            else:
+                # If there is a match, then remove the matched sections from row_sections so the main entry
+                # does not populate the matched row_section
+                matched_rows = [re.sub(r"^.*?\/", "", single_entry_section)]
+                parser(section_to_entry, matched_rows, data, logger)
+            entry_name = set_entry_name(quantity_def, target_section, 0)
+
+            from nomad.datamodel import EntryArchive, EntryMetadata
+
+            child_archive = EntryArchive(
+                data=section_to_entry,
+                m_context=archive.m_context,
+                metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=entry_name))
+
+            filename = f'{target_section.m_def.name}.archive.yaml'
+            create_archive(child_archive.m_to_dict(), archive.m_context, filename, 'yaml', logger)
+
+            child_entry_id = generate_entry_id(archive.m_context.upload_id, filename, None)
+
+            if is_quantity_def:
+                ref_quantity_proxy = MProxy(
+                    m_proxy_value=f'../upload/archive/{child_entry_id}#/data',
+                    m_proxy_context=self.m_context)
+                target_section.m_set(quantity_def, ref_quantity_proxy)
+
+                if hasattr(self, single_entry_section.split('/')[0]):
+                    setattr(self, single_entry_section.split('/')[0], None)
+                self.m_add_sub_section(
+                    self.m_def.all_properties[single_entry_section.split('/')[0]], target_section, -1)
+
+    def _parse_entry_mode(self, data, subsection_def, archive, is_root=False, logger=None):
         section = None
         is_referenced_section = False
-        if mode:
+        if is_root:
             section = subsection_def
             quantity_def = subsection_def
             child_sections = parse_table(data, subsection_def, logger=logger)
@@ -261,6 +268,7 @@ class TableData(ArchiveSection):
                     try:
                         section = quantity_def.type.target_section_def.section_cls
                         is_referenced_section = True
+                        break
                     except AttributeError:
                         continue
             if not section:
@@ -286,17 +294,23 @@ class TableData(ArchiveSection):
         except AttributeError:
             pass
 
-        entry_id_dct: Dict[str, str] = {}
+        # creating new entries for each new child_archives
+        from nomad.datamodel import EntryArchive, EntryMetadata
+
+        # if mode is #root when creating multiple new entries, then append the first child to the current entry,
+        # and create new ones from second child onwards
+        if is_root:
+            first_child = child_sections.pop(0)
+            first_child_entry_name = archive.metadata.mainfile.split('.archive')
+            self.m_update_from_dict(first_child.m_to_dict())
+
         for index, child_section in enumerate(child_sections):
             filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
-            try:
-                entry_name: str = quantity_def.m_get_annotations('entry_name', None)
-                if entry_name.startswith('#'):
-                    entry_name = f"{getattr(child_section, entry_name.split('/')[-1])}_{index}"
-                else:
-                    entry_name = f"{quantity_def.m_get_annotations('entry_name', None)}_{index}"
-            except Exception:
-                entry_name = f"{quantity_def.name}_{index}"
+            if is_root:
+                entry_name: str = f'{first_child_entry_name[0]}_{index + 1}.archive{first_child_entry_name[1]}'
+            else:
+                entry_name: str = set_entry_name(quantity_def, child_section, index)
+
             try:
                 child_archive = EntryArchive(
                     data=child_section,
@@ -304,11 +318,10 @@ class TableData(ArchiveSection):
                     metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=entry_name))
             except Exception:
                 raise TabularParserError('New entries could not be generated.')
-            create_archive(child_archive.m_to_dict(), archive.m_context, filename, file_type)
+            create_archive(child_archive.m_to_dict(), archive.m_context, filename, file_type, logger=logger)
 
             if is_referenced_section:
                 child_entry_id = generate_entry_id(archive.m_context.upload_id, filename, None)
-                entry_id_dct.update({filename: child_entry_id})
                 ref_quantity_proxy = MProxy(
                     m_proxy_value=f'../upload/archive/{child_entry_id}#/data',
                     m_proxy_context=self.m_context)
@@ -317,41 +330,33 @@ class TableData(ArchiveSection):
 
                 self.m_add_sub_section(subsection_def, section_ref, -1)
 
-        if not with_file:
-            _delete_entry_file(entry_id_dct, archive, logger=logger)
-
 
 m_package.__init_metainfo__()
 
 
+def set_entry_name(quantity_def, child_section, index) -> str:
+    if name := child_section.m_def.more.get('label_quantity', None):
+        entry_name = f"{child_section[name]}_{index}"
+    elif isinstance(quantity_def.type, Reference):
+        entry_name = f"{quantity_def.type._target_section_def.name}_{index}"
+    else:
+        entry_name = f"{quantity_def.name}_{index}"
+    return entry_name
+
+
 def _parse_column_mode(main_section, list_of_columns, data, logger=None):
     for column_section in list_of_columns:
-        try:
-            column_section_list = column_section.split('/')
-            section = create_subsection(
-                main_section.m_def.all_properties[column_section_list.pop(0)],
-                column_section_list).sub_section.section_cls()
-        except Exception:
-            logger.error(
-                f'{column_section} sub_section does not exist. There might be a problem in schema definition')
-        parse_columns(data, section)
-        setattr(main_section, column_section, section)
-
-
-def _delete_entry_file(entry_id_dct, archive, logger=None):
-    from nomad.processing import Entry, ProcessStatus
-    while entry_id_dct:
-        tmp: Dict[str, str] = {}
-        for filename, entry_id in entry_id_dct.items():
-            if Entry.objects(entry_id=entry_id).first().process_status == ProcessStatus.RUNNING:
-                tmp.update({filename: entry_id})
-            else:
-                try:
-                    os.remove(os.path.join(archive.m_context.upload.upload_files.external_os_path, 'raw', filename))
-                except Exception:
-                    logger.warning(f'Failed to remove archive {filename}.')
-        entry_id_dct = tmp
-        time.sleep(.5)
+        if column_section != root_mapping['root']:
+            try:
+                column_section_list = column_section.split('/')
+                section = create_subsection(
+                    main_section.m_def.all_properties[column_section_list.pop(0)],
+                    column_section_list).sub_section.section_cls()
+            except Exception:
+                logger.error(
+                    f'{column_section} sub_section does not exist. There might be a problem in schema definition')
+            parse_columns(data, section)
+            setattr(main_section, column_section, section)
 
 
 def append_section_to_subsection(main_section, section_name: str, source_section: MSection):
@@ -379,8 +384,11 @@ def _parse_row_mode(main_section, row_sections, data, logger):
     for section_name in section_names:
         section_name_list = section_name.split('/')
         section_name_str = section_name_list[0]
-        target_sub_section = main_section.m_def.all_properties[section_name_str]
-        section_def = target_sub_section.sub_section
+        try:
+            target_sub_section = main_section.m_def.all_properties[section_name_str]
+            section_def = target_sub_section.sub_section
+        except Exception:
+            raise TabularParserError('row-mode failed to parse the list of subsections')
 
         if not list_of_visited_sections.count(section_name_str):
             list_of_visited_sections.append(section_name_str)
@@ -425,68 +433,63 @@ def _create_column_to_quantity_mapping(section_def: Section):
             annotation = annotation[0] if isinstance(annotation, list) else annotation
             if annotation and annotation.name:
                 col_name = annotation.name
-            else:
-                col_name = quantity.name
-                if len(path) > 0:
-                    col_name = f'{".".join([item[0].name for item in path])}.{col_name}'
 
-            if col_name in mapping:
-                raise MetainfoError(
-                    f'The schema has non unique column names. {col_name} exists twice. '
-                    f'Column names must be unique, to be used for tabular parsing.')
+                if col_name in mapping:
+                    raise MetainfoError(
+                        f'The schema has non unique column names. {col_name} exists twice. '
+                        f'Column names must be unique, to be used for tabular parsing.')
 
-            def set_value(
-                    section: MSection, value, section_path_to_top_subsection=[], path=path, quantity=quantity,
-                    annotation: TabularAnnotation = annotation):
+                def set_value(
+                        section: MSection, value, section_path_to_top_subsection=[], path=path, quantity=quantity,
+                        annotation: TabularAnnotation = annotation):
 
-                for sub_section, section_def in path:
-                    next_section = None
-                    try:
-                        next_section = section.m_get_sub_section(sub_section, -1)
-                    except (KeyError, IndexError):
-                        pass
-                    if not next_section:
-                        next_section = section_def.section_cls()
-                        section.m_add_sub_section(sub_section, next_section, -1)
-                    section = next_section
+                    for sub_section, section_def in path:
+                        next_section = None
+                        try:
+                            next_section = section.m_get_sub_section(sub_section, -1)
+                        except (KeyError, IndexError):
+                            pass
+                        if not next_section:
+                            next_section = section_def.section_cls()
+                            section.m_add_sub_section(sub_section, next_section, -1)
+                        section = next_section
 
-                if annotation and annotation.unit:
-                    value *= ureg(annotation.unit)
+                    if annotation and annotation.unit:
+                        value *= ureg(annotation.unit)
 
-                # NaN values are not supported in the metainfo. Set as None
-                # which means that they are not stored.
-                if isinstance(value, float) and math.isnan(value):
-                    value = None
+                    # NaN values are not supported in the metainfo. Set as None
+                    # which means that they are not stored.
+                    if isinstance(value, float) and math.isnan(value):
+                        value = None
 
-                if isinstance(value, (int, float, str, pd.Timestamp)):
-                    value = np.array([value])
+                    if isinstance(value, (int, float, str, pd.Timestamp)):
+                        value = np.array([value])
 
-                if value is not None:
-                    if len(value.shape) == 1 and len(quantity.shape) == 0:
-                        if len(value) == 1:
-                            value = value[0]
-                        elif len(value) == 0:
-                            value = None
-                        else:
+                    if value is not None:
+                        if len(value.shape) == 1 and len(quantity.shape) == 0:
+                            if len(value) == 1:
+                                value = value[0]
+                            elif len(value) == 0:
+                                value = None
+                            else:
+                                raise MetainfoError(
+                                    f'The shape of {quantity.name} does not match the given data.')
+                        elif len(value.shape) != len(quantity.shape):
                             raise MetainfoError(
                                 f'The shape of {quantity.name} does not match the given data.')
-                    elif len(value.shape) != len(quantity.shape):
-                        raise MetainfoError(
-                            f'The shape of {quantity.name} does not match the given data.')
 
-                section.m_set(quantity, value)
-                _section_path_list: List[str] = list(_get_relative_path(section))
-                _section_path_str: str = '/'.join(_section_path_list)
-                section_path_to_top_subsection.append(_section_path_str)
-            mapping[col_name] = set_value
+                    section.m_set(quantity, value)
+                    _section_path_list: List[str] = list(_get_relative_path(section))
+                    _section_path_str: str = '/'.join(_section_path_list)
+                    section_path_to_top_subsection.append(_section_path_str)
+                mapping[col_name] = set_value
 
         for sub_section in section_def.all_sub_sections.values():
             if sub_section in properties:
                 continue
             next_base_section = sub_section.sub_section
             properties.add(sub_section)
-            for sub_section_section in next_base_section.all_inheriting_sections + [next_base_section]:
-                add_section_def(sub_section_section, path + [(sub_section, sub_section_section,)])
+            add_section_def(next_base_section, path + [(sub_section, next_base_section,)])
 
     add_section_def(section_def, [])
     return mapping
@@ -586,8 +589,10 @@ def parse_table(pd_dataframe, section_def: Section, logger):
                             logger.error(
                                 'could not parse cell',
                                 details=dict(row=row_index, column=col_name), exc_info=e)
-                        if col_index > 0:
+                        if col_index > 0 and temp_quantity_path_container[0].split('/')[1:]:
                             path_quantities_to_top_subsection.update(temp_quantity_path_container)
+                        elif col_index > 0 and not temp_quantity_path_container[0].split('/')[1:]:
+                            raise TabularParserError(f'there is a repeated column {column} that is not placed into a subsection in the schema. Please fix the schema.')
             except Exception as e:
                 logger.error('could not parse row', details=dict(row=row_index), exc_info=e)
 
@@ -612,7 +617,11 @@ def _strip_whitespaces_from_df_columns(df):
     transformed_column_names: Dict[str, str] = {}
     for col_name in list(df.columns):
         cleaned_col_name = col_name.strip().split('.')[0]
-        if count := list(transformed_column_names.values()).count(cleaned_col_name):
+        count = 0
+        for string in transformed_column_names.values():
+            if cleaned_col_name in string:
+                count += 1
+        if count:
             transformed_column_names.update({col_name: f'{cleaned_col_name}.{count}'})
         else:
             transformed_column_names.update({col_name: col_name.strip()})
@@ -636,7 +645,7 @@ def _append_subsections_from_section(section_name: List[str], target_section: MS
 
 def read_table_data(
         path, file_or_path=None,
-        comment: str = None, sep: str = None, skiprows: int = None, separator: str = None):
+        comment: str = None, sep: str = None, skiprows: Union[list[int], int] = None, separator: str = None):
     import pandas as pd
     df = pd.DataFrame()
 
@@ -709,47 +718,10 @@ class TabularDataParser(MatchingParser):
         data = pd.DataFrame.from_dict(data.iloc[0, 0])
         return [str(item) for item in range(0, data.shape[0])]
 
-    def parse(
-        self, mainfile: str, archive: EntryArchive, logger=None,
-        child_archives: Dict[str, EntryArchive] = None
-    ):
+    def parse(self, logger=None, **kwargs):
         if logger is None:
             logger = utils.get_logger(__name__)
-
-        # We use mainfile to check the files existence in the overall fs,
-        # and archive.metadata.mainfile to get an upload/raw relative schema_file
-        schema_file = self._get_schema(mainfile, archive.metadata.mainfile)
-        if schema_file is None:
-            logger.error('Tabular data file without schema.', details=(
-                'For a tabular file like name.schema.archive.csv, there has to be an '
-                'uploaded schema like schema.archive.yaml'))
-            return
-
-        try:
-            schema_archive = cast(Context, archive.m_context).load_raw_file(
-                schema_file, archive.metadata.upload_id, None)
-            package = schema_archive.definitions
-            section_def = package.section_definitions[0]
-        except Exception as e:
-            logger.error('Could not load schema', exc_info=e)
-            return
-
-        if TableRow.m_def not in section_def.base_sections:
-            logger.error('Schema for tabular data must inherit from TableRow.')
-            return
-
-        annotation: TabularParserAnnotation = section_def.m_get_annotations('tabular_parser')
-        kwargs = annotation.dict(include={'comment', 'sep', 'skiprows'}) if annotation else {}
-        data = read_table_data(mainfile, **kwargs)
-        child_sections = parse_table(data, section_def, logger=logger)
-        assert len(child_archives) == len(child_sections)
-
-        table = Table()
-        archive.data = table
-
-        child_section_refs: List[MSection] = []
-        for child_archive, child_section in zip(child_archives.values(), child_sections):
-            child_archive.data = child_section
-            child_section_refs.append(child_section)
-            child_section.table_ref = table
-        table.row_refs = child_section_refs
+        logger.error('''
+        You are trying to use the legacy tabular parser. Now it is encapsulated in buitl-in TableData
+        ''')
+        return

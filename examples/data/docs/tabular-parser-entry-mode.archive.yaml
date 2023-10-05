@@ -16,11 +16,10 @@ definitions:
               parsing_options:
                 comment: '#' # Skipping lines in csv or excel file that start with the sign `#`
               mapping_options:
-                - mapping_mode: entry
+                - mapping_mode: row
                   file_mode: multiple_new_entries
-                  with_file: true
                   sections:
-                    - root
+                    - '#root'
         My_quantity:
           type: str
           m_annotations:

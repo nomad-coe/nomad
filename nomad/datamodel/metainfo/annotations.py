@@ -332,11 +332,10 @@ class BrowserAnnotation(AnnotationModel):
 class TabularMode(str, Enum):
     row = 'row'
     column = 'column'
-    entry = 'entry'
 
 
 class TabularParsingOptions(BaseModel):
-    skiprows: int = Field(None, description='Number of rows to skip')
+    skiprows: Union[List[int], int] = Field(None, description='Number of rows to skip')
     sep: str = Field(None, description='Character identifier of a separator')
     comment: str = Field(None, description='Character identifier of a commented line')
     separator: str = Field(None, description='Alias for `sep`')
@@ -381,9 +380,6 @@ class TabularMappingOptions(BaseModel):
     `single_new_entry`: Creating a new entry and processing the data into this new NOMAD entry.<br/>
     `multiple_new_entries`: Creating many new entries and processing the data into these new NOMAD entries.<br/>
     ''')
-    with_file: bool = Field(False, description='''
-    A boolean variable to set creation of new file(s) for each new entry. By default it is set to false
-    ''')
     sections: List[str] = Field(None, description='''
     A `list` of paths to the (sub)sections where the tabular quantities are to be filled from the data
     extracted from the tabular file.
@@ -419,14 +415,13 @@ class TabularParserAnnotation(AnnotationModel):
             nested sub-sections. The targeted sub-sections, will be considered when mapping table rows to quantities.
             Has to be used to annotate the quantity that holds the path to the `.csv` or excel file.<br/>
         `file_mode`: The character used to separate cells (specific to csv files).<br/>
-        `with_file`: A boolean variable to dump the processed/parsed data into a ascii-formatted YAML/JSON file.<br/>
         `sections`: The character denoting the commented lines.<br/>
     ''')
 
 
 class TabularAnnotation(AnnotationModel):
     '''
-    Allows to map a quantity to a row of a tabular data-file. Should only be used
+    Allows to map a quantity to a row or a column of a spreadsheet data-file. Should only be used
     in conjunction with `tabular_parser`.
     '''
 

@@ -1,296 +1,254 @@
-In order to import your data from a `.csv` or `Excel` file, NOMAD provides three distinct (and separate) ways, that
-with each comes unique options for importing and interacting with your data. In order to better understand how to use
-NOMAD tabular parser to import your data, follow three sections below. In each section you
-can find a commented sample schema with a step-by-step guide on how to import your tabular data.
+Refer to the [Reference guide](../reference/annotations.md) for the full list of annotations connected to this parser and to the [Tabular parser tutorial](../tutorial/custom.md#the-built-in-tabular-parser)  for a detailed description of each of them.
 
-Tabular parser, implicitly, parse the data into the same NOMAD entry where the datafile is loaded. Also, explicitly,
-this can be defined by putting the corresponding annotations under `current_entry` (check the examples below).
-In addition, tabular parser can be set to parse the data into new entry (or entries). For this, the proper annotations
-should be appended to `new_entry` annotation in your schema file.
+## Preparing the tabular data file
 
-Two main components of any tabular parser schema are:
-1) implementing the correct base-section(s), and
-2) providing a `data_file` `Quantity` with the correct `m_annotations`.
+NOMAD and `Excel` support multiple-sheets data manipulations and imports. Each quantity in the schema will be annotated with a source path composed by sheet name and column header. The path to be used with the tabular data displayed below would be `Sheet1/My header 1` and it would be placed it the `tabular` annotation, see [Schema annotations](../tutorial/custom.md#to-be-an-entry-or-not-to-be-an-entry) section.
 
-Please bear in mind that the schema files should 1) follow the NOMAD naming convention
-(i.e. `My_Name.archive.yaml`), and 2) be accompanied by your data file in order for NOMAD to parse them.
-In the examples provided below, an `Excel` file is assumed to contain all the data, as both NOMAD and
-`Excel` support multiple-sheets data manipulations and imports. Note that the `Excel` file name in each schema
-should match the name of the `Excel` data file, which in case of using a `.csv` data file, it can be replaced by the
-`.csv` file name.
+<p align="center" width="100%">
+    <img width="30%" src="2col.png">
+</p>
 
-`TableData` (and any other section(s) that is inheriting from `TableData`) has a customizable checkbox Quantity
-(i.e. `fill_archive_from_datafile`) to turn the tabular parser `on` or `off`.
-If you do not want to have the parser running everytime you make a change to your archive data, it is achievable then via
-unchecking the checkbox. It is customizable in the sense that if you do not wish to see this checkbox at all,
-you can configure the `hide` parameter of the section's `m_annotations` to hide the checkbox. This in turn sets
-the parser to run everytime you save your archive.
+In the case there is only one sheet in the Excel file, or when using a `.csv` file that is a single-sheet format, the sheet name is not required in the path.
+
+The data sheets can be stored in one or more files depending on the user needs. Each sheet can independently be organized in one of the following ways:
+
+1) Columns:<br />
+ each column contains an array of cells that we want to parse into one quantity. Example: time and temperature arrays to be plotted as x and y.
+
+<p align="center" width="100%">
+    <img width="30%" src="columns.png">
+</p>
+
+2) Rows:<br />
+ each row contains a set of cells that we want to parse into a section, i. e. a set of quantities. Example: an inventory tabular data file (for substrates, precursors, or more) where each column represents a property and each row corresponds to one unit stored in the inventory.
+
+<p align="center" width="100%">
+    <img width="30%" src="rows.png">
+</p>
+
+3) Rows with repeated columns:<br />
+
+
+in addition to the mode 2), whenever the parser detects the presence of multiple columns (or multiple sets of columns) with same headers, these are taken as multiple instances of a subsection. More explanations will be delivered when showing the schema for such a structure. Example: a crystal growth process where each row is a step of the crystal growth and the repeated columns describe the "precursor materials", that can be more than one during such processes and they are described by the same "precursor material" section.
+
+<p align="center" width="100%">
+    <img width="45%" src="rows_subsection.png">
+</p>
+
+Furthermore, we can insert comments before our data, we can use a special character to mark one or more rows as comment rows. The special character is annotated within the schema in the [parsing options](#parsing-options) section:
+
+<p align="center" width="100%">
+    <img width="30%" src="2col_notes.png">
+</p>
+
+## Inheriting the TableData base section
+
+`TableData` can be inherited adding the following lines in the yaml schema file:<br />
+
+```yaml
+MySection:
+  base_sections:
+    - nomad.datamodel.data.EntryData
+    - nomad.parsing.tabular.TableData
+```
+
+`EntryData` is usually also necessary as we will create entries from the section we are defining.<br />
+`TableData` provides a customizable checkbox quantity, called `fill_archive_from_datafile`, to turn the tabular parser `on` or `off`.<br />
+To avoid the parser running everytime a change is made to the archive data, it is sufficient to uncheck the checkbox. It is customizable in the sense that if you do not wish to see this checkbox at all, you can configure the `hide` parameter of the section's `m_annotations` to hide the checkbox. This in turn sets the parser to run everytime you save your archive. To hide it, add the following lines:
+
+```yaml
+MySection:
+  base_sections:
+    - nomad.datamodel.data.EntryData
+    - nomad.parsing.tabular.TableData
+  m_annotations:
+    eln:
+      hide: ['fill_archive_from_datafile']
+```
 
 Be cautious though! Turning on the tabular parser (or checking the box) on saving your data will cause
 losing/overwriting your manually-entered data by the parser!
 
-## Column-mode
-The following sample schema creates one quantity off the entire column of an excel file (`column mode`).
-For example, suppose in an excel sheet, several rows contain information of a chemical product (e.g. `purity` in one
-column). In order to list all the purities under the column `purity` and import them into NOMAD, you can use the
-following schema by substituting `My_Quantity` with any name of your choice (e.g. `Purity`),
-`tabular-parser.data.xlsx` with the name of the `csv/excel` file where the data lies, and `My_Sheet/My_Column` with
-sheet_name/column_name of your targeted data. The `Tabular_Parser` can also be changed to any arbitrary name of your
-choice.
+## Importing data in NOMAD
 
-Important notes:
+After writing a schema file and creating a new upload in NOMAD (or using an existing upload), it is possible to upload the schema file. After creating a new Entry out of one section of the schema, the tabular data file must be dropped in the quantity designated by the `FileEditQuantity` annotation. After clicking save the parsing will start. In the Overview page of the NOMAD upload, new Entries are created and appended to the Processed data section. In the Entry page, clicking on DATA tab (on top of the screen) and in the Entry lane, the data is populated under the `data` subsection.
+## Hands-on examples of all tabular parser modes
 
-- `shape: ['*']` under `My_Quantity` is essential to parse the entire column of the data file.
-- The `data_file` `Quantity` can have any arbitrary name (e.g. `xlsx_file`)
-- `My_Quantity` can also be defined within another subsection (see next sample schema)
-- Use `current_entry` and append `column_to_sections` to specify which sub_section(s) is to be filled in
-this mode. `Leaving this field empty` causes the parser to parse the entire schema under column mode.
+In this section eight examples will be presented, containing all the features available in tabular parser. Refer to the [Tutorial](../tutorial/custom.md#to-be-an-entry-or-not-to-be-an-entry) for more comments on the implications of the structures generated by the following yaml files.
 
-```yaml
---8<-- "examples/data/docs/tabular-parser-col-mode.archive.yaml"
-```
 
-<b>Step-by-step guide to import your data using column-mode:</b>
+### 1. Column mode, current Entry, parse to root
 
-After writing your schema file, you can create a new upload in NOMAD (or use an existing upload),
-and upload both your `schema file` and the `excel/csv` file together (or zipped) to your NOMAD project. In the
-`Overview` page of your NOMAD upload, you should be able to see a new entry created and appended to the `Process data`
-section. Go to the entry page, click on `DATA` tab (on top of the screen) and in the `Entry` lane, your data
-is populated under the `data` sub_section.
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-1.png">
+</p>
 
-#### Row-mode Sample:
-The sample schema provided below, creates separate instances of a repeated section from each row of an excel file
-(`row mode`). For example, suppose in an excel sheet, you have the information for a chemical product
-(e.g. `name` in one column), and each row contains one entry of the aforementioned chemical product.
-Since each row is separate from others, in order to create instances of the same product out of all rows
-and import them into NOMAD, you can use the following schema by substituting `My_Subsection`,
-`My_Section` and `My_Quantity` with any appropriate name (e.g. `Substance`, `Chemical_product`
-and `Name` respectively).
+The first case gives rise to the simplest data archive file. Here the tabular data file is parsed by columns, directly within the Entry where the `TableData` is inherited and filling the quantities in the root level of the schema (see dedicated how-to to learn [how to inherit tabular parser in your schema](../schemas/tabular.md#inheriting-the-tabledata-base-section)).
 
-Important notes:
-
-- This schema demonstrates how to import data within a subsection of another subsection, meaning the
-targeted quantity should not necessarily go into the main `quantites`.
-- Setting `row_to_sections` under `current_entry` signals that for each row in the sheet_name (provided in `My_Quantity`),
-one instance of the corresponding (sub-)section (in this example, `My_Subsection` sub-section as it has the `repeats`
-option set to true), will be appended. Please bear in mind that if this mode is selected, then all other quantities
-in this sub_section, should exist in the same sheet_name.
-
+!!! important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the same Entry of the parsed quantities.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data (`root` in this case).
+    - quantities parsed in `column` mode must have the `shape: ['*']` attribute, that means they are arrays and not scalars.
 
 ```yaml
---8<-- "examples/data/docs/tabular-parser-row-mode.archive.yaml"
+--8<-- "examples/data/docs/tabular-parser_1_column_current-entry_to-root.archive.yaml"
 ```
 
-<b>Step-by-step guide to import your data using row-mode:</b>
+### 2. Column mode, current Entry, parse to my path
 
-After writing your schema file, you can create a new upload in NOMAD (or use an existing upload),
-and upload both your `schema file` and the `excel/csv` file together (or zipped) to your NOMAD project. In the
-`Overview` page of your NOMAD upload, you should be able to see as many new sub-sections created and appended
-to the repeating section as there are rows in your `excel/csv` file.
-Go to the entry page of the new entries, click on `DATA` tab (on top of the screen) and in the `Entry` lane,
-your data is populated under the `data` sub_section.
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-2.png">
+</p>
 
-#### Entry-mode Sample:
-The following sample schema creates one entry for each row of an excel file (`entry mode`).
-For example, suppose in an excel sheet, you have the information for a chemical product (e.g. `name` in one column),
-and each row contains one entry of the aforementioned chemical product. Since each row is separate from others, in
-order to create multiple archives of the same product out of all rows and import them into NOMAD, you can use the
-following schema by substituting `My_Quantity` with any appropriate name (e.g. `Name`).
+The parsing mode presented here only differs from the previous for the `sections` annotations. In this case the section that we want to fill with tabular data can be nested arbitrarily deep in the schema and the `sections` annotation must be filled with a forward slash path to the desired section, e. g. `my_sub_section/my_sub_sub_section`.
 
-Important note:
-
-- To create new entries based on your entire schema, set `row_to_entries` to `- root`. Otherwise, you can
-provide the relative path of specific sub_section(s) in your schema to create new entries.
-- Leaving `row_to_entries` empty causes the parser to parse the entire schema using <b>column mode</b>!
-
+!!! important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the same Entry of the parsed quantities.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
+    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reachs it (e. g. `my_sub_sec/my_sub_sub_sec`).
+    - quantities parsed in `column` mode must have the `shape: ['*']` attribute, that means they are arrays and not scalars.
 
 ```yaml
---8<-- "examples/data/docs/tabular-parser-entry-mode.archive.yaml"
+--8<-- "examples/data/docs/tabular-parser_2_column_current-entry_to-path.archive.yaml"
 ```
 
-<b>Step-by-step guide to import your data using entry-mode:</b>
+### 3. Row mode, current Entry, parse to my path
 
-After writing your schema file, you can create a new upload in NOMAD (or use an existing upload),
-and upload both your `schema file` and the `excel/csv` file together (or zipped) to your NOMAD project. In the
-`Overview` page of your NOMAD upload, you should be able to see as many new entries created and appended
-to the `Process data` section as there are rows in your `excel/csv` file.
-Go to the entry page of the new entries, click on `DATA` tab (on top of the screen) and in the `Entry` lane,
-your data is populated under the `data` sub_section.
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-3.png">
+</p>
 
-<b>Advanced options to use/set in tabular parser:</b>
+The current is the first example of parsing in row mode. This means that every row of the excel file while be placed in one instance of the section that is defined in `sections`. This section must be decorated with `repeats: true` annotation, it will allow to generate multiple instances that will be appended in a list with sequential numbers. Instead of sequential numbers, the list can show specific names if `label_quantity` annotation is appended to the repeated section. This annotation is included in the how-to example. The section is written separately in the schema and it does not need the `EntryData` inheritance because the instances will be grafted directly in the current Entry. As explained [below](#91-row-mode-current-entry-parse-to-root), it is not possible for `row` and `current_entry` to parse directly in the root because we need to create multiple instances of the selected subsection and organize them in a list.
 
-- If you want to populate your schema from multiple `excel/csv` files, you can
-define multiple data_file `Quantity`s annotated with `tabular_parser` in the root level of your schema
-(root level of your schema is where you inherit from `TableData` class under `base_sections`).
-Each individual data_file quantity can now contain a list of sub_sections which are expected to be filled
-using one- or all of the modes mentioned above. Check the `MyOverallSchema` section in
-`Complex Schema` example below. It contains 2 data_file quantities that each one, contains separate instructions
-to populate different parts of the schema. `data_file_1` is responsible to fill `MyColSubsection` while `data_file_2`
-fills all sub_sections listed in `row_to_sections` and `entry_to_sections` under `new_entry`.
-
-- When using the entry mode, you can create a custom `Quantity` to hold a reference to each new entries
-generated by the parser. Check the `MyEntrySubsection` section in the `Complex Schema` example below.
-The `refs_quantity` is a `ReferenceEditQuantiy` with type `#/MyEntry` which tells the parser to
-populate this quantity with a reference to the fresh entry of type `MyEntry`. Also, you may use
-`tabular_pattern` annotation to explicitly set the name of the fresh entries.
-
-- If you have multiple columns with exact same name in your `excel/csv` file, you can parse them using row mode.
-For this, define a repeating sub_section that handles your data in different rows and inside each row, define another
-repeating sub_section that contains your repeating columns. Check `MySpecialRowSubsection` section in the
-`Complex Schema` example below. `data_file_2` contains a repeating column called `row_quantity_2` and
-we want to create a section out of each row and each column. This is done by
-creating one row of type `MySpecialRowSubsection` and populate
-`MyRowQuantity3` quantity from `row_quantity_3` column in the `csv` file, and appending each column of
-`row_quantity_2` to `MyRowQuantity2`.
+!!! important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the same Entry of the parsed quantities.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
+    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reachs it (e. g. `my_sub_sec/my_sub_sub_sec`).
+    - quantities parsed in `row` mode are scalars.
+    - make use of `repeats: true` in the subsection within the parent section `MySection`.
+    - `label_quantity` annotation uses a quantity as name of the repeated section. If it is not provided, a sequential number will be used for each instance.
 
 ```yaml
---8<-- "examples/data/docs/tabular-parser-complex.archive.yaml"
+--8<-- "examples/data/docs/tabular-parser_3_row_current-entry_to-path.archive.yaml"
 ```
 
-Here are all parameters for the two annotations `Tabular Parser` and `Tabular`.
+### 4. Column mode, single new Entry, parse to my path
 
-{{ pydantic_model('nomad.datamodel.metainfo.annotations.TabularParserAnnotation', heading='### Tabular Parser') }}
-{{ pydantic_model('nomad.datamodel.metainfo.annotations.TabularAnnotation', heading='### Tabular') }}
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-4.png">
+</p>
 
-{{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotAnnotation', heading='## Plot Annotation') }}
+One more step of complexity is added here: the parsing is not performed in the current Entry, but a new Entry it automatically generated and filled.
+This structure foresees a parent Entry where we collect one or more tabular data files and possibly other info while we want to separate a specific entity of our data structure in another searchable Entry in NOMAD, e. g. a substrate Entry or a measurement Entry that would be collected inside a parent experiment Entry. We need to inherit `SubSect` class from `EntryData` because these will be standalone archive files in NOMAD. Parent and children Entries are connected by means of the `ReferenceEditQuantity` annotation in the parent Entry schema. This annotation is attached to a quantity that becomes a hook to the other ones, It is a powerful tool that allows to list in the overview of each Entry all the other referenced ones, allowing to build paths of referencing available at a glance.
 
-## Built-in base sections for ELNs
-
-Coming soon ...
-
-## Custom normalizers
-
-For custom schemas, you might want to add custom normalizers. All files are parsed
-and normalized when they are uploaded or changed. The NOMAD metainfo Python interface
-allows you to add functions that are called when your data is normalized.
-
-Here is an example:
-
-```python
---8<-- "examples/archive/custom_schema.py"
-```
-
-To add a `normalize` function, your section has to inherit from `ArchiveSection` which
-provides the base for this functionality. Now you can overwrite the `normalize` function
-and add you own behavior. Make sure to call the `super` implementation properly to
-support schemas with multiple inheritance.
-
-If we parse an archive like this:
+!!! important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the parent Entry, the data is parsed in the child Entry.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
+    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reachs it (e. g. `my_sub_sec/my_sub_sub_sec`)
+    - quantities parsed in `column` mode must have the `shape: ['*']` attribute, that means they are arrays and not scalars.
+    - inherit also the subsection from `EntryData` as it must be a NOMAD Entry archive file.
 
 ```yaml
---8<-- "examples/archive/custom_data.archive.yaml"
+--8<-- "examples/data/docs/tabular-parser_4_column_single-new-entry_to-path.archive.yaml"
 ```
 
-we will get a final normalized archive that contains our data like this:
+### 5. Row mode, single new Entry, parse to my path
 
-```json
-{
-  "data": {
-    "m_def": "examples.archive.custom_schema.SampleDatabase",
-    "samples": [
-      {
-        "added_date": "2022-06-18T00:00:00+00:00",
-        "formula": "NaCl",
-        "sample_id": "2022-06-18 00:00:00+00:00--NaCl"
-      }
-    ]
-  }
-}
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-5.png">
+</p>
+
+Example analogous to the previous, where the new created Entry contains now a repeated subsection with a list of instances made from each line of the tabular data file, as show in the [Row mode, current Entry, parse to my path](#3-row-mode-current-entry-parse-to-my-path) case.
+
+!!! important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the parent Entry, the data is parsed in the child Entry.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
+    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reachs it (e. g. `my_sub_sec/my_sub_sub_sec`)
+    - quantities parsed in `row` mode are scalars.
+    - inherit also the subsection from `EntryData` as it must be a NOMAD Entry archive file.
+    - make use of `repeats: true` in the subsection within the parent section `MySection`.
+    - `label_quantity` annotation uses a quantity as name of the repeated section. If it is not provided, a sequential number will be used for each instance.
+
+```yaml
+--8<-- "examples/data/docs/tabular-parser_5_row_single-new-entry_to-path.archive.yaml"
 ```
 
-## Third-party integration
+### 6. Row mode, multiple new entries, parse to root
 
-NOMAD offers integration with third-party ELN providers, simplifying the process of connecting
-and interacting with external platforms. Three main external ELN solutions that are integrated into NOMAD
-are: [elabFTW](https://www.elabftw.net/), [Labfolder](https://labfolder.com/) and [chemotion](https://chemotion.net/).
-The process of data retrieval and data mapping onto NOMAD's schema
-varies for each of these third-party ELN provider as they inherently allow for certain ways of communicating with their
-database. Below you can find a <b>How-to</b> guide on importing your data from each of these external
-repositories.
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-6.png">
+</p>
 
+The last feature available for tabular parser is now introduced: `multiple_new_entries`. It is only meaningful for `row` mode because each row of the tabular data file will be placed in a new Entry that is an instance of a class defined in the schema, this would not make sense for columns, though, as they usually need to be parsed all together in one class of the schema, for example the "timestamp" and "temperature" columns in a spreadsheet file would need to lie in the same class as they belong to the same part of experiment.
+A further comment is needed to explain the combination of this feature with `root`. As mentioned before, using `root` foresees to graft data directly in the present Entry. In this case, this means that a manyfold of Entries will be generated based on the only class available in the schema. These Entries will not be bundled together by a parent Entry but just live in our NOMAD Upload as a spare list. They might be referenced manually by the user with `ReferenceEditQuantity` in other archive files. Bundling them together in one overarching Entry already at the parsing stage would require the next and last example to be introduced.
 
-### elabFTW integration
+!!!important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the parent Entry, the data is parsed in the children Entries.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
+    - quantities parsed in `row` mode are scalars.
+    - inherit also the subsection from `EntryData` as it must be a NOMAD Entry archive file.
+    - make use of `repeats: true` in the subsection within the parent section `MySection`.
+    - `label_quantity` annotation uses a quantity as name of the repeated section. If it is not provided, a sequential number will be used for each instance.
 
-elabFTW is part of [the ELN Consortium](https://github.com/TheELNConsortium)
-and supports exporting experimental data in ELN file format. ELNFileFormat is a zipped file
-that contains <b>metadata</b> of your elabFTW project along with all other associated data of
-your experiments.
+```yaml
+--8<-- "examples/data/docs/tabular-parser_6_row_multiple-new-entries_to-root.archive.yaml"
+```
 
-<b>How to import elabFTW data into NOMAD:</b>
+### 7. Row mode, multiple new entries, parse to my path
 
-Go to your elabFTW experiment and export your project as `ELN Archive`. Save the file to your filesystem under
-your preferred name and location (keep the `.eln` extension intact).
-To parse your ebalFTW data into NOMAD,
-go to the upload page of NOMAD and create a new upload. In the `overview` page, upload your exported file (either by
-drag-dropping it into the <i>click or drop files</i> box or by navigating to the path where you stored the file).
-This causes triggering NOMAD's parser to create as many new entries in this upload as there are experiments in your
-elabFTW project.
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-7.png">
+</p>
 
-You can inspect the parsed data of each of your entries (experiments) by going to the <b>DATA</b>
-tab of each entry page. Under <i>Entry</i> column, click on <i>data</i> section. Now a new lane titled
-`ElabFTW Project Import` should be visible. Under this section, (some of) the metadata of your project is listed.
-There two sub-sections: 1) <b>experiment_data</b>, and 2) <b>experiment_files</b>.
+As anticipated in the previous example, `row` mode in connection to `multiple_new_entries` will produce a manyfold of instances of a specific class, each of them being a new Entry. In the present case, each instance will also automatically be placed in a `ReferenceEditQuantity` quantity lying in a subsection defined within the parent Entry, coloured in plum in the following example image.
 
-<b>experiment_data</b> section contains detailed information of the given elabFTW experiment, such as
-links to external resources and extra fields. <b>experiment_files</b> section is a list of sub-sections
-containing metadata and additional info of the files associated with the experiment.
+!!!important
+    - `data_file` quantity, i.e. the tabular data file name, is located in the same Entry, the data is parsed in the children Entries.
+    - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
+    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reachs it (e. g. `my_sub_sec/my_sub_sub_sec`)
+    - quantities parsed in `row` mode are scalars.
+    - inherit also the subsection from `EntryData` as it must be a standalone NOMAD archive file.
+    - make use of `repeats: true` in the subsection within the parent section `MySection`.
+    - `label_quantity` annotation uses a quantity as name of the repeated section. If it is not provided, a sequential number will be used for each instance.
 
+```yaml
+--8<-- "examples/data/docs/tabular-parser_7_row_multiple-new-entries_to-path.archive.yaml"
+```
 
-### Labfolder integration
+### 8. The Sub-Subsection nesting schema
 
-Labfolder provides API endpoints to interact with your ELN data. NOMAD makes API calls to
-retrieve, parse and map the data from your Labfolder instance/database to a NOMAD's schema.
-To do so, the necessary information are listed in the table below:
+<p align="center" width="100%">
+    <img width="100%" src="../tutorial/tabular-8.png">
+</p>
 
-<i>project_url</i>:
-        The URL address to the Labfolder project. it should follow this pattern:
-        'https://your-labfolder-server/eln/notebook#?projectIds=your-project-id'. This is used to setup
-        the server and initialize the NOMAD schema.
+If the tabular data file contains multiple columns with exact same name, there is a way to parse them using `row` mode. As explained in previous examples, this mode creates an instance of a subsection of the schema for each row of the file. Whenever column with same name are found they are interpreted as multiple instances of a sub-subsection nested inside the subsection. To build a schema with such a feature it is enough to have two nested classes, each of them bearing a `repeats: true` annotation. This structure can be applied to each and every of the cases above with `row` mode parsing.
 
-<i>labfolder_email</i>:
-        The email (user credential) to authenticate and login the user. <b>Important Note</b>: this
-        information <b>is discarded</b> once the authentication process is finished.
+!!!important
+    - make use of `repeats: true` in the subsection within the parent section `MySection` and also in the sub-subsection within `MySubSect`.
+    - `label_quantity` annotation uses a quantity as name of the repeated section. If it is not provided, a sequential number will be used for each instance.
 
-<i>password</i>:
-        The password (user credential) to authenticate and login the user. <b>Important Note</b>: this
-        information <b>is discarded</b> once the authentication process is finished.
+```yaml
+--8<-- "examples/data/docs/tabular-parser_8_row_current-entry_to-path_subsubsection.archive.yaml"
+```
 
-<b>How to import Labfolder data into NOMAD:</b>
+### 9. Not possible implementations
 
-To get your data transferred to NOMAD, first go to NOMAD's upload page and create a new upload.
-Then click on `CREATE ENTRY` button. Select a name for your entry and pick `Labfolder Project Import` from
-the `Built-in schema` dropdown menu. Then click on `CREATE`. This creates an entry where you can
-insert your user information. Fill the `Project url`, `Labfolder email` and `password` fields. Once completed,
-click on the `save icon` in the
-top-right corner of the screen. This triggers NOMAD's parser to populate the schema of current ELN.
-Now the metadata and all files of your Labfolder project should be populated in this entry.
+Some combinations of `mapping_options`, namely `file_mode`, `mapping_mode`, and `sections`, can give rise to not interpretable instructions or not useful data structure. For the sake of completeness, a brief explanation of the five not possible cases will be provided.
+#### 9.1 Row mode, current Entry, parse to root
 
-The `elements` section lists all the data and files in your projects. There are 6 main data types
-returned by Labfolder's API: `DATA`, `FILE`, `IMAGE`, `TABLE`, `TEXT` and `WELLPLATE`. `DATA` element is
-a special Labfolder element where the data is structured in JSON format. Every data element in NOMAD has a special
-`Quantity` called `labfolder_data` which is a flattened and aggregated version of the data content.
-`IMAGE` element contains information of any image stored in your Labfolder project. `TEXT` element
-contains data of any text field in your Labfodler project.
+`row` mode always requires a section instance to be populated with one row of cells from the tabular data file. Multiple instances are hence generated from the rows available in the file. The instances are organized in a list and the list must be necessarily hosted as a subsection in some parent section. That's why, within the parent section, a path in `sections` must be provided different from `root`.
 
-### Chemotion integration
+#### 9.2 Column mode, single new Entry, parse to root
 
-NOMAD supports importing your data from Chemotion repository via `chemotion` parser. The parser maps
-your data that is structured under chemotion schema, into a predefined NOMAD schema. From your Chemotion
-repo, you can export your entire data as a zip file which then is used to populate NOMAD schema.
+This would create a redundant Entry with the very same structure of the one where the `data_file` quantity is placed, the structure would furthermore miss a reference between the two Entries. A better result is achieved using a path in `sections` that would create a new Entry and reference it in the parent one.
+#### 9.3 Row mode, single new Entry, parse to root
 
-<b>How to import Chemotion data into NOMAD:</b>
+As explained in the first section of not possible cases, when parsing in row mode we create multiple instances that cannot remain as standalone floating objects. They must be organized as a list in a subsection of the parent Entry.
 
-Go to your Chemotion repository and export your project. Save the file to your filesystem under
-your preferred name and location (`your_file_name.zip`).
-To get your data parsed into NOMAD,
-go to the upload page of NOMAD and create a new upload. In the `overview` page, upload your exported file (either by
-drag-dropping it into the <i>click or drop files</i> box or by navigating to the path where you stored the file).
-This causes triggering NOMAD's parser to create one new entry in this upload.
+#### 9.4 Column mode, multiple new entries, parse to root
 
-You can inspect the parsed data of each of this new entry by navigating to the <b>DATA</b>
-tab of the current entry page. Under <i>Entry</i> column, click on <i>data</i> section. Now a new lane titled
-`Chemotion Project Import` should be visible. Under this section, (some of) the metadata of your project is listed.
-Also, there are various (sub)sections which are either filled depending on whether your datafile
-contains information on them.
+This case would create a useless set of Entries containing one array quantity each. Usually, when parsing in column mode we want to parse together all the columns in the same section.
 
-If a section contains an image (or attachment) it is appended to the same section under `file` Quantity.
+#### 9.5 Column mode, multiple new entries, parse to my path
+
+This case would create a useless set of Entries containing one array quantity each. Usually, when parsing in column mode we want to parse together all the columns in the same section.

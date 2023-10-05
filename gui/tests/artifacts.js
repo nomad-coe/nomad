@@ -62367,55 +62367,6 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 0,
             "m_parent_sub_section": "section_definitions",
-            "name": "TableRow",
-            "description": "Represents the data in one row of a table.",
-            "base_sections": [
-              "/packages/14/section_definitions/1"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "table_ref",
-                "description": "A reference to the table that this row is contained in.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/13/section_definitions/1"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 1,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Table",
-            "description": "Represents a table with many rows.",
-            "base_sections": [
-              "/packages/14/section_definitions/1"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "row_refs",
-                "description": "References that connect to each row. Each row is stored in it individual entry.",
-                "type": {
-                  "type_kind": "reference",
-                  "type_data": "/packages/13/section_definitions/0"
-                },
-                "shape": [
-                  "*"
-                ]
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 2,
-            "m_parent_sub_section": "section_definitions",
             "name": "TableData",
             "description": "",
             "base_sections": [
