@@ -25,7 +25,7 @@ import {
 import PropTypes from 'prop-types'
 import Cookies from 'universal-cookie'
 import { apiBase, globalLoginRequired, appBase, searchQuantities } from '../config'
-import { Box, makeStyles, Typography } from '@material-ui/core'
+import { Box, Typography, withStyles } from '@material-ui/core'
 import LoginLogout from './LoginLogout'
 import { useKeycloak } from '@react-keycloak/web'
 import axios from 'axios'
@@ -507,7 +507,7 @@ GlobalLoginRequired.propTypes = {
   ]).isRequired
 }
 
-const useLoginRequiredStyles = makeStyles(theme => ({
+export const LoginRequired = withStyles(theme => ({
   root: {
     padding: theme.spacing(2),
     display: 'flex',
@@ -516,10 +516,7 @@ const useLoginRequiredStyles = makeStyles(theme => ({
       marginRight: theme.spacing(1)
     }
   }
-}))
-
-export function LoginRequired({message, children}) {
-  const classes = useLoginRequiredStyles()
+}))(({classes, message, children}) => {
   const {api} = useApi()
   if (api.keycloak.authenticated) {
     return <React.Fragment>
@@ -533,7 +530,7 @@ export function LoginRequired({message, children}) {
       <LoginLogout color="primary" />
     </div>
   }
-}
+})
 LoginRequired.propTypes = {
   message: PropTypes.string,
   children: PropTypes.oneOfType([

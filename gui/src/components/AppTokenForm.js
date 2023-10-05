@@ -15,37 +15,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { React, useState } from 'react'
+import { React, useEffect, useState } from 'react'
 
 import { addSeconds, endOfDay, format, formatDistanceToNow, getUnixTime, isValid,
          subDays } from "date-fns"
-import { Box, IconButton, Tooltip } from '@material-ui/core'
+import { Box, IconButton, Tooltip, makeStyles } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
 import { DatePicker } from '@material-ui/pickers'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { useKeycloak } from '@react-keycloak/web'
-
-import { useApi } from './api'
+import { LoginRequired, useApi } from './api'
 import { appTokenMaxExpiresIn } from '../config'
 import { useErrors } from './errors'
 
+const useStyles = makeStyles({
+  root: {
+    padding: 0
+  }
+})
+
 export default function AppTokenForm() {
+  const classes = useStyles()
   const {keycloak} = useKeycloak()
   const {api} = useApi()
   const errors = useErrors()
 
   const [error, setError] = useState()
-  const [dateValue, setDateValue] = useState()
+  const [dateValue, setDateValue] = useState(new Date())
   const [token, setToken] = useState()
 
   let maxDate = subDays(addSeconds(new Date(), appTokenMaxExpiresIn), 1)
   if (!isValid(maxDate)) maxDate = undefined
 
-  const handleDateChange = (newValue) => {
-    setDateValue(newValue)
+  useEffect(() => {
     if (error) setError(undefined)
 
-    const expiresAt = endOfDay(newValue)
+    const expiresAt = endOfDay(dateValue)
     const expiresInS = getUnixTime(expiresAt) - getUnixTime(new Date())
     api.get(`/auth/app_token?expires_in=${expiresInS}`)
       .then((response) => {
@@ -55,7 +60,10 @@ export default function AppTokenForm() {
         setToken(undefined)
 
         if (exception.status !== 422) {
-          errors.raiseError(exception)
+          if (exception.status !== 401) {
+            errors.raiseError(exception)
+          }
+          return
         }
 
         const limitExpiresInS = exception.apiMessage[0].ctx.limit_value
@@ -63,11 +71,13 @@ export default function AppTokenForm() {
         setError(`Choose not later than ${format(limitExpiresAt, 'yyyy-MM-dd')} ` +
                  `(in ${formatDistanceToNow(limitExpiresAt)}).`)
       })
-  }
+  }, [dateValue, api, setToken, error, errors])
+
+  const handleDateChange = value => setDateValue(value)
 
   return (
-    <Tooltip title={keycloak.authenticated ? "" : "Log in to request a token"}>
-      <Box width='fit-content'>
+    <LoginRequired classes={{root: classes.root}}>
+      <Box display="flex" marginTop={1}>
         <DatePicker
           autoOk
           error={error}
@@ -83,14 +93,16 @@ export default function AppTokenForm() {
           format='yyyy-MM-dd'
           value={dateValue}
         />
-        <CopyToClipboard text={token} >
-          <Tooltip title="Copy token to clipboard">
-            <IconButton disabled={!token}>
-              <ClipboardIcon />
-            </IconButton>
-          </Tooltip>
-        </CopyToClipboard>
+        <Box marginLeft={1}>
+          <CopyToClipboard text={token} >
+            <Tooltip title="Copy token to clipboard">
+              <IconButton disabled={!token}>
+                <ClipboardIcon />
+              </IconButton>
+            </Tooltip>
+          </CopyToClipboard>
+        </Box>
       </Box>
-    </Tooltip>
+    </LoginRequired>
   )
 }
