@@ -150,7 +150,7 @@ class Services(NomadSettings):
     api_secret = Field('defaultApiSecret', description='''
         A secret that is used to issue download and other tokens.
     ''')
-    api_timeout = Field(120, description='''
+    api_timeout = Field(600, description='''
         If the NOMAD app is run with gunicorn as process manager, this timeout (in s) is passed
         and worker processes will be restarted, if they do not respond in time.
     ''')
@@ -210,7 +210,11 @@ class Services(NomadSettings):
         Maximum expiration time for an app token in seconds. Requests with a higher value
         will be declined.
     ''')
-    image_resource_http_max_age = Field(7 * 24 * 60 * 60, description='''
+    html_resource_http_max_age = Field(60, description='''
+        Used for the max_age cache-control directive on statically served html, js, css
+        resources.
+    ''')
+    image_resource_http_max_age = Field(30 * 24 * 60 * 60, description='''
         Used for the max_age cache-control directive on statically served image
         resources.
     ''')

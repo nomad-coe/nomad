@@ -125,12 +125,12 @@ def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, lo
         gunicorn_app.run()
     else:
         from uvicorn import Server, Config
+        kwargs['log_config'] = log_config
 
         uv_config = Config(
             'nomad.app.main:app',
             log_level='info',
             host=host,
-            log_config=log_config,
             **{k: v for k, v in kwargs.items() if v is not None})
 
         server = Server(config=uv_config)
