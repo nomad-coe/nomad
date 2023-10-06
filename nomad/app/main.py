@@ -19,15 +19,17 @@
 import re
 import os
 import hashlib
+import json
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from starlette.staticfiles import StaticFiles as StarletteStaticFiles, NotModifiedResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.datastructures import Headers
+from pydantic import BaseModel
 
 from nomad import config, infrastructure
 from .dcat.main import app as dcat_app
@@ -83,6 +85,28 @@ if os.path.exists(configured_gui_folder):
     gui_folder = configured_gui_folder
 
 
+class StaticFiles(StarletteStaticFiles):
+
+    etag_re = r'^(W/)?"?([^"]*)"?$'
+
+    def is_not_modified(
+        self, response_headers: Headers, request_headers: Headers
+    ) -> bool:
+        # The starlette etag implementation is not considering the "..." and W/"..." etag
+        # RFC syntax used by browsers.
+        try:
+            if_none_match = request_headers["if-none-match"]
+            match = re.match(StaticFiles.etag_re, if_none_match)
+            if_none_match = match.group(2)
+            etag = response_headers["etag"]
+            if if_none_match == etag:
+                return True
+        except KeyError:
+            pass
+
+        return super().is_not_modified(response_headers, request_headers)
+
+
 class GuiFiles(StaticFiles):
 
     gui_artifacts_data = None
@@ -91,45 +115,18 @@ class GuiFiles(StaticFiles):
 
     async def get_response(self, path: str, scope) -> Response:
         if path not in ['env.js', 'artifacts.js']:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
+        else:
+            assert GuiFiles.gui_data_etag is not None, 'Etag for gui data was not initialized'
+            response = PlainTextResponse(
+                GuiFiles.gui_env_data if path == 'env.js' else GuiFiles.gui_artifacts_data,
+                media_type='application/javascript',
+                headers=dict(etag=GuiFiles.gui_data_etag))
 
         request_headers = Headers(scope=scope)
-        client_etag = None
-        if 'if-none-match' in request_headers:
-            client_etag = request_headers['if-none-match']
-        if 'if-match' in request_headers:
-            client_etag = request_headers['if-match']
-
-        status_code = 200
-        if client_etag == GuiFiles.gui_data_etag:
-            if 'if-none-match' in request_headers:
-                status_code = 304
-            if 'if-match' in request_headers:
-                status_code = 412
-
-        assert GuiFiles.gui_data_etag is not None, 'Etag for gui data was not initialized'
-
-        if status_code != 200:
-            return Response(
-                status_code=status_code,
-                media_type='application/javascript',
-                headers=dict(Etag=GuiFiles.gui_data_etag))
-
-        if path == 'env.js':
-            return PlainTextResponse(
-                GuiFiles.gui_env_data,
-                status_code=status_code,
-                media_type='application/javascript',
-                headers=dict(Etag=GuiFiles.gui_data_etag))
-
-        if path == 'artifacts.js':
-            return PlainTextResponse(
-                GuiFiles.gui_artifacts_data,
-                status_code=status_code,
-                media_type='application/javascript',
-                headers=dict(Etag=GuiFiles.gui_data_etag))
-
-        return await super().get_response(path, scope)
+        if self.is_not_modified(response.headers, request_headers):
+            return NotModifiedResponse(response.headers)
+        return response
 
 
 app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder, check_dir=False), name='dist', )
@@ -157,9 +154,12 @@ async def startup_event():
     from nomad.cli.dev import get_gui_config
     GuiFiles.gui_env_data = get_gui_config()
 
-    gui_data = GuiFiles.gui_env_data + GuiFiles.gui_artifacts_data
+    config_data = [
+        item.json()
+        for item in config.__dict__.values()
+        if isinstance(item, BaseModel)]
     GuiFiles.gui_data_etag = hashlib.md5(
-        gui_data.encode(), usedforsecurity=False).hexdigest()
+        json.dumps(config_data).encode(), usedforsecurity=False).hexdigest()
 
     infrastructure.setup()
 
@@ -228,7 +228,7 @@ async def health():
 
 max_cache_ages = {
     r'\.[a-f0-9]+\.chunk\.(js|css)$': 3600 * 24 * 7,
-    r'\.(html|js|css)$': 0,
+    r'\.(html|js|css)$': config.services.html_resource_http_max_age,
     r'\.(png|jpg|gif|jpeg|ico)$': config.services.image_resource_http_max_age,
 }
 
@@ -247,5 +247,11 @@ async def add_header(request: Request, call_next):
         response.headers['Cache-Control'] = f'max-age={max_age}, must-revalidate'
     else:
         response.headers['Cache-Control'] = f'max-age=0, no-cache, no-store, must-revalidate'
+
+    # The etags that we and starlette produce do not follow the RFC, because they do not
+    # start with a " as the RFC specifies. Nginx considers them weak etags and will strip
+    # these if gzip is enabled.
+    if not response.headers.get('etag', '"').startswith('"'):
+        response.headers['etag'] = f'"{response.headers.get("etag")}"'
 
     return response

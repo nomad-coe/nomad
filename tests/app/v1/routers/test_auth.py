@@ -57,10 +57,10 @@ def test_get_signature_token_unauthorized(client, invalid_user_auth):
 
 @pytest.mark.parametrize(
     'expires_in, status_code',
-    [(0, 422), (30 * 60, 200), (2 * 60 * 60, 200), (25 * 60 * 60, 422), (None, 422)])
+    [(0, 422), (30 * 60, 200), (2 * 60 * 60, 200), (31 * 24 * 60 * 60, 422), (None, 422)])
 def test_get_app_token(client, test_user_auth, expires_in, status_code):
-    response = client.get('auth/app_token', headers=test_user_auth,
-                          params={'expires_in': expires_in})
+    response = client.get(
+        'auth/app_token', headers=test_user_auth, params={'expires_in': expires_in})
     assert response.status_code == status_code
     if status_code == 200:
         assert response.json().get('app_token') is not None
