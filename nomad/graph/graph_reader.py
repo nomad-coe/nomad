@@ -29,15 +29,16 @@ from mongoengine import Q
 
 from nomad import utils
 from nomad.app.v1.models import (
-    Direction, WithQuery, MetadataPagination, Pagination, PaginationResponse, MetadataRequired
+    MetadataPagination, Pagination, PaginationResponse, Metadata
 )
 from nomad.app.v1.routers.datasets import DatasetPagination
 from nomad.app.v1.routers.entries import perform_search
 from nomad.app.v1.routers.uploads import (
-    get_upload_with_read_access, upload_to_pydantic, entry_to_pydantic, UploadProcDataQuery, UploadProcDataPagination
+    get_upload_with_read_access, upload_to_pydantic, entry_to_pydantic, UploadProcDataQuery, UploadProcDataPagination,
+    EntryProcDataPagination
 )
 from nomad.archive import ArchiveList, ArchiveDict, to_json
-from nomad.archive.model import RequestConfig, DefinitionType, DirectiveType, ResolveType, DatasetQuery
+from nomad.graph.model import RequestConfig, DefinitionType, DirectiveType, ResolveType, DatasetQuery, EntryQuery
 from nomad.datamodel import ServerContext, User, EntryArchive, Dataset
 from nomad.datamodel.util import parse_path
 from nomad.files import UploadFiles, RawPathInfo
@@ -58,14 +59,22 @@ class Token:
     It is thus recommended to use a prefix to avoid collision.
     '''
     DEF = 'm_def'
-    RAW = 'm_raw'
-    ARCHIVE = 'm_archive'
-    ENTRY = 'm_entries'
-    UPLOAD = 'm_uploads'
-    USER = 'm_users'
-    DATASET = 'm_datasets'
-    METAINFO = 'm_metainfo'
+    RAW = 'files'
+    ARCHIVE = 'archive'
+    ENTRY = 'entry'
+    ENTRIES = 'entries'
+    UPLOAD = 'upload'
+    UPLOADS = 'uploads'
+    USER = 'user'
+    USERS = 'users'
+    DATASET = 'dataset'
+    DATASETS = 'm_datasets'
+    METAINFO = 'metainfo'
+    SEARCH = 'search'
     ERROR = 'm_errors'
+    METADATA = 'metadata'
+    MAINFILE = 'mainfile'
+    RESPONSE = 'm_response'
 
 
 @dataclasses.dataclass(frozen=True)
@@ -73,6 +82,7 @@ class QueryError:
     NOACCESS = 'NOACCESS'
     NOTFOUND = 'NOTFOUND'
     ARCHIVEERROR = 'ARCHIVEERROR'
+    GENERAL = 'GENERAL'
 
 
 def dataset_to_pydantic(item):
@@ -98,7 +108,7 @@ class ConfigError(Exception):
 
 
 @dataclasses.dataclass(frozen=True)
-class ArchiveNode:
+class GraphNode:
     upload_id: str  # the upload id of the current node
     entry_id: str  # the entry id of the current node
     current_path: list[str]  # the path in the result container
@@ -128,13 +138,13 @@ class ArchiveNode:
     def _generate_prefix(self) -> str:
         return f'../uploads/{self.upload_id}/archive/{self.entry_id}'
 
-    def goto(self, reference: str, resolve_inplace: bool) -> ArchiveNode:
+    def goto(self, reference: str, resolve_inplace: bool) -> GraphNode:
         if reference.startswith(('/', '#')):
             return self._goto_local(reference, resolve_inplace)
 
         return self._goto_remote(reference, resolve_inplace)
 
-    def _goto_local(self, reference: str, resolve_inplace: bool) -> ArchiveNode:
+    def _goto_local(self, reference: str, resolve_inplace: bool) -> GraphNode:
         '''
         Go to a local reference.
         Since it is a local reference, only need to walk to the proper position.
@@ -159,7 +169,7 @@ class ArchiveNode:
             visited_path=self.visited_path.union({reference_url})
         ), resolve_inplace, reference_url)
 
-    def _goto_remote(self, reference: str, resolve_inplace: bool) -> ArchiveNode:
+    def _goto_remote(self, reference: str, resolve_inplace: bool) -> GraphNode:
         '''
         Go to a remote archive, which can be either in the same server or another installation.
         '''
@@ -209,7 +219,7 @@ class ArchiveNode:
             archive_root=other_archive_root
         ), resolve_inplace, reference_url)
 
-    def _switch_root(self, node: ArchiveNode, resolve_inplace: bool, reference_url: str):
+    def _switch_root(self, node: GraphNode, resolve_inplace: bool, reference_url: str):
         if resolve_inplace:
             # place the target into the current result container
             return node
@@ -264,15 +274,15 @@ def _convert_ref_to_path(ref: str, upload_id: str = None) -> list:
     if installation:
         path_stack.append(installation)
 
-    path_stack.append(Token.UPLOAD)
+    path_stack.append(Token.UPLOADS)
     path_stack.append(upload_id)
 
     if kind == 'raw':
         path_stack.append(Token.RAW)
         path_stack.extend(v for v in entry_id.split('/') if v)
-        path_stack.append(Token.ENTRY)
+        path_stack.append(Token.ENTRIES)
     else:
-        path_stack.append(Token.ENTRY)
+        path_stack.append(Token.ENTRIES)
         path_stack.append(entry_id)
 
     path_stack.append(Token.ARCHIVE)
@@ -286,9 +296,13 @@ def _convert_ref_to_path_string(ref: str, upload_id: str = None) -> str:
     return '/'.join(_convert_ref_to_path(ref, upload_id))
 
 
-def _populate_result(container_root: dict, path: list, value):
+def _populate_result(container_root: dict, path: list, value, *, path_like=False):
     '''
     For the given path and the root of the target container, populate the value.
+
+    If `path_like` is set to `True`,
+    the path will be treated as a true file system path such that
+    numerical values are not interpreted as list indices.
     '''
 
     def _merge_list(a: list, b: list):
@@ -331,6 +345,11 @@ def _populate_result(container_root: dict, path: list, value):
             container[k_or_i] = value_type()
         return container[k_or_i]
 
+    if len(path) == 0:
+        assert isinstance(container_root, dict) and isinstance(value, dict)
+        _merge_dict(container_root, value)
+        return
+
     path_stack: list = list(reversed(path))
     target_container: dict | list = container_root
     key_or_index: None | str | int = None
@@ -339,6 +358,8 @@ def _populate_result(container_root: dict, path: list, value):
         if key_or_index is not None:
             target_container = _set_default(target_container, key_or_index, dict)
         key_or_index = path_stack.pop()
+        if path_like:
+            continue
         while len(path_stack) > 0 and path_stack[-1].isdigit():
             target_container = _set_default(target_container, key_or_index, list)
             key_or_index = int(path_stack.pop())
@@ -409,15 +430,29 @@ def _normalise_required(required, config: RequestConfig, *, key: str = None, rea
     # discard pagination and query so that they are not passed to the children
     config_dict: dict = {'property_name': name, 'index': index, 'pagination': None, 'query': None}
 
-    if name in GeneralReader.__USER_ID__ or name == Token.USER:
+    can_query: bool = False
+
+    if name in GeneralReader.__USER_ID__ or name == Token.USER or name == Token.USERS:
         reader_type = UserReader
-    elif name in GeneralReader.__UPLOAD_ID__ or name == Token.UPLOAD:
+    elif name in GeneralReader.__UPLOAD_ID__:
         reader_type = UploadReader
-    elif name in GeneralReader.__DATASET_ID__ or name == Token.DATASET:
+    elif name == Token.UPLOAD or name == Token.UPLOADS:
+        reader_type = UploadReader
+        can_query = True
+    elif name in GeneralReader.__DATASET_ID__:
         reader_type = DatasetReader
-    elif name == Token.ENTRY:
+    elif name == Token.DATASET or name == Token.DATASETS:
+        reader_type = DatasetReader
+        can_query = True
+    elif name in GeneralReader.__ENTRY_ID__:
         reader_type = EntryReader
-    elif name == Token.RAW:
+    elif name == Token.ENTRY or name == Token.ENTRIES:
+        reader_type = EntryReader
+        can_query = True
+    elif name == Token.SEARCH:
+        reader_type = ElasticSearchReader
+        can_query = True
+    elif name == Token.RAW or name == Token.MAINFILE:
         reader_type = FileSystemReader
     elif name == Token.ARCHIVE:
         reader_type = ArchiveReader
@@ -434,16 +469,29 @@ def _normalise_required(required, config: RequestConfig, *, key: str = None, rea
     if isinstance(required, dict):
         # check if there is a config dict
         new_config_dict = required.pop(GeneralReader.__CONFIG__, {})
+
+        def _populate_query(_config_dict):
+            if can_query:
+                if new_query := required.pop('query', None):
+                    _config_dict['query'] = new_query
+                if new_pagination := required.pop('pagination', None):
+                    _config_dict['pagination'] = new_pagination
+                if GeneralReader.__WILDCARD__ in required:
+                    _config_dict.setdefault('pagination', {'page': 1})  # a default pagination
+
         if isinstance(new_config_dict, dict):
+            _populate_query(new_config_dict)
             combined: RequestConfig = config.new(dict(config_dict, **new_config_dict))
         elif isinstance(new_config_dict, str):
+            child_config_dict: dict = {}
             if new_config_dict in ('*', 'include'):
-                new_directive = 'plain'
+                child_config_dict['directive'] = 'plain'
             elif new_config_dict == 'include-resolved':
-                new_directive = 'resolved'
+                child_config_dict['directive'] = 'resolved'
             else:
                 raise ConfigError(f'Invalid config: {new_config_dict}.')
-            combined = config.new(dict(config_dict, directive=new_directive))
+            _populate_query(child_config_dict)
+            combined = config.new(dict(config_dict, **child_config_dict))
         else:
             raise ConfigError(f'Invalid config: {new_config_dict}.')
 
@@ -510,13 +558,14 @@ class GeneralReader:
     # controls the names of fields that are treated as user id, for those fields,
     # implicit resolve is supported and explicit resolve does not require an explicit resolve type
     __USER_ID__: set = {'main_author', 'coauthors', 'reviewers', 'viewers', 'writers', 'entry_coauthors', 'user_id'}
+    # controls the names of fields that are treated as entry id, for those fields,
+    # implicit resolve is supported and explicit resolve does not require an explicit resolve type
+    __ENTRY_ID__: set = {'entry_id'}
     # controls the names of fields that are treated as upload id, for those fields,
     # implicit resolve is supported and explicit resolve does not require an explicit resolve type
     __UPLOAD_ID__: set = {'upload_id'}
     # controls the names of fields that are treated as dataset id
     __DATASET_ID__: set = {'datasets'}
-    # controls if the metadata stored in elastic search should be fetched for entries
-    __ES_METADATA__: bool = False
     __CACHE__: str = '__CACHE__'
 
     def __init__(
@@ -528,7 +577,7 @@ class GeneralReader:
         1. Provide `required_query` and `user` only.
             This is the mode that should be used by the external.
             The reader will be initialised with `required_query` and `user`.
-            The required_query` is a dict and will be validated.
+            The `required_query` is a dict and will be validated.
             The corresponding configuration dicts will be converted to `RequestConfig` objects.
         2. Provide `required_query`, `user`, `init=False`, `config` and optionally, `global_root`.
             This is the mode used by the internal to switch between different readers.
@@ -562,11 +611,15 @@ class GeneralReader:
             assert not isinstance(required_query, RequestConfig)
             self.required_query, self.global_config = _parse_required(required_query, self.__class__)
 
-        self.errors: dict = {}
+        self.errors: dict[str, set] = {}
 
-    def _populate_error_list(self, container):
-        if self.errors:
-            container.setdefault(Token.ERROR, {}).update({k: list(v) for k, v in self.errors.items()})
+    def _populate_error_list(self, container: dict):
+        if not self.errors:
+            return
+
+        error_list = container.setdefault(Token.ERROR, [])
+        for error_type, error_set in self.errors.items():
+            error_list.extend({'error_type': error_type, 'message': error_item} for error_item in error_set)
 
     def __enter__(self):
         return self
@@ -609,16 +662,15 @@ class GeneralReader:
 
         return range(_bound(start), _bound(end) + 1)
 
-    def _log(self, message: str, *, error_type: str = 'GENERAL', to_response: bool = True):
+    def _log(self, message: str, *, error_type: str = QueryError.GENERAL, to_response: bool = True):
         logger.debug(message)
-        if not to_response:
-            return
-        self.errors.setdefault(error_type, set()).add(message)
+        if to_response:
+            self.errors.setdefault(error_type, set()).add(message)
 
     def _check_cache(self, path: str | list, config_hash=None) -> bool:
         '''
         Check if the given path has been cached.
-        Optionally using the config hash to identify different configurations.
+        Optionally, using the config hash to identify different configurations.
         '''
         if isinstance(path, list):
             path = '/'.join(path)
@@ -630,7 +682,7 @@ class GeneralReader:
     def _cache_hash(self, path: str | list, config_hash=None):
         '''
         Check if the given path has been cached.
-        Optionally using the config hash to identify different configurations.
+        Optionally, using the config hash to identify different configurations.
         '''
         if isinstance(path, list):
             path = '/'.join(path)
@@ -655,6 +707,21 @@ class GeneralReader:
 
         return user.m_to_dict(with_out_meta=True, include_derived=True)
 
+    def _overwrite_upload(self, item: Upload):
+        plain_dict = orjson.loads(upload_to_pydantic(item).json())
+        if n_entries := plain_dict.pop('entries', None):
+            plain_dict['n_entries'] = n_entries
+        plain_dict['processing_successful'] = item.processed_entries_count
+        plain_dict['processing_failed'] = item.total_entries_count - item.processed_entries_count
+
+        if main_author := plain_dict.pop('main_author', None):
+            plain_dict['main_author'] = self.retrieve_user(main_author)
+        for name in ('coauthors', 'reviewers', 'viewers', 'writers'):
+            if (items := plain_dict.pop(name, None)) is not None:
+                plain_dict[name] = [self.retrieve_user(item) for item in items]
+
+        return plain_dict
+
     @functools.lru_cache(maxsize=128)
     def retrieve_upload(self, upload_id: str) -> str | dict:
         try:
@@ -666,8 +733,18 @@ class GeneralReader:
                 self._log(f'No access to upload {upload_id}.', error_type=QueryError.NOACCESS)
             return upload_id
 
-        # to convert datetime to string
-        return orjson.loads(upload_to_pydantic(upload).json())  # pylint: disable=maybe-no-member
+        return self._overwrite_upload(upload)
+
+    @staticmethod
+    def _overwrite_entry(item: Entry):
+        plain_dict = orjson.loads(entry_to_pydantic(item).json())
+        plain_dict.pop('entry_metadata', None)
+        if mainfile := plain_dict.pop('mainfile', None):
+            plain_dict['mainfile_path'] = mainfile
+        if datasets := plain_dict.pop('datasets', None):
+            plain_dict['dataset_ids'] = datasets
+
+        return plain_dict
 
     @functools.lru_cache(maxsize=128)
     def retrieve_entry(self, entry_id: str) -> str | dict:
@@ -680,11 +757,7 @@ class GeneralReader:
                 error_type=QueryError.NOACCESS)
             return entry_id
 
-        return orjson.loads(entry_to_pydantic(  # pylint: disable=maybe-no-member
-            Entry.objects(entry_id=entry_id).first(),
-            add_es_metadata=GeneralReader.__ES_METADATA__,
-            user=self.user
-        ).json())
+        return self._overwrite_entry(Entry.objects(entry_id=entry_id).first())
 
     @functools.lru_cache(maxsize=128)
     def retrieve_dataset(self, dataset_id: str) -> str | dict:
@@ -717,10 +790,11 @@ class GeneralReader:
         except KeyError:
             raise ArchiveError(f'Archive {entry_id} does not exist in upload {entry_id}.')
 
-    def _apply_resolver(self, node: ArchiveNode, config: RequestConfig):
+    def _apply_resolver(self, node: GraphNode, config: RequestConfig):
         if_skip: bool = config.property_name not in GeneralReader.__UPLOAD_ID__
         if_skip &= config.property_name not in GeneralReader.__USER_ID__
         if_skip &= config.property_name not in GeneralReader.__DATASET_ID__
+        if_skip &= config.property_name not in GeneralReader.__ENTRY_ID__
         if_skip &= config.resolve_type is None
         if_skip |= config.directive is DirectiveType.plain
         if if_skip:
@@ -741,7 +815,7 @@ class GeneralReader:
 
         return node.archive
 
-    def _resolve_list(self, node: ArchiveNode, config: RequestConfig):
+    def _resolve_list(self, node: GraphNode, config: RequestConfig):
         # the original archive may be an empty list
         # populate an empty list to keep the structure
         _populate_result(node.result_root, node.current_path, [])
@@ -752,10 +826,10 @@ class GeneralReader:
                 current_path=node.current_path + [str(i)]
             ), new_config)
 
-    def _walk(self, node: ArchiveNode, required: dict | RequestConfig, parent_config: RequestConfig):
+    def _walk(self, node: GraphNode, required: dict | RequestConfig, parent_config: RequestConfig):
         raise NotImplementedError()
 
-    def _resolve(self, node: ArchiveNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
+    def _resolve(self, node: GraphNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
         raise NotImplementedError()
 
     @classmethod
@@ -770,33 +844,78 @@ class MongoReader(GeneralReader):
         self.uploads = None
         self.datasets = None
 
-    def _query_entries(self, config: RequestConfig):
+    def _query_es(self, config: RequestConfig):
         search_params: dict = {
             'owner': 'user',
             'user_id': self.user.user_id,
-            'required': MetadataRequired(include=['entry_id'])
+            'query': {},
+            # 'required': MetadataRequired(include=['entry_id'])
         }
+        search_query: dict = {}
 
         if config.query:
-            assert isinstance(config.query, WithQuery)
+            assert isinstance(config.query, Metadata)
+
+            search_query = config.query.dict(exclude_none=True)  # type: ignore
 
             if config.query.owner:
                 search_params['owner'] = config.query.owner
             if config.query.query:
                 search_params['query'] = config.query.query
+            if config.query.pagination:
+                search_params['pagination'] = config.query.pagination
+            if config.query.required:
+                search_params['required'] = config.query.required
+            if config.query.aggregations:
+                search_params['aggregations'] = config.query.aggregations
 
-        if config.pagination:
+        if config.pagination and (not config.query or not config.query.pagination):  # type: ignore
             search_params['pagination'] = config.pagination
 
         search_response = perform_search(**search_params)
         # overwrite the pagination to the new one from the search response
         config.pagination = search_response.pagination
 
-        return self.entries.filter(entry_id__in=[v['entry_id'] for v in search_response.data])
+        def _overwrite(item):
+            if mainfile := item.pop('mainfile', None):
+                item['mainfile_path'] = mainfile
+            return item
+
+        return search_query, {v['entry_id']: _overwrite(v) for v in search_response.data}
+
+    def _query_entries(self, config: RequestConfig):
+        if not config.query:
+            return None, self.entries
+
+        assert isinstance(config.query, EntryQuery)
+
+        mongo_query = Q()
+        if config.query.parser_name:
+            parser_name = Q()
+            for item in config.query.parser_name:
+                if item:
+                    parser_name |= Q(parser_name__regex=item)
+            mongo_query &= parser_name
+
+        if config.query.mainfile:
+            mainfile = Q()
+            for item in config.query.mainfile:
+                if item:
+                    mainfile |= Q(mainfile__regex=item)
+            mongo_query &= mainfile
+
+        if config.query.references:
+            references = Q()
+            for item in config.query.references:
+                if item:
+                    references |= Q(references__regex=item)
+            mongo_query &= references
+
+        return config.query.dict(exclude_unset=True), self.uploads.filter(mongo_query)
 
     def _query_uploads(self, config: RequestConfig):
         if not config.query:
-            return self.uploads
+            return None, self.uploads
 
         assert isinstance(config.query, UploadProcDataQuery)
 
@@ -814,11 +933,11 @@ class MongoReader(GeneralReader):
         elif config.query.is_published is False:
             mongo_query &= Q(publish_time=None)
 
-        return self.uploads.filter(mongo_query)
+        return config.query.dict(exclude_unset=True), self.uploads.filter(mongo_query)
 
     def _query_datasets(self, config: RequestConfig):
         if not config.query:
-            return self.datasets
+            return None, self.datasets
 
         assert isinstance(config.query, DatasetQuery)
 
@@ -836,11 +955,10 @@ class MongoReader(GeneralReader):
         if config.query.prefix:
             mongo_query &= Q(dataset_name=re.compile(rf'^{config.query.prefix}.*$', re.IGNORECASE))
 
-        return self.datasets.filter(mongo_query)
+        return config.query.dict(exclude_unset=True), self.datasets.filter(mongo_query)
 
-    @staticmethod
-    def _normalise_mongo(
-            mongo_result, config: RequestConfig, transformer: Callable
+    def _normalise(
+            self, mongo_result, config: RequestConfig, transformer: Callable
     ) -> tuple[dict, PaginationResponse | None]:
         '''
         Apply pagination and transform to the mongo search results.
@@ -867,55 +985,31 @@ class MongoReader(GeneralReader):
         if config.pagination is not None and not isinstance(config.pagination, PaginationResponse):
             assert isinstance(config.pagination, Pagination)
 
-            if config.pagination.order_by is not None:
-                prefix: str = '-' if config.pagination.order == Direction.desc else '+'
-                order_list: list = [f'{prefix}{config.pagination.order_by}']
-                if config.pagination.order_by == 'dataset_create_time':
-                    order_list.append('dataset_id')
-                else:
-                    order_list.extend(['dataset_create_time', 'dataset_id'])
-
-                mongo_result = mongo_result.order_by(*order_list)
+            mongo_result = config.pagination.order_result(mongo_result)
 
             def _pick_id(_item):
                 if transformer == upload_to_pydantic:
                     return _item.upload_id
                 if transformer == dataset_to_pydantic:
                     return _item.dataset_id
-                return _item.entry_id
+                if transformer == entry_to_pydantic:
+                    return _item.entry_id
 
-            if config.pagination.page is not None:
-                start = (config.pagination.page - 1) * config.pagination.page_size
-                end = start + config.pagination.page_size
-            elif config.pagination.page_offset is not None:
-                start = config.pagination.page_offset
-                end = start + config.pagination.page_size
-            elif config.pagination.page_after_value is not None:
-                start = 0
-                for index, entry in enumerate(mongo_result):
-                    if _pick_id(entry) == config.pagination.page_after_value:
-                        start = index + 1
-                        break
-                end = start + config.pagination.page_size
-            else:
-                start, end = 0, config.pagination.page_size
+                raise ValueError(f'Should not reach here.')
 
-            total_size = mongo_result.count()
-            first, last = min(start, total_size), min(end, total_size)
-            if first == last:
-                return {}, pagination_response
+            mongo_result = config.pagination.paginate_result(mongo_result, _pick_id)
 
-            mongo_result = mongo_result[first:last]
-
-            if (size := last - first - 1) >= 0:
-                pagination_response.next_page_after_value = _pick_id(mongo_result[size])
+            if mongo_result:
+                pagination_response.next_page_after_value = _pick_id(mongo_result[len(mongo_result) - 1])
 
         if transformer == upload_to_pydantic:
-            mongo_dict = {v['upload_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}  # pylint: disable=maybe-no-member
+            mongo_dict = {v['upload_id']: v for v in [self._overwrite_upload(item) for item in mongo_result]}
         elif transformer == dataset_to_pydantic:
-            mongo_dict = {v['dataset_id']: v for v in [orjson.loads(transformer(item)) for item in mongo_result]}  # pylint: disable=maybe-no-member
+            mongo_dict = {v['dataset_id']: v for v in [orjson.loads(transformer(item)) for item in mongo_result]}
+        elif transformer == entry_to_pydantic:
+            mongo_dict = {v['entry_id']: v for v in [self._overwrite_entry(item) for item in mongo_result]}
         else:
-            mongo_dict = {v['entry_id']: v for v in [orjson.loads(transformer(item).json()) for item in mongo_result]}  # pylint: disable=maybe-no-member
+            raise ValueError(f'Should not reach here.')
 
         return mongo_dict, pagination_response
 
@@ -932,7 +1026,7 @@ class MongoReader(GeneralReader):
         In other methods, it may only populate one or two of them, which represents the available edges to the current
         node.
         For example, in a `UploadReader`, it only populates `self.entries`, which implies that from an upload, one can
-        only navigate to its entries, using `m_entries` token.
+        only navigate to its entries, using `Token.ENTRIES` token.
         '''
         response: dict = {}
 
@@ -943,7 +1037,7 @@ class MongoReader(GeneralReader):
         self.entries = Entry.objects(upload_id__in=[v.upload_id for v in self.uploads])
         self.datasets = Dataset.m_def.a_mongo.objects(user_id=self.user.user_id)
 
-        self._walk(ArchiveNode(
+        self._walk(GraphNode(
             upload_id='__NOT_NEEDED__',
             entry_id='__NOT_NEEDED__',
             current_path=[],
@@ -961,14 +1055,14 @@ class MongoReader(GeneralReader):
 
         return response
 
-    def _walk(self, node: ArchiveNode, required: dict | RequestConfig, parent_config: RequestConfig):
+    def _walk(self, node: GraphNode, required: dict | RequestConfig, parent_config: RequestConfig):
         if isinstance(required, RequestConfig):
             return self._resolve(node, required)
 
         has_config: bool = GeneralReader.__CONFIG__ in required
         has_wildcard: bool = GeneralReader.__WILDCARD__ in required
 
-        current_config: RequestConfig = required[GeneralReader.__CONFIG__] if has_config else parent_config
+        current_config: RequestConfig = required.get(GeneralReader.__CONFIG__, parent_config)
 
         if has_wildcard:
             wildcard_config = required[GeneralReader.__WILDCARD__]
@@ -977,111 +1071,107 @@ class MongoReader(GeneralReader):
                 self._resolve(node, wildcard_config, omit_keys=required.keys(), wildcard=True)
             elif isinstance(node.archive, dict):
                 # nested fuzzy query, add all available keys to the required
-                required.update({k: wildcard_config for k in node.archive.keys() if k not in required})
+                # !!!
+                # DO NOT directly use .update() as it will modify the original dict
+                # !!!
+                extra_required = {k: wildcard_config for k in node.archive.keys() if k not in required}
+                required = required | extra_required
         elif has_config:
             # use the inherited/assigned config to filter the current scope
             self._resolve(node, current_config, omit_keys=required.keys())
+
+        offload_pack: dict = {
+            'user': self.user,
+            'init': False,
+            'config': current_config,
+            'global_root': self.global_root
+        }
 
         for key, value in required.items():
             if key in (GeneralReader.__CONFIG__, GeneralReader.__WILDCARD__):
                 continue
 
-            offload_pack: dict = {
-                'user': self.user,
-                'init': False,
-                'config': current_config,
-                'global_root': self.global_root
-            }
-            offload_populate = functools.partial(_populate_result, node.result_root, node.current_path + [key])
+            def offload_read(reader_cls, *args, read_list=False):
+                try:
+                    with reader_cls(value, **offload_pack) as reader:
+                        _populate_result(
+                            node.result_root,
+                            node.current_path + [key],
+                            [reader.read(item) for item in args[0]] if read_list else reader.read(*args))
+                except Exception as exc:
+                    self._log(str(exc))
 
             if key == Token.RAW and self.__class__ is UploadReader:
                 # hitting the bottom of the current scope
-                try:
-                    with FileSystemReader(value, **offload_pack) as reader:
-                        offload_populate(reader.read(node.upload_id))
-                except Exception as e:
-                    self._log(str(e))
+                offload_read(FileSystemReader, node.upload_id)
+                continue
+
+            if key == Token.MAINFILE and self.__class__ is EntryReader:
+                # hitting the bottom of the current scope
+                offload_read(FileSystemReader, node.upload_id, node.archive['mainfile_path'])
                 continue
 
             if key == Token.ARCHIVE and self.__class__ is EntryReader:
                 # hitting the bottom of the current scope
-                try:
-                    with ArchiveReader(value, **offload_pack) as reader:
-                        offload_populate(reader.read(self.load_archive(node.upload_id, node.entry_id)))
-                except Exception as e:
-                    self._log(str(e))
+                offload_read(ArchiveReader, node.upload_id, node.entry_id)
                 continue
 
-            if key in GeneralReader.__UPLOAD_ID__ and isinstance(node.archive, dict) and isinstance(value, dict):
-                # offload to the upload reader if it is a nested query
-                # treat it as a normal key and handle in applying resolver if it is a leaf node
-                if isinstance(upload_id := node.archive.get(key, None), str):
-                    try:
-                        with UploadReader(value, **offload_pack) as reader:
-                            offload_populate(reader.read(upload_id))
-                    except Exception as e:
-                        self._log(str(e))
-                    continue
+            if key == Token.ENTRIES and self.__class__ is ElasticSearchReader:
+                # hitting the bottom of the current scope
+                offload_read(EntryReader, node.archive['entry_id'])
+                continue
 
-            if key in GeneralReader.__USER_ID__ and isinstance(node.archive, dict) and isinstance(value, dict):
-                # offload to the user reader if it is a nested query
-                # treat it as a normal key and handle in applying resolver if it is a leaf node
-                if isinstance(user_id := node.archive.get(key, None), str):
-                    try:
-                        with UserReader(value, **offload_pack) as reader:
-                            offload_populate(reader.read(user_id))
-                    except Exception as e:
-                        self._log(str(e))
-                    continue
-                if isinstance(user_id, list):
-                    try:
-                        with UserReader(value, **offload_pack) as reader:
-                            offload_populate([reader.read(user) for user in user_id])
-                    except Exception as e:
-                        self._log(str(e))
-                    continue
+            if isinstance(node.archive, dict) and isinstance(value, dict):
+                # treat it as a normal key
+                # and handle in applying resolver if it is a leaf node
+                if key in GeneralReader.__ENTRY_ID__:
+                    # offload to the upload reader if it is a nested query
+                    if isinstance(entry_id := node.archive.get(key, None), str):
+                        offload_read(EntryReader, entry_id)
+                        continue
 
-            def __get_child_setting():
-                if isinstance(value, RequestConfig):
-                    return value
-                if isinstance(value, dict) and GeneralReader.__CONFIG__ in value:
-                    return value[GeneralReader.__CONFIG__]
+                if key in GeneralReader.__UPLOAD_ID__:
+                    # offload to the entry reader if it is a nested query
+                    if isinstance(upload_id := node.archive.get(key, None), str):
+                        offload_read(UploadReader, upload_id)
+                        continue
 
-                return current_config
+                if key in GeneralReader.__USER_ID__:
+                    # offload to the user reader if it is a nested query
+                    if user_id := node.archive.get(key, None):
+                        offload_read(UserReader, user_id, read_list=isinstance(user_id, list))
+                        continue
+
+            if isinstance(value, RequestConfig):
+                child_config = value
+            elif isinstance(value, dict) and GeneralReader.__CONFIG__ in value:
+                child_config = value[GeneralReader.__CONFIG__]
+            else:
+                child_config = current_config.new({'query': None, 'pagination': None})
 
             def __offload_walk(query_set, transformer):
-                if query_set is None:
+                response_path: list = node.current_path + [key, Token.RESPONSE]
+
+                query, filtered = query_set
+                if query is not None:
+                    _populate_result(node.result_root, response_path + ['query'], query)
+
+                if filtered is None:
                     return
 
-                mongo_result, mongo_pagination = self._normalise_mongo(query_set, __get_child_setting(), transformer)
-                if mongo_pagination:
-                    _populate_result(node.result_root, node.current_path + ['pagination'], mongo_pagination.dict())
+                result, pagination = self._normalise(filtered, child_config, transformer)
+                if pagination is not None:
+                    _populate_result(
+                        node.result_root, response_path + ['pagination'], pagination.dict())
                 self._walk(node.replace(
-                    archive={k: k for k in mongo_result} if isinstance(value, RequestConfig) else mongo_result,
+                    archive={k: k for k in result} if isinstance(value, RequestConfig) else result,
                     current_path=node.current_path + [key]), value, current_config)
 
-            if key == Token.ENTRY:
-                __offload_walk(self._query_entries(__get_child_setting()), functools.partial(
-                    entry_to_pydantic, add_es_metadata=GeneralReader.__ES_METADATA__, user=self.user))
-                continue
-            if key == Token.UPLOAD:
-                __offload_walk(self._query_uploads(__get_child_setting()), upload_to_pydantic)
-                continue
-            if key == Token.DATASET:
-                __offload_walk(self._query_datasets(__get_child_setting()), dataset_to_pydantic)
-                continue
-            if key == Token.USER:
-                __offload_walk({k: v for k, v in value.items() if k not in (
-                    GeneralReader.__CONFIG__, GeneralReader.__WILDCARD__)}, None)
+            if self._offload_walk(__offload_walk, child_config, key, value):
                 continue
 
             if len(node.current_path) > 0 and node.current_path[-1] in __M_SEARCHABLE__:
-                reader_type = __M_SEARCHABLE__[node.current_path[-1]]
-                try:
-                    with reader_type(value, **offload_pack) as reader:
-                        offload_populate(reader.read(key))
-                except Exception as e:
-                    self._log(str(e))
+                offload_read(__M_SEARCHABLE__[node.current_path[-1]], key)
                 continue
 
             # key may contain index, cached
@@ -1114,13 +1204,33 @@ class MongoReader(GeneralReader):
                 # should never reach here
                 raise ConfigError(f'Invalid required config: {value}.')
 
-    def _resolve(self, node: ArchiveNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
+    def _offload_walk(self, offload_func: Callable, config: RequestConfig, key: str, value) -> bool:
+        if key == Token.SEARCH:
+            offload_func(self._query_es(config), None)
+            return True
+        if key == Token.ENTRY or key == Token.ENTRIES:
+            offload_func(self._query_entries(config), entry_to_pydantic)
+            return True
+        if key == Token.UPLOAD or key == Token.UPLOADS:
+            offload_func(self._query_uploads(config), upload_to_pydantic)
+            return True
+        if key == Token.DATASET or key == Token.DATASETS:
+            offload_func(self._query_datasets(config), dataset_to_pydantic)
+            return True
+        if key == Token.USER or key == Token.USERS:
+            offload_func((None, {k: v for k, v in value.items() if k not in (
+                GeneralReader.__CONFIG__, GeneralReader.__WILDCARD__)}), None)
+            return True
+
+        return False
+
+    def _resolve(self, node: GraphNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
         if isinstance(node.archive, list):
             return self._resolve_list(node, config)
 
         if not isinstance(node.archive, dict):
             # primitive type data is always included
-            # this is not affect by size limit nor by depth limit
+            # this is not affected by size limit nor by depth limit
             return _populate_result(node.result_root, node.current_path, self._apply_resolver(node, config))
 
         if config.directive is DirectiveType.resolved and len(
@@ -1190,7 +1300,7 @@ class UploadReader(MongoReader):
         if isinstance(target_upload := self.retrieve_upload(upload_id), dict):
             self.entries = Entry.objects(upload_id=upload_id)
 
-            self._walk(ArchiveNode(
+            self._walk(GraphNode(
                 upload_id=upload_id,
                 entry_id='__NOT_NEEDED__',
                 current_path=[],
@@ -1217,9 +1327,9 @@ class UploadReader(MongoReader):
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
         try:
-            if config.query:
+            if config.query is not None:
                 config.query = UploadProcDataQuery.parse_obj(config.query)
-            if config.pagination:
+            if config.pagination is not None:
                 config.pagination = UploadProcDataPagination.parse_obj(config.pagination)
         except Exception as e:
             raise ConfigError(str(e))
@@ -1243,7 +1353,7 @@ class DatasetReader(MongoReader):
             self.entries = Entry.objects(datasets=dataset_id)
             self.uploads = Upload.objects(upload_id__in=list({v['upload_id'] for v in self.entries}))
 
-            self._walk(ArchiveNode(
+            self._walk(GraphNode(
                 upload_id='__NOT_NEEDED__',
                 entry_id='__NOT_NEEDED__',
                 current_path=[],
@@ -1267,9 +1377,9 @@ class DatasetReader(MongoReader):
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
         try:
-            if config.query:
+            if config.query is not None:
                 config.query = DatasetQuery.parse_obj(config.query)
-            if config.pagination:
+            if config.pagination is not None:
                 config.pagination = DatasetPagination.parse_obj(config.pagination)
         except Exception as e:
             raise ConfigError(str(e))
@@ -1292,7 +1402,7 @@ class EntryReader(MongoReader):
         if isinstance(target_entry := self.retrieve_entry(entry_id), dict):
             self.datasets = Dataset.m_def.a_mongo.objects(entries=entry_id)
 
-            self._walk(ArchiveNode(
+            self._walk(GraphNode(
                 upload_id=target_entry['upload_id'],
                 entry_id=entry_id,
                 current_path=[],
@@ -1316,14 +1426,47 @@ class EntryReader(MongoReader):
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
         try:
-            if config.query:
-                config.query = WithQuery.parse_obj(config.query)
-            if config.pagination:
-                config.pagination = MetadataPagination.parse_obj(config.pagination)
+            if config.query is not None:
+                config.query = EntryQuery.parse_obj(config.query)
+            if config.pagination is not None:
+                config.pagination = EntryProcDataPagination.parse_obj(config.pagination)
         except Exception as e:
             raise ConfigError(str(e))
 
         return super().validate_config(key, config)
+
+
+class ElasticSearchReader(EntryReader):
+    @functools.lru_cache(maxsize=128)
+    def retrieve_entry(self, entry_id: str) -> str | dict:
+        search_response = perform_search(
+            owner='all',
+            query={'entry_id': entry_id},
+            user_id=self.user.user_id)
+
+        if search_response.pagination.total == 0:
+            self._log(
+                f'The value {entry_id} is not a valid entry id or not visible to current user.',
+                error_type=QueryError.NOACCESS)
+            return entry_id
+
+        plain_dict = search_response.data[0]
+        if mainfile := plain_dict.pop('mainfile', None):
+            plain_dict['mainfile_path'] = mainfile
+
+        return plain_dict
+
+    @classmethod
+    def validate_config(cls, key: str, config: RequestConfig):
+        try:
+            if config.query is not None:
+                config.query = Metadata.parse_obj(config.query)
+            if config.pagination is not None:
+                config.pagination = MetadataPagination.parse_obj(config.pagination)
+        except Exception as e:
+            raise ConfigError(str(e))
+
+        return MongoReader.validate_config(key, config)
 
 
 class UserReader(MongoReader):
@@ -1351,7 +1494,7 @@ class UserReader(MongoReader):
         self.datasets = Dataset.m_def.a_mongo.objects(
             dataset_id__in=set(v for e in self.entries if e.datasets for v in e.datasets))
 
-        self._walk(ArchiveNode(
+        self._walk(GraphNode(
             upload_id='__NOT_NEEDED__',
             entry_id='__NOT_NEEDED__',
             current_path=[],
@@ -1372,9 +1515,24 @@ class UserReader(MongoReader):
 
         return response
 
+    @classmethod
+    def validate_config(cls, key: str, config: RequestConfig):
+        if config.query is not None:
+            raise ConfigError('User reader does not support query.')
+        if config.pagination is not None:
+            raise ConfigError('User reader does not support pagination.')
+
+        return MongoReader.validate_config(key, config)
+
 
 class FileSystemReader(GeneralReader):
-    def read(self, upload_id: str) -> dict:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._root_path: list = []
+
+    def read(self, upload_id: str, path: str = None) -> dict:
+        self._root_path = [v for v in path.split('/') if v] if path else []
+
         response: dict = {}
 
         if self.global_root is None:
@@ -1388,7 +1546,7 @@ class FileSystemReader(GeneralReader):
         except HTTPException:
             self._log(f'Current user does not have access to upload {upload_id}.', error_type=QueryError.NOACCESS)
         else:
-            self._walk(ArchiveNode(
+            self._walk(GraphNode(
                 upload_id=upload_id,
                 entry_id='__NOT_NEEDED__',
                 current_path=[],
@@ -1409,33 +1567,38 @@ class FileSystemReader(GeneralReader):
 
         return response
 
-    def _walk(self, node: ArchiveNode, required: dict | RequestConfig, parent_config: RequestConfig):
+    def _walk(self, node: GraphNode, required: dict | RequestConfig, parent_config: RequestConfig):
         if isinstance(required, RequestConfig):
             return self._resolve(node, required)
 
         if GeneralReader.__CONFIG__ in required:
-            # resolve current tree if config is present
+            # resolve the current tree if config is present
             # excluding explicitly assigned keys
             current_config: RequestConfig = required[GeneralReader.__CONFIG__]
             self._resolve(node, current_config, omit_keys=required.keys())
         else:
             current_config = parent_config
 
+        full_path: list = self._root_path + node.current_path
+        full_path_str: str = '/'.join(full_path)
+        is_current_path_file: bool = node.archive.raw_path_is_file(full_path_str)
+
+        if not is_current_path_file:
+            _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
+
         if Token.ENTRY in required:
             # implicit resolve
-            results = self._offload(node.upload_id, '/'.join(node.current_path), required[Token.ENTRY], current_config)
-            if results:
-                _populate_result(node.result_root, node.current_path + [Token.ENTRY], results)
-            return
+            if is_current_path_file and (results := self._offload(
+                    node.upload_id, full_path_str, required[Token.ENTRY], current_config)):
+                _populate_result(node.result_root, full_path + [Token.ENTRY], results)
 
         for key, value in required.items():
             if key == GeneralReader.__CONFIG__:
                 continue
 
             child_path: list = node.current_path + [key]
-            os_path: str = '/'.join(child_path)
 
-            if not node.archive.raw_path_exists(os_path):
+            if not node.archive.raw_path_exists('/'.join(self._root_path + child_path)):
                 continue
 
             self._walk(node.replace(
@@ -1443,27 +1606,62 @@ class FileSystemReader(GeneralReader):
                 current_depth=node.current_depth + 1,
             ), value, current_config)
 
-    def _resolve(self, node: ArchiveNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
-        os_path: str = '/'.join(node.current_path)
+    def _resolve(self, node: GraphNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
+        # at the point, it is guaranteed that the current path exists, but it could be a relative path
+        full_path: list = self._root_path + node.current_path
+        abs_path: list = []
+        # condense the path
+        for p in full_path:
+            for pp in p.split('/'):  # to consider '../../../'
+                if pp in ('.', ''):
+                    continue
+                if pp == '..':
+                    abs_path.pop()
+                else:
+                    abs_path.append(pp)
+
+        os_path: str = '/'.join(abs_path)
+        if not node.archive.raw_path_is_file(os_path):
+            _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
+            # _populate_result(
+            #     node.result_root, full_path + [Token.RESPONSE, 'pagination'],
+            #     config.pagination.dict() if config.pagination is not None else dict(page=1, page_size=10))
+
+        ref_path = ['/'.join(self._root_path)]
+        if ref_path[0]:
+            ref_path += node.current_path
+        else:
+            ref_path = node.current_path
+
         file: RawPathInfo
         for file in node.archive.raw_directory_list(os_path):
-            file_name: str = file.path.split('/')[-1]
-            if not config.if_include(file_name) or omit_keys is not None and any(
-                    k.startswith(file_name) for k in omit_keys):
+            if not config.if_include(file.path) or omit_keys is not None and any(
+                    k.startswith(file.path) for k in omit_keys):
                 continue
 
             results = file._asdict()
+            results.pop('access', None)
+            results['m_is'] = 'File' if results.pop('is_file') else 'Directory'
             if config.directive is DirectiveType.resolved and (resolved := self._offload(
                     node.upload_id, file.path, config, config)):
                 results[Token.ENTRY] = resolved
 
-            _populate_result(
-                node.result_root,
-                node.current_path if os_path == file.path else node.current_path + [file_name],
-                results)
+            # need to consider the relative path and the absolute path conversion
+            file_path: list = [v for v in file.path.split('/') if v]  # path from upload root
+
+            if not (result_path := ref_path + file_path[len(abs_path):]):
+                result_path = [file_path[-1]]
+
+            _populate_result(node.result_root, result_path, results, path_like=True)
 
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
+        try:
+            if config.pagination is not None:
+                config.pagination = Pagination.parse_obj(config.pagination)
+        except Exception as e:
+            raise ConfigError(str(e))
+
         return config
 
     def _offload(self, upload_id: str, main_file: str, required, parent_config: RequestConfig) -> dict:
@@ -1509,7 +1707,7 @@ class ArchiveReader(GeneralReader):
     '''
 
     @staticmethod
-    def __if_strip(node: ArchiveNode, config: RequestConfig):
+    def __if_strip(node: GraphNode, config: RequestConfig):
         if config.max_list_size is not None and isinstance(node.archive, list) and len(
                 node.archive) > config.max_list_size:
             return True
@@ -1523,10 +1721,15 @@ class ArchiveReader(GeneralReader):
 
         return False
 
-    def read(self, archive: ArchiveDict | dict) -> dict:
+    def read(self, *args) -> dict:
         '''
         Read the given archive with the required fields.
+        Takes two forms of arguments:
+            1. archive: dict | ArchiveDict
+            2. upload_id: str, entry_id: str
         '''
+        archive = args[0] if len(args) == 1 else self.load_archive(*args)
+
         metadata = archive['metadata']
 
         response: dict = {}
@@ -1537,7 +1740,7 @@ class ArchiveReader(GeneralReader):
         else:
             has_global_root = True
 
-        self._walk(ArchiveNode(
+        self._walk(GraphNode(
             upload_id=metadata['upload_id'],
             entry_id=metadata['entry_id'],
             current_path=[],
@@ -1558,13 +1761,18 @@ class ArchiveReader(GeneralReader):
 
         return response
 
-    def _walk(self, node: ArchiveNode, required: dict | RequestConfig, parent_config: RequestConfig):
+    def _walk(self, node: GraphNode, required: dict | RequestConfig, parent_config: RequestConfig):
         '''
         Walk through the archive according to the required query.
         The parent config is passed down to the children in case there is no config in any subtree.
         '''
         if isinstance(required, RequestConfig):
             return self._resolve(node, required)
+
+        if required.pop(GeneralReader.__WILDCARD__, None):
+            self._log(
+                "Wildcard '*' as field name is not supported in archive query as its data is not homogeneous",
+                error_type=QueryError.NOTFOUND)
 
         current_config: RequestConfig = required.get(GeneralReader.__CONFIG__, parent_config)
 
@@ -1613,7 +1821,7 @@ class ArchiveReader(GeneralReader):
                 self._log(f'Definition {name} is not found.', error_type=QueryError.NOTFOUND)
                 continue
 
-            from .storage_v2 import ArchiveList as ArchiveListNew
+            from nomad.archive.storage_v2 import ArchiveList as ArchiveListNew
             is_list: bool = isinstance(child_archive, (list, ArchiveList, ArchiveListNew))
 
             if is_list and not child_definition.repeats:
@@ -1646,7 +1854,7 @@ class ArchiveReader(GeneralReader):
                 # should never reach here
                 raise ConfigError(f'Invalid required config: {value}.')
 
-    def _resolve(self, node: ArchiveNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
+    def _resolve(self, node: GraphNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
         '''
         Resolve the given node.
 
@@ -1654,7 +1862,7 @@ class ArchiveReader(GeneralReader):
         Those come from explicitly given fields in the required query.
         They are handled by the caller.
         '''
-        from .storage_v2 import ArchiveList as ArchiveListNew
+        from nomad.archive.storage_v2 import ArchiveList as ArchiveListNew
         if isinstance(node.archive, (list, ArchiveList, ArchiveListNew)):
             return self._resolve_list(node, config)
 
@@ -1663,10 +1871,10 @@ class ArchiveReader(GeneralReader):
         # if it needs to resolve, it is necessary to check references
         node = self._check_reference(node, config, implicit_resolve=omit_keys is not None)
 
-        from .storage_v2 import ArchiveDict as ArchiveDictNew
+        from nomad.archive.storage_v2 import ArchiveDict as ArchiveDictNew
         if not isinstance(node.archive, (dict, ArchiveDict, ArchiveDictNew)):
             # primitive type data is always included
-            # this is not affect by size limit nor by depth limit
+            # this is not affected by size limit nor by depth limit
             _populate_result(node.result_root, node.current_path, self._apply_resolver(node, config))
             return
 
@@ -1712,12 +1920,12 @@ class ArchiveReader(GeneralReader):
                     'index': None,  # ignore index requirements for children
                 }))
 
-    def _check_definition(self, node: ArchiveNode, config: RequestConfig) -> ArchiveNode:
+    def _check_definition(self, node: GraphNode, config: RequestConfig) -> GraphNode:
         '''
         Check the existence of custom definition.
         If positive, overwrite the corresponding information of the current node.
         '''
-        from .storage_v2 import ArchiveDict as ArchiveDictNew
+        from nomad.archive.storage_v2 import ArchiveDict as ArchiveDictNew
         if not isinstance(node.archive, (dict, ArchiveDict, ArchiveDictNew)):
             return node
 
@@ -1754,7 +1962,7 @@ class ArchiveReader(GeneralReader):
         return node.replace(definition=new_def)
 
     def _check_reference(
-            self, node: ArchiveNode, config: RequestConfig, *, implicit_resolve: bool = False) -> ArchiveNode:
+            self, node: GraphNode, config: RequestConfig, *, implicit_resolve: bool = False) -> GraphNode:
         '''
         Check the existence of custom definition.
         If positive, overwrite the corresponding information of the current node.
@@ -1795,7 +2003,7 @@ class ArchiveReader(GeneralReader):
         return self._check_definition(resolved_node.replace(definition=target.m_resolved()), config)
 
     # noinspection PyUnusedLocal
-    def _retrieve_definition(self, m_def: str | None, m_def_id: str | None, node: ArchiveNode):
+    def _retrieve_definition(self, m_def: str | None, m_def_id: str | None, node: GraphNode):
         # todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
         context = ServerContext(get_upload_with_read_access(node.upload_id, self.user, include_others=True))
 
@@ -1813,9 +2021,9 @@ class ArchiveReader(GeneralReader):
 
     @classmethod
     def validate_config(cls, key: str, config: RequestConfig):
-        if config.pagination:
+        if config.pagination is not None:
             raise ConfigError(f'Pagination is not supported in {cls.__name__} @ {key}.')
-        if config.query:
+        if config.query is not None:
             raise ConfigError(f'Query is not supported in {cls.__name__} @ {key}.')
 
         return config
@@ -1839,7 +2047,7 @@ class DefinitionReader(GeneralReader):
         else:
             has_global_root = True
 
-        self._walk(ArchiveNode(
+        self._walk(GraphNode(
             upload_id='__NONE__',
             entry_id='__NONE__',
             current_path=[Token.DEF],
@@ -1860,7 +2068,7 @@ class DefinitionReader(GeneralReader):
 
         return response
 
-    def _walk(self, node: ArchiveNode, required: dict | RequestConfig, parent_config: RequestConfig):
+    def _walk(self, node: GraphNode, required: dict | RequestConfig, parent_config: RequestConfig):
         if isinstance(required, RequestConfig):
             return self._resolve(self._switch_root(node, inplace=required.resolve_inplace), required)
 
@@ -1936,7 +2144,7 @@ class DefinitionReader(GeneralReader):
                 # should never reach here
                 raise ConfigError(f'Invalid required config: {value}.')
 
-    def _resolve(self, node: ArchiveNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
+    def _resolve(self, node: GraphNode, config: RequestConfig, *, omit_keys=None, wildcard: bool = False):
         if isinstance(node.archive, list):
             return self._resolve_list(node, config)
 
@@ -2020,7 +2228,7 @@ class DefinitionReader(GeneralReader):
                 ), config)
 
     @staticmethod
-    def _switch_root(node: ArchiveNode, *, inplace: bool) -> ArchiveNode:
+    def _switch_root(node: GraphNode, *, inplace: bool) -> GraphNode:
         '''
         Depending on whether to resolve in place, adapt the current root of the result tree.
         If NOT in place, write a global reference string to the current place, then switch to the referenced root.
@@ -2040,8 +2248,14 @@ class DefinitionReader(GeneralReader):
 
 
 __M_SEARCHABLE__: dict = {
+    Token.SEARCH: ElasticSearchReader,
+    Token.METADATA: ElasticSearchReader,
     Token.ENTRY: EntryReader,
+    Token.ENTRIES: EntryReader,
     Token.UPLOAD: UploadReader,
+    Token.UPLOADS: UploadReader,
     Token.USER: UserReader,
-    Token.DATASET: DatasetReader
+    Token.USERS: UserReader,
+    Token.DATASET: DatasetReader,
+    Token.DATASETS: DatasetReader
 }

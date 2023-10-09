@@ -163,10 +163,19 @@ def is_safe_relative_path(path: str) -> bool:
         return True
     if path.startswith('/') or '//' in path or '\n' in path:
         return False
+
+    depth = 0
     for element in path.split('/'):
-        if element == '.' or element == '..':
-            return False
-    return True
+        if element == '.':
+            continue
+        if element == '..':
+            depth -= 1
+        else:
+            depth += 1
+    return depth >= 0
+    # if element == '.' or element == '..':
+    #     return False
+    # return True
 
 
 class PathObject:
@@ -641,7 +650,8 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         raise NotImplementedError()
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
+    ) -> Iterable[RawPathInfo]:
         '''
         Returns an iterable of RawPathInfo, one for each element (file or folder) in
         the directory specified by `path`. If `recursive` is set to True, subdirectories are
@@ -650,6 +660,8 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         as path (which is the default value) gives the content of the whole raw directory.
         The `path_prefix` argument can be used to filter out elements where the path starts
         with a specific prefix.
+
+        The `depth` argument can be used to limit the depth of the recursion.
         '''
         raise NotImplementedError()
 
@@ -680,6 +692,9 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         if not mime_type:
             mime_type = 'application/octet-stream'
         return mime_type
+
+    def scandir(self, path: str = '', depth: int = -1):
+        raise NotImplementedError()
 
     def read_archive(self, entry_id: str, use_blocked_toc: bool = True) -> ArchiveReader:
         '''
@@ -766,7 +781,7 @@ class StagingUploadFiles(UploadFiles):
     def raw_path_exists(self, path: str) -> bool:
         if not is_safe_relative_path(path):
             return False
-        return os.path.exists(os.path.join(self._raw_dir.os_path, path))
+        return os.path.exists(os.path.abspath(os.path.join(self._raw_dir.os_path, path)))
 
     def raw_path_is_file(self, path: str) -> bool:
         if not is_safe_relative_path(path):
@@ -778,7 +793,8 @@ class StagingUploadFiles(UploadFiles):
         os.makedirs(os.path.join(self._raw_dir.os_path, path))
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
+    ) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path):
             return
         os_path = os.path.join(self._raw_dir.os_path, path)
@@ -791,13 +807,14 @@ class StagingUploadFiles(UploadFiles):
             element_raw_path = os.path.join(path, element_name)
             element_os_path = os.path.join(os_path, element_name)
             is_file = os.path.isfile(element_os_path)
+            dir_size = 0
             if not is_file:
                 # Crawl sub directory.
-                dir_size = 0
-                for sub_path_info in self.raw_directory_list(element_raw_path, True, files_only):
+                for sub_path_info in self.raw_directory_list(
+                        element_raw_path, True, files_only, max(0, depth - 1)):
                     if sub_path_info.is_file:
                         dir_size += sub_path_info.size
-                    if recursive:
+                    if recursive and (depth == -1 or depth > 0):
                         if not path_prefix or sub_path_info.path.startswith(path_prefix):
                             yield sub_path_info
 
@@ -809,6 +826,9 @@ class StagingUploadFiles(UploadFiles):
                         is_file=is_file,
                         size=size,
                         access='unpublished')
+
+    def scandir(self, path: str = '', depth: int = -1):
+        raise NotImplementedError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         assert is_safe_relative_path(file_path)
@@ -1451,7 +1471,8 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None) -> Iterable[RawPathInfo]:
+            self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
+    ) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path):
             return
         if not path and self.missing_raw_files:
@@ -1460,14 +1481,20 @@ class PublicUploadFiles(UploadFiles):
         path = path.rstrip(os.path.sep)
         directory_content = self._directories.get(path)
         if directory_content is not None:
+            if isinstance(directory_content, RawPathInfo):
+                directory_content = {directory_content.path: directory_content}
             for __, path_info in sorted(directory_content.items()):
                 if not files_only or path_info.is_file:
                     if not path_prefix or path_info.path.startswith(path_prefix):
                         yield path_info
-                if recursive and not path_info.is_file:
-                    for sub_path_info in self.raw_directory_list(path_info.path, recursive, files_only):
+                if recursive and not path_info.is_file and (depth == -1 or depth > 0):
+                    for sub_path_info in self.raw_directory_list(
+                            path_info.path, recursive, files_only, max(0, depth - 1)):
                         if not path_prefix or sub_path_info.path.startswith(path_prefix):
                             yield sub_path_info
+
+    def scandir(self, path: str = '', depth: int = -1):
+        raise NotImplementedError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
         assert is_safe_relative_path(file_path)

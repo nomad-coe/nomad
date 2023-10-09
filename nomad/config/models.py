@@ -383,6 +383,10 @@ class Logtransfer(NomadSettings):
 
 class Tests(NomadSettings):
     default_timeout = 60
+    assume_auth_for_username: str = Field(None, description=(
+        'Will assume that all API calls with no authentication have authentication for '
+        'the user with the given username.'
+    ))
 
 
 class Mail(NomadSettings):

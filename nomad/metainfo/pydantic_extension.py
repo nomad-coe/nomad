@@ -32,8 +32,8 @@
 Allows to create pydantic models from section definitions.
 '''
 
-from typing import cast
-from pydantic import create_model, Field, BaseConfig
+from typing import cast, Type
+from pydantic import create_model, Field, BaseConfig, BaseModel
 from datetime import datetime
 
 from .metainfo import DefinitionAnnotation, Definition, Section, Quantity, Datetime, MEnum, Capitalized, JSON
@@ -50,10 +50,10 @@ class PydanticModel(DefinitionAnnotation):
     to create pydantic model instances from section instances.
 
     Attributes:
-        model: The pydantic model that represents the section defintion.
+        model: The pydantic model that represents the section definition.
     '''
     def __init__(self):
-        self.model = None
+        self.model: Type[BaseModel] = None
 
     def to_pydantic(self, section):
         ''' Returns the pydantic model instance for the given section. '''
