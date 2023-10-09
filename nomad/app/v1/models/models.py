@@ -42,7 +42,7 @@ from nomad.utils import strip
 from nomad.metainfo import Datetime, MEnum
 from nomad.metainfo.elasticsearch_extension import DocumentType, material_entry_type, material_type
 
-from .utils import parameter_dependency_from_model, update_url_query_arguments
+from nomad.app.v1.utils import parameter_dependency_from_model, update_url_query_arguments
 
 
 User: Any = datamodel.User.m_def.a_pydantic.model
@@ -54,12 +54,12 @@ ComparableValue = Union[StrictInt, StrictFloat, str, datetime.datetime]
 
 owner_documentation = strip('''
 The `owner` allows to limit the scope of the searched based on entry ownership.
-This is useful, if you only want to search among all publically downloadable
+This is useful, if you only want to search among all publicly downloadable
 entries, or only among your own entries, etc.
 
 These are the possible owner values and their meaning:
 
-* `public`: Consider all entries that can be publically downloaded, i.e. only published entries without embargo.
+* `public`: Consider all entries that can be publicly downloaded, i.e. only published entries without embargo.
 * `user`: Only consider entries that belong to you.
 * `shared`: Only consider entries that belong to you or are shared with you.
 * `visible`: Consider all entries that are visible to you. This includes
@@ -331,6 +331,9 @@ class WithQuery(BaseModel):
     def validate_query(cls, query):  # pylint: disable=no-self-argument
         return _validate_query(query)
 
+    class Config:
+        use_enum_values = True
+
 
 def _validate_criteria_value(name: str, value: CriteriaValue):
     if ':' in name:
@@ -544,10 +547,13 @@ class Pagination(BaseModel):
             **NOTE #1**: the option to request pages by submitting the `page_offset` number is
             limited. There are api calls where this attribute cannot be used for indexing,
             or where it can only be used partially. **If you want to just iterate through
-            all the results, aways use the `page_after_value` and `next_page_after_value`!**
+            all the results, always use the `page_after_value` and `next_page_after_value`!**
 
             **NOTE #2**: Only one, `page`, `page_offset` or `page_after_value`, can be used.
         '''))
+
+    class Config:
+        use_enum_values = True
 
     @validator('page_size')
     def validate_page_size(cls, page_size):  # pylint: disable=no-self-argument
@@ -621,6 +627,39 @@ class Pagination(BaseModel):
             assert rv >= 0
             return rv
         return 0
+
+    def order_result(self, result):
+        '''
+        Override this in your Pagination class to implement ordering of the results.
+        This method has to be implemented!
+        '''
+        raise NotImplementedError('Ordering of results not implemented!')
+
+    def paginate_result(self, result, pick_value):
+        '''
+        Override this in your Pagination class to implement pagination of the results.
+        This method has to be implemented!
+        '''
+        if self.page is not None:
+            start = (self.page - 1) * self.page_size
+            end = start + self.page_size
+        elif self.page_offset is not None:
+            start = self.page_offset
+            end = start + self.page_size
+        elif self.page_after_value is not None:
+            start = 0
+            for index, item in enumerate(result):
+                if pick_value(item) == self.page_after_value:
+                    start = index + 1
+                    break
+            end = start + self.page_size
+        else:
+            start, end = 0, self.page_size
+
+        total_size = result.count()
+        first, last = min(start, total_size), min(end, total_size)
+
+        return [] if first == last else result[first:last]
 
 
 class PaginationResponse(Pagination):
@@ -707,7 +746,7 @@ class PaginationResponse(Pagination):
 
             if self.page < 1 or (
                     self.total == 0 and self.page != 1) or (
-                    self.total > 0 and (self.page - 1) * self.page_size >= self.total):
+                    0 < self.total <= (self.page - 1) * self.page_size):
                 raise HTTPException(400, detail='Page out of range requested.')
         if request.method.upper() == 'GET':
             self.populate_urls(request)
@@ -765,9 +804,13 @@ class MetadataPagination(MetadataBasedPagination):
     def validate_page_offset(cls, page_offset, values):  # pylint: disable=no-self-argument
         if page_offset is not None:
             assert page_offset >= 0, 'Page offset has to be larger than 0.'
-            assert page_offset + values.get('page_size', 10) < 10000, 'Page offset plus page size has to be smaller thant 10.0000.'
+            assert page_offset + values.get(
+                'page_size', 10) < 10000, 'Page offset plus page size has to be smaller thant 10.0000.'
 
         return page_offset
+
+    def order_result(self, result):
+        return result
 
 
 metadata_pagination_parameters = parameter_dependency_from_model(
@@ -822,7 +865,7 @@ class AggregationBase(BaseModel):
 class QuantityAggregation(AggregationBase):
     quantity: str = Field(
         ..., description=strip('''
-        The manatory name of the quantity for the aggregation. Aggregations
+        The mandatory name of the quantity for the aggregation. Aggregations
         can only be computed for those search metadata that have discrete values;
         an aggregation buckets entries that have the same value for this quantity.'''))
     exclude_from_search: bool = Field(
@@ -863,7 +906,7 @@ class TermsAggregation(BucketAggregation):
         '''))
     size: Optional[pydantic.conint(gt=0)] = Field(  # type: ignore
         None, description=strip('''
-        The ammount of aggregation values is limited. This allows you to configure the
+        The amount of aggregation values is limited. This allows you to configure the
         maximum number of aggregated values to return. If you need to exaust all
         possible value, use `pagination`.
         '''))

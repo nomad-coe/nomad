@@ -21,22 +21,34 @@ import functools
 import re
 from enum import Enum
 from hashlib import sha1
-from typing import FrozenSet, Optional, Union, Tuple, List, Dict
+from typing import FrozenSet, Optional, Union
 
 from pydantic import BaseModel, Field, Extra, ValidationError, validator
 
-from nomad.app.v1.models import MetadataPagination, WithQuery
+from nomad.app.v1.models import MetadataPagination, Metadata, Pagination
 from nomad.app.v1.routers.datasets import DatasetPagination
-from nomad.app.v1.routers.uploads import UploadProcDataQuery, UploadProcDataPagination
+from nomad.app.v1.routers.uploads import UploadProcDataQuery, UploadProcDataPagination, EntryProcDataPagination
 
 
 class DatasetQuery(BaseModel):
     dataset_id: str = Field(None)
     dataset_name: str = Field(None)
-    user_id: List[str] = Field(None)
+    user_id: list[str] = Field(None)
     dataset_type: str = Field(None)
     doi: str = Field(None)
     prefix: str = Field(None)
+
+
+class EntryQuery(BaseModel):
+    mainfile: list[str] = Field(None, description='''
+    Provide a list of regex patterns to match the mainfile. Case sensitive.
+    ''')
+    parser_name: list[str] = Field(None, description='''
+    Provide a list of regex patterns to match the parser names. Case sensitive.
+    ''')
+    references: list[str] = Field(None, description='''
+    Provide a list of regex patterns to match the references. Case sensitive.
+    ''')
 
 
 class DirectiveType(Enum):
@@ -86,12 +98,12 @@ class RequestConfig(BaseModel):
         References can be resolved using `resolved`.
         The `*` is a shortcut of `plain`.
         ''')
-    include: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_\d]+$', description='''
+    include: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_\d./]*$', description='''
         A list of patterns to match the quantities and subsections of the current section.
         The quantities/sections that match the include patterns AND do not match the include patterns are included.
         Only one of `include` and `exclude` can be set.
         ''')
-    exclude: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_\d]+$', description='''
+    exclude: Optional[FrozenSet[str]] = Field(None, regex=r'^[*?+a-zA-z_\d./]*$', description='''
         A list of patterns to match the quantities and subsections of the current section.
         The quantities/sections that match the include patterns AND do not match the include patterns are included.
         Only one of `include` and `exclude` can be set.
@@ -131,7 +143,7 @@ class RequestConfig(BaseModel):
         If `both`, both original and custom definitions will be included, with custom definitions taking precedence.
         If `none`, no definition will be included.
         ''')
-    index: Union[Tuple[int], Tuple[Optional[int], Optional[int]]] = Field(None, description='''
+    index: Union[tuple[int], tuple[Optional[int], Optional[int]]] = Field(None, description='''
         The start and end index of the current field if it is a list.
         Can be a tuple of one index: (index).
         Or a tuple of two indices: (start, end), in which one of two can be `None`.
@@ -141,19 +153,21 @@ class RequestConfig(BaseModel):
         Indicate whether to inherit the configuration from the parent section.
         This field only applies to the target section only, i.e., it does not propagate to its children.
         ''')
-    pagination: Union[dict, DatasetPagination, UploadProcDataPagination, MetadataPagination] = Field(
+    pagination: Union[
+        dict, Pagination,
+        DatasetPagination, UploadProcDataPagination, MetadataPagination, EntryProcDataPagination] = Field(
         None, description='''
         The pagination configuration used for MongoDB search.
         This setting does not propagate to its children.
-        For 'm_entries', 'm_uploads' and 'm_datasets', different validation rules apply.
+        For Token.ENTRIES, Token.UPLOADS and 'm_datasets', different validation rules apply.
         Please refer to `DatasetPagination`, `UploadProcDataPagination`, `MetadataPagination` for details.
         ''')
-    query: Union[dict, DatasetQuery, UploadProcDataQuery, WithQuery] = Field(None, description='''
+    query: Union[dict, DatasetQuery, UploadProcDataQuery, Metadata, EntryQuery] = Field(None, description='''
         The query configuration used for either mongo or elastic search.
         This setting does not propagate to its children.
-        It can only be defined at the root levels including 'm_entries', 'm_uploads' and 'm_datasets'.
-        For 'm_entries', the query is used in elastic search. It must comply with `WithQuery`.
-        For 'm_uploads', the query is used in mongo search. It must comply with `UploadProcDataQuery`.
+        It can only be defined at the root levels including Token.ENTRIES, Token.UPLOADS and 'm_datasets'.
+        For Token.ENTRIES, the query is used in elastic search. It must comply with `WithQuery`.
+        For Token.UPLOADS, the query is used in mongo search. It must comply with `UploadProcDataQuery`.
         For 'm_datasets', the query is used in mongo search. It must comply with `DatasetQuery`.
         ''')
 
@@ -210,8 +224,9 @@ class RequestConfig(BaseModel):
         3. Add `^` and `$` to the beginning and end of the pattern such that `quantity` becomes `^quantity$`.
         '''
         pattern = frozenset(re.sub(r'\*+', '*', v) for v in pattern)
+        pattern = frozenset(re.sub(r'\.', r'\.', v) for v in pattern)
         # replace wildcard with regex
-        pattern = frozenset(v.replace('*', r'\w*').replace('?', r'\w') for v in pattern)
+        pattern = frozenset(v.replace('*', r'[\w\./]*').replace('?', r'[\w\./]') for v in pattern)
         # add ^ and $ to the pattern if not present
         pattern = frozenset('^' + v if not v.startswith('^') else v for v in pattern)
         pattern = frozenset(v + '$' if not v.endswith('$') else v for v in pattern)
@@ -234,5 +249,5 @@ class RequestConfig(BaseModel):
         return sha1(self.json(exclude_defaults=True, exclude_none=True).encode('utf-8')).hexdigest()
 
 
-class RequestQuery(Dict[str, Union["RequestQuery", Dict[str, RequestConfig]]]):
+class RequestQuery(dict[str, Union["RequestQuery", dict[str, RequestConfig]]]):
     pass

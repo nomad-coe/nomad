@@ -18,40 +18,64 @@
 
 from fastapi import Depends, APIRouter, Body, HTTPException
 
-from nomad.archive.query_reader import MongoReader, ConfigError, GeneralReader, UserReader
+from nomad.graph.graph_reader import MongoReader, ConfigError, GeneralReader, UserReader, Token
 from .auth import create_user_dependency
 from .entries import EntriesArchive
 from ..models import User
+from ...v1.models.graph_models import GraphRequest, GraphResponse
 
 router = APIRouter()
 default_tag = 'graph'
 
 
-def normalise_response(query, response):
+def normalise_response(response):
     if GeneralReader.__CACHE__ in response:
         del response[GeneralReader.__CACHE__]
 
-    if query:
-        return {'query': query, 'm_response': response}
+    return response
 
-    return {'m_response': response}
+
+def relocate_children(request):
+    if not isinstance(request, dict) or not request:
+        return
+    request.update(request.pop('m_children', {}))
+    for child in request.values():
+        relocate_children(child)
+
+
+@router.post(
+    '/raw_query',
+    tags=[default_tag],
+    summary='Query the database with a graph style without verification.',
+    description='Query the database with a graph style without verification.',
+)
+async def raw_query(query=Body(...), user: User = Depends(create_user_dependency(required=True))):
+    relocate_children(query)
+    with MongoReader(query, user=user) as reader:
+        return normalise_response(reader.read())
 
 
 @router.post(
     '/query',
     tags=[default_tag],
     summary='Query the database with a graph style.',
-    description='Query the database with a graph style.')
-async def basic_query(query: dict = Body(...), user: User = Depends(create_user_dependency(required=True))):
+    description='Query the database with a graph style.',
+    response_model=GraphResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def basic_query(query: GraphRequest = Body(...), user: User = Depends(create_user_dependency(required=True))):
     try:
-        with MongoReader(query, user=user) as reader:
+        query_dict = query.dict(exclude_none=True, exclude_unset=True, exclude_defaults=True)
+        relocate_children(query_dict)
+        with MongoReader(query_dict, user=user) as reader:
             response: dict = reader.read()
     except ConfigError as e:
         raise HTTPException(400, detail=str(e))
     except Exception as e:
         raise HTTPException(422, detail=str(e))
 
-    return normalise_response(query, response)
+    return normalise_response(response)
 
 
 @router.post(
@@ -63,23 +87,25 @@ async def archive_query(
         data: EntriesArchive,
         user: User = Depends(create_user_dependency())
 ):
-    graph_dict: dict = {'m_entries': {'m_request': {}}}
-    root_request: dict = graph_dict['m_entries']['m_request']
+    graph_dict: dict = {Token.SEARCH: {'m_request': {'query': {}}}}
+    root_request: dict = graph_dict[Token.SEARCH]['m_request']['query']
 
     if data.pagination:
         root_request['pagination'] = data.pagination
     if data.query:
         root_request['query'] = data.query
+    if data.owner:
+        root_request['owner'] = data.owner
 
     if data.required is None:
-        root_request['directive'] = 'plain'
+        graph_dict[Token.SEARCH]['m_request']['directive'] = 'plain'
     else:
-        graph_dict['m_entries']['*'] = {'m_archive': data.required}
+        graph_dict[Token.SEARCH]['*'] = {Token.ENTRIES: {Token.ARCHIVE: data.required}}
 
     if not root_request:
-        del graph_dict['m_entries']['m_request']
+        del graph_dict[Token.SEARCH]['m_request']['query']
 
     with UserReader(graph_dict, user=user) as reader:
         response: dict = reader.read(user.user_id)
 
-    return normalise_response(data.query, response)
+    return normalise_response(response)

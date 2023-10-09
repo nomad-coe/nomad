@@ -18,7 +18,7 @@
 
 import pytest
 
-from nomad.archive.query_reader import EntryReader
+from nomad.graph.graph_reader import EntryReader, Token
 from nomad.datamodel import EntryArchive
 from nomad.utils.exampledata import ExampleData
 from tests.archive.test_archive import assert_dict
@@ -41,6 +41,22 @@ def assert_path_exists(path, response):
         raise KeyError
 
 
+def test_graph_query_random(client, test_auth_dict, example_data):
+    user_auth, _ = test_auth_dict['test_user']
+    response = client.post(
+        'graph/raw_query',
+        json={Token.UPLOADS: {
+            'id_embargo': {
+                Token.RAW: {'test_content': {'id_embargo_1': {'m_request': {'directive': 'plain'}}}},
+                Token.ENTRIES: {'id_embargo_1': {
+                    'mainfile': {'m_request': {'directive': 'plain'}}}},
+            },
+        }},
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+
+    print(response.json())
+
+
 # @pytest.mark.skip
 @pytest.mark.parametrize('upload_id,entry_id,user,status_code', [
     pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
@@ -59,9 +75,9 @@ def test_graph_query(
     user_auth, _ = test_auth_dict[user]
     response = client.post(
         'graph/query',
-        json={'m_uploads': {upload_id: {'m_entries': {entry_id: '*'}}}},
+        json={Token.UPLOADS: {upload_id: {Token.ENTRIES: {entry_id: '*'}}}},
         headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
-    target_path = ('m_response', 'm_uploads', upload_id, 'm_entries', entry_id)
+    target_path = (Token.UPLOADS, upload_id, Token.ENTRIES, entry_id)
     if 200 == status_code:
         assert_path_exists(target_path, response.json())
     elif 401 == status_code:
@@ -80,21 +96,25 @@ def test_graph_query(
     pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3')
 ])
 def test_graph_archive_query(client, example_data, required, status_code, test_user_auth):
-    response = client.post('graph/archive/query', headers=test_user_auth, json={'required': required})
+    response = client.post('graph/archive/query', headers=test_user_auth, json={
+        'owner': 'user', 'required': required})
 
-    json_response = response.json()['m_response']
+    json_response = response.json()
 
-    assert json_response['pagination']['total'] == 32
+    m_response = json_response['search'].pop('m_response', None)
 
-    for key, value in json_response['m_entries'].items():
+    assert m_response['pagination']['total'] == 32
+
+    for key, value in json_response[Token.SEARCH].items():
+        value = value[Token.ENTRIES]
         if key == 'id_02':
             # since id_02 is missing (see example_data)
             assert 'm_errors' in value
         elif status_code != 200:
             # nonexistent required field
-            assert 'm_errors' in value['m_archive']
+            assert 'm_errors' in value[Token.ARCHIVE]
         else:
-            archive = value['m_archive']
+            archive = value[Token.ARCHIVE]
             if required == '*':
                 for item in ['metadata', 'run']:
                     assert item in archive
@@ -295,7 +315,7 @@ def example_archive():
     pytest.param(
         dict(
             pagination={'order_by': 'upload_id'},
-            expected_status_code=400
+            expected_status_code=422
         ), id='pag-invalid-order_by')
 ])
 def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
@@ -306,16 +326,16 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
     user_auth, _ = test_auth_dict[user]
 
-    query_body = {'m_uploads': {'m_request': {}}}
+    query_body = {Token.UPLOADS: {'m_request': {}}}
 
     if query_params is None and pagination is None:
         # noinspection PyTypedDict
-        query_body['m_uploads']['m_request'] = '*'
+        query_body[Token.UPLOADS]['m_request'] = {'directive': '*'}
     else:
         if query_params is not None:
-            query_body['m_uploads']['m_request'].setdefault('query', query_params)
+            query_body[Token.UPLOADS]['m_request'].setdefault('query', query_params)
         if pagination is not None:
-            query_body['m_uploads']['m_request'].setdefault('pagination', pagination)
+            query_body[Token.UPLOADS]['m_request'].setdefault('pagination', pagination)
 
     response = client.post(
         'graph/query',
@@ -327,10 +347,11 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
         assert set(a.keys()) == set(b)
 
     if expected_status_code == 200:
+        result[Token.UPLOADS].pop('m_response', None)
         if expected_upload_ids:
-            assert_upload_ids(result['m_response']['m_uploads'], expected_upload_ids)
+            assert_upload_ids(result[Token.UPLOADS], expected_upload_ids)
         else:
-            assert 'm_uploads' not in result['m_response']
+            assert result[Token.UPLOADS] == {}
     else:
         assert response.status_code == expected_status_code
 
@@ -365,13 +386,13 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
     data.create_entry(upload_id='test_id', entry_id='test_id', entry_archive=example_archive)
     data.save(with_files=True, with_es=True, with_mongo=True)
 
-    with EntryReader({'m_archive': required}, user=test_user) as reader:
+    with EntryReader({Token.ARCHIVE: required}, user=test_user) as reader:
         results = reader.read('test_id')
 
     if error:
-        assert 'm_errors' in results['m_archive']
+        assert 'm_errors' in results[Token.ARCHIVE]
     elif required in ('include', '*'):
-        assert_dict(example_archive.m_to_dict(), results['m_archive'])
+        assert_dict(example_archive.m_to_dict(), results[Token.ARCHIVE])
     else:
         full_archive = example_archive.m_to_dict()
         assert isinstance(required, dict)
@@ -409,6 +430,6 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
                 else:
                     assert_equal(a_child, b_child)
 
-        _walk(full_archive, results['m_archive'], required)
+        _walk(full_archive, results[Token.ARCHIVE], required)
 
         data.delete()

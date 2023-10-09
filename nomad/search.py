@@ -44,9 +44,9 @@ from pydantic import ValidationError
 
 from nomad import config, infrastructure, utils
 from nomad import datamodel
-from nomad.app.v1 import models
+from nomad.app.v1.models import models
 from nomad.datamodel import EntryArchive, EntryMetadata, user_reference, author_reference
-from nomad.app.v1.models import (
+from nomad.app.v1.models.models import (
     AggregationPagination, Criteria, MetadataPagination, Pagination, PaginationResponse,
     QuantityAggregation, Query, MetadataRequired,
     MetadataResponse, Aggregation, StatisticsAggregation, StatisticsAggregationResponse,
@@ -55,8 +55,7 @@ from nomad.app.v1.models import (
     MinMaxAggregationResponse, TermsAggregationResponse, HistogramAggregationResponse,
     DateHistogramAggregationResponse, AutoDateHistogramAggregationResponse, AggregationResponse)
 from nomad.metainfo.elasticsearch_extension import (
-    index_entries, entry_type, entry_index, DocumentType,
-    material_type, entry_type, material_entry_type,
+    index_entries, material_type, entry_type, material_entry_type,
     entry_index, Index, DocumentType, SearchQuantity, update_materials)
 
 
@@ -718,7 +717,7 @@ def _api_to_es_aggregation(
             # We are using elastic searchs 'composite aggregations' here. We do not really
             # compose aggregations, but only those pseudo composites allow us to use the
             # 'after' feature that allows to scan through all aggregation values.
-            terms = A('terms', field=quantity.search_field, order=agg.pagination.order.value)
+            terms = A('terms', field=quantity.search_field, order=agg.pagination.order)
 
             if order_quantity is None:
                 composite = {
@@ -732,7 +731,7 @@ def _api_to_es_aggregation(
                 sort_terms = A(
                     'terms',
                     field=order_quantity.search_field,
-                    order=agg.pagination.order.value)
+                    order=agg.pagination.order)
 
                 composite = {
                     'sources': [
@@ -1189,9 +1188,12 @@ def search(
         pagination.order_by = doc_type.id_field
     order_quantity, page_after_value = validate_pagination(pagination, doc_type=doc_type)
     order_field = order_quantity.search_field
-    sort = {order_field: pagination.order.value}
+    try:
+        sort = {order_field: pagination.order}
+    except Exception as e:
+        print(e)
     if order_field != doc_type.id_field:
-        sort[doc_type.id_field] = pagination.order.value
+        sort[doc_type.id_field] = pagination.order
     search = search.sort(sort)
     search = search.extra(size=pagination.page_size, track_total_hits=True)
 

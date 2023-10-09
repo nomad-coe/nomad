@@ -32,9 +32,9 @@ from starlette.datastructures import Headers
 from pydantic import BaseModel
 
 from nomad import config, infrastructure
+from .v1.main import app as v1_app
 from .dcat.main import app as dcat_app
 from .optimade import optimade_app
-from .v1.main import app as v1_app
 from .h5grove_app import app as h5grove_app
 
 
@@ -185,6 +185,7 @@ async def http_exception_handler(request, exc):
                 {'<br/>'.join(f'{key}: {value}' for key, value in config.meta.dict().items())}
                 <h2>apis</h2>
                 <a href="{app_base}/api/v1/extensions/docs">NOMAD API v1</a><br/>
+                <a href="{app_base}/api/v1.2/extensions/docs">NOMAD API v1.2</a><br/>
                 <a href="{app_base}/optimade/v1/extensions/docs">Optimade API</a><br/>
                 <a href="{app_base}/dcat/extensions/docs">DCAT API</a><br/>
             </body>

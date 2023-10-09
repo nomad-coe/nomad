@@ -78,6 +78,8 @@ def create_user_dependency(
             user = _get_user_upload_token_auth(kwargs.get('token'))
         if not user and signature_token_auth_allowed:
             user = _get_user_signature_token_auth(kwargs.get('signature_token'), kwargs.get('request'))
+        if config.tests.assume_auth_for_username:
+            user = datamodel.User.get(username=config.tests.assume_auth_for_username)
 
         if required and not user:
             raise HTTPException(

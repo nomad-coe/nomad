@@ -139,13 +139,27 @@ class DatasetPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return order_by
-        assert order_by in ('dataset_create_time', 'dataset_modified_time', 'dataset_name'), 'order_by must be a valid attribute'
+        assert order_by in (
+            'dataset_create_time', 'dataset_modified_time', 'dataset_name'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         # Validation handled elsewhere
         return page_after_value
+
+    def order_result(self, result):
+        if self.order_by is None:
+            return result
+
+        prefix: str = '-' if self.order == Direction.desc else '+'
+        order_list: list = [f'{prefix}{self.order_by}']
+        if self.order_by == 'dataset_create_time':
+            order_list.append('dataset_id')
+        else:
+            order_list.extend(['dataset_create_time', 'dataset_id'])
+
+        return result.order_by(*order_list)
 
 
 dataset_pagination_parameters = parameter_dependency_from_model(
@@ -199,16 +213,7 @@ async def get_datasets(
         query_params.update(dataset_name=re.compile('^%s.*' % prefix, re.IGNORECASE))  # type: ignore
     query_params = {k: v for k, v in query_params.items() if v is not None}
 
-    mongodb_query = mongodb_objects(**query_params)
-
-    order_by = pagination.order_by
-    order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
-    if order_by == 'dataset_create_time':
-        order_by_args = [order_by_with_sign, 'dataset_id']  # Use upload_id as tie breaker
-    else:
-        order_by_args = [order_by_with_sign, 'dataset_create_time', 'dataset_id']
-
-    mongodb_query = mongodb_query.order_by(*order_by_args)
+    mongodb_query = pagination.order_result(mongodb_objects(**query_params))
 
     start = pagination.get_simple_index()
     end = start + pagination.page_size

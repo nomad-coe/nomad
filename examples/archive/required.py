@@ -1,6 +1,6 @@
 import json
 
-from nomad.archive.query_reader import ArchiveReader
+from nomad.graph.graph_reader import ArchiveReader
 
 # assume this is our archive
 archive = {
@@ -56,7 +56,7 @@ query = {
 
 print(json.dumps(ArchiveReader.read_required(archive, query)))
 # {
-#   "m_archive":{
+#   "archive":{
 #     "results":{
 #       "properties":{
 #         "electronic":{
@@ -98,7 +98,7 @@ query = {
 
 print(json.dumps(ArchiveReader.read_required(archive, query)))
 # {
-#   "m_archive":{
+#   "archive":{
 #     "workflow":[
 #       {
 #         "calculation_result_ref":{
@@ -142,7 +142,7 @@ query = {
 
 print(json.dumps(ArchiveReader.read_required(archive, query)))
 # {
-#     "m_archive": {
+#     "archive": {
 #         "workflow": [
 #             {
 #                 "calculation_result_ref": {
@@ -193,7 +193,7 @@ query = {
 
 print(json.dumps(ArchiveReader.read_required(archive, query)))
 # {
-#   "m_archive":{
+#   "archive":{
 #     "workflow":[
 #       {
 #         "calculation_result_ref":{
@@ -235,7 +235,7 @@ query = {
 with ArchiveReader(query) as reader:
     print(json.dumps(reader.read(archive)))
 # {
-#   "m_archive":{
+#   "archive":{
 #     "workflow":[
 #       {
 #         "calculation_result_ref":{

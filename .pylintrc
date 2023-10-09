@@ -3,7 +3,7 @@
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code.
-extension-pkg-whitelist=pydantic
+extension-pkg-whitelist=pydantic,orjson
 
 # List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.

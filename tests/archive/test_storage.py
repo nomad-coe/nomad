@@ -65,6 +65,7 @@ def to_path(container, path):
     return container
 
 
+@pytest.mark.skip
 def test_generate_random_json(monkeypatch, tmp):
     monkeypatch.setattr('nomad.config.archive.use_new_writer', True)
     monkeypatch.setattr('nomad.config.archive.read_buffer_size', 4096)

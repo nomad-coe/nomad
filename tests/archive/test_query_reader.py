@@ -21,8 +21,8 @@ from datetime import datetime
 
 import pytest
 
-from nomad.archive.query_reader import (
-    EntryReader, UploadReader, UserReader, FileSystemReader, MongoReader, GeneralReader
+from nomad.graph.graph_reader import (
+    EntryReader, UploadReader, UserReader, FileSystemReader, MongoReader, GeneralReader, Token
 )
 from nomad.datamodel import EntryArchive
 from nomad.utils.exampledata import ExampleData
@@ -75,6 +75,12 @@ def assert_dict(d1, d2):
             assert_time(v, d2[k])
 
 
+user_dict = {
+    'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
+    'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
+    'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True}
+
+
 # noinspection SpellCheckingInspection,DuplicatedCode
 def test_remote_reference(json_dict, example_data_with_reference, test_user):
     def increment():
@@ -112,7 +118,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'm_request': {
             'directive': 'plain'
         },
-        'm_uploads': {
+        Token.UPLOADS: {
             'm_request': {
                 'directive': 'plain'
             },
@@ -121,13 +127,13 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
         'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True,
-        'm_uploads': {'id_published_with_ref': 'id_published_with_ref'}})
+        Token.UPLOADS: {'id_published_with_ref': 'id_published_with_ref'}})
 
     __user_print('link to uploads, resolve with metadata', {
         'm_request': {
             'directive': 'plain'
         },
-        'm_uploads': {
+        Token.UPLOADS: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_type': 'upload'
@@ -136,25 +142,26 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
-        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, 'm_uploads': {
+        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, Token.UPLOADS: {
             'id_published_with_ref': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': '2023-03-05T21:24:22.172000',
                 'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T21:24:22.171000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [],
-                'reviewers': [], 'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+                'main_author': user_dict, 'coauthors': [],
+                'reviewers': [], 'viewers': [user_dict],
+                'writers': [user_dict], 'published': False,
+                'processing_failed': 0, 'processing_successful': 6,
                 'published_to': [], 'publish_time': None, 'with_embargo': False,
-                'embargo_length': 0, 'license': 'CC BY 4.0', 'entries': 6,
+                'embargo_length': 0, 'license': 'CC BY 4.0', 'n_entries': 6,
                 'upload_files_server_path': 'id_published_with_ref'}}})
 
     __user_print('link to uploads, resolve with metadata, form 2 using dict style with explicit upload id', {
         'm_request': {
             'directive': 'plain'
         },
-        'm_uploads': {
+        Token.UPLOADS: {
             'id_published_with_ref': {
                 'm_request': {
                     'directive': 'plain',
@@ -164,25 +171,26 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
-        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, 'm_uploads': {
+        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, Token.UPLOADS: {
             'id_published_with_ref': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': '2023-03-05T21:30:22.807000',
                 'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T21:30:22.806000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [],
-                'reviewers': [], 'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+                'main_author': user_dict, 'coauthors': [],
+                'reviewers': [], 'viewers': [user_dict],
+                'writers': [user_dict], 'published': False,
+                'processing_failed': 0, 'processing_successful': 6,
                 'published_to': [], 'publish_time': None, 'with_embargo': False,
-                'embargo_length': 0, 'license': 'CC BY 4.0', 'entries': 6,
+                'embargo_length': 0, 'license': 'CC BY 4.0', 'n_entries': 6,
                 'upload_files_server_path': 'id_published_with_ref'}}})
 
     __user_print('link to entries directly from user, resolve with metadata', {
         'm_request': {
             'directive': 'plain'
         },
-        'm_entries': {
+        Token.ENTRIES: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_type': 'entry'
@@ -191,73 +199,73 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
-        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, 'm_entries': {
+        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, Token.ENTRIES: {
             'id_01': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_01', 'entry_create_time': '2023-03-05T21:27:24.488000',
-                'mainfile': 'mainfile_for_id_01', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                'parser_name': 'parsers/vasp'},
             'id_02': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_02', 'entry_create_time': '2023-03-05T21:27:24.489000',
-                'mainfile': 'mainfile_for_id_02', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                'mainfile_path': 'mainfile_for_id_02', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                'parser_name': 'parsers/vasp'},
             'id_03': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_03', 'entry_create_time': '2023-03-05T21:27:24.490000',
-                'mainfile': 'mainfile_for_id_03', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                'mainfile_path': 'mainfile_for_id_03', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                'parser_name': 'parsers/vasp'},
             'id_04': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_04', 'entry_create_time': '2023-03-05T21:27:24.491000',
-                'mainfile': 'mainfile_for_id_04', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                'mainfile_path': 'mainfile_for_id_04', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                'parser_name': 'parsers/vasp'},
             'id_05': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_05', 'entry_create_time': '2023-03-05T21:27:24.492000',
-                'mainfile': 'mainfile_for_id_05', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                'mainfile_path': 'mainfile_for_id_05', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                'parser_name': 'parsers/vasp'},
             'id_06': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_06', 'entry_create_time': '2023-03-05T21:27:24.493000',
-                'mainfile': 'mainfile_for_id_06', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                'parser_name': 'parsers/vasp', 'entry_metadata': None}}})
+                'mainfile_path': 'mainfile_for_id_06', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                'parser_name': 'parsers/vasp'}}})
 
     __user_print(
         'link to entries directly from user, resolve with metadata, form 2 using dict style with explicit entry id', {
             'm_request': {
                 'directive': 'plain'
             },
-            'm_entries': {
+            Token.ENTRIES: {
                 'id_01': '*'
             }
         }, result={
             'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
             'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
-            'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, 'm_entries': {
+            'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, Token.ENTRIES: {
                 'id_01': {
                     'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                     'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                     'entry_id': 'id_01', 'entry_create_time': '2023-03-05T21:30:22.809000',
-                    'mainfile': 'mainfile_for_id_01', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
-                    'parser_name': 'parsers/vasp', 'entry_metadata': None}}})
+                    'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None, 'upload_id': 'id_published_with_ref',
+                    'parser_name': 'parsers/vasp'}}})
 
     __user_print('link to entries from uploads, resolve with metadata', {
         'm_request': {
             'directive': 'plain'
         },
-        'm_uploads': {
+        Token.UPLOADS: {
             'id_published_with_ref': {
                 'm_request': {
                     'directive': 'plain',
                 },
-                'm_entries': {
+                Token.ENTRIES: {
                     'm_request': {
                         'directive': 'resolved',
                         'resolve_type': 'entry'
@@ -269,86 +277,87 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
-        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, 'm_uploads': {
+        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, Token.UPLOADS: {
             'id_published_with_ref': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': '2023-03-05T21:31:56.873000',
                 'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T21:31:56.872000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [],
-                'reviewers': [], 'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+                'main_author': user_dict, 'coauthors': [],
+                'reviewers': [], 'viewers': [user_dict],
+                'writers': [user_dict], 'published': False,
+                'processing_failed': 0, 'processing_successful': 6,
                 'published_to': [], 'publish_time': None, 'with_embargo': False,
-                'embargo_length': 0, 'license': 'CC BY 4.0', 'entries': 6,
+                'embargo_length': 0, 'license': 'CC BY 4.0', 'n_entries': 6,
                 'upload_files_server_path': 'id_published_with_ref',
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_01',
                         'entry_create_time': '2023-03-05T21:31:56.875000',
-                        'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                        'parser_name': 'parsers/vasp'},
                     'id_02': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_02',
                         'entry_create_time': '2023-03-05T21:31:56.876000',
-                        'mainfile': 'mainfile_for_id_02', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_02', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                        'parser_name': 'parsers/vasp'},
                     'id_03': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_03',
                         'entry_create_time': '2023-03-05T21:31:56.877000',
-                        'mainfile': 'mainfile_for_id_03', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_03', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                        'parser_name': 'parsers/vasp'},
                     'id_04': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_04',
                         'entry_create_time': '2023-03-05T21:31:56.878000',
-                        'mainfile': 'mainfile_for_id_04', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_04', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                        'parser_name': 'parsers/vasp'},
                     'id_05': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_05',
                         'entry_create_time': '2023-03-05T21:31:56.879000',
-                        'mainfile': 'mainfile_for_id_05', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_05', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp', 'entry_metadata': None},
+                        'parser_name': 'parsers/vasp'},
                     'id_06': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_06',
                         'entry_create_time': '2023-03-05T21:31:56.880000',
-                        'mainfile': 'mainfile_for_id_06', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_06', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp',
-                        'entry_metadata': None}}}}})
+                        'parser_name': 'parsers/vasp'
+                    }}}}})
 
     __user_print('link to entries from uploads, resolve with metadata, dict style', {
         'm_request': {
             'directive': 'plain'
         },
-        'm_uploads': {
+        Token.UPLOADS: {
             'id_published_with_ref': {
                 'm_request': {
                     'directive': 'plain',
                 },
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'm_request': {
                             'directive': 'plain',
@@ -357,7 +366,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                     '*': {
                         'm_request': {
                             'directive': 'plain',
-                            'include': ['entry_id', 'mainfile']
+                            'include': ['entry_id', 'mainfile_path']
                         },
                     }
                 }
@@ -367,40 +376,42 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
-        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, 'm_uploads': {
+        'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True, Token.UPLOADS: {
             'id_published_with_ref': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': '2023-03-05T21:31:56.873000',
                 'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T21:31:56.872000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [],
-                'reviewers': [], 'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+                'main_author': user_dict, 'coauthors': [],
+                'reviewers': [], 'viewers': [user_dict],
+                'writers': [user_dict], 'published': False,
+                'processing_failed': 0, 'processing_successful': 6,
                 'published_to': [], 'publish_time': None, 'with_embargo': False,
-                'embargo_length': 0, 'license': 'CC BY 4.0', 'entries': 6,
+                'embargo_length': 0, 'license': 'CC BY 4.0', 'n_entries': 6,
                 'upload_files_server_path': 'id_published_with_ref',
-                'm_entries': {
-                    'id_02': {'entry_id': 'id_02', 'mainfile': 'mainfile_for_id_02'},
-                    'id_03': {'entry_id': 'id_03', 'mainfile': 'mainfile_for_id_03'},
-                    'id_04': {'entry_id': 'id_04', 'mainfile': 'mainfile_for_id_04'},
-                    'id_05': {'entry_id': 'id_05', 'mainfile': 'mainfile_for_id_05'},
-                    'id_06': {'entry_id': 'id_06', 'mainfile': 'mainfile_for_id_06'},
+                Token.ENTRIES: {
+                    'm_response': {},
+                    'id_02': {'entry_id': 'id_02', 'mainfile_path': 'mainfile_for_id_02'},
+                    'id_03': {'entry_id': 'id_03', 'mainfile_path': 'mainfile_for_id_03'},
+                    'id_04': {'entry_id': 'id_04', 'mainfile_path': 'mainfile_for_id_04'},
+                    'id_05': {'entry_id': 'id_05', 'mainfile_path': 'mainfile_for_id_05'},
+                    'id_06': {'entry_id': 'id_06', 'mainfile_path': 'mainfile_for_id_06'},
                     'id_01': {
                         'process_running': False, 'current_process': None,
                         'process_status': 'SUCCESS', 'last_status_message': None,
                         'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_01',
                         'entry_create_time': '2023-03-05T21:31:56.875000',
-                        'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref',
-                        'parser_name': 'parsers/vasp',
-                        'entry_metadata': None}}}}})
+                        'parser_name': 'parsers/vasp'
+                    }}}}})
 
     __user_print('uploads to entries back to uploads', {
-        'm_uploads': {
+        Token.UPLOADS: {
             'id_published_with_ref': {
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'm_request': {
                             'directive': 'plain',
@@ -416,74 +427,34 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             }
 
         }
-    }, result={'m_uploads': {'id_published_with_ref': {'m_entries': {
+    }, result={Token.UPLOADS: {'id_published_with_ref': {Token.ENTRIES: {
         'id_01': {
             'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None, 'entry_id': 'id_01',
-            'entry_create_time': '2023-03-05T21:31:56.875000', 'mainfile': 'mainfile_for_id_01',
-            'mainfile_key': None, 'parser_name': 'parsers/vasp', 'entry_metadata': None,
+            'entry_create_time': '2023-03-05T21:31:56.875000', 'mainfile_path': 'mainfile_for_id_01',
+            'mainfile_key': None, 'parser_name': 'parsers/vasp',
             'upload_id': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [], 'warnings': [],
                 'complete_time': '2023-03-05T21:31:56.873000', 'upload_id': 'id_published_with_ref',
                 'upload_name': 'name_published', 'upload_create_time': '2023-03-05T21:31:56.872000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-                'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+                'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+                'viewers': [user_dict],
+                'writers': [user_dict], 'published': False,
+                'processing_failed': 0, 'processing_successful': 6,
                 'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-                'license': 'CC BY 4.0', 'entries': 6,
+                'license': 'CC BY 4.0', 'n_entries': 6,
                 'upload_files_server_path': 'id_published_with_ref'}}}}}})
 
-    __user_print('uploads to entries back to uploads, resolve viewers', {
-        'm_uploads': {
-            'id_published_with_ref': {
-                'm_entries': {
-                    'id_01': {
-                        'm_request': {
-                            'directive': 'plain',
-                        },
-                        'upload_id': {
-                            'm_request': {
-                                'directive': 'plain',
-                            },
-                            'viewers': {
-                                'username': {
-                                    'm_request': '*'
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-        }
-    }, result={'m_uploads': {'id_published_with_ref': {'m_entries': {
-        'id_01': {
-            'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
-            'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None, 'entry_id': 'id_01',
-            'entry_create_time': '2023-03-05T21:31:56.875000', 'mainfile': 'mainfile_for_id_01',
-            'mainfile_key': None, 'parser_name': 'parsers/vasp', 'entry_metadata': None,
-            'upload_id': {
-                'process_running': False, 'current_process': 'process_upload',
-                'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [], 'warnings': [],
-                'complete_time': '2023-03-05T21:31:56.873000', 'upload_id': 'id_published_with_ref',
-                'upload_name': 'name_published', 'upload_create_time': '2023-03-05T21:31:56.872000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
-                'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-                'license': 'CC BY 4.0', 'entries': 6,
-                'upload_files_server_path': 'id_published_with_ref',
-                'viewers': [{'username': 'scooper'}]}}}}}})
-
     __user_print('uploads to entries to archive', {
-        'm_uploads': {
+        Token.UPLOADS: {
             'id_published_with_ref': {
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'm_request': {
                             'directive': 'plain',
                         },
-                        'm_archive': {
+                        Token.ARCHIVE: {
                             'm_request': {
                                 'directive': 'plain',
                                 'include': ['results']
@@ -494,13 +465,13 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             }
 
         }
-    }, result={'m_uploads': {'id_published_with_ref': {'m_entries': {
+    }, result={Token.UPLOADS: {'id_published_with_ref': {Token.ENTRIES: {
         'id_01': {
             'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None, 'entry_id': 'id_01',
-            'entry_create_time': '2023-03-05T21:31:56.875000', 'mainfile': 'mainfile_for_id_01',
+            'entry_create_time': '2023-03-05T21:31:56.875000', 'mainfile_path': 'mainfile_for_id_01',
             'mainfile_key': None, 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-            'entry_metadata': None, 'm_archive': {'results': {
+            Token.ARCHIVE: {'results': {
                 'material': {
                     'material_id': 'test_material_id', 'elements': ['H', 'O'],
                     'symmetry': {'crystal_system': 'cubic'}},
@@ -527,15 +498,16 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': '2023-03-05T22:12:08.421000',
         'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
         'upload_create_time': '2023-03-05T22:12:08.420000',
-        'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-        'viewers': ['00000000-0000-0000-0000-000000000001'], 'writers': ['00000000-0000-0000-0000-000000000001'],
+        'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+        'viewers': [user_dict], 'writers': [user_dict],
         'published': False, 'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-        'license': 'CC BY 4.0', 'entries': 6,
+        'processing_failed': 0, 'processing_successful': 6,
+        'license': 'CC BY 4.0', 'n_entries': 6,
         'upload_files_server_path': 'id_published_with_ref'})
 
     __upload_print('upload, resolve raw files', {
         'm_request': '*',
-        'm_raw': {
+        Token.RAW: {
             'm_request': '*',
             'mainfile_for_id_01': {
                 'm_request': {
@@ -548,33 +520,39 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': '2023-03-05T22:16:52.436000',
         'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
         'upload_create_time': '2023-03-05T22:16:52.435000',
-        'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-        'viewers': ['00000000-0000-0000-0000-000000000001'], 'writers': ['00000000-0000-0000-0000-000000000001'],
+        'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+        'viewers': [user_dict], 'writers': [user_dict],
         'published': False, 'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-        'license': 'CC BY 4.0', 'entries': 6,
+        'processing_failed': 0, 'processing_successful': 6,
+        'license': 'CC BY 4.0', 'n_entries': 6,
         'upload_files_server_path': 'id_published_with_ref',
-        'm_raw': {
+        Token.RAW: {
+            'm_is': 'Directory',
+            '1.aux': {'path': '1.aux', 'm_is': 'File', 'size': 8},
+            '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
+            '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
+            '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
             'mainfile_for_id_02': {
-                'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
             'mainfile_for_id_03': {
-                'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
             'mainfile_for_id_04': {
-                'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
             'mainfile_for_id_05': {
-                'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
             'mainfile_for_id_06': {
-                'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+                'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
             'mainfile_for_id_01': {
-                'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-                'm_entries': {
+                'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+                Token.ENTRY: {
                     'process_running': False, 'current_process': None,
                     'process_status': 'SUCCESS', 'last_status_message': None,
                     'errors': [], 'warnings': [], 'complete_time': None,
                     'entry_id': 'id_01',
                     'entry_create_time': '2023-03-05T22:16:52.438000',
-                    'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                    'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                     'upload_id': 'id_published_with_ref',
-                    'parser_name': 'parsers/vasp', 'entry_metadata': None}}}})
+                    'parser_name': 'parsers/vasp'}}}})
 
     __upload_print('upload, resolve user', {
         'm_request': {
@@ -591,13 +569,14 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': '2023-03-05T22:16:52.436000',
         'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
         'upload_create_time': '2023-03-05T22:16:52.435000',
-        'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-        'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False, 'published_to': [],
-        'publish_time': None, 'with_embargo': False, 'embargo_length': 0, 'license': 'CC BY 4.0', 'entries': 6,
+        'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+        'writers': [user_dict], 'published': False, 'published_to': [],
+        'publish_time': None, 'with_embargo': False, 'embargo_length': 0, 'license': 'CC BY 4.0', 'n_entries': 6,
+        'processing_failed': 0, 'processing_successful': 6,
         'upload_files_server_path': 'id_published_with_ref',
         'viewers': [{
             'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
-            'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
+            'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': user_dict,
             'username': 'scooper', 'is_admin': False, 'is_oasis_admin': True}]})
 
     __upload_print('resolve itself using upload id', {
@@ -614,21 +593,23 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': '2023-03-05T22:16:52.436000',
         'upload_name': 'name_published', 'upload_create_time': '2023-03-05T22:16:52.435000',
-        'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-        'viewers': ['00000000-0000-0000-0000-000000000001'], 'writers': ['00000000-0000-0000-0000-000000000001'],
+        'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+        'viewers': [user_dict], 'writers': [user_dict],
         'published': False, 'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-        'license': 'CC BY 4.0', 'entries': 6,
+        'license': 'CC BY 4.0', 'n_entries': 6,
+        'processing_failed': 0, 'processing_successful': 6,
         'upload_files_server_path': 'id_published_with_ref',
         'upload_id': {
             'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [],
             'complete_time': '2023-03-05T22:16:52.436000', 'upload_id': 'id_published_with_ref',
             'upload_name': 'name_published', 'upload_create_time': '2023-03-05T22:16:52.435000',
-            'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-            'viewers': ['00000000-0000-0000-0000-000000000001'],
-            'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+            'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+            'viewers': [user_dict],
+            'writers': [user_dict], 'published': False,
             'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-            'license': 'CC BY 4.0', 'entries': 6,
+            'license': 'CC BY 4.0', 'n_entries': 6,
+            'processing_failed': 0, 'processing_successful': 6,
             'upload_files_server_path': 'id_published_with_ref'}})
 
     __upload_print('resolve itself twice then go to entry', {
@@ -637,7 +618,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'directive': 'plain',
             },
             'upload_id': {
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'm_request': {
                             'directive': 'plain',
@@ -651,14 +632,15 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'last_status_message': None, 'errors': [], 'warnings': [],
         'complete_time': '2023-03-05T22:16:52.436000', 'upload_name': 'name_published',
         'upload_create_time': '2023-03-05T22:16:52.435000',
-        'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-        'viewers': ['00000000-0000-0000-0000-000000000001'],
-        'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+        'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+        'viewers': [user_dict],
+        'writers': [user_dict], 'published': False,
         'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-        'license': 'CC BY 4.0', 'entries': 6,
+        'license': 'CC BY 4.0', 'n_entries': 6,
+        'processing_failed': 0, 'processing_successful': 6,
         'upload_files_server_path': 'id_published_with_ref',
         'upload_id': {
-            'm_entries': {
+            Token.ENTRIES: {
                 'id_01': {
                     'process_running': False, 'current_process': None,
                     'process_status': 'SUCCESS',
@@ -666,11 +648,11 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                     'warnings': [], 'complete_time': None,
                     'entry_id': 'id_01',
                     'entry_create_time': '2023-03-05T22:16:52.438000',
-                    'mainfile': 'mainfile_for_id_01',
+                    'mainfile_path': 'mainfile_for_id_01',
                     'mainfile_key': None,
                     'upload_id': 'id_published_with_ref',
-                    'parser_name': 'parsers/vasp',
-                    'entry_metadata': None}}}}})
+                    'parser_name': 'parsers/vasp'
+                }}}}})
 
     __upload_print('resolve itself twice then go to entry, collect other info on different levels', {
         'm_request': {
@@ -678,7 +660,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         },
         'upload_id': {
             'upload_id': {
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'm_request': {
                             'directive': 'plain',
@@ -691,21 +673,22 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': '2023-03-05T22:16:52.436000',
         'upload_name': 'name_published', 'upload_create_time': '2023-03-05T22:16:52.435000',
-        'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-        'viewers': ['00000000-0000-0000-0000-000000000001'], 'writers': ['00000000-0000-0000-0000-000000000001'],
+        'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+        'viewers': [user_dict], 'writers': [user_dict],
         'published': False, 'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-        'license': 'CC BY 4.0', 'entries': 6,
+        'license': 'CC BY 4.0', 'n_entries': 6,
+        'processing_failed': 0, 'processing_successful': 6,
         'upload_files_server_path': 'id_published_with_ref',
         'upload_id': {
             'upload_id': {
-                'm_entries': {
+                Token.ENTRIES: {
                     'id_01': {
                         'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                         'entry_id': 'id_01', 'entry_create_time': '2023-03-05T22:16:52.438000',
-                        'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                        'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                         'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                        'entry_metadata': None}}}}})
+                    }}}}})
 
     def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
         with EntryReader(required, user=test_user) as reader:
@@ -728,24 +711,26 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None, 'entry_id': 'id_03',
-        'entry_create_time': '2023-03-05T22:16:52.440000', 'mainfile': 'mainfile_for_id_03',
+        'entry_create_time': '2023-03-05T22:16:52.440000', 'mainfile_path': 'mainfile_for_id_03',
         'mainfile_key': None, 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-        'entry_metadata': None})
+    })
     __entry_print('plain entry reader, resolve inplace', {
-        'm_archive': {
+        Token.ARCHIVE: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_inplace': True,
                 'include': ['workflow2']
             },
         }
-    }, result={'m_uploads': {'id_published_with_ref': {'m_entries': {'id_01': {'m_archive': {
+    }, result={Token.UPLOADS: {'id_published_with_ref': {Token.ENTRIES: {'id_01': {Token.ARCHIVE: {
         'workflow2': {
-            'results': {'calculation_result_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/calculation/1'}},
+            'results': {
+                'calculation_result_ref':
+                    'uploads/id_published_with_ref/entries/id_01/archive/run/0/calculation/1'}},
         'run': [{
             'calculation': [
                 None, {
-                    'system_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/system/1',
+                    'system_ref': 'uploads/id_published_with_ref/entries/id_01/archive/run/0/system/1',
                     'energy': {
                         'total': {
                             'value': 0.2}},
@@ -764,11 +749,11 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                     'labels': [
                         'H']},
                 'symmetry': [{
-                    'space_group_number': 221}]}]}]}}}}},
-        'm_archive': {'workflow2': {'tasks': [
-            {'task': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/workflow2'}]}}})
+                    'space_group_number': 221}]}]}]}}}}}, Token.ARCHIVE: {
+        'workflow2': {'tasks': [{
+            'task': 'uploads/id_published_with_ref/entries/id_01/archive/workflow2'}]}}})
     __entry_print('plain entry reader, resolve to root', {
-        'm_archive': {
+        Token.ARCHIVE: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_inplace': False,
@@ -776,13 +761,15 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             },
         }
     }, result={
-        'm_uploads': {'id_published_with_ref': {'m_entries': {'id_01': {'m_archive': {
+        Token.UPLOADS: {'id_published_with_ref': {Token.ENTRIES: {'id_01': {Token.ARCHIVE: {
             'workflow2': {
-                'results': {'calculation_result_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/calculation/1'}},
+                'results': {
+                    'calculation_result_ref':
+                        'uploads/id_published_with_ref/entries/id_01/archive/run/0/calculation/1'}},
             'run': [{
                 'calculation': [
                     None, {
-                        'system_ref': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/run/0/system/1',
+                        'system_ref': 'uploads/id_published_with_ref/entries/id_01/archive/run/0/system/1',
                         'energy': {
                             'total': {
                                 'value': 0.2}},
@@ -802,27 +789,8 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                             'H']},
                     'symmetry': [{
                         'space_group_number': 221}]}]}]}}}}},
-        'm_archive': {'workflow2': {
-            'tasks': [{'task': 'm_uploads/id_published_with_ref/m_entries/id_01/m_archive/workflow2'}]}}})
-    # __entry_print('plain entry reader, resolve inplace', {
-    #     'm_archive': {
-    #         'workflow[0]': {
-    #             'm_def': {
-    #                 'm_request': {
-    #                     'directive': 'resolved',
-    #                     'resolve_inplace': False,
-    #                 },
-    #                 'inherited_sections': '*'
-    #             },
-    #             'm_request': {
-    #                 'directive': 'resolved',
-    #                 'resolve_inplace': True,
-    #                 'resolve_depth': 2,
-    #                 'max_list_size': 5
-    #             },
-    #         }
-    #     }
-    # }, to_file=True)
+        Token.ARCHIVE: {'workflow2': {
+            'tasks': [{'task': 'uploads/id_published_with_ref/entries/id_01/archive/workflow2'}]}}})
 
     __entry_print('go to upload, resolve explicitly', {
         'm_request': {
@@ -837,18 +805,19 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None, 'entry_id': 'id_03',
-        'entry_create_time': '2023-03-05T22:16:52.440000', 'mainfile': 'mainfile_for_id_03',
-        'mainfile_key': None, 'parser_name': 'parsers/vasp', 'entry_metadata': None,
+        'entry_create_time': '2023-03-05T22:16:52.440000', 'mainfile_path': 'mainfile_for_id_03',
+        'mainfile_key': None, 'parser_name': 'parsers/vasp',
         'upload_id': {
             'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [],
             'complete_time': '2023-03-05T22:16:52.436000', 'upload_id': 'id_published_with_ref',
             'upload_name': 'name_published', 'upload_create_time': '2023-03-05T22:16:52.435000',
-            'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-            'viewers': ['00000000-0000-0000-0000-000000000001'],
-            'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+            'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+            'viewers': [user_dict],
+            'writers': [user_dict], 'published': False,
             'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-            'license': 'CC BY 4.0', 'entries': 6,
+            'processing_failed': 0, 'processing_successful': 6,
+            'license': 'CC BY 4.0', 'n_entries': 6,
             'upload_files_server_path': 'id_published_with_ref'}})
 
     __entry_print('go to upload, resolve implicitly, resolve main author explicitly', {
@@ -869,22 +838,23 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     }, result={
         'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
         'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None, 'entry_id': 'id_03',
-        'entry_create_time': '2023-03-05T22:16:52.440000', 'mainfile': 'mainfile_for_id_03',
-        'mainfile_key': None, 'parser_name': 'parsers/vasp', 'entry_metadata': None,
+        'entry_create_time': '2023-03-05T22:16:52.440000', 'mainfile_path': 'mainfile_for_id_03',
+        'mainfile_key': None, 'parser_name': 'parsers/vasp',
         'upload_id': {
             'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [],
             'complete_time': '2023-03-05T22:16:52.436000', 'upload_id': 'id_published_with_ref',
             'upload_name': 'name_published', 'upload_create_time': '2023-03-05T22:16:52.435000',
-            'coauthors': [], 'reviewers': [], 'viewers': ['00000000-0000-0000-0000-000000000001'],
-            'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False,
+            'coauthors': [], 'reviewers': [], 'viewers': [user_dict],
+            'writers': [user_dict], 'published': False,
             'published_to': [], 'publish_time': None, 'with_embargo': False, 'embargo_length': 0,
-            'license': 'CC BY 4.0', 'entries': 6,
+            'license': 'CC BY 4.0', 'n_entries': 6,
+            'processing_failed': 0, 'processing_successful': 6,
             'upload_files_server_path': 'id_published_with_ref',
             'main_author': {
                 'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
                 'email': 'sheldon.cooper@nomad-coe.eu',
-                'user_id': '00000000-0000-0000-0000-000000000001', 'username': 'scooper',
+                'user_id': user_dict, 'username': 'scooper',
                 'is_admin': False, 'is_oasis_admin': True}}})
 
     def __fs_print(msg, required, *, result: dict = None):
@@ -902,78 +872,88 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'directive': 'plain',
         },
     }, result={
-        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'}})
+        'm_is': 'Directory',
+        '1.aux': {'path': '1.aux', 'm_is': 'File', 'size': 8},
+        '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
+        '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
+        '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
+        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231}})
 
     __fs_print('go to entry', {
         'm_request': {
             'directive': 'resolved',
         },
     }, result={
+        'm_is': 'Directory',
+        '1.aux': {'path': '1.aux', 'm_is': 'File', 'size': 8},
+        '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
+        '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
+        '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_01',
                 'entry_create_time': '2023-03-05T22:16:52.438000',
-                'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}},
+            }},
         'mainfile_for_id_02': {
-            'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_02',
                 'entry_create_time': '2023-03-05T22:16:52.439000',
-                'mainfile': 'mainfile_for_id_02', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_02', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}},
+            }},
         'mainfile_for_id_03': {
-            'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_03',
                 'entry_create_time': '2023-03-05T22:16:52.440000',
-                'mainfile': 'mainfile_for_id_03', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_03', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}},
+            }},
         'mainfile_for_id_04': {
-            'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_04',
                 'entry_create_time': '2023-03-05T22:16:52.441000',
-                'mainfile': 'mainfile_for_id_04', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_04', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}},
+            }},
         'mainfile_for_id_05': {
-            'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_05',
                 'entry_create_time': '2023-03-05T22:16:52.442000',
-                'mainfile': 'mainfile_for_id_05', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_05', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}},
+            }},
         'mainfile_for_id_06': {
-            'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_06',
                 'entry_create_time': '2023-03-05T22:16:52.443000',
-                'mainfile': 'mainfile_for_id_06', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_06', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}}})
+            }}})
 
     __fs_print('go to selected entry', {
         'm_request': {
@@ -985,21 +965,26 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             },
         }
     }, result={
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'm_is': 'Directory',
+        '1.aux': {'path': '1.aux', 'm_is': 'File', 'size': 8},
+        '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
+        '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
+        '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                 'warnings': [], 'complete_time': None, 'entry_id': 'id_01',
                 'entry_create_time': '2023-03-05T22:16:52.438000',
-                'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None}}})
+            }}})
 
     __fs_print('go to selected entry then to upload', {
         'm_request': {
@@ -1009,7 +994,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'm_request': {
                 'directive': 'plain',
             },
-            'm_entries': {
+            Token.ENTRY: {
                 'upload_id': {
                     'm_request': {
                         'directive': 'resolved',
@@ -1019,26 +1004,31 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             }
         }
     }, result={
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
+        'm_is': 'Directory',
+        '1.aux': {'path': '1.aux', 'm_is': 'File', 'size': 8},
+        '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
+        '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
+        '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'is_file': True, 'size': 3231, 'access': 'unpublished',
-            'm_entries': {
+            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+            Token.ENTRY: {
                 'upload_id': {
                     'process_running': False, 'current_process': 'process_upload',
                     'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
                     'warnings': [], 'complete_time': '2023-03-05T22:16:52.436000',
                     'upload_id': 'id_published_with_ref', 'upload_name': 'name_published',
                     'upload_create_time': '2023-03-05T22:16:52.435000',
-                    'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [],
-                    'reviewers': [], 'viewers': ['00000000-0000-0000-0000-000000000001'],
-                    'writers': ['00000000-0000-0000-0000-000000000001'],
+                    'main_author': user_dict, 'coauthors': [],
+                    'reviewers': [], 'viewers': [user_dict],
+                    'writers': [user_dict],
                     'published': False, 'published_to': [], 'publish_time': None,
                     'with_embargo': False, 'embargo_length': 0, 'license': 'CC BY 4.0',
-                    'entries': 6,
+                    'processing_failed': 0, 'processing_successful': 6, 'n_entries': 6,
                     'upload_files_server_path': 'id_published_with_ref'}}}})
 
     __fs_print('go to selected entry then to upload, skipping file info', {
@@ -1046,7 +1036,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'directive': 'plain',
         },
         'mainfile_for_id_01': {
-            'm_entries': {
+            Token.ENTRY: {
                 'upload_id': {
                     'm_request': {
                         'directive': 'resolved',
@@ -1056,38 +1046,38 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             }
         }
     }, result={
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'is_file': True, 'size': 3231, 'access': 'unpublished'},
-        'mainfile_for_id_01': {'m_entries': {
+        'm_is': 'Directory',
+        '1.aux': {'path': '1.aux', 'm_is': 'File', 'size': 8},
+        '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
+        '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
+        '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_01': {Token.ENTRY: {
             'upload_id': {
                 'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [],
                 'complete_time': '2023-03-05T22:16:52.436000', 'upload_id': 'id_published_with_ref',
                 'upload_name': 'name_published', 'upload_create_time': '2023-03-05T22:16:52.435000',
-                'main_author': '00000000-0000-0000-0000-000000000001', 'coauthors': [], 'reviewers': [],
-                'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'], 'published': False, 'published_to': [],
+                'main_author': user_dict, 'coauthors': [], 'reviewers': [],
+                'viewers': [user_dict],
+                'writers': [user_dict], 'published': False, 'published_to': [],
                 'publish_time': None, 'with_embargo': False, 'embargo_length': 0, 'license': 'CC BY 4.0',
-                'entries': 6,
+                'n_entries': 6, 'processing_failed': 0, 'processing_successful': 6,
                 'upload_files_server_path': 'id_published_with_ref'}}}})
 
     __fs_print('go to selected entry then to upload, resolve user', {
         'mainfile_for_id_01': {
-            'm_entries': {
+            Token.ENTRY: {
                 'upload_id': {
-                    'main_author': {
-                        'm_request': {
-                            'directive': 'resolved',
-                            'resolve_type': 'user'
-                        },
-                    }
+                    'main_author': '*'
                 }
             }
         }
-    }, result={'mainfile_for_id_01': {'m_entries': {'upload_id': {
+    }, result={'m_is': 'Directory', 'mainfile_for_id_01': {Token.ENTRY: {'upload_id': {
         'main_author': {
             'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
             'email': 'sheldon.cooper@nomad-coe.eu', 'user_id': '00000000-0000-0000-0000-000000000001',
@@ -1119,7 +1109,7 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
                         f.write(json.dumps(reader.read()))
 
     __ge_print('general start from entry', {
-        'm_entries': {
+        Token.ENTRIES: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_type': 'entry',
@@ -1129,23 +1119,24 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
                 }
             },
         }
-    }, result={'m_entries': {
+    }, result={Token.ENTRIES: {
+        'm_response': {},
         'id_04': {
             'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
             'entry_id': 'id_04', 'entry_create_time': '2023-03-05T22:29:55.842000',
-            'mainfile': 'mainfile_for_id_04', 'mainfile_key': None,
+            'mainfile_path': 'mainfile_for_id_04', 'mainfile_key': None,
             'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-            'entry_metadata': None},
+        },
         'id_05': {
             'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
             'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
             'entry_id': 'id_05', 'entry_create_time': '2023-03-05T22:29:55.843000',
-            'mainfile': 'mainfile_for_id_05', 'mainfile_key': None,
+            'mainfile_path': 'mainfile_for_id_05', 'mainfile_key': None,
             'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-            'entry_metadata': None}}})
+        }}})
     __ge_print('general start from entry with wildcard', {
-        'm_entries': {
+        Token.ENTRIES: {
             'id_01': {
                 'm_request': {
                     'directive': 'plain',
@@ -1154,27 +1145,29 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
             '*': {
                 'm_request': {
                     'directive': 'plain',
-                    'include': ['entry_id', 'mainfile']
+                    'include': ['entry_id', 'mainfile_path']
                 },
                 "upload_id": "*"
             }
         }
     }, result={
-        'm_entries': {
+        Token.ENTRIES: {
+            'm_response': {},
             'id_01': {
                 'process_running': False, 'current_process': None, 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [], 'complete_time': None,
                 'entry_id': 'id_01', 'entry_create_time': '2023-03-05T22:20:46.586000',
-                'mainfile': 'mainfile_for_id_01', 'mainfile_key': None,
+                'mainfile_path': 'mainfile_for_id_01', 'mainfile_key': None,
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
-                'entry_metadata': None},
-            'id_02': {'entry_id': 'id_02', 'mainfile': 'mainfile_for_id_02', 'upload_id': 'id_published_with_ref'},
-            'id_03': {'entry_id': 'id_03', 'mainfile': 'mainfile_for_id_03', 'upload_id': 'id_published_with_ref'},
-            'id_04': {'entry_id': 'id_04', 'mainfile': 'mainfile_for_id_04', 'upload_id': 'id_published_with_ref'},
-            'id_05': {'entry_id': 'id_05', 'mainfile': 'mainfile_for_id_05', 'upload_id': 'id_published_with_ref'},
-            'id_06': {'entry_id': 'id_06', 'mainfile': 'mainfile_for_id_06', 'upload_id': 'id_published_with_ref'}}})
+            },
+            'id_02': {'entry_id': 'id_02', 'mainfile_path': 'mainfile_for_id_02', 'upload_id': 'id_published_with_ref'},
+            'id_03': {'entry_id': 'id_03', 'mainfile_path': 'mainfile_for_id_03', 'upload_id': 'id_published_with_ref'},
+            'id_04': {'entry_id': 'id_04', 'mainfile_path': 'mainfile_for_id_04', 'upload_id': 'id_published_with_ref'},
+            'id_05': {'entry_id': 'id_05', 'mainfile_path': 'mainfile_for_id_05', 'upload_id': 'id_published_with_ref'},
+            'id_06': {'entry_id': 'id_06', 'mainfile_path': 'mainfile_for_id_06', 'upload_id': 'id_published_with_ref'}
+        }})
     __ge_print('general start from entry WITHOUT retrieval of metadata (just listing)', {
-        'm_entries': {
+        Token.SEARCH: {
             'm_request': {
                 'directive': 'plain',
                 'pagination': {
@@ -1186,9 +1179,11 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
                 }
             },
         }
-    }, result={'m_entries': {'id_03': 'id_03', 'id_04': 'id_04'}})
+    }, result={Token.SEARCH: {
+        'id_03': 'id_03', 'id_04': 'id_04',
+        'm_response': {'query': {'aggregations': {}, 'owner': 'user'}}}})
     __ge_print('general start from upload', {
-        'm_uploads': {
+        Token.UPLOADS: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_type': 'upload',
@@ -1198,7 +1193,8 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
             },
         }
     }, result={
-        'm_uploads': {
+        Token.UPLOADS: {
+            'm_response': {},
             'id_published_with_ref': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None,
@@ -1207,16 +1203,16 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref',
                 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T22:20:46.583000',
-                'main_author': '00000000-0000-0000-0000-000000000001',
+                'main_author': user_dict,
                 'coauthors': [], 'reviewers': [],
-                'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'],
+                'viewers': [user_dict],
+                'writers': [user_dict],
                 'published': False, 'published_to': [], 'publish_time': None,
                 'with_embargo': False, 'embargo_length': 0,
-                'license': 'CC BY 4.0', 'entries': 6,
+                'license': 'CC BY 4.0', 'n_entries': 6, 'processing_failed': 0, 'processing_successful': 6,
                 'upload_files_server_path': 'id_published_with_ref'}}})
     __ge_print('general start from upload with query and pagination', {
-        'm_uploads': {
+        Token.UPLOADS: {
             'm_request': {
                 'directive': 'resolved',
                 'resolve_type': 'upload',
@@ -1230,7 +1226,8 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
             },
         }
     }, result={
-        'm_uploads': {
+        Token.UPLOADS: {
+            'm_response': {'query': {'is_processing': False}},
             'id_published_with_ref': {
                 'process_running': False, 'current_process': 'process_upload',
                 'process_status': 'SUCCESS', 'last_status_message': None,
@@ -1239,29 +1236,29 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref',
                 'upload_name': 'name_published',
                 'upload_create_time': '2023-03-05T22:20:46.583000',
-                'main_author': '00000000-0000-0000-0000-000000000001',
+                'main_author': user_dict,
                 'coauthors': [], 'reviewers': [],
-                'viewers': ['00000000-0000-0000-0000-000000000001'],
-                'writers': ['00000000-0000-0000-0000-000000000001'],
+                'viewers': [user_dict],
+                'writers': [user_dict],
                 'published': False, 'published_to': [], 'publish_time': None,
                 'with_embargo': False, 'embargo_length': 0,
-                'license': 'CC BY 4.0', 'entries': 6,
+                'license': 'CC BY 4.0', 'n_entries': 6, 'processing_failed': 0, 'processing_successful': 6,
                 'upload_files_server_path': 'id_published_with_ref'}}})
     __ge_print('general start from user, does NOT perform search from security', {
-        'm_users': {
+        Token.USER: {
             'me': {
                 'm_request': {
                     'directive': 'plain'
                 },
             }
         }
-    }, result={'m_users': {'me': {
+    }, result={Token.USER: {'me': {
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu',
         'user_id': '00000000-0000-0000-0000-000000000001', 'username': 'scooper',
         'is_admin': False, 'is_oasis_admin': True}}})
     __ge_print('general start from me, with its user id like fields resolved', {
-        'm_users': {
+        Token.USER: {
             'me': {
                 'm_request': {
                     'directive': 'resolved',
@@ -1269,7 +1266,7 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
                 },
             }
         }
-    }, result={'m_users': {'me': {
+    }, result={Token.USER: {'me': {
         'name': 'Sheldon Cooper', 'first_name': 'Sheldon', 'last_name': 'Cooper',
         'email': 'sheldon.cooper@nomad-coe.eu',
         'user_id': {
@@ -1278,28 +1275,47 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
             'user_id': '00000000-0000-0000-0000-000000000001', 'username': 'scooper',
             'is_admin': False, 'is_oasis_admin': True}, 'username': 'scooper',
         'is_admin': False, 'is_oasis_admin': True}}})
-    # __ge_print('general start from entry to archive', {
-    #     'm_entries': {
-    #         'id_03': {
-    #             'm_archive': {
-    #                 'workflow[0]': {
-    #                     'm_request': {
-    #                         'directive': 'resolved',
-    #                         'resolve_inplace': False,
-    #                         'include_definition': 'both',
-    #                     }
-    #                 }
-    #             }
-    #         }
-    #     }
-    # })
-    # __ge_print('general start from entry to archive', {
-    #     'm_entries': {
-    #         'id_01': {
-    #             'm_archive': '*'
-    #         }
-    #     }
-    # }, to_file=True)
+
+
+# noinspection DuplicatedCode,SpellCheckingInspection
+def test_general_reader_search(json_dict, example_data_with_reference, test_user):
+    def increment():
+        n = 0
+        while True:
+            n += 1
+            yield n
+
+    counter = increment()
+
+    def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
+        with MongoReader(required, user=test_user) as reader:
+            if result:
+                assert_dict(reader.read(), result)
+            else:
+                rprint(f'\n\nExample: {next(counter)} -> {msg}:')
+                rprint(required)
+                if not to_file:
+                    rprint('output:')
+                    rprint(reader.read())
+                else:
+                    with open('archive_reader_test.json', 'w') as f:
+                        f.write(json.dumps(reader.read()))
+
+    __ge_print('general start from elastic search', {
+        Token.SEARCH: {
+            'm_request': {
+                'query': {},
+                'exclude': ['*']
+            },
+            'id_01': {
+                Token.ENTRIES: {
+                    'mainfile': {
+                        '..': '*'
+                    }
+                }
+            }
+        }
+    })
 
 
 @pytest.fixture(scope='function')

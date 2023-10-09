@@ -52,6 +52,7 @@ m_package: Optional[Package] = None  # pylint: disable=used-before-assignment
 is_bootstrapping = True
 Elasticsearch = TypeVar('Elasticsearch')
 MSectionBound = TypeVar('MSectionBound', bound='MSection')
+TypeBound = TypeVar('TypeBound', bound=type)
 SectionDefOrCls = Union['Section', 'SectionProxy', Type['MSection']]
 T = TypeVar('T')
 
@@ -2635,6 +2636,9 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 return _check_definition_id(target_id, quantity)
 
         return _check_definition_id(target_id, cast(MSectionBound, section))
+
+    def m_get_annotation(self, key: Union[str, Type[T]], default: T = None) -> T:
+        return self.m_get_annotations(key, default)
 
     def m_get_annotations(self, key: Union[str, type], default=None, as_list: bool = False):
         '''

@@ -148,13 +148,28 @@ class UploadProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'upload_create_time'  # Default value
-        assert order_by in ('upload_create_time', 'publish_time', 'upload_name', 'last_status_message'), 'order_by must be a valid attribute'
+        assert order_by in (
+            'upload_create_time', 'publish_time', 'upload_name',
+            'last_status_message'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         # Validation handled elsewhere
         return page_after_value
+
+    def order_result(self, result):
+        if self.order_by is None:
+            return result
+
+        prefix: str = '-' if self.order == Direction.desc else '+'
+        order_list: list = [f'{prefix}{self.order_by}']
+        if self.order_by == 'upload_create_time':
+            order_list.append('upload_id')
+        else:
+            order_list.extend(['upload_create_time', 'upload_id'])
+
+        return result.order_by(*order_list)
 
 
 upload_proc_data_pagination_parameters = parameter_dependency_from_model(
@@ -166,13 +181,23 @@ class EntryProcDataPagination(Pagination):
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         if order_by is None:
             return 'mainfile'  # Default value
-        assert order_by in ('mainfile', 'parser_name', 'process_status', 'current_process'), 'order_by must be a valid attribute'
+        assert order_by in (
+            'mainfile', 'parser_name', 'process_status', 'current_process'), 'order_by must be a valid attribute'
         return order_by
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument
         # Validation handled elsewhere
         return page_after_value
+
+    def order_result(self, result):
+        if self.order_by is None:
+            return result
+
+        prefix: str = '-' if self.order == Direction.desc else '+'
+        order_list: list = [f'{prefix}{self.order_by}', 'entry_id']
+
+        return result.order_by(*order_list)
 
 
 entry_proc_data_pagination_parameters = parameter_dependency_from_model(
@@ -492,20 +517,12 @@ async def get_uploads(
     elif query.is_published is False:
         mongo_query &= Q(publish_time=None)
 
-    # Fetch data from DB
-    mongodb_query = Upload.objects.filter(mongo_query)
     # Create response
     start = pagination.get_simple_index()
     end = start + pagination.page_size
 
-    order_by = pagination.order_by
-    order_by_with_sign = order_by if pagination.order == Direction.asc else '-' + order_by
-    if order_by == 'upload_create_time':
-        order_by_args = [order_by_with_sign, 'upload_id']  # Use upload_id as tie breaker
-    else:
-        order_by_args = [order_by_with_sign, 'upload_create_time', 'upload_id']
-
-    mongodb_query = mongodb_query.order_by(*order_by_args)
+    # Fetch data from DB
+    mongodb_query = pagination.order_result(Upload.objects.filter(mongo_query))
 
     data = [upload_to_pydantic(upload) for upload in mongodb_query[start:end]]
 
