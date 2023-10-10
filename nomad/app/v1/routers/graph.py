@@ -22,7 +22,7 @@ from nomad.graph.graph_reader import MongoReader, ConfigError, GeneralReader, Us
 from .auth import create_user_dependency
 from .entries import EntriesArchive
 from ..models import User
-from ...v1.models.graph_models import GraphRequest, GraphResponse
+from nomad.app.v1.models.graph import GraphRequest, GraphResponse
 
 router = APIRouter()
 default_tag = 'graph'

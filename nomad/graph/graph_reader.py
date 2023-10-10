@@ -1106,6 +1106,11 @@ class MongoReader(GeneralReader):
                 offload_read(FileSystemReader, node.upload_id)
                 continue
 
+            if key == Token.METADATA and self.__class__ is EntryReader:
+                # hitting the bottom of the current scope
+                offload_read(ElasticSearchReader, node.entry_id)
+                continue
+
             if key == Token.MAINFILE and self.__class__ is EntryReader:
                 # hitting the bottom of the current scope
                 offload_read(FileSystemReader, node.upload_id, node.archive['mainfile_path'])
@@ -1824,7 +1829,7 @@ class ArchiveReader(GeneralReader):
             from nomad.archive.storage_v2 import ArchiveList as ArchiveListNew
             is_list: bool = isinstance(child_archive, (list, ArchiveList, ArchiveListNew))
 
-            if is_list and not child_definition.repeats:
+            if is_list and isinstance(child_definition, SubSection) and not child_definition.repeats:
                 self._log(f'Definition {key} is not repeatable.')
                 continue
 

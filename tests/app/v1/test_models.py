@@ -24,8 +24,8 @@ import yaml
 import sys
 
 from nomad.utils import strip
-from nomad.app.v1.models.graph_models import GraphRequest
-from nomad.app.v1.models.utils import (
+from nomad.app.v1.models.graph import GraphRequest
+from nomad.app.v1.models.graph.utils import (
     generate_request_model,
     mapped
 )
@@ -33,7 +33,7 @@ from nomad.app.v1.models.utils import (
 
 @pytest.fixture()
 def path_ref_prefix(monkeypatch):
-    monkeypatch.setattr("nomad.app.v1.models.utils.ref_prefix", "#/definitions")
+    monkeypatch.setattr("nomad.app.v1.models.graph.utils.ref_prefix", "#/definitions")
 
 
 def assert_path(data: BaseModel, path: str):
@@ -63,7 +63,7 @@ def assert_path(data: BaseModel, path: str):
 
 def test_module():
     for model_name in ['GraphRequest', 'UploadsRequest', 'UploadRequest', 'UploadsResponse']:
-        assert hasattr(sys.modules['nomad.app.v1.models.graph_models'], model_name)
+        assert hasattr(sys.modules['nomad.app.v1.models.graph.graph_models'], model_name)
 
 
 @pytest.mark.parametrize(
@@ -220,9 +220,9 @@ def test_recursive_model(path_ref_prefix):
 
 
 def test_request_model(path_ref_prefix):
-    from nomad.app.v1.models.graph_models import GraphRequest as root_model
+    from nomad.app.v1.models.graph import GraphRequest as root_model
 
-    assert root_model.__module__ == "nomad.app.v1.models.graph_models"
+    assert root_model.__module__ == "nomad.app.v1.models.graph.graph_models"
     assert root_model.__name__ == "GraphRequest"
 
     root_schema = root_model.schema()
@@ -255,9 +255,9 @@ def test_request_model(path_ref_prefix):
 
 
 def test_response_model(path_ref_prefix):
-    from nomad.app.v1.models.graph_models import GraphResponse as root_model
+    from nomad.app.v1.models.graph.graph_models import GraphResponse as root_model
 
-    assert root_model.__module__ == "nomad.app.v1.models.graph_models"
+    assert root_model.__module__ == "nomad.app.v1.models.graph.graph_models"
     assert root_model.__name__ == "GraphResponse"
 
     root_schema = root_model.schema()

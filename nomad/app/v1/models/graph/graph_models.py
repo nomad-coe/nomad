@@ -40,7 +40,7 @@ from nomad.app.v1.routers.uploads import (
     EntryProcDataPagination
 )
 
-from nomad.app.v1.models.utils import (
+from nomad.app.v1.models.graph.utils import (
     generate_request_model,
     generate_response_model,
     mapped
