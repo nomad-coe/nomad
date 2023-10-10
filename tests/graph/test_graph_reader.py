@@ -1166,6 +1166,27 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
             'id_05': {'entry_id': 'id_05', 'mainfile_path': 'mainfile_for_id_05', 'upload_id': 'id_published_with_ref'},
             'id_06': {'entry_id': 'id_06', 'mainfile_path': 'mainfile_for_id_06', 'upload_id': 'id_published_with_ref'}
         }})
+    __ge_print('general start from entry to metadata', {
+        Token.ENTRIES: {
+            'id_01': {
+                'metadata': {
+                    'results': {
+                        'm_request': {
+                            'directive': 'plain',
+                        }
+                    }
+                }
+            }
+        }
+    }, result={'entries': {'id_01': {'metadata': {'results': {
+        'material': {
+            'symmetry': {'crystal_system': 'cubic'}, 'elements': ['H', 'O'], 'elements_exclusive': 'H O',
+            'material_id': 'test_material_id', 'structural_type': 'not processed', 'n_elements': 2},
+        'method': {'simulation': {'program_version': 'not processed', 'dft': {
+            'basis_set_type': 'unavailable', 'core_electron_treatment': 'unavailable', 'xc_functional_type': 'GGA',
+            'xc_functional_names': [], 'jacobs_ladder': 'not processed'}, 'program_name': 'VASP'}}, 'properties': {
+            'available_properties': ['dos_electronic'], 'n_calculations': 1,
+            'electronic': {'dos_electronic': [{'spin_polarized': False, 'band_gap': [{'type': 'indirect'}]}]}}}}}}})
     __ge_print('general start from entry WITHOUT retrieval of metadata (just listing)', {
         Token.SEARCH: {
             'm_request': {
