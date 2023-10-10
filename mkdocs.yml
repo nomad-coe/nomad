@@ -14,7 +14,7 @@ nav:
     - Third-party integration: tutorial/third_party.md
   - How-to guides:
     - Data Management:
-      - How to upload/publish data: data/upload.md
+      - How to upload/publish data for supported formats: data/upload.md
       - How to use ELNs: data/eln.md
       - How to explore data: data/explore.md
       - How to use NORTH: data/north.md
