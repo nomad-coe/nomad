@@ -1,4 +1,4 @@
-This guide describes how to upload data in NOMAD supported file formats. You find a
+This guide describes how to upload data in NOMAD [supported file formats](../reference/parsers.md). You find a
 list of supported formats on top of each upload page, see below.
 
 ## Preparing files
@@ -93,7 +93,7 @@ not remove entries.
 
 - One upload cannot exceed **32 GB** in size.
 - Only **10 non published uploads** are allowed per user.
-- Only uploads with at least one recognized entry can be published. See also [supported codes](#supported-codes) below.
+- Only uploads with at least one recognized entry can be published. See also [supported codes/formats](../reference/parsers.md) below.
 
 
 ## Strategies for large amounts of data
