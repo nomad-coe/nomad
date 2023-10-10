@@ -2603,7 +2603,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
 
                     try:
                         sub_section: str = path_stack.pop()
-                        index: Any = int(sub_section) if sub_section.isnumeric() else sub_section
+                        index: Any = int(sub_section) if sub_section.lstrip('-').isnumeric() else sub_section
                     except ValueError:
                         raise MetainfoReferenceError(
                             f'Could not resolve {path}, {prop_name} repeats but there is no '
