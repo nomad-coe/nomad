@@ -152,7 +152,7 @@ matplotlib-inline==0.1.6  # via -r requirements.txt, ipykernel, ipython
 matplotlib-scalebar==0.8.1  # via -r requirements.txt, orix
 mccabe==0.6.1             # via pylint
 mdanalysis==2.5.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
-mdtraj==1.9.6             # via -r requirements.txt, nomad-lab (pyproject.toml)
+mdtraj==1.9.9             # via -r requirements.txt, nomad-lab (pyproject.toml)
 memoization==0.4.0        # via -r requirements.txt, nomad-lab (pyproject.toml)
 mergedeep==1.3.4          # via mkdocs
 mistune==2.0.4            # via -r requirements.txt, m2r
