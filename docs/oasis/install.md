@@ -315,18 +315,26 @@ If you want to report problems with your OASIS. Please provide the logs for
 
 NOMAD uses [keycloak](https://www.keycloak.org/) for its user management. NOMAD uses
 keycloak in two ways. First, the user authentication uses the OpenID Connect/OAuth interfaces provided by keycloak.
-Second, NOMD uses the keycloak realm-management API to get a list of existing users.
+Second, NOMAD uses the keycloak realm-management API to get a list of existing users.
 Keycloak is highly customizable and numerous options to connect keycloak to existing
 identity providers exist.
 
 This tutorial assumes that you have some understanding of what keycloak is and
 how it works.
 
-Start with the regular docker-compose installation above. Now you need to modify the
-`docker-compose.yaml` to add a keycloak service. You need to modify the `nginx.conf` to add
-another location for keycloak. You need to modify the `nomad.yaml` to tell nomad to
-use your and not the official NOMAD keycloak.
+The NOMAD Oasis installation with your own keyloak is very similar to the regular docker-compose
+installation above. There are just a three changes.
 
+- The `docker-compose.yaml` has an added keycloak service.
+- The `nginx.conf` is also modified to add another location for keycloak.
+- The `nomad.yaml` has modifications to tell nomad to use your and not the official NOMAD keycloak.
+
+You can start with the regular installation above and manually adopt the config or
+download the already updated configuration files: [nomad-oasis-with-keycloak.zip](../assets/nomad-oasis-with-keycloak.zip).
+The download also contains an additional `configs/nomad-realm.json` that allows you
+to create an initial keycloak realm that is configured for NOMAD automatically.
+
+First, the `docker-compose.yaml`:
 ```yaml
 --8<-- "ops/docker-compose/nomad-oasis-with-keycloak/docker-compose.yaml"
 ```
@@ -337,6 +345,7 @@ A few notes:
 - The environment variables on the keycloak service allow to use keycloak behind the nginx proxy with a path prefix, e.g. `keycloak`.
 - By default, keycloak will use a simple H2 file database stored in the given volume. Keycloak offers many other options to connect SQL databases.
 - We will use keycloak with our nginx proxy here, but you can also host-bind the port `8080` to access keycloak directly.
+- We mount and use the downloaded `configs/nomad-realm.json` to configure a NOMAD compatible realm on the first startup of keycloak.
 
 Second, we add a keycloak location to the nginx config:
 ```nginx
