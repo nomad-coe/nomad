@@ -205,6 +205,8 @@ install tests:
     - python -c 'import nomad.cli'
     - python -c 'from nomad.client import ArchiveQuery'
     - python -m nomad.cli parse vasp.xml
+    - pip install git+https://github.com/nomad-coe/nomad-parser-example.git
+    - python -m exampleparser tests/data/examples/example.out
 
 
 gui tests:
