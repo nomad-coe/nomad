@@ -12,52 +12,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+from abc import ABC, abstractmethod
 import os
-import logging
 import pint
-from typing import Any, Dict
+from typing import Any, Dict, Callable, IO, Union
 import gzip
 import bz2
 import lzma
 import tarfile
 
 from nomad.metainfo import MSection
+from nomad.utils import get_logger
 
 
-class FileParser:
+class FileParser(ABC):
     '''
-    Base class for parsers. The parse method specific to a file type
+    Base class for file parsers. The parse method specific to a file type
     should be implemented in the corresponding child class. The parsed quantities are
     stored in results. One can access a quantity by using the get method or as attribute.
 
     Arguments:
-        mainfile: the file to be parsed
+        mainfile: the path to the file to be parsed
         logger: optional logger
         open: function to open file
     '''
-    def __init__(self, mainfile=None, logger=None, open=None):
-        self._mainfile: Any = None
-        self._mainfile_obj: Any = None
+    def __init__(self, mainfile: Union[str, IO] = None, logger=None, open: Callable = None):
+        self._mainfile: str = None
+        self._mainfile_obj: IO = None
         if isinstance(mainfile, str):
             self._mainfile = os.path.abspath(mainfile)
             self._mainfile_obj = None
         elif hasattr(mainfile, 'name'):
             self._mainfile = mainfile.name
             self._mainfile_obj = mainfile
-        self._open = open
-        self.logger = logger if logger is not None else logging
-        self._results: Dict[str, Any] = None
+        self._open: Callable = open
+        self.logger = logger if logger is not None else get_logger(__name__)
         # a key is necessary for xml parsers, where parsing is done dynamically
         self._key: str = None
         self._kwargs: Dict[str, Any] = dict()
+        self._results: Dict[str, Any] = None
         self._file_handler: Any = None
 
-    def init_parameters(self):
-        pass
+    def reset(self):
+        '''
+        Nullifies the parsed results.
+        '''
+        self._results = None
+        self._file_handler = None
 
     @property
     def results(self):
+        '''
+        Returns the parsed results.
+        '''
         if self._results is None:
             self._results = dict()
         if self._key not in self._results:
@@ -67,10 +74,16 @@ class FileParser:
 
     @property
     def maindir(self):
+        '''
+        Returns the directory where the mainfile is located.
+        '''
         return os.path.dirname(self._mainfile)
 
     @property
     def mainfile_obj(self):
+        '''
+        Returns the mainfile object.
+        '''
         if self._mainfile_obj is None:
             try:
                 self._mainfile_obj = self.open(self._mainfile)
@@ -81,6 +94,9 @@ class FileParser:
 
     @property
     def mainfile(self):
+        '''
+        Returns the path to the mainfile.
+        '''
         if self._mainfile is None:
             return
 
@@ -90,8 +106,10 @@ class FileParser:
 
     @mainfile.setter
     def mainfile(self, val):
-        self._results = None
-        self._file_handler = None
+        '''
+        Assigns the mainfile to be parsed.
+        '''
+        self.reset()
         self._mainfile = None
         if isinstance(val, str):
             self._mainfile = os.path.abspath(val)
@@ -99,9 +117,11 @@ class FileParser:
         elif hasattr(val, 'name'):
             self._mainfile = val.name
             self._mainfile_obj = val
-        self.init_parameters()
 
-    def open(self, mainfile):
+    def open(self, mainfile: str):
+        '''
+        Opens the file with the provided open function or based on the file type.
+        '''
         open_file = self._open
         if open_file is None:
             if mainfile.endswith('.gz'):
@@ -116,7 +136,7 @@ class FileParser:
                 open_file = open
         return open_file(mainfile)
 
-    def get(self, key: str, default: Any = None, unit: Any = None, **kwargs):
+    def get(self, key: str, default: Any = None, unit: Union[pint.Unit, pint.Quantity] = None, **kwargs):
         '''
         Returns the parsed result for quantity with name key. If quantity is not in
         results default will be returned. A pint unit can be provided which is attached
@@ -181,5 +201,15 @@ class FileParser:
         '''
         return section.m_from_dict(self.to_dict())
 
+    @abstractmethod
     def parse(self, quantity_key: str = None, **kwargs):
         pass
+
+    def __repr__(self) -> str:
+        results = list(self._results.keys()) if self._results else []
+        string = f'{self.__class__.__name__}'
+        if self.mainfile:
+            string += f'({os.path.basename(self.mainfile)}) '
+        if results:
+            string += f'--> {len(results)} parsed quantities ({", ".join(results[:5])}{", ..." if len(results) > 5 else ""})'
+        return string

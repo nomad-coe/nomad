@@ -13,16 +13,16 @@
 # limitations under the License.
 
 
-import logging
 import mmap
 import io
 import re
 import numpy as np
 import pint
-from typing import List, Union, Callable, Type
+from typing import List, Union, Callable, Type, Any
 
 from nomad.parsing.file_parser import FileParser
 from nomad.metainfo import Quantity as mQuantity
+from nomad.utils import get_logger
 
 
 class ParsePattern:
@@ -117,8 +117,8 @@ class Quantity:
 
         self._re_pattern: str = re_pattern.re_pattern if isinstance(
             re_pattern, ParsePattern) else re_pattern
-        self._str_operation: Callable = kwargs.get('str_operation', None)
-        self._sub_parser: TextParser = kwargs.get('sub_parser', None)
+        self.str_operation: Callable = kwargs.get('str_operation', None)
+        self.sub_parser: TextParser = kwargs.get('sub_parser', None)
         self.repeats: bool = kwargs.get('repeats', False)
         self.convert: bool = kwargs.get('convert', True)
         self.flatten: bool = kwargs.get('flatten', True)
@@ -139,88 +139,82 @@ class Quantity:
     def re_pattern(self, val: str):
         self._re_pattern = val
 
-    @property
-    def str_operation(self):
-        return self._str_operation
-
-    @str_operation.setter
-    def str_operation(self, val: Callable):
-        self._str_operation = val
-
-    def to_data(self, val_in: List[str]):
+    def to_data(self, val_raw: str):
         '''
         Converts the parsed block into data.
         '''
-        def process(val):
-            if self.comment is not None:
-                if val.strip()[0] == self.comment:
-                    return
 
-            if self.str_operation is not None:
-                val = self.str_operation(val)
-
-            elif self.flatten:
-                val = val.strip().split() if isinstance(val, str) else val
-                if self.reduce:
-                    val = val[0] if len(val) == 1 else val
-
-            def _convert(val):
-                if isinstance(val, str):
-                    if self.dtype is None:
-                        if val.isdecimal():
-                            val = int(val)
-                        else:
-                            try:
-                                val = float(val)
-                            except Exception:
-                                pass
+        def convert(val):
+            if isinstance(val, str):
+                if self.dtype is None:
+                    if val.isdecimal():
+                        return int(val)
                     else:
                         try:
-                            val = self.dtype(val)
+                            return float(val)
                         except Exception:
                             pass
-
-                    return val
-
-                elif type(val) in [np.ndarray, list]:
-                    try:
-                        dtype = float if self.dtype is None else self.dtype
-                        val_test = np.array(val, dtype=dtype)
-                        if self.dtype is None:
-                            if np.all(np.mod(val_test, 1) == 0):
-                                val_test = np.array(val_test, dtype=int)
-                        val = val_test
-
-                    except Exception:
-                        val = [_convert(v) for v in val]
-
-                    return val
-
-                elif isinstance(val, dict):
-                    for k, v in val.items():
-                        val[k] = _convert(v)
-                    return val
-
                 else:
-                    return val
+                    try:
+                        return self.dtype(val)
+                    except Exception:
+                        pass
 
-            if self.convert:
-                val = _convert(val)
+                return val
 
-            if isinstance(val, np.ndarray) and self.shape:
+            elif isinstance(val, np.ndarray) or isinstance(val, list):
                 try:
-                    val = np.reshape(val, self.shape)
+                    dtype = float if self.dtype is None else self.dtype
+                    val_test = np.array(val, dtype=dtype)
+                    if self.dtype is None:
+                        if np.all(np.mod(val_test, 1) == 0):
+                            val_test = np.array(val_test, dtype=int)
+                            dtype = int
+                    return val_test
+
                 except Exception:
-                    pass
+                    self.dtype = None
+                    return [convert(v) for v in val]
 
-            return val
+            elif isinstance(val, dict):
+                return {k: convert(v) for k, v in val.items()}
 
-        val_out = [process(val) for val in val_in]
+            else:
+                return val
 
-        if isinstance(val_out[0], np.ndarray):
-            self.dtype = val_out[0].dtype  # type: ignore
+        if not val_raw:
+            return
 
-        return val_out
+        if self.comment is not None:
+            if val_raw.strip()[0] == self.comment:
+                return
+
+        data: Any = val_raw
+
+        if self.str_operation is not None:
+            data = self.str_operation(val_raw)
+
+        elif self.flatten:
+            data = val_raw.strip().split()
+            if self.reduce:
+                data = data[0] if len(data) == 1 else data
+
+        if self.convert:
+            data = convert(data)
+
+        if isinstance(data, np.ndarray) and self.shape:
+            try:
+                data = np.reshape(data, self.shape)
+            except Exception:
+                pass
+
+        return data
+
+    def __repr__(self) -> str:
+        if not self.sub_parser:
+            return self.name
+        sub_quantities = [q.name for q in self.sub_parser.quantities]
+        return f'{self.name}({", ".join(sub_quantities[:5])}{"..." if len(sub_quantities) > 5 else ""})'
 
 
 class DataTextParser(FileParser):
@@ -235,8 +229,7 @@ class DataTextParser(FileParser):
         self._dtype: Type = kwargs.get('dtype', float)
         mainfile: str = kwargs.get('mainfile', None)
         self._mainfile_contents: str = kwargs.get('mainfile_contents', None)
-        logger = kwargs.get('logger', None)
-        logger = logger if logger is not None else logging
+        logger = kwargs.get('logger', get_logger(__name__))
         super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
         self.init_parameters()
 
@@ -265,27 +258,32 @@ class DataTextParser(FileParser):
             self.init_parameters()
         return self._file_handler
 
+    def parse(self):
+        pass
+
 
 class TextParser(FileParser):
     '''
     Parser for unstructured text files using the re module. The quantities to be parsed
-    are given as a list of Quantity objects which specifies the re pattern. The mmap
+    are given as a list of Quantity objects which specifies the regular expression. The mmap
     module is used to handle the file. By default, re.find_all is used to get matches
     for performance reasons. In this case, overlap is not tolerated in the re patterns.
     To avoid this, set findall to False to switch to re.finditer.
 
     Arguments:
-        mainfile: the file to be parsed
+        mainfile: the path to the file to be parsed
         quantities: list of Quantity objects to be parsed.
         logger: optional logger
-        findall: switches between using re.findall and re.finditer
+        findall: if True will employ re.findall, otherwise re.finditer
         file_offset: offset in reading the file
         file_length: length of the chunk to be read from the file
     '''
-    def __init__(self, mainfile=None, quantities=None, logger=None, findall=True, **kwargs):
+    def __init__(self, mainfile: str = None, quantities: List[Quantity] = None, logger=None, **kwargs):
+        if logger is None:
+            logger = get_logger(__name__)
         super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
         self._quantities: List[Quantity] = quantities
-        self.findall: bool = findall
+        self.findall: bool = kwargs.get('findall', True)
         self._kwargs = kwargs
         self._file_length: int = kwargs.get('file_length', 0)
         self._file_offset: int = kwargs.get('file_offset', 0)
@@ -294,18 +292,14 @@ class TextParser(FileParser):
             self.init_quantities()
         # check quantity patterns are valid
         re_has_group = re.compile(r'\(.+\)')
-        for i in range(len(self.quantities) - 1, -1, -1):
-            valid = True
+        for i in range(len(self._quantities) - 1, -1, -1):
             try:
-                if re_has_group.search(self.quantities[i].re_pattern.pattern.decode()) is None:
-                    valid = False
-            except Exception:
-                valid = False
-            if not valid:
+                assert re_has_group.search(self._quantities[i].re_pattern.pattern.decode()) is not None
+            except Exception as e:
                 self.logger.error(
-                    'Invalid quantity pattern', data=dict(quantity=self.quantities[i].name))
-                self.quantities.pop(i)
-        self._re_findall = None
+                    'Invalid quantity pattern', exc_info=e, data=dict(quantity=self.quantities[i].name))
+                self._quantities.pop(i)
+        self._re_findall: re.Pattern = None
 
     def copy(self):
         '''
@@ -322,10 +316,18 @@ class TextParser(FileParser):
 
     @property
     def quantities(self):
+        '''
+        Returns the list of quantities to be parsed.
+        '''
         return self._quantities
 
     @quantities.setter
-    def quantities(self, val):
+    def quantities(self, val: List[Quantity]):
+        '''
+        Sets the quantities list.
+        '''
+        self._file_handler = None
+        self._results = None
         self._quantities = val
 
     @property
@@ -336,9 +338,13 @@ class TextParser(FileParser):
         return self._file_offset
 
     @file_offset.setter
-    def file_offset(self, val):
+    def file_offset(self, val: int):
+        '''
+        Sets starting point where the file is read.
+        '''
         self._file_pad = val % mmap.PAGESIZE
         self._file_offset = (val // mmap.PAGESIZE) * mmap.PAGESIZE
+        self.reset()
 
     @property
     def file_length(self):
@@ -348,8 +354,12 @@ class TextParser(FileParser):
         return self._file_length
 
     @file_length.setter
-    def file_length(self, val):
+    def file_length(self, val: int):
+        '''
+        Sets the length of the file to be read.
+        '''
         self._file_length = val
+        self.reset()
 
     @property
     def file_mmap(self):
@@ -382,45 +392,51 @@ class TextParser(FileParser):
         for key in self.keys():
             yield key, self.get(key)
 
-    def _add_value(self, quantity, value, units):
+    def _add_value(self, quantity: Quantity, value: List[str], units):
+        '''
+        Converts the list of parsed blocks into data and apply the corresponding units.
+        '''
         try:
-            value_processed = quantity.to_data(value)
-            for i in range(len(value_processed)):
-                unit = units[i] if units[i] else quantity.unit
+            value_processed = [quantity.to_data(val) for val in value]
+            for n, value in enumerate(value_processed):
+                unit = units[n] if units[n] else quantity.unit
                 if not unit:
                     continue
                 if isinstance(unit, str):
-                    value_processed[i] = pint.Quantity(value_processed[i], unit)
+                    value_processed[n] = pint.Quantity(value_processed[n], unit)
                 else:
-                    value_processed[i] = value_processed[i] * unit
+                    value_processed[n] = value_processed[n] * unit
 
             if not quantity.repeats and value_processed:
                 value_processed = value_processed[0]
 
             self._results[quantity.name] = value_processed
         except Exception:
-            self.logger.warn('Error setting value', data=dict(quantity=quantity.name))
+            self.logger.warning('Error setting value', data=dict(quantity=quantity.name))
 
-    def _parse_quantities(self, quantities):
+    def _parse_quantities(self, quantities: List[Quantity]):
+        '''
+        Parse a list of quantities.
+        '''
         if len(self._results) == 0 and self._re_findall is not None:
-            # maybe an opt
-            re_findall = self._re_findall
+            # attempt at optimization
+            re_findall_b = self._re_findall
         else:
             re_findall = '|'.join([q.re_pattern.pattern.decode() for q in quantities])
             if len(quantities) == 1:
                 # necessary to add a dummy variable to make multiple matches
                 re_findall = '%s|(__dummy__)' % re_findall
-            re_findall = re_findall.encode()
+            re_findall_b = re.compile(re_findall.encode())
             if self._re_findall is None:
-                self._re_findall = re.compile(re_findall)
+                self._re_findall = re_findall_b
 
         # map matches to quantities
-        matches = re.findall(re_findall, self.file_mmap)
+        matches = re.findall(re_findall_b, self.file_mmap)
         current_index = 0
-        for i in range(len(quantities)):
+        for quantity in quantities:
             values = []
             units = []
-            n_groups = quantities[i].re_pattern.groups
+            n_groups = quantity.re_pattern.groups
 
             non_empty_matches = []
             for match in matches:
@@ -428,8 +444,8 @@ class TextParser(FileParser):
                 if not non_empty_match:
                     continue
                 non_empty_matches.append(non_empty_match)
-            index_unit = quantities[i].re_pattern.groupindex.get(
-                '__unit_%s' % quantities[i].name, None)
+            index_unit = quantity.re_pattern.groupindex.get(
+                '__unit_%s' % quantity.name, None)
             for non_empty_match in non_empty_matches:
                 try:
                     if index_unit is not None:
@@ -441,17 +457,19 @@ class TextParser(FileParser):
 
                     values.append(' '.join([m.decode() for m in non_empty_match]))
                 except Exception:
-                    self.logger.error('Error parsing quantities.')
+                    self.logger.error('Error parsing quantities.', data=dict(quantity=quantity.name))
 
             current_index += n_groups
 
             if not values:
                 continue
 
-            self._add_value(quantities[i], values, units)
+            self._add_value(quantity, values, units)
 
-    def _parse_quantity(self, quantity):
-
+    def _parse_quantity(self, quantity: Quantity):
+        '''
+        Parse a single quantity.
+        '''
         value = []
         units = []
         re_matches = quantity.re_pattern.finditer(self.file_mmap) if quantity.repeats else [
@@ -459,13 +477,10 @@ class TextParser(FileParser):
         for res in re_matches:
             if res is None:
                 continue
-            if quantity._sub_parser is not None:
-                sub_parser = quantity._sub_parser.copy()
+            if quantity.sub_parser is not None:
+                sub_parser = quantity.sub_parser.copy()
                 sub_parser.mainfile = self.mainfile
                 sub_parser.logger = self.logger
-                # self.logger.warn(
-                #     'Cannot use sub parser on quantity %s with blocks with size <'
-                #     '%d. Will try to parse string' % (quantity.name, mmap.PAGESIZE))
                 sub_parser._file_handler = b' '.join([g for g in res.groups() if g])
                 value.append(sub_parser.parse())
 
@@ -481,7 +496,7 @@ class TextParser(FileParser):
         if not value:
             return
 
-        if quantity._sub_parser is not None:
+        if quantity.sub_parser is not None:
             self._results[quantity.name] = value if quantity.repeats else value[0]
 
         else:
@@ -489,7 +504,9 @@ class TextParser(FileParser):
 
     def parse(self, key=None):
         '''
-        Triggers parsing of all quantities if key is not provided.
+        Triggers parsing of quantity with name key, if key is None will parse all quantities.
+
+        Returns file parser.
         '''
         if self._results is None:
             self._results = dict()
@@ -503,8 +520,9 @@ class TextParser(FileParser):
 
             n_results = 0
             while True:
+                # use find all to parse quantities with no sub_parser.
                 quantities_findall = [
-                    q for q in self.quantities if q.name not in self._results and q._sub_parser is None]
+                    q for q in self.quantities if q.name not in self._results and q.sub_parser is None]
                 if not quantities_findall:
                     break
 
@@ -512,11 +530,12 @@ class TextParser(FileParser):
                 self._parse_quantities(quantities_findall)
 
                 if n_results == len(self._results):
+                    # will stop if no more matches are found
                     break
                 n_results = len(self._results)
 
             for quantity in self._quantities:
-                if quantity._sub_parser is not None:
+                if quantity.sub_parser is not None:
                     self._parse_quantity(quantity)
 
             # free up memory
@@ -535,6 +554,6 @@ class TextParser(FileParser):
         Deletes the file mapping for all sub parsers.
         '''
         for quantity in self.quantities:
-            if quantity._sub_parser is not None:
-                quantity._sub_parser.clear()
+            if quantity.sub_parser is not None:
+                quantity.sub_parser.clear()
         self._file_handler = None
