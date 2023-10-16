@@ -1011,6 +1011,7 @@ class UI(StrictSettings):
                     'nexus': {'error': 'Could not render NeXus card.'},
                     'material': {'error': 'Could not render material card.'},
                     'solarcell': {'error': 'Could not render solar cell properties.'},
+                    'heterogeneouscatalyst': {'error': 'Could not render catalyst properties.'},
                     'electronic': {'error': 'Could not render electronic properties.'},
                     'vibrational': {'error': 'Could not render vibrational properties.'},
                     'mechanical': {'error': 'Could not render mechanical properties.'},
@@ -1029,6 +1030,7 @@ class UI(StrictSettings):
     )
     apps: Apps = Field(
         Apps(**{
+            'exclude': ['heterogeneouscatalyst'],
             'options': {
                 'entries': {
                     'label': 'Entries',
@@ -1118,6 +1120,7 @@ class UI(StrictSettings):
                             'mechanical': {'label': 'Mechanical', 'level': 1},
                             'usecases': {'label': 'Use Cases', 'level': 0},
                             'solarcell': {'label': 'Solar Cells', 'level': 1},
+                            'heterogeneouscatalyst': {'label': 'Heterogeneous Catalysis', 'level': 1},
                             'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
                             'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
@@ -1678,6 +1681,311 @@ class UI(StrictSettings):
                     },
                     'filters_locked': {
                         'sections': 'nomad.datamodel.results.SolarCell'
+                    }
+                },
+                'heterogeneouscatalyst': {
+                    'label': 'Heterogeneous Catalysis',
+                    'path': 'heterogeneouscatalyst',
+                    'resource': 'entries',
+                    'breadcrumb': 'Heterogeneous Catalysis',
+                    'category': 'Use Cases',
+                    'description': 'Search heterogeneous catalysts',
+                    'help': {
+                        'title': 'Heterogeneous Catalysis',
+                        'content': inspect.cleandoc(r'''
+                            This page allows you to search **catalyst and catalysis data**
+                            within NOMAD. The filter menu on the left and the shown
+                            default columns are specifically designed for Heterogeneous Catalyst
+                            exploration. The dashboard directly shows useful
+                            interactive statistics about the data.
+                        '''),
+                    },
+                    'pagination': {
+                        'order_by': 'upload_create_time',
+                        'order': 'asc'
+                    },
+                    'dashboard': {
+                        'widgets': [
+                            {
+                                'type': 'periodictable',
+                                "scale": "linear",
+                                "quantity": "results.material.elements",
+                                "layout": {
+                                    "xxl": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 5, "x": 0},
+                                    "xl": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 5, "x": 0},
+                                    "lg": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 6, "x": 0},
+                                    "md": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 5, "x": 0},
+                                    "sm": {"minH": 8, "minW": 12, "h": 8, "w": 12, "y": 5, "x": 0}
+                                },
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.reactants.name',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 6},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 0, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 4, 'y': 0, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.reaction_name',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 12},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 0, 'x': 12},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 12},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 4, 'y': 0, 'x': 8}
+                                },
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.products.name',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 12},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 6},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 0, 'x': 6},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 6},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 4, 'y': 0, 'x': 4}
+                                },
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.catalyst_synthesis.preparation_method',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 5, 'x': 12},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 5, 'x': 12},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 6, 'x': 12},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 5, 'x': 12},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 3, 'w': 4, 'y': 13, 'x': 8}
+                                },
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.catalyst_synthesis.catalyst_type',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 9, 'x': 12},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 9, 'x': 12},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 10, 'x': 12},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 4, 'w': 6, 'y': 9, 'x': 12},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 3, 'w': 4, 'y': 16, 'x': 8}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.test_temperatures',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 13, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 13, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 14, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 13, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 13, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.gas_hourly_space_velocity',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 16, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 17, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 18, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 16, 'x': 9},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 22, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.reactants.gas_concentration_in',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 13, 'x': 9},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 13, 'x': 9},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 14, 'x': 9},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 13, 'x': 9},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 16, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.pressure',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 16, 'x': 9},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 17, 'x': 9},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 14, 'x': 9},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 16, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 16, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.products.selectivity',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 19, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 21, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 26, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 22, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 33, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.reactants.conversion',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 22, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 25, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 22, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 19, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 30, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': 'linear',
+                                'quantity': 'results.properties.catalytic.reactivity.rates.reaction_rate',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 25, 'x': 8},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 29, 'x': 9},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 12, 'y': 30, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 25, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 36, 'x': 0}
+                                },
+                            },
+                            {
+                                'type': 'scatterplot',
+                                'autorange': True,
+                                'size': 1000,
+                                'color': 'results.properties.catalytic.catalyst_characterization.surface_area',
+                                'y': 'results.properties.catalytic.reactivity.products.selectivity',
+                                'x': 'results.properties.catalytic.reactivity.reactants.conversion',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 6, 'w': 10, 'y': 19, 'x': 8},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 8, 'w': 9, 'y': 21, 'x': 9},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 8, 'w': 9, 'y': 22, 'x': 9},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 6, 'w': 9, 'y': 19, 'x': 9},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 8, 'y': 25, 'x': 9}
+                                },
+                            },
+                            {
+                                'type': 'histogram',
+                                'showinput': False,
+                                'autorange': False,
+                                'nbins': 30,
+                                'scale': '1/4',
+                                'quantity': 'results.properties.catalytic.catalyst_characterization.surface_area',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 25, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 8, 'h': 4, 'w': 9, 'y': 29, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 8, 'h': 4, 'w': 12, 'y': 34, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 8, 'h': 3, 'w': 9, 'y': 28, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 8, 'h': 3, 'w': 8, 'y': 39, 'x': 0}
+                                },
+                            },
+                        ]
+                    },
+                    'columns': {
+                        'selected': [
+                            'entry_name',
+                            'results.properties.catalytic.reactivity.reaction_name',
+                            'results.properties.catalytic.catalyst_synthesis.catalyst_type',
+                            'results.properties.catalytic.catalyst_synthesis.preparation_method',
+                            'results.properties.catalytic.catalyst_characterization.surface_area'
+                        ],
+                        'options': {
+                            'results.material.elements': {'label': 'Elements', 'align': 'left'},
+                            'results.properties.catalytic.catalyst_synthesis.catalyst_type': {'label': 'Catalyst Type', 'align': 'left'},
+                            'results.properties.catalytic.catalyst_synthesis.preparation_method': {'label': 'Preparation', 'align': 'left'},
+                            'results.properties.catalytic.catalyst_characterization.surface_area': {
+                                'label': 'Surface Area (m^2/g)',
+                                'format': {'decimals': 2, 'mode': 'standard'}},
+                            'results.properties.catalytic.reactivity.reaction_name': {
+                                'label': 'Reaction Name', 'align': 'left'},
+                            'results.properties.catalytic.reactivity.reaction_class': {
+                                'label': 'Reaction Class', 'align': 'left'},
+                            'results.properties.catalytic.catalyst_synthesis.catalyst_name': {
+                                'label': 'Catalyst Name', 'align': 'left'},
+                            'results.properties.catalytic.reactivity.reactants.name': {
+                                'label': 'Reactants', 'align': 'left'},
+                            'results.properties.catalytic.reactivity.products.name': {
+                                'label': 'Products', 'align': 'left'},
+                            'references': {'label': 'References', 'align': 'left'},
+                            'results.material.chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
+                            'results.material.structural_type': {'label': 'Dimensionality'},
+                            'results.eln.lab_ids': {'label': 'Lab IDs'},
+                            'results.eln.sections': {'label': 'Sections'},
+                            'results.eln.methods': {'label': 'Methods'},
+                            'results.eln.tags': {'label': 'Tags'},
+                            'results.eln.instruments': {'label': 'Instruments'},
+                            'entry_name': {'label': 'Name', 'align': 'left'},
+                            'entry_type': {'label': 'Entry type', 'align': 'left'},
+                            'mainfile': {'label': 'Mainfile', 'align': 'left'},
+                            'upload_create_time': {'label': 'Upload time', 'align': 'left'},
+                            'authors': {'label': 'Authors', 'align': 'left'},
+                            'comment': {'label': 'Comment', 'align': 'left'},
+                            'datasets': {'label': 'Datasets', 'align': 'left'},
+                            'published': {'label': 'Access'},
+                        }
+                    },
+                    'rows': {
+                        'actions': {'enabled': True},
+                        'details': {'enabled': True},
+                        'selection': {'enabled': True}
+                    },
+                    'filter_menus': {
+                        'options': {
+                            'material': {'label': 'Catalyst Material', 'level': 0},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'structure': {'label': 'Structure', 'level': 1},
+                            'heterogeneouscatalyst': {'label': 'Catalytic Properties', 'level': 0},
+                            'eln': {'label': 'Electronic Lab Notebook', 'level': 0},
+                            'custom_quantities': {'label': 'User Defined Quantities', 'level': 0, 'size': 'l'},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
+                        }
+                    },
+                    'filters': {
+                        'exclude': ['mainfile', 'entry_name', 'combine']
+                    },
+                    'filters_locked': {
+                        'quantities': 'results.properties.catalytic'
                     }
                 },
             }

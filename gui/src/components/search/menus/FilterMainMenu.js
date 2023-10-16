@@ -38,6 +38,7 @@ import FilterSubMenuDMFT from './FilterSubMenuDMFT'
 import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
 import FilterSubMenuSolarCell from './FilterSubMenuSolarCell'
+import FilterSubMenuCatalyst from './FilterSubMenuCatalystProperties'
 import FilterSubMenuVibrational from './FilterSubMenuVibrational'
 import FilterSubMenuMechanical from './FilterSubMenuMechanical'
 import FilterSubMenuMolecularDynamics from './FilterSubMenuMolecularDynamics'
@@ -64,6 +65,7 @@ export const menuMap = {
   eels: FilterSubMenuEELS,
   electronic: FilterSubMenuElectronic,
   solarcell: FilterSubMenuSolarCell,
+  heterogeneouscatalyst: FilterSubMenuCatalyst,
   vibrational: FilterSubMenuVibrational,
   mechanical: FilterSubMenuMechanical,
   molecular_dynamics: FilterSubMenuMolecularDynamics,

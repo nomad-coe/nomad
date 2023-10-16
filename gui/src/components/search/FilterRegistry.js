@@ -37,6 +37,7 @@ const idPrecision = 'precision'
 const idProperties = 'properties'
 const idElectronic = 'electronic'
 const idSolarCell = 'solarcell'
+const idCatalyst = 'heterogeneouscatalyst'
 const idVibrational = 'vibrational'
 const idMechanical = 'mechanical'
 const idSpectroscopic = 'spectroscopic'
@@ -408,6 +409,64 @@ registerFilter(
     {name: 'hole_transport_layer', ...termQuantityAllNonExclusive},
     {name: 'substrate', ...termQuantityAllNonExclusive},
     {name: 'back_contact', ...termQuantityAllNonExclusive}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.catalyst_characterization',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'surface_area', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'method_surface_area', ...termQuantity}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.catalyst_synthesis',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'catalyst_type', ...termQuantity},
+    {name: 'preparation_method', ...termQuantityAllNonExclusive}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.reactivity',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'reaction_name', ...termQuantity},
+    {name: 'reaction_class', ...termQuantity},
+    {name: 'test_temperatures', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'pressure', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'gas_hourly_space_velocity', ...numberHistogramQuantity, scale: '1/4'}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.reactivity.products',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'name', ...termQuantityAllNonExclusive},
+    {name: 'selectivity', ...numberHistogramQuantity, scale: '1/4'}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.reactivity.reactants',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'name', ...termQuantityAllNonExclusive},
+    {name: 'gas_concentration_in', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'conversion', ...numberHistogramQuantity, scale: 'linear'}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.reactivity.rates',
+  idCatalyst,
+  nestedQuantity,
+  [
+    {name: 'name', ...termQuantityAllNonExclusive},
+    {name: 'reaction_rate', ...numberHistogramQuantity, scale: 'linear'}
   ]
 )
 registerFilter(

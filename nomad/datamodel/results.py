@@ -2965,6 +2965,315 @@ class OptoelectronicProperties(MSection):
     )
 
 
+class Reactant(MSection):
+    m_def = Section(
+        description='''
+        A reactant in a catalytic test reaction. A reactant is identified by having a conversion.
+        ''',
+        label_quantity='name',
+    )
+    name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the reactant.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    gas_concentration_in = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Volumetric concentration of the reactant in the feed gas, value between 0 and 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    gas_concentration_out = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Volumetric concentration of the reactant after the reactor, value between 0 and 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    conversion = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Conversion of the reactant, in %.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+
+class Product(MSection):
+    m_def = Section(
+        description='''
+        A product of a catalytic test reaction. A product is identified by having a selectivity.
+        ''',
+        label_quantity='name',
+    )
+    name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the product.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    gas_concentration_out = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Volumetric concentration of the product after the reactor, value between 0 and 1.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    selectivity = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        Selectivity of the product, in %.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    space_time_yield = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='1/s',
+        description='''
+        Space-time-yield of the product, in mass product per mass catalyst per time.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+
+class Rate(MSection):
+    reaction_rate = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        The rate of the number of reactant or product molecules converted/produced, per mass of total catalyst, per time.
+        ''',
+        unit='mol/(g*s)',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    specific_mass_rate = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        The specific rate of the reactant, per mass of active catalyst component (e.g. metal).
+        ''',
+        unit='mol/(g*s)',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    specific_surface_area_rate = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        The specific rate of the reactant, per surface area of active catalyst.
+        ''',
+        unit='mol/(m**2*s)',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+    rate = Quantity(
+        type=np.float64, shape=['*'], unit='g/g/s',
+        description='''
+        The rate calculated from the mass of reactant or product converted/produced, per total catalyst mass per time.
+        '''
+    )
+    turn_over_frequency = Quantity(
+        type=np.float64,
+        shape=[],
+        description='''
+        The turn over frequency, calculated from mol of reactant or product per number of sites over time.
+        ''',
+        unit='1/s',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+
+class Reactivity(MSection):
+    m_def = Section(
+        description='''
+        Properties of a catalytic test reaction.
+        '''
+    )
+    reaction_name = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the catalytic test reaction.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    reaction_class = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Classification of the catalytic test reaction such as Oxidation, Hydrogenation,
+        Isomerization, Coupling...
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    reactants = SubSection(
+        sub_section=Reactant.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+    products = SubSection(
+        sub_section=Product.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+    rates = SubSection(
+        sub_section=Rate.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+    gas_hourly_space_velocity = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='(s)^-1',
+        description='''
+        The gas hourly space velocity in 1/time (gas flow per catalyst volume).
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    flow_rate = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='m^3/s',
+        description='''
+        The volumetric gas flow in volume per time
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    test_temperatures = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='K',
+        description='''
+        The reaction temperature(s) during the catalytic test reaction.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    time_on_stream = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='s',
+        description='''
+        The time on stream of the catalyst in the catalytic test reaction.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    total_time_on_stream = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='s',
+        description='''
+        The time on stream of the catalyst in the catalytic test reaction.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    pressure = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='Pa',
+        description='''
+        The pressure set during the catalytic test reaction.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+
+class CatalystSynthesis(MSection):
+    m_def = Section(
+        description='''
+        Synthesis of a heterogeneous catalyst.
+        '''
+    )
+
+    catalyst_name = Quantity(
+        type=str, shape=[],
+        description="""
+        Custom name of catalyst.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    preparation_method = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The main preparation method of the sample.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+    catalyst_type = Quantity(
+        type=str, shape=[],
+        description="""
+        The type of catalyst, wether metal or oxide, ...
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type))
+
+
+class CatalystCharacterization(MSection):
+    m_def = Section(
+        description='''
+        Properties of a heterogeneous catalyst.
+        '''
+    )
+
+    surface_area = Quantity(
+        type=np.float64,
+        shape=[],
+        unit=("m**2/g"),
+        description='''
+        The surface area per catalyst mass.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+    method_surface_area = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        The method with which the surface area per catalyst mass was determined, e.g. BET.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type)
+    )
+
+
+class CatalyticProperties(MSection):
+    m_def = Section(
+        description='''
+        Properties of Heterogeneous Catalysts.
+        '''
+    )
+    reactivity = SubSection(
+        sub_section=Reactivity.m_def,
+        repeats=False
+    )
+    catalyst_synthesis = SubSection(
+        sub_section=CatalystSynthesis.m_def,
+        repeats=False
+    )
+    catalyst_characterization = SubSection(
+        sub_section=CatalystCharacterization.m_def,
+        repeats=False
+    )
+
+
 class EELSInstrument(MSection):
     m_def = Section(
         description='''
@@ -3144,6 +3453,7 @@ class Properties(MSection):
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
     optoelectronic = SubSection(sub_section=OptoelectronicProperties.m_def, repeats=False)
+    catalytic = SubSection(sub_section=CatalyticProperties.m_def, repeats=False)
     mechanical = SubSection(sub_section=MechanicalProperties.m_def, repeats=False)
     thermodynamic = SubSection(sub_section=ThermodynamicProperties.m_def, repeats=False)
     spectroscopic = SubSection(sub_section=SpectroscopicProperties.m_def, repeats=False)
