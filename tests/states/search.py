@@ -57,6 +57,14 @@ material_perovskite = {
     "chemical_formula_reduced": "H6Pb1C1I3N1",
     "chemical_formula_hill": "CH6I3NPb"
 }
+material_movo = {
+    'material_id': 'mock-material-id',
+    "material_name": "movo",
+    "elements": ["V", "Mo", "O"],
+    "chemical_formula_descriptive": "MoVO",
+    "chemical_formula_reduced": "MoVO",
+    "chemical_formula_hill": "MoVO"
+}
 
 method_dft_vasp = {
     'simulation': {
@@ -105,6 +113,27 @@ properties_solar_cell = {
         }
     }
 }
+properties_catalysis = {
+    "catalytic": {
+        "catalyst_characterization": {
+            "surface_area": 65.56,
+            "method_surface_area": "BET"
+        },
+        "catalyst_synthesis": {
+            "catalyst_type": "bulk catalyst",
+            "preparation_method": "hydrothermal"
+        }
+    }
+}
+
+eln_catalysis = {
+    "sections": [
+        "CatalystSample"
+    ],
+    "names": [
+        "MoVOx sample"
+    ]
+}
 
 
 def search():
@@ -128,7 +157,7 @@ def search():
             'method': method_dft_vasp,
             'properties': {}
         },
-        sections=['nomad.datamodel.results.Simulation']
+        quantities=['results.method.simulation.program_name']
     )
     data.create_entry(
         upload_id=upload_id,
@@ -139,7 +168,7 @@ def search():
             'method': method_dft_exciting,
             'properties': {}
         },
-        sections=['nomad.datamodel.results.Simulation']
+        quantities=['results.method.simulation.program_name']
     )
     data.create_entry(
         upload_id=upload_id,
@@ -150,7 +179,7 @@ def search():
             'method': method_dft_vasp,
             'properties': {}
         },
-        sections=['nomad.datamodel.results.Simulation']
+        quantities=['results.method.simulation.program_name']
     )
     data.create_entry(
         upload_id=upload_id,
@@ -163,6 +192,17 @@ def search():
         },
         sections=['nomad.datamodel.results.SolarCell'],
         quantities=['data']
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=create_uuid(),
+        mainfile='upload/movo.json',
+        results={
+            'material': material_movo,
+            'properties': properties_catalysis,
+            'eln': eln_catalysis
+        },
+        quantities=['results.properties.catalytic']
     )
     data.create_entry(
         upload_id=upload_id,

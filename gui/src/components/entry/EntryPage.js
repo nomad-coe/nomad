@@ -43,7 +43,7 @@ function EntryTabs({tab, onChange}) {
   const {metadata} = useEntryStore()
   const dataStore = useDataStore()
   const styles = useStyles()
-  const entryHasProcessingError = metadata?.processing_errors.length > 0
+  const entryHasProcessingError = metadata?.processing_errors?.length > 0
 
   useEffect(() => {
     dataStore.breadcrumb.setUpload(metadata?.upload_name || 'Upload')
