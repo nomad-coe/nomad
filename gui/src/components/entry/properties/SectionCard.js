@@ -206,7 +206,7 @@ const SectionCard = React.memo(({archivePath, sectionDef, section, readOnly, ...
             {...props}
           />
         )}
-      {sectionDef.m_annotations?.plot && <SectionPlots sectionDef={sectionDef} section={section}/>}
+      {(sectionDef.m_annotations?.plot || sectionDef._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={sectionDef} section={section}/>}
     </Box>
   </PropertyCard>
 })

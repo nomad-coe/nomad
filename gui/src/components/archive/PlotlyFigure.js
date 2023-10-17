@@ -1,9 +1,8 @@
 import React, {useMemo} from 'react'
-import {Box, useTheme} from '@material-ui/core'
+import {Box} from '@material-ui/core'
 import {Quantity as Q, useUnits} from '../../units'
 import {titleCase, resolveInternalRef} from '../../utils'
-import {getLineStyles} from '../plotting/common'
-import { merge } from 'lodash'
+import {cloneDeep, merge} from 'lodash'
 import Plot from '../plotting/Plot'
 import PropTypes from 'prop-types'
 import {withErrorHandler} from '../ErrorHandler'
@@ -15,17 +14,28 @@ class XYPlotError extends Error {
   }
 }
 
-const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
-  const theme = useTheme()
-  const units = useUnits()
-  const traces = useMemo(() => Array.isArray(plot.data) ? plot.data : [plot.data], [plot.data])
+const traverse = (value, callback, parent = null, key = null) => {
+  if (value && typeof value === 'object') {
+    Object.entries(value).forEach(([k, v]) => {
+      traverse(v, callback, value, k)
+    })
+  } else if (value && Array.isArray(value)) {
+    value.forEach((item, index) => {
+      traverse(item, callback, value, index)
+    })
+  } else {
+    callback(parent, key, value)
+  }
+}
 
-  const [data, layout] = useMemo(() => {
+const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef, title}) {
+  const units = useUnits()
+
+  const plotlyGraphObj = useMemo(() => {
     if (!sectionDef?._properties) {
       return [undefined, undefined]
     }
-    const XPrime = traces.map(trace => trace.x)
-    const YPrime = traces.map(trace => trace.y)
+
     const toUnit = path => {
       const relativePath = '/' + path.replace('./', '')
       const resolvedQuantityDef = resolveInternalRef(relativePath, sectionDef)
@@ -103,7 +113,8 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
      * @param {Boolean} withNames Whether or not the functiion should return names
      * @returns Array of paths or Array of Array of paths and names
      */
-    function getSlicedPaths(slicedPaths, withNames) {
+    function getSlicedPaths(path, withNames) {
+      const slicedPaths = Array.isArray(path) ? path : [path]
       const allPaths = []
       const Names = []
       slicedPaths.forEach((slicedPath) => {
@@ -120,10 +131,6 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       })
       return withNames ? [allPaths, Names] : allPaths
     }
-
-    const [Y, Names] = getSlicedPaths(YPrime, true)
-    const X = getSlicedPaths(XPrime, false)
-    const nLines = Y.length
 
     /**
      * Gets the value array, unit and split path for:
@@ -154,117 +161,87 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
 
     const xUnits = []
     const xLabels = []
-    const xValuesArray = []
-    X.forEach((x) => {
-      const [xValues, xUnit, xPath] = getValues(x)
-      const xLabel = titleCase(xPath[xPath.length - 1])
-      xUnits.push(xUnit)
-      xLabels.push(xLabel)
-      xValuesArray.push(xValues)
-    })
-
-    const isMultiX = X.length > 1
-
-    const lines = getLineStyles(nLines, theme).map(line => {
-      return {type: 'scatter',
-        line: line}
-    })
-
-    if (isMultiX) {
-      if (X.length !== Y.length) {
-        throw new XYPlotError('The length of provided x axes and y axes do not match!')
-      }
-      if (xUnits.some(unit => unit !== xUnits[0])) {
-        throw new XYPlotError('Different units are provided for x data. Multi xAxis plot is not supported!')
-      }
-    }
-
-    const data = []
     const yUnits = []
     const yLabels = []
-    Y.forEach((y, index) => {
-      const [yValues, yUnit, yPath] = getValues(y)
-      // For scalar quantities the default mode is set to 'markers'
-      lines[index].mode = lines[index].mode ?? (Array.isArray(y) ? 'markers' : 'lines')
-      const yLabel = titleCase(yPath[yPath.length - 1])
-      const line = {
-        name: Names[index],
-        x: isMultiX ? xValuesArray[index] : xValuesArray[0],
-        y: yValues
+    const zUnits = []
+    const zLabels = []
+
+    const resolveReferences = (data, key, units, labels) => {
+      const value = data?.[key]
+      if (value && (typeof value === 'string' || value instanceof String)) {
+        if (value.startsWith("#")) {
+          const [paths, names] = getSlicedPaths(value.slice(1), true)
+          const [values, unit, path] = getValues(paths[0])
+          const label = names[0] || titleCase(path[path.length - 1])
+          data[key] = values
+          units.push(unit)
+          labels.push(label)
+        }
       }
-      const trace = merge({}, lines[index], traces[index], line)
-      data.push(trace)
-      yUnits.push(yUnit)
-      yLabels.push(yLabel)
+    }
+
+    const plotlyGraphObj = cloneDeep(plot)
+    const isDataArray = plotlyGraphObj?.data && Array.isArray(plotlyGraphObj.data)
+    const dataArray = isDataArray ? plotlyGraphObj.data : [plotlyGraphObj.data]
+    dataArray.forEach((data, index) => {
+      resolveReferences(data, 'x', xUnits, xLabels)
+      resolveReferences(data, 'y', yUnits, yLabels)
+      resolveReferences(data, 'z', zUnits, zLabels)
     })
 
-    const getColor = index => {
-      const line = lines[index]
-      if ('mode' in line) {
-        if (line.mode === 'lines') {
-          return {color: line.line?.color}
-        } else if (line.mode === 'markers') {
-          return {color: line.marker?.color}
-        }
-      }
-      return {color: '#000000'}
-    }
-
-    const sameUnit = !yUnits.some(unit => unit !== yUnits[0])
-
-    const layout = {
-      xaxis: {
-        title: xUnits[0] ? `${xLabels[0]} (${xUnits[0]})` : xLabels[0],
-        fixedrange: false
-      },
-      yaxis: {
-        title: sameUnit ? (yUnits[0] ? `${titleCase(yLabels[0])} (${yUnits[0]})` : titleCase(yLabels[0])) : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
-        titlefont: !sameUnit && nLines > 1 ? getColor(0) : undefined,
-        tickfont: !sameUnit && nLines > 1 ? getColor(0) : undefined
-      },
-      showlegend: sameUnit && nLines > 1,
-      legend: {
-        x: 1,
-        y: 1,
-        xanchor: 'right'
-      }
-    }
-
-    if (!sameUnit) {
-      Y.forEach((y, index) => {
-        const color = getColor(index)
-        if (index > 0) {
-          layout[`yaxis${index + 1}`] = {
-            title: yUnits[index] ? `${yLabels[index]} (${yUnits[index]})` : yLabels[index],
-            anchor: index === 1 ? 'x' : 'free',
-            overlaying: 'y',
-            side: index % 2 === 0 ? 'left' : 'right',
-            titlefont: nLines > 1 ? color : undefined,
-            tickfont: nLines > 1 ? color : undefined,
-            position: index % 2 === 0 ? 0.1 * index : 1.0 - 0.1 * (index - 1)
+    traverse(plotlyGraphObj.data, (data, key, value) => {
+      if (key === 'color') {
+        if (typeof value === 'string' || value instanceof String) {
+          if (value.startsWith("#")) {
+            let paths, values
+            try {
+              [paths] = getSlicedPaths(value.slice(1), true);
+              [values] = getValues(paths[0])
+            } catch (error) {
+              if (value && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(value)) {
+                values = value
+              } else {
+                throw new XYPlotError(error)
+              }
+            }
+            data[key] = values
           }
-          data[index]['yaxis'] = `y${index + 1}`
         }
-      })
-    }
+      }
+    })
 
-    if (plot.layout) {
-      merge(layout, plot.layout)
+    const layout = {}
+    if (xLabels.length > 0) {
+      layout.xaxis = {
+        title: xUnits[0] ? `${xLabels[0]} (${xUnits[0]})` : xLabels[0]
+      }
     }
-    return [data, layout]
-  }, [plot.layout, section, sectionDef, theme, traces, units])
+    yLabels.forEach((yLabel, index) => {
+      layout[index === 0 ? 'yaxis' : `yaxis${index + 1}`] = {
+        title: yUnits[index] ? `${yLabel} (${yUnits[index]})` : yLabel
+      }
+    })
+    zLabels.forEach((zLabel, index) => {
+      layout[index === 0 ? 'zaxis' : `zaxis${index + 1}`] = {
+        title: zUnits[index] ? `${zLabel} (${zUnits[index]})` : zLabel
+      }
+    })
+
+    plotlyGraphObj.layout = merge({}, layout, plotlyGraphObj.layout)
+    return plotlyGraphObj
+  }, [plot, section, sectionDef, units])
 
   return <Box minWidth={500} height={500}>
     <Plot
-      data={data}
-      layout={layout}
+      data={plotlyGraphObj.data}
+      layout={plotlyGraphObj.layout}
       floatTitle={title}
       fixedMargins={true}
-      config={plot.config}
+      config={plotlyGraphObj.config}
     />
   </Box>
 })
-XYPlot.propTypes = {
+PlotlyFigure.propTypes = {
   plot: PropTypes.object.isRequired,
   sectionDef: PropTypes.object.isRequired,
   section: PropTypes.object,
@@ -275,4 +252,4 @@ export default withErrorHandler(
   (error) => error.name === 'XYPlotError'
     ? error.message
     : 'Could not load plot due to an unexpected error.'
-)(XYPlot)
+)(PlotlyFigure)

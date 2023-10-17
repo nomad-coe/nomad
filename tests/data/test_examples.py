@@ -18,24 +18,9 @@
 
 import pytest
 
-from nomad import files
-from nomad.processing import Upload, Entry, ProcessStatus
+from nomad.processing import Entry, ProcessStatus
 from tests.normalizing.conftest import run_processing
-
-
-def _create_upload(upload_id, user_id, file_paths=None):
-    if file_paths is None:
-        file_paths = []
-    upload = Upload(
-        upload_id=upload_id,
-        main_author=user_id)
-    upload.save()
-    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
-    for file_path in file_paths:
-        upload.staging_upload_files.add_rawfiles(file_path)
-    upload.process_upload()
-    upload.block_until_complete()
-    return upload
+from tests.test_utils import create_upload
 
 
 @pytest.mark.parametrize('mainfile, assert_xpaths', [
@@ -77,7 +62,7 @@ def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
     ], 6, id='complex_entry_mode')
 ])
 def test_sample_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra, test_files, number_of_entries):
-    upload = _create_upload('test_upload_id', test_user.user_id, test_files)
+    upload = create_upload('test_upload_id', test_user.user_id, test_files)
     assert upload is not None
     assert upload.processed_entries_count == number_of_entries
 
@@ -140,7 +125,7 @@ def test_sample_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra,
     ], ProcessStatus.SUCCESS, id='test_13'),
 ])
 def test_tabular_doc_examples(mongo, test_user, raw_files, monkeypatch, proc_infra, test_files, status):
-    upload = _create_upload('test_upload_id', test_user.user_id, test_files)
+    upload = create_upload('test_upload_id', test_user.user_id, test_files)
     assert upload is not None
 
     for entry in Entry.objects(upload_id='test_upload_id'):

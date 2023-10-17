@@ -63,75 +63,109 @@ Example.propTypes = {
 }
 
 const pvdExamples = [{
-  a_plot: {
-    label: 'T_substrate',
-    x: 'process_time',
-    y: './substrate_temperature'
-  }
-}, {
-  a_plot: {
-    label: 'Temperature',
-    x: ['process_time', 'process_time'],
-    y: ['./set_substrate_temperature', './substrate_temperature']
-  }
-}, {
-  a_plot: {
-    label: 'Temperature',
-    x: 'process_time',
-    y: ['./substrate_temperature', './chamber_pressure'],
+  plotly_graph_object: {
+    data: {
+      x: '#process_time',
+      y: '#./substrate_temperature'
+    },
+    layout: {title: {text: 'T Substrate'}},
     config: {
       editable: true,
       scrollZoom: false
     }
   }
 }, {
-  a_plot: [{
-    label: 'Temperature and Pressure',
-    x: 'process_time',
-    y: ['./substrate_temperature', './chamber_pressure'],
-    lines: [{
-      mode: 'markers',
-      marker: {
-        color: 'rgb(40, 80, 130)'
-      }}, {
-      mode: 'lines',
-      line: {
-        color: 'rgb(100, 0, 0)'
-      }}
-    ]
+  plotly_graph_object: {
+    data: [
+      {
+        x: '#process_time',
+        y: '#./set_substrate_temperature',
+        mode: 'markers',
+        marker: {
+          color: '#./substrate_temperature'
+        }
+      },
+      {
+        x: '#process_time',
+        y: '#./substrate_temperature'
+      }
+    ],
+    layout: {title: {text: 'Temperature'}}
+  }
+}, {
+  plotly_graph_object: [{
+    data: [
+      {
+        x: '#process_time',
+        y: '#./substrate_temperature',
+        mode: 'markers',
+        marker: {
+          color: 'rgb(40, 80, 130)'
+        }
+      },
+      {
+        x: '#process_time',
+        y: '#./chamber_pressure',
+        mode: 'lines',
+        line: {
+          color: 'rgb(100, 0, 0)'
+        }
+      }
+    ],
+    layout: {title: {text: 'Temperature and Pressure'}}
   }, {
-    label: 'Pressure of Chamber',
-    x: 'process_time',
-    y: 'chamber_pressure',
+    data: {
+      x: '#process_time',
+      y: '#chamber_pressure'
+    },
     layout: {
+      title: {text: 'T Substrate'},
       xaxis: {title: 't (sec)'},
       yaxis: {title: 'P (GPa)', type: 'log'}
     }
   }]
 }]
 
-const processExamples = [{
-    a_plot: {
-      x: 'PVDEvaporation/0/process_time',
-      y: 'PVDEvaporation/0/chamber_pressure'
+const processExamples = [
+  {
+    plotly_graph_object: {
+      data: {
+        x: '#PVDEvaporation/0/process_time',
+        y: '#PVDEvaporation/0/chamber_pressure'
+      },
+      layout: {title: {text: 'Chamber Pressure'}}
     }
   }, {
-    a_plot: {
-      x: 'PVDEvaporation/1/process_time',
-      y: 'PVDEvaporation/1/substrate_temperature'
+    plotly_graph_object: {
+      data: {
+        x: '#PVDEvaporation/1/process_time',
+        y: '#PVDEvaporation/1/substrate_temperature'
+      },
+      layout: {title: {text: 'Substrate Temperature'}}
     }
   }, {
-    a_plot: {
-      x: 'PVDEvaporation/0/process_time',
-      y: ['PVDEvaporation/0/substrate_temperature', 'PVDEvaporation/2/substrate_temperature']
+    plotly_graph_object: {
+      data: [
+        {
+          x: '#PVDEvaporation/0/process_time',
+          y: '#PVDEvaporation/0/substrate_temperature'
+        },
+        {
+          x: '#PVDEvaporation/0/process_time',
+          y: '#PVDEvaporation/2/substrate_temperature'
+        }
+      ],
+      layout: {title: {text: 'Temperature'}}
     }
   }, {
-    a_plot: {
-      x: 'PVDEvaporation/:2/process_time',
-      y: 'PVDEvaporation/:2/substrate_temperature'
+    plotly_graph_object: {
+      data: {
+        x: '#PVDEvaporation/:2/process_time',
+        y: '#PVDEvaporation/:2/substrate_temperature'
+      },
+      layout: {title: {text: 'Substrate Temperature'}}
     }
   }
-
 ]
 
 function getSection(metainfo, packageName, sectionName) {
@@ -192,8 +226,8 @@ export function PlotExamples() {
 
   const sectionDefs = useMemo(() => {
     return plots.map((example, index) => index < pvdExamples.length
-      ? {...pvdSectionDef, m_annotations: {plot: example.a_plot}}
-      : {...archiveSectionDef, m_annotations: {plot: example.a_plot}})
+      ? {...pvdSectionDef, m_annotations: {plot: example.plotly_graph_object}}
+      : {...archiveSectionDef, m_annotations: {plot: example.plotly_graph_object}})
   }, [plots, pvdSectionDef, archiveSectionDef])
 
   const handleJsonChange = useCallback((data, index) => {

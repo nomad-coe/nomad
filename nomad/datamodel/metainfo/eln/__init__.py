@@ -1333,7 +1333,7 @@ class SolarCellJVCurve(SolarCellJV):
         unit='mA/cm^2',
         description='Current density array of the *JV* curve.',
         a_plot={
-            'x': 'voltage', 'y': 'current_density'
+            'data': {'x': '#voltage', 'y': '#current_density'}
         })
 
     voltage = Quantity(
@@ -1342,7 +1342,7 @@ class SolarCellJVCurve(SolarCellJV):
         unit='V',
         description='Voltage array of the of the *JV* curve.',
         a_plot={
-            'x': 'voltage', 'y': 'current_density'
+            'data': {'x': '#voltage', 'y': '#current_density'}
         })
 
     def normalize(self, archive, logger):
@@ -1467,42 +1467,42 @@ class SolarCellEQE(ArchiveSection):
         type=np.dtype(np.float64), shape=['n_raw_values'],
         description='EQE array of the spectrum',
         a_plot={
-            'x': 'photon_energy_array', 'y': 'raw_eqe_array'
+            'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}
         })
 
     raw_photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'], unit='eV',
         description='Raw Photon energy array of the eqe spectrum',
         a_plot={
-            'x': 'raw_photon_energy_array', 'y': 'raw_eqe_array'
+            'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}
         })
 
     raw_wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'], unit='nanometer',
         description='Raw wavelength array of the eqe spectrum',
         a_plot={
-            'x': 'raw_wavelength_array', 'y': 'raw_eqe_array'
+            'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}
         })
 
     eqe_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
         description='EQE array of the spectrum',
         a_plot={
-            'x': 'photon_energy_array', 'y': 'eqe_array'
+            'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
         })
 
     wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='nanometer',
         description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ',
         a_plot={
-            'x': 'wavelength_array', 'y': 'eqe_array'
+            'data': {'x': '#wavelength_array', 'y': '#eqe_array'}
         })
 
     photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='eV',
         description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum',
         a_plot={
-            'x': 'photon_energy_array', 'y': 'eqe_array'
+            'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
         })
 
     def normalize(self, archive, logger):

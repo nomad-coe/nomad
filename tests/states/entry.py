@@ -459,3 +459,16 @@ def rdf():
     )
 
     data.save()
+
+
+def plotly():
+    infrastructure.setup()
+    main_author = infrastructure.user_management.get_user(username='test').user_id
+    upload = Upload(
+        upload_id='plotly_upload_id',
+        main_author=main_author)
+    upload.save()
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    upload.staging_upload_files.add_rawfiles('examples/data/plotly')
+    upload.process_upload()
+    upload.block_until_complete()
