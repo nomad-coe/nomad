@@ -27,36 +27,32 @@ test('correctly renders the plots', async () => {
   await screen.findByText('Examples to plot data from an array of section')
 
   const plots = screen.queryAllByText('plot')
-  expect(plots.length).toBe(8)
+  expect(plots.length).toBe(7)
   const plotCards = plots.map(plot => plot.parentElement.parentElement) // get the card
 
   within(plotCards[0]).getByText('Process Time (fs)')
-  within(plotCards[0]).getByText('T Substrate (K)')
+  within(plotCards[0]).getByText('Substrate Temperature (K)')
+  within(plotCards[0]).getByText('T Substrate')
 
   within(plotCards[1]).getByText('Process Time (fs)')
-  within(plotCards[1]).getByText('Temperature (K)')
-  within(plotCards[1]).getByText('Set Substrate Temperature')
-  within(plotCards[1]).getByText('Substrate Temperature')
+  within(plotCards[1]).getByText('Temperature')
+  within(plotCards[1]).getByText('Set Substrate Temperature (K)')
 
   within(plotCards[2]).getByText('Process Time (fs)')
   within(plotCards[2]).getByText('Substrate Temperature (K)')
-  within(plotCards[2]).getByText('Chamber Pressure (GPa)')
+  within(plotCards[2]).getByText('Temperature and Pressure')
 
   within(plotCards[3]).getByText('Process Time (fs)')
-  within(plotCards[3]).getByText('Substrate Temperature (K)')
   within(plotCards[3]).getByText('Chamber Pressure (GPa)')
 
   within(plotCards[4]).getByText('Process Time (fs)')
-  within(plotCards[4]).getByText('Chamber Pressure (GPa)')
+  within(plotCards[4]).getByText('Substrate Temperature (K)')
 
+  // Check that first subsection is plotted even if third does not exist
   within(plotCards[5]).getByText('Process Time (fs)')
   within(plotCards[5]).getByText('Substrate Temperature (K)')
 
-  // Check that first subsection is plotted even if third does not exist
-  within(plotCards[6]).getByText('Process Time (fs)')
-  within(plotCards[6]).getByText('Substrate Temperature (K)')
-
   // Check that legend for repeating subsection gets subsection name
-  within(plotCards[7]).getByText('Substrate 1, Substrate Temperature')
-  within(plotCards[7]).getByText('Substrate 2, Substrate Temperature')
+  within(plotCards[6]).getByText('Substrate 1, Process Time (fs)')
+  within(plotCards[6]).getByText('Substrate 1, Substrate Temperature (K)')
 })

@@ -1,0 +1,151 @@
+definitions:
+  name: 'xxxxx'
+  sections:
+    Sample:
+      base_sections:
+        - 'nomad.datamodel.data.EntryData'
+        - 'nomad.datamodel.metainfo.plot.PlotSection'
+      m_annotations:
+        plotly_graph_object:
+          - data:
+              x: '#xArr'
+              y: '#xArr'
+            layout:
+              title:
+                text: 'Plot in section level'
+              xaxis:
+                title:
+                  text: 'x data'
+              yaxis:
+                title:
+                  text: 'y data'
+            label: 'graph object 1'
+          - data:
+              x: '#xArr'
+              y: '#xArr'
+            layout:
+              title:
+                text: 'Plot in section level'
+              xaxis:
+                title:
+                  text: 'x data'
+              yaxis:
+                title:
+                  text: 'y data'
+            label: 'graph object 2'
+            index: 0
+        plotly_express:
+          method: scatter
+          x: '#xArr'
+          y: '#yArr'
+          label: 'express'
+          layout:
+            title:
+              text: 'Accepted plot title in quantity level'
+            xaxis:
+              title:
+                text: 'accepted x axis'
+            yaxis:
+              title:
+                text: 'accepted y axis'
+          traces:
+            - method: scatter
+              x: '#xArr'
+              y: '#clr'
+              title: 'Ignored plot title in multi trace plotly express'
+              layout:
+                xaxis:
+                  title:
+                    text: 'ignored x axis'
+                yaxis:
+                  title:
+                    text: 'ignored y axis'
+            - method: scatter
+              x: '#clr'
+              y: '#xArr'
+            - method: scatter
+              x: '#clr'
+              y: '#yArr'
+        plotly_subplots:
+          parameters:
+            rows: 2
+            cols: 2
+          label: 'subplot'
+          index: 1
+          layout:
+            title:
+              text: 'All plots'
+          plotly_express:
+            - method: scatter
+              x: '#xArr'
+              y: '#yArr'
+              title: 'subplot 1'
+              layout:
+                xaxis:
+                  title:
+                    text: 'x1 axis'
+                yaxis:
+                  title:
+                    text: 'y1 axis'
+            - method: scatter
+              x: '#xArr'
+              y: '#clr'
+              title: 'subplot 2'
+              layout:
+                title:
+                  text: 'overwritten subplot 2'
+                xaxis:
+                  title:
+                    text: 'x2 axis'
+                yaxis:
+                  title:
+                    text: 'y2 axis'
+            - method: scatter
+              x: '#clr'
+              y: '#xArr'
+              layout:
+                xaxis:
+                  title:
+                    text: 'x3 axis'
+                yaxis:
+                  title:
+                    text: 'y3 axis'
+            - method: scatter
+              x: '#clr'
+              y: '#yArr'
+              title: 'subplot 4'
+              layout:
+                xaxis:
+                  title:
+                    text: 'x4 axis'
+                yaxis:
+                  title:
+                    text: 'y4 axis'
+      quantities:
+        xArr:
+          type: float
+          shape: [5]
+          default: [1, 2, 3, 4, 5]
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+        yArr:
+          type: float
+          shape: [5]
+          default: [1, 2, 3, 2, 1]
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+        clr:
+          type: float
+          shape: [5]
+          default: [1, 2, 30, 4, 5]
+          m_annotations:
+            eln:
+              component: NumberEditQuantity
+
+data:
+  m_def: Sample
+  xArr: [1.1,2,3,4,5]
+  yArr: [1.1,2,3,2,1]
+  clr: [1.1,2,30,4,5]

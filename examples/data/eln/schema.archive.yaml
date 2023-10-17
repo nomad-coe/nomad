@@ -137,11 +137,18 @@ definitions:
                     # Plots are shown in the eln. Currently we only support simple x,y
                     # line plots
                     plot:
-                      title: Pressure and Temperature over Time
-                      x: time
-                      y:
-                        - chamber_pressure
-                        - substrate_temperature
+                      data:
+                        - x: "#time"
+                          y: "#chamber_pressure"
+                        - x: "#time"
+                          y: "#substrate_temperature"
+                          yaxis: y2
+                      layout:
+                        title:
+                          text: Pressure and Temperature over Time
+                        yaxis2:
+                          overlaying: y
+                          side: right
                   quantities:
                     data_file:
                       type: str
@@ -175,11 +182,14 @@ definitions:
                       shape: ['*']
                       unit: mbar
                       m_annotations:
+                        eln:
+                          defaultDisplayUnit: mbar
                         tabular:
                           name: Vacuum Pressure1
                         plot:
-                          x: time
-                          y: chamber_pressure
+                          data:
+                            x: "#time"
+                            y: "#chamber_pressure"
                     substrate_temperature:
                       type: np.float64
                       shape: ['*']
@@ -189,8 +199,9 @@ definitions:
                           name: Substrate PV
                           unit: degC
                         plot:
-                          x: time
-                          y: substrate_temperature
+                          data:
+                            x: "#time"
+                            y: "#substrate_temperature"
               hotplate_annealing:
                 section:
                   base_section: Process

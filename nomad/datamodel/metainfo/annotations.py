@@ -419,6 +419,56 @@ class TabularParserAnnotation(AnnotationModel):
     ''')
 
 
+class PlotlyExpressTraceAnnotation(BaseModel):
+    '''
+    Allows to plot figures using plotly Express.
+    '''
+    method: str = Field(None, description='Plotly express plot method')
+    layout: Dict = Field(None, description='Plotly layout')
+
+    x: str = Field(None, description='Plotly express x')
+    y: str = Field(None, description='Plotly express y')
+    z: str = Field(None, description='Plotly express z')
+    color: str = Field(None, description='Plotly express color')
+    symbol: str = Field(None, description='Plotly express symbol')
+    title: str = Field(None, description='Plotly express title')
+
+
+class PlotlyExpressAnnotation(PlotlyExpressTraceAnnotation):
+    '''
+    Allows to plot multi trace figures using plotly Express.
+    '''
+    label: str = Field(None, description='Figure label')
+    traces: List[PlotlyExpressTraceAnnotation] = Field([], description='''
+            List of traces added to the main trace defined by plotly_express method
+        ''')
+
+
+class PlotlyGraphObjectAnnotation(BaseModel):
+    '''
+    Allows to plot figures using plotly graph object.
+    '''
+    label: str = Field(None, description='Figure label')
+    data: Dict = Field(None, description='Plotly data')
+    layout: Dict = Field(None, description='Plotly layout')
+    config: Dict = Field(None, description='Plotly config')
+
+
+class PlotlySubplotsAnnotation(BaseModel):
+    '''
+    Allows to plot figures in subplots.
+    '''
+    label: str = Field(None, description='Figure label')
+    layout: Dict = Field(None, description='Plotly layout')
+    parameters: Dict = Field(None, description='''
+        plotly.subplots.make_subplots parameters i.e. rows, cols, shared_xaxes, shared_xaxes, horizontal_spacing , ...
+        See [plotly make_subplots documentation](https://plotly.com/python-api-reference/generated/plotly.subplots.make_subplots.html) for more information.
+    ''')
+    plotly_express: List[PlotlyExpressAnnotation] = Field([], description='''
+        List of subplots defined by plotly_express method
+    ''')
+
+
 class TabularAnnotation(AnnotationModel):
     '''
     Allows to map a quantity to a row or a column of a spreadsheet data-file. Should only be used
@@ -447,9 +497,18 @@ class PlotAnnotation(AnnotationModel):
     ```python
     class Evaporation(MSection):
         m_def = Section(a_plot={
-            'label': 'Temperature and Pressure',
-            'x': 'process_time',
-            'y': ['./substrate_temperature', './chamber_pressure'],
+            'layout': {
+                'title': {
+                    'text': 'Temperature and Pressure'
+                }
+            },
+            'data': [{
+                'x': '#process_time',
+                'y': '#./substrate_temperature'
+            }, {
+                'x': '#process_time',
+                'y': '#./chamber_pressure'
+            }],
             'config': {
                 'editable': True,
                 'scrollZoom': False
@@ -460,9 +519,7 @@ class PlotAnnotation(AnnotationModel):
         chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa')
     ```
 
-    You can create multi-line plots by using lists of the properties `y` (and `x`).
-    You either have multiple sets of `y`-values over a single set of `x`-values. Or
-    you have pairs of `x` and `y` values. For this purpose the annotation properties
+    You can create multi-line plots by providing a list of data. For this purpose the annotation properties
     `x` and `y` can reference a single quantity or a list of quantities.
     For repeating sub sections, the section instance can be selected with an index, e.g.
     "sub_section_name/2/parameter_name" or with a slice notation `start:stop` where
@@ -475,57 +532,47 @@ class PlotAnnotation(AnnotationModel):
 
     def __init__(self, *args, **kwargs):
         # pydantic does not seem to support multiple aliases per field
-        super(PlotAnnotation, self).__init__(
-            *args,
-            x=kwargs.pop('x', None) or kwargs.pop('xAxis', None) or kwargs.pop('x_axis', None),
-            y=kwargs.pop('y', None) or kwargs.pop('yAxis', None) or kwargs.pop('y_axis', None),
-            **kwargs
-        )
+        super(PlotAnnotation, self).__init__(*args, **kwargs)
 
-    label: str = Field(None, description='Is passed to plotly to define the label of the plot.')
-    x: Union[List[str], str] = Field(..., description='''
-        A path or list of paths to the x-axes values. Each path is a `/` separated
-        list of sub-section and quantity names that leads from the annotation section
-        to the quantity. Repeating sub sections are indexed between two `/`s with an
-        integer or a slice `start:stop`.
-    ''')
-    y: Union[List[str], str] = Field(..., description='''
-        A path or list of paths to the y-axes values. list of sub-section and quantity
-        names that leads from the annotation section to the quantity. Repeating sub
-        sections are indexed between two `/`s with an integer or a slice `start:stop`.
-    ''')
-    lines: List[dict] = Field(None, description='''
-        A list of dicts passed as `traces` to plotly to configure the lines of the plot.
-        See [https://plotly.com/javascript/reference/scatter/](https://plotly.com/javascript/reference/scatter/) for details.
+    data: Union[List[dict], dict] = Field(None, description='''
+        A dict passed as `data` containing the actual data or reference to the data.
+        See [https://plotly.com/javascript/](https://plotly.com/javascript/) for examples.
     ''')
     layout: dict = Field(None, description='''
         A dict passed as `layout` to plotly to configure the plot layout.
         See [https://plotly.com/javascript/reference/layout/](https://plotly.com/javascript/reference/layout/) for details.
     ''')
     config: dict = Field(None, description='''
-        A dict passed as `config` to plotly to configure the plot functionallity.
+        A dict passed as `config` to plotly to configure the plot functionality.
         See [https://plotly.com/javascript/configuration-options/](https://plotly.com/javascript/configuration-options/) for details.
     ''')
 
-    @validator('y')
-    def validate_y(cls, y, values):  # pylint: disable=no-self-argument
-        x = values.get('x', [])
-        if not isinstance(x, list):
-            x = [x]
+    @validator('data')
+    def validate_data(cls, value):  # pylint: disable=no-self-argument
+        all_data = value if isinstance(value, list) else [value]
 
-        if isinstance(x, list):
-            assert len(x) == 1 or len(x) == len(y), strip(f'''
-                You must use on set of x-values, or the amount x-quantities ({len(x)})
-                has to match the amount of y-quantities ({len(y)}).
+        for data in all_data:
+            assert isinstance(data, dict) and data, strip(f'''
+                data should be a dictionary including x and y data.
             ''')
 
-        return y
+            x = data.get('x', None)
+            y = data.get('y', None)
+            z = data.get('z', None)
 
-    @validator('x', 'y')
-    def validate_quantity_references(cls, value):  # pylint: disable=no-self-argument
-        values = value if isinstance(value, list) else [value]
-        for item in values:
-            assert re.match(r'^(\.\/)?(\w+\/)*((\w+\/\-?\d*:\-?\d*)\/(\w+\/)*)*\w+$', item), f'{item} is not a valid quantity reference.'
+            if isinstance(x, list) and isinstance(y, list):
+                assert len(x) == len(y), strip(f'''
+                    You must use on set of x-values, or the amount x-quantities ({len(x)})
+                    has to match the amount of y-quantities ({len(y)}).
+                ''')
+
+            for axis in [x, y, z]:
+                if axis:
+                    if isinstance(axis, str):
+                        assert re.match(r'^#(\.\/)?(\w+\/)*((\w+\/\-?\d*:\-?\d*)\/(\w+\/)*)*\w+$',
+                                        axis), f'{axis} is not a valid quantity reference. Reference path must adhere to the format of `#path/to/quantity`'
+                    elif isinstance(axis, list):
+                        assert all(isinstance(item, (int, float)) for item in axis)
 
         return value
 

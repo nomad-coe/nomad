@@ -51,7 +51,7 @@ import { SourceApiCall, SourceApiDialogButton, SourceJsonDialogButton } from '..
 import { Download } from '../entry/Download'
 import Pagination from '../visualization/Pagination'
 import SectionEditor from './SectionEditor'
-import XYPlot from './XYPlot'
+import PlotlyFigure from './PlotlyFigure'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
   resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId, resolveNomadUrlNoThrow
@@ -64,7 +64,7 @@ import { apiBase } from '../../config'
 import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
 import ReactJson from 'react-json-view'
-import { range, isNaN } from 'lodash'
+import { range, isNaN, partition } from 'lodash'
 import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { useEntryStore } from '../entry/EntryContext'
 import ArchiveSearchBar from './ArchiveSearchBar'
@@ -1070,7 +1070,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
         </Compartment>
       )}
       {subSectionCompartment}
-      {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
+      {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   } else {
     const attributes = section?.m_attributes || {}
@@ -1088,7 +1088,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
           <Item key={key} itemKey={`m_attributes:${key}`}>{key}</Item>
         ))}
       </Compartment>}
-      {def.m_annotations?.plot && <SectionPlots sectionDef={def} section={section}/>}
+      {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section}/>}
     </React.Fragment>
   }
   const eln = def?.m_annotations?.eln
@@ -1437,15 +1437,19 @@ FoldableList.defaultProps = ({
 })
 
 export const SectionPlots = React.memo(function SectionPlots({section, sectionDef}) {
-  const plot = sectionDef.m_annotations?.plot
+  let sortedFigures
+  if (section?.figures) {
+    const [indexedFigures, otherFigures] = section.figures && partition(section.figures, figure => figure?.index !== undefined)
+    sortedFigures = indexedFigures.sort((a, b) => a.index - b.index)
+    sortedFigures = [...sortedFigures, ...otherFigures]
+  }
+  const plot = sectionDef.m_annotations?.plot || sortedFigures?.map(plot => plot.figure)
   const [selected, setSelected] = useState([0])
   const plots = useMemo(() => {
     const plots = (Array.isArray(plot) ? [...plot] : [{...plot}])
     plots.forEach(plot => {
-      if (!('label' in plot)) {
-        const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
-        const pathParts = Array.isArray(yAxis) ? ['unnamed'] : yAxis.split('/')
-        plot.label = pathParts[pathParts.length - 1]
+      if (!Array.isArray(plot.data)) {
+        plot.data = [plot.data]
       }
     })
     return plots
@@ -1467,7 +1471,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
           multiple: true,
           value: selected,
           onChange: event => setSelected(event.target.value),
-          renderValue: newSelected => newSelected.map(index => titleCase(plots[index].label))?.join(', ')
+          renderValue: newSelected => newSelected.map(index => titleCase(sortedFigures?.[index]?.label || plots[index]?.layout?.title?.text || 'Untitled'))?.join(', ')
         }}
       >
         {plots.map((plot, index) => (
@@ -1475,18 +1479,18 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
             <Checkbox
               checked={selected.findIndex(selectedIndex => selectedIndex === index) >= 0}
             />
-            {titleCase(plot.label)}
+            {titleCase(sortedFigures?.[index]?.label || plot?.layout?.title?.text || 'untitled')}
           </MenuItem>
         ))}
       </TextField>}
       {selected.map(index => plots?.[index])
         ?.map((plot, index) => (
-          <XYPlot
+          <PlotlyFigure
             key={index}
             sectionDef={sectionDef}
             section={section}
             plot={plot}
-            title={plot.label}
+            title={sortedFigures?.[index]?.label || plot?.layout?.title?.text}
           />
         ))
       }
@@ -1520,7 +1524,7 @@ function Quantity({value, def, unit, children}) {
     <ArchiveTitle def={def} data={value} kindLabel="value"/>
     {def.m_annotations?.plot && (
       <Compartment title="plot">
-        <XYPlot
+        <PlotlyFigure
           section={prev.adaptor.obj}
           sectionDef={prev.adaptor.def}
           plot={def.m_annotations?.plot[0]}

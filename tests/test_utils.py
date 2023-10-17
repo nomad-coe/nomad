@@ -23,6 +23,8 @@ import pytest
 from nomad import utils
 from nomad.utils import structlogging
 from nomad.metainfo.metainfo import MSection, Quantity, SubSection
+from nomad import files
+from nomad.processing import Upload
 
 
 def test_decode_handle_id():
@@ -117,3 +119,18 @@ def test_extract_section():
     # Check if not section is reported if the last of the intermediate elements do not contain it
     path.append('subsection_number')
     assert not utils.extract_section(test_section, path)
+
+
+def create_upload(upload_id, user_id, file_paths=None):
+    if file_paths is None:
+        file_paths = []
+    upload = Upload(
+        upload_id=upload_id,
+        main_author=user_id)
+    upload.save()
+    files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
+    for file_path in file_paths:
+        upload.staging_upload_files.add_rawfiles(file_path)
+    upload.process_upload()
+    upload.block_until_complete()
+    return upload
