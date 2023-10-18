@@ -319,7 +319,7 @@ def _populate_result(container_root: dict, path: list, value, *, path_like=False
                 logger.warning(f'Cannot merge {a[i]} and {v}, potential conflicts.')
 
     def _merge_dict(a: dict, b: dict):
-        for k, v in b.items():
+        for k, v in sorted(b.items(), key=lambda item: item[0]):
             if k not in a or a[k] is None:
                 a[k] = v
             elif isinstance(a[k], set) and isinstance(v, set):
@@ -1253,7 +1253,7 @@ class MongoReader(GeneralReader):
         if wildcard:
             assert omit_keys is not None
 
-        for key in node.archive:
+        for key in sorted(node.archive.keys()):
             new_config: dict = {'property_name': key, 'index': None}
             if wildcard:
                 if any(k.startswith(key) for k in omit_keys):
@@ -1890,7 +1890,7 @@ class ArchiveReader(GeneralReader):
             _populate_result(node.result_root, node.current_path, result_to_write)
             return
 
-        for key in node.archive:
+        for key in sorted(node.archive.keys()):
             if key == Token.DEF:
                 continue
 
