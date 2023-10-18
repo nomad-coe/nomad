@@ -250,7 +250,7 @@ the API:
 - Raw files, the files as they were uploaded to NOMAD.
 - Archive data, all of the extracted data for an entry.
 
-There are also different entities (see also [Datamodel](../learn/basics.md)) with different functions in the API:
+There are also different entities (see also [Datamodel](../explanation/basics.md)) with different functions in the API:
 
 - Entries
 - Uploads
