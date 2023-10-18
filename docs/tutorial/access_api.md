@@ -1,5 +1,5 @@
 This video tutorial explains the basics of API and shows how to do simple requests
-against the NOMAD api.
+against the NOMAD API.
 
 !!! note
     The NOMAD seen in the tutorials is an older version with a different color theme,

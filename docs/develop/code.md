@@ -50,7 +50,7 @@ but should help you to navigate the codebase:
 
 - `archive`: Functionality to store and access archive files. This is the storage format
   for all processed data in NOMAD. See also the docs on
-  [structured data](../learn/data.md).
+  [structured data](../explanation/data.md).
 
 - `cli`: The command line interface (based on [Click](https://click.palletsprojects.com)).
   Subcommands are structured into submodules.
@@ -60,17 +60,17 @@ but should help you to navigate the codebase:
 
 - `datamodel`: The built-in schemas (e.g. `nomad.datamodel.metainfo.simulation` used by
   all the theory parsers). The base sections and section for the shared entry structure.
-  See also the docs on the [datamodel](../learn/data.md) and
-  [processing](../learn/basics.md).
+  See also the docs on the [datamodel](../explanation/data.md) and
+  [processing](../explanation/basics.md).
 
 - `metainfo`: The Metainfo system, e.g. the schema language that NOMAD uses.
 
 - `normalizing`: All the normalizers. See also the docs on
-  [processing](../learn/basics.md#normalizing).
+  [processing](../explanation/basics.md#normalizing).
 
 - `parsing`: The base classes for parsers, matching functionality, parser initialization,
   some fundamental parsers like the *archive* parser. See also the docs on
-  [processing](../learn/basics.md#parsing).
+  [processing](../explanation/basics.md#parsing).
 
 - `processing`: It's all about processing uploads and entries. The interface to
   [Celery](https://docs.celeryq.dev/en/stable/) and [MongoDB](https://www.mongodb.com).

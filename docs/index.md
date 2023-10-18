@@ -5,17 +5,14 @@ hide: toc
 # NOMAD Documentation
 
 <!-- A single sentence that says what the product is, succinctly and memorably -->
-NOMAD is a free open-source data management platform for materials science, based on FAIR (findable, accessible, interoperable and reusable) principles.
+NOMAD is a free, and open-source data management platform for materials science, whose goal is to make scientific research data FAIR (findable, accessible, interoperable and reusable).
 
 <!-- A paragraph of one to three short sentences, that describe what the product does. -->
-NOMAD enables scientists and researchers to manage, share, and publish data.
+NOMAD provides tools for data management, sharing, and publishing.
 The platform lets you structure, explore, and analyze your data and the data of others.
-NOMAD promotes data-centered collaboration through an integrated and extendable set of tools.
 
 <!-- A third paragraph of similar length, this time explaining what need the product meets -->
-NOMAD solves the problem of not being able to use data that you can't find or that is too
-heterogenous to be use effectively.
-
+NOMAD solves the challenge of using heterogeneous and unfindable data.
 <!-- Finally, a paragraph that describes whom the product is useful for. -->
 NOMAD is useful for scientists that work with data, for research groups that need to collaborate on data, and for communities that need to build an archive of FAIR research data.
 
@@ -43,7 +40,7 @@ A series of tutorials will guide you through the main functionality of NOMAD.
 
 ### How-to guides
 
-The documentation provides step-by-step instructions for a wide range of tasks. For example:
+These docs provides step-by-step instructions for a wide range of tasks. For example:
 
 - [How to upload and publish data](data/upload.md)
 - [How to write a custom ELN](schemas/elns.md)
@@ -54,7 +51,7 @@ The documentation provides step-by-step instructions for a wide range of tasks. 
 
 <div markdown="block">
 
-### Learn
+### Explanation
 
 This section provides background knowledge on what are
 schemas and structured data, how does processing work, the NOMAD architecture, and more.
@@ -79,7 +76,7 @@ data structure of for materials science together.
 - [Get support](https://nomad-lab.eu/nomad-lab/support.html)
 - [Join our online forum](https://matsci.org/c/nomad/32)
 - [Contribute](develop/contrib.md)
-- [Roadmap](https://nomad-lab.eu/nomad-lab/features.html)
+- [View our roadmap](https://nomad-lab.eu/nomad-lab/features.html)
 - [Code guidelines](develop/guides.md)
 
 Thinking about using NOMAD for your next project? Get in touch!

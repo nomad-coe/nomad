@@ -9,7 +9,7 @@ nav:
     - Exploring data on: tutorial/explore.md
     - Access data via API: tutorial/access_api.md
     - Built in schemas: tutorial/builtin.md
-    - Custom schemas: tutorial/custom.md
+    - Schemas: tutorial/custom.md
     - Plugins: tutorial/plugins.md
     - Third-party integration: tutorial/third_party.md
   - How-to guides:
@@ -47,11 +47,11 @@ nav:
       - How to customize an Oasis: oasis/customize.md
       - How to migrate Oasis versions: oasis/migrate.md
       - Administrative tasks: oasis/admin.md
-  - Learn:
-    - From files to data: learn/basics.md
-    - Structured data: learn/data.md
-    - Architecture: learn/architecture.md
-    - Why you need an Oasis: learn/oasis.md
+  - Explanation:
+    - From files to data: explanation/basics.md
+    - Structured data: explanation/data.md
+    - Architecture: explanation/architecture.md
+    - Why you need an Oasis: explanation/oasis.md
   - Reference:
     - reference/config.md
     - reference/annotations.md

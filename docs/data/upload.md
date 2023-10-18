@@ -10,10 +10,13 @@ NOMAD will simply extract them and consider the whole directory structure within
 
 ## Create an upload and add files
 
-Open [NOMAD](https://nomad-lab.eu/prod/v1) and log in (you need to create an account first).
+Open [NOMAD](https://nomad-lab.eu/prod/v1) and log in; if you don't have a NOMAD account, please create one.
 
 Go to `PUBLISH` / `Uploads`. Here you can create an upload with the `CREATE A NEW UPLOAD`
 button. This will bring you to the upload page.
+
+Before you start, make sure that the size of your data does not exceed the [upload limits](#upload-limits). If it does, please contact us.
+
 
 You can drop your files on (or click) the `CLICK OR DROP FILES` button. On top you will
 see a list of supported file formats and details on the files to upload.
@@ -22,16 +25,16 @@ You can also go to the `FILES` tab. Here you can create directories and drop fil
 ## Processing files
 
 NOMAD interprets your files. It checks each file and recognizes the main output file of the
-supported codes. NOMAD creates an entry for this *mainfile* that represents the respective
+supported codes. NOMAD creates an entry for this **mainfile** that represents the respective
 data of this code run, experiment, etc.
 
-While you can browse all files of an upload from its *upload page*, NOMAD only
-allows to search for such recognized *mainfiles*. As long as your upload does not contain any
+While you can browse all files of an upload from its **upload page**, NOMAD only
+allows to search for such recognized **mainfiles**. As long as your upload does not contain any
 files that are recognized by NOMAD, you cannot publish the data.
 
 However, all files that are associated to a recognized *mainfile* by being in the
-same directory are displayed as *auxiliary* files next to the entry represented
-by the *mainfile*.
+same directory are displayed as **auxiliary** files next to the entry represented
+by the **mainfile**.
 
 
 
@@ -120,7 +123,7 @@ If you provide data for a potentially large amount of entries, it might be advis
 to provide *user metadata* via file. See [user metadata](#user-metadata) above for details.
 
 To further automate, you can also upload and directly publish data. After performing some
-smaller test uploads, you should consider to skip our staging and publish the upload
+smaller test uploads, you should consider skipping our staging and publish the upload
 right away. This can save you some time and additional API calls. The upload endpoint
 has a parameter `publish_directly`. You can modify the upload command you get on the upload page as follows:
 
