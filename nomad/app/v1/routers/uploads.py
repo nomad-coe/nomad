@@ -227,6 +227,12 @@ class UploadProcDataQuery(BaseModel):
             If True: only include published uploads.
             If False: only include unpublished uploads.
             If unset: include everything.'''))
+    process_status: Optional[str] = Field(
+        description=strip('Search by the process status.'))
+
+    @validator('process_status')
+    def upper_process_status(cls, process_status: str):  # pylint: disable=no-self-argument
+        return process_status.upper() if process_status else None
 
 
 upload_proc_data_query_parameters = parameter_dependency_from_model(

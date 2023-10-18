@@ -924,7 +924,9 @@ class MongoReader(GeneralReader):
             mongo_query &= Q(upload_id__in=config.query.upload_id)
         if config.query.upload_name:
             mongo_query &= Q(upload_name__in=config.query.upload_name)
-        if config.query.is_processing is True:
+        if config.query.process_status is not None:
+            mongo_query &= Q(process_status=config.query.process_status)
+        elif config.query.is_processing is True:
             mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_PROCESSING)
         elif config.query.is_processing is False:
             mongo_query &= Q(process_status__in=ProcessStatus.STATUSES_NOT_PROCESSING)
