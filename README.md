@@ -1,6 +1,7 @@
 [![pipeline status](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/pipeline.svg)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
 [![backend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=python+tests&key_text=backend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
 [![frontend coverage report](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/badges/develop/coverage.svg?job=gui+tests&key_text=frontend+coverage&key_width=130)](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/commits/develop)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.05388/status.svg)](https://doi.org/10.21105/joss.05388)
 
 **NOMAD** is a web-based research data management software for materials science.
 You find the official project homepage and documentation here [https://nomad-lab.eu](https://nomad-lab.eu).
@@ -34,6 +35,18 @@ For a general project overview visit the official project page [https://nomad-la
 - [get started as a developer](https://nomad-lab.eu/prod/v1/docs/develop/setup.html)
 - [install and use NOMAD as Python package (to use our APIs or parsers)](https://nomad-lab.eu/prod/v1/docs/pythonlib.html)
 - [install NOMAD Oasis](https://nomad-lab.eu/prod/v1/docs/oasis.html)
+
+Your current citation section is clear and provides both a human-readable citation and a BibTeX entry, which is great for accessibility and ease of use for different people. However, there are a few minor adjustments and improvements that could be made for clarity and professionalism. Here's a revised version:
+
+## Citing NOMAD
+
+If you use this software in your research, for data sharing, or in your lab, we encourage you to cite the following [paper](https://doi.org/10.21105/joss.05388).
+
+```
+Scheidgen et al., (2023). NOMAD: A distributed web-based platform for managing materials science research data. Journal of Open Source Software, 8(90), 5388, https://doi.org/10.21105/joss.05388
+```
+
+For citation in academic works, you can use this [BibTeX file](docs/assets/joss_paper.bib).
 
 ## Change log
 
