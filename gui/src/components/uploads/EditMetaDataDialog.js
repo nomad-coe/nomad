@@ -28,7 +28,8 @@ import PropTypes from 'prop-types'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
-import {useLocation} from 'react-router-dom'
+import {useLocation} from 'react-router'
+import {Link} from 'react-router-dom'
 import {getUrl} from '../nav/Routes'
 import {Datatable, DatatableTable} from '../datatable/Datatable'
 import DeleteIcon from '@material-ui/icons/Delete'
@@ -274,13 +275,13 @@ const DatasetsActions = React.memo((props) => {
   const {data} = props
   const location = useLocation()
 
-  const handleOpenLink = () => {
-    const path = `dataset/id/${data.dataset.dataset_id}`
-    window.open(getUrl(path, location), '_blank')
-  }
+  const openDatasetUrl = useMemo(() => {
+    const path = `datasets/dataset/id/${data.dataset.dataset_id}`
+    return getUrl(path, location)
+  }, [data, location])
 
   return <Box display={'inline-block'}>
-    {data.dataset.dataset_id && <IconButton size='small' onClick={handleOpenLink}>
+    {data.dataset.dataset_id && <IconButton size='small' component={Link} to={openDatasetUrl} target="_blank">
       <Tooltip title="Open in new tab">
         <OpenInNewIcon />
       </Tooltip>
