@@ -54,6 +54,9 @@ Omitted versions are plain bugfix releases with only minor changes and fixes. Th
 file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
 contains much more detailed information about changes and fixes in the released versions.
 
+### v1.2.2
+- Added gunicron multi-process manager to serve the app.
+
 ### v1.2.1
 - CLI utility to export archive data
 - Added authentication for mongo and elastic use
