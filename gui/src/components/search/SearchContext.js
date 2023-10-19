@@ -41,7 +41,7 @@ import {
   cloneDeep
 } from 'lodash'
 import qs from 'qs'
-import { Link } from '@material-ui/core'
+import { Box, Link, makeStyles } from '@material-ui/core'
 import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
 import { useHistory } from 'react-router-dom'
@@ -64,6 +64,24 @@ import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
 import { searchQuantities } from '../../config'
 import { filterData as filterDataStatic } from './FilterRegistry'
+
+const useWidthConstrainedStyles = makeStyles(theme => ({
+  root: {
+    maxWidth: '500px',
+    textOverflow: 'ellipsis',
+    overflow: 'hidden'
+  }
+}))
+
+function WidthConstrained(props) {
+  const styles = useWidthConstrainedStyles()
+  return <Box className={styles.root}>
+    {props.children}
+  </Box>
+}
+WidthConstrained.propTypes = {
+  children: PropTypes.node
+}
 
 const debounceTime = 450
 
@@ -160,10 +178,10 @@ export const SearchContext = React.memo(({
     // columns.
     const overrides = {
       entry_name: {
-        render: entryName
+        render: (entry) => <WidthConstrained>{entryName(entry)}</WidthConstrained>
       },
       entry_type: {
-        render: entryType
+        render: (entry) => <WidthConstrained>{entryType(entry)}</WidthConstrained>
       },
       upload_create_time: {
         render: row => row?.upload_create_time
