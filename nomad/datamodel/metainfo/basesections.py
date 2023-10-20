@@ -31,6 +31,8 @@ from ase.data import (
     atomic_masses,
 )
 import requests
+
+from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 if TYPE_CHECKING:
     from structlog.stdlib import (
         BoundLogger,
@@ -326,6 +328,15 @@ class ActivityStep(ArchiveSection):
         ),
     )
 
+    def to_task(self) -> Task:
+        '''
+        Returns the task description of this activity step.
+
+        Returns:
+            Task: The activity step as a workflow task.
+        '''
+        return Task(name=self.name)
+
 
 class Activity(BaseSection):
     '''
@@ -373,6 +384,9 @@ class Activity(BaseSection):
             archive.results.eln.methods.append(self.method)
         else:
             archive.results.eln.methods.append(self.m_def.name)
+        if archive.workflow2 is None:
+            archive.workflow2 = Workflow(name=self.name)
+        archive.workflow2.tasks = [step.to_task() for step in self.steps]
 
 
 class SectionReference(ArchiveSection):
@@ -524,6 +538,9 @@ class ExperimentStep(ActivityStep):
             self.name = self.lab_id
         if self.activity is not None and self.start_time is None and self.activity.datetime:
             self.start_time = self.activity.datetime
+
+    def to_task(self) -> Task:
+        return TaskReference(task=self.activity.m_parent.workflow2)
 
 
 class Experiment(Activity):
@@ -1152,9 +1169,23 @@ class Process(Activity):
                 start += datetime.timedelta(seconds=step.duration.magnitude)
             if self.end_time is None and start > self.datetime:
                 self.end_time = start
+        archive.workflow2.outputs = [
+            Link(name=sample.name, section=sample.reference) for sample in self.samples
+        ]
 
 
-class AnalysisResult(ArchiveSection):
+class ActivityResult(ArchiveSection):
+    '''
+    A section for the results of an `Activity`.
+    '''
+    name = Quantity(
+        type=str,
+        description='A short and descriptive name for the result.',
+        a_eln=dict(component='StringEditQuantity', label='Short name'),
+    )
+
+
+class AnalysisResult(ActivityResult):
     '''
     A section for the results of an `Analysis` process.
     '''
@@ -1183,6 +1214,23 @@ class Analysis(Activity):
         repeats=True,
     )
 
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer for the `Analysis` section.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        super(Analysis, self).normalize(archive, logger)
+        archive.workflow2.inputs = [
+            Link(name=input.name, section=input.reference) for input in self.inputs
+        ]
+        archive.workflow2.outputs = [
+            Link(name=output.name, section=output) for output in self.outputs
+        ]
+
 
 class SynthesisMethod(Process):
     '''
@@ -1193,7 +1241,7 @@ class SynthesisMethod(Process):
     )
 
 
-class MeasurementResult(ArchiveSection):
+class MeasurementResult(ActivityResult):
     '''
     A section for the results of an `Measurement` process.
     '''
@@ -1229,6 +1277,23 @@ class Measurement(Activity):
         ''',
         repeats=True,
     )
+
+    def normalize(self, archive, logger: 'BoundLogger') -> None:
+        '''
+        The normalizer for the `Measurement` section.
+
+        Args:
+            archive (EntryArchive): The archive containing the section that is being
+            normalized.
+            logger ('BoundLogger'): A structlog logger.
+        '''
+        super(Measurement, self).normalize(archive, logger)
+        archive.workflow2.inputs = [
+            Link(name=sample.name, section=sample.reference) for sample in self.samples
+        ]
+        archive.workflow2.outputs = [
+            Link(name=result.name, section=result) for result in self.results
+        ]
 
 
 class PureSubstance(System):
