@@ -185,6 +185,9 @@ class ELNProcess(Process, EntryData):
         a_eln=ELNAnnotation(
             lane_width='600px',
         ),
+        a_template=dict(
+            process_identifiers=dict(),
+        ),
         label='Material Processing ELN',
     )
     tags = Quantity(
@@ -243,6 +246,8 @@ class ELNMeasurement(Measurement, EntryData):
     measurement_identifiers = SubSection(
         section_def=ReadableIdentifiers,
     )
+    results = Measurement.results.m_copy()
+    results.section_def = BasicMeasurementResult
 
 
 class BasicAnalysisResult(AnalysisResult):

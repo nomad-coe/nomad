@@ -57917,6 +57917,11 @@ window.nomadArtifacts = {
                 {
                   "lane_width": "600px"
                 }
+              ],
+              "template": [
+                {
+                  "process_identifiers": {}
+                }
               ]
             },
             "name": "ELNProcess",
@@ -57963,7 +57968,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "process_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               }
             ]
           },
@@ -57975,7 +57980,7 @@ window.nomadArtifacts = {
             "label": "Measurement Result",
             "description": "A basic section for describing the result of a measurement.",
             "base_sections": [
-              "/packages/16/section_definitions/24"
+              "/packages/16/section_definitions/25"
             ],
             "quantities": [
               {
@@ -58020,7 +58025,7 @@ window.nomadArtifacts = {
               "/packages/15/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/16/section_definitions/25",
+              "/packages/16/section_definitions/26",
               "/packages/15/section_definitions/1"
             ],
             "quantities": [
@@ -58052,7 +58057,16 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "measurement_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "description": "The result of the measurement.",
+                "sub_section": "/packages/7/section_definitions/4",
+                "repeats": true
               }
             ]
           },
@@ -58064,7 +58078,7 @@ window.nomadArtifacts = {
             "label": "Analysis Result",
             "description": "A basic section for describing the result of an analysis.",
             "base_sections": [
-              "/packages/16/section_definitions/21"
+              "/packages/16/section_definitions/22"
             ],
             "quantities": [
               {
@@ -58109,7 +58123,7 @@ window.nomadArtifacts = {
               "/packages/15/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/16/section_definitions/22",
+              "/packages/16/section_definitions/23",
               "/packages/15/section_definitions/1"
             ],
             "quantities": [
@@ -58141,7 +58155,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "analysis_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -58209,7 +58223,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "sample_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               }
             ]
           },
@@ -58239,7 +58253,7 @@ window.nomadArtifacts = {
               "/packages/15/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/16/section_definitions/26",
+              "/packages/16/section_definitions/27",
               "/packages/15/section_definitions/1"
             ],
             "quantities": [
@@ -58271,7 +58285,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "substance_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               }
             ]
           },
@@ -58330,7 +58344,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "instrument_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               }
             ]
           },
@@ -58389,7 +58403,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "collection_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               }
             ]
           },
@@ -58448,7 +58462,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "experiment_identifiers",
-                "sub_section": "/packages/16/section_definitions/31"
+                "sub_section": "/packages/16/section_definitions/32"
               }
             ]
           },
@@ -64850,15 +64864,46 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 21,
             "m_parent_sub_section": "section_definitions",
-            "name": "AnalysisResult",
-            "description": "A section for the results of an `Analysis` process.",
+            "name": "ActivityResult",
+            "description": "A section for the results of an `Activity`.",
             "base_sections": [
               "/packages/15/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity",
+                      "label": "Short name"
+                    }
+                  ]
+                },
+                "name": "name",
+                "description": "A short and descriptive name for the result.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 22,
+            "m_parent_sub_section": "section_definitions",
+            "name": "AnalysisResult",
+            "description": "A section for the results of an `Analysis` process.",
+            "base_sections": [
+              "/packages/16/section_definitions/21"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 23,
             "m_parent_sub_section": "section_definitions",
             "name": "Analysis",
             "description": "A planned process that produces output data from input data. Synonyms:\n - data processing\n - data analysis",
@@ -64884,14 +64929,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "outputs",
                 "description": "The output data of the analysis.",
-                "sub_section": "/packages/16/section_definitions/21",
+                "sub_section": "/packages/16/section_definitions/22",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 23,
+            "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
             "name": "SynthesisMethod",
             "description": "A method used to synthesise a sample.",
@@ -64904,17 +64949,17 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 24,
+            "m_parent_index": 25,
             "m_parent_sub_section": "section_definitions",
             "name": "MeasurementResult",
             "description": "A section for the results of an `Measurement` process.",
             "base_sections": [
-              "/packages/15/section_definitions/0"
+              "/packages/16/section_definitions/21"
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 25,
+            "m_parent_index": 26,
             "m_parent_sub_section": "section_definitions",
             "name": "Measurement",
             "description": "A planned process with the objective to produce information about the material entity that is the evaluant, by physically examining it or its proxies. [ obi : pppb ]",
@@ -64949,14 +64994,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "description": "The result of the measurement.",
-                "sub_section": "/packages/16/section_definitions/24",
+                "sub_section": "/packages/16/section_definitions/25",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 26,
+            "m_parent_index": 27,
             "m_parent_sub_section": "section_definitions",
             "name": "PureSubstance",
             "description": "A base section for any elemental, molecular, or single phase pure substance.",
@@ -65038,7 +65083,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 27,
+            "m_parent_index": 28,
             "m_parent_sub_section": "section_definitions",
             "name": "PubChemPureSubstanceSection",
             "label": "PubChem Pure Substance Section",
@@ -65085,7 +65130,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 28,
+            "m_parent_index": 29,
             "m_parent_sub_section": "section_definitions",
             "name": "CASExperimentalProperty",
             "description": "A section for experimental properties retrieved from the CAS API.",
@@ -65130,7 +65175,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 29,
+            "m_parent_index": 30,
             "m_parent_sub_section": "section_definitions",
             "name": "CASPropertyCitation",
             "description": "A section for citations of the experimental properties retrieved from the CAS API.",
@@ -65177,7 +65222,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 30,
+            "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
             "name": "CASPureSubstanceSection",
             "label": "CAS Pure Substance Section",
@@ -65287,7 +65332,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_experimental_properties",
-                "sub_section": "/packages/16/section_definitions/28",
+                "sub_section": "/packages/16/section_definitions/29",
                 "repeats": true
               },
               {
@@ -65295,14 +65340,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_property_citations",
-                "sub_section": "/packages/16/section_definitions/29",
+                "sub_section": "/packages/16/section_definitions/30",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 31,
+            "m_parent_index": 32,
             "m_parent_sub_section": "section_definitions",
             "name": "ReadableIdentifiers",
             "description": "A base section that can be used to generate readable IDs. If the `owner`, `short_name`, `institute`, and `datetime`\nquantities are provided, the lab_id will be automatically created as a combination\nof these four quantities.",
@@ -65405,7 +65450,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 32,
+            "m_parent_index": 33,
             "m_parent_sub_section": "section_definitions",
             "name": "PublicationReference",
             "description": "A base section that can be used for references.",
