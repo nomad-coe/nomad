@@ -21,6 +21,8 @@ import datetime
 import re
 from typing import Any, Dict, List, TYPE_CHECKING
 
+from nomad.datamodel.metainfo.plot import PlotSection
+
 if TYPE_CHECKING:
     from structlog.stdlib import (
         BoundLogger,
@@ -1127,9 +1129,18 @@ class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
         add_band_gap(archive, self.bandgap)
 
 
-class SolarCellJV(ArchiveSection):
+class SolarCellJV(PlotSection):
 
-    m_def = Section(label_quantity='cell_name')
+    m_def = Section(
+        label_quantity='cell_name',
+        a_plotly_graph_object=[
+            {
+                'data': {'x': '#voltage', 'y': '#current_density'}
+            }, {
+                'data': {'x': '#voltage', 'y': '#current_density'}
+            }
+        ]
+    )
 
     data_file = Quantity(
         type=str,
@@ -1336,19 +1347,13 @@ class SolarCellJVCurve(SolarCellJV):
         type=np.dtype(np.float64),
         shape=['n_values'],
         unit='mA/cm^2',
-        description='Current density array of the *JV* curve.',
-        a_plot={
-            'data': {'x': '#voltage', 'y': '#current_density'}
-        })
+        description='Current density array of the *JV* curve.')
 
     voltage = Quantity(
         type=np.dtype(np.float64),
         shape=['n_values'],
         unit='V',
-        description='Voltage array of the of the *JV* curve.',
-        a_plot={
-            'data': {'x': '#voltage', 'y': '#current_density'}
-        })
+        description='Voltage array of the of the *JV* curve.')
 
     def normalize(self, archive, logger):
         super(SolarCellJVCurve, self).normalize(archive, logger)
@@ -1358,10 +1363,26 @@ class SolarCellJVCurve(SolarCellJV):
                 self.update_results(archive)
 
 
-class SolarCellEQE(ArchiveSection):
+class SolarCellEQE(PlotSection):
 
     m_def = Section(
-        a_eln=dict(lane_width='600px'))
+        a_eln=dict(lane_width='600px'),
+        a_plotly_graph_object=[
+            {
+                'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}
+            }, {
+                'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}
+            }, {
+                'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}
+            }, {
+                'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
+            }, {
+                'data': {'x': '#wavelength_array', 'y': '#eqe_array'}
+            }, {
+                'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
+            }
+        ]
+    )
 
     eqe_data_file = Quantity(
         type=str,
@@ -1470,45 +1491,27 @@ class SolarCellEQE(ArchiveSection):
 
     raw_eqe_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'],
-        description='EQE array of the spectrum',
-        a_plot={
-            'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}
-        })
+        description='EQE array of the spectrum')
 
     raw_photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'], unit='eV',
-        description='Raw Photon energy array of the eqe spectrum',
-        a_plot={
-            'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}
-        })
+        description='Raw Photon energy array of the eqe spectrum')
 
     raw_wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'], unit='nanometer',
-        description='Raw wavelength array of the eqe spectrum',
-        a_plot={
-            'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}
-        })
+        description='Raw wavelength array of the eqe spectrum')
 
     eqe_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
-        description='EQE array of the spectrum',
-        a_plot={
-            'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
-        })
+        description='EQE array of the spectrum')
 
     wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='nanometer',
-        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ',
-        a_plot={
-            'data': {'x': '#wavelength_array', 'y': '#eqe_array'}
-        })
+        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ')
 
     photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='eV',
-        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum',
-        a_plot={
-            'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
-        })
+        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum')
 
     def normalize(self, archive, logger):
         super(SolarCellEQE, self).normalize(archive, logger)
