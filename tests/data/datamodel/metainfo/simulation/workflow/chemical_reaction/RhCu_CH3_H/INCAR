@@ -1,0 +1,43 @@
+INCAR file from C:\Users\Matt\Documents\Materials Studio Projects\TempProject Files\Documents\PdAu_CH4_PRv2.xsd. Created by Matt Darby on 30-Nov-2017.
+INCAR file. Created by M Darby on 30-Nov-2017.
+NWRITE = 1
+LWAVE =  .FALSE.  # write WAVECAR?
+LCHARG = .FALSE.  # write CHGCAR?
+LVTOT =  .FALSE.  # write LOCPOT?
+
+GGA = MK          # OptB86b-vdW XC-functional used
+PARAM1 = 0.1234
+PARAM2 = 1.0000
+LUSE_VDW = .TRUE.
+AGGAC = 0.0000
+
+IDIPOL = 3
+LDIPOL = .TRUE.
+
+# Electronic relaxation
+ENCUT = 400       # Energy cutoff in eV
+# IALGO  = 48     # 8: CG, 48: DIIS algorithm for electrons
+ALGO = FAST
+VOSKOWN = 1       # Default for PBE, RPBE
+PREC   = ACCURATE     
+LREAL  = AUTO
+ROPT   =  2e-4  2e-4  2e-4  2e-4  
+ISTART = 0
+NELM   = 100
+NELMDL = -10
+EDIFF  = 1e-7  # This and EDIFFG are the tolerance parameters
+ISYM = 2 
+
+# Ionic relaxation
+NSW    = 200   # number of steps in optimization (default 0!)
+ISIF   = 2     # 0: relax ions, 1,2:relax ions,calc stresses, 3:relax ion+cell
+IBRION = 1     # 1: quasi-NR, 2:CG algorithm for ions
+EDIFFG = -0.01 # For high accuracy, use -0.01 or -0.02
+POTIM  = 0.125  # reduce trial step in optimization
+ISMEAR = 1        # 0: Gaussian, electron smearing
+SIGMA  = 0.1      # If gas phase, set to 0.01
+NFREE  = 10    # number of DIIS vectors to save
+
+# Parallel
+NPAR = 8
+LPLANE = .TRUE.
