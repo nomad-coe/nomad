@@ -73154,6 +73154,93 @@ window.nomadArtifacts = {
                 "sub_section": "/packages/19/section_definitions/56"
               }
             ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 58,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ChemicalReactionMethod",
+            "base_sections": [
+              "/packages/19/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "reaction_type",
+                "description": "The type of the chemical reaction.",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "surface_adsorption"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 59,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ChemicalReactionResults",
+            "base_sections": [
+              "/packages/19/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "reaction_energy",
+                "description": "Calculated value of the reaction energy, E_reaction= E_products - E_reactants",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "activation_energy",
+                "description": "Calculated value of the activation energy, E_activation = E_transitions - E_reactants",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "unit": "joule"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 60,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ChemicalReaction",
+            "base_sections": [
+              "/packages/19/section_definitions/2"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "method",
+                "sub_section": "/packages/19/section_definitions/58"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "categories": [
+                  "/packages/17/category_definitions/0"
+                ],
+                "sub_section": "/packages/19/section_definitions/59"
+              }
+            ]
           }
         ]
       },
