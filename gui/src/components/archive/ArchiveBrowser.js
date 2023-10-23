@@ -69,6 +69,7 @@ import { useDataStore, useEntryStoreObj } from '../DataStore'
 import { useEntryStore } from '../entry/EntryContext'
 import ArchiveSearchBar from './ArchiveSearchBar'
 import DOMPurify from 'dompurify'
+import XYPlot from "./XYPlot"
 
 export const configState = atom({
   key: 'config',
@@ -1438,22 +1439,35 @@ FoldableList.defaultProps = ({
 
 export const SectionPlots = React.memo(function SectionPlots({section, sectionDef}) {
   let sortedFigures
+  const annotationPlot = sectionDef?.m_annotations?.plot && sectionDef.m_annotations?.plot
   if (section?.figures) {
     const [indexedFigures, otherFigures] = section.figures && partition(section.figures, figure => figure?.index !== undefined)
     sortedFigures = indexedFigures.sort((a, b) => a.index - b.index)
     sortedFigures = [...sortedFigures, ...otherFigures]
   }
-  const plot = sectionDef.m_annotations?.plot || sortedFigures?.map(plot => plot.figure)
   const [selected, setSelected] = useState([0])
+
   const plots = useMemo(() => {
-    const plots = (Array.isArray(plot) ? [...plot] : [{...plot}])
-    plots.forEach(plot => {
-      if (!Array.isArray(plot.data)) {
-        plot.data = [plot.data]
+    const validPlots = []
+    sortedFigures?.forEach(plot => {
+      if (plot?.figure) {
+        plot.figure.data = (Array.isArray(plot?.figure?.data) ? [...plot?.figure?.data] : [{...plot?.figure?.data}])
+        validPlots.push({plot: plot.figure, label: plot.label || plot?.layout?.title?.text || 'Untitled', type: 'PlotSection'})
       }
     })
-    return plots
-  }, [plot])
+    const annotationPlots = annotationPlot
+      ? Array.isArray(annotationPlot) ? [...annotationPlot] : [{...annotationPlot}]
+      : undefined
+    annotationPlots?.forEach(plot => {
+      if (!('label' in plot)) {
+        const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
+        const pathParts = Array.isArray(yAxis) ? ['unnamed'] : yAxis.split('/')
+        plot.label = pathParts[pathParts.length - 1]
+      }
+      validPlots.push({plot: plot, label: plot.label || 'Untitled', type: 'PlotAnnotation'})
+    })
+    return validPlots
+  }, [annotationPlot, sortedFigures])
 
   useEffect(() => {
     setSelected([0])
@@ -1471,7 +1485,9 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
           multiple: true,
           value: selected,
           onChange: event => setSelected(event.target.value),
-          renderValue: newSelected => newSelected.map(index => titleCase(sortedFigures?.[index]?.label || plots[index]?.layout?.title?.text || 'Untitled'))?.join(', ')
+          renderValue: newSelected => newSelected.map(index => {
+            return titleCase(plots?.[index]?.label)
+          })?.join(', ')
         }}
       >
         {plots.map((plot, index) => (
@@ -1479,21 +1495,28 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
             <Checkbox
               checked={selected.findIndex(selectedIndex => selectedIndex === index) >= 0}
             />
-            {titleCase(sortedFigures?.[index]?.label || plot?.layout?.title?.text || 'untitled')}
+            {titleCase(plots?.[index]?.label)}
           </MenuItem>
         ))}
       </TextField>}
       {selected.map(index => plots?.[index])
-        ?.map((plot, index) => (
-          <PlotlyFigure
-            key={index}
-            sectionDef={sectionDef}
-            section={section}
-            plot={plot}
-            title={sortedFigures?.[index]?.label || plot?.layout?.title?.text}
-          />
-        ))
-      }
+        ?.map((plot, index) => {
+          return plot.type === 'PlotSection'
+            ? <PlotlyFigure
+              key={index}
+              sectionDef={sectionDef}
+              section={section}
+              plot={plot.plot}
+              title={plot.label}
+            />
+            : <XYPlot
+              key={index}
+              sectionDef={sectionDef}
+              section={section}
+              plot={plot.plot}
+              title={plot.label}
+            />
+        })}
     </Box>
   </Compartment>
 })
@@ -1524,7 +1547,7 @@ function Quantity({value, def, unit, children}) {
     <ArchiveTitle def={def} data={value} kindLabel="value"/>
     {def.m_annotations?.plot && (
       <Compartment title="plot">
-        <PlotlyFigure
+        <XYPlot
           section={prev.adaptor.obj}
           sectionDef={prev.adaptor.def}
           plot={def.m_annotations?.plot[0]}

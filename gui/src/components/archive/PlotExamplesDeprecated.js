@@ -63,109 +63,75 @@ Example.propTypes = {
 }
 
 const pvdExamples = [{
-  plotly_graph_object: {
-    data: {
-      x: '#process_time',
-      y: '#./substrate_temperature'
-    },
-    layout: {title: {text: 'T Substrate'}},
+  a_plot: {
+    label: 'T_substrate',
+    x: 'process_time',
+    y: './substrate_temperature'
+  }
+}, {
+  a_plot: {
+    label: 'Temperature',
+    x: ['process_time', 'process_time'],
+    y: ['./set_substrate_temperature', './substrate_temperature']
+  }
+}, {
+  a_plot: {
+    label: 'Temperature',
+    x: 'process_time',
+    y: ['./substrate_temperature', './chamber_pressure'],
     config: {
       editable: true,
       scrollZoom: false
     }
   }
 }, {
-  plotly_graph_object: {
-    data: [
-      {
-        x: '#process_time',
-        y: '#./set_substrate_temperature',
-        mode: 'markers',
-        marker: {
-          color: '#./substrate_temperature'
-        }
-      },
-      {
-        x: '#process_time',
-        y: '#./substrate_temperature'
-      }
-    ],
-    layout: {title: {text: 'Temperature'}}
-  }
-}, {
-  plotly_graph_object: [{
-    data: [
-      {
-        x: '#process_time',
-        y: '#./substrate_temperature',
-        mode: 'markers',
-        marker: {
-          color: 'rgb(40, 80, 130)'
-        }
-      },
-      {
-        x: '#process_time',
-        y: '#./chamber_pressure',
-        mode: 'lines',
-        line: {
-          color: 'rgb(100, 0, 0)'
-        }
-      }
-    ],
-    layout: {title: {text: 'Temperature and Pressure'}}
+  a_plot: [{
+    label: 'Temperature and Pressure',
+    x: 'process_time',
+    y: ['./substrate_temperature', './chamber_pressure'],
+    lines: [{
+      mode: 'markers',
+      marker: {
+        color: 'rgb(40, 80, 130)'
+      }}, {
+      mode: 'lines',
+      line: {
+        color: 'rgb(100, 0, 0)'
+      }}
+    ]
   }, {
-    data: {
-      x: '#process_time',
-      y: '#chamber_pressure'
-    },
+    label: 'Pressure of Chamber',
+    x: 'process_time',
+    y: 'chamber_pressure',
     layout: {
-      title: {text: 'T Substrate'},
       xaxis: {title: 't (sec)'},
       yaxis: {title: 'P (GPa)', type: 'log'}
     }
   }]
 }]
 
-const processExamples = [
-  {
-    plotly_graph_object: {
-      data: {
-        x: '#PVDEvaporation/0/process_time',
-        y: '#PVDEvaporation/0/chamber_pressure'
-      },
-      layout: {title: {text: 'Chamber Pressure'}}
+const processExamples = [{
+    a_plot: {
+      x: 'PVDEvaporation/0/process_time',
+      y: 'PVDEvaporation/0/chamber_pressure'
     }
   }, {
-    plotly_graph_object: {
-      data: {
-        x: '#PVDEvaporation/1/process_time',
-        y: '#PVDEvaporation/1/substrate_temperature'
-      },
-      layout: {title: {text: 'Substrate Temperature'}}
+    a_plot: {
+      x: 'PVDEvaporation/1/process_time',
+      y: 'PVDEvaporation/1/substrate_temperature'
     }
   }, {
-    plotly_graph_object: {
-      data: [
-        {
-          x: '#PVDEvaporation/0/process_time',
-          y: '#PVDEvaporation/0/substrate_temperature'
-        },
-        {
-          x: '#PVDEvaporation/0/process_time',
-          y: '#PVDEvaporation/2/substrate_temperature'
-        }
-      ],
-      layout: {title: {text: 'Temperature'}}
+    a_plot: {
+      x: 'PVDEvaporation/0/process_time',
+      y: ['PVDEvaporation/0/substrate_temperature', 'PVDEvaporation/2/substrate_temperature']
     }
   }, {
-    plotly_graph_object: {
-      data: {
-        x: '#PVDEvaporation/:2/process_time',
-        y: '#PVDEvaporation/:2/substrate_temperature'
-      },
-      layout: {title: {text: 'Substrate Temperature'}}
+    a_plot: {
+      x: 'PVDEvaporation/:2/process_time',
+      y: 'PVDEvaporation/:2/substrate_temperature'
     }
   }
+
 ]
 
 function getSection(metainfo, packageName, sectionName) {
@@ -176,19 +142,13 @@ function getSection(metainfo, packageName, sectionName) {
   return section_definitions?.find(section => section.name === sectionName)
 }
 
-export function PlotExamples() {
+export function PlotExamplesDeprecated() {
   const metainfo = useGlobalMetainfo()
   const [plots, setPlots] = useState(pvdExamples.concat(processExamples))
   const [keys, setKeys] = useState(pvdExamples.concat(processExamples).map((example, index) => `plot${index}-0`))
 
   const pvdSectionDef = useMemo(() => ({
     name: 'PVDEvaporation',
-    _allBaseSections: [
-      {
-        m_def: 'nomad.metainfo.metainfo.Section',
-        name: 'PlotSection'
-      }
-    ],
     _properties: {
       name: {
         m_def: 'nomad.metainfo.metainfo.Quantity'
@@ -220,12 +180,6 @@ export function PlotExamples() {
   if (archiveSectionDef) {
     archiveSectionDef['sub_section'] = {
       m_def: 'nomad.metainfo.metainfo.Section',
-      _allBaseSections: [
-        {
-          m_def: 'nomad.metainfo.metainfo.Section',
-          name: 'PlotSection'
-        }
-      ],
       _properties: {
         PVDEvaporation: {
           m_def: 'nomad.metainfo.metainfo.SubSection',
@@ -236,15 +190,10 @@ export function PlotExamples() {
     }
   }
 
-  const sections = useMemo(() => {
-    return plots.map((example, index) => {
-      const graphObject = example.plotly_graph_object
-      const examples = Array.isArray(graphObject) ? graphObject : [graphObject]
-      return index < pvdExamples.length
-          ? {sectionDef: pvdSectionDef, figures: examples.map((figure) => ({figure: figure}))}
-          : {sectionDef: archiveSectionDef, figures: examples.map((figure) => ({figure: figure}))}
-      }
-    )
+  const sectionDefs = useMemo(() => {
+    return plots.map((example, index) => index < pvdExamples.length
+      ? {...pvdSectionDef, m_annotations: {plot: example.a_plot}}
+      : {...archiveSectionDef, m_annotations: {plot: example.a_plot}})
   }, [plots, pvdSectionDef, archiveSectionDef])
 
   const handleJsonChange = useCallback((data, index) => {
@@ -257,7 +206,7 @@ export function PlotExamples() {
     setKeys(newKeys)
   }, [keys, plots])
 
-  return sections.map((section, index) => (
+  return sectionDefs.map((def, index) => (
     <Box key={index}>
       {index === 0 && <Box margin={3} marginLeft={7}>
         <Typography variant="h6">
@@ -283,7 +232,7 @@ export function PlotExamples() {
         <Box width={'50%'} marginLeft={6} marginRight={6}>
           <Card>
             <CardContent>
-              <SectionPlots key={keys[index]} sectionDef={section.sectionDef} section={index < pvdExamples.length ? {...pvdSection, figures: section.figures} : {...processSection, figures: section.figures}}/>
+              <SectionPlots key={keys[index]} sectionDef={def} section={index < pvdExamples.length ? pvdSection : processSection}/>
             </CardContent>
           </Card>
         </Box>

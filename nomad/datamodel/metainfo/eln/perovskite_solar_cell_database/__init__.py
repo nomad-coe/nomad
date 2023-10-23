@@ -18,6 +18,8 @@
 #
 
 import numpy as np
+
+from nomad.datamodel.metainfo.plot import PlotSection
 from nomad.units import ureg
 from nomad.metainfo import (
     MSection, Package, Quantity, SubSection, Datetime, Section)
@@ -4746,11 +4748,18 @@ Air
             component='NumberEditQuantity'))
 
 
-class JVcurve(MSection):
+class JVcurve(PlotSection, MSection):
     '''
     Section describing a current density, voltage curve.
     '''
-    m_def = Section(label_quantity='cell_name')
+    m_def = Section(
+        label_quantity='cell_name',
+        a_plotly_graph_object=[{
+            'data': {'x': '#voltage', 'y': '#current_density'}
+        }, {
+            'data': {'x': '#voltage', 'y': '#current_density'}
+        }]
+    )
 
     def derive_n_values(self):
         if self.current_density is not None:
@@ -4771,17 +4780,11 @@ class JVcurve(MSection):
     current_density = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
         unit='mA/cm^2',
-        description='Current density array of the *JV* curve.',
-        a_plot={
-            'data': {'x': '#voltage', 'y': '#current_density'}
-        })
+        description='Current density array of the *JV* curve.')
 
     voltage = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='V',
-        description='Voltage array of the of the *JV* curve.',
-        a_plot={
-            'data': {'x': '#voltage', 'y': '#current_density'}
-        })
+        description='Voltage array of the of the *JV* curve.')
 
 
 class JV(MSection):
@@ -5603,7 +5606,7 @@ Short circuit
             component='EnumEditQuantity', props=dict(suggestions=['', 'false', 'www.testsite…'])))
 
 
-class EQE(MSection):
+class EQE(PlotSection, MSection):
     """
     A section describing the External Quantum Efficiency **EQE** of the solar cell
     and additional parameteres derived from it. If used as an ELN, a file containing
@@ -5613,7 +5616,7 @@ class EQE(MSection):
 
     m_def = Section(
         a_eln=dict(lane_width='600px'),
-        a_plot=[
+        a_plotly_graph_object=[
             {
                 'data': {
                     'x': '#raw_wavelength_array',
@@ -5625,8 +5628,7 @@ class EQE(MSection):
                     },
                     'yaxis': {'type': 'lin'}
                 },
-            },
-            {
+            }, {
                 'data': {
                     'x': '#wavelength_array',
                     'y': '#eqe_array'
@@ -5638,7 +5640,21 @@ class EQE(MSection):
                     'yaxis': {'type': 'log'}
                 },
                 'config': {"editable": 'true'},
-            }])
+            }, {
+                'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}
+            }, {
+                'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}
+            }, {
+                'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}
+            }, {
+                'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
+            }, {
+                'data': {'x': '#wavelength_array', 'y': '#eqe_array'}
+            }, {
+                'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
+            }
+        ]
+    )
 
     eqe_data_file = Quantity(
         type=str,
@@ -5755,45 +5771,27 @@ class EQE(MSection):
 
     raw_eqe_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'],
-        description='EQE array of the spectrum',
-        a_plot={
-            'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}
-        })
+        description='EQE array of the spectrum')
 
     raw_photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'], unit='eV',
-        description='Raw Photon energy array of the eqe spectrum',
-        a_plot={
-            'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}
-        })
+        description='Raw Photon energy array of the eqe spectrum')
 
     raw_wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_raw_values'], unit='nanometer',
-        description='Raw wavelength array of the eqe spectrum',
-        a_plot={
-            'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}
-        })
+        description='Raw wavelength array of the eqe spectrum')
 
     eqe_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'],
-        description='EQE array of the spectrum',
-        a_plot={
-            'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
-        })
+        description='EQE array of the spectrum')
 
     wavelength_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='nanometer',
-        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ',
-        a_plot={
-            'data': {'x': '#wavelength_array', 'y': '#eqe_array'}
-        })
+        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ')
 
     photon_energy_array = Quantity(
         type=np.dtype(np.float64), shape=['n_values'], unit='eV',
-        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum',
-        a_plot={
-            'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
-        })
+        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum')
 
     link_raw_data = Quantity(
         type=str,

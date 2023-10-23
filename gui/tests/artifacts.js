@@ -5073,6 +5073,103 @@ window.nomadArtifacts = {
         "m_def": "nomad.metainfo.metainfo.Package",
         "m_parent_index": 0,
         "m_parent_sub_section": "packages",
+        "name": "nomad.datamodel.metainfo.plot",
+        "section_definitions": [
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 0,
+            "m_parent_sub_section": "section_definitions",
+            "name": "Figure",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "label",
+                "description": "Label shown in the plot selection.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "index",
+                "description": "Index of figure in the plot selection.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "int"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 1,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PlotlyFigureQuantity",
+            "base_sections": [
+              "/packages/22/section_definitions/6"
+            ],
+            "constraints": [
+              "dimensions",
+              "has_type",
+              "higher_shapes_require_dtype"
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 2,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PlotlyFigure",
+            "base_sections": [
+              "/packages/0/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.datamodel.metainfo.plot.PlotlyFigureQuantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "figure",
+                "description": "Contains the JSON serialization for a plotly figure.",
+                "type": {
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._JSON"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 3,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PlotSection",
+            "description": "The PlotSection base section serves as an additional functionality to your sections. This base section is designed to simplify the process of creating various types of\nplots, making it easy to use Plotly Express, Plotly Subplot, and the general Plotly graph objects.\n\nFeatures:\n- Plotly Express: Create simple and quick plots with a high-level, expressive API.\n- Plotly Subplot: Organize multiple plots into subplots for more complex visualizations.\n- General Plotly Graph Objects: Fine-tune your plots by working directly with Plotly's graph objects.\n\nUsage:\n- Inherit from this base section to leverage its plot functionality.\n- Customize your plots using the annotations plotly-express, plotly-subplots, or/and plotly-graph-object.\n\nExample Usage:\n```python\nclass CustomSection(PlotSection, ElnBaseSection, EntryData):\n    m_def = Section()\n    time = Quantity(type=float, shape=['*'], unit='s', a_eln=dict(component='NumberEditQuantity'))\n    substrate_temperature = Quantity(type=float, shape=['*'], unit='K', a_eln=dict(component='NumberEditQuantity'))\n    chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa', a_eln=dict(component='NumberEditQuantity'))\n\n    def normalize(self, archive, logger):\n        super(CustomSection, self).normalize(archive, logger)\n\n        first_line = px.scatter(x=self.time, y=self.substrate_temperature)\n        second_line = px.scatter(x=self.time, y=self.chamber_pressure)\n        figure1 = make_subplots(rows=1, cols=2, shared_yaxes=True)\n        figure1.add_trace(first_line.data[0], row=1, col=1)\n        figure1.add_trace(second_line.data[0], row=1, col=2)\n        figure1.update_layout(height=400, width=716, title_text=\"Creating Subplots in Plotly\")\n        self.figures.append(PlotlyFigure(label='figure 1', figure=figure1.to_plotly_json()))\n\n        figure2 = px.scatter(x=self.substrate_temperature, y=self.chamber_pressure, color=self.chamber_pressure, title=\"Chamber as a function of Temperature\")\n        self.figures.append(PlotlyFigure(label='figure 2', index=1, figure=figure2.to_plotly_json()))\n\n        heatmap_data = [[None, None, None, 12, 13, 14, 15, 16],\n             [None, 1, None, 11, None, None, None, 17],\n             [None, 2, 6, 7, None, None, None, 18],\n             [None, 3, None, 8, None, None, None, 19],\n             [5, 4, 10, 9, None, None, None, 20],\n             [None, None, None, 27, None, None, None, 21],\n             [None, None, None, 26, 25, 24, 23, 22]]\n\n        heatmap = go.Heatmap(z=heatmap_data, showscale=False, connectgaps=True, zsmooth='best')\n        figure3 = go.Figure(data=heatmap)\n        self.figures.append(PlotlyFigure(label='figure 3', index=0, figure=figure3.to_plotly_json()))\n```",
+            "base_sections": [
+              "/packages/15/section_definitions/0"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "figures",
+                "more": {
+                  "label_quantity": "label"
+                },
+                "sub_section": "/packages/0/section_definitions/2",
+                "repeats": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "m_def": "nomad.metainfo.metainfo.Package",
+        "m_parent_index": 1,
+        "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.simulation.method",
         "section_definitions": [
           {
@@ -5256,7 +5353,7 @@ window.nomadArtifacts = {
             "name": "KMesh",
             "description": "Contains the settings for a sampling mesh in 3D reciprocal space. Supports uniformly-spaced meshes, line paths along high-symmetry points,\nas well as symmetry-reduced and full representations.",
             "base_sections": [
-              "/packages/0/section_definitions/0"
+              "/packages/1/section_definitions/0"
             ],
             "quantities": [
               {
@@ -5309,7 +5406,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "line_path_segments",
-                "sub_section": "/packages/0/section_definitions/1",
+                "sub_section": "/packages/1/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -5321,7 +5418,7 @@ window.nomadArtifacts = {
             "name": "FrequencyMesh",
             "description": "Contains the settings for a sampling mesh in 1D frequency space, either real or imaginary.",
             "base_sections": [
-              "/packages/0/section_definitions/0"
+              "/packages/1/section_definitions/0"
             ],
             "quantities": [
               {
@@ -5361,7 +5458,7 @@ window.nomadArtifacts = {
             "name": "TimeMesh",
             "description": "Contains the settings for a sampling mesh in 1D time space, either real or imaginary.",
             "base_sections": [
-              "/packages/0/section_definitions/0"
+              "/packages/1/section_definitions/0"
             ],
             "quantities": [
               {
@@ -5876,7 +5973,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "pseudopotential",
-                "sub_section": "/packages/0/section_definitions/7",
+                "sub_section": "/packages/1/section_definitions/7",
                 "repeats": false
               },
               {
@@ -5884,7 +5981,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hubbard_kanamori_model",
-                "sub_section": "/packages/0/section_definitions/6"
+                "sub_section": "/packages/1/section_definitions/6"
               }
             ]
           },
@@ -5926,7 +6023,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_parameters",
-                "sub_section": "/packages/0/section_definitions/8",
+                "sub_section": "/packages/1/section_definitions/8",
                 "repeats": true
               }
             ]
@@ -6130,7 +6227,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gaussian_basis_group",
-                "sub_section": "/packages/0/section_definitions/11",
+                "sub_section": "/packages/1/section_definitions/11",
                 "repeats": true
               }
             ]
@@ -6446,7 +6543,7 @@ window.nomadArtifacts = {
             "name": "BasisSet",
             "description": "This section contains all basis sets used to represent the wavefunction or electron density.",
             "base_sections": [
-              "/packages/0/section_definitions/14"
+              "/packages/1/section_definitions/14"
             ],
             "quantities": [
               {
@@ -6551,7 +6648,7 @@ window.nomadArtifacts = {
                 "description": "Reference to a particular atom parameter setup further specifying the basis set.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/8"
+                  "type_data": "/packages/1/section_definitions/8"
                 },
                 "shape": []
               }
@@ -6562,7 +6659,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_centered",
-                "sub_section": "/packages/0/section_definitions/12",
+                "sub_section": "/packages/1/section_definitions/12",
                 "repeats": true
               },
               {
@@ -6570,7 +6667,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "orbital",
-                "sub_section": "/packages/0/section_definitions/13",
+                "sub_section": "/packages/1/section_definitions/13",
                 "repeats": true
               }
             ]
@@ -6652,7 +6749,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "basis_set",
-                "sub_section": "/packages/0/section_definitions/15",
+                "sub_section": "/packages/1/section_definitions/15",
                 "repeats": true
               }
             ]
@@ -6803,7 +6900,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/1/section_definitions/17",
                 "repeats": true
               }
             ]
@@ -6859,7 +6956,7 @@ window.nomadArtifacts = {
             "name": "XCFunctional",
             "description": "Section describing the exchange-correlation functional used in the DFT calculation. The name of the exchange-correlation functional is given by name and the reference to\nthe published functional is provided by reference. Other contributions to the\nfunctional not covered by exchange, correlation or hybrid types may be specified in\ncontributions.",
             "base_sections": [
-              "/packages/0/section_definitions/18"
+              "/packages/1/section_definitions/18"
             ],
             "sub_sections": [
               {
@@ -6867,7 +6964,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "exchange",
-                "sub_section": "/packages/0/section_definitions/19",
+                "sub_section": "/packages/1/section_definitions/19",
                 "repeats": true
               },
               {
@@ -6875,7 +6972,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "correlation",
-                "sub_section": "/packages/0/section_definitions/19",
+                "sub_section": "/packages/1/section_definitions/19",
                 "repeats": true
               },
               {
@@ -6883,7 +6980,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hybrid",
-                "sub_section": "/packages/0/section_definitions/19",
+                "sub_section": "/packages/1/section_definitions/19",
                 "repeats": true
               },
               {
@@ -6891,7 +6988,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
-                "sub_section": "/packages/0/section_definitions/19",
+                "sub_section": "/packages/1/section_definitions/19",
                 "repeats": true
               }
             ]
@@ -6922,7 +7019,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "xc_functional",
-                "sub_section": "/packages/0/section_definitions/20"
+                "sub_section": "/packages/1/section_definitions/20"
               }
             ]
           },
@@ -7021,7 +7118,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "wannier",
-                "sub_section": "/packages/0/section_definitions/22",
+                "sub_section": "/packages/1/section_definitions/22",
                 "repeats": false
               }
             ]
@@ -7138,7 +7235,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
-                "sub_section": "/packages/0/section_definitions/24",
+                "sub_section": "/packages/1/section_definitions/24",
                 "repeats": false
               },
               {
@@ -7146,7 +7243,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hubbard_kanamori_model",
-                "sub_section": "/packages/0/section_definitions/6",
+                "sub_section": "/packages/1/section_definitions/6",
                 "repeats": true
               }
             ]
@@ -7296,21 +7393,21 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "k_mesh",
-                "sub_section": "/packages/0/section_definitions/2"
+                "sub_section": "/packages/1/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "q_mesh",
-                "sub_section": "/packages/0/section_definitions/2"
+                "sub_section": "/packages/1/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "frequency_mesh",
-                "sub_section": "/packages/0/section_definitions/3"
+                "sub_section": "/packages/1/section_definitions/3"
               }
             ]
           },
@@ -7321,7 +7418,7 @@ window.nomadArtifacts = {
             "name": "Screening",
             "description": "Section containing the various parameters that define a screening calculation, as for example, in RPA.",
             "base_sections": [
-              "/packages/0/section_definitions/27"
+              "/packages/1/section_definitions/27"
             ],
             "quantities": [
               {
@@ -7344,7 +7441,7 @@ window.nomadArtifacts = {
             "name": "GW",
             "description": "Section containing the various parameters that define a GW calculation.",
             "base_sections": [
-              "/packages/0/section_definitions/27"
+              "/packages/1/section_definitions/27"
             ],
             "quantities": [
               {
@@ -7415,7 +7512,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "screening",
-                "sub_section": "/packages/0/section_definitions/28"
+                "sub_section": "/packages/1/section_definitions/28"
               }
             ]
           },
@@ -7426,7 +7523,7 @@ window.nomadArtifacts = {
             "name": "BSE",
             "description": "Section containing the various parameters that define a BSE calculation.",
             "base_sections": [
-              "/packages/0/section_definitions/27"
+              "/packages/1/section_definitions/27"
             ],
             "quantities": [
               {
@@ -7483,14 +7580,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "screening",
-                "sub_section": "/packages/0/section_definitions/28"
+                "sub_section": "/packages/1/section_definitions/28"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "core_hole",
-                "sub_section": "/packages/0/section_definitions/26"
+                "sub_section": "/packages/1/section_definitions/26"
               }
             ]
           },
@@ -7620,7 +7717,7 @@ window.nomadArtifacts = {
             "name": "TBModel",
             "description": "Section containing the parameters pertaining to a tight-binding calculation.",
             "base_sections": [
-              "/packages/0/section_definitions/18"
+              "/packages/1/section_definitions/18"
             ],
             "sub_sections": [
               {
@@ -7628,7 +7725,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hamiltonian",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/1/section_definitions/17",
                 "repeats": true
               },
               {
@@ -7636,7 +7733,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "overlap",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/1/section_definitions/17",
                 "repeats": true
               },
               {
@@ -7644,7 +7741,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "repulsion",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/1/section_definitions/17",
                 "repeats": true
               },
               {
@@ -7652,7 +7749,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "magnetic",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/1/section_definitions/17",
                 "repeats": true
               },
               {
@@ -7660,7 +7757,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "coulomb",
-                "sub_section": "/packages/0/section_definitions/17",
+                "sub_section": "/packages/1/section_definitions/17",
                 "repeats": true
               }
             ]
@@ -7691,7 +7788,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "model",
-                "sub_section": "/packages/0/section_definitions/32",
+                "sub_section": "/packages/1/section_definitions/32",
                 "repeats": true
               }
             ]
@@ -7789,7 +7886,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "neighbor_searching",
-                "sub_section": "/packages/0/section_definitions/34",
+                "sub_section": "/packages/1/section_definitions/34",
                 "repeats": false
               }
             ]
@@ -7806,7 +7903,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "model",
-                "sub_section": "/packages/0/section_definitions/18",
+                "sub_section": "/packages/1/section_definitions/18",
                 "repeats": true
               },
               {
@@ -7814,7 +7911,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "force_calculations",
-                "sub_section": "/packages/0/section_definitions/35",
+                "sub_section": "/packages/1/section_definitions/35",
                 "repeats": false
               }
             ]
@@ -7992,7 +8089,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "smearing",
-                "sub_section": "/packages/0/section_definitions/37"
+                "sub_section": "/packages/1/section_definitions/37"
               }
             ]
           },
@@ -8029,7 +8126,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/39"
                 },
                 "shape": []
               },
@@ -8044,7 +8141,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/39"
                 },
                 "shape": []
               },
@@ -8071,7 +8168,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/39"
                 },
                 "shape": [
                   "n_references"
@@ -8084,21 +8181,21 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft",
-                "sub_section": "/packages/0/section_definitions/21"
+                "sub_section": "/packages/1/section_definitions/21"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "projection",
-                "sub_section": "/packages/0/section_definitions/23"
+                "sub_section": "/packages/1/section_definitions/23"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "lattice_model_hamiltonian",
-                "sub_section": "/packages/0/section_definitions/25",
+                "sub_section": "/packages/1/section_definitions/25",
                 "repeats": true
               },
               {
@@ -8106,56 +8203,56 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
-                "sub_section": "/packages/0/section_definitions/29"
+                "sub_section": "/packages/1/section_definitions/29"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "bse",
-                "sub_section": "/packages/0/section_definitions/30"
+                "sub_section": "/packages/1/section_definitions/30"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft",
-                "sub_section": "/packages/0/section_definitions/31"
+                "sub_section": "/packages/1/section_definitions/31"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "tb",
-                "sub_section": "/packages/0/section_definitions/33"
+                "sub_section": "/packages/1/section_definitions/33"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "force_field",
-                "sub_section": "/packages/0/section_definitions/36"
+                "sub_section": "/packages/1/section_definitions/36"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "core_hole",
-                "sub_section": "/packages/0/section_definitions/26"
+                "sub_section": "/packages/1/section_definitions/26"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "k_mesh",
-                "sub_section": "/packages/0/section_definitions/2"
+                "sub_section": "/packages/1/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "frequency_mesh",
-                "sub_section": "/packages/0/section_definitions/3",
+                "sub_section": "/packages/1/section_definitions/3",
                 "repeats": true
               },
               {
@@ -8163,7 +8260,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "time_mesh",
-                "sub_section": "/packages/0/section_definitions/4",
+                "sub_section": "/packages/1/section_definitions/4",
                 "repeats": true
               },
               {
@@ -8171,14 +8268,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
-                "sub_section": "/packages/0/section_definitions/38"
+                "sub_section": "/packages/1/section_definitions/38"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
                 "name": "scf",
-                "sub_section": "/packages/0/section_definitions/5"
+                "sub_section": "/packages/1/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -8188,7 +8285,7 @@ window.nomadArtifacts = {
                 "more": {
                   "label_quantity": "label"
                 },
-                "sub_section": "/packages/0/section_definitions/8",
+                "sub_section": "/packages/1/section_definitions/8",
                 "repeats": true
               },
               {
@@ -8199,7 +8296,7 @@ window.nomadArtifacts = {
                 "more": {
                   "label_quantity": "label"
                 },
-                "sub_section": "/packages/0/section_definitions/9",
+                "sub_section": "/packages/1/section_definitions/9",
                 "repeats": true
               },
               {
@@ -8210,7 +8307,7 @@ window.nomadArtifacts = {
                 "more": {
                   "label_quantity": "type"
                 },
-                "sub_section": "/packages/0/section_definitions/16",
+                "sub_section": "/packages/1/section_definitions/16",
                 "repeats": true
               },
               {
@@ -8218,7 +8315,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 17,
                 "m_parent_sub_section": "sub_sections",
                 "name": "photon",
-                "sub_section": "/packages/0/section_definitions/10",
+                "sub_section": "/packages/1/section_definitions/10",
                 "repeats": true
               }
             ]
@@ -8227,7 +8324,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 1,
+        "m_parent_index": 2,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.simulation.system",
         "section_definitions": [
@@ -8331,7 +8428,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms_group",
-                "sub_section": "/packages/1/section_definitions/0",
+                "sub_section": "/packages/2/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -8713,7 +8810,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system_original",
-                "sub_section": "/packages/1/section_definitions/1",
+                "sub_section": "/packages/2/section_definitions/1",
                 "repeats": true
               },
               {
@@ -8721,7 +8818,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system_primitive",
-                "sub_section": "/packages/1/section_definitions/1",
+                "sub_section": "/packages/2/section_definitions/1",
                 "repeats": true
               },
               {
@@ -8729,7 +8826,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system_std",
-                "sub_section": "/packages/1/section_definitions/1",
+                "sub_section": "/packages/2/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -9062,7 +9159,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "soap",
-                "sub_section": "/packages/1/section_definitions/6",
+                "sub_section": "/packages/2/section_definitions/6",
                 "repeats": false
               }
             ]
@@ -9148,7 +9245,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": []
               },
@@ -9163,7 +9260,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": [
                   "n_references"
@@ -9227,14 +9324,14 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/1/section_definitions/1"
+                "sub_section": "/packages/2/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms_group",
-                "sub_section": "/packages/1/section_definitions/0",
+                "sub_section": "/packages/2/section_definitions/0",
                 "repeats": true
               },
               {
@@ -9242,7 +9339,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "constraint",
-                "sub_section": "/packages/1/section_definitions/5",
+                "sub_section": "/packages/2/section_definitions/5",
                 "repeats": true
               },
               {
@@ -9253,7 +9350,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/1/section_definitions/3",
+                "sub_section": "/packages/2/section_definitions/3",
                 "repeats": true
               },
               {
@@ -9264,7 +9361,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/1/section_definitions/4",
+                "sub_section": "/packages/2/section_definitions/4",
                 "repeats": true
               },
               {
@@ -9275,7 +9372,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/1/section_definitions/2",
+                "sub_section": "/packages/2/section_definitions/2",
                 "repeats": true
               },
               {
@@ -9286,7 +9383,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/1/section_definitions/7",
+                "sub_section": "/packages/2/section_definitions/7",
                 "repeats": false
               }
             ]
@@ -9295,7 +9392,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 2,
+        "m_parent_index": 3,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.simulation.calculation",
         "section_definitions": [
@@ -9499,7 +9596,7 @@ window.nomadArtifacts = {
                 "description": "References to the atoms_group section containing the molecule for which Rg was calculated.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/0"
+                  "type_data": "/packages/2/section_definitions/0"
                 },
                 "shape": [
                   1
@@ -9514,7 +9611,7 @@ window.nomadArtifacts = {
             "name": "EnergyEntry",
             "description": "Section describing a type of energy or a contribution to the total energy.",
             "base_sections": [
-              "/packages/2/section_definitions/0"
+              "/packages/3/section_definitions/0"
             ],
             "quantities": [
               {
@@ -9704,8 +9801,8 @@ window.nomadArtifacts = {
                 "name": "change",
                 "description": "Stores the change of total energy with respect to the previous step.",
                 "categories": [
-                  "/packages/2/category_definitions/5",
-                  "/packages/2/category_definitions/3"
+                  "/packages/3/category_definitions/5",
+                  "/packages/3/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -9721,8 +9818,8 @@ window.nomadArtifacts = {
                 "name": "fermi",
                 "description": "Fermi energy (separates occupied from unoccupied single-particle states)",
                 "categories": [
-                  "/packages/2/category_definitions/4",
-                  "/packages/2/category_definitions/3"
+                  "/packages/3/category_definitions/4",
+                  "/packages/3/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -9768,7 +9865,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9776,7 +9873,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "current",
                 "description": "Contains the value and information regarding the energy calculated with\ncalculation_method_current. energy_current is equal to energy_total for\nnon-perturbative methods. For perturbative methods, energy_current is equal to the\ncorrection: energy_total minus energy_total of the calculation_to_calculation_ref\nwith calculation_to_calculation_kind = starting_point",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9784,7 +9881,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "zero_point",
                 "description": "Contains the value and information regarding the converged zero-point\nvibrations energy calculated using the method described in zero_point_method.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9792,7 +9889,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "kinetic_electronic",
                 "description": "Contains the value and information regarding the self-consistent electronic\nkinetic energy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9800,7 +9897,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
                 "description": "Contains the value and information regarding the self-consistent electronic\nenergy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9808,7 +9905,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "correlation",
                 "description": "Contains the value and information regarding the correlation energy calculated\nusing the method described in XC_functional.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9816,7 +9913,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "exchange",
                 "description": "Contains the value and information regarding the exchange energy calculated\nusing the method described in XC_functional.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9824,7 +9921,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "xc",
                 "description": "Contains the value and information regarding the exchange-correlation (XC)\nenergy calculated with the functional stored in XC_functional.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9832,7 +9929,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "xc_potential",
                 "description": "Contains the value and information regarding the exchange-correlation (XC)\npotential energy: the integral of the first order derivative of the functional\nstored in XC_functional (integral of v_xc*electron_density), i.e., the component\nof XC that is in the sum of the eigenvalues. Value associated with the\nconfiguration, should be the most converged value..",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9840,7 +9937,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "electrostatic",
                 "description": "Contains the value and information regarding the total electrostatic energy\n(nuclei + electrons), defined consistently with calculation_method.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9848,7 +9945,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "nuclear_repulsion",
                 "description": "Contains the value and information regarding the total nuclear-nuclear repulsion\nenergy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9856,7 +9953,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "coulomb",
                 "description": "Contains the value and information regarding the Coulomb energy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9864,7 +9961,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "madelung",
                 "description": "Contains the value and information regarding the Madelung energy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9872,7 +9969,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "ewald",
                 "description": "Contains the value and information regarding the Ewald energy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9880,7 +9977,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "free",
                 "description": "Contains the value and information regarding the free energy (nuclei + electrons)\n(whose minimum gives the smeared occupation density calculated with\nsmearing_kind).",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9888,7 +9985,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "sum_eigenvalues",
                 "description": "Contains the value and information regarding the sum of the eigenvalues of the\nHamiltonian matrix.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9896,7 +9993,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "total_t0",
                 "description": "Contains the value and information regarding the total energy extrapolated to\n$T=0$, based on a free-electron gas argument.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9904,7 +10001,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "van_der_waals",
                 "description": "Contains the value and information regarding the Van der Waals energy. A multiple\noccurence is expected when more than one van der Waals methods are defined. The\nvan der Waals kind should be specified in Energy.kind",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9912,7 +10009,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "hartree_fock_x_scaled",
                 "description": "Scaled exact-exchange energy that depends on the mixing parameter of the\nfunctional. For example in hybrid functionals, the exchange energy is given as a\nlinear combination of exact-energy and exchange energy of an approximate DFT\nfunctional; the exact exchange energy multiplied by the mixing coefficient of the\nhybrid functional would be stored in this metadata. Defined consistently with\nXC_method.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9920,7 +10017,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
                 "description": "Contains other energy contributions to the total energy not already defined.",
-                "sub_section": "/packages/2/section_definitions/4",
+                "sub_section": "/packages/3/section_definitions/4",
                 "repeats": true
               },
               {
@@ -9929,7 +10026,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "types",
                 "description": "Contains other energy types not already defined.",
-                "sub_section": "/packages/2/section_definitions/4",
+                "sub_section": "/packages/3/section_definitions/4",
                 "repeats": true
               },
               {
@@ -9941,7 +10038,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9949,7 +10046,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "correction_entropy",
                 "description": "Entropy correction to the potential energy to compensate for the change in\noccupation so that forces at finite T do not need to keep the change of occupation\nin account. Defined consistently with XC_method.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9957,7 +10054,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "correction_hartree",
                 "description": "Correction to the density-density electrostatic energy in the sum of eigenvalues\n(that uses the mixed density on one side), and the fully consistent density-\ndensity electrostatic energy. Defined consistently with XC_method.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9965,7 +10062,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "correction_xc",
                 "description": "Correction to energy_XC.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9973,7 +10070,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "kinetic",
                 "description": "Contains the value and information regarding the kinetic energy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9981,7 +10078,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "potential",
                 "description": "Contains the value and information regarding the potential energy.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -9989,7 +10086,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "pressure_volume_work",
                 "description": "Contains the value and information regarding the instantaneous pV work.",
-                "sub_section": "/packages/2/section_definitions/4"
+                "sub_section": "/packages/3/section_definitions/4"
               }
             ]
           },
@@ -10000,7 +10097,7 @@ window.nomadArtifacts = {
             "name": "ForcesEntry",
             "description": "Section describing a contribution to or type of atomic forces.",
             "base_sections": [
-              "/packages/2/section_definitions/0"
+              "/packages/3/section_definitions/0"
             ],
             "quantities": [
               {
@@ -10050,7 +10147,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "total",
                 "description": "Contains the value and information regarding the total forces on the atoms\ncalculated as minus gradient of energy_total.",
-                "sub_section": "/packages/2/section_definitions/6"
+                "sub_section": "/packages/3/section_definitions/6"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -10058,7 +10155,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "free",
                 "description": "Contains the value and information regarding the forces on the atoms\ncorresponding to the minus gradient of energy_free. The (electronic) energy_free\ncontains the information on the change in (fractional) occupation of the\nelectronic eigenstates, which are accounted for in the derivatives, yielding a\ntruly energy-conserved quantity.",
-                "sub_section": "/packages/2/section_definitions/6"
+                "sub_section": "/packages/3/section_definitions/6"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -10066,7 +10163,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "t0",
                 "description": "Contains the value and information regarding the forces on the atoms\ncorresponding to the minus gradient of energy_T0.",
-                "sub_section": "/packages/2/section_definitions/6"
+                "sub_section": "/packages/3/section_definitions/6"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -10074,7 +10171,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
                 "description": "Contains other forces contributions to the total atomic forces not already\ndefined.",
-                "sub_section": "/packages/2/section_definitions/6",
+                "sub_section": "/packages/3/section_definitions/6",
                 "repeats": true
               },
               {
@@ -10083,7 +10180,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "types",
                 "description": "Contains other types of forces not already defined.",
-                "sub_section": "/packages/2/section_definitions/6",
+                "sub_section": "/packages/3/section_definitions/6",
                 "repeats": true
               }
             ]
@@ -10095,7 +10192,7 @@ window.nomadArtifacts = {
             "name": "StressEntry",
             "description": "Section describing a contribution to or a type of stress.",
             "base_sections": [
-              "/packages/2/section_definitions/0"
+              "/packages/3/section_definitions/0"
             ],
             "quantities": [
               {
@@ -10146,7 +10243,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "total",
                 "description": "Contains the value and information regarding the stress on the simulation cell\nand the atomic stresses corresponding to energy_total.",
-                "sub_section": "/packages/2/section_definitions/8"
+                "sub_section": "/packages/3/section_definitions/8"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -10154,7 +10251,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "contributions",
                 "description": "Contains contributions for the total stress.",
-                "sub_section": "/packages/2/section_definitions/8",
+                "sub_section": "/packages/3/section_definitions/8",
                 "repeats": true
               },
               {
@@ -10163,7 +10260,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "types",
                 "description": "Contains other types of stress.",
-                "sub_section": "/packages/2/section_definitions/8",
+                "sub_section": "/packages/3/section_definitions/8",
                 "repeats": true
               }
             ]
@@ -10175,7 +10272,7 @@ window.nomadArtifacts = {
             "name": "ChargesValue",
             "description": "Contains information on the charge on an atom or projected onto an orbital.",
             "base_sections": [
-              "/packages/2/section_definitions/1"
+              "/packages/3/section_definitions/1"
             ],
             "quantities": [
               {
@@ -10224,7 +10321,7 @@ window.nomadArtifacts = {
             "name": "Charges",
             "description": "Section describing the charges on the atoms obtained through a given analysis method. Also contains information on the orbital projection of charges.",
             "base_sections": [
-              "/packages/2/section_definitions/0"
+              "/packages/3/section_definitions/0"
             ],
             "quantities": [
               {
@@ -10302,7 +10399,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spin_projected",
-                "sub_section": "/packages/2/section_definitions/10",
+                "sub_section": "/packages/3/section_definitions/10",
                 "repeats": true
               },
               {
@@ -10310,7 +10407,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "orbital_projected",
-                "sub_section": "/packages/2/section_definitions/10",
+                "sub_section": "/packages/3/section_definitions/10",
                 "repeats": true
               }
             ]
@@ -10696,7 +10793,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_gap",
-                "sub_section": "/packages/2/section_definitions/12",
+                "sub_section": "/packages/3/section_definitions/12",
                 "repeats": true
               }
             ]
@@ -10756,7 +10853,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_gap",
-                "sub_section": "/packages/2/section_definitions/12",
+                "sub_section": "/packages/3/section_definitions/12",
                 "repeats": true
               },
               {
@@ -10764,7 +10861,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "segment",
-                "sub_section": "/packages/2/section_definitions/13",
+                "sub_section": "/packages/3/section_definitions/13",
                 "repeats": true
               }
             ]
@@ -10847,7 +10944,7 @@ window.nomadArtifacts = {
             "name": "DosValues",
             "description": "Section containing information regarding the values of the density of states (DOS).",
             "base_sections": [
-              "/packages/2/section_definitions/1"
+              "/packages/3/section_definitions/1"
             ],
             "quantities": [
               {
@@ -10912,7 +11009,7 @@ window.nomadArtifacts = {
             "name": "Dos",
             "description": "Section containing information of an electronic-energy or phonon density of states (DOS) evaluation.",
             "base_sections": [
-              "/packages/2/section_definitions/0"
+              "/packages/3/section_definitions/0"
             ],
             "quantities": [
               {
@@ -10975,7 +11072,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_gap",
-                "sub_section": "/packages/2/section_definitions/12",
+                "sub_section": "/packages/3/section_definitions/12",
                 "repeats": true
               },
               {
@@ -10983,7 +11080,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "total",
-                "sub_section": "/packages/2/section_definitions/16",
+                "sub_section": "/packages/3/section_definitions/16",
                 "repeats": true
               },
               {
@@ -10991,7 +11088,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_projected",
-                "sub_section": "/packages/2/section_definitions/16",
+                "sub_section": "/packages/3/section_definitions/16",
                 "repeats": true
               },
               {
@@ -10999,7 +11096,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "species_projected",
-                "sub_section": "/packages/2/section_definitions/16",
+                "sub_section": "/packages/3/section_definitions/16",
                 "repeats": true
               },
               {
@@ -11007,7 +11104,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "orbital_projected",
-                "sub_section": "/packages/2/section_definitions/16",
+                "sub_section": "/packages/3/section_definitions/16",
                 "repeats": true
               },
               {
@@ -11015,7 +11112,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "fingerprint",
-                "sub_section": "/packages/2/section_definitions/15",
+                "sub_section": "/packages/3/section_definitions/15",
                 "repeats": false
               }
             ]
@@ -11038,7 +11135,7 @@ window.nomadArtifacts = {
                 "description": "",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/16"
+                  "type_data": "/packages/3/section_definitions/16"
                 },
                 "shape": []
               },
@@ -11050,7 +11147,7 @@ window.nomadArtifacts = {
                 "description": "",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/13"
+                  "type_data": "/packages/3/section_definitions/13"
                 },
                 "shape": []
               },
@@ -11062,7 +11159,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the specific method section.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/39"
                 },
                 "shape": []
               }
@@ -11075,7 +11172,7 @@ window.nomadArtifacts = {
             "name": "BandGap",
             "description": "\n        Contains information for each present spin channel.\n        ",
             "base_sections": [
-              "/packages/2/section_definitions/12"
+              "/packages/3/section_definitions/12"
             ],
             "sub_sections": [
               {
@@ -11083,7 +11180,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/2/section_definitions/18",
+                "sub_section": "/packages/3/section_definitions/18",
                 "repeats": false
               }
             ]
@@ -11095,7 +11192,7 @@ window.nomadArtifacts = {
             "name": "MultipolesValues",
             "description": "Section containing the values of the multipoles projected unto an atom or orbital.",
             "base_sections": [
-              "/packages/2/section_definitions/1"
+              "/packages/3/section_definitions/1"
             ],
             "quantities": [
               {
@@ -11119,7 +11216,7 @@ window.nomadArtifacts = {
             "name": "MultipolesEntry",
             "description": "Section describing a multipole term. The unit of the values are given by C * m ^ n, where n = 1 for dipole, 2 for quadrupole, etc.",
             "base_sections": [
-              "/packages/2/section_definitions/0"
+              "/packages/3/section_definitions/0"
             ],
             "quantities": [
               {
@@ -11185,7 +11282,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "orbital_projected",
-                "sub_section": "/packages/2/section_definitions/20",
+                "sub_section": "/packages/3/section_definitions/20",
                 "repeats": true
               }
             ]
@@ -11216,7 +11313,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dipole",
-                "sub_section": "/packages/2/section_definitions/21",
+                "sub_section": "/packages/3/section_definitions/21",
                 "repeats": false
               },
               {
@@ -11224,7 +11321,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quadrupole",
-                "sub_section": "/packages/2/section_definitions/21",
+                "sub_section": "/packages/3/section_definitions/21",
                 "repeats": false
               },
               {
@@ -11232,7 +11329,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "octupole",
-                "sub_section": "/packages/2/section_definitions/21",
+                "sub_section": "/packages/3/section_definitions/21",
                 "repeats": false
               },
               {
@@ -11240,7 +11337,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "higher_order",
-                "sub_section": "/packages/2/section_definitions/21",
+                "sub_section": "/packages/3/section_definitions/21",
                 "repeats": true
               }
             ]
@@ -11546,7 +11643,7 @@ window.nomadArtifacts = {
             "name": "PotentialValue",
             "description": "Section containing the values of the potential evaluated on a uniform real-space grid.",
             "base_sections": [
-              "/packages/2/section_definitions/24"
+              "/packages/3/section_definitions/24"
             ],
             "quantities": [
               {
@@ -11576,7 +11673,7 @@ window.nomadArtifacts = {
             "name": "Potential",
             "description": "Section containing all potential types.",
             "base_sections": [
-              "/packages/2/section_definitions/24"
+              "/packages/3/section_definitions/24"
             ],
             "sub_sections": [
               {
@@ -11584,7 +11681,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "effective",
-                "sub_section": "/packages/2/section_definitions/25",
+                "sub_section": "/packages/3/section_definitions/25",
                 "repeats": true
               },
               {
@@ -11592,7 +11689,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hartree",
-                "sub_section": "/packages/2/section_definitions/25",
+                "sub_section": "/packages/3/section_definitions/25",
                 "repeats": true
               }
             ]
@@ -11604,7 +11701,7 @@ window.nomadArtifacts = {
             "name": "Density",
             "description": "Section containing the values of the density evaluated on a uniform real-space grid.",
             "base_sections": [
-              "/packages/2/section_definitions/24"
+              "/packages/3/section_definitions/24"
             ],
             "quantities": [
               {
@@ -11679,7 +11776,7 @@ window.nomadArtifacts = {
                 "name": "excitation_energies",
                 "description": "Excitation energies.",
                 "categories": [
-                  "/packages/2/category_definitions/3"
+                  "/packages/3/category_definitions/3"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -11765,7 +11862,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/2/section_definitions/18",
+                "sub_section": "/packages/3/section_definitions/18",
                 "repeats": true
               }
             ]
@@ -12112,7 +12209,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "raman",
-                "sub_section": "/packages/2/section_definitions/30",
+                "sub_section": "/packages/3/section_definitions/30",
                 "repeats": false
               },
               {
@@ -12120,7 +12217,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "infrared",
-                "sub_section": "/packages/2/section_definitions/30",
+                "sub_section": "/packages/3/section_definitions/30",
                 "repeats": false
               }
             ]
@@ -12132,7 +12229,7 @@ window.nomadArtifacts = {
             "name": "RadiusOfGyrationValues",
             "description": "Section containing information regarding the values of radius of gyration (Rg).",
             "base_sections": [
-              "/packages/2/section_definitions/3"
+              "/packages/3/section_definitions/3"
             ],
             "quantities": [
               {
@@ -12157,7 +12254,7 @@ window.nomadArtifacts = {
             "name": "RadiusOfGyration",
             "description": "Section containing information about the calculation of radius of gyration (Rg).",
             "base_sections": [
-              "/packages/2/section_definitions/2"
+              "/packages/3/section_definitions/2"
             ],
             "sub_sections": [
               {
@@ -12165,7 +12262,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radius_of_gyration_values",
-                "sub_section": "/packages/2/section_definitions/32",
+                "sub_section": "/packages/3/section_definitions/32",
                 "repeats": true
               }
             ]
@@ -12191,7 +12288,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": []
               },
@@ -12206,7 +12303,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/39"
                 },
                 "shape": []
               },
@@ -12221,7 +12318,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": []
               },
@@ -12248,7 +12345,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": [
                   "n_references"
@@ -12316,8 +12413,8 @@ window.nomadArtifacts = {
                 "name": "time_calculation",
                 "description": "Stores the wall-clock time needed to complete the calculation i.e. the real time\nthat has elapsed from start to end of calculation.",
                 "categories": [
-                  "/packages/2/category_definitions/2",
-                  "/packages/2/category_definitions/1"
+                  "/packages/3/category_definitions/2",
+                  "/packages/3/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -12471,28 +12568,28 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/2/section_definitions/5"
+                "sub_section": "/packages/3/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "forces",
-                "sub_section": "/packages/2/section_definitions/7"
+                "sub_section": "/packages/3/section_definitions/7"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "stress",
-                "sub_section": "/packages/2/section_definitions/9"
+                "sub_section": "/packages/3/section_definitions/9"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_gap",
-                "sub_section": "/packages/2/section_definitions/19",
+                "sub_section": "/packages/3/section_definitions/19",
                 "repeats": true
               },
               {
@@ -12500,7 +12597,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_electronic",
-                "sub_section": "/packages/2/section_definitions/17",
+                "sub_section": "/packages/3/section_definitions/17",
                 "repeats": true
               },
               {
@@ -12508,7 +12605,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_phonon",
-                "sub_section": "/packages/2/section_definitions/17",
+                "sub_section": "/packages/3/section_definitions/17",
                 "repeats": true
               },
               {
@@ -12516,7 +12613,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eigenvalues",
-                "sub_section": "/packages/2/section_definitions/13",
+                "sub_section": "/packages/3/section_definitions/13",
                 "repeats": true
               },
               {
@@ -12524,7 +12621,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_electronic",
-                "sub_section": "/packages/2/section_definitions/14",
+                "sub_section": "/packages/3/section_definitions/14",
                 "repeats": true
               },
               {
@@ -12532,7 +12629,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_phonon",
-                "sub_section": "/packages/2/section_definitions/14",
+                "sub_section": "/packages/3/section_definitions/14",
                 "repeats": true
               },
               {
@@ -12540,7 +12637,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermodynamics",
-                "sub_section": "/packages/2/section_definitions/23",
+                "sub_section": "/packages/3/section_definitions/23",
                 "repeats": true
               },
               {
@@ -12548,7 +12645,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
-                "sub_section": "/packages/0/section_definitions/24",
+                "sub_section": "/packages/1/section_definitions/24",
                 "repeats": true
               },
               {
@@ -12556,7 +12653,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectra",
-                "sub_section": "/packages/2/section_definitions/28",
+                "sub_section": "/packages/3/section_definitions/28",
                 "repeats": true
               },
               {
@@ -12564,7 +12661,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
                 "name": "greens_functions",
-                "sub_section": "/packages/2/section_definitions/29",
+                "sub_section": "/packages/3/section_definitions/29",
                 "repeats": true
               },
               {
@@ -12572,7 +12669,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
                 "name": "vibrational_frequencies",
-                "sub_section": "/packages/2/section_definitions/31",
+                "sub_section": "/packages/3/section_definitions/31",
                 "repeats": true
               },
               {
@@ -12580,7 +12677,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
                 "name": "potential",
-                "sub_section": "/packages/2/section_definitions/26",
+                "sub_section": "/packages/3/section_definitions/26",
                 "repeats": true
               },
               {
@@ -12588,7 +12685,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 15,
                 "m_parent_sub_section": "sub_sections",
                 "name": "multipoles",
-                "sub_section": "/packages/2/section_definitions/22",
+                "sub_section": "/packages/3/section_definitions/22",
                 "repeats": true
               },
               {
@@ -12596,7 +12693,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 16,
                 "m_parent_sub_section": "sub_sections",
                 "name": "charges",
-                "sub_section": "/packages/2/section_definitions/11",
+                "sub_section": "/packages/3/section_definitions/11",
                 "repeats": true
               },
               {
@@ -12604,7 +12701,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 17,
                 "m_parent_sub_section": "sub_sections",
                 "name": "density_charge",
-                "sub_section": "/packages/2/section_definitions/27",
+                "sub_section": "/packages/3/section_definitions/27",
                 "repeats": true
               },
               {
@@ -12612,7 +12709,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 18,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/2/section_definitions/33",
+                "sub_section": "/packages/3/section_definitions/33",
                 "repeats": true
               }
             ]
@@ -12624,7 +12721,7 @@ window.nomadArtifacts = {
             "name": "ScfIteration",
             "description": "Every scf_iteration section represents a self-consistent field (SCF) iteration, and gives detailed information on the SCF procedure of the specified quantities.",
             "base_sections": [
-              "/packages/2/section_definitions/34"
+              "/packages/3/section_definitions/34"
             ]
           },
           {
@@ -12634,7 +12731,7 @@ window.nomadArtifacts = {
             "name": "Calculation",
             "description": "Every calculation section contains the values computed during a *single configuration calculation*, i.e. a calculation performed on a given\nconfiguration of the system (as defined in section_system) and a given computational\nmethod (e.g., exchange-correlation method, basis sets, as defined in section_method).\n\nThe link between the current section calculation and the related\nsystem and method sections is established by the values stored in system_ref and\nmethod_ref, respectively.\n\nThe reason why information on the system configuration and computational method is\nstored separately is that several *single configuration calculations* can be performed\non the same system configuration, viz. several system configurations can be evaluated\nwith the same computational method. This storage strategy avoids redundancies.",
             "base_sections": [
-              "/packages/2/section_definitions/34"
+              "/packages/3/section_definitions/34"
             ],
             "quantities": [
               {
@@ -12644,7 +12741,7 @@ window.nomadArtifacts = {
                 "name": "n_scf_iterations",
                 "description": "Gives the number of performed self-consistent field (SCF) iterations.",
                 "categories": [
-                  "/packages/2/category_definitions/0"
+                  "/packages/3/category_definitions/0"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -12659,7 +12756,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "scf_iteration",
-                "sub_section": "/packages/2/section_definitions/35",
+                "sub_section": "/packages/3/section_definitions/35",
                 "repeats": true
               }
             ]
@@ -12687,7 +12784,7 @@ window.nomadArtifacts = {
             "name": "TimeInfo",
             "description": "Stores information on the date and timings of the calculation. They are useful for,\ne.g., debugging or visualization purposes.",
             "categories": [
-              "/packages/2/category_definitions/1"
+              "/packages/3/category_definitions/1"
             ]
           },
           {
@@ -12704,7 +12801,7 @@ window.nomadArtifacts = {
             "name": "EnergyTypeReference",
             "description": "This metadata stores an energy used as reference point.",
             "categories": [
-              "/packages/2/category_definitions/3"
+              "/packages/3/category_definitions/3"
             ]
           },
           {
@@ -12718,7 +12815,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 3,
+        "m_parent_index": 4,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.simulation.run",
         "section_definitions": [
@@ -12736,8 +12833,8 @@ window.nomadArtifacts = {
                 "name": "name",
                 "description": "Specifies the name of the program that generated the data.",
                 "categories": [
-                  "/packages/3/category_definitions/0",
-                  "/packages/3/category_definitions/1"
+                  "/packages/4/category_definitions/0",
+                  "/packages/4/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -12752,8 +12849,8 @@ window.nomadArtifacts = {
                 "name": "version",
                 "description": "Specifies the version of the program that was used. This should be the version\nnumber of an official release, the version tag or a commit id as well as the\nlocation of the repository.",
                 "categories": [
-                  "/packages/3/category_definitions/0",
-                  "/packages/3/category_definitions/1"
+                  "/packages/4/category_definitions/0",
+                  "/packages/4/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -12768,8 +12865,8 @@ window.nomadArtifacts = {
                 "name": "compilation_datetime",
                 "description": "Contains the program compilation date and time from *Unix epoch* (00:00:00 UTC on\n1 January 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
                 "categories": [
-                  "/packages/3/category_definitions/0",
-                  "/packages/3/category_definitions/1"
+                  "/packages/4/category_definitions/0",
+                  "/packages/4/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "numpy",
@@ -12785,8 +12882,8 @@ window.nomadArtifacts = {
                 "name": "compilation_host",
                 "description": "Specifies the host on which the program was compiled.",
                 "categories": [
-                  "/packages/3/category_definitions/0",
-                  "/packages/3/category_definitions/1"
+                  "/packages/4/category_definitions/0",
+                  "/packages/4/category_definitions/1"
                 ],
                 "type": {
                   "type_kind": "python",
@@ -12973,7 +13070,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/3/section_definitions/3"
+                  "type_data": "/packages/4/section_definitions/3"
                 },
                 "shape": []
               },
@@ -13000,7 +13097,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/3/section_definitions/3"
+                  "type_data": "/packages/4/section_definitions/3"
                 },
                 "shape": [
                   "n_references"
@@ -13013,28 +13110,28 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "program",
-                "sub_section": "/packages/3/section_definitions/0"
+                "sub_section": "/packages/4/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "time_run",
-                "sub_section": "/packages/3/section_definitions/1"
+                "sub_section": "/packages/4/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "message",
-                "sub_section": "/packages/3/section_definitions/2"
+                "sub_section": "/packages/4/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/0/section_definitions/39",
+                "sub_section": "/packages/1/section_definitions/39",
                 "repeats": true
               },
               {
@@ -13042,7 +13139,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system",
-                "sub_section": "/packages/1/section_definitions/8",
+                "sub_section": "/packages/2/section_definitions/8",
                 "repeats": true
               },
               {
@@ -13050,7 +13147,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "calculation",
-                "sub_section": "/packages/2/section_definitions/36",
+                "sub_section": "/packages/3/section_definitions/36",
                 "repeats": true
               }
             ]
@@ -13071,14 +13168,14 @@ window.nomadArtifacts = {
             "name": "ProgramInfo",
             "description": "Contains information on the program that generated the data, i.e. the program_name,\nprogram_version, program_compilation_host and program_compilation_datetime as direct\nchildren of this field.",
             "categories": [
-              "/packages/3/category_definitions/0"
+              "/packages/4/category_definitions/0"
             ]
           }
         ]
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 4,
+        "m_parent_index": 5,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.results",
         "section_definitions": [
@@ -13088,7 +13185,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "BandGapDeprecated",
             "base_sections": [
-              "/packages/2/section_definitions/12"
+              "/packages/3/section_definitions/12"
             ],
             "quantities": [
               {
@@ -13165,7 +13262,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "BandGap",
             "base_sections": [
-              "/packages/2/section_definitions/19"
+              "/packages/3/section_definitions/19"
             ],
             "quantities": [
               {
@@ -13779,14 +13876,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "lattice_parameters",
-                "sub_section": "/packages/4/section_definitions/3"
+                "sub_section": "/packages/5/section_definitions/3"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "wyckoff_sets",
-                "sub_section": "/packages/4/section_definitions/4",
+                "sub_section": "/packages/5/section_definitions/4",
                 "repeats": true
               }
             ]
@@ -13804,7 +13901,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "structure_original",
                 "description": "Contains a selected representative structure from the the original\ndata.",
-                "sub_section": "/packages/4/section_definitions/5",
+                "sub_section": "/packages/5/section_definitions/5",
                 "repeats": false
               },
               {
@@ -13813,7 +13910,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "structure_conventional",
                 "description": "Contains the conventional structure that is derived from\nstructure_original. This conventional stucture has been idealized and\nthe conventions employed by spglib are used.",
-                "sub_section": "/packages/4/section_definitions/5",
+                "sub_section": "/packages/5/section_definitions/5",
                 "repeats": false
               },
               {
@@ -13822,7 +13919,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "structure_primitive",
                 "description": "Contains the primitive structure that is derived from\nstructure_original. This primitive stucture has been idealized and the\nconventions employed by spglib are used.",
-                "sub_section": "/packages/4/section_definitions/5",
+                "sub_section": "/packages/5/section_definitions/5",
                 "repeats": false
               }
             ]
@@ -14526,7 +14623,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "wyckoff_sets",
-                "sub_section": "/packages/4/section_definitions/4",
+                "sub_section": "/packages/5/section_definitions/4",
                 "repeats": true
               }
             ]
@@ -15293,7 +15390,7 @@ window.nomadArtifacts = {
                 "description": "Reference to an atomistic structure that is associated with this\nsystem.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/1"
+                  "type_data": "/packages/2/section_definitions/1"
                 }
               },
               {
@@ -15530,7 +15627,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "atoms",
                 "description": "The atomistic structure that is associated with this\nsystem.",
-                "sub_section": "/packages/1/section_definitions/1",
+                "sub_section": "/packages/2/section_definitions/1",
                 "repeats": false
               },
               {
@@ -15543,7 +15640,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "elemental_composition",
-                "sub_section": "/packages/4/section_definitions/2",
+                "sub_section": "/packages/5/section_definitions/2",
                 "repeats": true
               },
               {
@@ -15551,7 +15648,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "system_relation",
-                "sub_section": "/packages/4/section_definitions/10",
+                "sub_section": "/packages/5/section_definitions/10",
                 "repeats": false
               },
               {
@@ -15559,7 +15656,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cell",
-                "sub_section": "/packages/4/section_definitions/8",
+                "sub_section": "/packages/5/section_definitions/8",
                 "repeats": false
               },
               {
@@ -15567,7 +15664,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
-                "sub_section": "/packages/4/section_definitions/9",
+                "sub_section": "/packages/5/section_definitions/9",
                 "repeats": false
               },
               {
@@ -15575,7 +15672,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "metal_coordination",
-                "sub_section": "/packages/4/section_definitions/11",
+                "sub_section": "/packages/5/section_definitions/11",
                 "repeats": true
               }
             ]
@@ -16023,7 +16120,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "elemental_composition",
-                "sub_section": "/packages/4/section_definitions/2",
+                "sub_section": "/packages/5/section_definitions/2",
                 "repeats": true
               },
               {
@@ -16031,7 +16128,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "symmetry",
-                "sub_section": "/packages/4/section_definitions/7",
+                "sub_section": "/packages/5/section_definitions/7",
                 "repeats": false
               },
               {
@@ -16044,7 +16141,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "topology",
-                "sub_section": "/packages/4/section_definitions/12",
+                "sub_section": "/packages/5/section_definitions/12",
                 "repeats": true
               }
             ]
@@ -16413,7 +16510,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "hubbard_kanamori_model",
-                "sub_section": "/packages/4/section_definitions/14",
+                "sub_section": "/packages/5/section_definitions/14",
                 "repeats": true
               }
             ]
@@ -16573,7 +16670,7 @@ window.nomadArtifacts = {
             "name": "GW",
             "description": "\n        Methodology for a GW calculation.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/17"
+              "/packages/5/section_definitions/17"
             ],
             "quantities": [
               {
@@ -16612,7 +16709,7 @@ window.nomadArtifacts = {
             "name": "BSE",
             "description": "\n        Methodology for a BSE calculation.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/17"
+              "/packages/5/section_definitions/17"
             ],
             "quantities": [
               {
@@ -16944,7 +17041,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quantum_circuit",
-                "sub_section": "/packages/4/section_definitions/21"
+                "sub_section": "/packages/5/section_definitions/21"
               }
             ]
           },
@@ -17109,7 +17206,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dft",
-                "sub_section": "/packages/4/section_definitions/15",
+                "sub_section": "/packages/5/section_definitions/15",
                 "repeats": false
               },
               {
@@ -17117,7 +17214,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "projection",
-                "sub_section": "/packages/4/section_definitions/16",
+                "sub_section": "/packages/5/section_definitions/16",
                 "repeats": false
               },
               {
@@ -17125,7 +17222,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
-                "sub_section": "/packages/4/section_definitions/18",
+                "sub_section": "/packages/5/section_definitions/18",
                 "repeats": false
               },
               {
@@ -17133,7 +17230,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "bse",
-                "sub_section": "/packages/4/section_definitions/19",
+                "sub_section": "/packages/5/section_definitions/19",
                 "repeats": false
               },
               {
@@ -17141,7 +17238,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft",
-                "sub_section": "/packages/4/section_definitions/20",
+                "sub_section": "/packages/5/section_definitions/20",
                 "repeats": false
               },
               {
@@ -17149,7 +17246,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "quantum_cms",
-                "sub_section": "/packages/4/section_definitions/22",
+                "sub_section": "/packages/5/section_definitions/22",
                 "repeats": false
               },
               {
@@ -17157,7 +17254,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "precision",
-                "sub_section": "/packages/4/section_definitions/23",
+                "sub_section": "/packages/5/section_definitions/23",
                 "repeats": false
               }
             ]
@@ -17208,7 +17305,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "xrd",
-                "sub_section": "/packages/4/section_definitions/25",
+                "sub_section": "/packages/5/section_definitions/25",
                 "repeats": false
               }
             ]
@@ -17309,7 +17406,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "simulation",
-                "sub_section": "/packages/4/section_definitions/24",
+                "sub_section": "/packages/5/section_definitions/24",
                 "repeats": false
               },
               {
@@ -17317,7 +17414,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "measurement",
-                "sub_section": "/packages/4/section_definitions/26",
+                "sub_section": "/packages/5/section_definitions/26",
                 "repeats": false
               }
             ]
@@ -17386,7 +17483,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "molecular_dynamics",
-                "sub_section": "/packages/4/section_definitions/28",
+                "sub_section": "/packages/5/section_definitions/28",
                 "repeats": false
               }
             ]
@@ -17406,7 +17503,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/4/section_definitions/29",
+                "sub_section": "/packages/5/section_definitions/29",
                 "repeats": false
               }
             ]
@@ -17426,7 +17523,7 @@ window.nomadArtifacts = {
                 "description": "Array containing the set of discrete energy values for the density of\nstates (DOS).",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/17/quantities/1"
+                  "type_data": "/packages/3/section_definitions/17/quantities/1"
                 }
               },
               {
@@ -17437,7 +17534,7 @@ window.nomadArtifacts = {
                 "description": "Density of states (DOS) values for the entire system and all species.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/16"
+                  "type_data": "/packages/3/section_definitions/16"
                 },
                 "shape": [
                   "*"
@@ -17452,7 +17549,7 @@ window.nomadArtifacts = {
             "name": "DOSPhonon",
             "description": "\n        Contains the total phonon density of states.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/31"
+              "/packages/5/section_definitions/31"
             ]
           },
           {
@@ -17462,7 +17559,7 @@ window.nomadArtifacts = {
             "name": "DOSElectronic",
             "description": "\n        Contains the total electronic density of states.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/31"
+              "/packages/5/section_definitions/31"
             ],
             "quantities": [
               {
@@ -17517,7 +17614,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/4/section_definitions/0",
+                "sub_section": "/packages/5/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -17548,7 +17645,7 @@ window.nomadArtifacts = {
                 "description": "The reciprocal cell within which the band structure is calculated.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/14/quantities/1"
+                  "type_data": "/packages/3/section_definitions/14/quantities/1"
                 }
               },
               {
@@ -17559,7 +17656,7 @@ window.nomadArtifacts = {
                 "description": "Collection of linear path segments in the reciprocal space. The\nsegments are represented as third-order tensors: one dimension for the\nspin channels, one for the sequence of reciprocal space points for the\nsegment, and one for the sequence of eigenvalues at a given point.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/13"
+                  "type_data": "/packages/3/section_definitions/13"
                 },
                 "shape": [
                   "*"
@@ -17586,7 +17683,7 @@ window.nomadArtifacts = {
             "name": "BandStructurePhonon",
             "description": "\n        This section stores information on a vibrational band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/34"
+              "/packages/5/section_definitions/34"
             ]
           },
           {
@@ -17596,7 +17693,7 @@ window.nomadArtifacts = {
             "name": "BandStructureElectronic",
             "description": "\n        This section stores information on a electonic band structure\n        evaluation along one-dimensional pathways in the reciprocal space.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/34"
+              "/packages/5/section_definitions/34"
             ],
             "quantities": [
               {
@@ -17640,7 +17737,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/4/section_definitions/0",
+                "sub_section": "/packages/5/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -17685,7 +17782,7 @@ window.nomadArtifacts = {
                 "description": "Array containing the set of discrete imaginary times.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/2"
+                  "type_data": "/packages/3/section_definitions/29/quantities/2"
                 }
               },
               {
@@ -17696,7 +17793,7 @@ window.nomadArtifacts = {
                 "description": "Array containing the set of discrete imaginary (Matsubara) frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/1"
+                  "type_data": "/packages/3/section_definitions/29/quantities/1"
                 }
               },
               {
@@ -17707,7 +17804,7 @@ window.nomadArtifacts = {
                 "description": "Array containing the set of discrete real frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/3"
+                  "type_data": "/packages/3/section_definitions/29/quantities/3"
                 }
               },
               {
@@ -17718,7 +17815,7 @@ window.nomadArtifacts = {
                 "description": "Green's functions values in imaginary times.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/8"
+                  "type_data": "/packages/3/section_definitions/29/quantities/8"
                 }
               },
               {
@@ -17729,7 +17826,7 @@ window.nomadArtifacts = {
                 "description": "Green's functions values in imaginary (Matsubara) frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/6"
+                  "type_data": "/packages/3/section_definitions/29/quantities/6"
                 }
               },
               {
@@ -17740,7 +17837,7 @@ window.nomadArtifacts = {
                 "description": "Self-energy values in imaginary (Matsubara) frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/5"
+                  "type_data": "/packages/3/section_definitions/29/quantities/5"
                 }
               },
               {
@@ -17751,7 +17848,7 @@ window.nomadArtifacts = {
                 "description": "Green's function values in real frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/10"
+                  "type_data": "/packages/3/section_definitions/29/quantities/10"
                 }
               },
               {
@@ -17762,7 +17859,7 @@ window.nomadArtifacts = {
                 "description": "Self-energy values in real frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/9"
+                  "type_data": "/packages/3/section_definitions/29/quantities/9"
                 }
               },
               {
@@ -17773,7 +17870,7 @@ window.nomadArtifacts = {
                 "description": "Hybridization function values in real frequencies.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/11"
+                  "type_data": "/packages/3/section_definitions/29/quantities/11"
                 }
               },
               {
@@ -17784,7 +17881,7 @@ window.nomadArtifacts = {
                 "description": "Orbital occupation per correlated atom in the unit cell and per spin.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/12"
+                  "type_data": "/packages/3/section_definitions/29/quantities/12"
                 }
               },
               {
@@ -17795,7 +17892,7 @@ window.nomadArtifacts = {
                 "description": "Quasiparticle weights of each orbital per site and spin. Calculated from:\n    Z = inv(1.0 - d [Re Sigma] / dw at w=0)\nit takes values \u2208 [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/13"
+                  "type_data": "/packages/3/section_definitions/29/quantities/13"
                 }
               },
               {
@@ -17806,7 +17903,7 @@ window.nomadArtifacts = {
                 "description": "Chemical potential.",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/2/section_definitions/29/quantities/4"
+                  "type_data": "/packages/3/section_definitions/29/quantities/4"
                 }
               }
             ]
@@ -17887,7 +17984,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_phonon",
-                "sub_section": "/packages/4/section_definitions/35",
+                "sub_section": "/packages/5/section_definitions/35",
                 "repeats": false
               },
               {
@@ -17895,7 +17992,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_phonon",
-                "sub_section": "/packages/4/section_definitions/32",
+                "sub_section": "/packages/5/section_definitions/32",
                 "repeats": false
               },
               {
@@ -17903,7 +18000,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "heat_capacity_constant_volume",
-                "sub_section": "/packages/4/section_definitions/38",
+                "sub_section": "/packages/5/section_definitions/38",
                 "repeats": false
               },
               {
@@ -17911,7 +18008,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_free_helmholtz",
-                "sub_section": "/packages/4/section_definitions/39",
+                "sub_section": "/packages/5/section_definitions/39",
                 "repeats": false
               }
             ]
@@ -18100,7 +18197,7 @@ window.nomadArtifacts = {
                 "description": "List of references to each section_single_configuration_calculation in\nthe optimization trajectory.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": [
                   "0..*"
@@ -18125,7 +18222,7 @@ window.nomadArtifacts = {
                 "description": "Contains the optimized geometry that is the result of a geometry optimization.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 }
               },
               {
@@ -18250,7 +18347,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_volume_curve",
-                "sub_section": "/packages/4/section_definitions/41",
+                "sub_section": "/packages/5/section_definitions/41",
                 "repeats": true
               },
               {
@@ -18263,7 +18360,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "bulk_modulus",
-                "sub_section": "/packages/4/section_definitions/42",
+                "sub_section": "/packages/5/section_definitions/42",
                 "repeats": true
               },
               {
@@ -18276,7 +18373,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "shear_modulus",
-                "sub_section": "/packages/4/section_definitions/43",
+                "sub_section": "/packages/5/section_definitions/43",
                 "repeats": true
               }
             ]
@@ -18298,7 +18395,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "band_gap",
-                "sub_section": "/packages/4/section_definitions/1",
+                "sub_section": "/packages/5/section_definitions/1",
                 "repeats": true
               },
               {
@@ -18306,7 +18403,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dos_electronic",
-                "sub_section": "/packages/4/section_definitions/33",
+                "sub_section": "/packages/5/section_definitions/33",
                 "repeats": true
               },
               {
@@ -18314,7 +18411,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "band_structure_electronic",
-                "sub_section": "/packages/4/section_definitions/36",
+                "sub_section": "/packages/5/section_definitions/36",
                 "repeats": true
               },
               {
@@ -18322,7 +18419,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "greens_functions_electronic",
-                "sub_section": "/packages/4/section_definitions/37",
+                "sub_section": "/packages/5/section_definitions/37",
                 "repeats": true
               }
             ]
@@ -18380,7 +18477,7 @@ window.nomadArtifacts = {
             "name": "VolumeDynamic",
             "description": "\n        Contains volume values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/47"
+              "/packages/5/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18405,7 +18502,7 @@ window.nomadArtifacts = {
             "name": "PressureDynamic",
             "description": "\n        Contains pressure values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/47"
+              "/packages/5/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18430,7 +18527,7 @@ window.nomadArtifacts = {
             "name": "TemperatureDynamic",
             "description": "\n        Contains temperature values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/47"
+              "/packages/5/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18455,7 +18552,7 @@ window.nomadArtifacts = {
             "name": "EnergyDynamic",
             "description": "\n        Contains energy values evaluated at different times.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/47"
+              "/packages/5/section_definitions/47"
             ],
             "quantities": [
               {
@@ -18480,7 +18577,7 @@ window.nomadArtifacts = {
             "name": "Trajectory",
             "description": "\n        Thermodynamic properties reported for an ensemble evolving in time.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/30"
+              "/packages/5/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18514,7 +18611,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "temperature",
-                "sub_section": "/packages/4/section_definitions/50",
+                "sub_section": "/packages/5/section_definitions/50",
                 "repeats": false
               },
               {
@@ -18522,7 +18619,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "pressure",
-                "sub_section": "/packages/4/section_definitions/49",
+                "sub_section": "/packages/5/section_definitions/49",
                 "repeats": false
               },
               {
@@ -18530,7 +18627,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "volume",
-                "sub_section": "/packages/4/section_definitions/48",
+                "sub_section": "/packages/5/section_definitions/48",
                 "repeats": false
               },
               {
@@ -18538,7 +18635,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "energy_potential",
-                "sub_section": "/packages/4/section_definitions/51",
+                "sub_section": "/packages/5/section_definitions/51",
                 "repeats": false
               }
             ]
@@ -18560,7 +18657,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "trajectory",
-                "sub_section": "/packages/4/section_definitions/52",
+                "sub_section": "/packages/5/section_definitions/52",
                 "repeats": true
               }
             ]
@@ -18572,8 +18669,8 @@ window.nomadArtifacts = {
             "name": "RadiusOfGyration",
             "description": "\n        Contains Radius of Gyration values as a trajectory.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/47",
-              "/packages/4/section_definitions/30"
+              "/packages/5/section_definitions/47",
+              "/packages/5/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18620,7 +18717,7 @@ window.nomadArtifacts = {
                 "description": "References to the atoms_group section containing the molecule for which Rg was calculated.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/0"
+                  "type_data": "/packages/2/section_definitions/0"
                 },
                 "shape": [
                   1
@@ -18648,7 +18745,7 @@ window.nomadArtifacts = {
             "name": "RadialDistributionFunction",
             "description": "\n        Radial distribution function.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/30"
+              "/packages/5/section_definitions/30"
             ],
             "quantities": [
               {
@@ -18847,7 +18944,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "radial_distribution_function",
-                "sub_section": "/packages/4/section_definitions/55",
+                "sub_section": "/packages/5/section_definitions/55",
                 "repeats": true
               },
               {
@@ -18860,7 +18957,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "radius_of_gyration",
-                "sub_section": "/packages/4/section_definitions/54",
+                "sub_section": "/packages/5/section_definitions/54",
                 "repeats": true
               },
               {
@@ -18873,7 +18970,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "diffraction_pattern",
-                "sub_section": "/packages/4/section_definitions/56",
+                "sub_section": "/packages/5/section_definitions/56",
                 "repeats": true
               }
             ]
@@ -18885,7 +18982,7 @@ window.nomadArtifacts = {
             "name": "MeanSquaredDisplacement",
             "description": "\n        Mean Squared Displacements.\n        ",
             "base_sections": [
-              "/packages/4/section_definitions/30"
+              "/packages/5/section_definitions/30"
             ],
             "quantities": [
               {
@@ -19073,7 +19170,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "mean_squared_displacement",
-                "sub_section": "/packages/4/section_definitions/58",
+                "sub_section": "/packages/5/section_definitions/58",
                 "repeats": true
               }
             ]
@@ -19362,7 +19459,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "solar_cell",
-                "sub_section": "/packages/4/section_definitions/60",
+                "sub_section": "/packages/5/section_definitions/60",
                 "repeats": false
               }
             ]
@@ -19790,7 +19887,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "reactants",
-                "sub_section": "/packages/4/section_definitions/62",
+                "sub_section": "/packages/5/section_definitions/62",
                 "repeats": true
               },
               {
@@ -19803,7 +19900,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "products",
-                "sub_section": "/packages/4/section_definitions/63",
+                "sub_section": "/packages/5/section_definitions/63",
                 "repeats": true
               },
               {
@@ -19816,7 +19913,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "rates",
-                "sub_section": "/packages/4/section_definitions/64",
+                "sub_section": "/packages/5/section_definitions/64",
                 "repeats": true
               }
             ]
@@ -19937,7 +20034,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "reactivity",
-                "sub_section": "/packages/4/section_definitions/65",
+                "sub_section": "/packages/5/section_definitions/65",
                 "repeats": false
               },
               {
@@ -19945,7 +20042,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "catalyst_synthesis",
-                "sub_section": "/packages/4/section_definitions/66",
+                "sub_section": "/packages/5/section_definitions/66",
                 "repeats": false
               },
               {
@@ -19953,7 +20050,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "catalyst_characterization",
-                "sub_section": "/packages/4/section_definitions/67",
+                "sub_section": "/packages/5/section_definitions/67",
                 "repeats": false
               }
             ]
@@ -20194,14 +20291,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eels",
-                "sub_section": "/packages/4/section_definitions/70"
+                "sub_section": "/packages/5/section_definitions/70"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic_structure",
-                "sub_section": "/packages/2/section_definitions/18",
+                "sub_section": "/packages/3/section_definitions/18",
                 "repeats": true
               }
             ]
@@ -20317,7 +20414,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/4/section_definitions/71"
+                "sub_section": "/packages/5/section_definitions/71"
               }
             ]
           },
@@ -20338,7 +20435,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "spectra",
-                "sub_section": "/packages/4/section_definitions/72",
+                "sub_section": "/packages/5/section_definitions/72",
                 "repeats": true
               }
             ]
@@ -20394,7 +20491,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "structural",
-                "sub_section": "/packages/4/section_definitions/57",
+                "sub_section": "/packages/5/section_definitions/57",
                 "repeats": false
               },
               {
@@ -20402,7 +20499,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dynamical",
-                "sub_section": "/packages/4/section_definitions/59",
+                "sub_section": "/packages/5/section_definitions/59",
                 "repeats": false
               },
               {
@@ -20410,7 +20507,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "structures",
-                "sub_section": "/packages/4/section_definitions/6",
+                "sub_section": "/packages/5/section_definitions/6",
                 "repeats": false
               },
               {
@@ -20418,7 +20515,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "vibrational",
-                "sub_section": "/packages/4/section_definitions/40",
+                "sub_section": "/packages/5/section_definitions/40",
                 "repeats": false
               },
               {
@@ -20426,7 +20523,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
-                "sub_section": "/packages/4/section_definitions/46",
+                "sub_section": "/packages/5/section_definitions/46",
                 "repeats": false
               },
               {
@@ -20434,7 +20531,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "optoelectronic",
-                "sub_section": "/packages/4/section_definitions/61",
+                "sub_section": "/packages/5/section_definitions/61",
                 "repeats": false
               },
               {
@@ -20442,7 +20539,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "catalytic",
-                "sub_section": "/packages/4/section_definitions/68",
+                "sub_section": "/packages/5/section_definitions/68",
                 "repeats": false
               },
               {
@@ -20450,7 +20547,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mechanical",
-                "sub_section": "/packages/4/section_definitions/45",
+                "sub_section": "/packages/5/section_definitions/45",
                 "repeats": false
               },
               {
@@ -20458,7 +20555,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "thermodynamic",
-                "sub_section": "/packages/4/section_definitions/53",
+                "sub_section": "/packages/5/section_definitions/53",
                 "repeats": false
               },
               {
@@ -20466,7 +20563,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectroscopic",
-                "sub_section": "/packages/4/section_definitions/73",
+                "sub_section": "/packages/5/section_definitions/73",
                 "repeats": false
               },
               {
@@ -20474,7 +20571,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "geometry_optimization",
-                "sub_section": "/packages/4/section_definitions/44",
+                "sub_section": "/packages/5/section_definitions/44",
                 "repeats": false
               }
             ]
@@ -20633,7 +20730,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "material",
-                "sub_section": "/packages/4/section_definitions/13",
+                "sub_section": "/packages/5/section_definitions/13",
                 "repeats": false
               },
               {
@@ -20641,7 +20738,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/4/section_definitions/27",
+                "sub_section": "/packages/5/section_definitions/27",
                 "repeats": false
               },
               {
@@ -20649,7 +20746,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "properties",
-                "sub_section": "/packages/4/section_definitions/74",
+                "sub_section": "/packages/5/section_definitions/74",
                 "repeats": false
               },
               {
@@ -20657,7 +20754,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eln",
-                "sub_section": "/packages/4/section_definitions/75",
+                "sub_section": "/packages/5/section_definitions/75",
                 "repeats": false
               }
             ]
@@ -20666,7 +20763,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 5,
+        "m_parent_index": 6,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln.perovskite_solar_cell_database",
         "section_definitions": [
@@ -53051,11 +53148,30 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 11,
             "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "plotly_graph_object": [
+                {
+                  "data": {
+                    "x": "#voltage",
+                    "y": "#current_density"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#voltage",
+                    "y": "#current_density"
+                  }
+                }
+              ]
+            },
             "name": "JVcurve",
             "description": "Section describing a current density, voltage curve.",
             "more": {
               "label_quantity": "cell_name"
             },
+            "base_sections": [
+              "/packages/0/section_definitions/3"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -53091,16 +53207,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#voltage",
-                        "y": "#current_density"
-                      }
-                    }
-                  ]
-                },
                 "name": "current_density",
                 "description": "Current density array of the *JV* curve.",
                 "type": {
@@ -53116,16 +53222,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#voltage",
-                        "y": "#current_density"
-                      }
-                    }
-                  ]
-                },
                 "name": "voltage",
                 "description": "Voltage array of the of the *JV* curve.",
                 "type": {
@@ -54460,7 +54556,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "jv_curve",
-                "sub_section": "/packages/5/section_definitions/11",
+                "sub_section": "/packages/6/section_definitions/11",
                 "repeats": true
               }
             ]
@@ -54707,7 +54803,7 @@ window.nomadArtifacts = {
                   "lane_width": "600px"
                 }
               ],
-              "plot": [
+              "plotly_graph_object": [
                 {
                   "data": {
                     "x": "#raw_wavelength_array",
@@ -54738,11 +54834,50 @@ window.nomadArtifacts = {
                   "config": {
                     "editable": "true"
                   }
+                },
+                {
+                  "data": {
+                    "x": "#photon_energy_array",
+                    "y": "#raw_eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#raw_photon_energy_array",
+                    "y": "#raw_eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#raw_wavelength_array",
+                    "y": "#raw_eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#photon_energy_array",
+                    "y": "#eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#wavelength_array",
+                    "y": "#eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#photon_energy_array",
+                    "y": "#eqe_array"
+                  }
                 }
               ]
             },
             "name": "EQE",
             "description": "A section describing the External Quantum Efficiency **EQE** of the solar cell and additional parameteres derived from it. If used as an ELN, a file containing\nthe EQE spectrum in columns can be uploaded in the quantity `data_file` to process\nautomatic calculations of several parameteres like the `bandgap` or `Urbach energy`.",
+            "base_sections": [
+              "/packages/0/section_definitions/3"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -54951,16 +55086,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#photon_energy_array",
-                        "y": "#raw_eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "raw_eqe_array",
                 "description": "EQE array of the spectrum",
                 "type": {
@@ -54975,16 +55100,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#raw_photon_energy_array",
-                        "y": "#raw_eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "raw_photon_energy_array",
                 "description": "Raw Photon energy array of the eqe spectrum",
                 "type": {
@@ -55000,16 +55115,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 13,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#raw_wavelength_array",
-                        "y": "#raw_eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "raw_wavelength_array",
                 "description": "Raw wavelength array of the eqe spectrum",
                 "type": {
@@ -55025,16 +55130,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 14,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#photon_energy_array",
-                        "y": "#eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "eqe_array",
                 "description": "EQE array of the spectrum",
                 "type": {
@@ -55049,16 +55144,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 15,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#wavelength_array",
-                        "y": "#eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "wavelength_array",
                 "description": "Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum",
                 "type": {
@@ -55074,16 +55159,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 16,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#photon_energy_array",
-                        "y": "#eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "photon_energy_array",
                 "description": "Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum",
                 "type": {
@@ -57271,112 +57346,112 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "ref",
-                "sub_section": "/packages/5/section_definitions/0"
+                "sub_section": "/packages/6/section_definitions/0"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cell",
-                "sub_section": "/packages/5/section_definitions/1"
+                "sub_section": "/packages/6/section_definitions/1"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "module",
-                "sub_section": "/packages/5/section_definitions/2"
+                "sub_section": "/packages/6/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "substrate",
-                "sub_section": "/packages/5/section_definitions/3"
+                "sub_section": "/packages/6/section_definitions/3"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "etl",
-                "sub_section": "/packages/5/section_definitions/4"
+                "sub_section": "/packages/6/section_definitions/4"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "perovskite",
-                "sub_section": "/packages/5/section_definitions/5"
+                "sub_section": "/packages/6/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
                 "name": "perovskite_deposition",
-                "sub_section": "/packages/5/section_definitions/6"
+                "sub_section": "/packages/6/section_definitions/6"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "htl",
-                "sub_section": "/packages/5/section_definitions/7"
+                "sub_section": "/packages/6/section_definitions/7"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 8,
                 "m_parent_sub_section": "sub_sections",
                 "name": "backcontact",
-                "sub_section": "/packages/5/section_definitions/8"
+                "sub_section": "/packages/6/section_definitions/8"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "add",
-                "sub_section": "/packages/5/section_definitions/9"
+                "sub_section": "/packages/6/section_definitions/9"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "encapsulation",
-                "sub_section": "/packages/5/section_definitions/10"
+                "sub_section": "/packages/6/section_definitions/10"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "jv",
-                "sub_section": "/packages/5/section_definitions/12"
+                "sub_section": "/packages/6/section_definitions/12"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
                 "name": "stabilised",
-                "sub_section": "/packages/5/section_definitions/13"
+                "sub_section": "/packages/6/section_definitions/13"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eqe",
-                "sub_section": "/packages/5/section_definitions/14"
+                "sub_section": "/packages/6/section_definitions/14"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
                 "name": "stability",
-                "sub_section": "/packages/5/section_definitions/15"
+                "sub_section": "/packages/6/section_definitions/15"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 15,
                 "m_parent_sub_section": "sub_sections",
                 "name": "outdoor",
-                "sub_section": "/packages/5/section_definitions/16"
+                "sub_section": "/packages/6/section_definitions/16"
               }
             ]
           }
@@ -57384,7 +57459,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 6,
+        "m_parent_index": 7,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln.nexus_data_converter",
         "section_definitions": [
@@ -57747,7 +57822,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 7,
+        "m_parent_index": 8,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln",
         "section_definitions": [
@@ -57881,7 +57956,7 @@ window.nomadArtifacts = {
               "/packages/15/category_definitions/2"
             ],
             "base_sections": [
-              "/packages/7/section_definitions/1",
+              "/packages/8/section_definitions/1",
               "/packages/15/section_definitions/1"
             ],
             "quantities": [
@@ -58065,7 +58140,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "results",
                 "description": "The result of the measurement.",
-                "sub_section": "/packages/7/section_definitions/4",
+                "sub_section": "/packages/8/section_definitions/4",
                 "repeats": true
               }
             ]
@@ -58163,7 +58238,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "outputs",
                 "description": "The input data of the analysis.",
-                "sub_section": "/packages/7/section_definitions/6",
+                "sub_section": "/packages/8/section_definitions/6",
                 "repeats": true
               }
             ]
@@ -58932,7 +59007,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_experimental_properties",
-                "sub_section": "/packages/7/section_definitions/14",
+                "sub_section": "/packages/8/section_definitions/14",
                 "repeats": true
               },
               {
@@ -58940,7 +59015,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "cas_property_citations",
-                "sub_section": "/packages/7/section_definitions/15",
+                "sub_section": "/packages/8/section_definitions/15",
                 "repeats": true
               }
             ]
@@ -58952,7 +59027,7 @@ window.nomadArtifacts = {
             "name": "ElnWithFormulaBaseSection",
             "description": "A generic abstract base section for ELNs that provides a few commonly used for items with a chemical formula, e.g. chemicals or samples.",
             "base_sections": [
-              "/packages/7/section_definitions/1"
+              "/packages/8/section_definitions/1"
             ],
             "quantities": [
               {
@@ -58982,7 +59057,7 @@ window.nomadArtifacts = {
             "name": "Chemical",
             "description": "A ELN base section that can be used for chemicals.",
             "base_sections": [
-              "/packages/7/section_definitions/17"
+              "/packages/8/section_definitions/17"
             ]
           },
           {
@@ -58992,7 +59067,7 @@ window.nomadArtifacts = {
             "name": "Sample",
             "description": "A ELN base section that can be used for samples.",
             "base_sections": [
-              "/packages/7/section_definitions/17"
+              "/packages/8/section_definitions/17"
             ]
           },
           {
@@ -59232,12 +59307,28 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 24,
             "m_parent_sub_section": "section_definitions",
+            "m_annotations": {
+              "plotly_graph_object": [
+                {
+                  "data": {
+                    "x": "#voltage",
+                    "y": "#current_density"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#voltage",
+                    "y": "#current_density"
+                  }
+                }
+              ]
+            },
             "name": "SolarCellJV",
             "more": {
               "label_quantity": "cell_name"
             },
             "base_sections": [
-              "/packages/15/section_definitions/0"
+              "/packages/0/section_definitions/3"
             ],
             "quantities": [
               {
@@ -59519,7 +59610,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "SolarCellJVCurve",
             "base_sections": [
-              "/packages/7/section_definitions/24"
+              "/packages/8/section_definitions/24"
             ],
             "quantities": [
               {
@@ -59545,16 +59636,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#voltage",
-                        "y": "#current_density"
-                      }
-                    }
-                  ]
-                },
                 "name": "current_density",
                 "description": "Current density array of the *JV* curve.",
                 "type": {
@@ -59570,16 +59651,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#voltage",
-                        "y": "#current_density"
-                      }
-                    }
-                  ]
-                },
                 "name": "voltage",
                 "description": "Voltage array of the of the *JV* curve.",
                 "type": {
@@ -59602,11 +59673,49 @@ window.nomadArtifacts = {
                 {
                   "lane_width": "600px"
                 }
+              ],
+              "plotly_graph_object": [
+                {
+                  "data": {
+                    "x": "#photon_energy_array",
+                    "y": "#raw_eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#raw_photon_energy_array",
+                    "y": "#raw_eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#raw_wavelength_array",
+                    "y": "#raw_eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#photon_energy_array",
+                    "y": "#eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#wavelength_array",
+                    "y": "#eqe_array"
+                  }
+                },
+                {
+                  "data": {
+                    "x": "#photon_energy_array",
+                    "y": "#eqe_array"
+                  }
+                }
               ]
             },
             "name": "SolarCellEQE",
             "base_sections": [
-              "/packages/15/section_definitions/0"
+              "/packages/0/section_definitions/3"
             ],
             "quantities": [
               {
@@ -59810,16 +59919,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 11,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#photon_energy_array",
-                        "y": "#raw_eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "raw_eqe_array",
                 "description": "EQE array of the spectrum",
                 "type": {
@@ -59834,16 +59933,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#raw_photon_energy_array",
-                        "y": "#raw_eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "raw_photon_energy_array",
                 "description": "Raw Photon energy array of the eqe spectrum",
                 "type": {
@@ -59859,16 +59948,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 13,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#raw_wavelength_array",
-                        "y": "#raw_eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "raw_wavelength_array",
                 "description": "Raw wavelength array of the eqe spectrum",
                 "type": {
@@ -59884,16 +59963,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 14,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#photon_energy_array",
-                        "y": "#eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "eqe_array",
                 "description": "EQE array of the spectrum",
                 "type": {
@@ -59908,16 +59977,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 15,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#wavelength_array",
-                        "y": "#eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "wavelength_array",
                 "description": "Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum",
                 "type": {
@@ -59933,16 +59992,6 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 16,
                 "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "plot": [
-                    {
-                      "data": {
-                        "x": "#photon_energy_array",
-                        "y": "#eqe_array"
-                      }
-                    }
-                  ]
-                },
                 "name": "photon_energy_array",
                 "description": "Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum",
                 "type": {
@@ -59960,7 +60009,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 8,
+        "m_parent_index": 9,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.downloads",
         "section_definitions": [
@@ -60060,7 +60109,7 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "name": "downloads",
                 "description": "Defines URLs and how to download them.",
-                "sub_section": "/packages/8/section_definitions/0",
+                "sub_section": "/packages/9/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -60069,7 +60118,7 @@ window.nomadArtifacts = {
       },
       {
         "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 9,
+        "m_parent_index": 10,
         "m_parent_sub_section": "packages",
         "name": "nomad.datamodel.metainfo.eln.labfolder",
         "section_definitions": [
@@ -60153,7 +60202,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "children",
-                "sub_section": "/packages/9/section_definitions/1",
+                "sub_section": "/packages/10/section_definitions/1",
                 "repeats": true
               }
             ]
@@ -60194,7 +60243,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "children",
-                "sub_section": "/packages/9/section_definitions/0",
+                "sub_section": "/packages/10/section_definitions/0",
                 "repeats": true
               }
             ]
@@ -60425,7 +60474,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "elements",
-                "sub_section": "/packages/9/section_definitions/2",
+                "sub_section": "/packages/10/section_definitions/2",
                 "repeats": true
               }
             ]
@@ -60436,7 +60485,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderTextElement",
             "base_sections": [
-              "/packages/9/section_definitions/2"
+              "/packages/10/section_definitions/2"
             ],
             "quantities": [
               {
@@ -60463,7 +60512,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderFileElement",
             "base_sections": [
-              "/packages/9/section_definitions/2"
+              "/packages/10/section_definitions/2"
             ],
             "quantities": [
               {
@@ -60524,7 +60573,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderImageElement",
             "base_sections": [
-              "/packages/9/section_definitions/2"
+              "/packages/10/section_definitions/2"
             ],
             "quantities": [
               {
@@ -60646,7 +60695,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderTableElement",
             "base_sections": [
-              "/packages/9/section_definitions/2"
+              "/packages/10/section_definitions/2"
             ],
             "quantities": [
               {
@@ -60684,7 +60733,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderDataElement",
             "base_sections": [
-              "/packages/9/section_definitions/2"
+              "/packages/10/section_definitions/2"
             ],
             "quantities": [
               {
@@ -60727,7 +60776,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "data_elements",
-                "sub_section": "/packages/9/section_definitions/1",
+                "sub_section": "/packages/10/section_definitions/1",
                 "repeats": true
               },
               {
@@ -60735,7 +60784,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "nomad_data",
-                "sub_section": "/packages/9/section_definitions/2"
+                "sub_section": "/packages/10/section_definitions/2"
               }
             ]
           },
@@ -60745,7 +60794,7 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderWellPlateElement",
             "base_sections": [
-              "/packages/9/section_definitions/2"
+              "/packages/10/section_definitions/2"
             ],
             "quantities": [
               {
@@ -60884,104 +60933,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "entries",
-                "sub_section": "/packages/9/section_definitions/3",
-                "repeats": true
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "m_def": "nomad.metainfo.metainfo.Package",
-        "m_parent_index": 10,
-        "m_parent_sub_section": "packages",
-        "name": "nomad.datamodel.metainfo.plot",
-        "section_definitions": [
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 0,
-            "m_parent_sub_section": "section_definitions",
-            "name": "Figure",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "label",
-                "description": "Label shown in the plot selection.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "index",
-                "description": "Index of figure in the plot selection.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "int"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 1,
-            "m_parent_sub_section": "section_definitions",
-            "name": "PlotlyFigureQuantity",
-            "base_sections": [
-              "/packages/22/section_definitions/6"
-            ],
-            "constraints": [
-              "dimensions",
-              "has_type",
-              "higher_shapes_require_dtype"
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 2,
-            "m_parent_sub_section": "section_definitions",
-            "name": "PlotlyFigure",
-            "base_sections": [
-              "/packages/10/section_definitions/0"
-            ],
-            "quantities": [
-              {
-                "m_def": "nomad.datamodel.metainfo.plot.PlotlyFigureQuantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "figure",
-                "description": "Contains the JSON serialization for a plotly figure.",
-                "type": {
-                  "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
-                }
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 3,
-            "m_parent_sub_section": "section_definitions",
-            "name": "PlotSection",
-            "description": "The PlotSection base section serves as an additional functionality to your sections. This base section is designed to simplify the process of creating various types of\nplots, making it easy to use Plotly Express, Plotly Subplot, and the general Plotly graph objects.\n\nFeatures:\n- Plotly Express: Create simple and quick plots with a high-level, expressive API.\n- Plotly Subplot: Organize multiple plots into subplots for more complex visualizations.\n- General Plotly Graph Objects: Fine-tune your plots by working directly with Plotly's graph objects.\n\nUsage:\n- Inherit from this base section to leverage its plot functionality.\n- Customize your plots using the annotations plotly-express, plotly-subplots, or/and plotly-graph-object.\n\nExample Usage:\n```python\nclass CustomSection(PlotSection, ElnBaseSection, EntryData):\n    m_def = Section()\n    time = Quantity(type=float, shape=['*'], unit='s', a_eln=dict(component='NumberEditQuantity'))\n    substrate_temperature = Quantity(type=float, shape=['*'], unit='K', a_eln=dict(component='NumberEditQuantity'))\n    chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa', a_eln=dict(component='NumberEditQuantity'))\n\n    def normalize(self, archive, logger):\n        super(CustomSection, self).normalize(archive, logger)\n\n        first_line = px.scatter(x=self.time, y=self.substrate_temperature)\n        second_line = px.scatter(x=self.time, y=self.chamber_pressure)\n        figure1 = make_subplots(rows=1, cols=2, shared_yaxes=True)\n        figure1.add_trace(first_line.data[0], row=1, col=1)\n        figure1.add_trace(second_line.data[0], row=1, col=2)\n        figure1.update_layout(height=400, width=716, title_text=\"Creating Subplots in Plotly\")\n        self.figures.append(PlotlyFigure(label='figure 1', figure=figure1.to_plotly_json()))\n\n        figure2 = px.scatter(x=self.substrate_temperature, y=self.chamber_pressure, color=self.chamber_pressure, title=\"Chamber as a function of Temperature\")\n        self.figures.append(PlotlyFigure(label='figure 2', index=1, figure=figure2.to_plotly_json()))\n\n        heatmap_data = [[None, None, None, 12, 13, 14, 15, 16],\n             [None, 1, None, 11, None, None, None, 17],\n             [None, 2, 6, 7, None, None, None, 18],\n             [None, 3, None, 8, None, None, None, 19],\n             [5, 4, 10, 9, None, None, None, 20],\n             [None, None, None, 27, None, None, None, 21],\n             [None, None, None, 26, 25, 24, 23, 22]]\n\n        heatmap = go.Heatmap(z=heatmap_data, showscale=False, connectgaps=True, zsmooth='best')\n        figure3 = go.Figure(data=heatmap)\n        self.figures.append(PlotlyFigure(label='figure 3', index=0, figure=figure3.to_plotly_json()))\n```\n\n```yaml\ndefinitions:\n  name: 'CustomSection'\n  sections:\n    Example:\n      base_sections:\n        - 'nomad.datamodel.metainfo.plot.PlotSection'\n      m_annotations:\n        plotly_graph_object:\n          data:\n            x: '#xArr'\n            y: '#xArr'\n          layout:\n            title:\n              text: 'Plotly Graph Object'\n          label: 'Plotly Graph Object'\n          index: 1\n        plotly_express:\n          method: scatter\n          x: '#xArr'\n          y: '#yArr'\n          label: 'Example Express Plot'\n          index: 0\n          layout:\n            title:\n              text: 'Example Express Plot'\n            xaxis:\n              title:\n                text: 'x axis'\n            yaxis:\n              title:\n                text: 'y axis'\n          traces:\n            - method: scatter\n              x: '#xArr'\n              y: '#zArr'\n        plotly_subplots:\n          parameters:\n            rows: 2\n            cols: 2\n          layout:\n            title:\n              text: 'All plots'\n          plotly_express:\n            - method: scatter\n              x: '#xArr'\n              y: '#yArr'\n              title: 'subplot 1'\n            - method: scatter\n              x: '#xArr'\n              y: '#zArr'\n              title: 'subplot 2'\n            - method: scatter\n              x: '#zArr'\n              y: '#xArr'\n              title: 'subplot 3'\n            - method: scatter\n              x: '#zArr'\n              y: '#yArr'\n              title: 'subplot 4'\n      quantities:\n        xArr:\n          type: float\n          shape: [\"*\"]\n        yArr:\n          type: float\n          shape: [\"*\"]\n        zArr:\n          type: float\n          shape: [\"*\"]\n```",
-            "base_sections": [
-              "/packages/15/section_definitions/0"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "figures",
-                "more": {
-                  "label_quantity": "label"
-                },
-                "sub_section": "/packages/10/section_definitions/2",
+                "sub_section": "/packages/10/section_definitions/3",
                 "repeats": true
               }
             ]
@@ -63291,7 +63243,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "run",
-                "sub_section": "/packages/3/section_definitions/3",
+                "sub_section": "/packages/4/section_definitions/3",
                 "repeats": true
               },
               {
@@ -63358,7 +63310,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/4/section_definitions/76"
+                "sub_section": "/packages/5/section_definitions/76"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -67396,7 +67348,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the resulting system.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": []
               },
@@ -67441,7 +67393,7 @@ window.nomadArtifacts = {
                 "description": "References to the reference systems.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": [
                   "n_references"
@@ -68177,7 +68129,7 @@ window.nomadArtifacts = {
                 "description": "References to the atoms_group section containing the group of atoms/molecule/groups of molecules for which the property was calculated.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/0"
+                  "type_data": "/packages/2/section_definitions/0"
                 },
                 "shape": []
               },
@@ -68381,7 +68333,7 @@ window.nomadArtifacts = {
                 "description": "References to the atoms_group section containing the group of atoms/molecule/groups of molecules for which the property was calculated.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/0"
+                  "type_data": "/packages/2/section_definitions/0"
                 },
                 "shape": [
                   1
@@ -68606,7 +68558,7 @@ window.nomadArtifacts = {
                 "description": "DFT density of states",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 }
               },
               {
@@ -68617,7 +68569,7 @@ window.nomadArtifacts = {
                 "description": "GW density of states",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 }
               },
               {
@@ -68628,7 +68580,7 @@ window.nomadArtifacts = {
                 "description": "DFT density of states",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 }
               },
               {
@@ -68639,7 +68591,7 @@ window.nomadArtifacts = {
                 "description": "DFT density of states",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 }
               }
             ]
@@ -68801,7 +68753,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the input calculation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": []
               },
@@ -68813,7 +68765,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the output calculation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": []
               },
@@ -68874,7 +68826,7 @@ window.nomadArtifacts = {
                 "description": "Starting structure for geometry optimization.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/1"
+                  "type_data": "/packages/2/section_definitions/1"
                 },
                 "shape": []
               },
@@ -68901,7 +68853,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": []
               },
@@ -68925,7 +68877,7 @@ window.nomadArtifacts = {
                 "description": "List of references to each section single_configuration_calculation in the\nsimulation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": [
                   "n_calculations"
@@ -68942,7 +68894,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/3/section_definitions/3"
+                  "type_data": "/packages/4/section_definitions/3"
                 },
                 "shape": []
               },
@@ -69156,7 +69108,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": []
               },
@@ -69180,7 +69132,7 @@ window.nomadArtifacts = {
                 "description": "List of references to each calculation section in the simulation.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/36"
+                  "type_data": "/packages/3/section_definitions/36"
                 },
                 "shape": [
                   "n_calculations"
@@ -69243,7 +69195,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the resulting system.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": []
               },
@@ -69288,7 +69240,7 @@ window.nomadArtifacts = {
                 "description": "References to the reference systems.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": [
                   "n_references"
@@ -69672,7 +69624,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the electronic density of states data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "n_data"
@@ -69686,7 +69638,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the electronic band structure data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "n_data"
@@ -69700,7 +69652,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the eigenvalues.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/13"
+                  "type_data": "/packages/3/section_definitions/13"
                 },
                 "shape": [
                   "n_data"
@@ -69714,7 +69666,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the potential data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/26"
+                  "type_data": "/packages/3/section_definitions/26"
                 },
                 "shape": [
                   "n_data"
@@ -69728,7 +69680,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the charge density data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/27"
+                  "type_data": "/packages/3/section_definitions/27"
                 },
                 "shape": [
                   "n_data"
@@ -69742,7 +69694,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the spectral data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/28"
+                  "type_data": "/packages/3/section_definitions/28"
                 },
                 "shape": [
                   "n_data"
@@ -70956,7 +70908,7 @@ window.nomadArtifacts = {
                 "description": "References to the atoms_group section containing the molecule for which Rg was calculated.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/0"
+                  "type_data": "/packages/2/section_definitions/0"
                 },
                 "shape": [
                   1
@@ -71258,7 +71210,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the system of each step in the trajectory.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/8"
+                  "type_data": "/packages/2/section_definitions/8"
                 },
                 "shape": [
                   "n_steps"
@@ -71518,7 +71470,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the electronic density of states data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "n_data"
@@ -71532,7 +71484,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the electronic band structure data.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "n_data"
@@ -72217,7 +72169,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the DFT band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72231,7 +72183,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72245,7 +72197,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the DFT density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72259,7 +72211,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72273,7 +72225,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the DFT band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "*"
@@ -72287,7 +72239,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "*"
@@ -72313,7 +72265,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the starting point (XC functional or HF) used.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/20"
+                  "type_data": "/packages/1/section_definitions/20"
                 }
               },
               {
@@ -72324,7 +72276,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the basis set used.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/16"
+                  "type_data": "/packages/1/section_definitions/16"
                 }
               },
               {
@@ -72335,7 +72287,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW methodology.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/29"
+                  "type_data": "/packages/1/section_definitions/29"
                 }
               }
             ]
@@ -72398,7 +72350,7 @@ window.nomadArtifacts = {
                 "description": "Spectrum for a given polarization of the photon.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/28"
+                  "type_data": "/packages/3/section_definitions/28"
                 },
                 "shape": [
                   "n_polarizations"
@@ -72424,7 +72376,7 @@ window.nomadArtifacts = {
                 "description": "BSE methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/30"
+                  "type_data": "/packages/1/section_definitions/30"
                 }
               }
             ]
@@ -72476,7 +72428,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the DFT band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72490,7 +72442,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72504,7 +72456,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the DFT density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "*"
@@ -72518,7 +72470,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "*"
@@ -72532,7 +72484,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the DFT band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72546,7 +72498,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72620,7 +72572,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the DMFT Greens functions.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/29"
+                  "type_data": "/packages/3/section_definitions/29"
                 },
                 "shape": [
                   "*"
@@ -72634,7 +72586,7 @@ window.nomadArtifacts = {
                 "description": "MaxEnt band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72648,7 +72600,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the MaxEnt density of states (also called spectral function).",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72662,7 +72614,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the MaxEnt Greens functions.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/29"
+                  "type_data": "/packages/3/section_definitions/29"
                 },
                 "shape": [
                   "*"
@@ -72688,7 +72640,7 @@ window.nomadArtifacts = {
                 "description": "DMFT methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/31"
+                  "type_data": "/packages/1/section_definitions/31"
                 }
               },
               {
@@ -72699,7 +72651,7 @@ window.nomadArtifacts = {
                 "description": "MaxEnt methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/39"
                 }
               }
             ]
@@ -72751,7 +72703,7 @@ window.nomadArtifacts = {
                 "description": "DFT band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72765,7 +72717,7 @@ window.nomadArtifacts = {
                 "description": "Projection band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72779,7 +72731,7 @@ window.nomadArtifacts = {
                 "description": "DMFT band gap.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/19"
+                  "type_data": "/packages/3/section_definitions/19"
                 },
                 "shape": [
                   "*"
@@ -72793,7 +72745,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the DFT band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "*"
@@ -72807,7 +72759,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the DFT density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72821,7 +72773,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the projected band structure.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/14"
+                  "type_data": "/packages/3/section_definitions/14"
                 },
                 "shape": [
                   "*"
@@ -72835,7 +72787,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the projected density of states.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/17"
+                  "type_data": "/packages/3/section_definitions/17"
                 },
                 "shape": [
                   "*"
@@ -72849,7 +72801,7 @@ window.nomadArtifacts = {
                 "description": "Ref to the DMFT Greens functions.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/2/section_definitions/29"
+                  "type_data": "/packages/3/section_definitions/29"
                 },
                 "shape": [
                   "*"
@@ -72875,7 +72827,7 @@ window.nomadArtifacts = {
                 "description": "Starting point (XC functional or HF) used.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/20"
+                  "type_data": "/packages/1/section_definitions/20"
                 }
               },
               {
@@ -72886,7 +72838,7 @@ window.nomadArtifacts = {
                 "description": "Basis set used.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/16"
+                  "type_data": "/packages/1/section_definitions/16"
                 }
               },
               {
@@ -72897,7 +72849,7 @@ window.nomadArtifacts = {
                 "description": "Projection methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/23"
+                  "type_data": "/packages/1/section_definitions/23"
                 }
               },
               {
@@ -72908,7 +72860,7 @@ window.nomadArtifacts = {
                 "description": "DMFT methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/0/section_definitions/31"
+                  "type_data": "/packages/1/section_definitions/31"
                 }
               }
             ]

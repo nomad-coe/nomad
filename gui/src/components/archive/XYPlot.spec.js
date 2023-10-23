@@ -217,10 +217,8 @@ test.each([
   [
     'Plotting first two sub sections',
     {
-      data: {
-        x: 'my_middle_sections/:/my_sub_sections/:2/x',
-        y: 'my_middle_sections/:/my_sub_sections/:2/y'
-      }
+      x: 'my_middle_sections/:/my_sub_sections/:2/x',
+      y: 'my_middle_sections/:/my_sub_sections/:2/y'
     },
     topSectionNamed,
     topSectionDef,
@@ -229,10 +227,8 @@ test.each([
   [
     'Plotting last two sub sections',
     {
-      data: {
-        x: 'my_middle_sections/:/my_sub_sections/-2:/x',
-        y: 'my_middle_sections/:/my_sub_sections/-2:/y'
-      }
+      x: 'my_middle_sections/:/my_sub_sections/-2:/x',
+      y: 'my_middle_sections/:/my_sub_sections/-2:/y'
     },
     topSectionNamed,
     topSectionDef,
@@ -241,10 +237,8 @@ test.each([
   [
     'Plotting unnamed sub sections with slice',
     {
-      data: {
-        x: 'my_middle_sections/:/my_sub_sections/1:2/x',
-        y: 'my_middle_sections/:/my_sub_sections/1:2/y'
-      }
+      x: 'my_middle_sections/:/my_sub_sections/1:2/x',
+      y: 'my_middle_sections/:/my_sub_sections/1:2/y'
     },
     topSectionUnNamed,
     topSectionDef,
@@ -253,10 +247,8 @@ test.each([
   [
     'Plotting only instantiated sub sections',
     {
-      data: {
-        x: 'my_middle_sections/:/my_sub_sections/2:5/x',
-        y: 'my_middle_sections/:/my_sub_sections/2:5/y'
-      }
+      x: 'my_middle_sections/:/my_sub_sections/2:5/x',
+      y: 'my_middle_sections/:/my_sub_sections/2:5/y'
     },
     topSectionNamed,
     topSectionDef,
@@ -265,10 +257,8 @@ test.each([
   [
     'Plotting labeled, named and unlabeled',
     {
-      data: {
-        x: 'my_middle_sections/:/my_sub_sections/:/x',
-        y: 'my_middle_sections/:/my_sub_sections/:/y'
-      }
+      x: 'my_middle_sections/:/my_sub_sections/:/x',
+      y: 'my_middle_sections/:/my_sub_sections/:/y'
     },
     topSectionLabeled,
     topSectionDef,
@@ -277,15 +267,10 @@ test.each([
   [
     'Plotting scalars from repeating sub sections',
     {
-      data: [
-        {
-          x: 'my_middle_sections/:/x',
-          y: 'my_middle_sections/:/y'
-        },
-        {
-          x: 'my_middle_sections/:/x',
-          y: 'my_middle_sections/:/y2'
-        }
+      x: 'my_middle_sections/:/x',
+      y: [
+        'my_middle_sections/:/y',
+        'my_middle_sections/:/y2'
       ]
     },
     topSectionScalar,

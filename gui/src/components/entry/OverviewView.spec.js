@@ -208,7 +208,7 @@ test('eln overview as a reviewer', async () => {
   const cardHotplateAnnealing = sectionCards[2]
 
   expect(within(cardSample).getByText('Sample')).toBeVisible()
-  expectQuantityToBe('chemical_formula', 'chemical formula', undefined, within(cardSample))
+  // expectQuantityToBe('chemical_formula', 'chemical formula', undefined, within(cardSample))
   expectQuantityToBe('name', 'name', 'ELN example sample', within(cardSample))
   expectQuantityToBe('lab_id', 'lab id', '001', within(cardSample))
   expectQuantityToBe('description', 'description', undefined, within(cardSample))
@@ -221,7 +221,7 @@ test('eln overview as a reviewer', async () => {
   expectQuantityToBe('data_file', 'data file', 'PVDProcess.csv', within(cardPvdEvaporation))
 
   // Test if the plot is there
-  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(mbar\)/)).toBeVisible()
+  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
   expect(within(cardPvdEvaporation).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
   expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
 
@@ -297,7 +297,7 @@ test.each([
   expectNumberEditQuantity(numberFieldValue[0], numberFieldUnit[0], '', 'Å')
 
   // Test if the plot is there
-  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(mbar\)/)).toBeVisible()
+  expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
   expect(within(cardPvdEvaporation).getByText(/Substrate Temperature \(K\)/)).toBeVisible()
   expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
 

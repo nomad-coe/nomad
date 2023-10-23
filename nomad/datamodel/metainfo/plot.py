@@ -31,10 +31,10 @@ class PlotlyError(Exception):
 
 def get_figure_layout(annotation):
     label = annotation.get('label', None)
-    if label:
+    if label is not None:
         annotation.pop('label')
     index = annotation.get('index', None)
-    if index:
+    if index is not None:
         annotation.pop('index')
     return label, index
 
@@ -50,20 +50,34 @@ def express_do_plot(plotly_express_annotation, archive):
     method = getattr(px, method_name)
     kwargs = {}
     for key, value in plotly_express_annotation.items():
-        if value.startswith('#'):
-            resolved_value = None
-            try:
-                resolved_value = archive.m_resolve(f'/data/{value[1:]}')
-            except Exception as e:
-                logging.warning(e)
-            kwargs[key] = resolved_value
-        else:
-            kwargs[key] = value
+        if isinstance(value, list):
+            items = []
+            for item in value:
+                if item.startswith('#'):
+                    resolved_value = None
+                    try:
+                        resolved_value = archive.m_resolve(f'/data/{item[1:]}')
+                    except Exception as e:
+                        logging.warning(e)
+                    items.append(resolved_value)
+                else:
+                    items.append(item)
+            kwargs[key] = items
+        elif isinstance(value, str):
+            if value.startswith('#'):
+                resolved_value = None
+                try:
+                    resolved_value = archive.m_resolve(f'/data/{value[1:]}')
+                except Exception as e:
+                    logging.warning(e)
+                kwargs[key] = resolved_value
+            else:
+                kwargs[key] = value
     try:
         figure = method(**kwargs)
         return figure, layout, traces
     except Exception as e:
-        PlotlyError(e)
+        raise PlotlyError(e)
 
 
 def convert_to_list(data):
@@ -167,78 +181,6 @@ class PlotSection(ArchiveSection):
             figure3 = go.Figure(data=heatmap)
             self.figures.append(PlotlyFigure(label='figure 3', index=0, figure=figure3.to_plotly_json()))
     ```
-
-    ```yaml
-    definitions:
-      name: 'CustomSection'
-      sections:
-        Example:
-          base_sections:
-            - 'nomad.datamodel.metainfo.plot.PlotSection'
-          m_annotations:
-            plotly_graph_object:
-              data:
-                x: '#xArr'
-                y: '#xArr'
-              layout:
-                title:
-                  text: 'Plotly Graph Object'
-              label: 'Plotly Graph Object'
-              index: 1
-            plotly_express:
-              method: scatter
-              x: '#xArr'
-              y: '#yArr'
-              label: 'Example Express Plot'
-              index: 0
-              layout:
-                title:
-                  text: 'Example Express Plot'
-                xaxis:
-                  title:
-                    text: 'x axis'
-                yaxis:
-                  title:
-                    text: 'y axis'
-              traces:
-                - method: scatter
-                  x: '#xArr'
-                  y: '#zArr'
-            plotly_subplots:
-              parameters:
-                rows: 2
-                cols: 2
-              layout:
-                title:
-                  text: 'All plots'
-              plotly_express:
-                - method: scatter
-                  x: '#xArr'
-                  y: '#yArr'
-                  title: 'subplot 1'
-                - method: scatter
-                  x: '#xArr'
-                  y: '#zArr'
-                  title: 'subplot 2'
-                - method: scatter
-                  x: '#zArr'
-                  y: '#xArr'
-                  title: 'subplot 3'
-                - method: scatter
-                  x: '#zArr'
-                  y: '#yArr'
-                  title: 'subplot 4'
-          quantities:
-            xArr:
-              type: float
-              shape: ["*"]
-            yArr:
-              type: float
-              shape: ["*"]
-            zArr:
-              type: float
-              shape: ["*"]
-    ```
     '''
     figures = SubSection(sub_section=PlotlyFigure.m_def, repeats=True, label_quantity='label')
 
@@ -337,7 +279,7 @@ class PlotSection(ArchiveSection):
                                                 figure.update_xaxes(xaxis, row=row, col=col)
                                             yaxis = sub_layout.get('yaxis', None)
                                             if yaxis:
-                                                figure.update_yaxes(xaxis, row=row, col=col)
+                                                figure.update_yaxes(yaxis, row=row, col=col)
                                     except Exception as e:
                                         raise PlotlyError(e)
                         layout = plotly_subplots_annotation.get('layout', None)

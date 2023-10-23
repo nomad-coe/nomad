@@ -18,14 +18,15 @@ class XYPlotError extends Error {
 const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
   const theme = useTheme()
   const units = useUnits()
-  const traces = useMemo(() => Array.isArray(plot.data) ? plot.data : [plot.data], [plot.data])
+  const xAxis = plot.x || plot['x_axis'] || plot['xAxis']
+  const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
 
   const [data, layout] = useMemo(() => {
     if (!sectionDef?._properties) {
       return [undefined, undefined]
     }
-    const XPrime = traces.map(trace => trace.x)
-    const YPrime = traces.map(trace => trace.y)
+    const XPrime = Array.isArray(xAxis) ? xAxis : [xAxis]
+    const YPrime = Array.isArray(yAxis) ? yAxis : [yAxis]
     const toUnit = path => {
       const relativePath = '/' + path.replace('./', '')
       const resolvedQuantityDef = resolveInternalRef(relativePath, sectionDef)
@@ -169,6 +170,11 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       return {type: 'scatter',
         line: line}
     })
+    if (plot.lines) {
+      Y.forEach((y, index) => {
+        merge(lines[index], plot.lines[index])
+      })
+    }
 
     if (isMultiX) {
       if (X.length !== Y.length) {
@@ -190,10 +196,10 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       const line = {
         name: Names[index],
         x: isMultiX ? xValuesArray[index] : xValuesArray[0],
-        y: yValues
+        y: yValues,
+        ...lines[index]
       }
-      const trace = merge({}, lines[index], traces[index], line)
-      data.push(trace)
+      data.push(line)
       yUnits.push(yUnit)
       yLabels.push(yLabel)
     })
@@ -218,7 +224,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
         fixedrange: false
       },
       yaxis: {
-        title: sameUnit ? (yUnits[0] ? `${titleCase(yLabels[0])} (${yUnits[0]})` : titleCase(yLabels[0])) : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
+        title: sameUnit ? (yUnits[0] ? `${titleCase(title)} (${yUnits[0]})` : titleCase(title)) : (yUnits[0] ? `${yLabels[0]} (${yUnits[0]})` : yLabels[0]),
         titlefont: !sameUnit && nLines > 1 ? getColor(0) : undefined,
         tickfont: !sameUnit && nLines > 1 ? getColor(0) : undefined
       },
@@ -252,7 +258,7 @@ const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
       merge(layout, plot.layout)
     }
     return [data, layout]
-  }, [plot.layout, section, sectionDef, theme, traces, units])
+  }, [plot.layout, plot.lines, xAxis, yAxis, section, sectionDef, theme, title, units])
 
   return <Box minWidth={500} height={500}>
     <Plot

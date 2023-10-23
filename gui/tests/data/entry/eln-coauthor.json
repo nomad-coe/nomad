@@ -7,7 +7,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyNTA2NzNkOS1lNWEyLTQyZjktOGQ2Yi0yZDVmNjhiZmU1YmYiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.KK-cMM5QAJEUh6S_M15AElkAgLn5eOrgFAVRDuKKXPZ2cV0obzqxxC_zHJjaJSYrV3_qFr44epZ1YfVe_idd_kzBmHwxbXZCMOLS93OVaVkOBCKOrbL7Sj4FBHw3glU0oQRo2or_oqOFHshMc5liuFxij6Gk8f43hp27JFVdFZBNHlBMK-PFQM3oRyduXJ3xwRx_r2v8o2EaMwTdWPAWWZQc_u0fiQJVPOjUA5cd6inw5oJ75x_h6LitHIw8U4Mq861k_Wndu3fglKE1VOZ853aE80xm-3DPaseXh2v4oRXYhkpG1_ZA5TB6kn3AhyKDWE_w87lreuYhC738hLEFPA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1ODhjYzJkOS1iZDQ3LTQ1NDUtOTJkZC0yOTBlM2JlOWNlNTciLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzA5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.DARYVBMhqn88zjPIRmLroLxjXeeRBGF3BBYxXziSAzbuSVqjsvmTbTi77AGSInuoiENDHuxQwbnininvnpurLPDQiZPK0a8ymkjmkDouABmu1fLUKtfcKzRMqRkjNT7pdqBH9pFDhUjmIzKqtNk2OVq7PwoAffbwnmwALGTTjLbFxFgFsD_wEzWXKS2FLaZEV4Fc0XIOJF-cajBIQv4JfwFoLQONjA7YXtOElSK-nsAaetcfF9DLbbhOzdsXIB-0lHnGUFsv2Zew2vyaSBNhlq92pCxgYsGz7nJbNwiryB8JGiK1LBII07V8IM0t5yUwmGFypZfBsFDSEuOXsgc_rQ",
           "cookie": null
         }
       },
@@ -36,6 +36,8 @@
               "data.processes.pvd_evaporation.chamber_pressure",
               "data.processes.pvd_evaporation.data_file",
               "data.processes.pvd_evaporation.datetime",
+              "data.processes.pvd_evaporation.figures",
+              "data.processes.pvd_evaporation.figures.figure",
               "data.processes.pvd_evaporation.fill_archive_from_datafile",
               "data.processes.pvd_evaporation.substrate_temperature",
               "data.processes.pvd_evaporation.time",
@@ -89,9 +91,9 @@
               "results.properties"
             ],
             "datasets": [],
-            "n_quantities": 59,
-            "nomad_version": "1.2.1.dev124+g099de4643.d20230919",
-            "upload_create_time": "2023-09-21T11:36:10.301000+00:00",
+            "n_quantities": 65,
+            "nomad_version": "1.2.2.dev85+g6f47bb0a0",
+            "upload_create_time": "2023-10-20T21:11:44.447000+00:00",
             "nomad_commit": "",
             "section_defs": [
               {
@@ -101,12 +103,12 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "ca0a6011326e4ca1e487e9b244bc5153e7cded19",
+                "definition_id": "030133d881170f0d9e31da6086ed5641f0c4403c",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
               },
               {
                 "used_directly": true,
-                "definition_id": "d0d0cbf5ae07a246dbfa9634e51f995151abde55",
+                "definition_id": "f0086b987424b1001666c6f5df9ad1071164a27e",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes"
               },
               {
@@ -116,7 +118,7 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "c7646bbd6f18ae97af64a6fa967de483af3e9100",
+                "definition_id": "c640c9585e8d4549f248582763427a7dd7c417a0",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation"
               },
               {
@@ -131,7 +133,7 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "a19151d9beb46b8690dc0937f050ef674f958ef4",
+                "definition_id": "1a38309e86abd87e7ef9ff7aa89560cf22ab111e",
                 "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
               },
               {
@@ -155,24 +157,39 @@
                 "definition_qualified_name": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
+                "used_directly": true,
+                "definition_id": "c7254c9b461a4baec86cb3179e2f84513f5c9053",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.CompositeSystem"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "7ce6bdcaa183a9685582b275e1c2b2ea3139c74d",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Entity"
+              },
+              {
                 "used_directly": false,
                 "definition_id": "8d81e1f95c60f39a6a8c9f954143a55e6f4c984c",
                 "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Process"
               },
               {
                 "used_directly": false,
-                "definition_id": "f05adb2ccbe04cbeced6213c4b6bd8f78e3d4ead",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection"
-              },
-              {
-                "used_directly": false,
-                "definition_id": "ada854aefd11fd40e6c161fe2d9207a7bb104052",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection"
+                "definition_id": "3ab3a09d615ab58aefbaa3acdd8d6af4e73aaae5",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.System"
               },
               {
                 "used_directly": true,
-                "definition_id": "a830a6d8c03f2a0baa0203e07efcbbd54328daaa",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample"
+                "definition_id": "55ef08f33dcf9fb374aea217458bd34a23bec57b",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.Figure"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7bb17e35ed91dca88bf6238fc51ed212693593d0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "491cdc3c5ea21cdc576275a5c1e600cdaa4256c1",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotlyFigure"
               },
               {
                 "used_directly": true,
@@ -181,12 +198,12 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "c1223381a11d512543e254a8da6a40e88a9bdb9a",
+                "definition_id": "43288046582240d7a33ec8b5fe4ca86988c2378c",
                 "definition_qualified_name": "nomad.datamodel.results.Properties"
               },
               {
                 "used_directly": true,
-                "definition_id": "7cd04a0a1fc2db43414328de6410fa3bc1737b5f",
+                "definition_id": "ba0a320c9aa599c7c4a0af8c545f3cfe76cc4e70",
                 "definition_qualified_name": "nomad.datamodel.results.Results"
               },
               {
@@ -225,7 +242,7 @@
               }
             },
             "entry_name": "ELN example sample",
-            "last_processing_time": "2023-09-21T11:36:10.656000+00:00",
+            "last_processing_time": "2023-10-20T21:11:44.763000+00:00",
             "parser_name": "parsers/archive",
             "searchable_quantities": [
               {
@@ -238,13 +255,13 @@
                 "text_value": "001",
                 "path": "data.lab_id",
                 "quantity_name": "lab_id",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
                 "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
                 "path": "data.description",
                 "quantity_name": "description",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
                 "path": "data.substrate_type",
@@ -284,9 +301,9 @@
               },
               {
                 "path": "data.datetime",
-                "date_value": "2023-09-21T13:36:10.771730+00:00",
+                "date_value": "2023-10-20T23:11:44.823365+00:00",
                 "quantity_name": "datetime",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               }
             ],
             "calc_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
@@ -309,6 +326,7 @@
               "nomad.datamodel.datamodel.EntryArchive",
               "nomad.datamodel.datamodel.EntryMetadata",
               "nomad.datamodel.datamodel.RFC3161Timestamp",
+              "nomad.datamodel.metainfo.plot.PlotlyFigure",
               "nomad.datamodel.results.ELN",
               "nomad.datamodel.results.Properties",
               "nomad.datamodel.results.Results"
@@ -333,7 +351,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2023-09-21T11:36:10.379000+00:00",
+            "entry_create_time": "2023-10-20T21:11:44.513000+00:00",
             "with_embargo": false,
             "files": [
               "sample.archive.json",
@@ -356,8 +374,9 @@
           }
         },
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
-          "content-length": "12995",
+          "content-length": "13756",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -370,7 +389,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyNTA2NzNkOS1lNWEyLTQyZjktOGQ2Yi0yZDVmNjhiZmU1YmYiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc0LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.KK-cMM5QAJEUh6S_M15AElkAgLn5eOrgFAVRDuKKXPZ2cV0obzqxxC_zHJjaJSYrV3_qFr44epZ1YfVe_idd_kzBmHwxbXZCMOLS93OVaVkOBCKOrbL7Sj4FBHw3glU0oQRo2or_oqOFHshMc5liuFxij6Gk8f43hp27JFVdFZBNHlBMK-PFQM3oRyduXJ3xwRx_r2v8o2EaMwTdWPAWWZQc_u0fiQJVPOjUA5cd6inw5oJ75x_h6LitHIw8U4Mq861k_Wndu3fglKE1VOZ853aE80xm-3DPaseXh2v4oRXYhkpG1_ZA5TB6kn3AhyKDWE_w87lreuYhC738hLEFPA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI1ODhjYzJkOS1iZDQ3LTQ1NDUtOTJkZC0yOTBlM2JlOWNlNTciLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzA5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.DARYVBMhqn88zjPIRmLroLxjXeeRBGF3BBYxXziSAzbuSVqjsvmTbTi77AGSInuoiENDHuxQwbnininvnpurLPDQiZPK0a8ymkjmkDouABmu1fLUKtfcKzRMqRkjNT7pdqBH9pFDhUjmIzKqtNk2OVq7PwoAffbwnmwALGTTjLbFxFgFsD_wEzWXKS2FLaZEV4Fc0XIOJF-cajBIQv4JfwFoLQONjA7YXtOElSK-nsAaetcfF9DLbbhOzdsXIB-0lHnGUFsv2Zew2vyaSBNhlq92pCxgYsGz7nJbNwiryB8JGiK1LBII07V8IM0t5yUwmGFypZfBsFDSEuOXsgc_rQ",
           "cookie": null
         }
       },
@@ -399,6 +418,8 @@
               "data.processes.pvd_evaporation.chamber_pressure",
               "data.processes.pvd_evaporation.data_file",
               "data.processes.pvd_evaporation.datetime",
+              "data.processes.pvd_evaporation.figures",
+              "data.processes.pvd_evaporation.figures.figure",
               "data.processes.pvd_evaporation.fill_archive_from_datafile",
               "data.processes.pvd_evaporation.substrate_temperature",
               "data.processes.pvd_evaporation.time",
@@ -452,9 +473,9 @@
               "results.properties"
             ],
             "datasets": [],
-            "n_quantities": 59,
-            "nomad_version": "1.2.1.dev124+g099de4643.d20230919",
-            "upload_create_time": "2023-09-21T11:36:10.301000+00:00",
+            "n_quantities": 65,
+            "nomad_version": "1.2.2.dev85+g6f47bb0a0",
+            "upload_create_time": "2023-10-20T21:11:44.447000+00:00",
             "nomad_commit": "",
             "section_defs": [
               {
@@ -464,12 +485,12 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "ca0a6011326e4ca1e487e9b244bc5153e7cded19",
+                "definition_id": "030133d881170f0d9e31da6086ed5641f0c4403c",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
               },
               {
                 "used_directly": true,
-                "definition_id": "d0d0cbf5ae07a246dbfa9634e51f995151abde55",
+                "definition_id": "f0086b987424b1001666c6f5df9ad1071164a27e",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes"
               },
               {
@@ -479,7 +500,7 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "c7646bbd6f18ae97af64a6fa967de483af3e9100",
+                "definition_id": "c640c9585e8d4549f248582763427a7dd7c417a0",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation"
               },
               {
@@ -494,7 +515,7 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "a19151d9beb46b8690dc0937f050ef674f958ef4",
+                "definition_id": "1a38309e86abd87e7ef9ff7aa89560cf22ab111e",
                 "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
               },
               {
@@ -518,24 +539,39 @@
                 "definition_qualified_name": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
+                "used_directly": true,
+                "definition_id": "c7254c9b461a4baec86cb3179e2f84513f5c9053",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.CompositeSystem"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "7ce6bdcaa183a9685582b275e1c2b2ea3139c74d",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Entity"
+              },
+              {
                 "used_directly": false,
                 "definition_id": "8d81e1f95c60f39a6a8c9f954143a55e6f4c984c",
                 "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Process"
               },
               {
                 "used_directly": false,
-                "definition_id": "f05adb2ccbe04cbeced6213c4b6bd8f78e3d4ead",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection"
-              },
-              {
-                "used_directly": false,
-                "definition_id": "ada854aefd11fd40e6c161fe2d9207a7bb104052",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection"
+                "definition_id": "3ab3a09d615ab58aefbaa3acdd8d6af4e73aaae5",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.System"
               },
               {
                 "used_directly": true,
-                "definition_id": "a830a6d8c03f2a0baa0203e07efcbbd54328daaa",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample"
+                "definition_id": "55ef08f33dcf9fb374aea217458bd34a23bec57b",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.Figure"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7bb17e35ed91dca88bf6238fc51ed212693593d0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "491cdc3c5ea21cdc576275a5c1e600cdaa4256c1",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotlyFigure"
               },
               {
                 "used_directly": true,
@@ -544,12 +580,12 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "c1223381a11d512543e254a8da6a40e88a9bdb9a",
+                "definition_id": "43288046582240d7a33ec8b5fe4ca86988c2378c",
                 "definition_qualified_name": "nomad.datamodel.results.Properties"
               },
               {
                 "used_directly": true,
-                "definition_id": "7cd04a0a1fc2db43414328de6410fa3bc1737b5f",
+                "definition_id": "ba0a320c9aa599c7c4a0af8c545f3cfe76cc4e70",
                 "definition_qualified_name": "nomad.datamodel.results.Results"
               },
               {
@@ -588,7 +624,7 @@
               }
             },
             "entry_name": "ELN example sample",
-            "last_processing_time": "2023-09-21T11:36:10.656000+00:00",
+            "last_processing_time": "2023-10-20T21:11:44.763000+00:00",
             "parser_name": "parsers/archive",
             "searchable_quantities": [
               {
@@ -601,13 +637,13 @@
                 "text_value": "001",
                 "path": "data.lab_id",
                 "quantity_name": "lab_id",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
                 "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
                 "path": "data.description",
                 "quantity_name": "description",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
                 "path": "data.substrate_type",
@@ -647,9 +683,9 @@
               },
               {
                 "path": "data.datetime",
-                "date_value": "2023-09-21T13:36:10.771730+00:00",
+                "date_value": "2023-10-20T23:11:44.823365+00:00",
                 "quantity_name": "datetime",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               }
             ],
             "calc_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
@@ -672,6 +708,7 @@
               "nomad.datamodel.datamodel.EntryArchive",
               "nomad.datamodel.datamodel.EntryMetadata",
               "nomad.datamodel.datamodel.RFC3161Timestamp",
+              "nomad.datamodel.metainfo.plot.PlotlyFigure",
               "nomad.datamodel.results.ELN",
               "nomad.datamodel.results.Properties",
               "nomad.datamodel.results.Results"
@@ -696,7 +733,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2023-09-21T11:36:10.379000+00:00",
+            "entry_create_time": "2023-10-20T21:11:44.513000+00:00",
             "with_embargo": false,
             "files": [
               "sample.archive.json",
@@ -719,8 +756,9 @@
           }
         },
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
-          "content-length": "12995",
+          "content-length": "13756",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -733,7 +771,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwN2IwNDNiNy1iN2Q5LTRkYTEtYjlkMC00MDE4MzBhOTEwZjYiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.QRQ-TPg2Wx6a9sjHgEda_MRsmSmvC1pvfnvYkDcfD9V1UgGlP2KhEfqSkyLj2ZkKo__gHA4JUbM5RlWuT2iD3J0GLAW6HpPzvmCutpcGlJEEzhzOzm4hDeIJVZYcG1lNmJPpdQfG_pqWsinqHshC1pyHyrIzNd9VjnFq-6gHEs_1MZdEr3qlPwiyczmzNweOsptJnXvWs20HpXFGUaydwMVQ0UYRxGD3Q6CBTvnuwiVkoh37jufR2io9HJioVKg7no6pbJ1jI9ugF_xwTwfAkOYVal3jpkKtgfaXO5uZ9AHvMhTAOkd6p2M4QdYw6g0RZ5XaP6McBhjHlVdepZQj0Q",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhN2YxZDJjMy0xNjkzLTQ5NmMtYTI2NS0yZTEzZGU2M2NjMTIiLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzEyLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.gyAKpCkK9spnDP2AFTcdT2MAcWKGX0lra-B-L36geda0oThbsC-RdOAUjeRZCa8XNCMybgXj50kuytK9jfBq1KYN_aP4LnzQ-1fhNXrGC3gHuOq0BLCxzXRzTtb3GSI02-JbQsmWqeo3lOzE2bgyiFZGaZ1UvvwcvUsGbYaMJMjU6blCC8bO0R0IuT0yMv54-ELIp00hdiHfSQoW4RE4E5L38mmZQwTI1Acyb9bragw8MuIluXADXLBhoyTB8OsXiPZlFk-LxRMUo7I2poA9AqnS0ZDBUiZvV8E4IObnQmXzQDQT5T0emQm9TyzFOXJLYSbi66-q5MdCyyjAq8dtFg",
           "cookie": null
         }
       },
@@ -762,6 +800,8 @@
               "data.processes.pvd_evaporation.chamber_pressure",
               "data.processes.pvd_evaporation.data_file",
               "data.processes.pvd_evaporation.datetime",
+              "data.processes.pvd_evaporation.figures",
+              "data.processes.pvd_evaporation.figures.figure",
               "data.processes.pvd_evaporation.fill_archive_from_datafile",
               "data.processes.pvd_evaporation.substrate_temperature",
               "data.processes.pvd_evaporation.time",
@@ -815,9 +855,9 @@
               "results.properties"
             ],
             "datasets": [],
-            "n_quantities": 59,
-            "nomad_version": "1.2.1.dev124+g099de4643.d20230919",
-            "upload_create_time": "2023-09-21T11:36:10.301000+00:00",
+            "n_quantities": 65,
+            "nomad_version": "1.2.2.dev85+g6f47bb0a0",
+            "upload_create_time": "2023-10-20T21:11:44.447000+00:00",
             "nomad_commit": "",
             "section_defs": [
               {
@@ -827,12 +867,12 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "ca0a6011326e4ca1e487e9b244bc5153e7cded19",
+                "definition_id": "030133d881170f0d9e31da6086ed5641f0c4403c",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
               },
               {
                 "used_directly": true,
-                "definition_id": "d0d0cbf5ae07a246dbfa9634e51f995151abde55",
+                "definition_id": "f0086b987424b1001666c6f5df9ad1071164a27e",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes"
               },
               {
@@ -842,7 +882,7 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "c7646bbd6f18ae97af64a6fa967de483af3e9100",
+                "definition_id": "c640c9585e8d4549f248582763427a7dd7c417a0",
                 "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation"
               },
               {
@@ -857,7 +897,7 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "a19151d9beb46b8690dc0937f050ef674f958ef4",
+                "definition_id": "1a38309e86abd87e7ef9ff7aa89560cf22ab111e",
                 "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
               },
               {
@@ -881,24 +921,39 @@
                 "definition_qualified_name": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
+                "used_directly": true,
+                "definition_id": "c7254c9b461a4baec86cb3179e2f84513f5c9053",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.CompositeSystem"
+              },
+              {
+                "used_directly": false,
+                "definition_id": "7ce6bdcaa183a9685582b275e1c2b2ea3139c74d",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Entity"
+              },
+              {
                 "used_directly": false,
                 "definition_id": "8d81e1f95c60f39a6a8c9f954143a55e6f4c984c",
                 "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Process"
               },
               {
                 "used_directly": false,
-                "definition_id": "f05adb2ccbe04cbeced6213c4b6bd8f78e3d4ead",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection"
-              },
-              {
-                "used_directly": false,
-                "definition_id": "ada854aefd11fd40e6c161fe2d9207a7bb104052",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection"
+                "definition_id": "3ab3a09d615ab58aefbaa3acdd8d6af4e73aaae5",
+                "definition_qualified_name": "nomad.datamodel.metainfo.basesections.System"
               },
               {
                 "used_directly": true,
-                "definition_id": "a830a6d8c03f2a0baa0203e07efcbbd54328daaa",
-                "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample"
+                "definition_id": "55ef08f33dcf9fb374aea217458bd34a23bec57b",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.Figure"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "7bb17e35ed91dca88bf6238fc51ed212693593d0",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotSection"
+              },
+              {
+                "used_directly": true,
+                "definition_id": "491cdc3c5ea21cdc576275a5c1e600cdaa4256c1",
+                "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotlyFigure"
               },
               {
                 "used_directly": true,
@@ -907,12 +962,12 @@
               },
               {
                 "used_directly": true,
-                "definition_id": "c1223381a11d512543e254a8da6a40e88a9bdb9a",
+                "definition_id": "43288046582240d7a33ec8b5fe4ca86988c2378c",
                 "definition_qualified_name": "nomad.datamodel.results.Properties"
               },
               {
                 "used_directly": true,
-                "definition_id": "7cd04a0a1fc2db43414328de6410fa3bc1737b5f",
+                "definition_id": "ba0a320c9aa599c7c4a0af8c545f3cfe76cc4e70",
                 "definition_qualified_name": "nomad.datamodel.results.Results"
               },
               {
@@ -951,7 +1006,7 @@
               }
             },
             "entry_name": "ELN example sample",
-            "last_processing_time": "2023-09-21T11:36:10.656000+00:00",
+            "last_processing_time": "2023-10-20T21:11:44.763000+00:00",
             "parser_name": "parsers/archive",
             "searchable_quantities": [
               {
@@ -964,13 +1019,13 @@
                 "text_value": "001",
                 "path": "data.lab_id",
                 "quantity_name": "lab_id",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
                 "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
                 "path": "data.description",
                 "quantity_name": "description",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               },
               {
                 "path": "data.substrate_type",
@@ -1010,9 +1065,9 @@
               },
               {
                 "path": "data.datetime",
-                "date_value": "2023-09-21T13:36:10.771730+00:00",
+                "date_value": "2023-10-20T23:11:44.823365+00:00",
                 "quantity_name": "datetime",
-                "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection"
+                "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection"
               }
             ],
             "calc_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
@@ -1035,6 +1090,7 @@
               "nomad.datamodel.datamodel.EntryArchive",
               "nomad.datamodel.datamodel.EntryMetadata",
               "nomad.datamodel.datamodel.RFC3161Timestamp",
+              "nomad.datamodel.metainfo.plot.PlotlyFigure",
               "nomad.datamodel.results.ELN",
               "nomad.datamodel.results.Properties",
               "nomad.datamodel.results.Results"
@@ -1059,7 +1115,7 @@
                 "name": "Test Tester"
               }
             ],
-            "entry_create_time": "2023-09-21T11:36:10.379000+00:00",
+            "entry_create_time": "2023-10-20T21:11:44.513000+00:00",
             "with_embargo": false,
             "files": [
               "sample.archive.json",
@@ -1082,63 +1138,9 @@
           }
         },
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
-          "content-length": "12995",
-          "content-type": "application/json",
-          "server": "uvicorn"
-        }
-      }
-    }
-  ],
-  "afa783d98e040c74b68e5cfd3d82f3f0": [
-    {
-      "request": {
-        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
-        "method": "POST",
-        "body": {
-          "required": {
-            "metadata": "*"
-          },
-          "owner": "visible",
-          "pagination": {
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "page_size": 20
-          },
-          "query": {
-            "entry_references.target_entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-"
-          }
-        },
-        "headers": {
-          "accept": "application/json, text/plain, */*",
-          "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0NjY3YWVlNS1lODdjLTRkM2MtOTcyNy00MWI4NGM4YTBkNWEiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.VrPFf-bQAiPVanOqvuD8ecEHX7_kOwteXTdxAFVSbWWBaQmpafRTBfTC_E97b8NiQVbCJXThjCfJPkjd1k0Un4yp2yY3TZGZAy8kp6Ygzj_kEg76tZkSObAeGXIkOZFpfu1LfA3qoSlD3xFjIy16gn1FFnhjB6hmmMYj4n6WCyeXahlbJhOJhoxyxrzzWCNXXRbidW-iz8YvHDuzPVspAgb9LyVhDwISuBj5bS6VnufEu7JGLcMdbIx2mwWjs5NJp1WONhmeyfB3ywKnM9UAYkFQCckkcCPOrqSA6Bcbt16aX8CaJnOhAciWLEDWnUIEXqYDzKZOkHd405BBVD03Pg",
-          "cookie": null
-        }
-      },
-      "response": {
-        "status": 200,
-        "body": {
-          "owner": "visible",
-          "query": {
-            "prefix": "entry_references",
-            "query": {
-              "name": "target_entry_id",
-              "value": "bC7byHvWJp62Sn9uiuJUB38MT5j-"
-            }
-          },
-          "pagination": {
-            "page_size": 20,
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "total": 0
-          },
-          "required": {},
-          "data": []
-        },
-        "headers": {
-          "connection": "close",
-          "content-length": "326",
+          "content-length": "13756",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -1184,7 +1186,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI0YTQ1MWNhMC05NTU5LTRjZWQtOGZlYy03NzMxZjA3ZjMwZjciLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.UU5XQD9oTDAle4nS8gf0TPoGJ8yZracwMEqBpeddo1dDwdKAz0u2HUaHPfCsZ_RsrluBKLpQqfFrn9qP4XFhkVUKvPEJ7ukH5O33wENB2_1vx79-qxG_d_yYz73RNLu1ZsAHacIYP9hlaVl_A6Y67xkuG1eT7EBWlNVo-8LBzrnT4TfShAvHByVEHe9ytgpVUf5cm8JekGZwONUKepLrq73rFcLa1WyITj3Bx-rAulzuM0HUtAs6rmNjtYan2blteNRMzdmAsxIsxbZotOrec9wOFrFrHcYiRP0dv-EgNs7DQOFSq3vQ4Jox0BJ_BOSGyb41JjMmTJAyUa7334XTcQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI2Yjg2MjcwMy02MzRmLTRhYWMtODQxMS00NTIyOWM4ZTZiZjQiLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzEwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.gQS4NhZHMstRFDcVXBXszEPfgMsKpB_rK2gWiBnVoSeyk_U0j_7s9Oh3otyr4BOpo6SE-LZYDFGb4B6vHAiLNzw93d401ZBFo9izTCkLoieZV0pzxpWswlj5GAr3xlsGcyCoZrySWzSepdmcmiMPEBCLvDc8djt14S_vxY2uUwAbJW42h8ee_zSr_TpkYf2qTl2sqNcT3RWbhNznOpgEhDZdeEud8xX5-crWOxQYkiIO1MnbPZAhpInISEg7jvchZEWyqnmG9G1zFXjNy5lkoPasWQBuQLMkXCP6ggQ417iMcbPiD5_IXrXDquZ9ipaNfLx78s7r4qPtHt-s0qaWFw",
           "cookie": null
         }
       },
@@ -1228,12 +1230,12 @@
             "archive": {
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2023-09-21T11:36:10.301000+00:00",
+                "upload_create_time": "2023-10-20T21:11:44.447000+00:00",
                 "entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
                 "entry_name": "ELN example sample",
                 "entry_type": "Sample",
-                "entry_hash": "Q5U7Kw9jdvvMZsfgH_-p7eXpU1Ci",
-                "entry_create_time": "2023-09-21T11:36:10.379000+00:00",
+                "entry_hash": "y0C2H_I6f9gmZ_S6RNlk_v9P_Clg",
+                "entry_create_time": "2023-10-20T21:11:44.513000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "sample.archive.json",
                 "files": [
@@ -1246,9 +1248,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2023-09-21T11:36:10.656260+00:00",
+                "last_processing_time": "2023-10-20T21:11:44.763742+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.2.1.dev124+g099de4643.d20230919",
+                "nomad_version": "1.2.2.dev85+g6f47bb0a0",
                 "nomad_commit": "",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -1260,7 +1262,7 @@
                   "54cb1f64-f84e-4815-9ade-440ce0b5430f"
                 ],
                 "datasets": [],
-                "n_quantities": 59,
+                "n_quantities": 65,
                 "quantities": [
                   "",
                   "data",
@@ -1277,6 +1279,8 @@
                   "data.processes.pvd_evaporation.chamber_pressure",
                   "data.processes.pvd_evaporation.data_file",
                   "data.processes.pvd_evaporation.datetime",
+                  "data.processes.pvd_evaporation.figures",
+                  "data.processes.pvd_evaporation.figures.figure",
                   "data.processes.pvd_evaporation.fill_archive_from_datafile",
                   "data.processes.pvd_evaporation.substrate_temperature",
                   "data.processes.pvd_evaporation.time",
@@ -1337,15 +1341,16 @@
                   "nomad.datamodel.datamodel.EntryArchive",
                   "nomad.datamodel.datamodel.EntryMetadata",
                   "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "nomad.datamodel.metainfo.plot.PlotlyFigure",
                   "nomad.datamodel.results.ELN",
                   "nomad.datamodel.results.Properties",
                   "nomad.datamodel.results.Results"
                 ],
                 "entry_timestamp": {
-                  "token_seed": "Q5U7Kw9jdvvMZsfgH_-p7eXpU1Ci",
-                  "token": "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",
+                  "token_seed": "y0C2H_I6f9gmZ_S6RNlk_v9P_Clg",
+                  "token": "MIIYDQYJKoZIhvcNAQcCoIIX/jCCF/oCAQMxDTALBglghkgBZQMEAgIwgcwGCyqGSIb3DQEJEAEEoIG8BIG5MIG2AgEBBgsqhGgBhvZ3AgUBCzAvMAsGCWCGSAFlAwQCAQQgH+tIlnWFjx9gX8jLYhF++wFRFuetPDBAEKSYfKr6mrMCBwqofC4Aza0YDzIwMjMxMDIwMjExMTQ0WjADAgEBoFSkUjBQMQswCQYDVQQGEwJQTDEhMB8GA1UECgwYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMR4wHAYDVQQDDBVDZXJ0dW0gVGltZXN0YW1wIDIwMjKgghMiMIIFyTCCBLGgAwIBAgIQG7WPJSrfIwBJKMmuPX7tJzANBgkqhkiG9w0BAQwFADB+MQswCQYDVQQGEwJQTDEiMCAGA1UEChMZVW5pemV0byBUZWNobm9sb2dpZXMgUy5BLjEnMCUGA1UECxMeQ2VydHVtIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MSIwIAYDVQQDExlDZXJ0dW0gVHJ1c3RlZCBOZXR3b3JrIENBMB4XDTIxMDUzMTA2NDMwNloXDTI5MDkxNzA2NDMwNlowgYAxCzAJBgNVBAYTAlBMMSIwIAYDVQQKExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5DZXJ0dW0gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkxJDAiBgNVBAMTG0NlcnR1bSBUcnVzdGVkIE5ldHdvcmsgQ0EgMjCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAL35ePjm1YAMZJ2GG5ZkZz8iOh51AX3v+1xnjMnMXGupkea5QuUgS5vam3u5mV3Zm4BL14RAKyfT6Lowuz4JGqdJle8rQCTCl8en7psl76gKAJeFWqqd3CnJ4jUH63BNStbBs1a4oUE4m9H7MX+P4F/hsT8PjhZJYNcGjRj5qiYQqyrT0NFnjRtGvkcw1S5y0cVj2udjeUR+S2MkiYYuND8pTFKLKqfA4pEoibnAW/kd2ecnrf+aApfBxlCSmwIsvam5NFkKv4RK/9/+s5/r2Z7gmCPspmt3FirbzK07HKSH3EZzXhliaEVX5JCCQrtC1vBh4MGjPWajXfQY7ojJjRdFKZkydQIx7ikmyGsC5rViRX83FVojaInUPt5OJ7DwQAy8TRfLTaKzHtAGWt32k89XdZn1+oYaZ3izv5b+NNy951JW5bPldXvXQZEF3F1p45UNQ7n8g5Y5lXtsgFpPE3LG130pekS6UqQq1UFGCSD+IqC2WzCNvIkM1ddw+IdS/drvrFEuB7NO/tAJ2nDvmPpW5m3btVdL3OUsJRXIni54TvjanJ6GLMpX8xrlyJKLGoKWesO8UBJp2A5aRos66yb6I8m2sIG+QgCk+Nb+MC7H0kb25Y51/fLMudCHW8wGEGC7gzW3XmfeR+yZSPGkoRX+rYxijjlVTzkWubFjnf+3AgMBAAGjggE+MIIBOjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBS2oVQ5AsOgP46KvPrU+Bym0ToO/TAfBgNVHSMEGDAWgBQIds3LB/8k9sXN7buQvOKEN0Z19zAOBgNVHQ8BAf8EBAMCAQYwLwYDVR0fBCgwJjAkoCKgIIYeaHR0cDovL2NybC5jZXJ0dW0ucGwvY3RuY2EuY3JsMGsGCCsGAQUFBwEBBF8wXTAoBggrBgEFBQcwAYYcaHR0cDovL3N1YmNhLm9jc3AtY2VydHVtLmNvbTAxBggrBgEFBQcwAoYlaHR0cDovL3JlcG9zaXRvcnkuY2VydHVtLnBsL2N0bmNhLmNlcjA5BgNVHSAEMjAwMC4GBFUdIAAwJjAkBggrBgEFBQcCARYYaHR0cDovL3d3dy5jZXJ0dW0ucGwvQ1BTMA0GCSqGSIb3DQEBDAUAA4IBAQBRwqFYFiIQi/yGMdTCMtNc+EuiL2o+TfirCB7t1ej65wgN7LfGHg6ydQV6sQv613RqAAYfpM6q8mt92BHAEQjUDk1hxTqo+rHh45jq4mP9QfWTfQ28XZI7kZplutBfTL5MjWgDEBbV8dAEioUz+TfnWy4maUI8us281HrpTZ3a50P7Y1KAhQTEJZVV8H6nnwHFWyj44M6GcKYnOzn7OC6YU2UidS3X9t0iIpGW691o7T+jGZfTOyWI7DYSPal+zgKNBZqSpyduRbKcYoY3DaQzjteoTtBKF0NMxfGnbNIeWGwUUX6KVKH27595el2BmhaQD+G78UoA+fndvu2q7M4KMIIGlDCCBHygAwIBAgIQK9SucLnQY1sq6YTI1nSqMDANBgkqhkiG9w0BAQwFADBWMQswCQYDVQQGEwJQTDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtDZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0EwHhcNMjIwNzI4MDg1NjI2WhcNMzMwNzI3MDg1NjI2WjBQMQswCQYDVQQGEwJQTDEhMB8GA1UECgwYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMR4wHAYDVQQDDBVDZXJ0dW0gVGltZXN0YW1wIDIwMjIwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDKxV7tHwlG8ETLal5Yhm+isISwnj+L8khxKkASO/MRXI6kGntuse79tVL5Fkvl9KE4etck3HaGWkAIOYTXAalmxp+2/DjhF5BsFLxmeuTFipdpVwY4rHOndRllSOX15D/fnXS1V+Bv6T+3iHQLSORYeKxgv8ff7zWp/QvAuCOejeduR8Iis6j0s+meTdl2DNPm0+FXWLGccj0cC5I4XKnc4NrQgdvmD+pXfrgTpHHwq4RQnnkweGP2Wpa2V2ghhSJQVoyMl2/VBrKQGqA7z9iwkkkXJ76z+PaiCBg+06h2w6GLprm1g4MfP2BOzOQX3exdeJkDqp6+yJghUuU8v530ju11UkOk65SGF/KywOAUo5zrtFqGGUyzlsmnpFj62gAIb8yUN5l7eq7hmulRJY8sw01H4BJkg6Z8T+jhUjjnOMQTl25FfDjuIrxn9KSH3/iDrMrDsL7kkh3xdRcUnqzWW91XFJ3skGk/qJgvpGhkz6b7Mpcud1fzFCrh1YYESKxoliCYDfU6+96GVx5Opm7s5F4h4WqP9QEK0N+avprRir517X+tnbCRc7WH/13HhC08PyiXdWC+4ZUPcxkf3xRPn8faby3dsmd2NTwraWjc6uouyWdpkZXQtV8IpAbY6EOhk9k95MkZ9JQFPGOP03Tf+KabcKLhZPu+SbHU6D0OgQIDAQABo4IBYjCCAV4wDAYDVR0TAQH/BAIwADAdBgNVHQ4EFgQUI8E8zFMzGVaO2OPzzjz8qHNHVuowHwYDVR0jBBgwFoAUvlQCL79AbHNDzqwJJU6eQ0Qa7uAwDgYDVR0PAQH/BAQDAgeAMBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMIMDMGA1UdHwQsMCowKKAmoCSGImh0dHA6Ly9jcmwuY2VydHVtLnBsL2N0c2NhMjAyMS5jcmwwbwYIKwYBBQUHAQEEYzBhMCgGCCsGAQUFBzABhhxodHRwOi8vc3ViY2Eub2NzcC1jZXJ0dW0uY29tMDUGCCsGAQUFBzAChilodHRwOi8vcmVwb3NpdG9yeS5jZXJ0dW0ucGwvY3RzY2EyMDIxLmNlcjBABgNVHSAEOTA3MDUGCyqEaAGG9ncCBQELMCYwJAYIKwYBBQUHAgEWGGh0dHA6Ly93d3cuY2VydHVtLnBsL0NQUzANBgkqhkiG9w0BAQwFAAOCAgEAa8b3PSM+L1eQ+ewXgKZtaX1YAY0yloH5W9YbcSQPR0r153qv4//uZKIbv9adI+iCTGE6Um0+6BwLYOfZtMDNB55q43DeN6jDaOU7P4F/0gZmNKjM3ZTuptQ/XoJ+1OPRIBjviGRQJ5jB9YS8fqbHunYLU4WeGqq/s0X0TaExTUlMcjkqOnJlSn0W2YE4ixHDHoRiU3jOQkLNQJg6RfoasqtF+jL9ATLR1NsD6FZSN8a0UNeu5TOuP4JfHQmMzDxfJfFvPXbNkX66PWNaeXSNC/MetKKW9X/J+R3+GslvSnO64FHZZ3yXOHGHb1dCcVmKUmTzeSyTOeMUiq73l52KtTTSLqL6iTjPZosVTCdk01j5H0NqZdB/2aJMcVweKhCgMkmum33Io6EIjmkecCkEftMq3OyiHarfoTlYZeblLYvXGcQPCTIjXV+kmmrIJZyfaJU0jCeAUTurQgEhLyXngs1+mVYikQx2xUAmjGdV3cZcEegqpH2tqeRDdQykEo8SNaepXXUJnPT01RljPHaW0SrRxwaDkL31hHYoD9xCO0Rmalk6J8K/AGjAoE82GxabmXnd5Ru8otI8FCaPf68lDRQPNpvQqcy3GgCmi0NLNbm6Ees2lkrfX6lAEjc/cw/vCIhpclKiiABVYkDKqsh3o9LyuxtoD6hMuRg3cS/wwWkwgga5MIIEoaADAgECAhEA5/9pxzs1zkuRJth0fGilhzANBgkqhkiG9w0BAQwFADCBgDELMAkGA1UEBhMCUEwxIjAgBgNVBAoTGVVuaXpldG8gVGVjaG5vbG9naWVzIFMuQS4xJzAlBgNVBAsTHkNlcnR1bSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTEkMCIGA1UEAxMbQ2VydHVtIFRydXN0ZWQgTmV0d29yayBDQSAyMB4XDTIxMDUxOTA1MzIwN1oXDTM2MDUxODA1MzIwN1owVjELMAkGA1UEBhMCUEwxITAfBgNVBAoTGEFzc2VjbyBEYXRhIFN5c3RlbXMgUy5BLjEkMCIGA1UEAxMbQ2VydHVtIFRpbWVzdGFtcGluZyAyMDIxIENBMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA6RIfBDXtuV16xaaVQb6KZX9Od9FtJXXTZo7b+GEof3+3g0ChWiKnO7R4+6MfrvLyLCWZa6GpFHjEt4t0/GiUQvnkLOBRdBqr5DOvlmTvJJs2X8ZmWgWJjC7PBZLYBWAs8sJl3kNXxBMX5XntjqWx1ZOuuXl0R4x+zGGSMzZ45dpvB8vLpQfZkfMC/1tL9KYyjU+htLH68dZJPtzhqLBVG+8ljZ1ZFilOKksS79epCeqFSeAUm2eMTGpOiS3gfLM6yvb8Bg6bxg5yglDGC9zbr4sB9ceIGRtCQF1N8dqTgM/dSViiUgJkcv5dLNJeWxGCqJYPgzKlYZTgDXfGIeZpEFmjBLwURP5ABsyKoFocMzdjrCiFbTvJn+bD1kq78qZUgAQGGtd6zGJ88H4NPJ5Y2R4IargiWAmv8RyvWnHr/VA+2PrrK9eXe5q7M88YRdSTq9TKbqdnITUgZcjjm4ZUjteq8K331a4P0s2in0p3UubMEYa/G5w6jSWPUzchGLwWKYBfeSu6dIOC4LkeAPvmdZxSB1lWOb9HzVWZoM8Q/blaP4LWt6JxjkI9yQsYGMdCqwl7uMnPUIlcExS1mzXRxUowQref/EPaS7kYVaHHQrp4XB7nTEtQhkP0Z9Puz/n8zIFnUSnxDof4Yy650PAXSYmK2TcbyDoTNmmt8xAxzcMCAwEAAaOCAVUwggFRMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFL5UAi+/QGxzQ86sCSVOnkNEGu7gMB8GA1UdIwQYMBaAFLahVDkCw6A/joq8+tT4HKbROg79MA4GA1UdDwEB/wQEAwIBBjATBgNVHSUEDDAKBggrBgEFBQcDCDAwBgNVHR8EKTAnMCWgI6Ahhh9odHRwOi8vY3JsLmNlcnR1bS5wbC9jdG5jYTIuY3JsMGwGCCsGAQUFBwEBBGAwXjAoBggrBgEFBQcwAYYcaHR0cDovL3N1YmNhLm9jc3AtY2VydHVtLmNvbTAyBggrBgEFBQcwAoYmaHR0cDovL3JlcG9zaXRvcnkuY2VydHVtLnBsL2N0bmNhMi5jZXIwOQYDVR0gBDIwMDAuBgRVHSAAMCYwJAYIKwYBBQUHAgEWGGh0dHA6Ly93d3cuY2VydHVtLnBsL0NQUzANBgkqhkiG9w0BAQwFAAOCAgEAuJNZd8lMFf2UBwigp3qgLPBBk58BFCS3Q6aJDf3TISoytK0eal/JyCB88aUEd0wMNiEcNVMbK9j5Yht2whaknUE1G32k6uld7wcxHmw67vUBY6pSp8QhdodY4SzRRaZWzyYlviUpyU4dXyhKhHSncYJfa1U75cXxCe3sTp9uTBm3f8Bj8LkpjMUSVTtMJ6oEu5JqCYzRfc6nnoRUgwz/GVZFoOBGdrSEtDN7mZgcka/tS5MI47fALVvN5lZ2U8k7Dm/hTX8CWOw0uBZloZEW4HB0Xra3qE4qzzq/6M8gyoU/DE0k3+i7bYOrOk/7tPJg1sOhytOGUQ30PbG++0FfJioDuOFhj99b151SqFlSaRQYz74y/P2XJP+cF19oqozmi0rRTkfyEJIvhIZ+M5XIFZttmVQgTxfpfJwMFFEoQrSrklOxpmSygppsUDJEoliC05vBLVQ+gMZyYaKvBJ4YxBMlKH5ZHkRdloRYlUDplk8GUa+OCMVhpDSQurU6K1ua5dmZftnvSSz2H96UrQDzA6DyiI1V3ejVtvn2azVAXg6NnjmuRZ+wa7Pxy0H3+V4K4rOTHlG3VYA6xfLsTunCz72T6Ot4+tkrDYOeaU1pPX1CBfYj6EW2+ELq46GP8KCNUQDirWLU4nOmgCat7vN0SD6RlwUiSsMeCiQDmZwgwrUxggPvMIID6wIBATBqMFYxCzAJBgNVBAYTAlBMMSEwHwYDVQQKExhBc3NlY28gRGF0YSBTeXN0ZW1zIFMuQS4xJDAiBgNVBAMTG0NlcnR1bSBUaW1lc3RhbXBpbmcgMjAyMSBDQQIQK9SucLnQY1sq6YTI1nSqMDANBglghkgBZQMEAgIFAKCCAVYwGgYJKoZIhvcNAQkDMQ0GCyqGSIb3DQEJEAEEMBwGCSqGSIb3DQEJBTEPFw0yMzEwMjAyMTExNDRaMDcGCyqGSIb3DQEJEAIvMSgwJjAkMCIEIAO5mmRJdJhKlbbMXYDTRNB0+972yiQEhCvmzw5EIgeKMD8GCSqGSIb3DQEJBDEyBDCP+ii9m7TqMPKsw2m725RkGdbBiUdWrjmvZpXxAaz0J2XSi4xdI4aBe9nZK0jqu88wgZ8GCyqGSIb3DQEJEAIMMYGPMIGMMIGJMIGGBBS/T2vEmC3eFQWo78jHp51NFDUAzjBuMFqkWDBWMQswCQYDVQQGEwJQTDEhMB8GA1UEChMYQXNzZWNvIERhdGEgU3lzdGVtcyBTLkEuMSQwIgYDVQQDExtDZXJ0dW0gVGltZXN0YW1waW5nIDIwMjEgQ0ECECvUrnC50GNbKumEyNZ0qjAwDQYJKoZIhvcNAQEBBQAEggIAslQbjwxNnJMr4LyP35D9ZHnNLi/dyJuMGnNBzZz/ocXMYK7dFmwHbMwrRpgjUGUEFtLS+02mctcmQtU0Tk6iFwTc4I9P+FXUf/y2FonahbrAROadP5TgQEcLz6CmGEU0YtWEQdAFoES3Vql+UCIhKNb7gk+1/w6/m1oBX5MJW3WEYNHEU6SnJ+Z5ROMto+hfpZsSKNFb9bdXblrMIFbJ9Qlll6mJLEB91PdBWhHmE5HCVfn2ofDlVDjCl1Z8zO+E6x/cSQWw5NAYrQQqqCnam+8KhTGPxjlwNbNgEqZUoCQ6Bz2nn9smoS9wqEVr8rx1TLd4kwxleARYgrx8LXZZNyrdO+dFOe0nQR/W5UI+KC0H+dtxZeeW5EHogLKB1X4r84kjVKGyD5fd8o/WCsz4/9lItI9wfmqqtyu5Js9gMffJv2EgXZ/XNsjQECHHKk9lfi7Q6ZIF9436b/HiFc7s7mPhlQujh/ZZ07RiY5DkYbTr4YlgkymZZKNxnu+khjyCDxlThdj7uvzV5DckZFIarqKn+PfMB1dKZYTejo61WecvwaTkoswRtmHR3bM4tgMs0vp/P0tzcJfYKM1WDvg/8es7yvL3cFPZmTwr1PdF5xcCrW6fQn+konHMPoahJkZx7Xw7Av+Jji+/g1XhcDfduKYgWuk1TUr1iviNmteqWSI=",
                   "tsa_server": "http://time.certum.pl/",
-                  "timestamp": "2023-09-21T11:36:10+00:00"
+                  "timestamp": "2023-10-20T21:11:44+00:00"
                 },
                 "section_defs": [
                   {
@@ -1355,12 +1360,12 @@
                   },
                   {
                     "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample",
-                    "definition_id": "ca0a6011326e4ca1e487e9b244bc5153e7cded19",
+                    "definition_id": "030133d881170f0d9e31da6086ed5641f0c4403c",
                     "used_directly": true
                   },
                   {
                     "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes",
-                    "definition_id": "d0d0cbf5ae07a246dbfa9634e51f995151abde55",
+                    "definition_id": "f0086b987424b1001666c6f5df9ad1071164a27e",
                     "used_directly": true
                   },
                   {
@@ -1370,7 +1375,7 @@
                   },
                   {
                     "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation",
-                    "definition_id": "c7646bbd6f18ae97af64a6fa967de483af3e9100",
+                    "definition_id": "c640c9585e8d4549f248582763427a7dd7c417a0",
                     "used_directly": true
                   },
                   {
@@ -1385,7 +1390,7 @@
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
-                    "definition_id": "a19151d9beb46b8690dc0937f050ef674f958ef4",
+                    "definition_id": "1a38309e86abd87e7ef9ff7aa89560cf22ab111e",
                     "used_directly": true
                   },
                   {
@@ -1409,23 +1414,38 @@
                     "used_directly": false
                   },
                   {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.basesections.CompositeSystem",
+                    "definition_id": "c7254c9b461a4baec86cb3179e2f84513f5c9053",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Entity",
+                    "definition_id": "7ce6bdcaa183a9685582b275e1c2b2ea3139c74d",
+                    "used_directly": false
+                  },
+                  {
                     "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Process",
                     "definition_id": "8d81e1f95c60f39a6a8c9f954143a55e6f4c984c",
                     "used_directly": false
                   },
                   {
-                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection",
-                    "definition_id": "f05adb2ccbe04cbeced6213c4b6bd8f78e3d4ead",
+                    "definition_qualified_name": "nomad.datamodel.metainfo.basesections.System",
+                    "definition_id": "3ab3a09d615ab58aefbaa3acdd8d6af4e73aaae5",
                     "used_directly": false
                   },
                   {
-                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection",
-                    "definition_id": "ada854aefd11fd40e6c161fe2d9207a7bb104052",
-                    "used_directly": false
+                    "definition_qualified_name": "nomad.datamodel.metainfo.plot.Figure",
+                    "definition_id": "55ef08f33dcf9fb374aea217458bd34a23bec57b",
+                    "used_directly": true
                   },
                   {
-                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample",
-                    "definition_id": "a830a6d8c03f2a0baa0203e07efcbbd54328daaa",
+                    "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotSection",
+                    "definition_id": "7bb17e35ed91dca88bf6238fc51ed212693593d0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotlyFigure",
+                    "definition_id": "491cdc3c5ea21cdc576275a5c1e600cdaa4256c1",
                     "used_directly": true
                   },
                   {
@@ -1435,12 +1455,12 @@
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.results.Properties",
-                    "definition_id": "c1223381a11d512543e254a8da6a40e88a9bdb9a",
+                    "definition_id": "43288046582240d7a33ec8b5fe4ca86988c2378c",
                     "used_directly": true
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.results.Results",
-                    "definition_id": "7cd04a0a1fc2db43414328de6410fa3bc1737b5f",
+                    "definition_id": "ba0a320c9aa599c7c4a0af8c545f3cfe76cc4e70",
                     "used_directly": true
                   },
                   {
@@ -1458,13 +1478,13 @@
                   },
                   {
                     "quantity_name": "lab_id",
-                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection",
                     "path": "data.lab_id",
                     "text_value": "001"
                   },
                   {
                     "quantity_name": "description",
-                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection",
                     "path": "data.description",
                     "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>"
                   },
@@ -1506,16 +1526,16 @@
                   },
                   {
                     "quantity_name": "datetime",
-                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection",
                     "path": "data.datetime",
-                    "date_value": "2023-09-21T13:36:10.771730+00:00"
+                    "date_value": "2023-10-20T23:11:44.823365+00:00"
                   }
                 ]
               },
               "data": {
                 "m_def": "../upload/raw/schema.archive.yaml#/definitions/section_definitions/3",
                 "name": "ELN example sample",
-                "datetime": "2023-09-21T13:36:10.771730+00:00",
+                "datetime": "2023-10-20T23:11:44.823365+00:00",
                 "lab_id": "001",
                 "description": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
                 "tags": [
@@ -1667,6 +1687,48 @@
                       36.4472,
                       36.4526,
                       36.4504
+                    ],
+                    "figures": [
+                      {
+                        "figure": {
+                          "data": [
+                            {
+                              "x": "#time",
+                              "y": "#chamber_pressure"
+                            },
+                            {
+                              "x": "#time",
+                              "y": "#substrate_temperature",
+                              "yaxis": "y2"
+                            }
+                          ],
+                          "layout": {
+                            "title": {
+                              "text": "Pressure and Temperature over Time"
+                            },
+                            "yaxis2": {
+                              "overlaying": "y",
+                              "side": "right"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "figure": {
+                          "data": {
+                            "x": "#time",
+                            "y": "#chamber_pressure"
+                          }
+                        }
+                      },
+                      {
+                        "figure": {
+                          "data": {
+                            "x": "#time",
+                            "y": "#substrate_temperature"
+                          }
+                        }
+                      }
                     ]
                   },
                   "hotplate_annealing": {
@@ -1684,8 +1746,9 @@
           }
         },
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
-          "content-length": "26225",
+          "content-length": "28243",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -1701,7 +1764,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI3ZmM3MWZmMi01NDIyLTRiYjctODQ3OC0yNGQyODMyZjM4ZTYiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.K0B4OoNsO4-tQNa5-vwZ1EpaoFgZBDvbSrYvrgbZM6v8J59aMIkS0NuZXeHZez343YyEQcNGpvAbGJkantb1WUn1sKmcaCApFl8t0xjrYoa4d_b5EFP1HyMQVTqZFz4-8sx1Vd8eQWIBHm08BMBFf4G7tnGOOPbb5yDhPgK5-CNHWCIqimTk7Eo9p7e3kyz5VU4JV9ZUyxr90HCaA1AMjvKQ9QQ9NvzublvbBUnQ44ps3cAghdwuZrsEsLAV0KoJxLhbdCZVFQ3QRDTP5gVEWsXPMaS3qHNCpFTJ94i0YsLDd54gl_bqL1-RkvdROFRYRat3XUn_H1RVOyu1ARSU5Q",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJiMDgwZGZkNy02ZDVlLTQxOGItYjU5Zi05YjM2NDQzYTZlOWQiLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzEzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.g5TVZP0vnAEdBggGEov8uJ271vLLMwysgfnK9_o9tzl00QRnO0Gx9gbEA4cs6P9VYUQUU1ModrnA8uOLveLSOLqlm4hU_3wT-jy5HMqU7CosRWCNIYhVRWGBSIytlbWRLB_mCL77kVnMYnLpbKJhaQV6P9tucpMPw0_1ClBSUdwfqgR7M3ZbgCosemGjSPO4Uqz2z5DanI2ISrw3Od_w-_wPMk60wmP5DK2DZb0RV0L2rF5sFh5KusxhElecOKiT2gYMu-WmUgMpeTu9dLFDvdOJmWkiMzvCp6dhuZFNhWD8feLn3doCdF10EULebrFCAG79lHCBa7n818Brt8Gzeg",
           "cookie": null
         }
       },
@@ -1720,23 +1783,23 @@
                   "event": "Executing celery task",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "DEBUG"
                 },
                 {
-                  "exec_time": "0.03271627426147461",
+                  "exec_time": "0.03464984893798828",
                   "input_size": "1176",
                   "event": "parser executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "step": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 },
                 {
@@ -1745,24 +1808,24 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.00030350685119628906",
+                  "exec_time": "0.0003025531768798828",
                   "input_size": "1176",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "normalizer": "ResultsNormalizer",
                   "step": "ResultsNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 },
                 {
@@ -1771,53 +1834,53 @@
                   "event": "normalizer completed successfully",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.07539820671081543",
+                  "exec_time": "0.017973899841308594",
                   "input_size": "1176",
                   "event": "normalizer executed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "normalizer": "MetainfoNormalizer",
                   "step": "MetainfoNormalizer",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0032355785369873047",
+                  "exec_time": "0.003522157669067383",
                   "event": "entry metadata saved",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 },
                 {
-                  "exec_time": "0.0084228515625",
+                  "exec_time": "0.010565519332885742",
                   "event": "entry metadata indexed",
                   "proc": "Entry",
                   "process": "process_entry",
-                  "process_worker_id": "ejNNpYSbSJqDCpUm6w1tew",
+                  "process_worker_id": "9VM-FvfITtmASXYbk7Y9sg",
                   "parser": "parsers/archive",
                   "logger": "nomad.processing",
-                  "timestamp": "2023-09-21 13:36.10",
+                  "timestamp": "2023-10-20 23:11.44",
                   "level": "INFO"
                 }
               ],
               "data": {
                 "m_def": "../upload/raw/schema.archive.yaml#/definitions/section_definitions/3",
                 "name": "ELN example sample",
-                "datetime": "2023-09-21T13:36:10.771730+00:00",
+                "datetime": "2023-10-20T23:11:44.823365+00:00",
                 "lab_id": "001",
                 "description": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
                 "tags": [
@@ -1969,6 +2032,48 @@
                       36.4472,
                       36.4526,
                       36.4504
+                    ],
+                    "figures": [
+                      {
+                        "figure": {
+                          "data": [
+                            {
+                              "x": "#time",
+                              "y": "#chamber_pressure"
+                            },
+                            {
+                              "x": "#time",
+                              "y": "#substrate_temperature",
+                              "yaxis": "y2"
+                            }
+                          ],
+                          "layout": {
+                            "title": {
+                              "text": "Pressure and Temperature over Time"
+                            },
+                            "yaxis2": {
+                              "overlaying": "y",
+                              "side": "right"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "figure": {
+                          "data": {
+                            "x": "#time",
+                            "y": "#chamber_pressure"
+                          }
+                        }
+                      },
+                      {
+                        "figure": {
+                          "data": {
+                            "x": "#time",
+                            "y": "#substrate_temperature"
+                          }
+                        }
+                      }
                     ]
                   },
                   "hotplate_annealing": {
@@ -1980,12 +2085,12 @@
               },
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2023-09-21T11:36:10.301000+00:00",
+                "upload_create_time": "2023-10-20T21:11:44.447000+00:00",
                 "entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
                 "entry_name": "ELN example sample",
                 "entry_type": "Sample",
-                "entry_hash": "Q5U7Kw9jdvvMZsfgH_-p7eXpU1Ci",
-                "entry_create_time": "2023-09-21T11:36:10.379000+00:00",
+                "entry_hash": "y0C2H_I6f9gmZ_S6RNlk_v9P_Clg",
+                "entry_create_time": "2023-10-20T21:11:44.513000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "sample.archive.json",
                 "files": [
@@ -1998,9 +2103,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2023-09-21T11:36:10.656260+00:00",
+                "last_processing_time": "2023-10-20T21:11:44.763742+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.2.1.dev124+g099de4643.d20230919",
+                "nomad_version": "1.2.2.dev85+g6f47bb0a0",
                 "nomad_commit": "",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -2012,7 +2117,7 @@
                   "54cb1f64-f84e-4815-9ade-440ce0b5430f"
                 ],
                 "datasets": [],
-                "n_quantities": 59,
+                "n_quantities": 65,
                 "quantities": [
                   "",
                   "data",
@@ -2029,6 +2134,8 @@
                   "data.processes.pvd_evaporation.chamber_pressure",
                   "data.processes.pvd_evaporation.data_file",
                   "data.processes.pvd_evaporation.datetime",
+                  "data.processes.pvd_evaporation.figures",
+                  "data.processes.pvd_evaporation.figures.figure",
                   "data.processes.pvd_evaporation.fill_archive_from_datafile",
                   "data.processes.pvd_evaporation.substrate_temperature",
                   "data.processes.pvd_evaporation.time",
@@ -2089,15 +2196,16 @@
                   "nomad.datamodel.datamodel.EntryArchive",
                   "nomad.datamodel.datamodel.EntryMetadata",
                   "nomad.datamodel.datamodel.RFC3161Timestamp",
+                  "nomad.datamodel.metainfo.plot.PlotlyFigure",
                   "nomad.datamodel.results.ELN",
                   "nomad.datamodel.results.Properties",
                   "nomad.datamodel.results.Results"
                 ],
                 "entry_timestamp": {
-                  "token_seed": "Q5U7Kw9jdvvMZsfgH_-p7eXpU1Ci",
-                  "token": "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",
+                  "token_seed": "y0C2H_I6f9gmZ_S6RNlk_v9P_Clg",
+                  "token": "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",
                   "tsa_server": "http://time.certum.pl/",
-                  "timestamp": "2023-09-21T11:36:10+00:00"
+                  "timestamp": "2023-10-20T21:11:44+00:00"
                 },
                 "section_defs": [
                   {
@@ -2107,12 +2215,12 @@
                   },
                   {
                     "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample",
-                    "definition_id": "ca0a6011326e4ca1e487e9b244bc5153e7cded19",
+                    "definition_id": "030133d881170f0d9e31da6086ed5641f0c4403c",
                     "used_directly": true
                   },
                   {
                     "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes",
-                    "definition_id": "d0d0cbf5ae07a246dbfa9634e51f995151abde55",
+                    "definition_id": "f0086b987424b1001666c6f5df9ad1071164a27e",
                     "used_directly": true
                   },
                   {
@@ -2122,7 +2230,7 @@
                   },
                   {
                     "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation",
-                    "definition_id": "c7646bbd6f18ae97af64a6fa967de483af3e9100",
+                    "definition_id": "c640c9585e8d4549f248582763427a7dd7c417a0",
                     "used_directly": true
                   },
                   {
@@ -2137,7 +2245,7 @@
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
-                    "definition_id": "a19151d9beb46b8690dc0937f050ef674f958ef4",
+                    "definition_id": "1a38309e86abd87e7ef9ff7aa89560cf22ab111e",
                     "used_directly": true
                   },
                   {
@@ -2161,23 +2269,38 @@
                     "used_directly": false
                   },
                   {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.basesections.CompositeSystem",
+                    "definition_id": "c7254c9b461a4baec86cb3179e2f84513f5c9053",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Entity",
+                    "definition_id": "7ce6bdcaa183a9685582b275e1c2b2ea3139c74d",
+                    "used_directly": false
+                  },
+                  {
                     "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Process",
                     "definition_id": "8d81e1f95c60f39a6a8c9f954143a55e6f4c984c",
                     "used_directly": false
                   },
                   {
-                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnBaseSection",
-                    "definition_id": "f05adb2ccbe04cbeced6213c4b6bd8f78e3d4ead",
+                    "definition_qualified_name": "nomad.datamodel.metainfo.basesections.System",
+                    "definition_id": "3ab3a09d615ab58aefbaa3acdd8d6af4e73aaae5",
                     "used_directly": false
                   },
                   {
-                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.ElnWithFormulaBaseSection",
-                    "definition_id": "ada854aefd11fd40e6c161fe2d9207a7bb104052",
-                    "used_directly": false
+                    "definition_qualified_name": "nomad.datamodel.metainfo.plot.Figure",
+                    "definition_id": "55ef08f33dcf9fb374aea217458bd34a23bec57b",
+                    "used_directly": true
                   },
                   {
-                    "definition_qualified_name": "nomad.datamodel.metainfo.eln.Sample",
-                    "definition_id": "a830a6d8c03f2a0baa0203e07efcbbd54328daaa",
+                    "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotSection",
+                    "definition_id": "7bb17e35ed91dca88bf6238fc51ed212693593d0",
+                    "used_directly": true
+                  },
+                  {
+                    "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotlyFigure",
+                    "definition_id": "491cdc3c5ea21cdc576275a5c1e600cdaa4256c1",
                     "used_directly": true
                   },
                   {
@@ -2187,12 +2310,12 @@
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.results.Properties",
-                    "definition_id": "c1223381a11d512543e254a8da6a40e88a9bdb9a",
+                    "definition_id": "43288046582240d7a33ec8b5fe4ca86988c2378c",
                     "used_directly": true
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.results.Results",
-                    "definition_id": "7cd04a0a1fc2db43414328de6410fa3bc1737b5f",
+                    "definition_id": "ba0a320c9aa599c7c4a0af8c545f3cfe76cc4e70",
                     "used_directly": true
                   },
                   {
@@ -2210,13 +2333,13 @@
                   },
                   {
                     "quantity_name": "lab_id",
-                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection",
                     "path": "data.lab_id",
                     "text_value": "001"
                   },
                   {
                     "quantity_name": "description",
-                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection",
                     "path": "data.description",
                     "text_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>"
                   },
@@ -2258,9 +2381,9 @@
                   },
                   {
                     "quantity_name": "datetime",
-                    "section_definition": "nomad.datamodel.metainfo.eln.ElnBaseSection",
+                    "section_definition": "nomad.datamodel.metainfo.basesections.BaseSection",
                     "path": "data.datetime",
-                    "date_value": "2023-09-21T13:36:10.771730+00:00"
+                    "date_value": "2023-10-20T23:11:44.823365+00:00"
                   }
                 ]
               },
@@ -2295,8 +2418,65 @@
           }
         },
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
-          "content-length": "29902",
+          "content-length": "31924",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ],
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "required": {
+            "metadata": "*"
+          },
+          "owner": "visible",
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "query": {
+            "entry_references.target_entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-"
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4MjdiZDgxMi05YTk0LTRmYjUtOTI4Ni1mMzE3N2I0MDkxYWIiLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzEwLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.VL-mQkH3IDSAjmEXbgKwtli0KqJPPtsmkRXmskfRvCA_tHuFiaGMOVd8131A-kpx1QoBbNG5C8FFIteXfyk6fCA0cxledcgUF2_f2HtxByda9nlu63JCx0OMhaKLX8o17Gs4Fw-t__Xmns01Y8KwR8UhFv7WmIIjb8ecgR97Qm45mUDrUDGMbPbsxMSn0g3vLYl1PJi60XfmtJnljzITokFv_mvgop0HjgVGK1DOJPIAs9FhNO9p7AK1yhuoO_uYIDzKOZwtjFCt2jS_0Ry3vvuYoS_pF2VmxAoFl5HukTfeVUirPdKnCdY0424wzE3BYTrK51Z6rfO5HPKvZ5hqrA",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {
+            "prefix": "entry_references",
+            "query": {
+              "name": "target_entry_id",
+              "value": "bC7byHvWJp62Sn9uiuJUB38MT5j-"
+            }
+          },
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 0
+          },
+          "required": {},
+          "data": []
+        },
+        "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
+          "connection": "close",
+          "content-length": "326",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -2311,7 +2491,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIwOWEyODhiNC0zYzI3LTQ5YzctODlhOC1kZTdlMGFhOWM3NjYiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc2LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.FLtR1WdR5s6GC895ur9t5TDGX7YoroyhP6Ek4LvOpFxFO69xIktu59oUFzRxPFwf2bJZpBbx7IYb_WKIzzpY41t0c-d36EifhN635cy0Ir1YTfO2qYRoTU4QJBNxqt1fARj95MxDZ1v5CRhnE3bfm1YVqY5F7CVXv10f3Ou-nLmlvgshpmdwxgt_tgqY7O6QY1o7pFGOEvbu0_YEFo-aK_eVa6nmiKgtoGufqRxhCe5R6udZK8MhzFZsa4kg55fNHU3HdQsUVVXCQqvmGrhTCexSXwdycWOuOPb0O3r9qbX4HPUmlEhMh-aGrjiOWMBHRMA7bxyB93xGOjxSNB6btg",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJkNDJlZTE3My0wMmYwLTQ3NjItODFiYS1lMDM5MDQxYTM2ZTMiLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzExLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.An9xNmasyMUltt0iYYiWILGwPOCZPLIiGCj4Y2jcttOQhCiu9KxRUExT9URonyAg64x4GzkN-vYA_0jQMyxc5zUIo8a9CXhkZchZzFXyrBRI2uEXeZFVnRMay-oiCT6WDKc-A9dKsKzKwp8SOocQVpG5l4VmB73tDY4Glyx0HtmpE_G2mAZGzmSIhZvRpWofQFfHiUtbCxI-bSg3-bio1JPdNfscytR1GwTDxm_OtWEvYuaro6tdRrT_w-eLd3rbIkEs-HR9Ys1nu0NIkxfW3qhGszaBMQ0ebMSrPO0Gz9j0ps025tysO0a-S88qKm7KeetQfJ-EPMpfo6WdyyuR6A",
           "cookie": null
         }
       },
@@ -2319,6 +2499,7 @@
         "status": 200,
         "body": "{\n    \"data\": {\n        \"m_def\": \"../upload/raw/schema.archive.yaml#/definitions/section_definitions/3\",\n        \"name\": \"ELN example sample\",\n        \"lab_id\": \"001\",\n        \"tags\": [\n            \"project\"\n        ],\n        \"substrate_type\": \"SLG\",\n        \"processes\": {\n            \"pvd_evaporation\": {\n                \"datetime\": \"2022-05-10T07:20:00+00:00\",\n                \"data_file\": \"PVDProcess.csv\"\n            },\n            \"hotplate_annealing\": {\n                \"datetime\": \"2022-05-10T07:22:00+00:00\",\n                \"set_temperature\": 373.15,\n                \"duration\": 60\n            }\n        },\n        \"description\": \"<p>A simple example for an \\\"sample\\\" that demonstrates how to combine different data entities.</p>\\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\\n<p>The sample also show references to other entries (chemicals, instruments).</p>\\n<p>&nbsp;</p>\"\n    }\n}\n",
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
           "content-disposition": "attachment; filename=\"sample.archive.json\"",
           "content-type": "application/octet-stream",
@@ -2334,7 +2515,7 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiI4NWZkNzdjNi1mNDBkLTRiNTUtOWExYi03MjUyODE4NTg0ZjUiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc5LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.ZZQopiu308-aVAKVYL-DKH7H7NdFvmLhCBLabFoFePNREbOwWV77obNCQT6tIBOPVUwpJoZqbpw00IpgGY7HzTPRMrt8OuLMr595s_vXHTi855-qpnWhuMOPo-zaDn9ZRgFebImkMb7EeHJ6lXV_9xR_ByOmKENsZdL6zN4TaVSjvHuj8jDhzYz8oFI3cL2W2bSJNxq5FKwOTBY8Fb1ava20sS2cbrrziKHqWd5keXO2AOJQo-nCzrF36kTZLWSI2geJ36sMZL439KBVnd5bsN_ayD_9LcaFjkGVlBOijI2hE8GMeBlsR10kGachhBNmyT6C3tOsOKUMFlrum058qQ",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJmYjU0MGZmNC1kYzAxLTRlNGQtOTc4Yi0wNTA2ODQzYzJlZDciLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzEzLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.jup9kegwH_gNol5qRJ_kK3HQ0wuRFJnNiRKebyO0ugUGX-E_WlN0b4T_lps09Sh6Doqm524ONa7lP83hLOM3JljmD7anacT7v4RbLv4YMUfv3BDKzgamgGWWs0NZoI5iMjNmRDIr-Hqs6-Xcz1PBTIoUPX3XLsx8aW-9hJA0_zlYQZi7xI3gi8ktFzypMYgb9Td5Jqq_SBFz_AqLmKcnLH-A4rlnPGUBbbn1QalHdN43bPtyK4GMmdFKDvyjfLERMpHwe7kJoUSfA6J_FTkUoaFRTyWYaClTLvp2N4EukJ77PygJHAKbkHHb0jXw5psGQyHPxgvRFzyWmLonuHgsUQ",
           "cookie": null
         }
       },
@@ -2342,6 +2523,7 @@
         "status": 200,
         "body": "{\n    \"data\": {\n        \"m_def\": \"../upload/raw/schema.archive.yaml#/definitions/section_definitions/3\",\n        \"name\": \"ELN example sample\",\n        \"lab_id\": \"001\",\n        \"tags\": [\n            \"project\"\n        ],\n        \"substrate_type\": \"SLG\",\n        \"processes\": {\n            \"pvd_evaporation\": {\n                \"datetime\": \"2022-05-10T07:20:00+00:00\",\n                \"data_file\": \"PVDProcess.csv\"\n            },\n            \"hotplate_annealing\": {\n                \"datetime\": \"2022-05-10T07:22:00+00:00\",\n                \"set_temperature\": 373.15,\n                \"duration\": 60\n            }\n        },\n        \"description\": \"<p>A simple example for an \\\"sample\\\" that demonstrates how to combine different data entities.</p>\\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\\n<p>The sample also show references to other entries (chemicals, instruments).</p>\\n<p>&nbsp;</p>\"\n    }\n}\n",
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
           "content-disposition": "attachment; filename=\"sample.archive.json\"",
           "content-type": "application/octet-stream",
@@ -2366,7 +2548,7 @@
         "headers": {
           "accept": "application/json",
           "content-type": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIzMDM1YWU3Ny0zN2NlLTQ1ZjEtOGU2Ny01M2E1YWI1MTg5NWEiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.eAunHxQO75W75dnlqZJ33S8ppK9jN7b6qXEfpmBqKyx9jawPLbsJKOpZ58SIlbsdc3rSsx5DoUNRNQA0UjJwhA9MeTHgygnahcJ6juK4I_u6lQxWu23zJToJE-Fq6F8PAZM-S2Cb10oMKwskXdwdwFz24-PxhdKDZGBg_a8aq-V5jymz4EaqBub0Akz-ue5k6bqUK35ULM_R3nDQeGdFOYyv3pKXV_VnvD1C6NabHeMw9zaayttvDNxfYrZ90UJ7KgLtb7yBQp86oHZlLtlybKrRgO2CQEoQOjIs2cv82Vvnz_a9CaMi0s_cgGl070zNyGMFupFm8m-NqndIIAKkfA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJhYWYzZjE3OS0wYWJiLTQ4MjMtYTY2MS05YTEzOGRkMDZmMDIiLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzExLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.UuwjMtNlntj3zeOq_8ZLkJkeUp6-J5BOx585pz1_wM0Hq9pV7pA-zPCzcXVRC_M4I6GdAJ_lwf021hD1gvgkntGtxkl68Jlpc6gmf7ULifmuAj98IczoQ9wr05ikL1RmE6HIWnqJBN0Y0Pk0tmdtEJkDhSEZ3ACuSoNqvLBEFaUH9G-hpPPV8YjoAM7GMQGY78ylir394Fc0FVZOOPDrZ4O4WUJdM5QhLwiXeNC4JY_UdB-WxnjGBzKoaD6KptBwIfokWNCmgOE46cB-htdajlRNHgfavcCmev1ZzUT0TTg9NakgYHwFiPtw8YtI4MC8WcTbdJm6uKMaC4f3IRBD9Q",
           "cookie": null
         }
       },
@@ -2505,11 +2687,14 @@
                             "pvd_evaporation": {}
                           }
                         }
+                      ],
+                      "eln": [
+                        "None"
                       ]
                     },
                     "name": "Sample",
                     "base_sections": [
-                      "nomad.datamodel.metainfo.eln.Sample",
+                      "nomad.datamodel.metainfo.basesections.CompositeSystem",
                       "nomad.datamodel.data.EntryData"
                     ],
                     "quantities": [
@@ -2686,7 +2871,7 @@
                                   "overview": true
                                 }
                               ],
-                              "plot": [
+                              "plotly_graph_object": [
                                 {
                                   "data": [
                                     {
@@ -2708,13 +2893,26 @@
                                       "side": "right"
                                     }
                                   }
+                                },
+                                {
+                                  "data": {
+                                    "x": "#time",
+                                    "y": "#chamber_pressure"
+                                  }
+                                },
+                                {
+                                  "data": {
+                                    "x": "#time",
+                                    "y": "#substrate_temperature"
+                                  }
                                 }
                               ]
                             },
                             "name": "PvdEvaporation",
                             "base_sections": [
                               "#/definitions/section_definitions/2",
-                              "nomad.parsing.tabular.TableData"
+                              "nomad.parsing.tabular.TableData",
+                              "nomad.datamodel.metainfo.plot.PlotSection"
                             ],
                             "quantities": [
                               {
@@ -2727,7 +2925,16 @@
                                       "parsing_options": {
                                         "sep": "\\t",
                                         "comment": "#"
-                                      }
+                                      },
+                                      "mapping_options": [
+                                        {
+                                          "mapping_mode": "column",
+                                          "file_mode": "current_entry",
+                                          "sections": [
+                                            "#root"
+                                          ]
+                                        }
+                                      ]
                                     }
                                   ],
                                   "browser": [
@@ -2775,21 +2982,11 @@
                                 "m_parent_sub_section": "quantities",
                                 "m_annotations": {
                                   "eln": [
-                                    {
-                                      "defaultDisplayUnit": "mbar"
-                                    }
+                                    "None"
                                   ],
                                   "tabular": [
                                     {
                                       "name": "Vacuum Pressure1"
-                                    }
-                                  ],
-                                  "plot": [
-                                    {
-                                      "data": {
-                                        "x": "#time",
-                                        "y": "#chamber_pressure"
-                                      }
                                     }
                                   ]
                                 },
@@ -2812,14 +3009,6 @@
                                     {
                                       "name": "Substrate PV",
                                       "unit": "degC"
-                                    }
-                                  ],
-                                  "plot": [
-                                    {
-                                      "data": {
-                                        "x": "#time",
-                                        "y": "#substrate_temperature"
-                                      }
                                     }
                                   ]
                                 },
@@ -2902,12 +3091,12 @@
               },
               "metadata": {
                 "upload_id": "eln_upload_id",
-                "upload_create_time": "2023-09-21T11:36:10.301000+00:00",
+                "upload_create_time": "2023-10-20T21:11:44.447000+00:00",
                 "entry_id": "83DS7AzwqTKFVwlrdVeaL3kMSLU_",
                 "entry_name": "Electronic Lab Notebook example schema",
                 "entry_type": "Schema",
-                "entry_hash": "JJ5rnS9VMz4S5pSE6hoTqzvLsdMq",
-                "entry_create_time": "2023-09-21T11:36:10.383000+00:00",
+                "entry_hash": "01azS40P52J1MvDpy7hFvRlF1VOj",
+                "entry_create_time": "2023-10-20T21:11:44.516000+00:00",
                 "parser_name": "parsers/archive",
                 "mainfile": "schema.archive.yaml",
                 "files": [
@@ -2920,9 +3109,9 @@
                 "embargo_length": 0,
                 "license": "CC BY 4.0",
                 "processed": true,
-                "last_processing_time": "2023-09-21T11:36:10.652516+00:00",
+                "last_processing_time": "2023-10-20T21:11:44.765750+00:00",
                 "processing_errors": [],
-                "nomad_version": "1.2.1.dev124+g099de4643.d20230919",
+                "nomad_version": "1.2.2.dev85+g6f47bb0a0",
                 "nomad_commit": "",
                 "references": [],
                 "main_author": "68878af7-6845-46c0-b2c1-250d4d8eb470",
@@ -3026,10 +3215,10 @@
                   "nomad.metainfo.metainfo.SubSection"
                 ],
                 "entry_timestamp": {
-                  "token_seed": "JJ5rnS9VMz4S5pSE6hoTqzvLsdMq",
-                  "token": "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",
+                  "token_seed": "01azS40P52J1MvDpy7hFvRlF1VOj",
+                  "token": "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",
                   "tsa_server": "http://time.certum.pl/",
-                  "timestamp": "2023-09-21T11:36:10+00:00"
+                  "timestamp": "2023-10-20T21:11:44+00:00"
                 },
                 "section_defs": [
                   {
@@ -3039,7 +3228,7 @@
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive",
-                    "definition_id": "a19151d9beb46b8690dc0937f050ef674f958ef4",
+                    "definition_id": "1a38309e86abd87e7ef9ff7aa89560cf22ab111e",
                     "used_directly": true
                   },
                   {
@@ -3054,12 +3243,12 @@
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.results.Properties",
-                    "definition_id": "c1223381a11d512543e254a8da6a40e88a9bdb9a",
+                    "definition_id": "43288046582240d7a33ec8b5fe4ca86988c2378c",
                     "used_directly": true
                   },
                   {
                     "definition_qualified_name": "nomad.datamodel.results.Results",
-                    "definition_id": "7cd04a0a1fc2db43414328de6410fa3bc1737b5f",
+                    "definition_id": "ba0a320c9aa599c7c4a0af8c545f3cfe76cc4e70",
                     "used_directly": true
                   },
                   {
@@ -3099,8 +3288,9 @@
           }
         },
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
-          "content-length": "36049",
+          "content-length": "36345",
           "content-type": "application/json",
           "server": "uvicorn"
         }
@@ -3115,14 +3305,15 @@
         "body": "",
         "headers": {
           "accept": "application/json",
-          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiJlOTBiMmZiYS01NjBjLTQyYjItYTUzYS1hZGExODZlMDI5ZTgiLCJleHAiOjE2OTUzMzIxNjQsIm5iZiI6MCwiaWF0IjoxNjk1Mjk2MTc3LCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6IjQwNDRlY2NkLTZjOTYtNDBiNC04MmI4LWRmNzcxNjczYzNkNCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.I-ROXfZ6JU3Hvy37deYAFfw4MXIzb1alaMK6bsm9SSzuKbHbAa4n3fgCifJ2hHcHYDGpuopFQ7Vu9WxVV66mP5Yk7MFGiya7xAtfdZg2Nb6fhzwWOJutm0I_uGbUfSuZO_ijh5WWuhB5BM41f52KgJs_xVcSvWgLZBDZqjv_imQly-zeM0EgK6Y7NgZWeXBoWOivtbiv64EqKanMxMbnsTbrZA5JWRH8zAYazc6A_Z2srKvLrN8VI1pubKzIt7ZlIuwBa1_kGZXeC3U9OuCVwabRufhCLNEEs0QU9oQxnBrt9FtXI6FFDdZlrXiL6YzpmtPL8cfHn2mp6Vz8dLMdzA",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJqdGkiOiIyZTI1NGJkMy1iYzkzLTRjZmItYjQ4NC0zOWY1NWI1NWM4MTciLCJleHAiOjE2OTc4NzIyOTYsIm5iZiI6MCwiaWF0IjoxNjk3ODM2MzExLCJpc3MiOiJodHRwczovL25vbWFkLWxhYi5ldS9mYWlyZGkva2V5Y2xvYWsvYXV0aC9yZWFsbXMvZmFpcmRpX25vbWFkX3Rlc3QiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiYTAzYWY4YjYtM2FhNy00MjhhLWIzYjEtNGE2MzE3ZTU3NmI2IiwidHlwIjoiQmVhcmVyIiwiYXpwIjoibm9tYWRfZ3VpX2RldiIsImF1dGhfdGltZSI6MCwic2Vzc2lvbl9zdGF0ZSI6ImQ5MDVmYmNhLTM2NGYtNGE3YS1hNDk0LWQxYzc2ZjVmMDAwYyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7InJlYWxtLW1hbmFnZW1lbnQiOnsicm9sZXMiOlsidmlldy11c2VycyIsInF1ZXJ5LWdyb3VwcyIsInF1ZXJ5LXVzZXJzIl19LCJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6IlNoZWxkb24gQ29vcGVyIiwicHJlZmVycmVkX3VzZXJuYW1lIjoic2Nvb3BlciIsImdpdmVuX25hbWUiOiJTaGVsZG9uIiwiZmFtaWx5X25hbWUiOiJDb29wZXIiLCJlbWFpbCI6InNoZWxkb24uY29vcGVyQG5vbWFkLWNvZS5ldSJ9.EHEs335TavJ7z6ElX9BJWunDpXpqZtd9wsao9wHud8DYwRIBqnovWksibfk22eoC6eo2OM1D70NeaEBPp5bO1R-k1VFIcK5kut_rE-ctnwp6M-UQcC4BquBGKaZDX19kS-ejajpNZoCRj3wqE8VLj1qLqfDIV815kZ80Oa14kCEylIoPQboB_phTLbteTpoCkm07Nguzo_z2vwgY8J0FpxOKoUIKnNn2wKV7VHN_VEqC578oYkinMzBlzK7WGNN3iSuQ_sqHcNpwLOaR7H_7CGUWtanqWul2UBaYxLXoVV0ZW9t-arB4aeejTAhk5nio6avoJJzFQD3WeDzXGE8b4Q",
           "cookie": null
         }
       },
       "response": {
         "status": 200,
-        "body": "# Schemas can be defined as yaml files like this. The archive.yaml format will be\n# interpreted by nomad as a nomad archive. Therefore, all definitions have to be\n# put in a top-level section called \"definitions\"\ndefinitions:\n  # The \"definitions\" section is interpreted as a nomad schema package\n  # Schema packages can have a name:\n  name: 'Electronic Lab Notebook example schema'\n  # Schema packages contain section definitions. This is where the interesting schema\n  # information begins.\n  sections:\n    # Here we define a section called \"Chemical\":\n    Chemical:\n      # Section definition can have base_sections. Base sections are other schema\n      # definition and all properties of these will be inherited.\n      base_sections:\n        - 'nomad.datamodel.metainfo.eln.Chemical'  # Provides typical quantities like name, descriptions, chemical_formula and makes those available for search\n        - 'nomad.datamodel.data.EntryData'  # Declares this as a top-level entry section. This determines the types of entries you can create. With this we will be able to create a \"Chemical\" entry.\n      # All definitions, sections, sub_sections, quantities, can provide a description.\n      description: |\n        This is an example description for Chemical.\n        A description can contain **markdown** markup and TeX formulas, like $\\sum\\limits_{i=0}^{n}$.\n      # Sections define quantities. Quantities allow to manage actual data. Quantities\n      # can have various types, shapes, and units.\n      quantities:\n        # Here we define a quantity called \"from\"\n        form:\n          # This defines a Enum type with pre-defined possible values.\n          type:\n            type_kind: Enum\n            type_data:\n              - crystalline solid\n              - powder\n          # Annotations allow to provide additional information that is beyond just defining\n          # the possible data.\n          m_annotations:\n            # The eln annotation allows add the quantity to a ELN\n            eln:\n              component: EnumEditQuantity  # A form field component for EnumQuantities that uses a pull down menu.\n        cas_number:\n          type: str\n          m_annotations:\n            eln:\n              component: StringEditQuantity\n        ec_number:\n          type: str\n          m_annotations:\n            eln:\n              component: StringEditQuantity\n    Instrument:\n      base_sections:\n        - nomad.datamodel.metainfo.eln.Instrument\n        - nomad.datamodel.data.EntryData\n    Process:\n      base_section: nomad.datamodel.metainfo.eln.Process\n      quantities:\n        instrument:\n          type: Instrument\n          m_annotations:\n            eln:\n              component: ReferenceEditQuantity\n    Sample:\n      m_annotations:\n        # The template annotation allows to define what freshly created entries (instances of this schema) will look like.\n        # In this example we create a sample with an empty pvd_evaporation process.\n        template:\n          processes:\n            pvd_evaporation: {}\n      base_sections:\n        - 'nomad.datamodel.metainfo.eln.Sample'\n        - 'nomad.datamodel.data.EntryData'\n      quantities:\n        name:\n          type: str  # The simple string type\n          default: Default Sample Name\n          m_annotations:\n            eln:\n              component: StringEditQuantity  # A simple text edit form field\n        tags:\n          type:\n            type_kind: Enum\n            type_data:\n              - internal\n              - collaboration\n              - project\n              - other\n          shape: ['*']  # Shapes define non scalar values, like lists ['*'], vectors ['*', 3], etc.\n          m_annotations:\n            eln:\n              component: AutocompleteEditQuantity  # Allows to edit enums with an auto complete text form field\n        chemicals:\n          type: Chemical  # Types can also be other sections. This allows to reference a different section.\n          shape: ['*']\n          m_annotations:\n            eln:\n              component: ReferenceEditQuantity  # A editor component that allows to select from available \"Chemical\"s\n        substrate_type:\n          type:\n            type_kind: Enum\n            type_data:\n              - Fused quartz glass\n              - SLG\n              - other\n          m_annotations:\n            eln:\n              component: RadioEnumEditQuantity\n        substrate_thickness:\n          type: np.float64\n          unit: m\n          m_annotations:\n            eln:\n              component: NumberEditQuantity\n        sample_is_from_collaboration:\n          type: bool\n          m_annotations:\n            eln:\n              component: BoolEditQuantity\n      # Besides quantities, a section can define sub_sections. This allows hierarchies\n      # of information.\n      sub_sections:\n        # Here we define a sub_section of \"Sample\" called \"processes\"\n        processes:\n          section:\n            # The sub-section's section, is itself a section definition\n            m_annotations:\n              eln:  # adds the sub-section to the eln and allows users to create new instances of this sub-section\n            # We can also nest sub_sections. It goes aribitrarely deep.\n            sub_sections:\n              pvd_evaporation:\n                section:\n                  base_sections: ['Process', 'nomad.parsing.tabular.TableData']\n                  m_annotations:\n                    # We can use the eln annotations to put the section to the overview\n                    # page, and hide unwanted inherited quantities.\n                    eln:\n                      overview: true\n                      hide: ['name', 'lab_id', 'description', 'method']\n                    # Plots are shown in the eln. Currently we only support simple x,y\n                    # line plots\n                    plot:\n                      data:\n                        - x: \"#time\"\n                          y: \"#chamber_pressure\"\n                        - x: \"#time\"\n                          y: \"#substrate_temperature\"\n                          yaxis: y2\n                      layout:\n                        title:\n                          text: Pressure and Temperature over Time\n                        yaxis2:\n                          overlaying: y\n                          side: right\n                  quantities:\n                    data_file:\n                      type: str\n                      description: |\n                        A reference to an uploaded .csv produced by the PVD evaporation instruments\n                        control software.\n                      m_annotations:\n                        # The tabular_parser annotation, will treat the values of this\n                        # quantity as files. It will try to interpret the files and fill\n                        # quantities in this section (and sub_section) with the column\n                        # data of .csv or .xlsx files. There is also a mode option that by default, is set to column.\n                        tabular_parser:\n                          parsing_options:\n                            sep: '\\t'\n                            comment: '#'\n                        browser:\n                          adaptor: RawFileAdaptor  # Allows to navigate to files in the data browser\n                        eln:\n                          component: FileEditQuantity  # A form field that allows to drop and select files.\n                    time:\n                      type: np.float64\n                      shape: ['*']\n                      unit: s\n                      m_annotations:\n                        # The tabular annotation defines a mapping to column headers used in\n                        # tabular data files\n                        tabular:\n                          name: Process Time in seconds\n                    chamber_pressure:\n                      type: np.float64\n                      shape: ['*']\n                      unit: mbar\n                      m_annotations:\n                        eln:\n                          defaultDisplayUnit: mbar\n                        tabular:\n                          name: Vacuum Pressure1\n                        plot:\n                          data:\n                            x: \"#time\"\n                            y: \"#chamber_pressure\"\n                    substrate_temperature:\n                      type: np.float64\n                      shape: ['*']\n                      unit: kelvin\n                      m_annotations:\n                        tabular:\n                          name: Substrate PV\n                          unit: degC\n                        plot:\n                          data:\n                            x: \"#time\"\n                            y: \"#substrate_temperature\"\n              hotplate_annealing:\n                section:\n                  base_section: Process\n                  m_annotations:\n                    # We can use the eln annotations to put the section to the overview\n                    # page, and hide unwanted inherited quantities.\n                    eln:\n                      overview: true\n                      hide: ['name', 'lab_id', 'description']\n                  quantities:\n                    set_temperature:\n                      type: np.float64  # For actual numbers, we use numpy datatypes\n                      unit: K  # The unit system is based on Pint and allows all kinds of abreviations, prefixes, and complex units\n                      m_annotations:\n                        eln:\n                          component: NumberEditQuantity  # A component to enter numbers (with units)\n                    duration:\n                      type: np.float64\n                      unit: s\n                      m_annotations:\n                        eln:\n                          component: NumberEditQuantity\n\n",
+        "body": "# Schemas can be defined as yaml files like this. The archive.yaml format will be\n# interpreted by nomad as a nomad archive. Therefore, all definitions have to be\n# put in a top-level section called \"definitions\"\ndefinitions:\n  # The \"definitions\" section is interpreted as a nomad schema package\n  # Schema packages can have a name:\n  name: 'Electronic Lab Notebook example schema'\n  # Schema packages contain section definitions. This is where the interesting schema\n  # information begins.\n  sections:\n    # Here we define a section called \"Chemical\":\n    Chemical:\n      # Section definition can have base_sections. Base sections are other schema\n      # definition and all properties of these will be inherited.\n      base_sections:\n        - 'nomad.datamodel.metainfo.eln.Chemical'  # Provides typical quantities like name, descriptions, chemical_formula and makes those available for search\n        - 'nomad.datamodel.data.EntryData'  # Declares this as a top-level entry section. This determines the types of entries you can create. With this we will be able to create a \"Chemical\" entry.\n      # All definitions, sections, sub_sections, quantities, can provide a description.\n      description: |\n        This is an example description for Chemical.\n        A description can contain **markdown** markup and TeX formulas, like $\\sum\\limits_{i=0}^{n}$.\n      # Sections define quantities. Quantities allow to manage actual data. Quantities\n      # can have various types, shapes, and units.\n      quantities:\n        # Here we define a quantity called \"from\"\n        form:\n          # This defines a Enum type with pre-defined possible values.\n          type:\n            type_kind: Enum\n            type_data:\n              - crystalline solid\n              - powder\n          # Annotations allow to provide additional information that is beyond just defining\n          # the possible data.\n          m_annotations:\n            # The eln annotation allows add the quantity to a ELN\n            eln:\n              component: EnumEditQuantity  # A form field component for EnumQuantities that uses a pull down menu.\n        cas_number:\n          type: str\n          m_annotations:\n            eln:\n              component: StringEditQuantity\n        ec_number:\n          type: str\n          m_annotations:\n            eln:\n              component: StringEditQuantity\n    Instrument:\n      base_sections:\n        - nomad.datamodel.metainfo.eln.Instrument\n        - nomad.datamodel.data.EntryData\n    Process:\n      base_section: nomad.datamodel.metainfo.eln.Process\n      quantities:\n        instrument:\n          type: '#/Instrument'\n          m_annotations:\n            eln:\n              component: ReferenceEditQuantity\n    Sample:\n      m_annotations:\n        # The template annotation allows to define what freshly created entries (instances of this schema) will look like.\n        # In this example we create a sample with an empty pvd_evaporation process.\n        template:\n          processes:\n            pvd_evaporation: {}\n        eln:\n      base_sections:\n        - 'nomad.datamodel.metainfo.basesections.CompositeSystem'\n        - 'nomad.datamodel.data.EntryData'\n      quantities:\n        name:\n          type: str  # The simple string type\n          default: Default Sample Name\n          m_annotations:\n            eln:\n              component: StringEditQuantity  # A simple text edit form field\n        tags:\n          type:\n            type_kind: Enum\n            type_data:\n              - internal\n              - collaboration\n              - project\n              - other\n          shape: ['*']  # Shapes define non scalar values, like lists ['*'], vectors ['*', 3], etc.\n          m_annotations:\n            eln:\n              component: AutocompleteEditQuantity  # Allows to edit enums with an auto complete text form field\n        chemicals:\n          type: '#/Chemical'  # Types can also be other sections. This allows to reference a different section.\n          shape: ['*']\n          m_annotations:\n            eln:\n              component: ReferenceEditQuantity  # A editor component that allows to select from available \"Chemical\"s\n        substrate_type:\n          type:\n            type_kind: Enum\n            type_data:\n              - Fused quartz glass\n              - SLG\n              - other\n          m_annotations:\n            eln:\n              component: RadioEnumEditQuantity\n        substrate_thickness:\n          type: np.float64\n          unit: m\n          m_annotations:\n            eln:\n              component: NumberEditQuantity\n        sample_is_from_collaboration:\n          type: bool\n          m_annotations:\n            eln:\n              component: BoolEditQuantity\n      # Besides quantities, a section can define sub_sections. This allows hierarchies\n      # of information.\n      sub_sections:\n        # Here we define a sub_section of \"Sample\" called \"processes\"\n        processes:\n          section:\n            # The sub-section's section, is itself a section definition\n            m_annotations:\n              eln:  # adds the sub-section to the eln and allows users to create new instances of this sub-section\n            # We can also nest sub_sections. It goes aribitrarely deep.\n            sub_sections:\n              pvd_evaporation:\n                section:\n                  base_sections: ['Process', 'nomad.parsing.tabular.TableData', 'nomad.datamodel.metainfo.plot.PlotSection']\n                  m_annotations:\n                    # We can use the eln annotations to put the section to the overview\n                    # page, and hide unwanted inherited quantities.\n                    eln:\n                      overview: true\n                      hide: ['name', 'lab_id', 'description', 'method']\n                    # Plots are shown in the eln. Currently we only support simple x,y\n                    # line plots\n                    plotly_graph_object:\n                    - data:\n                        - x: \"#time\"\n                          y: \"#chamber_pressure\"\n                        - x: \"#time\"\n                          y: \"#substrate_temperature\"\n                          yaxis: y2\n                      layout:\n                        title:\n                          text: Pressure and Temperature over Time\n                        yaxis2:\n                          overlaying: y\n                          side: right\n                    - data:\n                        x: \"#time\"\n                        y: \"#chamber_pressure\"\n                    - data:\n                        x: \"#time\"\n                        y: \"#substrate_temperature\"\n                  quantities:\n                    data_file:\n                      type: str\n                      description: |\n                        A reference to an uploaded .csv produced by the PVD evaporation instruments\n                        control software.\n                      m_annotations:\n                        # The tabular_parser annotation, will treat the values of this\n                        # quantity as files. It will try to interpret the files and fill\n                        # quantities in this section (and sub_section) with the column\n                        # data of .csv or .xlsx files. There is also a mode option that by default, is set to column.\n                        tabular_parser:\n                          parsing_options:\n                            comment: '#'\n                            sep: '\\t'\n                          mapping_options:\n                            - mapping_mode: column\n                              file_mode: current_entry\n                              sections:\n                                - '#root'\n                        browser:\n                          adaptor: RawFileAdaptor  # Allows to navigate to files in the data browser\n                        eln:\n                          component: FileEditQuantity  # A form field that allows to drop and select files.\n                    time:\n                      type: np.float64\n                      shape: ['*']\n                      unit: s\n                      m_annotations:\n                        # The tabular annotation defines a mapping to column headers used in\n                        # tabular data files\n                        tabular:\n                          name: Process Time in seconds\n                    chamber_pressure:\n                      type: np.float64\n                      shape: ['*']\n                      unit: mbar\n                      m_annotations:\n                        eln:\n                          # component: NumberEditQuantity\n                          # defaultDisplayUnit: mbar  ## MUST NOT BE AN ARRAY FOR THIS https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/issues/932\n                        tabular:\n                          name: Vacuum Pressure1\n                    substrate_temperature:\n                      type: np.float64\n                      shape: ['*']\n                      unit: kelvin\n                      m_annotations:\n                        tabular:\n                          name: Substrate PV\n                          unit: degC\n              hotplate_annealing:\n                section:\n                  base_section: Process\n                  m_annotations:\n                    # We can use the eln annotations to put the section to the overview\n                    # page, and hide unwanted inherited quantities.\n                    eln:\n                      overview: true\n                      hide: ['name', 'lab_id', 'description']\n                  quantities:\n                    set_temperature:\n                      type: np.float64  # For actual numbers, we use numpy datatypes\n                      unit: K  # The unit system is based on Pint and allows all kinds of abreviations, prefixes, and complex units\n                      m_annotations:\n                        eln:\n                          component: NumberEditQuantity  # A component to enter numbers (with units)\n                    duration:\n                      type: np.float64\n                      unit: s\n                      m_annotations:\n                        eln:\n                          component: NumberEditQuantity\n\n",
         "headers": {
+          "cache-control": "max-age=0, no-cache, no-store, must-revalidate",
           "connection": "close",
           "content-disposition": "attachment; filename=\"schema.archive.yaml\"",
           "content-type": "application/octet-stream",
