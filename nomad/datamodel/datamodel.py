@@ -23,14 +23,17 @@ from enum import Enum
 
 import rfc3161ng
 from elasticsearch_dsl import analyzer, tokenizer
-import numpy as np
-from pint import Quantity as PintQuantity
 
 from nomad import utils
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.pydantic_extension import PydanticModel
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type, entry_type as es_entry_type
+from nomad.metainfo.elasticsearch_extension import (
+    Elasticsearch,
+    material_entry_type,
+    entry_type as es_entry_type,
+    create_searchable_quantity
+)
 from .util import parse_path
 from ..metainfo import (
     Bytes, Package, Definition, MProxy, MSection, MCategory, Section, SubSection, Quantity, Reference,
@@ -286,31 +289,40 @@ class EntryArchiveReference(MSection):
 
 
 class SearchableQuantity(MSection):
-    quantity_name = Quantity(
+    id = Quantity(
         type=str,
-        description='The name of the quantity holding the value.',
-        a_elasticsearch=Elasticsearch())
-    section_definition = Quantity(
+        description='''
+            The full identifier for this quantity that contains the path in the schema +
+            schema name.
+        ''',
+        a_elasticsearch=[Elasticsearch()])
+    definition = Quantity(
         type=str,
-        description='A reference to the section definition for the section that holds the quantity that holds the value.',
+        description='A reference to the quantity definition.',
         a_elasticsearch=Elasticsearch())
-    path = Quantity(
-        type=str, description='The path to the quantity holding the value.',
+    path_archive = Quantity(
+        type=str, description='Path of the value within the archive.',
         a_elasticsearch=Elasticsearch())
-    keyword_value = Quantity(
-        type=str, description='The value mapped as an ES keyword field.',
-        a_elasticsearch=Elasticsearch())
-    text_value = Quantity(
-        type=str, description='The value mapped as an ES text field.',
-        a_elasticsearch=Elasticsearch(mapping='text'))
-    long_value = Quantity(
+    bool_value = Quantity(
+        type=bool, description='The value mapped as an ES boolean field.',
+        a_elasticsearch=Elasticsearch(mapping='boolean'))
+    str_value = Quantity(
+        type=str,
+        description='''
+        The value mapped as an ES text and keyword field.
+        ''',
+        a_elasticsearch=[
+            Elasticsearch(mapping='text'),
+            Elasticsearch(mapping='keyword', field='keyword'),
+        ])
+    int_value = Quantity(
         type=int, description='The value mapped as an ES long number field.',
         a_elasticsearch=Elasticsearch(mapping='long'))
-    double_value = Quantity(
+    float_value = Quantity(
         type=float, description='The value mapped as an ES double number field.',
         a_elasticsearch=Elasticsearch(mapping='double'))
-    date_value = Quantity(
-        type=str, description='The value mapped as an ES date field.',
+    datetime_value = Quantity(
+        type=Datetime, description='The value mapped as an ES date field.',
         a_elasticsearch=Elasticsearch(mapping='date'))
 
 
@@ -685,7 +697,7 @@ class EntryMetadata(MSection):
         repeats=True,
         a_elasticsearch=Elasticsearch(nested=True))
 
-    searchable_quantities = SubSection(
+    search_quantities = SubSection(
         sub_section=SearchableQuantity,
         repeats=True,
         a_elasticsearch=Elasticsearch(nested=True))
@@ -697,55 +709,7 @@ class EntryMetadata(MSection):
 
         section_paths = {}
         entry_references = []
-        searchable_quantities = []
-
-        def create_searchable_quantity(
-            section: MSection, quantity_def: Quantity, quantity_path: str
-        ) -> SearchableQuantity:
-            if quantity_def.shape != []:
-                return None
-
-            value = section.m_get(quantity_def)
-            if value is None:
-                return None
-
-            is_supported = quantity_def.type in [str, float, int, np.float64, np.int32]
-            is_supported = is_supported or quantity_def.type == Datetime
-            is_supported = is_supported or isinstance(quantity_def.type, MEnum)
-
-            if not is_supported:
-                return None
-
-            searchable_quantity = SearchableQuantity()
-            searchable_quantity.quantity_name = quantity_def.name
-            try:
-                searchable_quantity.section_definition = quantity_def.m_parent.definition_reference(
-                    archive, global_reference=True)
-            except AssertionError:
-                # TODO this happens if the schema is loaded from mongo and not an archive.
-                # As a result, the schema does not have an archive attached, the upload
-                # and entry id are unknown, and no global reference can be created.
-                pass
-            searchable_quantity.path = quantity_path
-            try:
-                if isinstance(quantity_def.type, MEnum):
-                    searchable_quantity.keyword_value = str(value)
-                elif quantity_def.type == Datetime:
-                    searchable_quantity.date_value = Datetime.serialize(section, quantity_def, value)
-                elif isinstance(value, str):
-                    searchable_quantity.text_value = value
-                elif isinstance(value, int):
-                    searchable_quantity.long_value = int(value)
-                elif isinstance(value, PintQuantity) and not np.isnan(value.m):
-                    searchable_quantity.double_value = float(value.m)
-                elif isinstance(value, float) and not np.isnan(value):
-                    searchable_quantity.double_value = float(value)
-                else:
-                    return None
-            except TypeError:
-                return None
-
-            return searchable_quantity
+        search_quantities = []
 
         def get_section_path(section):
             section_path = section_paths.get(section)
@@ -843,7 +807,13 @@ class EntryMetadata(MSection):
                 if reference_section:
                     entry_references.append(reference_section)
 
-        for section, property_def, _ in archive.m_traverse():
+        # Determine the schema name to use for searchable quantities
+        schema_name = None
+        if hasattr(archive, 'data') and archive.data:
+            schema_name = archive.data.m_def.qualified_name()
+
+        for section, property_def, _, location in archive.m_traverse():
+
             sections.add(section.m_def)
 
             if property_def is None:
@@ -858,9 +828,16 @@ class EntryMetadata(MSection):
 
             if section_path.startswith(('data', 'nexus')) and \
                     isinstance(property_def, Quantity):
-                searchable_quantity = create_searchable_quantity(section, property_def, quantity_path)
+                searchable_quantity = create_searchable_quantity(
+                    property_def,
+                    quantity_path,
+                    section,
+                    '.'.join([str(x) for x in location]),
+                    schema_name,
+                    archive
+                )
                 if searchable_quantity:
-                    searchable_quantities.append(searchable_quantity)
+                    search_quantities.append(searchable_quantity)
 
         # We collected entry_references, quantities, and sections before adding these
         # data to the archive itself. We manually add them here.
@@ -880,7 +857,7 @@ class EntryMetadata(MSection):
                 quantities.add(f'metadata.section_defs.{compatible_quantity.name}')
 
         self.entry_references.extend(entry_references)
-        self.searchable_quantities.extend(searchable_quantities)
+        self.search_quantities.extend(search_quantities)
         self.quantities = list(quantities)
         self.quantities.sort()
         self.sections = [section.qualified_name() for section in sections]

@@ -15,10 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase } from 'lodash'
+import minimatch from 'minimatch'
+import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase, isEmpty } from 'lodash'
 import { Quantity } from './units'
 import { format } from 'date-fns'
-import { dateFormat, guiBase, apiBase, searchQuantities, parserMetadata } from './config'
+import { dateFormat, guiBase, apiBase, searchQuantities, parserMetadata, schemaSeparator, dtypeSeparator, yamlSchemaPrefix } from './config'
 const crypto = require('crypto')
 
 const parserLabels = Object.keys(parserMetadata).reduce((result, key) => {
@@ -480,17 +481,9 @@ export function formatTimestamp(value) {
 /**
  * Determines the data type of the given metainfo.
  *
- * @param {string} quantity The metainfo name (full path). Must exist in
- * window.nomadArtifacts.searchQuantities.
+ * @param {object | str} def The metainfo name or definition.
  *
- * @return {string} The data type of the metainfo. Can be one of the following:
- *   - int
- *   - float
- *   - enum
- *   - boolean
- *   - timestamp
- *   - string
- *   - unknown
+ * @return {DType} The data type of the metainfo.
  */
 export const DType = {
   Int: 'int',
@@ -502,6 +495,7 @@ export const DType = {
   Unknown: 'unknown'
 }
 const numericTypes = new Set([DType.Int, DType.Float])
+export const multiTypes = new Set([DType.String, DType.Enum, DType.Boolean])
 export function getDatatype(quantity) {
   if (typeof quantity === 'string') {
     quantity = searchQuantities[quantity]
@@ -1029,6 +1023,9 @@ export function parseNomadUrl(url) {
   } else if (url.match(/^([a-zA-Z]\w*\.)*[a-zA-Z]\w*$/)) {
     qualifiedName = url
     relativeTo = refRelativeTo.deployment
+  } else if (url.startsWith(yamlSchemaPrefix)) {
+    [entryId, qualifiedName] = split(url.slice(yamlSchemaPrefix.length), '.', 1)
+    relativeTo = refRelativeTo.deployment
   } else {
     throw new Error(prefix + 'bad url')
   }
@@ -1068,7 +1065,7 @@ export function parseNomadUrl(url) {
       }
     }
   }
-  if (qualifiedName) {
+  if (qualifiedName && !entryId) {
     // Refers to the global schema
     type = refType.metainfo
   } else if (deploymentUrl && !uploadId) {
@@ -1458,4 +1455,102 @@ export function download(filename, content) {
     setTimeout(() => {
       window.URL.revokeObjectURL(url)
     }, 0)
+}
+
+/**
+ * Mimics the Python split function.
+ */
+export function split(value, sep, maxsplit) {
+    const split = value.split(sep)
+    return maxsplit
+      ? split.slice(0, maxsplit).concat(split.slice(maxsplit).join(sep))
+      : split
+}
+
+/**
+ * Mimics the Python rsplit function.
+ */
+export function rsplit(value, sep, maxsplit) {
+    const split = value.split(sep)
+    return maxsplit
+      ? [split.slice(0, -maxsplit).join(sep)].concat(split.slice(-maxsplit))
+      : split
+}
+
+/**
+ * Used to abbreviate a schema name.
+ */
+export function getSchemaAbbreviation(schema) {
+  if (!schema) return schema
+  return schema.startsWith('../')
+    ? schema
+    : rsplit(schema, '.', 1).pop()
+}
+
+/**
+ * Used to split a quantity name into path, schema and dtype.
+ */
+export function parseQuantityName(fullName) {
+  if (!fullName) return {}
+  const parts = split(fullName, schemaSeparator, 1)
+  const [path, schema] = parts.length === 2
+    ? parts
+    : [fullName, undefined]
+  const dtypeParts = split(schema, dtypeSeparator, 1)
+  const [schemaNew, dtype] = parts.length === 2
+    ? dtypeParts
+    : [schema, undefined]
+  return {path, schema: schemaNew, dtype}
+}
+
+/**
+ * Used to parse a possible query operator from a quantity name.
+ */
+export function parseOperator(fullName) {
+  const operators = new Set(['any', 'all', 'none'])
+  const parts = rsplit(fullName, ':', 1)
+  let [quantity, op] = parts.length === 2
+    ? parts
+    : [fullName, undefined]
+  if (!operators.has(op)) {
+    quantity = fullName
+    op = undefined
+  }
+  return {quantity, op}
+}
+
+/**
+ * Used to determine the final set of available option names from an object that
+ * adheres to the include/exclude/options pattern.
+ */
+export function getOptions(config) {
+  const include = config?.include || (config?.options ? Object.keys(config.options) : [])
+  const exclude = config?.exclude || []
+  const options = include.filter((key) => !exclude?.includes(key))
+  return options
+}
+
+/**
+ * Returns whether the given path should be accepted based on include and
+ * exclude glob patterns.
+ */
+export function glob(path, include, exclude) {
+  let match = false
+  if (!isEmpty(include)) {
+    for (const pattern of include) {
+      if (minimatch(path, pattern)) {
+        match = true
+        break
+      }
+    }
+  }
+  if (!isEmpty(exclude)) {
+    for (const pattern of exclude) {
+      if (minimatch(path, pattern)) {
+        match = false
+        break
+      }
+    }
+  }
+  return match
 }

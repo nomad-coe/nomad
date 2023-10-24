@@ -22,6 +22,7 @@ import os
 import click
 
 from nomad import config
+from nomad.metainfo.elasticsearch_extension import schema_separator
 from .cli import cli
 
 
@@ -93,7 +94,10 @@ def gui_artifacts():
 
 
 def _generate_metainfo(all_metainfo_packages):
-    return all_metainfo_packages.m_to_dict(with_meta=True, with_def_id=config.process.write_definition_id_to_archive)
+    return all_metainfo_packages.m_to_dict(
+        with_meta=True,
+        with_def_id=config.process.write_definition_id_to_archive
+    )
 
 
 @dev.command(help='Generates a JSON with all metainfo.')
@@ -109,12 +113,13 @@ def _all_metainfo_packages():
     from nomad.metainfo import Package, Environment
     from nomad.datamodel import EntryArchive
 
-    # TODO similar to before, due to lazyloading, we need to explicily access parsers
-    # to actually import all parsers and indirectly all metainfo packages
+    # TODO similar to before, due to lazyloading, we need to explicily access
+    # parsers to actually import all parsers and indirectly all metainfo
+    # packages
     from nomad.parsing.parsers import import_all_parsers
     import_all_parsers()
 
-    # Create the ES mapping to populate ES annoations with search keys.
+    # Create the ES mapping to populate ES annotations with search keys.
     from nomad.search import entry_type
     if not entry_type.mapping:
         entry_type.create_mapping(EntryArchive.m_def)
@@ -152,11 +157,17 @@ def _generate_search_quantities():
             nested = any(x.nested for x in es_annotations)
             metadict['nested'] = nested
         else:
-            keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases', 'aggregatable']
+            keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases', 'aggregatable', 'dynamic']
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
-            # We UI needs to know whether the quantity can be used in
+            # UI needs to know whether the quantity can be used in
             # aggregations or not.
             metadict['aggregatable'] = search_quantity.aggregatable
+            metadict['dynamic'] = search_quantity.dynamic
+            if search_quantity.dynamic:
+                _, schema = search_quantity.qualified_name.split(schema_separator, 1)
+                metadict['schema'] = schema
+                keys.append('schema')
+
         result = {}
         for key in keys:
             val = metadict.get(key)

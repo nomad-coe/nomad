@@ -25,7 +25,8 @@ import {getSchemaInfo, getSectionsInfo} from './SectionSelectDialog'
 import {ListItemText} from '@material-ui/core'
 import {useSuggestions} from "../../hooks"
 import {useErrors} from "../errors"
-import { debounce } from 'lodash'
+import {debounce} from 'lodash'
+import {defaultFilterData} from '../search/FilterRegistry'
 
 const getOptionSelected = (option, value) => {
   return value ? option.entry_id === value.entry_id && option.value === value.value : false
@@ -78,7 +79,7 @@ function SectionSelectAutocomplete(props) {
   const [suggestionInput, setSuggestionInput] = useState('')
   const [entries, setEntries] = useState([])
   const [selectedEntry, setSelectedEntry] = useState(undefined)
-  const [suggestions] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)
+  const [suggestions] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput, defaultFilterData)
   const [inputValue, setInputValue] = useState({primary: '', secondary: ''})
   const [lastInputValue, setLastInputValue] = useState({primary: '', secondary: ''})
   const [options, setOptions] = useState([])

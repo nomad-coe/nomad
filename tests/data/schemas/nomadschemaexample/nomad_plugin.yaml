@@ -1,0 +1,5 @@
+plugin_type: schema
+name: NOMAD's example schema plugin
+description: |
+  This is a simple hello world schema. This is meant as a template.
+  Fork the github project to create your own schemas.

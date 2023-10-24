@@ -25,7 +25,7 @@ import { screen, WrapperDefault } from '../conftest.spec'
 import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SearchContext } from './SearchContext'
-import { filterData } from './FilterRegistry'
+import { defaultFilterData } from './FilterRegistry'
 import { format } from 'date-fns'
 import { DType } from '../../utils'
 import { Unit, unitSystems } from '../../units'
@@ -65,7 +65,7 @@ export const renderSearchEntry = (ui, options) =>
  * @param {object} root The container to work on.
  */
 export async function expectFilterTitle(quantity, label, description, unit, disableUnit, root = screen) {
-  const data = filterData[quantity]
+  const data = defaultFilterData[quantity]
   let finalLabel = label || data?.label
   const finalDescription = description || data?.description
   if (!disableUnit) {
@@ -87,7 +87,7 @@ export async function expectFilterTitle(quantity, label, description, unit, disa
  */
 export async function expectInputHeader(quantity, disableScale, root = screen) {
   await expectFilterTitle(quantity)
-  const data = filterData[quantity]
+  const data = defaultFilterData[quantity]
   if (!disableScale) {
     const scale = data.scale
     expect(root.getByText(scale)).toBeInTheDocument()
@@ -175,7 +175,7 @@ export async function expectInputRange(quantity, loaded, histogram, anchored, mi
 
     // Test text elements if the component is not anchored
     if (!anchored) {
-      const data = filterData[quantity]
+      const data = defaultFilterData[quantity]
       const dtype = data.dtype
       if (dtype === DType.Timestamp) {
         expect(root.getByText('Start time')).toBeInTheDocument()

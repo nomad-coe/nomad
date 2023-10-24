@@ -101,9 +101,12 @@ export const WidgetScatterPlot = React.memo((
   const discrete = useMemo(() => {
     return new Set([DType.String, DType.Enum]).has(filterData[color]?.dtype)
   }, [filterData, color])
-  const unitX = filterData[x]?.unit || 'dimensionless'
-  const unitY = filterData[y]?.unit || 'dimensionless'
-  const unitColor = filterData[color]?.unit
+  const filterX = filterData[x]
+  const filterY = filterData[y]
+  const filterColor = filterData[color]
+  const unitX = filterX?.unit || 'dimensionless'
+  const unitY = filterY?.unit || 'dimensionless'
+  const unitColor = filterColor?.unit
   const setWidget = useSetWidget(id)
   const pagination = useMemo(() => ({
     page_size: size,
@@ -154,12 +157,12 @@ export const WidgetScatterPlot = React.memo((
       const unitXConverted = new Unit(unitX).toSystem(units)
       const unitYConverted = new Unit(unitY).toSystem(units)
       setXFilter({
-        gt: new Quantity(range.x[0], unitXConverted),
-        lt: new Quantity(range.x[1], unitXConverted)
+        gte: new Quantity(range.x[0], unitXConverted),
+        lte: new Quantity(range.x[1], unitXConverted)
       })
       setYFilter({
-        gt: new Quantity(range.y[0], unitYConverted),
-        lt: new Quantity(range.y[1], unitYConverted)
+        gte: new Quantity(range.y[0], unitYConverted),
+        lte: new Quantity(range.y[1], unitYConverted)
       })
       onSelected && onSelected(data)
     }

@@ -28,14 +28,14 @@ import {
   TextField,
   CircularProgress,
   Paper,
-  Tooltip
+  Tooltip,
+  ListItemText
 } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
 import { useUnits } from '../../units'
-import { DType, getDatatype } from '../../utils'
+import { DType, getSchemaAbbreviation } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext } from './SearchContext'
-import { searchQuantities } from '../../config'
 import { quantityNameSearch } from './FilterRegistry'
 
 const opMap = {
@@ -127,7 +127,7 @@ const SearchBar = React.memo(({
       quantitySetSuggestable = new Set(
         quantityList
           .map(q => q.name)
-          .filter(name => name === quantityNameSearch || searchQuantities[name]?.suggestion)
+          .filter(name => name === quantityNameSearch || filterData[name]?.suggestion)
       )
     // Default quantities to use. Certain quantities are prioritized, others
     // come in alphabetical order.
@@ -142,9 +142,7 @@ const SearchBar = React.memo(({
         'authors.name'
       ])
       const filterList = [...filters]
-      filterList
-        .filter(q => !quantitySetSuggestable.has(q) && searchQuantities[q]?.suggestion)
-        .forEach(q => quantitySetSuggestable.add(q))
+      filterList.forEach(q => quantitySetSuggestable.add(q))
       quantityList = filterList.map((name) => ({name, size: 5}))
       // The list of available quantity names is provided at the very
       // bottom.
@@ -159,7 +157,7 @@ const SearchBar = React.memo(({
   const suggestionQuantities = useMemo(() => {
     return quantitiesAll.filter((q) => suggestionNames.has(q.name))
   }, [quantitiesAll, suggestionNames])
-  const [suggestions, loading] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput)
+  const [suggestions, loading] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput, filterData)
 
   // Used to check the validity of the given quantity name
   const checkMetainfo = useCallback((name) => {
@@ -184,6 +182,7 @@ const SearchBar = React.memo(({
     let valid = false
     let quantityFullname
     let queryValue
+    let comparison = true
 
     // Presence query
     const presence = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*\\*\\s*$`))
@@ -210,6 +209,7 @@ const SearchBar = React.memo(({
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return
         }
+        comparison = false
         valid = true
       }
     }
@@ -233,14 +233,14 @@ const SearchBar = React.memo(({
         }
         quantityFullname = aError ? bFullname : aFullname
         const value = aError ? a : b
-        const dtype = getDatatype(quantityFullname)
+        const dtype = filterData[quantityFullname].dtype
         if (!numericTypes.has(dtype)) {
           setError(`Cannot perform range query for a non-numeric quantity`)
           return
         }
         let quantityValue
         try {
-          quantityValue = parseQuery(quantityFullname, value, units)
+          quantityValue = parseQuery(quantityFullname, value, units, undefined, false)
         } catch (error) {
           console.log(error)
           setError(`Invalid value for this metainfo. Please check your syntax.`)
@@ -267,15 +267,15 @@ const SearchBar = React.memo(({
           return
         }
         quantityFullname = fullName
-        const dtype = getDatatype(quantityFullname)
+        const dtype = filterData[quantityFullname].dtype
         if (!numericTypes.has(dtype)) {
           setError(`Cannot perform range query for a non-numeric quantity.`)
           return
         }
         queryValue = {}
         try {
-          queryValue[opMapReverse[op1]] = parseQuery(quantityFullname, a, units)
-          queryValue[opMap[op2]] = parseQuery(quantityFullname, c, units)
+          queryValue[opMapReverse[op1]] = parseQuery(quantityFullname, a, units, undefined, false)
+          queryValue[opMap[op2]] = parseQuery(quantityFullname, c, units, undefined, false)
         } catch (error) {
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return
@@ -290,11 +290,13 @@ const SearchBar = React.memo(({
       return
     }
 
+    // Submit to search context on successful validation.
     if (valid) {
-      // Submit to search context on successful validation.
       setFilter([quantityFullname, old => {
         const multiple = filterData[quantityFullname].multiple
-        return (isNil(old) || !multiple) ? queryValue : new Set([...old, ...queryValue])
+        return (comparison || isNil(old) || !multiple)
+          ? queryValue
+          : new Set([...old, ...queryValue])
       }])
       setInputValue('')
       setOpen(false)
@@ -386,10 +388,21 @@ const SearchBar = React.memo(({
       options={suggestions}
       onInputChange={handleInputChange}
       onHighlightChange={handleHighlight}
-      getOptionLabel={option => option.text}
+      getOptionLabel={(option) => option.text}
       // Notice that we need to override the default filterOptions as it is
       // performing unwanted filtering.
       filterOptions={(options) => options}
+      renderOption={(opt) => {
+        const option = filterData?.[opt.value]
+        const dtype = option?.dtype || option?.definition?.dtype
+        const schema = getSchemaAbbreviation(option?.schema || option?.definition?.schema)
+        const primary = option?.quantity || opt.value
+        const secondary = option && `${dtype} ${schema ? `| ${schema}` : ''}`
+        return <ListItemText
+          primary={primary}
+          secondary={secondary}
+        />
+      }}
       renderInput={(params) => (
         <TextField
           {...params}

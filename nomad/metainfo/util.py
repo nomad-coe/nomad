@@ -194,7 +194,9 @@ class MTypes:
     num = num_python | num_numpy
     str_numpy = {np.str_}
     bool_numpy = {np.bool_}
+    bool = {bool, np.bool_}
     numpy = num_numpy | str_numpy | bool_numpy
+    str = {str} | str_numpy
 
 
 class MEnum(Sequence):

@@ -20,14 +20,15 @@ import pytest
 from urllib.parse import urlencode
 
 from nomad.metainfo.elasticsearch_extension import material_entry_type
+from nomad.datamodel import results
 
 from tests.test_files import example_mainfile_contents  # pylint: disable=unused-import
 
 from .common import (
-    aggregation_exclude_from_search_test_parameters, assert_pagination, assert_metadata_response, assert_required, assert_aggregations,
+    aggregation_exclude_from_search_test_parameters, assert_pagination, assert_metadata_response, assert_required,
     perform_metadata_test, perform_owner_test, owner_test_parameters,
     post_query_test_parameters, get_query_test_parameters, pagination_test_parameters,
-    aggregation_test_parameters)
+    aggregation_test_parameters_default, assert_aggregation_response)
 from tests.conftest import example_data  # pylint: disable=unused-import
 
 '''
@@ -47,37 +48,14 @@ def perform_materials_metadata_test(*args, **kwargs):
 
 
 program_name = 'entries.results.method.simulation.program_name'
+n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
 
 
 @pytest.mark.parametrize(
     'aggregation, total, size, status_code, user',
-    aggregation_test_parameters(
-        entity_id='material_id', resource='materials', total=6
-    ))
+    aggregation_test_parameters_default('materials'))
 def test_materials_aggregations(client, example_data, test_user_auth, aggregation, total, size, status_code, user):
-    headers = {}
-    if user == 'test_user':
-        headers = test_user_auth
-
-    aggregations = {'test_agg_name': aggregation}
-
-    response_json = perform_materials_metadata_test(
-        client, headers=headers, owner='visible', aggregations=aggregations,
-        pagination=dict(page_size=0),
-        status_code=status_code, http_method='post')
-
-    if response_json is None:
-        return
-
-    for aggregation_obj in aggregation.values():
-        assert_aggregations(
-            response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
-            default_key='material_id')
-
-        # make sure that (nested) terms aggregation produce sensible counts
-        if 'terms' in aggregation:
-            for bucket in response_json['aggregations']['test_agg_name']['terms']['data']:
-                assert bucket['count'] <= 6  # the total number of materials, counting entries we would surpass this
+    assert_aggregation_response(client, test_user_auth, aggregation, total, size, status_code, user, resource='materials')
 
 
 @pytest.mark.parametrize(
@@ -187,8 +165,16 @@ def test_materials_post_query(client, example_data, query, status_code, total):
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('query, status_code, total', get_query_test_parameters(
-    'material_id', total=6, material_prefix='', entry_prefix='entries.'))
+@pytest.mark.parametrize(
+    'query, status_code, total',
+    get_query_test_parameters(
+        str={'name': 'material_id', 'values': ['id_01', 'id_02'], 'total': 1, 'total_any': 2, 'total_all': 0, 'total_gt': 5},
+        int={'name': 'n_elements', 'values': [2, 1], 'total': 6, 'total_any': 6, 'total_all': 0, 'total_gt': 0},
+        date={'name': 'entries.upload_create_time', 'total': 6},
+        subsection={'name': 'symmetry.crystal_system', 'values': ['cubic'], 'total': 6},
+        total=6
+    )
+)
 def test_materials_get_query(client, example_data, query, status_code, total):
     assert 'entries.upload_create_time' in material_entry_type.quantities
 

@@ -30,6 +30,7 @@ import Quantity from '../Quantity'
 import EditMetaDataDialog from './EditMetaDataDialog'
 import {authorList, formatTimestamp, pluralize} from '../../utils'
 import { useUploadPageContext } from './UploadPageContext'
+import { defaultFilterData } from '../search/FilterRegistry'
 
 const columns = [
   {
@@ -96,7 +97,7 @@ const columns = [
   }
 ]
 
-addColumnDefaults(columns)
+addColumnDefaults(columns, defaultFilterData)
 
 const defaultSelectedColumns = [
   'entry_name',

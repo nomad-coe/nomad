@@ -195,6 +195,7 @@ class ExampleData:
                 results = {
                     'material': {
                         'material_id': material_id,
+                        'dimensionality': '3D',
                         'elements': ['H', 'O'],
                         'nelements': 2,
                         'symmetry': {

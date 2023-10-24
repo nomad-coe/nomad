@@ -22,7 +22,7 @@ import yaml
 from pydantic import parse_obj_as
 
 from nomad import config
-from nomad.utils import flat
+from nomad.utils import flatten_dict
 
 from .utils import assert_log
 
@@ -80,8 +80,8 @@ def load_config(config_dict, monkeypatch):
 def test_config(raw_files, with_config, monkeypatch, caplog, config_dict):
     load_config(config_dict, monkeypatch)
     for key, value in config_dict.items():
-        flat_real = flat(getattr(config, key).dict())
-        flat_expected = flat(value)
+        flat_real = flatten_dict(getattr(config, key).dict())
+        flat_expected = flatten_dict(value)
         for key2, value2 in flat_expected.items():
             assert flat_real[key2] == value2
 

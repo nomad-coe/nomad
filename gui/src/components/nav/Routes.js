@@ -192,12 +192,13 @@ const searchRoutes = Object.values(ui?.apps?.options || {})
       cache: 'always',
       menu: context.label,
       tooltip: context.description,
-      breadcrumb: context.breadcrumb,
+      breadcrumb: context.breadcrumb || context.label,
       category: context.category,
       render: (props) => (
         <SearchContext
           {...props}
           resource={context.resource}
+          initialSchemas={context?.schemas}
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
@@ -210,8 +211,8 @@ const searchRoutes = Object.values(ui?.apps?.options || {})
         </SearchContext>
       ),
       help: {
-        title: context.help?.title,
-        content: context.help?.content
+        title: 'About this page',
+        content: context.readme || context.description
       },
       routes: routeMap[context.resource]
     }

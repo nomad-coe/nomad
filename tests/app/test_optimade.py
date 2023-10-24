@@ -36,7 +36,7 @@ def test_get_entry(published: Upload):
         assert data['metadata']['optimade'] is not None
 
     search_result = search(owner='all', query=dict(entry_id=entry_id)).data[0]
-    assert 'optimade.chemical_formula_hill' in utils.flat(search_result)
+    assert 'optimade.chemical_formula_hill' in utils.flatten_dict(search_result)
 
 
 def test_no_optimade(mongo, elastic, raw_files, client, test_user):

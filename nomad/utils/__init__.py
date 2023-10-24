@@ -41,6 +41,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 from typing import List, Iterable, Union, Any, Dict
 from collections import OrderedDict
 from functools import reduce
+from itertools import takewhile
 import base64
 from contextlib import contextmanager
 import json
@@ -505,25 +506,128 @@ def strip(docstring):
     return inspect.cleandoc(docstring)
 
 
-def flat(obj, prefix=None):
+def flatten_dict(src: dict, separator: str = '.', flatten_list: bool = False):
     '''
-    Helper that translates nested dict objects into flattened dicts with
-    ``key.key....`` as keys.
-    '''
-    if isinstance(obj, dict):
-        result = {}
-        for key, value in obj.items():
-            if isinstance(value, dict):
-                value = flat(value)
-                for child_key, child_value in value.items():
-                    result['%s.%s' % (key, child_key)] = child_value
+    Flattens nested dictionaries so that all information is stored
+    with depth=1.
 
+    Args:
+        src: Dictionary to flatten
+        separator: String to use as a separator
+        flatten_list: Whether lists should be flattened as well.
+    '''
+    def helper_list(src):
+        ret = {}
+        for i in range(len(src)):
+            if isinstance(src[i], dict):
+                flat_value = flatten_dict(src[i], separator, flatten_list)
+                for inner_key, inner_value in flat_value.items():
+                    join_key = separator.join((str(i), inner_key))
+                    ret[join_key] = inner_value
+            elif isinstance(src[i], list):
+                flat_value = helper_list(src[i])
+                for inner_key, inner_value in flat_value.items():
+                    join_key = separator.join((str(i), inner_key))
+                    ret[join_key] = inner_value
             else:
-                result[key] = value
+                ret[str(i)] = src[i]
 
-        return result
-    else:
-        return obj
+        return ret
+
+    ret = {}
+    for key, value in src.items():
+        if isinstance(value, dict):
+            flat_value = flatten_dict(value, separator, flatten_list)
+            for inner_key, inner_value in flat_value.items():
+                join_key = separator.join((key, inner_key))
+                ret[join_key] = inner_value
+        elif isinstance(value, list):
+            if flatten_list:
+                flat_value = helper_list(value)
+                for inner_key, inner_value in flat_value.items():
+                    join_key = separator.join((key, inner_key))
+                    ret[join_key] = inner_value
+            else:
+                ret[key] = value
+        else:
+            ret[key] = value
+
+    return ret
+
+
+def rebuild_dict(src: dict, separator: str = '.'):
+    '''
+    Rebuilds nested dictionaries from flattened ones.
+    '''
+    separator_len = len(separator)
+
+    def get_indices(key, split_index):
+        next_key = key[split_index + separator_len:]
+        num_string = list(takewhile(str.isdigit, next_key))
+        n_numbers = len(num_string)
+        index = int(''.join(num_string)) if n_numbers else None
+
+        if index is not None:
+            split_index_list = split_index
+            split_index_dict = split_index + n_numbers + separator_len
+        else:
+            split_index_dict = split_index
+            split_index_list = -1
+
+        return split_index_dict, split_index_list, index
+
+    def helper_dict(key, value, result):
+        split_index = key.find(separator)
+
+        # Insert dict item
+        if split_index == -1:
+            result.update({key: value})
+        else:
+            split_index_dict, split_index_list, next_index = get_indices(key, split_index)
+
+            # Handle next dictionary
+            if split_index_list == -1 or split_index_dict != -1 and split_index_dict < split_index_list:
+                if result.get(key[:split_index_dict]) is None:
+                    result.update({key[:split_index_dict]: {}})
+                helper_dict(key[split_index_dict + separator_len:], value, result[key[:split_index_dict]])
+            # Handle next list
+            else:
+                if result.get(key[:split_index_list]) is None:
+                    result.update({key[:split_index_list]: []})
+                helper_list(key[split_index_list + separator_len:], value, next_index, result[key[:split_index_list]])
+
+    def helper_list(key, value, index, result):
+        split_index = key.find(separator)
+
+        # Insert list item
+        if split_index == -1:
+            result.insert(index, value)
+        else:
+            split_index_dict, split_index_list, next_index = get_indices(key, split_index)
+
+            # Grow list to size of this index
+            if index > len(result):
+                result.extend([None] * (index - len(result)))
+            # Handle next dictionary
+            if split_index_list == -1 or split_index_dict != -1 and split_index_dict < split_index_list:
+                try:
+                    old_value = result[index]
+                except IndexError:
+                    old_value = None
+                if old_value is None:
+                    result.insert(index, {})
+                helper_dict(key[split_index_dict + separator_len:], value, result[index])
+            # Handle next list
+            else:
+                if result[index] is None:
+                    result.insert(index, [])
+                helper_list(key[split_index_list + separator_len:], value, next_index, result[index])
+
+    ret: Dict[str, Any] = {}
+    for key, value in src.items():
+        helper_dict(key, value, ret)
+
+    return ret
 
 
 def deep_get(dictionary, *keys):
@@ -531,8 +635,13 @@ def deep_get(dictionary, *keys):
     Helper that can be used to access nested dictionary-like containers using a
     series of paths given as arguments. The path can contain dictionary string
     keys or list indices as integer numbers.
+
+    Raises: ValueError if value not found for path.
     '''
-    return reduce(lambda d, key: d[key] if isinstance(key, int) else d.get(key) if d else None, keys, dictionary)
+    try:
+        return reduce(lambda d, key: d[key], keys, dictionary)
+    except (IndexError, TypeError, KeyError):
+        raise ValueError(f'Could not find path: {keys}')
 
 
 def slugify(value):

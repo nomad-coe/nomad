@@ -22,7 +22,7 @@ import { format } from 'date-fns'
 import { startAPI, closeAPI, screen } from '../../conftest.spec'
 import { renderSearchEntry, expectInputRange } from '../conftest.spec'
 import InputRange from './InputRange'
-import { filterData } from '../FilterRegistry'
+import { defaultFilterData } from '../FilterRegistry'
 import { DType, formatNumber } from '../../../utils'
 
 const nBins = 30
@@ -102,7 +102,7 @@ describe('test histograms with only one value', () => {
     ['upload_create_time', 1585872000000]
   ])('quantity: %s', async (quantity, value) => {
     renderSearchEntry(<InputRange visible quantity={quantity} disableHistogram={false}/>)
-    const data = filterData[quantity]
+    const data = defaultFilterData[quantity]
     const dtype = data.dtype
 
     // Check that both text fields show the only available value
@@ -186,7 +186,7 @@ test.each([
  * @param {bool} isMax Is the slider shown for a histogram.
  */
 async function testSliderMove(quantity, min, max, input, slider, percentage, isMax, histogram) {
-  const data = filterData[quantity]
+  const data = defaultFilterData[quantity]
   const dtype = data.dtype
   const discretization = (histogram && dtype === DType.Int) ? 1 : 0
   const range = max - min + discretization

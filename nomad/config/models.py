@@ -22,7 +22,7 @@ import logging
 import inspect
 from typing import TypeVar, List, Dict, Tuple, Any, Union, Optional, cast
 from typing_extensions import Literal, Annotated  # type: ignore
-from pydantic import BaseModel, Field, validator, Extra  # pylint: disable=unused-import
+from pydantic import BaseModel, Field, root_validator, Extra  # pylint: disable=unused-import
 from pkg_resources import get_distribution, DistributionNotFound
 
 try:
@@ -67,8 +67,18 @@ class NomadSettings(BaseModel):
         return cast(NomadSettingsBound, rv)
 
 
-class StrictSettings(NomadSettings, extra=Extra.forbid):
-    '''Extra fields are not allowed in these models'''
+class StrictSettings(NomadSettings, extra=Extra.ignore):
+    '''A warning is printed when extra fields are specified for these models.'''
+
+    @root_validator(pre=True)
+    def __print_extra_field__(cls, values):  # pylint: disable=no-self-argument
+        extra_fields = values.keys() - cls.__fields__.keys()
+
+        if extra_fields:
+            logger = logging.getLogger(__name__)
+            logger.warning(f'The following unknown fields in the config are ignored: {extra_fields}')
+
+        return values
 
 
 class OptionsBase(StrictSettings):
@@ -725,12 +735,6 @@ class Entry(StrictSettings):
     cards: Cards = Field(description='Controls the cards that are displayed on the entry overview page.')
 
 
-class Help(StrictSettings):
-    '''Help dialog contents.'''
-    title: str = Field(description='Title of the help dialog.')
-    content: str = Field(description='Text contents of the help dialog. Supports markdown.')
-
-
 class Pagination(StrictSettings):
     order_by: str = Field('upload_create_time', description='Field used for sorting.')
     order: str = Field('desc', description='Sorting order.')
@@ -847,6 +851,10 @@ class FilterMenus(Options):
     options: Dict[str, FilterMenu] = Field(description='Contains the available filter menu options.')
 
 
+class Schemas(OptionsBase):
+    '''Controls the availability of schemas.'''
+
+
 class Filters(OptionsBase):
     '''Controls the availability of filters.'''
 
@@ -958,16 +966,27 @@ class App(StrictSettings):
     '''Defines the layout and functionality for an App.'''
     label: str = Field(description='Name of the App.')
     path: str = Field(description='Path used in the browser address bar.')
-    resource: ResourceEnum = Field(description='Targeted resource.')
-    breadcrumb: str = Field(description='Path displayed in the breadcrumb.')
+    resource: ResourceEnum = Field('entries', description='Targeted resource.')
+    breadcrumb: Optional[str] = Field(description='Name displayed in the breadcrumb, by default the label will be used.')
     category: str = Field(description='Category used to organize Apps in the explore menu.')
-    description: str = Field(description='Short description of the App.')
-    help: Help = Field(description='Help dialog contents.')
+    description: Optional[str] = Field(description='Short description of the App.')
+    readme: Optional[str] = Field(description='Longer description of the App that can also use markdown.')
     pagination: Pagination = Field(Pagination(), description='Default result pagination.')
     columns: Columns = Field(description='Controls the columns shown in the results table.')
-    rows: Rows = Field(description='Controls the display of entry rows in the results table.')
+    rows: Optional[Rows] = Field(
+        Rows(
+            actions=RowActions(enabled=True),
+            details=RowDetails(enabled=True),
+            selection=RowSelection(enabled=True)
+        ),
+        description='Controls the display of entry rows in the results table.'
+    )
     filter_menus: FilterMenus = Field(description='Filter menus displayed on the left side of the screen.')
-    filters: Optional[Filters] = Field(description='Controls the filters that are available in this app.')
+    schemas: Optional[Schemas] = Field(description='Controls the schemas that are available in this app.')
+    filters: Optional[Filters] = Field(
+        Filters(exclude=['mainfile', 'entry_name', 'combine']),
+        description='Controls the filters that are available in this app.'
+    )
     dashboard: Optional[Dashboard] = Field(description='Default dashboard layout.')
     filters_locked: Optional[dict] = Field(
         description='''
@@ -1035,24 +1054,19 @@ class UI(StrictSettings):
                 'entries': {
                     'label': 'Entries',
                     'path': 'entries',
-                    'resource': 'entries',
-                    'breadcrumb': 'Entries',
                     'category': 'All',
                     'description': 'Search entries across all domains',
-                    'help': {
-                        'title': 'Entries search',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to search **entries** within NOMAD.
-                            Entries represent any individual data items that have
-                            been uploaded to NOMAD, no matter whether they come from
-                            theoretical calculations, experiments, lab notebooks or
-                            any other source of data. This allows you to perform
-                            cross-domain queries, but if you are interested in a
-                            specific subfield, you should see if a specific
-                            application exists for it in the explore menu to get
-                            more details.
-                        '''),
-                    },
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to search **entries** within NOMAD.
+                        Entries represent any individual data items that have
+                        been uploaded to NOMAD, no matter whether they come from
+                        theoretical calculations, experiments, lab notebooks or
+                        any other source of data. This allows you to perform
+                        cross-domain queries, but if you are interested in a
+                        specific subfield, you should see if a specific
+                        application exists for it in the explore menu to get
+                        more details.
+                    '''),
                     'columns': {
                         'selected': [
                             'entry_name',
@@ -1093,11 +1107,6 @@ class UI(StrictSettings):
                             'published': {'label': 'Access'}
                         }
                     },
-                    'rows': {
-                        'actions': {'enabled': True},
-                        'details': {'enabled': True},
-                        'selection': {'enabled': True}
-                    },
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
@@ -1125,27 +1134,19 @@ class UI(StrictSettings):
                             'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
-                    },
-                    'filters': {
-                        'exclude': ['mainfile', 'entry_name', 'combine']
-                    },
+                    }
                 },
                 'calculations': {
                     'label': 'Calculations',
                     'path': 'calculations',
-                    'resource': 'entries',
-                    'breadcrumb': 'Calculations',
                     'category': 'Theory',
                     'description': 'Search calculations',
-                    'help': {
-                        'title': 'Calculations',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to search **calculations** within
-                            NOMAD.  Calculations typically come from a specific
-                            simulation software that uses an approximate model to
-                            investigate and report different physical properties.
-                        '''),
-                    },
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to search **calculations** within
+                        NOMAD. Calculations typically come from a specific
+                        simulation software that uses an approximate model to
+                        investigate and report different physical properties.
+                    '''),
                     'columns': {
                         'selected': [
                             'results.material.chemical_formula_hill',
@@ -1184,11 +1185,6 @@ class UI(StrictSettings):
                             'published': {'label': 'Access'}
                         }
                     },
-                    'rows': {
-                        'actions': {'enabled': True},
-                        'details': {'enabled': True},
-                        'selection': {'enabled': True}
-                    },
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
@@ -1213,9 +1209,6 @@ class UI(StrictSettings):
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
-                    'filters': {
-                        'exclude': ['mainfile', 'entry_name', 'combine']
-                    },
                     'filters_locked': {
                         'quantities': 'results.method.simulation.program_name',
                     },
@@ -1224,33 +1217,29 @@ class UI(StrictSettings):
                     'label': 'Materials',
                     'path': 'materials',
                     'resource': 'materials',
-                    'breadcrumb': 'Materials',
                     'category': 'Theory',
                     'description': 'Search materials that are identified from calculations',
-                    'help': {
-                        'title': 'Materials',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to search **materials** within
-                            NOMAD. NOMAD can often automatically detect the material
-                            from individual calculations that contain the full
-                            atomistic structure and can then group the data by using
-                            these detected materials. This allows you to search
-                            individual materials which have properties that are
-                            aggregated from several entries. Following the link for
-                            a specific material will take you to the corresponding
-                            [NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search)
-                            page for that material. NOMAD Encyclopedia is a service
-                            that is specifically oriented towards materials property
-                            exploration.
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to search **materials** within
+                        NOMAD. NOMAD can often automatically detect the material
+                        from individual calculations that contain the full
+                        atomistic structure and can then group the data by using
+                        these detected materials. This allows you to search
+                        individual materials which have properties that are
+                        aggregated from several entries. Following the link for
+                        a specific material will take you to the corresponding
+                        [NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search)
+                        page for that material. NOMAD Encyclopedia is a service
+                        that is specifically oriented towards materials property
+                        exploration.
 
-                            Notice that by default the properties that you search
-                            can be combined from several different entries. If
-                            instead you wish to search for a material with an
-                            individual entry fullfilling your search criteria,
-                            uncheck the **combine results from several
-                            entries**-checkbox.
-                        '''),
-                    },
+                        Notice that by default the properties that you search
+                        can be combined from several different entries. If
+                        instead you wish to search for a material with an
+                        individual entry fullfilling your search criteria,
+                        uncheck the **combine results from several
+                        entries**-checkbox.
+                    '''),
                     'pagination': {
                         'order_by': 'chemical_formula_hill',
                         'order': 'asc'
@@ -1319,19 +1308,14 @@ class UI(StrictSettings):
                 'eln': {
                     'label': 'ELN',
                     'path': 'eln',
-                    'resource': 'entries',
-                    'breadcrumb': 'ELN',
                     'category': 'Experiment',
                     'description': 'Search electronic lab notebooks',
-                    'help': {
-                        'title': 'ELN search',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to specifically seach **electronic
-                            lab notebooks (ELNs)** within NOMAD.  It is very similar
-                            to the entries search, but with a reduced filter set and
-                            specialized arrangement of default columns.
-                        '''),
-                    },
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to specifically seach **electronic
+                        lab notebooks (ELNs)** within NOMAD.  It is very similar
+                        to the entries search, but with a reduced filter set and
+                        specialized arrangement of default columns.
+                    '''),
                     'columns': {
                         'selected': [
                             'entry_name',
@@ -1358,11 +1342,6 @@ class UI(StrictSettings):
                             'published': {'label': 'Access'}
                         }
                     },
-                    'rows': {
-                        'actions': {'enabled': True},
-                        'details': {'enabled': True},
-                        'selection': {'enabled': True}
-                    },
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
@@ -1374,9 +1353,6 @@ class UI(StrictSettings):
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
-                    'filters': {
-                        'exclude': ['mainfile', 'entry_name', 'combine']
-                    },
                     'filters_locked': {
                         'quantities': 'data'
                     }
@@ -1384,20 +1360,15 @@ class UI(StrictSettings):
                 'eels': {
                     'label': 'EELS',
                     'path': 'eels',
-                    'resource': 'entries',
-                    'breadcrumb': 'EELS',
                     'category': 'Experiment',
                     'description': 'Search electron energy loss spectroscopy experiments',
-                    'help': {
-                        'title': 'EELS',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to spefically search **Electron
-                            Energy Loss Spectroscopy (EELS) experiments** within
-                            NOMAD. It is similar to the entries search, but with a
-                            reduced filter set and specialized arrangement of
-                            default columns.
-                        '''),
-                    },
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to spefically search **Electron
+                        Energy Loss Spectroscopy (EELS) experiments** within
+                        NOMAD. It is similar to the entries search, but with a
+                        reduced filter set and specialized arrangement of
+                        default columns.
+                    '''),
                     'columns': {
                         'selected': [
                             'results.material.chemical_formula_hill',
@@ -1423,11 +1394,6 @@ class UI(StrictSettings):
                             'published': {'label': 'Access'}
                         }
                     },
-                    'rows': {
-                        'actions': {'enabled': True},
-                        'details': {'enabled': True},
-                        'selection': {'enabled': True}
-                    },
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
@@ -1439,9 +1405,6 @@ class UI(StrictSettings):
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
-                    'filters': {
-                        'exclude': ['mainfile', 'entry_name', 'combine']
-                    },
                     'filters_locked': {
                         'results.method.method_name': 'EELS'
                     }
@@ -1449,20 +1412,15 @@ class UI(StrictSettings):
                 'solarcells': {
                     'label': 'Solar Cells',
                     'path': 'solarcells',
-                    'resource': 'entries',
-                    'breadcrumb': 'Solar Cells',
                     'category': 'Use Cases',
                     'description': 'Search solar cells',
-                    'help': {
-                        'title': 'Solar cells',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to search **solar cell data**
-                            within NOMAD. The filter menu on the left and the shown
-                            default columns are specifically designed for solar cell
-                            exploration. The dashboard directly shows useful
-                            interactive statistics about the data.
-                        '''),
-                    },
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to search **solar cell data**
+                        within NOMAD. The filter menu on the left and the shown
+                        default columns are specifically designed for solar cell
+                        exploration. The dashboard directly shows useful
+                        interactive statistics about the data.
+                    '''),
                     'pagination': {
                         'order_by': 'results.properties.optoelectronic.solar_cell.efficiency',
                     },
@@ -1657,11 +1615,6 @@ class UI(StrictSettings):
                             'published': {'label': 'Access'},
                         }
                     },
-                    'rows': {
-                        'actions': {'enabled': True},
-                        'details': {'enabled': True},
-                        'selection': {'enabled': True}
-                    },
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Absorber Material', 'level': 0},
@@ -1676,9 +1629,6 @@ class UI(StrictSettings):
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
-                    'filters': {
-                        'exclude': ['mainfile', 'entry_name', 'combine']
-                    },
                     'filters_locked': {
                         'sections': 'nomad.datamodel.results.SolarCell'
                     }
@@ -1686,20 +1636,15 @@ class UI(StrictSettings):
                 'heterogeneouscatalyst': {
                     'label': 'Heterogeneous Catalysis',
                     'path': 'heterogeneouscatalyst',
-                    'resource': 'entries',
-                    'breadcrumb': 'Heterogeneous Catalysis',
                     'category': 'Use Cases',
                     'description': 'Search heterogeneous catalysts',
-                    'help': {
-                        'title': 'Heterogeneous Catalysis',
-                        'content': inspect.cleandoc(r'''
-                            This page allows you to search **catalyst and catalysis data**
-                            within NOMAD. The filter menu on the left and the shown
-                            default columns are specifically designed for Heterogeneous Catalyst
-                            exploration. The dashboard directly shows useful
-                            interactive statistics about the data.
-                        '''),
-                    },
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to search **catalyst and catalysis data**
+                        within NOMAD. The filter menu on the left and the shown
+                        default columns are specifically designed for Heterogeneous Catalyst
+                        exploration. The dashboard directly shows useful
+                        interactive statistics about the data.
+                    '''),
                     'pagination': {
                         'order_by': 'upload_create_time',
                         'order': 'asc'
@@ -1963,11 +1908,6 @@ class UI(StrictSettings):
                             'published': {'label': 'Access'},
                         }
                     },
-                    'rows': {
-                        'actions': {'enabled': True},
-                        'details': {'enabled': True},
-                        'selection': {'enabled': True}
-                    },
                     'filter_menus': {
                         'options': {
                             'material': {'label': 'Catalyst Material', 'level': 0},
@@ -1980,9 +1920,6 @@ class UI(StrictSettings):
                             'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
-                    },
-                    'filters': {
-                        'exclude': ['mainfile', 'entry_name', 'combine']
                     },
                     'filters_locked': {
                         'quantities': 'results.properties.catalytic'

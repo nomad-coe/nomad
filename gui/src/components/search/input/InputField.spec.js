@@ -19,7 +19,7 @@ import React from 'react'
 import { waitFor, within, waitForElementToBeRemoved } from '@testing-library/dom'
 import { startAPI, closeAPI, screen } from '../../conftest.spec'
 import { renderSearchEntry, expectInputHeader } from '../conftest.spec'
-import { filterData } from '../FilterRegistry'
+import { defaultFilterData } from '../FilterRegistry'
 import InputField from './InputField'
 import userEvent from '@testing-library/user-event'
 
@@ -215,5 +215,5 @@ function queryByInputItemName(option, root = screen) {
  * @returns {array} List of options for the given quantity.
  */
 function getAllOptions(quantity) {
-  return [...Object.values(filterData[quantity].options)].map(option => option.label)
+  return [...Object.values(defaultFilterData[quantity].options)].map(option => option.label)
 }

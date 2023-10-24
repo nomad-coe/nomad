@@ -99,6 +99,9 @@ The following is a reference of all configuration sections and attributes.
 {{ config_models(['process', 'reprocess', 'bundle_export', 'bundle_import', 'normalize', 'celery', 'archive'])}}
 
 ## User Interface
+
+These settings affect the behaviour of the user interface. Note that the configuration of apps is documented in more detail in the guide on [how to define apps](../oasis/apps.md).
+
 {{ config_models(['ui'])}}
 
 ## Others

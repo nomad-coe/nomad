@@ -28,7 +28,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import { Tooltip, List, ListItemText, ListSubheader } from '@material-ui/core'
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
-import { getSuggestions, capitalize } from '../../../utils'
+import { getSchemaAbbreviation, getSuggestions } from '../../../utils'
 import { useSearchContext } from '../SearchContext'
 import { VariableSizeList } from 'react-window'
 import { InputText } from './InputText'
@@ -152,16 +152,21 @@ export const InputMetainfo = React.memo(({
     filterOptions={filterOptions}
     renderOption={(key) => {
       const option = options[key]
+      const primary = option.primary || option.definition?.name || option.key
+      const dtype = option.dtype || option.definition?.dtype
+      const schema = getSchemaAbbreviation(option.schema || option.definition?.schema)
+      const secondary = option.secondary || `${dtype} ${schema ? `| ${schema}` : ''}`
+      const description = option.description || option.definition?.description
       return <div className={styles.option}>
         <ListItemText
-          primary={option.primary || option.key}
-          secondary={option.secondary}
+          primary={primary}
+          secondary={secondary}
           className={styles.optionText}
           primaryTypographyProps={{className: styles.noWrap}}
           secondaryTypographyProps={{className: styles.noWrap}}
         />
-        {option.description &&
-          <Tooltip title={option.description || ''}>
+        {description &&
+          <Tooltip title={description || ''}>
             <div className="description">
               <HelpOutlineIcon fontSize="small" color="action"/>
             </div>
@@ -177,9 +182,12 @@ InputMetainfo.propTypes = {
   value: PropTypes.string,
   options: PropTypes.objectOf(PropTypes.shape({
     key: PropTypes.string.isRequired, // The value used for matching
-    primary: PropTypes.string, // The value shown as primary text, defaults to path
-    secondary: PropTypes.string, // Optional secondary text
-    description: PropTypes.string, // Optional description shown as hover
+    definition: PropTypes.object, // The definition for the metainfo.
+    primary: PropTypes.string, // The value shown as primary text, defaults to key.
+    secondary: PropTypes.string, // Optional secondary text. Defaults to data type + schema read from definition.
+    description: PropTypes.string, // Optional description shown as hover. Defaults to desription read from definition.
+    schema: PropTypes.string, // Schema name. Defaults to schema read from searchQuantities.
+    dtype: PropTypes.string, // Data type. Defaults to data type read from definition.
     group: PropTypes.string // Optional group information
   })),
   error: PropTypes.string,
@@ -232,8 +240,7 @@ export const InputSearchMetainfo = React.memo(({
         })
         .map(([key, data]) => [key, {
           key: key,
-          description: data.description,
-          secondary: data.dtype && capitalize(data.dtype)
+          definition: data
       }])
     )
     return suggestions

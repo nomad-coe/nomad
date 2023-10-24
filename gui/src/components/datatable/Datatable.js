@@ -25,7 +25,6 @@ import { IconButton, makeStyles, lighten, TableHead, TableRow, TableCell, TableS
 import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
-import { searchQuantities } from '../../config'
 
 const DatatableContext = React.createContext({})
 const StaticDatatableContext = React.createContext({})
@@ -41,7 +40,7 @@ const StaticDatatableContext = React.createContext({})
 export function combinePagination(request, response) {
   const result = {
     page_size: request.page_size || response?.page_size,
-    order_by: request.order_by || response?.order_by,
+    order_by: response.order_by || request?.order_by,
     order: request.order || response?.order,
     page: request.page || response?.page,
     total: response?.total
@@ -58,8 +57,10 @@ export function combinePagination(request, response) {
 /**
  * Ensures that all given columns have default values for necessary keys.
  * @param {array} columns An array of columns to extend/check.
+ * @param {object} moreDefaults Object containing additional default values
+ * @param {object} filterData Object that contains quantity/Filter pairs
  */
-export function addColumnDefaults(columns, moreDefaults) {
+export function addColumnDefaults(columns, moreDefaults, filterData) {
   columns.forEach(column => {
     if (moreDefaults) {
       Object.keys(moreDefaults).filter(key => !column[key]).forEach(key => { column[key] = moreDefaults[key] })
@@ -77,7 +78,7 @@ export function addColumnDefaults(columns, moreDefaults) {
     if (column.sortable !== false) {
       column.sortable = true
     }
-    const multiple = !isEmpty(searchQuantities[column.key]?.shape)
+    const multiple = !isEmpty(filterData?.[column.key]?.shape)
     if (multiple) {
       column.sortable = false
     } else if (isNil(column.sortable)) {
@@ -87,7 +88,7 @@ export function addColumnDefaults(columns, moreDefaults) {
       column.align = 'center'
     }
     if (!column.description) {
-      column.description = searchQuantities[column.key]?.description
+      column.description = filterData?.[column.key]?.description
     }
   })
 }
@@ -254,13 +255,11 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
 
   const createSortHandler = (column) => (event) => {
     const isAsc = order_by === column.key && order === 'asc'
-    if (onPaginationChanged) {
-      onPaginationChanged({
-        ...pagination,
-        order: isAsc ? 'desc' : 'asc',
-        order_by: column.key
-      })
-    }
+    onPaginationChanged?.({
+      ...pagination,
+      order: isAsc ? 'desc' : 'asc',
+      order_by: column.key
+    })
   }
 
   const sortableColumns = useMemo(() => {
