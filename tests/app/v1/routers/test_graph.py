@@ -216,6 +216,18 @@ def example_archive():
     return archive
 
 
+@pytest.fixture(scope='function')
+def example_upload(example_archive, test_user, mongo_function, elastic_function):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='test_id', upload_name='name_published', published=True)
+    data.create_entry(upload_id='test_id', entry_id='test_id', entry_archive=example_archive)
+    data.save(with_files=True, with_es=True, with_mongo=True)
+
+    yield data
+
+    data.delete()
+
+
 # @pytest.mark.skip
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
@@ -380,12 +392,7 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
         'metadata': {'entry_id': {'doesnotexist': '*'}}
     }, True, id='not-a-section'),
 ])
-def test_entry_reader_with_reference(example_archive, required, error, test_user, mongo_function, elastic_function):
-    data = ExampleData(main_author=test_user)
-    data.create_upload(upload_id='test_id', upload_name='name_published', published=True)
-    data.create_entry(upload_id='test_id', entry_id='test_id', entry_archive=example_archive)
-    data.save(with_files=True, with_es=True, with_mongo=True)
-
+def test_entry_reader_with_reference(example_archive, required, error, test_user, example_upload):
     with EntryReader({Token.ARCHIVE: required}, user=test_user) as reader:
         results = reader.read('test_id')
 
@@ -432,4 +439,36 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
 
         _walk(full_archive, results[Token.ARCHIVE], required)
 
-        data.delete()
+
+@pytest.mark.parametrize('required,result', [
+    pytest.param({
+        "run[0]": {
+            "m_request": {
+                "directive": "plain",
+                "include": ['c*']
+            }
+        }
+    }, {'run': [{'calculation': [{
+        'energy': {'total': {'value': 0.1}}, 'system_ref': '/run/0/system/1'}, {
+        'dos_electronic': [{'energies': [0.0, 0.1]}], 'energy': {'total': {'value': 0.2}},
+        'system_ref': '/run/0/system/1'}, {
+        'energy': {'total': {'value': 0.1}}, 'system_ref': '/run/0/system/1'}]}]}, id='include-pattern'),
+])
+def test_graph_query_archive_functionality(client, test_auth_dict, example_upload, required, result):
+    user_auth, _ = test_auth_dict['test_user']
+    response = client.post(
+        'graph/query',
+        json={
+            "uploads": {
+                "test_id": {
+                    "entries": {
+                        "test_id": {
+                            "archive": required
+                        }
+                    }
+                }
+            }
+        },
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+
+    assert response.json()['uploads']['test_id']['entries']['test_id']['archive'] == result
