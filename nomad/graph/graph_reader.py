@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import functools
+import os
 import re
 from typing import Any, Callable, Type
 
@@ -121,6 +122,11 @@ class GraphNode:
     current_depth: int  # current depth, for tracking depth limit
     reader: Any  # the reader used to read the archive # pylint: disable=E0601
 
+    @functools.cached_property
+    def _prefix_to_remove(self):
+        '''Duplicated prefix to remove.'''
+        return f'uploads/{self.upload_id}/entries/{self.entry_id}/archive/'
+
     def replace(self, **kwargs):
         '''
         Create a new `ArchiveNode` instance with the attributes of the current instance replaced.
@@ -133,7 +139,8 @@ class GraphNode:
         Generate a reference string using a given path or the current path.
         '''
         actual_path: list = path if path is not None else self.current_path
-        return f'{self._generate_prefix()}#/{"/".join(str(v) for v in actual_path)}'
+        actual_ref: str = '/'.join(str(v) for v in actual_path).removeprefix(self._prefix_to_remove)
+        return f"{self._generate_prefix()}#/{actual_ref}"
 
     def _generate_prefix(self) -> str:
         return f'../uploads/{self.upload_id}/archive/{self.entry_id}'
@@ -161,7 +168,7 @@ class GraphNode:
 
         try:
             target = self.__goto_path(self.archive_root, path_stack)
-        except(KeyError, IndexError):
+        except (KeyError, IndexError):
             raise ArchiveError(f'Archive {self.entry_id} does not contain {reference}.')
 
         return self._switch_root(self.replace(
@@ -208,7 +215,7 @@ class GraphNode:
         try:
             # now go to the target path
             other_target = self.__goto_path(other_archive_root, path_stack)
-        except(KeyError, IndexError):
+        except (KeyError, IndexError):
             raise ArchiveError(f'Archive {other_entry_id} does not contain {path}.')
 
         return self._switch_root(self.replace(
@@ -819,7 +826,7 @@ class GeneralReader:
         # the original archive may be an empty list
         # populate an empty list to keep the structure
         _populate_result(node.result_root, node.current_path, [])
-        new_config: RequestConfig = config.new({'index': None})
+        new_config: RequestConfig = config.new({'index': None}, retain_pattern=True)
         for i in self._normalise_index(config.index, len(node.archive)):
             self._resolve(node.replace(
                 archive=node.archive[i],
@@ -1111,6 +1118,11 @@ class MongoReader(GeneralReader):
             if key == Token.METADATA and self.__class__ is EntryReader:
                 # hitting the bottom of the current scope
                 offload_read(ElasticSearchReader, node.entry_id)
+                continue
+
+            if key == Token.UPLOAD and self.__class__ is EntryReader:
+                # hitting the bottom of the current scope
+                offload_read(UploadReader, node.upload_id)
                 continue
 
             if key == Token.MAINFILE and self.__class__ is EntryReader:
@@ -1641,9 +1653,9 @@ class FileSystemReader(GeneralReader):
             ref_path = node.current_path
 
         file: RawPathInfo
-        for file in node.archive.raw_directory_list(os_path):
+        for file in node.archive.raw_directory_list(os_path, depth=config.depth if config.depth else -1):
             if not config.if_include(file.path) or omit_keys is not None and any(
-                    k.startswith(file.path) for k in omit_keys):
+                    file.path.endswith(os.path.sep + k) for k in omit_keys):
                 continue
 
             results = file._asdict()

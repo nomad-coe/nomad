@@ -795,7 +795,7 @@ class StagingUploadFiles(UploadFiles):
     def raw_directory_list(
             self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
     ) -> Iterable[RawPathInfo]:
-        if not is_safe_relative_path(path):
+        if not is_safe_relative_path(path) or depth == 0:
             return
         os_path = os.path.join(self._raw_dir.os_path, path)
         if not os.path.isdir(os_path):
@@ -811,12 +811,11 @@ class StagingUploadFiles(UploadFiles):
             if not is_file:
                 # Crawl sub directory.
                 for sub_path_info in self.raw_directory_list(
-                        element_raw_path, True, files_only, max(0, depth - 1)):
+                        element_raw_path, True, files_only, depth=depth - 1):
                     if sub_path_info.is_file:
                         dir_size += sub_path_info.size
-                    if recursive and (depth == -1 or depth > 0):
-                        if not path_prefix or sub_path_info.path.startswith(path_prefix):
-                            yield sub_path_info
+                    if recursive and (not path_prefix or sub_path_info.path.startswith(path_prefix)):
+                        yield sub_path_info
 
             if not files_only or is_file:
                 size = os.stat(element_os_path).st_size if is_file else dir_size
@@ -1473,7 +1472,7 @@ class PublicUploadFiles(UploadFiles):
     def raw_directory_list(
             self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
     ) -> Iterable[RawPathInfo]:
-        if not is_safe_relative_path(path):
+        if not is_safe_relative_path(path) or depth == 0:
             return
         if not path and self.missing_raw_files:
             return
@@ -1487,9 +1486,9 @@ class PublicUploadFiles(UploadFiles):
                 if not files_only or path_info.is_file:
                     if not path_prefix or path_info.path.startswith(path_prefix):
                         yield path_info
-                if recursive and not path_info.is_file and (depth == -1 or depth > 0):
+                if recursive and not path_info.is_file:
                     for sub_path_info in self.raw_directory_list(
-                            path_info.path, recursive, files_only, max(0, depth - 1)):
+                            path_info.path, recursive, files_only, depth=depth - 1):
                         if not path_prefix or sub_path_info.path.startswith(path_prefix):
                             yield sub_path_info
 

@@ -240,7 +240,7 @@ class Graph(BaseModel):
     uploads: Uploads
     datasets: Datasets
     search: Search
-    # metainfo: MSection
+    metainfo: MSection
 
 
 GraphRequest = generate_request_model(Graph)

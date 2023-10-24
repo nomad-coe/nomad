@@ -32,7 +32,7 @@ def normalise_response(response):
     if GeneralReader.__CACHE__ in response:
         del response[GeneralReader.__CACHE__]
 
-    return response
+    return reorder_children(response)
 
 
 def relocate_children(request):
@@ -57,7 +57,7 @@ def reorder_children(query):
 )
 async def raw_query(query=Body(...), user: User = Depends(create_user_dependency(required=True))):
     relocate_children(query)
-    with MongoReader(reorder_children(query), user=user) as reader:
+    with MongoReader(query, user=user) as reader:
         return normalise_response(reader.read())
 
 
@@ -74,7 +74,7 @@ async def basic_query(query: GraphRequest = Body(...), user: User = Depends(crea
     try:
         query_dict = query.dict(exclude_none=True, exclude_unset=True, exclude_defaults=True)
         relocate_children(query_dict)
-        with MongoReader(reorder_children(query_dict), user=user) as reader:
+        with MongoReader(query_dict, user=user) as reader:
             response: dict = reader.read()
     except ConfigError as e:
         raise HTTPException(400, detail=str(e))
@@ -111,7 +111,7 @@ async def archive_query(
     if not root_request:
         del graph_dict[Token.SEARCH]['m_request']['query']
 
-    with UserReader(reorder_children(graph_dict), user=user) as reader:
+    with UserReader(graph_dict, user=user) as reader:
         response: dict = reader.read(user.user_id)
 
     return normalise_response(response)
