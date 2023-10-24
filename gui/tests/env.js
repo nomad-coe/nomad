@@ -90,13 +90,9 @@ window.nomadEnv = {
           "label": "Entries",
           "path": "entries",
           "resource": "entries",
-          "breadcrumb": "Entries",
           "category": "All",
           "description": "Search entries across all domains",
-          "help": {
-            "title": "Entries search",
-            "content": "This page allows you to search **entries** within NOMAD.\nEntries represent any individual data items that have\nbeen uploaded to NOMAD, no matter whether they come from\ntheoretical calculations, experiments, lab notebooks or\nany other source of data. This allows you to perform\ncross-domain queries, but if you are interested in a\nspecific subfield, you should see if a specific\napplication exists for it in the explore menu to get\nmore details."
-          },
+          "readme": "This page allows you to search **entries** within NOMAD.\nEntries represent any individual data items that have\nbeen uploaded to NOMAD, no matter whether they come from\ntheoretical calculations, experiments, lab notebooks or\nany other source of data. This allows you to perform\ncross-domain queries, but if you are interested in a\nspecific subfield, you should see if a specific\napplication exists for it in the explore menu to get\nmore details.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -376,13 +372,9 @@ window.nomadEnv = {
           "label": "Calculations",
           "path": "calculations",
           "resource": "entries",
-          "breadcrumb": "Calculations",
           "category": "Theory",
           "description": "Search calculations",
-          "help": {
-            "title": "Calculations",
-            "content": "This page allows you to search **calculations** within\nNOMAD.  Calculations typically come from a specific\nsimulation software that uses an approximate model to\ninvestigate and report different physical properties."
-          },
+          "readme": "This page allows you to search **calculations** within\nNOMAD. Calculations typically come from a specific\nsimulation software that uses an approximate model to\ninvestigate and report different physical properties.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -637,13 +629,9 @@ window.nomadEnv = {
           "label": "Materials",
           "path": "materials",
           "resource": "materials",
-          "breadcrumb": "Materials",
           "category": "Theory",
           "description": "Search materials that are identified from calculations",
-          "help": {
-            "title": "Materials",
-            "content": "This page allows you to search **materials** within\nNOMAD. NOMAD can often automatically detect the material\nfrom individual calculations that contain the full\natomistic structure and can then group the data by using\nthese detected materials. This allows you to search\nindividual materials which have properties that are\naggregated from several entries. Following the link for\na specific material will take you to the corresponding\n[NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search)\npage for that material. NOMAD Encyclopedia is a service\nthat is specifically oriented towards materials property\nexploration.\n\nNotice that by default the properties that you search\ncan be combined from several different entries. If\ninstead you wish to search for a material with an\nindividual entry fullfilling your search criteria,\nuncheck the **combine results from several\nentries**-checkbox."
-          },
+          "readme": "This page allows you to search **materials** within\nNOMAD. NOMAD can often automatically detect the material\nfrom individual calculations that contain the full\natomistic structure and can then group the data by using\nthese detected materials. This allows you to search\nindividual materials which have properties that are\naggregated from several entries. Following the link for\na specific material will take you to the corresponding\n[NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search)\npage for that material. NOMAD Encyclopedia is a service\nthat is specifically oriented towards materials property\nexploration.\n\nNotice that by default the properties that you search\ncan be combined from several different entries. If\ninstead you wish to search for a material with an\nindividual entry fullfilling your search criteria,\nuncheck the **combine results from several\nentries**-checkbox.",
           "pagination": {
             "order_by": "chemical_formula_hill",
             "order": "asc",
@@ -822,13 +810,9 @@ window.nomadEnv = {
           "label": "ELN",
           "path": "eln",
           "resource": "entries",
-          "breadcrumb": "ELN",
           "category": "Experiment",
           "description": "Search electronic lab notebooks",
-          "help": {
-            "title": "ELN search",
-            "content": "This page allows you to specifically seach **electronic\nlab notebooks (ELNs)** within NOMAD.  It is very similar\nto the entries search, but with a reduced filter set and\nspecialized arrangement of default columns."
-          },
+          "readme": "This page allows you to specifically seach **electronic\nlab notebooks (ELNs)** within NOMAD.  It is very similar\nto the entries search, but with a reduced filter set and\nspecialized arrangement of default columns.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -973,13 +957,9 @@ window.nomadEnv = {
           "label": "EELS",
           "path": "eels",
           "resource": "entries",
-          "breadcrumb": "EELS",
           "category": "Experiment",
           "description": "Search electron energy loss spectroscopy experiments",
-          "help": {
-            "title": "EELS",
-            "content": "This page allows you to spefically search **Electron\nEnergy Loss Spectroscopy (EELS) experiments** within\nNOMAD. It is similar to the entries search, but with a\nreduced filter set and specialized arrangement of\ndefault columns."
-          },
+          "readme": "This page allows you to spefically search **Electron\nEnergy Loss Spectroscopy (EELS) experiments** within\nNOMAD. It is similar to the entries search, but with a\nreduced filter set and specialized arrangement of\ndefault columns.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -1115,13 +1095,9 @@ window.nomadEnv = {
           "label": "Solar Cells",
           "path": "solarcells",
           "resource": "entries",
-          "breadcrumb": "Solar Cells",
           "category": "Use Cases",
           "description": "Search solar cells",
-          "help": {
-            "title": "Solar cells",
-            "content": "This page allows you to search **solar cell data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for solar cell\nexploration. The dashboard directly shows useful\ninteractive statistics about the data."
-          },
+          "readme": "This page allows you to search **solar cell data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for solar cell\nexploration. The dashboard directly shows useful\ninteractive statistics about the data.",
           "pagination": {
             "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
             "order": "desc",
@@ -1773,13 +1749,9 @@ window.nomadEnv = {
           "label": "Heterogeneous Catalysis",
           "path": "heterogeneouscatalyst",
           "resource": "entries",
-          "breadcrumb": "Heterogeneous Catalysis",
           "category": "Use Cases",
           "description": "Search heterogeneous catalysts",
-          "help": {
-            "title": "Heterogeneous Catalysis",
-            "content": "This page allows you to search **catalyst and catalysis data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for Heterogeneous Catalyst\nexploration. The dashboard directly shows useful\ninteractive statistics about the data."
-          },
+          "readme": "This page allows you to search **catalyst and catalysis data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for Heterogeneous Catalyst\nexploration. The dashboard directly shows useful\ninteractive statistics about the data.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "asc",

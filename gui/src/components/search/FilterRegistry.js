@@ -15,14 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { setToArray, DType, getSuggestions } from '../../utils'
-import { searchQuantities } from '../../config'
+
+import React, { useEffect, useState, useMemo } from 'react'
+import PropTypes from 'prop-types'
+import { useGlobalMetainfo, traverseDefinition } from '../archive/metainfo'
+import { setToArray, DType, getSuggestions, getOptions, getDatatype, glob, parseQuantityName } from '../../utils'
+import { searchQuantities, schemaSeparator, dtypeSeparator, yamlSchemaPrefix } from '../../config'
 import { Filter, getEnumOptions } from './Filter'
 import elementData from '../../elementData'
+import { Typography, Box } from '@material-ui/core'
+import { useErrors } from '../errors'
 
 // Containers for filter information
-export const filterGroups = [] // Mapping from a group name -> set of filter names
-export const filterData = {} // Stores data for each registered filter
+export const defaultFilterGroups = {} // Mapping from a group name -> set of filter names
+export const defaultFilterData = {} // Stores data for each registered filter
 
 // Ids for the filter menus: used to tie filter chips to a specific menu.
 const idElements = 'elements'
@@ -50,6 +56,20 @@ const idMetadata = 'metadata'
 const idOptimade = 'optimade'
 
 /**
+ * Associates the given quantity name with the given group name in the filter
+ * group data.
+ *
+ * @param {object} groups The groups to work on.
+ * @param {str} groupName
+ * @param {str} quantityName
+ */
+function addToGroup(groups, groupName, quantityName) {
+  groups[groupName]
+    ? groups[groupName].add(quantityName)
+    : groups[groupName] = new Set([quantityName])
+}
+
+/**
  * This function is used to register a new filter within the SearchContext.
  * Filters are entities that can be searched through the filter panel and the
  * search bar, and can be encoded in the URL. Notice that a filter in this
@@ -72,15 +92,13 @@ const idOptimade = 'optimade'
  */
 function saveFilter(name, group, config, parent) {
   if (group) {
-    filterGroups[group]
-      ? filterGroups[group].add(name)
-      : filterGroups[group] = new Set([name])
+    addToGroup(defaultFilterGroups, group, name)
   }
   const def = searchQuantities[name]
-  const newConf = {...(config || {})}
-  newConf.name = name
-  const data = filterData[name] || new Filter(def, newConf, parent)
-  filterData[name] = data
+  const {path: quantity, schema} = parseQuantityName(name)
+  const newConf = {...(config || {}), quantity, schema, name: config?.name || def?.name || name}
+  const data = defaultFilterData[name] || new Filter(def, newConf, parent)
+  defaultFilterData[name] = data
   return data
 }
 
@@ -465,7 +483,6 @@ registerFilter(
   idCatalyst,
   nestedQuantity,
   [
-    {name: 'name', ...termQuantityAllNonExclusive},
     {name: 'reaction_rate', ...numberHistogramQuantity, scale: 'linear'}
   ]
 )
@@ -655,7 +672,7 @@ registerFilterOptions(
  * value. Also provides suggestions for quantity names.
  */
 export const quantityNameSearch = 'quantity name'
-export function getStaticSuggestions(quantities) {
+export function getStaticSuggestions(quantities, filterData) {
   const suggestions = {}
   const filters = quantities
     ? [...quantities]
@@ -687,4 +704,105 @@ export function getStaticSuggestions(quantities) {
     )
   }
   return suggestions
+}
+
+/**
+ * HOC that is used to preload search filters from all required schemas. This
+ * simplifies the rendering logic by first loading all schemas before rendering
+ * any components that rely on them.
+ */
+export const withFilters = (WrappedComponent) => {
+  const WithFilters = ({initialSchemas, initialFilters, ...rest}) => {
+    // Here we load the python schemas, and determine which YAML schemas to download
+    const [yamlSchemas, initialFilterData, initialFilterGroups] = useMemo(() => {
+      const yamlSchemas = getOptions(initialSchemas)
+        .filter((name) => name.startsWith(yamlSchemaPrefix))
+      const pythonFilterData = {}
+      const mergedFilterGroups = {...defaultFilterGroups}
+      for (const [name, def] of Object.entries(searchQuantities)) {
+        if (def.dynamic && glob(def.schema, initialSchemas?.include, initialSchemas?.exclude)) {
+          const {path, schema} = parseQuantityName(name)
+          pythonFilterData[name] = new Filter(def, {name: path, quantity: path, schema})
+          addToGroup(mergedFilterGroups, idCustomQuantities, name)
+        }
+      }
+
+      return [
+        yamlSchemas,
+        {...defaultFilterData, ...pythonFilterData},
+        mergedFilterGroups
+      ]
+    }, [initialSchemas])
+    const metainfo = useGlobalMetainfo()
+    const { raiseError } = useErrors()
+    const [loading, setLoading] = useState(yamlSchemas.length)
+    const [filters, setFilters] = useState({...initialFilters, options: initialFilterData})
+    const [filterGroups, setFilterGroups] = useState(initialFilterGroups)
+
+    // YAML schemas are loaded here asynchronously
+    useEffect(() => {
+      if (!yamlSchemas.length || !metainfo) return
+      async function fetchSchemas(options) {
+        const yamlFilters = {}
+        const yamlFilterGroups = {}
+        for (const schemaPath of options) {
+          let schemaDefinition
+          try {
+            schemaDefinition = await metainfo.resolveDefinition(schemaPath)
+          } catch (e) {
+            raiseError(`Unable to load the schema ${schemaPath} defined for this app. Please check that the path is correct and you have access to it.`)
+            throw e
+          }
+          traverseDefinition(schemaDefinition, 'data', (def, path) => {
+            if (def.m_def !== 'nomad.metainfo.metainfo.Quantity') return
+            let dtype = getDatatype(def)
+            dtype = {
+              [DType.Int]: 'int',
+              [DType.Float]: 'float',
+              [DType.Timestamp]: 'datetime',
+              [DType.String]: 'str',
+              [DType.Enum]: 'str',
+              [DType.Boolean]: 'bool'
+            }[dtype]
+            if (!dtype) {
+              throw Error(`Unable to load the data type for ${path}.`)
+            }
+            const filterPath = `${path}${schemaSeparator}${schemaPath}`
+            const apiPath = `${filterPath}${dtypeSeparator}${dtype}`
+            const {path: quantity, schema} = parseQuantityName(filterPath)
+            yamlFilters[filterPath] = new Filter(def, {name: path, schema, quantity, requestQuantity: apiPath})
+            addToGroup(yamlFilterGroups, idCustomQuantities, filterPath)
+          })
+        }
+        setFilters((old) => {
+          return {...old, options: {...old.options, ...yamlFilters}}
+        })
+        setFilterGroups((old) => {
+          const newGroups = {...old}
+          for (const [groupName, names] of Object.entries(yamlFilterGroups)) {
+            for (const quantityName of [...names]) {
+              addToGroup(newGroups, groupName, quantityName)
+            }
+          }
+          return newGroups
+        })
+        setLoading(false)
+      }
+      fetchSchemas(yamlSchemas)
+    }, [yamlSchemas, metainfo, raiseError])
+
+    return loading
+      ? <Box margin={1}>
+          <Typography>Loading the required schemas...</Typography>
+        </Box>
+      : <WrappedComponent {...rest} initialFilters={filters} initialFilterGroups={filterGroups}/>
+  }
+
+  WithFilters.displayName = `withFilter(${WrappedComponent.displayName || WrappedComponent.name})`
+  WithFilters.propTypes = {
+    initialSchemas: PropTypes.object, // Determines which schemas are available
+    initialFilters: PropTypes.object // Determines which filters are available
+  }
+
+  return WithFilters
 }

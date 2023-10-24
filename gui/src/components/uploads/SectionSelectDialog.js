@@ -30,7 +30,7 @@ import {useApi} from '../api'
 import {useUploadPageContext} from './UploadPageContext'
 import {useEntryStore} from '../entry/EntryContext'
 import {traverse, useGlobalMetainfo} from '../archive/metainfo'
-import { filterGroups, quantityNameSearch } from '../search/FilterRegistry'
+import { defaultFilterGroups, quantityNameSearch } from '../search/FilterRegistry'
 import SearchResults from '../search/SearchResults'
 import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
@@ -41,9 +41,9 @@ import {getItemLabelKey} from '../archive/ArchiveBrowser'
 const searchDialogContext = React.createContext()
 const context = cloneDeep(ui?.apps?.options?.entries)
 
-const allFilters = new Set(filterGroups && (Object.keys(context?.filter_menus?.options))
+const allFilters = new Set(defaultFilterGroups && (Object.keys(context?.filter_menus?.options))
   .map(filter => {
-    const group = filterGroups?.[filter]
+    const group = defaultFilterGroups?.[filter]
     return group ? Array.from(group) : []
   }).flat())
 
@@ -405,6 +405,7 @@ function SectionSelectDialog(props) {
 
   return <SearchContext
     resource={context?.resource}
+    initialSchemas={context?.schemas}
     initialPagination={context?.pagination}
     initialColumns={columns}
     initialRows={rows}

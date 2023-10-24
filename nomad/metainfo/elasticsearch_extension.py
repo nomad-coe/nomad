@@ -156,17 +156,28 @@ sub-sections as if they were direct sub-sections.
 .. autoclass:: Index
 '''
 
-
-from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple, DefaultDict
+import math
+from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple, Optional, DefaultDict
 from collections import defaultdict
 import numpy as np
+from pint import Quantity as PintQuantity
 import re
+from elasticsearch_dsl import Q
 
 from nomad import config, utils
+from nomad.metainfo.util import MTypes
 
 from .metainfo import (
     MSectionBound, Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
-    Definition, QuantityReference, Unit)
+    Definition, QuantityReference, Unit, Package)
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nomad.datamodel.datamodel import SearchableQuantity, EntryArchive
+
+schema_separator = '#'
+dtype_separator = '#'
+yaml_prefix = 'entry_id:'
 
 
 class DocumentType():
@@ -332,7 +343,8 @@ class DocumentType():
             for elasticsearch_annotation in elasticsearch_annotations:
                 if self != entry_type and elasticsearch_annotation.doc_type != self:
                     continue
-
+                if elasticsearch_annotation.dynamic:
+                    continue
                 if prefix is None:
                     qualified_name = quantity_def.name
                 else:
@@ -357,7 +369,6 @@ class DocumentType():
                     fields = elasticsearch_annotation.fields
                     if len(fields) > 0:
                         mapping.setdefault('fields', {}).update(**fields)
-
                     else:
                         mapping.update(**elasticsearch_annotation.mapping)
 
@@ -400,15 +411,75 @@ class DocumentType():
                 if nested and qualified_name not in self.nested_object_keys:
                     self.nested_object_keys.append(qualified_name)
 
-                    search_quantity = SearchQuantity(annotation=annotation, doc_type=self, prefix=prefix)
+                    search_quantity = SearchQuantity(annotation=annotation, prefix=prefix)
                     self.nested_sections.append(search_quantity)
                     self.nested_object_keys.sort(key=lambda item: len(item))
 
         self.mapping = dict(properties=mappings)
+
+        # Register all dynamic quantities
+        self.reload_quantities_dynamic()
+
         return self.mapping
 
+    def reload_quantities_dynamic(self) -> None:
+        '''Reloads the dynamically mapped quantities from the plugin schemas.
+        '''
+        from nomad.datamodel.data import EntryData
+
+        if self != entry_type:
+            return None
+
+        logger = utils.get_logger(__name__, doc_type=self.name)
+
+        # Remove existing dynamic quantities
+        for name, quantity in list(self.quantities.items()):
+            if quantity.dynamic:
+                del self.quantities[name]
+
+        # Gather the list of enabled schema plugins. Raise error if duplicate
+        # package name is encountered.
+        packages = set()
+        for plugin in config.plugins.filtered_values():
+            if plugin.plugin_type == 'schema':
+                if plugin.python_package in packages:
+                    raise ValueError(
+                        f'Your plugin configuration contains two packages with the same name: {plugin.python_package}.'
+                    )
+                packages.add(plugin.python_package)
+
+        # Import all quantities from the EntryData models found from plugin
+        # packages
+        def get_all_quantities(m_def, prefix=None):
+            for quantity_name, quantity in m_def.all_quantities.items():
+                quantity_name = f'{prefix}.{quantity_name}' if prefix else quantity_name
+                yield quantity, quantity_name
+            for sub_section_def in m_def.all_sub_sections.values():
+                name = sub_section_def.name
+                full_name = f'{prefix}.{name}' if prefix else name
+                for item in get_all_quantities(sub_section_def.sub_section, full_name):
+                    yield item
+
+        quantities_dynamic = {}
+        for name, package in Package.registry.items():
+            if not name:
+                logger.warning(f'no name defined for package {package}, could not load dynamic quantities')
+                continue
+            package_name = name.split('.')[0]
+            if package_name in packages:
+                for section in package.section_definitions:
+                    if isinstance(section, Section) and issubclass(section.section_cls, EntryData):
+                        schema_name = section.qualified_name()
+                        for quantity_def, path in get_all_quantities(section):
+                            full_name = f'data.{path}{schema_separator}{schema_name}'
+                            quantities_dynamic[full_name] = SearchQuantity(
+                                Elasticsearch(self, definition=quantity_def, dynamic=True),
+                                qualified_name=full_name
+                            )
+        self.quantities.update(quantities_dynamic)
+
     def _register(self, annotation, prefix):
-        search_quantity = SearchQuantity(annotation=annotation, doc_type=self, prefix=prefix)
+        search_quantity = SearchQuantity(annotation=annotation, prefix=prefix)
         name = search_quantity.qualified_name
 
         assert name not in self.quantities or self.quantities[name] == search_quantity, \
@@ -623,10 +694,13 @@ class Elasticsearch(DefinitionAnnotation):
             value is indexed.
         es_query: The Elasticsearch query type that is used when querying for the annotated
             quantity, e.g. match, term, match_phrase. Default is 'match'.
+        dynamic: Whether this quantity should be stored inside a shared flat nested
+            field in ES instead of being assigned it's own mapping.
 
     Attributes:
         name:
             The name of the quantity (plus additional field if set).
+        definition: The metainfo definition associated with this annotation.
         search_quantity: The entry type SearchQuantity associated with this annotation.
     '''
     def __init__(
@@ -644,10 +718,12 @@ class Elasticsearch(DefinitionAnnotation):
             auto_include_subsections: bool = False,
             nested: bool = False,
             suggestion: Union[str, Callable[[MSectionBound], Any]] = None,
-            variants: Union[Callable[[str], List[str]]] = None,
+            variants: Optional[Callable[[str], List[str]]] = None,
             normalizer: Callable[[Any], Any] = None,
             es_query: str = 'match',
-            _es_field: str = None):
+            _es_field: str = None,
+            definition: Definition = None,
+            dynamic: bool = False):
 
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
         # for v0 compatibility
@@ -687,17 +763,16 @@ class Elasticsearch(DefinitionAnnotation):
         self.value = value
         self.index = index
         self._mapping: Dict[str, Any] = None
-
         self.default_aggregation_size = default_aggregation_size
         self.values = values
         self.metrics = metrics
         self.many_all = many_all
-
         self.auto_include_subsections = auto_include_subsections
         self.nested = nested
         self.suggestion = suggestion
-
         self.search_quantity = None
+        self.definition = definition
+        self.dynamic = dynamic
 
     @property
     def values(self):
@@ -734,6 +809,22 @@ class Elasticsearch(DefinitionAnnotation):
             return self._mapping
 
         def compute_mapping(quantity: Quantity) -> Dict[str, Any]:
+            '''Used to generate an ES mapping based on the quantity definition if
+            no custom mapping is provided.
+            '''
+            if self.dynamic:
+                if quantity.type in MTypes.bool:
+                    return dict(type='boolean')
+                elif quantity.type in MTypes.str or isinstance(quantity.type, MEnum):
+                    return dict(type='text')
+                elif quantity.type == Datetime:
+                    return dict(type='date')
+                elif quantity.type in MTypes.int:
+                    return dict(type='long')
+                elif quantity.type in MTypes.float:
+                    return dict(type='double')
+                raise NotImplementedError(
+                    'Quantity type %s for dynamic quantity %s is not supported.' % (quantity.type, quantity))
             if quantity.type == str:
                 return dict(type='keyword')
             elif quantity.type in [float, np.float64]:
@@ -797,6 +888,16 @@ class Elasticsearch(DefinitionAnnotation):
 
         return f'Elasticsearch({self.definition})'
 
+    @property
+    def aggregatable(self):
+        if isinstance(self.definition.type, Reference):
+            return False
+
+        field_type = self.mapping['type']
+        if self.dynamic and field_type == 'text':
+            return True
+        return field_type == 'keyword' or field_type == 'boolean'
+
     def m_to_dict(self):
         if self.search_quantity:
             return self.search_quantity.qualified_name
@@ -811,11 +912,6 @@ class SearchQuantity():
     an archive (an search index document). A search quantity is uniquely identified by
     a qualified name that pin points its place in the sub-section hierarchy.
 
-    Arguments:
-        annotation: The elasticsearch annotation that this search quantity is based on.
-        doc_type: The elasticsearch document type that this search quantity appears in.
-        prefix: The prefix to build the full qualified name for this search quantity.
-
     Attributes:
         qualified_field:
             The full qualified name of the resulting elasticsearch field in the entry
@@ -828,15 +924,17 @@ class SearchQuantity():
             Same name as qualified_field. This will be used to address the search
             property in our APIs.
         definition: The metainfo quantity definition that this search quantity is based on
-        aggregatable:
-            A boolean that determines, if this quantity can be used in aggregations.
     '''
-    def __init__(self, annotation: Elasticsearch, doc_type: DocumentType, prefix: str):
+    def __init__(self, annotation: Elasticsearch, prefix: str = None, qualified_name: str = None):
+        '''
+        Args:
+            annotation: The elasticsearch annotation that this search quantity is based on.
+            doc_type: The elasticsearch document type that this search quantity appears in.
+            prefix: The prefix to build the full qualified name for this search quantity.
+        '''
         self.annotation = annotation
-        self.doc_type = DocumentType
 
         qualified_field = self.annotation.definition.name
-
         if prefix is not None:
             qualified_field = f'{prefix}.{qualified_field}'
 
@@ -853,17 +951,61 @@ class SearchQuantity():
         self.qualified_field = qualified_field
         self.qualified_name = qualified_field
 
+        if annotation.dynamic:
+            self.qualified_name = qualified_name
+            self.search_field = self.get_dynamic_path()
+            self.dynamic_filter = self.get_dynamic_filter()
+
+    def get_dynamic_path(self):
+        '''Returns the dynamic field name for this quantity.
+        '''
+        mapping = self.annotation.mapping['type']
+        field_name = get_searchable_quantity_value_field(self.annotation, aggregation=True)
+        if field_name is None:
+            raise ValueError(
+                f'quantity "{self.annotation.qualified_name}" has unsupported search index mapping "{mapping}".',
+                loc=['aggregation', 'quantity']
+            )
+        return f'search_quantities.{field_name}'
+
+    def get_dynamic_filter(self):
+        '''Returns a filter for this quantity.
+        '''
+        if self.dynamic:
+            path, schema_name = self.qualified_name.split(schema_separator, 1)
+            searchable_quantity = create_searchable_quantity(self.definition, path, schema_name=schema_name)
+            filter_path = Q('term', search_quantities__id=searchable_quantity.id)
+
+            return filter_path
+
+    def get_query(self, value: Any):
+        '''Returns an ES query for this quantity, the query type depends on the
+        annotation. Also normalizes the value.
+        '''
+        normalizer = self.annotation.normalizer
+        if normalizer:
+            value = normalizer(value)
+
+        sub_query = Q(self.annotation.es_query, **{self.search_field: value})
+        return self.wrap_dynamic(sub_query)
+
+    def get_range_query(self, value: Any):
+        '''Returns an ES range query for this quantity.
+        '''
+        sub_query = Q('range', **{self.search_field: value.dict(exclude_unset=True)})
+        return self.wrap_dynamic(sub_query)
+
+    def wrap_dynamic(self, sub_query: Q):
+        '''For dynamic quantities, wraps the given query in a nested query to
+        target them correctly.
+        '''
+        if self.dynamic:
+            return Q('nested', path='search_quantities', query=self.dynamic_filter & sub_query)
+        return sub_query
+
     @property
     def definition(self):
         return self.annotation.definition
-
-    @property
-    def aggregatable(self):
-        if isinstance(self.definition.type, Reference):
-            return False
-
-        field_type = self.annotation.mapping['type']
-        return field_type == 'keyword' or field_type == 'boolean'
 
     def __repr__(self):
         if self.definition is None:
@@ -1208,3 +1350,108 @@ def update_materials(entries: List, refresh: bool = False):
     if refresh:
         entry_index.refresh()
         material_index.refresh()
+
+
+def get_searchable_quantity_value_field(annotation: Elasticsearch, aggregation: bool = False):
+    '''Get the target field for based on the annotation and whether the field
+    should be used in aggregation or not.
+
+    Args:
+        annotation: Annotation of the targeted field.
+        aggregation: Whether the field is used for aggregation or not.
+    '''
+    mapping = annotation.mapping['type']
+    if mapping == 'boolean':
+        return 'bool_value'
+    elif mapping == 'text':
+        if aggregation:
+            return 'str_value.keyword'
+        return 'str_value'
+    elif mapping == 'date':
+        return 'datetime_value'
+    elif mapping == 'text':
+        return 'str_value'
+    elif mapping == 'long':
+        return 'int_value'
+    elif mapping == 'double':
+        return 'float_value'
+
+    return None
+
+
+def create_searchable_quantity(
+    quantity_def: Quantity,
+    quantity_path: Quantity,
+    section: MSection = None,
+    path_archive: str = None,
+    schema_name: str = None,
+    archive: 'EntryArchive' = None
+) -> Optional['SearchableQuantity']:
+    '''Transforms a quantity definition into a SearchQuantity.
+    '''
+    from nomad.datamodel.datamodel import SearchableQuantity
+
+    if quantity_def.shape != [] or not schema_name:
+        return None
+
+    try:
+        annotation = Elasticsearch(definition=quantity_def, dynamic=True)
+        mapping = annotation.mapping['type']
+    except NotImplementedError:
+        return None
+
+    searchable_quantity = SearchableQuantity(
+        id=f'{quantity_path}{schema_separator}{schema_name}' if schema_name else quantity_path,
+        path_archive=path_archive,
+        definition=quantity_def.qualified_name()
+    )
+
+    # If a section is given, also store the value
+    if section is not None:
+        logger = utils.get_logger(__name__)
+        value = section.m_get(quantity_def)
+        if value is None:
+            return None
+        try:
+            value_field_name = get_searchable_quantity_value_field(annotation)
+            if value_field_name is None:
+                return None
+            if mapping == 'text':
+                value = str(value)
+            elif mapping == 'date':
+                value = Datetime.serialize(section, quantity_def, value)
+            elif mapping == 'long':
+                value = int(value)
+            elif mapping == 'boolean':
+                value = bool(value)
+            elif mapping == 'double':
+                if isinstance(value, PintQuantity):
+                    value = float(value.m)
+                else:
+                    value = float(value)
+                if math.isnan(value):
+                    logger.warn('skipped indexing NaN value', path_archive=path_archive)
+                    return None
+            setattr(searchable_quantity, value_field_name, value)
+        except Exception as e:
+            logger.error('error in indexing dynamic quantity', path_archive=path_archive, exc_info=e)
+            return None
+
+    return searchable_quantity
+
+
+def parse_quantity_name(name: str) -> Tuple[str, Optional[str], Optional[str]]:
+    dtype = None
+    schema = None
+    parts = name.split(schema_separator, 1)
+    if len(parts) == 2:
+        path, schema = parts
+    else:
+        path = parts[0]
+    if schema:
+        parts = schema.split(dtype_separator, 1)
+        if len(parts) == 2:
+            schema, dtype = parts
+        else:
+            schema = parts[0]
+    return path, schema, dtype

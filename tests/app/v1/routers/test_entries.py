@@ -22,19 +22,19 @@ import zipfile
 import io
 import json
 
-from nomad.datamodel import results
-from nomad.metainfo.elasticsearch_extension import entry_type
+from nomad.metainfo.elasticsearch_extension import entry_type, schema_separator
 from nomad.utils.exampledata import ExampleData
 
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
+from tests.config import python_schema_name
 
 from .common import (
-    aggregation_exclude_from_search_test_parameters, assert_response, assert_base_metadata_response,
+    aggregation_exclude_from_search_test_parameters, assert_response, assert_base_metadata_response, assert_query_response,
     assert_metadata_response, assert_required, assert_aggregations, assert_pagination, assert_browser_download_headers,
-    perform_metadata_test, post_query_test_parameters, get_query_test_parameters,
-    perform_owner_test, owner_test_parameters, pagination_test_parameters,
-    aggregation_test_parameters)
-from tests.conftest import example_data  # pylint: disable=unused-import
+    post_query_test_parameters, get_query_test_parameters,
+    perform_owner_test, owner_test_parameters, pagination_test_parameters, aggregation_test_parameters,
+    aggregation_test_parameters_default, assert_aggregation_response, perform_entries_metadata_test)
+from tests.conftest import example_data, example_data_schema_python  # pylint: disable=unused-import
 
 '''
 These are the tests for all API operations below ``entries``. The tests are organized
@@ -45,11 +45,6 @@ supporting queries, pagination, or the owner parameter. The test methods will us
 ``perform_*_test`` methods as an parameter. Similarely, the ``assert_*`` methods allow
 to assert for certain aspects in the responses.
 '''
-
-
-def perform_entries_metadata_test(*args, **kwargs):
-    kwargs.update(endpoint='entries')
-    return perform_metadata_test(*args, **kwargs)
 
 
 def perform_entries_raw_test(
@@ -317,7 +312,6 @@ def assert_archive(archive, required=None):
         assert key in archive
 
 
-n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
 program_name = 'results.method.simulation.program_name'
 
 
@@ -328,7 +322,7 @@ def test_entries_all_metrics(client, example_data):
                 'quantity': quantity, 'metrics': [metric for metric in entry_type.metrics]
             }
         }
-        for quantity in entry_type.quantities if entry_type.quantities[quantity].aggregatable}
+        for quantity in entry_type.quantities if entry_type.quantities[quantity].annotation.aggregatable}
     response_json = perform_entries_metadata_test(
         client, aggregations=aggregations, status_code=200, http_method='post')
     for name, agg in aggregations.items():
@@ -337,44 +331,33 @@ def test_entries_all_metrics(client, example_data):
 
 @pytest.mark.parametrize(
     'aggregation, total, size, status_code, user',
-    aggregation_test_parameters(entity_id='entry_id', resource='entries', total=23) + [
-        pytest.param(
-            {
-                'terms': {
-                    'quantity': 'upload_id',
-                    'entries': {
-                        'size': 10,
-                        'required': {'exclude': ['files', 'mainfile*']}
-                    }
-                }
-            },
-            8, 8, 200, 'test_user', id='entries-exclude'),
-        pytest.param(
-            {'terms': {'quantity': 'entry_id', 'include': '_0'}},
-            9, 9, 200, None, id='filter'),
-        pytest.param(
-            {'terms': {'quantity': 'entry_id', 'include': '.*_0.*'}},
-            -1, -1, 422, None, id='bad-filter')
-    ])
+    aggregation_test_parameters_default('entries'))
 def test_entries_aggregations(client, example_data, test_user_auth, aggregation, total, size, status_code, user):
-    headers = {}
-    if user == 'test_user':
-        headers = test_user_auth
+    '''Tests aggregation calls for regular statically mapped quantities.'''
+    assert_aggregation_response(client, test_user_auth, aggregation, total, size, status_code, user, resource='entries')
 
-    aggregations = {'test_agg_name': aggregation}
 
-    response_json = perform_entries_metadata_test(
-        client, headers=headers, owner='visible', aggregations=aggregations,
-        pagination=dict(page_size=0),
-        status_code=status_code, http_method='post')
-
-    if response_json is None:
-        return
-
-    for aggregation_obj in aggregation.values():
-        assert_aggregations(
-            response_json, 'test_agg_name', aggregation_obj, total=total, size=size,
-            default_key='entry_id')
+@pytest.mark.parametrize(
+    'aggregation, total, size, status_code, user',
+    aggregation_test_parameters(
+        str={'name': f'data.name{schema_separator}{python_schema_name}', 'total': 15, 'size': 10},
+        empty={'name': f'data.empty{schema_separator}{python_schema_name}'},
+        enum={'name': f'data.message{schema_separator}{python_schema_name}', 'total': 2, 'size': 2},
+        bool={'name': f'data.valid{schema_separator}{python_schema_name}', 'total': 2, 'size': 2},
+        int={'name': f'data.count{schema_separator}{python_schema_name}'},
+        pagination={'name': f'data.name{schema_separator}{python_schema_name}', 'total': 15, 'size': 10, 'page_after_value': 'test5', 'page_after_value_tiebreaker': 'Sheldon Cooper:test5', 'page_after_value_size': 4},
+        pagination_order_by=None,
+        histogram_int={'name': f'data.count{schema_separator}{python_schema_name}', 'interval': 1, 'buckets': 10, 'interval_size': 15, 'bucket_size': 8},
+        histogram_date={'name': f'data.timestamp{schema_separator}{python_schema_name}', 'interval': '1s', 'interval_size': 1, 'default_size': 1},
+        include={'name': f'data.name{schema_separator}{python_schema_name}', 'include': 'test5', 'total': 1, 'size': 1},
+        metrics={'name': f'data.name{schema_separator}{python_schema_name}', 'total': 15, 'size': 10},
+        fixed=None,
+    ))
+def test_entries_aggregations_dynamic(plugin_schema, client, example_data_schema_python, test_user_auth, aggregation, total, size, status_code, user):
+    '''Tests aggregation calls for dynamically mapped quantities (quantities stored in
+    search_quantities).
+    '''
+    assert_aggregation_response(client, test_user_auth, aggregation, total, size, status_code, user, resource='entries')
 
 
 @pytest.mark.parametrize(
@@ -731,38 +714,40 @@ def test_entries_post_query(client, example_data, query, status_code, total, tes
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-@pytest.mark.parametrize('query, status_code, total', get_query_test_parameters(
-    'entry_id', total=23, material_prefix='results.material.', entry_prefix='') + [
-        pytest.param({'q': 'domain__dft'}, 200, 23, id='enum')])
+@pytest.mark.parametrize(
+    'query, status_code, total',
+    get_query_test_parameters(
+        str={'name': 'entry_id', 'values': ['id_01', 'id_02'], 'total': 1, 'total_any': 2, 'total_all': 0, 'total_gt': 22},
+        int={'name': 'results.material.n_elements', 'values': [2, 1], 'total': 23, 'total_any': 23, 'total_all': 0, 'total_gt': 0},
+        date={'name': 'upload_create_time', 'total': 23},
+        subsection={'name': 'results.material.material_id', 'values': ['id_01'], 'total': 3},
+        total=23
+    ) + [pytest.param({'q': 'domain__dft'}, 200, 23, id='enum')]
+)
 @pytest.mark.parametrize('test_method', [
     pytest.param(perform_entries_metadata_test, id='metadata'),
     pytest.param(perform_entries_raw_test, id='raw'),
     pytest.param(perform_entries_rawdir_test, id='rawdir'),
     pytest.param(perform_entries_archive_test, id='archive'),
-    pytest.param(perform_entries_archive_download_test, id='archive-download')])
+    pytest.param(perform_entries_archive_download_test, id='archive-download')
+])
 def test_entries_get_query(client, example_data, query, status_code, total, test_method):
-    response_json = test_method(
-        client, query=query, status_code=status_code, total=total, http_method='get')
+    assert_query_response(client, test_method, query, total, status_code)
 
-    if response_json is None:
-        return
 
-    if 'pagination' not in response_json:
-        return
-
-    response = client.get('entries?%s' % urlencode(query, doseq=True))
-
-    response_json = assert_metadata_response(response, status_code=status_code)
-
-    if response_json is None:
-        return
-
-    pagination = response_json['pagination']
-    assert pagination['total'] == total
-    assert pagination['page_size'] == 10
-    assert pagination['order_by'] == 'entry_id'
-    assert pagination['order'] == 'asc'
-    assert ('next_page_after_value' in pagination) == (total > 10)
+@pytest.mark.parametrize(
+    'query, status_code, total',
+    get_query_test_parameters(
+        str={'name': f'data.name{schema_separator}{python_schema_name}', 'values': ['test1', 'test2'], 'total': 1, 'total_any': 2, 'total_all': 0, 'total_gt': 13},
+        int={'name': f'data.count{schema_separator}{python_schema_name}', 'values': [1, 2], 'total': 1, 'total_any': 2, 'total_all': 0, 'total_gt': 13},
+        date={'name': f'data.timestamp{schema_separator}{python_schema_name}', 'total': 15},
+        subsection={'name': f'data.child.name{schema_separator}{python_schema_name}', 'values': ['test_child1'], 'total': 1},
+        total=38  # Note that this includes also the data coming from the fixture 'example_data' which has a bigger scope
+    )
+)
+@pytest.mark.parametrize('test_method', [pytest.param(perform_entries_metadata_test, id='metadata')])
+def test_entries_get_query_dynamic(plugin_schema, client, example_data_schema_python, query, status_code, total, test_method):
+    assert_query_response(client, test_method, query, total, status_code)
 
 
 @pytest.mark.parametrize(

@@ -98,7 +98,6 @@ const FilterSummary = React.memo(({
       newChips.push({comp: item, op})
     } else if (isArray || isSet) {
       filterValue.forEach((value, index) => {
-        console.log(value)
         const displayValue = serializer(value, units)
         const item = <FilterChip
           locked={locked}

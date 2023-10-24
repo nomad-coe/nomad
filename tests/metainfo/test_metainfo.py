@@ -855,6 +855,36 @@ class TestM1:
                 system = root.m_setdefault(path)
             assert exception in str(exc_info.value)
 
+    def test_m_traverse(self):
+        expected = [
+            ['quantity'],
+            ['child', 'quantity'],
+            ['child'],
+            ['child_repeated', 0, 'quantity'],
+            ['child_repeated'],
+            ['child_repeated', 1, 'quantity'],
+            ['child_repeated'],
+        ]
+
+        class Child(MSection):
+            quantity = Quantity(type=int)
+
+        class ChildRepeated(MSection):
+            quantity = Quantity(type=int)
+
+        class Parent(MSection):
+            quantity = Quantity(type=int)
+            child = SubSection(sub_section=Child)
+            child_repeated = SubSection(sub_section=ChildRepeated, repeats=True)
+
+        section = Parent(
+            quantity=1,
+            child=Child(quantity=2),
+            child_repeated=[ChildRepeated(quantity=3), ChildRepeated(quantity=4)]
+        )
+        for i, [_, _, _, path] in enumerate(section.m_traverse()):
+            assert path == expected[i]
+
 
 class TestEnvironment:
 

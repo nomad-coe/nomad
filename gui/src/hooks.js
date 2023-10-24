@@ -77,6 +77,7 @@ export function useBoolState(initialValue) {
  *   suggestions for quantity names.
  * @param {str} input Text input used for the suggestions. Must be non-empty in
  * order to fetch any suggestions.
+ * @param {object} filterData Contains the available filters
  * @param {number} minLength Minimum input length before any dynamic
  *   suggestions are fetched through the API.
  * @param {number} suggestionsStatic An object containing any fixed suggestion
@@ -87,12 +88,12 @@ export function useBoolState(initialValue) {
  * @return {object} Array of suggestions containing the suggested value and the
  * quantity name.
  */
-export function useSuggestions(quantitiesSuggest, quantitiesAll, input, minLength = 2, debounceTime = 150) {
+export function useSuggestions(quantitiesSuggest, quantitiesAll, input, filterData, minLength = 2, debounceTime = 150) {
   const {api} = useApi()
   const [loading, setLoading] = useState(false)
   const [suggestions, setSuggestions] = useState([])
   const currentRequest = useRef()
-  const staticSuggestions = useMemo(() => getStaticSuggestions(quantitiesAll), [quantitiesAll])
+  const staticSuggestions = useMemo(() => getStaticSuggestions(quantitiesAll, filterData), [quantitiesAll, filterData])
 
   // Used to retrieve suggestions for this field.
   const fetchSuggestions = useCallback((quantities, input) => {
@@ -116,7 +117,7 @@ export function useSuggestions(quantitiesSuggest, quantitiesAll, input, minLengt
     for (const quantity of quantities) {
       if (quantity.name in staticSuggestions) {
         quantitiesFixed.push(quantity)
-      } else {
+      } else if (filterData[quantity.name].suggestion) {
         quantitiesDynamic.push(quantity)
       }
     }
@@ -130,7 +131,7 @@ export function useSuggestions(quantitiesSuggest, quantitiesAll, input, minLengt
     }
 
     // Start loading the dynamic suggestions
-    if (input.length >= minLength) {
+    if (input.length >= minLength && quantitiesDynamic.length > 0) {
       const promise = api.suggestions(quantitiesDynamic, input)
       currentRequest.current = promise
       promise
@@ -161,7 +162,7 @@ export function useSuggestions(quantitiesSuggest, quantitiesAll, input, minLengt
       setSuggestions(flatten(suggestionsTemp))
       setLoading(false)
     }
-  }, [api, minLength, staticSuggestions])
+  }, [api, minLength, staticSuggestions, filterData])
 
   // Debounced version. Notice that we specify a maxWait option in order to keep
   // on suggesting while the user is typing.

@@ -7,7 +7,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "upload_name": {
       "name": "upload_name",
@@ -17,6 +18,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "upload_create_time": {
@@ -26,7 +28,8 @@ window.nomadArtifacts = {
         "type_kind": "custom",
         "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "entry_id": {
       "name": "entry_id",
@@ -35,7 +38,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_name": {
       "name": "entry_name",
@@ -45,6 +49,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "entry_name.prefix": {
@@ -54,7 +59,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "entry_type": {
       "name": "entry_type",
@@ -63,7 +69,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "calc_id": {
       "name": "calc_id",
@@ -72,7 +79,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_create_time": {
       "name": "entry_create_time",
@@ -81,7 +89,8 @@ window.nomadArtifacts = {
         "type_kind": "custom",
         "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "parser_name": {
       "name": "parser_name",
@@ -90,7 +99,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "mainfile": {
       "name": "mainfile",
@@ -100,6 +110,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "mainfile.path": {
@@ -109,7 +120,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "mainfile_key": {
       "name": "mainfile_key",
@@ -118,7 +130,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "mainfile_key.path": {
       "name": "mainfile_key",
@@ -127,7 +140,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "files": {
       "name": "files",
@@ -139,7 +153,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "files.path": {
       "name": "files",
@@ -151,7 +166,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "pid": {
       "name": "pid",
@@ -160,7 +176,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "raw_id": {
       "name": "raw_id",
@@ -169,7 +186,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "external_id": {
       "name": "external_id",
@@ -178,7 +196,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "published": {
       "name": "published",
@@ -187,7 +206,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "publish_time": {
       "name": "publish_time",
@@ -196,7 +216,8 @@ window.nomadArtifacts = {
         "type_kind": "custom",
         "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "with_embargo": {
       "name": "with_embargo",
@@ -205,7 +226,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "processed": {
       "name": "processed",
@@ -214,7 +236,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "last_processing_time": {
       "name": "last_processing_time",
@@ -223,7 +246,8 @@ window.nomadArtifacts = {
         "type_kind": "custom",
         "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "processing_errors": {
       "name": "processing_errors",
@@ -235,7 +259,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "nomad_version": {
       "name": "nomad_version",
@@ -244,7 +269,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "nomad_commit": {
       "name": "nomad_commit",
@@ -253,7 +279,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "comment": {
       "name": "comment",
@@ -262,7 +289,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "references": {
       "name": "references",
@@ -274,7 +302,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "external_db": {
       "name": "external_db",
@@ -290,7 +319,8 @@ window.nomadArtifacts = {
           "Kyoto Phonopy Database"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "origin": {
       "name": "origin",
@@ -299,7 +329,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "main_author.name": {
       "name": "name",
@@ -308,6 +339,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "main_author.name.text": {
@@ -316,7 +348,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "main_author.user_id": {
       "name": "user_id",
@@ -325,7 +358,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "main_author": {
       "name": "main_author",
@@ -334,7 +368,8 @@ window.nomadArtifacts = {
         "type_kind": "User",
         "type_data": "User"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "authors.name": {
       "name": "name",
@@ -343,6 +378,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "authors.name.text": {
@@ -351,7 +387,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "authors": {
       "name": "authors",
@@ -363,7 +400,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "writers.name": {
       "name": "name",
@@ -372,6 +410,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "writers.name.text": {
@@ -380,7 +419,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "writers.user_id": {
       "name": "user_id",
@@ -389,7 +429,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "writers": {
       "name": "writers",
@@ -401,7 +442,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "viewers.name": {
       "name": "name",
@@ -410,6 +452,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "viewers.name.text": {
@@ -418,7 +461,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "viewers.user_id": {
       "name": "user_id",
@@ -427,7 +471,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "viewers": {
       "name": "viewers",
@@ -439,7 +484,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "datasets.dataset_id": {
       "name": "dataset_id",
@@ -448,7 +494,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "datasets.dataset_name": {
       "name": "dataset_name",
@@ -458,6 +505,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "datasets.doi": {
@@ -467,7 +515,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "datasets.dataset_create_time": {
       "name": "dataset_create_time",
@@ -476,7 +525,8 @@ window.nomadArtifacts = {
         "type_kind": "custom",
         "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "datasets.dataset_modified_time": {
       "name": "dataset_modified_time",
@@ -485,7 +535,8 @@ window.nomadArtifacts = {
         "type_kind": "custom",
         "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "datasets.dataset_type": {
       "name": "dataset_type",
@@ -497,7 +548,8 @@ window.nomadArtifacts = {
           "foreign"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "datasets": {
       "name": "datasets",
@@ -509,7 +561,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "domain": {
       "name": "domain",
@@ -521,7 +574,8 @@ window.nomadArtifacts = {
           "ems"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "n_quantities": {
       "name": "n_quantities",
@@ -530,7 +584,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "quantities": {
       "name": "quantities",
@@ -542,7 +597,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "quantities.path": {
       "name": "quantities",
@@ -554,7 +610,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "sections": {
       "name": "sections",
@@ -566,7 +623,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.elements": {
       "name": "elements",
@@ -698,7 +756,8 @@ window.nomadArtifacts = {
       "shape": [
         "1..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.nelements": {
       "name": "nelements",
@@ -707,7 +766,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "optimade.elements_ratios": {
       "name": "elements_ratios",
@@ -719,7 +779,8 @@ window.nomadArtifacts = {
       "shape": [
         "nelements"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "optimade.chemical_formula_descriptive": {
       "name": "chemical_formula_descriptive",
@@ -728,7 +789,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.chemical_formula_reduced": {
       "name": "chemical_formula_reduced",
@@ -737,7 +799,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.chemical_formula_hill": {
       "name": "chemical_formula_hill",
@@ -746,7 +809,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.chemical_formula_anonymous": {
       "name": "chemical_formula_anonymous",
@@ -755,7 +819,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.nperiodic_dimensions": {
       "name": "nperiodic_dimensions",
@@ -764,7 +829,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "optimade.nsites": {
       "name": "nsites",
@@ -773,7 +839,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "optimade.species_at_sites": {
       "name": "species_at_sites",
@@ -785,7 +852,8 @@ window.nomadArtifacts = {
       "shape": [
         "nsites"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "optimade.structure_features": {
       "name": "structure_features",
@@ -801,7 +869,8 @@ window.nomadArtifacts = {
       "shape": [
         "1..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "section_defs.definition_qualified_name": {
       "name": "definition_qualified_name",
@@ -810,7 +879,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "section_defs.definition_id": {
       "name": "definition_id",
@@ -819,7 +889,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "section_defs.used_directly": {
       "name": "used_directly",
@@ -828,7 +899,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.target_reference": {
       "name": "target_reference",
@@ -837,7 +909,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.target_entry_id": {
       "name": "target_entry_id",
@@ -846,7 +919,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.target_mainfile": {
       "name": "target_mainfile",
@@ -855,7 +929,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.target_upload_id": {
       "name": "target_upload_id",
@@ -864,7 +939,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.target_name": {
       "name": "target_name",
@@ -873,7 +949,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.target_path": {
       "name": "target_path",
@@ -882,7 +959,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.source_name": {
       "name": "source_name",
@@ -891,7 +969,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.source_path": {
       "name": "source_path",
@@ -900,7 +979,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "entry_references.source_quantity": {
       "name": "source_quantity",
@@ -909,79 +989,98 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
-    "searchable_quantities.quantity_name": {
-      "name": "quantity_name",
-      "description": "The name of the quantity holding the value.",
+    "search_quantities.id": {
+      "name": "id",
+      "description": "The full identifier for this quantity that contains the path in the schema +\nschema name.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
-    "searchable_quantities.section_definition": {
-      "name": "section_definition",
-      "description": "A reference to the section definition for the section that holds the quantity that holds the value.",
+    "search_quantities.definition": {
+      "name": "definition",
+      "description": "A reference to the quantity definition.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
-    "searchable_quantities.path": {
-      "name": "path",
-      "description": "The path to the quantity holding the value.",
+    "search_quantities.path_archive": {
+      "name": "path_archive",
+      "description": "Path of the value within the archive.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
-    "searchable_quantities.keyword_value": {
-      "name": "keyword_value",
-      "description": "The value mapped as an ES keyword field.",
+    "search_quantities.bool_value": {
+      "name": "bool_value",
+      "description": "The value mapped as an ES boolean field.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "bool"
+      },
+      "aggregatable": true,
+      "dynamic": false
+    },
+    "search_quantities.str_value": {
+      "name": "str_value",
+      "description": "The value mapped as an ES text and keyword field.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": false,
+      "dynamic": false
     },
-    "searchable_quantities.text_value": {
-      "name": "text_value",
-      "description": "The value mapped as an ES text field.",
+    "search_quantities.str_value.keyword": {
+      "name": "str_value",
+      "description": "The value mapped as an ES text and keyword field.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": false
+      "aggregatable": true,
+      "dynamic": false
     },
-    "searchable_quantities.long_value": {
-      "name": "long_value",
+    "search_quantities.int_value": {
+      "name": "int_value",
       "description": "The value mapped as an ES long number field.",
       "type": {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
-    "searchable_quantities.double_value": {
-      "name": "double_value",
+    "search_quantities.float_value": {
+      "name": "float_value",
       "description": "The value mapped as an ES double number field.",
       "type": {
         "type_kind": "python",
         "type_data": "float"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
-    "searchable_quantities.date_value": {
-      "name": "date_value",
+    "search_quantities.datetime_value": {
+      "name": "datetime_value",
       "description": "The value mapped as an ES date field.",
       "type": {
-        "type_kind": "python",
-        "type_data": "str"
+        "type_kind": "custom",
+        "type_data": "nomad.metainfo.metainfo._Datetime"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.material_id": {
       "name": "material_id",
@@ -990,7 +1089,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.material_name": {
       "name": "material_name",
@@ -1000,6 +1100,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.structural_type": {
@@ -1019,6 +1120,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.dimensionality": {
@@ -1034,6 +1136,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.building_block": {
@@ -1049,6 +1152,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.functional_type": {
@@ -1062,6 +1166,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.compound_type": {
@@ -1075,6 +1180,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.elements": {
@@ -1208,6 +1314,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.n_elements": {
@@ -1217,7 +1324,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.elements_exclusive": {
       "name": "elements_exclusive",
@@ -1226,7 +1334,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.chemical_formula_descriptive": {
       "name": "chemical_formula_descriptive",
@@ -1236,6 +1345,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.chemical_formula_reduced": {
@@ -1246,6 +1356,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.chemical_formula_hill": {
@@ -1256,6 +1367,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.chemical_formula_iupac": {
@@ -1266,6 +1378,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.chemical_formula_anonymous": {
@@ -1276,6 +1389,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.chemical_formula_reduced_fragments": {
@@ -1288,7 +1402,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.elemental_composition.element": {
       "name": "element",
@@ -1417,6 +1532,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.elemental_composition.atomic_fraction": {
@@ -1426,7 +1542,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.elemental_composition.mass_fraction": {
       "name": "mass_fraction",
@@ -1435,7 +1552,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.symmetry.bravais_lattice": {
       "name": "bravais_lattice",
@@ -1461,6 +1579,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.crystal_system": {
@@ -1480,6 +1599,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.hall_number": {
@@ -1490,7 +1610,8 @@ window.nomadArtifacts = {
         "type_data": "int32"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.symmetry.hall_symbol": {
       "name": "hall_symbol",
@@ -1501,6 +1622,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.point_group": {
@@ -1512,6 +1634,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.space_group_number": {
@@ -1522,7 +1645,8 @@ window.nomadArtifacts = {
         "type_data": "int32"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.symmetry.space_group_symbol": {
       "name": "space_group_symbol",
@@ -1533,6 +1657,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.prototype_formula": {
@@ -1542,7 +1667,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.symmetry.prototype_aflow_id": {
       "name": "prototype_aflow_id",
@@ -1552,6 +1678,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.structure_name": {
@@ -1580,6 +1707,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.symmetry.strukturbericht_designation": {
@@ -1590,6 +1718,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.system_id": {
@@ -1599,7 +1728,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.topology.label": {
       "name": "label",
@@ -1609,6 +1739,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.method": {
@@ -1624,6 +1755,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.description": {
@@ -1633,7 +1765,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.topology.material_id": {
       "name": "material_id",
@@ -1642,7 +1775,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.topology.material_name": {
       "name": "material_name",
@@ -1652,6 +1786,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.structural_type": {
@@ -1674,6 +1809,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.dimensionality": {
@@ -1689,6 +1825,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.building_block": {
@@ -1704,6 +1841,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.functional_type": {
@@ -1717,6 +1855,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.compound_type": {
@@ -1730,6 +1869,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.elements": {
@@ -1863,6 +2003,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.n_elements": {
@@ -1872,7 +2013,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.elements_exclusive": {
       "name": "elements_exclusive",
@@ -1881,7 +2023,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.topology.chemical_formula_descriptive": {
       "name": "chemical_formula_descriptive",
@@ -1891,6 +2034,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.chemical_formula_reduced": {
@@ -1901,6 +2045,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.chemical_formula_hill": {
@@ -1911,6 +2056,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.chemical_formula_iupac": {
@@ -1921,6 +2067,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.chemical_formula_anonymous": {
@@ -1931,6 +2078,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.chemical_formula_reduced_fragments": {
@@ -1943,7 +2091,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.parent_system": {
       "name": "parent_system",
@@ -1952,7 +2101,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.topology.child_systems": {
       "name": "child_systems",
@@ -1964,7 +2114,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.material.topology.atomic_fraction": {
       "name": "atomic_fraction",
@@ -1973,7 +2124,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.mass_fraction": {
       "name": "mass_fraction",
@@ -1982,7 +2134,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.n_atoms": {
       "name": "n_atoms",
@@ -1992,7 +2145,8 @@ window.nomadArtifacts = {
         "type_data": "int"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.sbu_type": {
       "name": "sbu_type",
@@ -2003,6 +2157,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.largest_cavity_diameter": {
@@ -2013,7 +2168,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.pore_limiting_diameter": {
       "name": "pore_limiting_diameter",
@@ -2023,7 +2179,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.largest_included_sphere_along_free_sphere_path": {
       "name": "largest_included_sphere_along_free_sphere_path",
@@ -2033,7 +2190,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.accessible_surface_area": {
       "name": "accessible_surface_area",
@@ -2043,7 +2201,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter ** 2",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.accessible_volume": {
       "name": "accessible_volume",
@@ -2053,7 +2212,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.void_fraction": {
       "name": "void_fraction",
@@ -2062,7 +2222,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.n_channels": {
       "name": "n_channels",
@@ -2072,7 +2233,8 @@ window.nomadArtifacts = {
         "type_data": "int"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.sbu_coordination_number": {
       "name": "sbu_coordination_number",
@@ -2081,7 +2243,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.elemental_composition.element": {
       "name": "element",
@@ -2210,6 +2373,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.elemental_composition.atomic_fraction": {
@@ -2219,7 +2383,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.elemental_composition.mass_fraction": {
       "name": "mass_fraction",
@@ -2228,7 +2393,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.system_relation.type": {
       "name": "type",
@@ -2244,6 +2410,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.cell.a": {
@@ -2254,7 +2421,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.b": {
       "name": "b",
@@ -2264,7 +2432,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.c": {
       "name": "c",
@@ -2274,7 +2443,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.alpha": {
       "name": "alpha",
@@ -2284,7 +2454,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.beta": {
       "name": "beta",
@@ -2294,7 +2465,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.gamma": {
       "name": "gamma",
@@ -2304,7 +2476,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.volume": {
       "name": "volume",
@@ -2314,7 +2487,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.atomic_density": {
       "name": "atomic_density",
@@ -2324,7 +2498,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "1 / meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.cell.mass_density": {
       "name": "mass_density",
@@ -2334,7 +2509,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "kilogram / meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.symmetry.bravais_lattice": {
       "name": "bravais_lattice",
@@ -2360,6 +2536,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.crystal_system": {
@@ -2379,6 +2556,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.hall_number": {
@@ -2389,7 +2567,8 @@ window.nomadArtifacts = {
         "type_data": "int32"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.symmetry.hall_symbol": {
       "name": "hall_symbol",
@@ -2400,6 +2579,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.point_group": {
@@ -2411,6 +2591,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.space_group_number": {
@@ -2421,7 +2602,8 @@ window.nomadArtifacts = {
         "type_data": "int32"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.material.topology.symmetry.space_group_symbol": {
       "name": "space_group_symbol",
@@ -2432,6 +2614,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.strukturbericht_designation": {
@@ -2442,6 +2625,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.prototype_label_aflow": {
@@ -2453,6 +2637,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material.topology.symmetry.prototype_name": {
@@ -2481,6 +2666,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.method_id": {
@@ -2490,7 +2676,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "str"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.method_name": {
       "name": "method_name",
@@ -2511,6 +2698,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.workflow_name": {
@@ -2520,6 +2708,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.program_name": {
@@ -2530,6 +2719,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.program_version": {
@@ -2540,6 +2730,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.basis_set_type": {
@@ -2559,6 +2750,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.core_electron_treatment": {
@@ -2574,6 +2766,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.spin_polarized": {
@@ -2583,7 +2776,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.dft.scf_threshold_energy_change": {
       "name": "scf_threshold_energy_change",
@@ -2594,7 +2788,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dft.van_der_Waals_method": {
       "name": "van_der_Waals_method",
@@ -2605,6 +2800,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.relativity_method": {
@@ -2620,6 +2816,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.smearing_kind": {
@@ -2631,6 +2828,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.smearing_width": {
@@ -2641,7 +2839,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dft.jacobs_ladder": {
       "name": "jacobs_ladder",
@@ -2658,7 +2857,8 @@ window.nomadArtifacts = {
           "not processed"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.dft.xc_functional_type": {
       "name": "xc_functional_type",
@@ -2675,7 +2875,8 @@ window.nomadArtifacts = {
           "not processed"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.dft.xc_functional_names": {
       "name": "xc_functional_names",
@@ -2688,6 +2889,7 @@ window.nomadArtifacts = {
         "*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dft.exact_exchange_mixing_factor": {
@@ -2697,7 +2899,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "float64"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dft.hubbard_kanamori_model.u_effective": {
       "name": "u_effective",
@@ -2708,7 +2911,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dft.hubbard_kanamori_model.u": {
       "name": "u",
@@ -2719,7 +2923,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dft.hubbard_kanamori_model.j": {
       "name": "j",
@@ -2730,7 +2935,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.projection.type": {
       "name": "type",
@@ -2744,6 +2950,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.projection.localization_type": {
@@ -2757,6 +2964,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.gw.type": {
@@ -2777,6 +2985,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.gw.basis_set_type": {
@@ -2796,6 +3005,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.gw.starting_point_type": {
@@ -2814,7 +3024,8 @@ window.nomadArtifacts = {
           "not processed"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.gw.starting_point_names": {
       "name": "starting_point_names",
@@ -2827,6 +3038,7 @@ window.nomadArtifacts = {
         "*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.bse.type": {
@@ -2843,6 +3055,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.bse.basis_set_type": {
@@ -2862,6 +3075,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.bse.starting_point_type": {
@@ -2880,7 +3094,8 @@ window.nomadArtifacts = {
           "not processed"
         ]
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.bse.starting_point_names": {
       "name": "starting_point_names",
@@ -2893,6 +3108,7 @@ window.nomadArtifacts = {
         "*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.bse.solver": {
@@ -2910,6 +3126,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.bse.gw_type": {
@@ -2929,6 +3146,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dmft.impurity_solver_type": {
@@ -2952,6 +3170,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dmft.inverse_temperature": {
@@ -2963,7 +3182,8 @@ window.nomadArtifacts = {
       },
       "unit": "1 / joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dmft.magnetic_state": {
       "name": "magnetic_state",
@@ -2978,6 +3198,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.dmft.u": {
@@ -2989,7 +3210,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dmft.jh": {
       "name": "jh",
@@ -3000,7 +3222,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.dmft.analytical_continuation": {
       "name": "analytical_continuation",
@@ -3015,7 +3238,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.precision.k_line_density": {
       "name": "k_line_density",
@@ -3026,7 +3250,8 @@ window.nomadArtifacts = {
       },
       "unit": "meter",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.precision.native_tier": {
       "name": "native_tier",
@@ -3036,7 +3261,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.method.simulation.precision.basis_set": {
       "name": "basis_set",
@@ -3060,6 +3286,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.method.simulation.precision.planewave_cutoff": {
@@ -3071,7 +3298,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.simulation.precision.apw_cutoff": {
       "name": "apw_cutoff",
@@ -3081,7 +3309,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.method.measurement.xrd.diffraction_method_name": {
       "name": "diffraction_method_name",
@@ -3099,6 +3328,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.n_calculations": {
@@ -3108,7 +3338,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.available_properties": {
       "name": "available_properties",
@@ -3120,7 +3351,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.structural.radial_distribution_function.type": {
       "name": "type",
@@ -3134,6 +3366,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.structural.radial_distribution_function.label": {
@@ -3145,6 +3378,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.structural.radial_distribution_function.provenance.label": {
@@ -3155,7 +3389,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.structural.radial_distribution_function.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
@@ -3166,7 +3401,8 @@ window.nomadArtifacts = {
       },
       "unit": "second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structural.radial_distribution_function.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
@@ -3181,7 +3417,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.structural.radius_of_gyration.kind": {
       "name": "kind",
@@ -3192,6 +3429,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.structural.radius_of_gyration.label": {
@@ -3203,6 +3441,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.structural.radius_of_gyration.provenance.label": {
@@ -3213,7 +3452,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.structural.radius_of_gyration.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
@@ -3224,7 +3464,8 @@ window.nomadArtifacts = {
       },
       "unit": "second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structural.radius_of_gyration.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
@@ -3239,7 +3480,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.structural.diffraction_pattern.incident_beam_wavelength": {
       "name": "incident_beam_wavelength",
@@ -3249,7 +3491,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.dynamical.mean_squared_displacement.type": {
       "name": "type",
@@ -3263,6 +3506,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.dynamical.mean_squared_displacement.label": {
@@ -3274,6 +3518,7 @@ window.nomadArtifacts = {
       },
       "shape": [],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.dynamical.mean_squared_displacement.provenance.label": {
@@ -3284,7 +3529,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.dynamical.mean_squared_displacement.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
@@ -3295,7 +3541,8 @@ window.nomadArtifacts = {
       },
       "unit": "second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.dynamical.mean_squared_displacement.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
@@ -3310,7 +3557,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.nperiodic_dimensions": {
       "name": "nperiodic_dimensions",
@@ -3319,7 +3567,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.n_sites": {
       "name": "n_sites",
@@ -3328,7 +3577,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.cell_volume": {
       "name": "cell_volume",
@@ -3338,7 +3588,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.lattice_parameters.a": {
       "name": "a",
@@ -3348,7 +3599,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.lattice_parameters.b": {
       "name": "b",
@@ -3358,7 +3610,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.lattice_parameters.c": {
       "name": "c",
@@ -3368,7 +3621,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.lattice_parameters.alpha": {
       "name": "alpha",
@@ -3378,7 +3632,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.lattice_parameters.beta": {
       "name": "beta",
@@ -3388,7 +3643,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_original.lattice_parameters.gamma": {
       "name": "gamma",
@@ -3398,7 +3654,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.nperiodic_dimensions": {
       "name": "nperiodic_dimensions",
@@ -3407,7 +3664,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.n_sites": {
       "name": "n_sites",
@@ -3416,7 +3674,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.cell_volume": {
       "name": "cell_volume",
@@ -3426,7 +3685,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.lattice_parameters.a": {
       "name": "a",
@@ -3436,7 +3696,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.lattice_parameters.b": {
       "name": "b",
@@ -3446,7 +3707,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.lattice_parameters.c": {
       "name": "c",
@@ -3456,7 +3718,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.lattice_parameters.alpha": {
       "name": "alpha",
@@ -3466,7 +3729,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.lattice_parameters.beta": {
       "name": "beta",
@@ -3476,7 +3740,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_conventional.lattice_parameters.gamma": {
       "name": "gamma",
@@ -3486,7 +3751,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.nperiodic_dimensions": {
       "name": "nperiodic_dimensions",
@@ -3495,7 +3761,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.n_sites": {
       "name": "n_sites",
@@ -3504,7 +3771,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "int"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.cell_volume": {
       "name": "cell_volume",
@@ -3514,7 +3782,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter ** 3",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.lattice_parameters.a": {
       "name": "a",
@@ -3524,7 +3793,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.lattice_parameters.b": {
       "name": "b",
@@ -3534,7 +3804,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.lattice_parameters.c": {
       "name": "c",
@@ -3544,7 +3815,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "meter",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.lattice_parameters.alpha": {
       "name": "alpha",
@@ -3554,7 +3826,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.lattice_parameters.beta": {
       "name": "beta",
@@ -3564,7 +3837,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.structures.structure_primitive.lattice_parameters.gamma": {
       "name": "gamma",
@@ -3574,7 +3848,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "radian",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.band_gap.index": {
       "name": "index",
@@ -3583,7 +3858,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "int32"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.band_gap.value": {
       "name": "value",
@@ -3594,7 +3870,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.band_gap.type": {
       "name": "type",
@@ -3607,7 +3884,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.band_gap.provenance.label": {
       "name": "label",
@@ -3617,7 +3895,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.dos_electronic.spin_polarized": {
       "name": "spin_polarized",
@@ -3626,7 +3905,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.dos_electronic.band_gap.index": {
       "name": "index",
@@ -3635,7 +3915,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "int32"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.dos_electronic.band_gap.value": {
       "name": "value",
@@ -3646,7 +3927,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.dos_electronic.band_gap.type": {
       "name": "type",
@@ -3659,7 +3941,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.dos_electronic.band_gap.provenance.label": {
       "name": "label",
@@ -3669,7 +3952,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.band_structure_electronic.spin_polarized": {
       "name": "spin_polarized",
@@ -3678,7 +3962,8 @@ window.nomadArtifacts = {
         "type_kind": "python",
         "type_data": "bool"
       },
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.band_structure_electronic.band_gap.index": {
       "name": "index",
@@ -3687,7 +3972,8 @@ window.nomadArtifacts = {
         "type_kind": "numpy",
         "type_data": "int32"
       },
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.band_structure_electronic.band_gap.value": {
       "name": "value",
@@ -3698,7 +3984,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.electronic.band_structure_electronic.band_gap.type": {
       "name": "type",
@@ -3711,7 +3998,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.electronic.band_structure_electronic.band_gap.provenance.label": {
       "name": "label",
@@ -3721,7 +4009,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.efficiency": {
       "name": "efficiency",
@@ -3731,7 +4020,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.fill_factor": {
       "name": "fill_factor",
@@ -3741,7 +4031,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
       "name": "open_circuit_voltage",
@@ -3752,7 +4043,8 @@ window.nomadArtifacts = {
       },
       "unit": "volt",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
       "name": "short_circuit_current_density",
@@ -3763,7 +4055,8 @@ window.nomadArtifacts = {
       },
       "unit": "ampere / meter ** 2",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.illumination_intensity": {
       "name": "illumination_intensity",
@@ -3774,7 +4067,8 @@ window.nomadArtifacts = {
       },
       "unit": "watt / meter ** 2",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.device_area": {
       "name": "device_area",
@@ -3785,7 +4079,8 @@ window.nomadArtifacts = {
       },
       "unit": "meter ** 2",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.optoelectronic.solar_cell.device_architecture": {
       "name": "device_architecture",
@@ -3795,6 +4090,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.device_stack": {
@@ -3808,6 +4104,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.absorber": {
@@ -3821,6 +4118,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.absorber_fabrication": {
@@ -3834,6 +4132,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.electron_transport_layer": {
@@ -3847,6 +4146,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.hole_transport_layer": {
@@ -3860,6 +4160,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.substrate": {
@@ -3873,6 +4174,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.optoelectronic.solar_cell.back_contact": {
@@ -3886,6 +4188,7 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.catalytic.reactivity.reaction_name": {
@@ -3896,7 +4199,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.reaction_class": {
       "name": "reaction_class",
@@ -3906,7 +4210,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.gas_hourly_space_velocity": {
       "name": "gas_hourly_space_velocity",
@@ -3917,7 +4222,8 @@ window.nomadArtifacts = {
       },
       "unit": "1 / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.flow_rate": {
       "name": "flow_rate",
@@ -3928,7 +4234,8 @@ window.nomadArtifacts = {
       },
       "unit": "meter ** 3 / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.test_temperatures": {
       "name": "test_temperatures",
@@ -3941,7 +4248,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.time_on_stream": {
       "name": "time_on_stream",
@@ -3954,7 +4262,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.total_time_on_stream": {
       "name": "total_time_on_stream",
@@ -3965,7 +4274,8 @@ window.nomadArtifacts = {
       },
       "unit": "second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.pressure": {
       "name": "pressure",
@@ -3978,7 +4288,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.reactants.name": {
       "name": "name",
@@ -3988,7 +4299,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.reactants.gas_concentration_in": {
       "name": "gas_concentration_in",
@@ -3998,7 +4310,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.reactants.gas_concentration_out": {
       "name": "gas_concentration_out",
@@ -4008,7 +4321,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.reactants.conversion": {
       "name": "conversion",
@@ -4018,7 +4332,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.products.name": {
       "name": "name",
@@ -4028,7 +4343,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.products.gas_concentration_out": {
       "name": "gas_concentration_out",
@@ -4038,7 +4354,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.products.selectivity": {
       "name": "selectivity",
@@ -4048,7 +4365,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.products.space_time_yield": {
       "name": "space_time_yield",
@@ -4059,7 +4377,8 @@ window.nomadArtifacts = {
       },
       "unit": "1 / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.rates.reaction_rate": {
       "name": "reaction_rate",
@@ -4070,7 +4389,8 @@ window.nomadArtifacts = {
       },
       "unit": "mole / gram / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.rates.specific_mass_rate": {
       "name": "specific_mass_rate",
@@ -4081,7 +4401,8 @@ window.nomadArtifacts = {
       },
       "unit": "mole / gram / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.rates.specific_surface_area_rate": {
       "name": "specific_surface_area_rate",
@@ -4092,7 +4413,8 @@ window.nomadArtifacts = {
       },
       "unit": "mole / meter ** 2 / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.reactivity.rates.turn_over_frequency": {
       "name": "turn_over_frequency",
@@ -4103,7 +4425,8 @@ window.nomadArtifacts = {
       },
       "unit": "1 / second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.catalyst_synthesis.catalyst_name": {
       "name": "catalyst_name",
@@ -4113,7 +4436,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.catalyst_synthesis.preparation_method": {
       "name": "preparation_method",
@@ -4123,7 +4447,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.catalyst_synthesis.catalyst_type": {
       "name": "catalyst_type",
@@ -4133,7 +4458,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.catalytic.catalyst_characterization.surface_area": {
       "name": "surface_area",
@@ -4144,7 +4470,8 @@ window.nomadArtifacts = {
       },
       "unit": "meter ** 2 / gram",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.catalytic.catalyst_characterization.method_surface_area": {
       "name": "method_surface_area",
@@ -4154,7 +4481,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.mechanical.energy_volume_curve.type": {
       "name": "type",
@@ -4174,6 +4502,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.mechanical.bulk_modulus.type": {
@@ -4197,6 +4526,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.mechanical.bulk_modulus.value": {
@@ -4207,7 +4537,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "pascal",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.mechanical.shear_modulus.type": {
       "name": "type",
@@ -4221,6 +4552,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.mechanical.shear_modulus.value": {
@@ -4231,7 +4563,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "pascal",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.thermodynamic.trajectory.available_properties": {
       "name": "available_properties",
@@ -4248,7 +4581,8 @@ window.nomadArtifacts = {
       "shape": [
         "0..*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.thermodynamic.trajectory.provenance.label": {
       "name": "label",
@@ -4258,7 +4592,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step": {
       "name": "time_step",
@@ -4269,7 +4604,8 @@ window.nomadArtifacts = {
       },
       "unit": "second",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type": {
       "name": "ensemble_type",
@@ -4284,7 +4620,8 @@ window.nomadArtifacts = {
         ]
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.spectroscopic.spectra.type": {
       "name": "type",
@@ -4303,6 +4640,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.spectroscopic.spectra.label": {
@@ -4316,6 +4654,7 @@ window.nomadArtifacts = {
         ]
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.spectroscopic.spectra.provenance.label": {
@@ -4326,7 +4665,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.spectroscopic.spectra.provenance.eels.detector_type": {
       "name": "detector_type",
@@ -4336,6 +4676,7 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.properties.spectroscopic.spectra.provenance.eels.resolution": {
@@ -4346,7 +4687,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "joule",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.spectroscopic.spectra.provenance.eels.max_energy": {
       "name": "max_energy",
@@ -4356,7 +4698,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "joule",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.spectroscopic.spectra.provenance.eels.min_energy": {
       "name": "min_energy",
@@ -4366,7 +4709,8 @@ window.nomadArtifacts = {
         "type_data": "float64"
       },
       "unit": "joule",
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.spectroscopic.spectra.provenance.electronic_structure.label": {
       "name": "label",
@@ -4376,7 +4720,8 @@ window.nomadArtifacts = {
         "type_data": "str"
       },
       "shape": [],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.properties.geometry_optimization.convergence_tolerance_energy_difference": {
       "name": "convergence_tolerance_energy_difference",
@@ -4387,7 +4732,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.geometry_optimization.convergence_tolerance_force_maximum": {
       "name": "convergence_tolerance_force_maximum",
@@ -4398,7 +4744,8 @@ window.nomadArtifacts = {
       },
       "unit": "newton",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.geometry_optimization.final_force_maximum": {
       "name": "final_force_maximum",
@@ -4409,7 +4756,8 @@ window.nomadArtifacts = {
       },
       "unit": "newton",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.geometry_optimization.final_energy_difference": {
       "name": "final_energy_difference",
@@ -4420,7 +4768,8 @@ window.nomadArtifacts = {
       },
       "unit": "joule",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.properties.geometry_optimization.final_displacement_maximum": {
       "name": "final_displacement_maximum",
@@ -4431,7 +4780,8 @@ window.nomadArtifacts = {
       },
       "unit": "meter",
       "shape": [],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.eln.sections": {
       "name": "sections",
@@ -4443,7 +4793,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.eln.tags": {
       "name": "tags",
@@ -4455,7 +4806,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.eln.names": {
       "name": "names",
@@ -4467,7 +4819,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.eln.descriptions": {
       "name": "descriptions",
@@ -4479,7 +4832,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": false
+      "aggregatable": false,
+      "dynamic": false
     },
     "results.eln.instruments": {
       "name": "instruments",
@@ -4491,7 +4845,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.eln.methods": {
       "name": "methods",
@@ -4503,7 +4858,8 @@ window.nomadArtifacts = {
       "shape": [
         "*"
       ],
-      "aggregatable": true
+      "aggregatable": true,
+      "dynamic": false
     },
     "results.eln.lab_ids": {
       "name": "lab_ids",
@@ -4516,6 +4872,7 @@ window.nomadArtifacts = {
         "*"
       ],
       "aggregatable": true,
+      "dynamic": false,
       "suggestion": true
     },
     "results.material": {
@@ -62107,11 +62464,11 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.quantity_name"
+                    "search_quantities.id"
                   ]
                 },
-                "name": "quantity_name",
-                "description": "The name of the quantity holding the value.",
+                "name": "id",
+                "description": "The full identifier for this quantity that contains the path in the schema +\nschema name.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62123,11 +62480,11 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.section_definition"
+                    "search_quantities.definition"
                   ]
                 },
-                "name": "section_definition",
-                "description": "A reference to the section definition for the section that holds the quantity that holds the value.",
+                "name": "definition",
+                "description": "A reference to the quantity definition.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62139,11 +62496,11 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.path"
+                    "search_quantities.path_archive"
                   ]
                 },
-                "name": "path",
-                "description": "The path to the quantity holding the value.",
+                "name": "path_archive",
+                "description": "Path of the value within the archive.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62155,14 +62512,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.keyword_value"
+                    "search_quantities.bool_value"
                   ]
                 },
-                "name": "keyword_value",
-                "description": "The value mapped as an ES keyword field.",
+                "name": "bool_value",
+                "description": "The value mapped as an ES boolean field.",
                 "type": {
                   "type_kind": "python",
-                  "type_data": "str"
+                  "type_data": "bool"
                 }
               },
               {
@@ -62171,11 +62528,12 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.text_value"
+                    "search_quantities.str_value",
+                    "search_quantities.str_value.keyword"
                   ]
                 },
-                "name": "text_value",
-                "description": "The value mapped as an ES text field.",
+                "name": "str_value",
+                "description": "The value mapped as an ES text and keyword field.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -62187,10 +62545,10 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.long_value"
+                    "search_quantities.int_value"
                   ]
                 },
-                "name": "long_value",
+                "name": "int_value",
                 "description": "The value mapped as an ES long number field.",
                 "type": {
                   "type_kind": "python",
@@ -62203,10 +62561,10 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.double_value"
+                    "search_quantities.float_value"
                   ]
                 },
-                "name": "double_value",
+                "name": "float_value",
                 "description": "The value mapped as an ES double number field.",
                 "type": {
                   "type_kind": "python",
@@ -62219,14 +62577,14 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities.date_value"
+                    "search_quantities.datetime_value"
                   ]
                 },
-                "name": "date_value",
+                "name": "datetime_value",
                 "description": "The value mapped as an ES date field.",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.metainfo._Datetime"
                 }
               }
             ]
@@ -63192,10 +63550,10 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "sub_sections",
                 "m_annotations": {
                   "elasticsearch": [
-                    "searchable_quantities"
+                    "search_quantities"
                   ]
                 },
-                "name": "searchable_quantities",
+                "name": "search_quantities",
                 "sub_section": "/packages/13/section_definitions/3",
                 "repeats": true
               }

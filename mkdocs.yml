@@ -45,6 +45,7 @@ nav:
     - Oasis:
       - How to install an Oasis: oasis/install.md
       - How to customize an Oasis: oasis/customize.md
+      - How to configure custom apps: oasis/apps.md
       - How to migrate Oasis versions: oasis/migrate.md
       - Administrative tasks: oasis/admin.md
   - Explanation:

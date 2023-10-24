@@ -7,6 +7,7 @@ guides to learn more.
 
 - Installation specific changes (domain, path-prefix): [How to install an Oasis](install.md)
 - [Restricting user access](admin.md#restricting-access-to-your-oasis)
+- [Configure custom apps](apps.md)
 - Write .yaml based [schemas](../schemas/basics.md) and [ELNs](../schemas/elns.md)
 - Learn how to use the [tabular parser](../schemas/tabular.md) to manage data from .xls or .csv
 - Develop a [schema plugin](../plugins/schemas.md) for more powerful schemas and ELNs

@@ -370,6 +370,13 @@ def define_env(env):
         return pydantic_model_from_model(model, heading=heading, hide=hide)
 
     @env.macro
+    def default_apps_list():  # pylint: disable=unused-variable
+        result = ''
+        for key, value in config.ui.apps.filtered_items():
+            result += f' - `{key}`: {value.description}\n'
+        return result
+
+    @env.macro
     def parser_list():  # pylint: disable=unused-variable
         parsers = [
             plugin for _, plugin in config.plugins.filtered_items()

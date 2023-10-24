@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+import sys
+import importlib
 from typing_extensions import Annotated
 from typing import Optional, Dict, Union, List, Literal, Any
 from pydantic import BaseModel, Field, root_validator
@@ -58,22 +60,25 @@ class PythonPluginBase(PluginBase):
         if not python_package:
             raise ValueError('Python plugins must provide a python_package.')
 
-        try:
-            # We manually look for the package to avoid the circlular imports that
-            # all "official" methods (importlib, pkgutil) will cause. This will also
-            # make the config import faster.
-            # We try to deduce the package path form the top-level package
-            package_path_segments = python_package.split('.')
-            root_package = package_path_segments[0]
-            package_dirs = package_path_segments[1:]
-            package_path = os.path.join(
-                os.path.dirname(pkgutil.get_loader(root_package).get_filename()),  # type: ignore
-                *package_dirs)
-            if not os.path.isdir(package_path):
-                # We could not find it this way. Let's try to official way
-                package_path = os.path.dirname(pkgutil.get_loader(python_package).get_filename())  # type: ignore
-        except Exception as e:
-            raise ValueError(f'The python package {python_package} cannot be loaded.', e)
+        package_path = values.get('package_path')
+        if package_path is None:
+            try:
+                # We manually look for the package to avoid the circlular imports that
+                # all "official" methods (importlib, pkgutil) will cause. This will also
+                # make the config import faster.
+                # We try to deduce the package path from the top-level package
+                package_path_segments = python_package.split('.')
+                root_package = package_path_segments[0]
+                package_dirs = package_path_segments[1:]
+                package_path = os.path.join(
+                    os.path.dirname(pkgutil.get_loader(root_package).get_filename()),  # type: ignore
+                    *package_dirs)
+                if not os.path.isdir(package_path):
+                    # We could not find it this way. Let's try to official way
+                    package_path = os.path.dirname(pkgutil.get_loader(python_package).get_filename())  # type: ignore
+            except Exception as e:
+                raise ValueError(f'The python package {python_package} cannot be loaded.', e)
+            values['package_path'] = package_path
 
         metadata_path = os.path.join(package_path, 'nomad_plugin.yaml')
         if os.path.exists(metadata_path):
@@ -91,6 +96,8 @@ class Schema(PythonPluginBase):
     '''
     A Schema describes a NOMAD Python schema that can be loaded as a plugin.
     '''
+    package_path: Optional[str] = Field(description='Path of the plugin package. Will be determined using python_package if not explicitly defined.')
+    key: Optional[str] = Field(description='Key used to identify this plugin.')
     plugin_type: Literal['schema'] = Field('schema', description='''
         The type of the plugin. This has to be the string `schema` for schema plugins.
     ''')
@@ -203,3 +210,50 @@ Plugin = Annotated[Union[Schema, Parser], Field(discriminator='plugin_type')]
 
 class Plugins(Options):
     options: Dict[str, Plugin] = Field(dict(), description='The available plugin.')
+
+
+def add_plugin(plugin: Schema) -> None:
+    '''Function for dynamically adding a plugin.'''
+    from nomad import config
+    from nomad.metainfo.elasticsearch_extension import entry_type
+
+    if plugin.package_path not in sys.path:
+        sys.path.insert(0, plugin.package_path)
+
+    # Add plugin to config
+    config.plugins.options[plugin.key] = plugin
+
+    # Add plugin to Package registry
+    package = importlib.import_module(plugin.python_package)
+    package.m_package.__init_metainfo__()
+
+    # Reload the dynamic quantities so that API is aware of the plugin
+    # quantities.
+    entry_type.reload_quantities_dynamic()
+
+
+def remove_plugin(plugin) -> None:
+    '''Function for removing a plugin.'''
+    from nomad import config
+    from nomad.metainfo.elasticsearch_extension import entry_type
+    from nomad.metainfo import Package
+
+    # Remove from path
+    try:
+        sys.path.remove(plugin.package_path)
+    except Exception:
+        pass
+
+    # Remove package as plugin
+    del config.plugins.options[plugin.key]
+
+    # Remove plugin from Package registry
+    package = importlib.import_module(plugin.python_package).m_package
+    for key, i_package in Package.registry.items():
+        if i_package is package:
+            del Package.registry[key]
+            break
+
+    # Reload the dynamic quantities so that API is aware of the plugin
+    # quantities.
+    entry_type.reload_quantities_dynamic()

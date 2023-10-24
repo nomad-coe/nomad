@@ -41,7 +41,7 @@ import { createBrowserHistory } from 'history'
 import { APIProvider } from './api'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import DataStore from './DataStore'
-import { filterData } from './search/FilterRegistry'
+import { defaultFilterData } from './search/FilterRegistry'
 import { keycloakBase, searchQuantities } from '../config'
 import { useKeycloak } from '@react-keycloak/web'
 import { GlobalMetainfo } from './archive/metainfo'
@@ -339,7 +339,7 @@ export function within(element, queriesToBind = defaultAndCustomQueries) {
 */
 export function expectQuantity(name, data, label = undefined, description = undefined, root = customScreen) {
   description = description || searchQuantities[name].description
-  label = label || filterData?.[name]?.label?.toLowerCase() || searchQuantities[name].name.replace(/_/g, ' ')
+  label = label || defaultFilterData?.[name]?.label?.toLowerCase() || searchQuantities[name].name.replace(/_/g, ' ')
   const value = isPlainObject(data) ? get(data, name) : data
   const element = root.getByTooltip(description)
   expect(root.getByText(label)).toBeInTheDocument()

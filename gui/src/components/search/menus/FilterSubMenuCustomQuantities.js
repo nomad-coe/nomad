@@ -41,7 +41,7 @@ import { EnumEditQuantity } from '../../editQuantity/EnumEditQuantity'
 import { DateTimeEditQuantity, DateEditQuantity } from '../../editQuantity/DateTimeEditQuantity'
 import { editQuantityComponents } from '../../editQuantity/EditQuantity'
 import { InputMetainfo } from '../../search/input/InputMetainfo'
-import { DType, getDatatype } from '../../../utils'
+import { DType, getDatatype, rsplit, parseQuantityName } from '../../../utils'
 import { InputTextField } from '../input/InputText'
 
 const types = {
@@ -65,15 +65,17 @@ const typeOperators = {
   [DType.Float]: Object.keys(operators),
   [DType.Timestamp]: Object.keys(operators),
   [DType.String]: ['search'],
-  [DType.Enum]: ['search']
+  [DType.Enum]: ['search'],
+  [DType.Boolean]: ['search']
 }
 
 const valueKeys = {
-  [DType.Int]: 'long_value',
-  [DType.Float]: 'double_value',
-  [DType.Timestamp]: 'date_value',
-  [DType.String]: 'text_value',
-  [DType.Enum]: 'keyword_value'
+  [DType.Int]: 'int_value',
+  [DType.Float]: 'float_value',
+  [DType.Timestamp]: 'datetime_value',
+  [DType.String]: 'str_value',
+  [DType.Enum]: 'str_value',
+  [DType.Boolean]: 'bool_value'
 }
 
 const componentMap = {
@@ -81,7 +83,8 @@ const componentMap = {
   [DType.Float]: NumberEditQuantity,
   [DType.Timestamp]: DateEditQuantity,
   [DType.String]: StringEditQuantity,
-  [DType.Enum]: EnumEditQuantity
+  [DType.Enum]: EnumEditQuantity,
+  [DType.Boolean]: StringEditQuantity
 }
 
 const getValueKey = (quantityDef) => {
@@ -143,17 +146,23 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
   const {path, value} = filter
   const operator = filter.operator || 'search'
   const quantityDef = useMemo(() => {
-    return quantities.find(q => q.path === path)?._quantityDef
+    return quantities.find(q => q.id === path)?._quantityDef
   }, [path, quantities])
 
   const options = useMemo(() => {
-    return Object.fromEntries(quantities.map(quantity => [
-      quantity.path, {
-        key: quantity.path,
-        secondary: quantity._description,
-        description: quantity?._quantityDef?.description
-      }
-    ]))
+    return Object.fromEntries(quantities.map(quantity => {
+      const {path, schema} = parseQuantityName(quantity.id)
+      return [
+        quantity.id, {
+          key: quantity.id,
+          primary: path,
+          schema: schema,
+          description: quantity?._quantityDef?.description,
+          dtype: getDatatype(quantity?._quantityDef)
+        }
+      ]
+    }
+      ))
   }, [quantities])
 
   const handleValueChange = useCallback((value) => {
@@ -268,14 +277,15 @@ const FilterSubMenuCustomQuantities = React.memo(({
         'aggregations': {
           'paths': {
             'terms': {
-              'quantity': 'searchable_quantities.path',
+              'quantity': 'search_quantities.id',
               'size': 1000,
               'entries': {
                 'size': 1,
                 'required': {
                   'include': [
-                    'searchable_quantities.path', 'searchable_quantities.quantity_name',
-                    'searchable_quantities.section_definition']
+                    'search_quantities.id',
+                    'search_quantities.definition'
+                  ]
                 }
               }
             }
@@ -286,9 +296,15 @@ const FilterSubMenuCustomQuantities = React.memo(({
       })
       const quantities = []
       for (const path of response.aggregations.paths.terms.data) {
-        const searchableQuantity = path.entries[0].searchable_quantities
-        const sectionDef = await metainfo.resolveDefinition(searchableQuantity.section_definition)
-        const quantityDef = sectionDef._properties[searchableQuantity.quantity_name]
+        const searchableQuantity = path.entries[0].search_quantities
+        const [section_path, quantity_path] = rsplit(searchableQuantity.definition, '.', 1)
+        const sectionDef = await metainfo.resolveDefinition(section_path)
+        const quantityDef = sectionDef?._properties?.[quantity_path]
+
+        // The definition may not exist in the installation if e.g. the
+        // definition is removed while old data is not reprocessed)
+        if (!quantityDef) continue
+
         const type = getDatatype(quantityDef)
         let description = types[type] || 'unknown type'
         if (quantityDef.unit) {
@@ -296,7 +312,6 @@ const FilterSubMenuCustomQuantities = React.memo(({
         }
         quantities.push({
           ...searchableQuantity,
-          _sectionDef: sectionDef,
           _quantityDef: quantityDef,
           _description: description
         })
@@ -332,12 +347,12 @@ const FilterSubMenuCustomQuantities = React.memo(({
     const query = {
       and: andFilters.map(filter => {
         const {path, value, operator} = filter
-        const quantityDef = path && quantities.find(q => q.path === path)._quantityDef
+        const quantityDef = path && quantities.find(q => q.id === path)._quantityDef
         const valueKey = getValueKey(quantityDef)
         const valueKeyWithOperator = operator === 'search' ? valueKey : `${valueKey}:${operator}`
         return {
-          searchable_quantities: {
-            path: path,
+          search_quantities: {
+            id: path,
             [valueKeyWithOperator]: value
           }
         }
@@ -348,13 +363,13 @@ const FilterSubMenuCustomQuantities = React.memo(({
 
   useEffect(() => {
     const andFilters = query?.and?.map(filter => {
-      const searchableQuantity = filter.searchable_quantities
-      const valueKey = Object.keys(searchableQuantity)[1]
+      const searchQuantity = filter.search_quantities
+      const valueKey = Object.keys(searchQuantity)[1]
       const valueKeyWithOperator = valueKey.split(':')
       const operator = valueKeyWithOperator.length === 2 ? valueKeyWithOperator[1] : 'search'
       return {
-        path: searchableQuantity.path,
-        value: searchableQuantity[Object.keys(searchableQuantity)[1]],
+        path: searchQuantity.path,
+        value: searchQuantity[Object.keys(searchQuantity)[1]],
         operator: operator
       }
     })

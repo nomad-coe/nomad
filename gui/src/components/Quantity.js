@@ -42,7 +42,7 @@ import Ellipsis from './visualization/Ellipsis'
 import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
 import { Quantity as Q, Unit, useUnits } from '../units'
-import { filterData } from './search/FilterRegistry'
+import { defaultFilterData } from './search/FilterRegistry'
 import { MaterialLink, RouteLink } from './nav/Routes'
 
 /**
@@ -171,8 +171,8 @@ const Quantity = React.memo((props) => {
     let useLabel = label
     if (!useLabel) {
       // Primarily use a lowercase 'pretty' label if one is defined in FilterRegistry
-      if (isQuantityString && filterData?.[quantity]?.label) {
-        useLabel = filterData?.[quantity]?.label.toLowerCase()
+      if (isQuantityString && defaultFilterData?.[quantity]?.label) {
+        useLabel = defaultFilterData?.[quantity]?.label.toLowerCase()
       // Alternatively use the original name in metainfo, underscores replaced by spaces
       } else if (def?.name) {
         useLabel = def.name.replace(/_/g, ' ')
@@ -658,7 +658,7 @@ export const SectionTable = React.memo(({
             </TableCell>}
             {Object.keys(quantities).map((key, index) => {
               const defCustom = quantities[key]
-              const def = filterData[`${section}.${key}`]
+              const def = defaultFilterData[`${section}.${key}`]
               const unitName = defCustom.unit || def?.unit
               const unit = unitName && new Unit(unitName)
               const unitLabel = unit && unit.toSystem(units).label()
@@ -708,7 +708,7 @@ export const SectionTable = React.memo(({
             <TableRow key={i}>
               {data.data.map((row, j) => {
                 const defCustom = quantities[key]
-                const def = filterData[`${section}.${key}`]
+                const def = defaultFilterData[`${section}.${key}`]
                 const unitName = defCustom.unit || def?.unit
                 const unit = unitName && new Unit(unitName)
                 const unitLabel = unit ? ` ${unit.toSystem(units).label()}` : ''

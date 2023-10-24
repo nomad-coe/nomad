@@ -295,7 +295,7 @@ export const InputTextQuantity = React.memo(({
     [{name: quantity, size: 5}],
     new Set([quantity])
   ], [quantity])
-  const [suggestionsAuto, loadingAuto] = useSuggestions(quantitiesSuggestion, quantitiesAll, suggestionInput)
+  const [suggestionsAuto, loadingAuto] = useSuggestions(quantitiesSuggestion, quantitiesAll, suggestionInput, filterData)
   const finalSuggestions = suggestions || suggestionsAuto
   const finalLoading = loading || loadingAuto
   const disableSuggestionsFinal = suggestions

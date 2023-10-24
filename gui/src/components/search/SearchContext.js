@@ -53,8 +53,11 @@ import {
   formatTimestamp,
   getDeep,
   formatNumber,
-  getDatatype,
-  setToArray
+  setToArray,
+  parseQuantityName,
+  getOptions,
+  rsplit,
+  parseOperator
 } from '../../utils'
 import { Quantity, Unit } from '../../units'
 import { useErrors } from '../errors'
@@ -62,8 +65,7 @@ import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import UploadStatusIcon from '../uploads/UploadStatusIcon'
 import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
-import { searchQuantities } from '../../config'
-import { filterData as filterDataStatic } from './FilterRegistry'
+import { withFilters } from './FilterRegistry'
 
 const useWidthConstrainedStyles = makeStyles(theme => ({
   root: {
@@ -105,7 +107,7 @@ const debounceTime = 450
  * it actually changes the state of that component or not.
  */
 export const searchContext = React.createContext()
-export const SearchContext = React.memo(({
+const SearchContextRaw = React.memo(({
   resource,
   initialFiltersLocked,
   initialColumns,
@@ -114,6 +116,7 @@ export const SearchContext = React.memo(({
   initialPagination,
   initialDashboard,
   initialFilters,
+  initialFilterGroups,
   initialFilterValues,
   children
 }) => {
@@ -131,6 +134,24 @@ export const SearchContext = React.memo(({
   const contextID = useMemo(() => uuidv4(), [])
   const indexFilters = useRef(0)
   const indexLocked = useRef(0)
+
+  // Initialize the set of filters that are available in this context
+  const {initialFilterPaths, initialFilterData, initialFilterAbbreviations} = useMemo(() => {
+    const filterPathsList = getOptions(initialFilters)
+    const initialFilterPaths = new Set(filterPathsList)
+    const initialFilterData = Object.fromEntries(filterPathsList.map(
+      (name) => {
+        if (!initialFilters.options[name]) {
+          const error = `Filter definition for ${name} not found.`
+          raiseError(error)
+          throw Error(error)
+        }
+        return [name, initialFilters.options[name]]
+      }
+    ))
+    const initialFilterAbbreviations = getAbbreviations(initialFilterData)
+    return {initialFilterPaths, initialFilterData, initialFilterAbbreviations}
+  }, [initialFilters, raiseError])
 
   // The final set of columns
   const columns = useMemo(() => {
@@ -151,7 +172,7 @@ export const SearchContext = React.memo(({
     // Automatically determine the render function based on metainfo.
     options.forEach(option => {
       option.render = (data) => {
-        const value = getDeep(data, option.key)
+        const value = getDeep(data, parseQuantityName(option.key).path)
         if (isNil(value)) return value
 
         const transform = (value) => {
@@ -159,11 +180,11 @@ export const SearchContext = React.memo(({
           const unit = option.unit
           const format = option.format
           if (unit) {
-            const originalUnit = searchQuantities[key].unit
+            const originalUnit = initialFilterData[key]?.unit
             value = new Quantity(value, originalUnit).to(unit).value()
           }
           if (format) {
-            const dtype = getDatatype(key)
+            const dtype = initialFilterData[key]?.dtype
             value = formatNumber(value, dtype, format?.mode, format?.decimals)
           }
           return value
@@ -174,7 +195,7 @@ export const SearchContext = React.memo(({
       }
     })
 
-    // Custom render and other setting overrides ared used for a subset of
+    // Custom render and other setting overrides are used for a subset of
     // columns.
     const overrides = {
       entry_name: {
@@ -232,13 +253,13 @@ export const SearchContext = React.memo(({
     }
 
     // Add defaults and custom overrides to the options
-    addColumnDefaults(options)
+    addColumnDefaults(options, undefined, initialFilterData)
     config.options = Object.fromEntries(options.map(option => {
       return [option.key, {...option, ...(overrides[option.key] || {})}]
     }))
 
     return config
-  }, [initialColumns, user])
+  }, [initialFilterData, initialColumns, user])
 
   // The final row configuration
   const rows = useMemo(() => {
@@ -257,26 +278,11 @@ export const SearchContext = React.memo(({
       : undefined
   }, [initialDashboard])
 
-  // Initialize the set of filters that are available directly from the
-  // metainfo.
-  const {filtersStatic, filtersStaticData, filtersStaticAbbreviations} = useMemo(() => {
-    const staticFilterNames = Object.keys(filterDataStatic)
-    const include = initialFilters?.include || [...staticFilterNames]
-    const exclude = initialFilters?.exclude || []
-    const filters = include.filter((key) => !exclude?.includes(key))
-    const filtersStatic = new Set(filters)
-    const filtersStaticData = Object.fromEntries(filters.map(
-      (name) => [name, filterDataStatic[name]]
-    ))
-    const filtersStaticAbbreviations = getAbbreviations([...Object.keys(filtersStaticData)])
-    return {filtersStatic, filtersStaticData, filtersStaticAbbreviations}
-  }, [initialFilters])
-
   // Initialize the search context state: any parameters in the URL are read and
   // default values as specified in filter registry are loaded
   const [initialQuery, initialAggs, filterDefaults] = useMemo(() => {
     const filterDefaults = {}
-    for (const [key, value] of Object.entries(filtersStaticData)) {
+    for (const [key, value] of Object.entries(initialFilterData)) {
       if (!isNil(value.default)) {
         filterDefaults[key] = value.default
       }
@@ -286,10 +292,10 @@ export const SearchContext = React.memo(({
     let queryURL = {}
     if (split.length !== 1) {
       const qs = split.pop();
-      [queryURL] = parseQueryString(qs, filtersStaticData, filtersStaticAbbreviations.filterFullnames)
+      [queryURL] = parseQueryString(qs, initialFilterData, initialFilterAbbreviations.filterFullnames)
     }
     const initialAggs = {}
-    for (const key of filtersStatic) {
+    for (const key of initialFilterPaths) {
       initialAggs[key] = {
         default: {update: false}
       }
@@ -299,7 +305,7 @@ export const SearchContext = React.memo(({
       initialAggs,
       filterDefaults
     ]
-  }, [filtersStaticData, filtersStatic, filtersStaticAbbreviations, initialFilterValues])
+  }, [initialFilterData, initialFilterPaths, initialFilterAbbreviations, initialFilterValues])
 
   // Atoms + setters and getters are used instead of regular React states to
   // avoid re-rendering components that are not depending on these values. The
@@ -390,7 +396,7 @@ export const SearchContext = React.memo(({
     // modified later.
     const filtersDataState = atom({
       key: `filtersData_${contextID}`,
-      default: filtersStaticData
+      default: initialFilterData
     })
     const filterNamesState = selector({
       key: `filters${contextID}`,
@@ -425,8 +431,8 @@ export const SearchContext = React.memo(({
     const filterMapsState = selector({
       key: `filterAbbreviations_${contextID}`,
       get: ({get}) => {
-        const filterNames = [...get(filterNamesState)]
-        return getAbbreviations(filterNames)
+        const filterData = get(filtersDataState)
+        return getAbbreviations(filterData)
       }
     })
 
@@ -435,7 +441,7 @@ export const SearchContext = React.memo(({
       default: initialPagination
     })
 
-    const guiLocked = parseQueries(initialFiltersLocked, filtersStaticData, filtersStaticAbbreviations.filterFullnames)
+    const guiLocked = parseQueries(initialFiltersLocked, initialFilterData, initialFilterAbbreviations.filterFullnames)
     const lockedFamily = atomFamily({
       key: `lockedFamily_${contextID}`,
       default: (name) => guiLocked?.[name]
@@ -1025,8 +1031,8 @@ export const SearchContext = React.memo(({
     resource,
     contextID,
     initialQuery,
-    filtersStaticData,
-    filtersStaticAbbreviations,
+    initialFilterData,
+    initialFilterAbbreviations,
     initialFiltersLocked,
     initialPagination,
     dashboard,
@@ -1157,8 +1163,8 @@ export const SearchContext = React.memo(({
         resource,
         filtersData
       ),
-      pagination: {...pagination},
-      required: required
+      pagination: convertPaginationGUItoAPI(pagination, filtersData),
+      required: convertRequiredGUItoAPI(required, filtersData)
     }
 
     // When aggregations have changed but the query has not, we request only the
@@ -1406,8 +1412,8 @@ export const SearchContext = React.memo(({
         apiCallDebounced(
           query,
           {},
-          pagination,
-          required,
+          convertPaginationGUItoAPI(pagination, filtersData),
+          convertRequiredGUItoAPI(required, filtersData),
           true,
           true,
           true,
@@ -1435,7 +1441,7 @@ export const SearchContext = React.memo(({
      * */
     const useParseQuery = () => {
       const parse = useCallback(
-        (key, value, units, path) => parseQuery(key, value, filtersData, units, path),
+        (key, value, units, path, multiple) => parseQuery(key, value, filtersData, units, path, multiple),
         []
       )
       return parse
@@ -1448,6 +1454,7 @@ export const SearchContext = React.memo(({
       filterMenus,
       filters,
       filterData: filtersData,
+      filterGroups: initialFilterGroups,
       filterFullnames,
       filterAbbreviations,
       useIsMenuOpen,
@@ -1491,6 +1498,7 @@ export const SearchContext = React.memo(({
     filterMenus,
     filters,
     filtersData,
+    initialFilterGroups,
     filterFullnames,
     filterAbbreviations,
     useIsMenuOpen,
@@ -1540,7 +1548,7 @@ export const SearchContext = React.memo(({
   </searchContext.Provider>
 })
 
-SearchContext.propTypes = {
+SearchContextRaw.propTypes = {
   resource: PropTypes.string,
   initialFiltersLocked: PropTypes.object,
   initialColumns: PropTypes.object,
@@ -1549,9 +1557,12 @@ SearchContext.propTypes = {
   initialPagination: PropTypes.object,
   initialDashboard: PropTypes.object,
   initialFilters: PropTypes.object, // Determines which filters are available
+  initialFilterGroups: PropTypes.object, // Maps filter groups to a set of filter names
   initialFilterValues: PropTypes.object, // Here one can provide default filter values
   children: PropTypes.node
 }
+
+export const SearchContext = withFilters(SearchContextRaw)
 
 /**
  * Hook for accessing the current SearchContext.
@@ -1575,7 +1586,7 @@ export function useSearchContext() {
  *
  * @returns {any} The filter value in a format that is suitable for the GUI.
  */
-function parseQuery(key, value, filtersData, units = undefined, path = undefined) {
+function parseQuery(key, value, filtersData, units = undefined, path = undefined, multiple = undefined) {
   let newValue
   const fullPath = path ? `${path}.${key}` : key
   if (isPlainObject(value)) {
@@ -1589,14 +1600,15 @@ function parseQuery(key, value, filtersData, units = undefined, path = undefined
   } else {
     // If the key is an operator, the filter name is read from the path.
     const opKeys = new Set(['lte', 'lt', 'gte', 'gt'])
-    const filterPath = opKeys.has(key) ? path : fullPath
-    const multiple = filtersData[filterPath].multiple
+    const isOperator = opKeys.has(key)
+    const filterPath = isOperator ? path : fullPath
+    multiple = multiple ?? filtersData[filterPath].multiple
     const deserializer = filtersData[filterPath].deserializer
     if (isArray(value) || isSet(value)) {
       newValue = new Set(value.map((v) => deserializer(v, units)))
     } else {
       newValue = deserializer(value, units)
-      if (multiple) {
+      if (!isOperator && multiple) {
         newValue = new Set([newValue])
       }
     }
@@ -1691,8 +1703,7 @@ function convertQueryGUIToQS(query, filtersData, filterAbbreviations) {
     for (const [key, value] of Object.entries(query)) {
       const valueConverted = convert(key, value)
       if (!isNil(valueConverted)) {
-        const newKey = filterAbbreviations[key] || key
-        queryStringQuery[newKey] = valueConverted
+        queryStringQuery[key] = valueConverted
       }
     }
   }
@@ -1721,7 +1732,8 @@ function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
     return undefined
   }
 
-  // Perform custom transformations
+  // Perform custom transformations. Note that these calls may add new keys to
+  // the query.
   function customize(key, value, parent, subKey = undefined) {
     const data = filtersData[key]
 
@@ -1757,12 +1769,15 @@ function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
   // Create the API-compatible keys and values.
   const queryNormalized = {}
   for (const [k, v] of Object.entries(queryCustomized)) {
-    const [newKey, newValue] = convertQuerySingleGUIToAPI(k, v, filtersData, undefined, queryModes?.[k])
-    const splitted = newKey.split(':')
-    const filterName = splitted[0]
-    const queryMode = splitted.length > 1 ? splitted[1] : undefined
-    let finalKey = resource === 'materials' ? getFilterMaterialPath(filterName) : filterName
-    finalKey = queryMode ? `${finalKey}:${queryMode}` : finalKey
+    const newValue = convertQuerySingleGUIToAPI(v)
+    const {quantity: filterName, op: queryMode} = parseOperator(k)
+    let finalKey = filtersData[filterName]?.requestQuantity || filterName
+    finalKey = resource === 'materials' ? getFilterMaterialPath(finalKey) : finalKey
+    let finalQueryMode = queryMode || queryModes?.[k]
+    if (isNil(finalQueryMode) && isArray(newValue)) {
+      finalQueryMode = filtersData[k]?.queryMode
+    }
+    finalKey = finalQueryMode ? `${finalKey}:${finalQueryMode}` : finalKey
     queryNormalized[finalKey] = newValue
   }
 
@@ -1775,8 +1790,7 @@ function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
       const entrySearch = []
       for (const [k, v] of Object.entries(queryNormalized)) {
         if (k.startsWith('entries.')) {
-          const splitted = k.split(':')
-          const [newKey, queryMode] = splitted.length === 2 ? splitted : [splitted[0], undefined]
+          const {quantity: newKey, op: queryMode} = parseOperator(k)
           // When the queryMode is 'all', each value can come from a separate
           // entry.
           if (isArray(v) && queryMode === 'all') {
@@ -1816,17 +1830,16 @@ function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
  * Cleans a single filter value into a form that is supported by the API. This includes:
  * - Sets are transformed into Arrays
  * - Quantities are converted to SI values.
+ * - Empty containers are set to undefined
  *
  * @param {string} key Filter name
  * @param {any} value Filter value
  * @param {object} filtersData All of the filters that are available
- * @param {string} path The full path of the filter.
- * @param {string} queryMode Determines the queryMode otherwise it uses the
- *   global queryMode defined in the config in filter registry.
+ * @param {string} queryMode Determines the queryMode
  *
  * @returns {any} The filter value in a format that is suitable for the API.
  */
-function convertQuerySingleGUIToAPI(key, value, filtersData, path = undefined, queryMode = undefined) {
+function convertQuerySingleGUIToAPI(value) {
   // Determine the API-compatible value.
   let newValue
   if (value instanceof Set) {
@@ -1851,9 +1864,9 @@ function convertQuerySingleGUIToAPI(key, value, filtersData, path = undefined, q
   } else if (isPlainObject(value)) {
     newValue = {}
     for (const [keyInner, valueInner] of Object.entries(value)) {
-      const [apiKey, apiValue] = convertQuerySingleGUIToAPI(keyInner, valueInner, filtersData, key)
+      const apiValue = convertQuerySingleGUIToAPI(valueInner)
       if (!isNil(apiValue)) {
-        newValue[apiKey] = apiValue
+        newValue[keyInner] = apiValue
       }
     }
     if (isEmpty(newValue)) {
@@ -1863,19 +1876,7 @@ function convertQuerySingleGUIToAPI(key, value, filtersData, path = undefined, q
     newValue = value
   }
 
-  // Determine the final API key. It depends on the particular queryMode.
-  let finalQueryMode
-  if (queryMode) {
-    finalQueryMode = queryMode
-  } else {
-    if (isArray(newValue)) {
-      const fullPath = path ? `${path}.${key}` : key
-      finalQueryMode = filtersData[fullPath]?.queryMode
-    }
-  }
-  const newKey = finalQueryMode ? `${key}:${finalQueryMode}` : key
-
-  return [newKey, newValue]
+  return newValue
 }
 
 /**
@@ -1893,20 +1894,24 @@ function convertQuerySingleGUIToAPI(key, value, filtersData, path = undefined, q
 function convertAggGUIToAPI(aggs, resource, filtersData) {
   const apiAggs = {}
   for (const [key, agg] of Object.entries(aggs)) {
-    const filterName = key.split(':')[0]
+    const filterName = rsplit(key, ':', 1)[0]
     if (agg.update) {
       const exclusive = filtersData[filterName].exclusive
       const type = agg.type
       const apiAgg = apiAggs[key] || {}
       const aggSet = agg.set
       const finalAgg = aggSet ? aggSet(agg) : agg
-      const quantity = finalAgg.quantity || filterName
+      let finalQuantity = finalAgg.quantity || filterName
+
+      // If the targeted quantity has a special requestQuantity, it is used in
+      // the final API call.
+      finalQuantity = filtersData[finalQuantity]?.requestQuantity || finalQuantity
 
       // The targeted quantity is decided based on the resource as materials
       // search need to target slightly different fields.
-      const finalQuantity = resource === 'materials'
-        ? getFilterMaterialPath(quantity)
-        : quantity
+      finalQuantity = resource === 'materials'
+        ? getFilterMaterialPath(finalQuantity)
+        : finalQuantity
 
       apiAgg[type] = {
         // Exclusive quantities (quantities that have one value per entry) are
@@ -1940,7 +1945,7 @@ function convertAggAPIToGUI(aggs, aggsToUpdate, filtersData) {
   // Perform custom transformations
   const aggsCustomized = {}
   for (const key of aggsToUpdate) {
-    const filter_name = key.split(':')[0]
+    const filter_name = rsplit(key, ':', 1)[0]
     const aggConfig = aggs[key]
     if (!isNil(aggConfig)) {
       for (const [type, agg] of Object.entries(aggConfig)) {
@@ -1957,6 +1962,41 @@ function convertAggAPIToGUI(aggs, aggsToUpdate, filtersData) {
     }
   }
   return aggsCustomized
+}
+
+/**
+ * Used to transform a GUI pagination call result into a form that is usable by the
+ * API.
+ *
+ * @param {object} pagination The aggregation data as returned by the API.
+ * @param {object} filtersData All of the filters that are available
+ *
+ * @returns {object} Pagination object that is usable by the API.
+ */
+function convertPaginationGUItoAPI(pagination, filtersData) {
+  if (!pagination) return {}
+  return {
+    ...pagination,
+    order_by: filtersData[pagination.order_by]?.requestQuantity || pagination.order_by
+  }
+}
+
+/**
+ * Used to transform a GUI pagination call result into a form that is usable by the
+ * API.
+ *
+ * @param {object} pagination The aggregation data as returned by the API.
+ * @param {object} filtersData All of the filters that are available
+ *
+ * @returns {object} Pagination object that is usable by the API.
+ */
+function convertRequiredGUItoAPI(required, filtersData) {
+  if (!required) return {}
+  return {
+    ...required,
+    include: required.include?.map(name => filtersData[name]?.requestQuantity || name),
+    exclude: required.exclude?.map(name => filtersData[name]?.requestQuantity || name)
+  }
 }
 
 /**
@@ -1977,7 +2017,7 @@ function reduceAggs(aggs, oldAggs, queryChanged, updatedFilters, filtersData) {
   const reducedAggs = {}
   let updateAggs = false
   for (const [key, agg] of Object.entries(aggs)) {
-    const filter_name = key.split(':')[0]
+    const filter_name = rsplit(key, ':', 1)[0]
     if (!isBoolean(agg.update)) {
       throw Error(`It was not specified whether the aggregation ${key} should update or not.`)
     }
@@ -2063,12 +2103,16 @@ function clearEmpty(value) {
  * Returns a mapping from full filter names to their abbreviations
  * and vice-versa.
 */
-function getAbbreviations(filterNames) {
+function getAbbreviations(filterData) {
   const abbreviations = {}
   const filterAbbreviations = {}
   const filterFullnames = {}
-  const nameAbbreviationPairs = filterNames.map(
-    fullname => [fullname, fullname.split('.').pop()])
+  const nameAbbreviationPairs = Object.keys(filterData).map(
+    fullname => {
+      const {path, schema} = parseQuantityName(fullname)
+      return [fullname, schema ? path : path.split('.').pop()]
+    }
+  )
   for (const [fullname, abbreviation] of nameAbbreviationPairs) {
     const old = abbreviations[abbreviation]
     if (old === undefined) {

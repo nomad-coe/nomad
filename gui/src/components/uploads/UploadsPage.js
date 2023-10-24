@@ -46,6 +46,7 @@ import DeleteUploadsButton from './DeleteUploadsButton'
 import UploadStatusIcon from './UploadStatusIcon'
 import { formatTimestamp } from '../../utils'
 import { SupportedCodes, UploadDocumentation } from './UploadOverview'
+import { defaultFilterData } from '../search/FilterRegistry'
 
 export const help = `
 NOMAD allows you to upload data. After upload, NOMAD will process your data: it will
@@ -351,7 +352,7 @@ export function UploadsPage() {
       {key: 'entries', render: upload => upload.entries, align: 'center'},
       {key: 'published', render: upload => <UploadStatusIcon data={upload} user={user} />, align: 'center'}
     ]
-    addColumnDefaults(columns, {align: 'left'})
+    addColumnDefaults(columns, {align: 'left'}, defaultFilterData)
     return columns
   }, [user])
 

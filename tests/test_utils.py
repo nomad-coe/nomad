@@ -21,10 +21,10 @@ import json
 import pytest
 
 from nomad import utils
-from nomad.utils import structlogging
 from nomad.metainfo.metainfo import MSection, Quantity, SubSection
 from nomad import files
 from nomad.processing import Upload
+from nomad.utils import structlogging, flatten_dict, rebuild_dict, deep_get
 
 
 def test_decode_handle_id():
@@ -134,3 +134,34 @@ def create_upload(upload_id, user_id, file_paths=None):
     upload.process_upload()
     upload.block_until_complete()
     return upload
+
+
+@pytest.mark.parametrize('data, flatten_list', [
+    pytest.param({}, True, id='empty'),
+    pytest.param({'a': 1}, True, id='dict'),
+    pytest.param({'a': {'b': 1}}, True, id='dict-dict'),
+    pytest.param({'a': [1, 2, 3]}, True, id='dict-list'),
+    pytest.param({'a': [{'b': 1}, {'c': 2}, {'d': 3}]}, True, id='dict-list-dict'),
+    pytest.param({'a': [{'b': [1, 2, 3]}]}, True, id='dict-list-dict-list'),
+    pytest.param({'a': [1, 2, 3]}, False, id='dict-list-no-list-flattening'),
+])
+def test_dict_flatten_rebuild(data, flatten_list):
+    flattened = flatten_dict(data, flatten_list=flatten_list)
+    rebuilt = rebuild_dict(flattened)
+
+    assert rebuilt == data
+
+
+@pytest.mark.parametrize('data, path, value, exception', [
+    pytest.param({'a': []}, ['a'], [], False, id='empty-list'),
+    pytest.param({'a': []}, ['a', 0], None, True, id='missing-index'),
+    pytest.param({'a': [{}]}, ['a', 0], {}, False, id='empty-dict'),
+    pytest.param({}, ['not-there'], None, True, id='missing-key-1'),
+    pytest.param({'a': [{}]}, ['a', 0, 'b'], None, True, id='missing-key-2'),
+])
+def test_deep_get(data, path, value, exception):
+    if exception:
+        with pytest.raises(ValueError):
+            deep_get(data, *path) == value
+    else:
+        assert deep_get(data, *path) == value

@@ -28,7 +28,7 @@ import sys
 from collections.abc import Iterable as IterableABC
 from functools import reduce
 from typing import (
-    Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, cast, ClassVar)
+    Any, Callable as TypingCallable, Dict, Iterable, List, Optional, Set, Tuple, Type, TypeVar, Union, Generator, cast, ClassVar)
 
 import docstring_parser
 import jmespath
@@ -2470,32 +2470,34 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if include_self and depth_first:
             yield self
 
-    def m_traverse(self):
+    def m_traverse(self) -> Generator[Tuple[Any, Any, int, List[Union[str, int]]], None, None]:
         '''
-        Performs a depth-first traversal and yield tuples of section, property def,
-        parent index for all set properties. If the section has no property the empty
-        section is returned.
+        Performs a depth-first traversal and yield tuples of section, property
+        def, parent index and path for all set properties. If the section has no
+        property the empty section is returned.
         '''
-
         empty = True
         for key in self.__dict__:
             property_def = self.m_def.all_properties.get(key)
             if property_def is None:
                 continue
-
             empty = False
 
             if isinstance(property_def, SubSection):
-                for sub_section in self.m_get_sub_sections(property_def):
-                    for i in sub_section.m_traverse():
-                        yield i
-                    yield self, property_def, sub_section.m_parent_index
+                repeats = property_def.repeats
+                for i_repeated, sub_section in enumerate(self.m_get_sub_sections(property_def)):
+                    for parent, definition, index, sub_path in sub_section.m_traverse():
+                        parent_path: List[Union[str, int]] = [key]
+                        if repeats:
+                            parent_path.append(i_repeated)
+                        yield parent, definition, index, parent_path + sub_path
+                    yield self, property_def, sub_section.m_parent_index, [key]
 
             else:
-                yield self, property_def, -1
+                yield self, property_def, -1, [key]
 
         if empty:
-            yield self, None, -1
+            yield self, None, -1, []
 
     def m_pretty_print(self, indent=None):
         ''' Pretty prints the containment hierarchy '''

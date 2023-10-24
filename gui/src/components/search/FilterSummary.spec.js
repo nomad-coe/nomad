@@ -32,6 +32,7 @@ test.each([
   render(
     <SearchContext
         resource={context.resource}
+        initialSchemas={context?.schemas}
         initialPagination={context.pagination}
         initialColumns={context.columns}
         initialRows={context.rows}

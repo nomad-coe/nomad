@@ -22,7 +22,8 @@ import {
   getSerializer,
   getDeserializer,
   formatLabel,
-  DType
+  DType,
+  multiTypes
 } from '../../utils'
 import { Unit } from '../../units'
 
@@ -53,7 +54,6 @@ export class Filter {
   repeats
   widget
   parent
-  schema
   description
   scale
   /**
@@ -72,6 +72,8 @@ export class Filter {
   *  - label: Short name displayed for this filter. If no value is given and the
   *      name corresponds to a metainfo name the description is read directly
   *      from the metainfo.
+  *  - quantity: The quantity that this filter targets in the metainfo.
+  *  - schema: The schema in which the filter quantity is defined in
   *  - labelFull: Long name displayed for this filter.
   *  - placeholder: Placeholder displayed for this filter in input fields.
   *  - multiple: Whether the user can simultaneously provide multiple values for
@@ -98,6 +100,7 @@ export class Filter {
   *          histogram: {buckets: 20},
   *          min_max: {set: (config) => ({}), get: (agg) => ({})}
   *        }
+  *  - requestQuantity: Optional name to use for this quantity in the final API call.
   *  - nested: Provided for sections, determines whether they are configured as
   *      nested field types in ES.
   *  - repeats: Provided for sections, determines whether they can be repeated.
@@ -115,13 +118,13 @@ export class Filter {
   *      user input.
   *  - aggregatable: Indicates whether this filter can be used in term aggregations.
   *  - widget: Object that determines the default widget for this filter.
-  *  - label: Name of the filter shown in the GUI. If no value is given and the
-  *      name corresponds to a metainfo name the description is read directly
-  *      from the metainfo.
   * @param {Filter} parent Optional parent filter
   */
   constructor(def, params, parent) {
-    const name = params.name
+    this.name = params?.name || def?.name
+    this.quantity = params?.quantity || def?.quantity
+    this.schema = params?.schema || def?.schema
+
     function getRepeats(def) {
       if (!isEmpty(def?.shape)) return true
       if (!isNil(def?.repeats)) {
@@ -136,10 +139,10 @@ export class Filter {
     this.description = params?.description || def?.description
     this.unit = params?.unit || def?.unit
     this.dimension = def?.unit && new Unit(def?.unit).dimension()
-    this.label = params?.label || formatLabel(def?.name || name)
+    this.label = params?.label || formatLabel(this.name)
     let parentName
     if (parent) {
-      const sections = name.split('.')
+      const sections = this.quantity.split('.')
       const nSections = sections.length
       if (sections.length > 1) {
         parentName = formatLabel(sections[nSections - 2])
@@ -148,16 +151,19 @@ export class Filter {
     this.labelFull = parentName ? `${parentName} ${this.label}` : this.label
 
     this.parent = parent
-    this.schema = def?.schema
     this.placeholder = params?.placeholder
-    this.multiple = params?.multiple === undefined ? true : params?.multiple
+    this.multiple = params?.multiple === undefined
+      ? multiTypes.has(this.dtype)
+      : params?.multiple
     this.exclusive = params?.exclusive === undefined ? true : params?.exclusive
     this.queryMode = params?.queryMode || (this.multiple ? 'any' : undefined)
     this.options = params?.options || getEnumOptions(def)
     this.default = params?.default
+    this.suggestion = !isNil(params?.suggestion) ? params.suggestion : (!isNil(def?.suggestion) ? def.suggestion : false)
     this.scale = params?.scale || 'linear'
     this.value = params?.value
     this.aggs = params?.aggs
+    this.requestQuantity = params?.requestQuantity
     this.nested = params?.nested === undefined ? false : params?.nested
     this.repeats = params?.repeats === undefined ? getRepeats(def) : params?.repeats
     this.global = params?.global === undefined ? false : params?.global
@@ -170,10 +176,10 @@ export class Filter {
     this.widget = params?.widget || getWidgetConfig(this.dtype, def?.aggregatable)
 
     if (this.default && !this.global) {
-      throw Error('Only filters that do not correspond to a metainfo value may have default values set.')
+      throw Error(`Error constructing filter for ${this.name}: only filters that do not correspond to a metainfo value may have default values set.`)
     }
     if (this.queryMode && !this.multiple) {
-      throw Error('Only filters that accept multiple values may have a query mode.')
+      throw Error(`Error constructing filter for ${this.name}: only filters that accept multiple values may have a query mode.`)
     }
   }
 }

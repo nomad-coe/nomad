@@ -100,6 +100,9 @@ export const globalLoginRequired = window.nomadEnv.globalLoginRequired || false
 export const appTokenMaxExpiresIn = window.nomadEnv.appTokenMaxExpiresIn || "2023-10-25"
 export const email = 'support@nomad-lab.eu'
 export const maxLogsToShow = 50
+export const schemaSeparator = '#'
+export const dtypeSeparator = '#'
+export const yamlSchemaPrefix = 'entry_id:'
 
 window.nomadArtifacts = window.nomadArtifacts || {}
 export const searchQuantities = window.nomadArtifacts.searchQuantities

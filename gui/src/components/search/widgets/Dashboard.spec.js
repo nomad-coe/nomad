@@ -19,7 +19,7 @@ import React from 'react'
 import { render, screen, startAPI, closeAPI } from '../../conftest.spec'
 import userEvent from '@testing-library/user-event'
 import Dashboard from './Dashboard'
-import { filterData } from '../FilterRegistry'
+import { defaultFilterData } from '../FilterRegistry'
 import { SearchContext } from '../SearchContext'
 import {
   expectWidgetTerms,
@@ -148,7 +148,7 @@ describe('displaying an initial widget and removing it', () => {
     // Remove widget, check that it is gone. A test id is used to fetch the
     // remove button since it is an icon that may appear in several locations.
     const removeButton = screen.getByTestId(`0-remove-widget`)
-    const label = widget.label || filterData[widget.quantity].label
+    const label = widget.label || defaultFilterData[widget.quantity].label
     expect(screen.queryByText(label, {exact: false})).toBeInTheDocument()
     await userEvent.click(removeButton)
     expect(screen.queryByText(label, {exact: false})).not.toBeInTheDocument()

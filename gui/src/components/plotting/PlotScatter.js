@@ -18,7 +18,7 @@
 import React, {useState, useEffect, useMemo, useCallback, forwardRef} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core'
-import { getDeep, hasWebGLSupport } from '../../utils'
+import { getDeep, hasWebGLSupport, parseQuantityName } from '../../utils'
 import { useUnits, Quantity, Unit } from '../../units'
 import * as d3 from 'd3'
 import { isArray, isNil } from 'lodash'
@@ -142,9 +142,9 @@ const PlotScatter = React.memo(forwardRef((
 
     const values = data
       .map((d) => ({
-        x: getDeep(d, x),
-        y: getDeep(d, y),
-        color: color && getDeep(d, color),
+        x: getDeep(d, parseQuantityName(x).path),
+        y: getDeep(d, parseQuantityName(y).path),
+        color: color && getDeep(d, parseQuantityName(color).path),
         entry_id: d.entry_id
       }))
       // We filter out points that don't have x, y values. Also for continuous

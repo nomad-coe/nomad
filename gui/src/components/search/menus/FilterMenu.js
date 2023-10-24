@@ -41,7 +41,6 @@ import FilterSummary from '../FilterSummary'
 import FilterSettings from './FilterSettings'
 import { Actions, ActionHeader, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
-import { filterGroups } from '../FilterRegistry'
 import { pluralize } from '../../../utils'
 import { isNil } from 'lodash'
 import { SourceApiCall, SourceApiDialogButton, SourceDialogDivider, SourceJsonCode } from '../../buttons/SourceDialogButton'
@@ -476,6 +475,7 @@ export const FilterMenuItem = React.memo(({
 }) => {
   const styles = useFilterMenuItemStyles()
   const theme = useTheme()
+  const {filterGroups} = useSearchContext()
   const groupFinal = group || filterGroups[id]
   const { selected, open, onChange } = useContext(filterMenuContext)
   const handleClick = disableButton ? undefined : (onClick || onChange)

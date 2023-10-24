@@ -337,12 +337,13 @@ class WithQuery(BaseModel):
 
 def _validate_criteria_value(name: str, value: CriteriaValue):
     if ':' in name:
-        quantity, qualifier = name.split(':')
+        quantity, qualifier = name.rsplit(':', 1)
+        if qualifier not in ops:
+            quantity, qualifier = name, None
     else:
         quantity, qualifier = name, None
 
     if qualifier is not None:
-        assert qualifier in ops, 'unknown quantity qualifier %s' % qualifier
         return quantity, ops[qualifier](**{qualifier: value})  # type: ignore
     elif isinstance(value, list):
         return quantity, All(all=value)

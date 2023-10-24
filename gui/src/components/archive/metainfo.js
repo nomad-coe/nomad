@@ -233,7 +233,7 @@ export class Metainfo {
     const defQualifiedNameSegments = qualifiedName.split('.')
     const packageName = defQualifiedNameSegments.slice(0, -1).join('.')
     const sectionName = defQualifiedNameSegments[defQualifiedNameSegments.length - 1]
-    return this._packageDefs[packageName]?._sections?.[sectionName]
+    return this._packageDefs[packageName || '*']?._sections?.[sectionName]
   }
 
   /**
@@ -625,7 +625,11 @@ export class Metainfo {
       return this.getDefByPath(reference)
     }
     resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
-    if (resolvedUrl.qualifiedName) {
+    if (resolvedUrl.entryId && resolvedUrl.qualifiedName) {
+      // Reference to entry metainfo
+      const metainfo = await this._getMetainfoAsync(resolvedUrl)
+      return metainfo.getDefByQualifiedName(resolvedUrl.qualifiedName)
+    } else if (resolvedUrl.qualifiedName) {
       // Reference to the system metainfo, using qualified name
       const systemMetainfo = this._url === systemMetainfoUrl ? this : await this._getMetainfoAsync(systemMetainfoUrl)
       return systemMetainfo.getDefByQualifiedName(resolvedUrl.qualifiedName)
@@ -753,7 +757,7 @@ export function getMetainfoFromDefinition(definition) {
  * @param {str} path The archive path to the section
  * @param {function} callback The callback that is called on each section
  */
-export function traverse(section, definition, path, callback, depthFirst) {
+export function traverse(section, definition, path, callback) {
   callback(section, definition, path)
   for (const subSectionDef of definition._allProperties.filter(prop => prop.m_def === SubSectionMDef)) {
     let subSections = []
@@ -773,6 +777,29 @@ export function traverse(section, definition, path, callback, depthFirst) {
       }
       traverse(subSection, subSectionDef.sub_section, childPath, callback)
     })
+  }
+}
+
+/**
+ * Allows to traverse a given section through all its sub-sections.
+ *
+ * @param {Object} section The section to traverse
+ * @param {Object} definition The definition of the section
+ * @param {str} path The archive path to the section
+ * @param {function} callback The callback that is called on each section
+ */
+export function traverseDefinition(definition, path = '', callback) {
+  callback(definition, path)
+  if (definition._allProperties) {
+    for (const def of definition._allProperties) {
+      const childPath = path ? `${path}.${def.name}` : def.name
+      traverseDefinition(def, childPath, callback)
+    }
+  }
+  if (definition.sub_section) {
+    for (const def of definition.sub_section._allProperties) {
+      traverseDefinition(def, `${path}.${def.name}`, callback)
+    }
   }
 }
 

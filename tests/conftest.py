@@ -16,11 +16,12 @@
 # limitations under the License.
 #
 from typing import Tuple, List
+from pathlib import Path
 import math
 import pytest
 from collections import namedtuple
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 import shutil
 import os
 import elasticsearch.exceptions
@@ -34,22 +35,26 @@ from fastapi.testclient import TestClient
 import socketserver
 
 from nomad import config
+from nomad.config.plugins import Schema, add_plugin, remove_plugin
 # make sure to disable logstash (the logs can interfere with the testing, especially for logtransfer)
 config.logstash.enabled = False  # noqa: E402  # this must be set *before* the other modules are imported
 
 from nomad import infrastructure, processing, utils, datamodel, bundles
 from nomad.datamodel import User, EntryArchive, OptimadeEntry
+from nomad.datamodel.datamodel import SearchableQuantity
 from nomad.utils import structlogging
 from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo, to_json
 from nomad.processing import ProcessStatus
 from nomad.app.main import app
 from nomad.utils.exampledata import ExampleData
+from nomad.metainfo.elasticsearch_extension import schema_separator
 
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
 from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url
+from tests.config import yaml_schema_name, yaml_schema_root, python_schema_name
 
 
 # Set up pytest to pass control to the debugger on an exception.
@@ -856,7 +861,9 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         entry_id = 'id_%02d' % i
         material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
         mainfile = 'test_content/subdir/test_entry_%02d/mainfile.json' % i
-        kwargs = dict(optimade=OptimadeEntry(nelements=2, elements=['H', 'O']))
+        kwargs = dict(
+            optimade=OptimadeEntry(nelements=2, elements=['H', 'O']),
+        )
         if i == 11:
             mainfile = 'test_content/subdir/test_entry_10/mainfile_11.json'
         if i == 1:
@@ -900,6 +907,184 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     data.save(with_files=False)
     del(data.archives['id_02'])
     data.save(with_files=True, with_es=False, with_mongo=False)
+
+    # yield
+
+    # # The data is deleted after fixture goes out of scope
+    # data.delete()
+
+
+@pytest.fixture(scope='function')
+def example_data_schema_python(elastic_module, raw_files_module, mongo_module, test_user, normalized):
+    '''
+    Contains entries that store data using a python schema.
+    '''
+    data = ExampleData(main_author=test_user)
+    upload_id = 'id_plugin_schema_published'
+    date_value = datetime.now(timezone.utc)
+
+    data.create_upload(
+        upload_id=upload_id,
+        upload_name=upload_id,
+        published=True)
+    for i in range(0, 15):
+        data.create_entry(
+            upload_id=upload_id,
+            entry_id=f'test_entry_{i}',
+            mainfile=f'test_content/test.archive{i}.json',
+            search_quantities=[
+                SearchableQuantity(
+                    id=f'data.name{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySchema.name',
+                    path_archive='data.name',
+                    str_value=f'test{i}'
+                ),
+                SearchableQuantity(
+                    id=f'data.valid{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySchema.valid',
+                    path_archive='data.valid',
+                    bool_value=i % 2 == 0
+                ),
+                SearchableQuantity(
+                    id=f'data.message{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySchema.message',
+                    path_archive='data.message',
+                    str_value='A' if i % 2 == 0 else 'B'
+                ),
+                SearchableQuantity(
+                    id=f'data.frequency{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySchema.frequency',
+                    path_archive='data.frequency',
+                    float_value=i + 0.5
+                ),
+                SearchableQuantity(
+                    id=f'data.count{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySchema.count',
+                    path_archive='data.count',
+                    int_value=i
+                ),
+                SearchableQuantity(
+                    id=f'data.timestamp{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySchema.timestamp',
+                    path_archive='data.timestamp',
+                    datetime_value=date_value
+                ),
+                SearchableQuantity(
+                    id=f'data.child.name{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySection.name',
+                    path_archive='data.child.name',
+                    str_value=f'test_child{i}'
+                ),
+                SearchableQuantity(
+                    id=f'data.child_repeating.name{schema_separator}{python_schema_name}',
+                    definition='nomadschemaexample.schema.MySection.name',
+                    path_archive='data.child_repeating.0.name',
+                    str_value=f'test_child_repeating{i}'
+                ),
+            ]
+        )
+    data.save(with_files=False)
+
+    yield
+
+    # The data is deleted after fixture goes out of scope
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def example_data_schema_yaml(elastic_module, raw_files, no_warn, raw_files_module, mongo_module, test_user, normalized):
+    '''
+    Contains entries that store data using a python schema.
+    '''
+    data = ExampleData(main_author=test_user)
+    upload_id = 'id_plugin_schema_published'
+    date_value = datetime.now(timezone.utc)
+
+    data.create_upload(
+        upload_id=upload_id,
+        upload_name=upload_id,
+        published=True)
+    for i in range(0, 15):
+        data.create_entry(
+            upload_id=upload_id,
+            entry_id=f'test_entry_{i}',
+            mainfile=f'test_content/test.archive{i}.json',
+            search_quantities=[
+                SearchableQuantity(
+                    id=f'data.name{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/quantities/0',
+                    path_archive='data.name',
+                    str_value=f'test{i}'
+                ),
+                SearchableQuantity(
+                    id=f'data.valid{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/quantities/1',
+                    path_archive='data.valid',
+                    bool_value=i % 2 == 0
+                ),
+                SearchableQuantity(
+                    id=f'data.message{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/quantities/1',
+                    path_archive='data.message',
+                    str_value='A' if i % 2 == 0 else 'B'
+                ),
+                SearchableQuantity(
+                    id=f'data.frequency{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/quantities/5',
+                    path_archive='data.frequency',
+                    float_value=i + 0.5
+                ),
+                SearchableQuantity(
+                    id=f'data.count{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/quantities/4',
+                    path_archive='data.count',
+                    int_value=i
+                ),
+                SearchableQuantity(
+                    id=f'data.timestamp{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/quantities/1',
+                    path_archive='data.timestamp',
+                    datetime_value=date_value
+                ),
+                SearchableQuantity(
+                    id=f'data.child.name{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/section_definitions/0/quantities/0',
+                    path_archive='data.child.name',
+                    str_value=f'test_child{i}'
+                ),
+                SearchableQuantity(
+                    id=f'data.child_repeating.name{schema_separator}{yaml_schema_name}',
+                    definition=f'{yaml_schema_root}/section_definitions/0/quantities/0',
+                    path_archive='data.child_repeating.0.name',
+                    str_value=f'test_child_repeating{i}'
+                ),
+            ]
+        )
+    data.save(with_files=False)
+
+    yield
+
+    # The data is deleted after fixture goes out of scope
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def plugin_schema():
+    '''Fixture for loading a schema plugin into the config.
+    '''
+    plugin_path = str(Path(__file__, '../data/schemas').resolve())
+    plugin_name = 'nomadschemaexample'
+    plugin = Schema(
+        name=plugin_name,
+        key=plugin_name,
+        package_path=plugin_path,
+        python_package=plugin_name
+    )
+    add_plugin(plugin)
+
+    yield
+
+    remove_plugin(plugin)
 
 
 @pytest.fixture(scope='function')
