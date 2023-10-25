@@ -941,6 +941,10 @@ class MongoReader(GeneralReader):
             mongo_query &= Q(publish_time__ne=None)
         elif config.query.is_published is False:
             mongo_query &= Q(publish_time=None)
+        if config.query.is_owned is True:
+            mongo_query &= Q(main_author=self.user.user_id)
+        elif config.query.is_owned is False:
+            mongo_query &= Q(main_author__ne=self.user.user_id)
 
         return config.query.dict(exclude_unset=True), self.uploads.filter(mongo_query)
 

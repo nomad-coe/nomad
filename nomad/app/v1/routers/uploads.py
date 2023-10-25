@@ -229,6 +229,11 @@ class UploadProcDataQuery(BaseModel):
             If unset: include everything.'''))
     process_status: Optional[str] = Field(
         description=strip('Search by the process status.'))
+    is_owned: Optional[bool] = Field(
+        description=strip('''
+            If True: only include owned uploads.
+            If False: only include shared uploads.
+            If unset: include everything.'''))
 
     @validator('process_status')
     def upper_process_status(cls, process_status: str):  # pylint: disable=no-self-argument
