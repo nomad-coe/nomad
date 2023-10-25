@@ -57,7 +57,6 @@ def test_graph_query_random(client, test_auth_dict, example_data):
     print(response.json())
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('upload_id,entry_id,user,status_code', [
     pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
     pytest.param('id_child_entries', 'id_child_entries_child1', 'test_user', 200, id='child-entry'),
@@ -87,7 +86,6 @@ def test_graph_query(
             assert_path_exists(target_path, response.json())
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('required,status_code', [
     pytest.param('*', 200, id='full'),
     pytest.param({'metadata': '*'}, 200, id='partial'),
@@ -228,7 +226,6 @@ def example_upload(example_archive, test_user, mongo_function, elastic_function)
     data.delete()
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('kwargs', [
     pytest.param(
         dict(
@@ -368,7 +365,34 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
         assert response.status_code == expected_status_code
 
 
-# @pytest.mark.skip
+@pytest.mark.parametrize('depth,result', [
+    pytest.param(1, {'uploads': {'id_unpublished': {'files': {'m_is': 'Directory', 'test_content': {
+        'm_is': 'Directory', 'path': 'test_content', 'size': 0}}}}}, id='depth-1'),
+    pytest.param(2, {'uploads': {'id_unpublished': {'files': {'m_is': 'Directory', 'test_content': {
+        'id_unpublished_1': {'m_is': 'Directory', 'path': 'test_content/id_unpublished_1', 'size': 0},
+        'm_is': 'Directory', 'path': 'test_content', 'size': 0}}}}}, id='depth-2'),
+    pytest.param(3, {'uploads': {'id_unpublished': {'files': {'m_is': 'Directory', 'test_content': {
+        'id_unpublished_1': {'1.aux': {
+            'm_is': 'File', 'path': 'test_content/id_unpublished_1/1.aux', 'size': 8}, '2.aux': {
+            'm_is': 'File', 'path': 'test_content/id_unpublished_1/2.aux', 'size': 8}, '3.aux': {
+            'm_is': 'File', 'path': 'test_content/id_unpublished_1/3.aux', 'size': 8}, '4.aux': {
+            'm_is': 'File', 'path': 'test_content/id_unpublished_1/4.aux', 'size': 8}, 'm_is': 'Directory',
+            'mainfile.json': {'m_is': 'File', 'path': 'test_content/id_unpublished_1/mainfile.json', 'size': 3231},
+            'path': 'test_content/id_unpublished_1', 'size': 3263}, 'm_is': 'Directory', 'path': 'test_content',
+        'size': 3263}}}}}, id='depth-3'),
+])
+def test_fs_graph(client, test_auth_dict, example_data, depth, result):
+    user_auth, _ = test_auth_dict['test_user']
+
+    response = client.post(
+        'graph/query',
+        json={Token.UPLOADS: {'id_unpublished': {Token.RAW: {
+            'm_request': {'directive': 'plain', 'depth': depth, }}}}},
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+
+    assert response.json() == result
+
+
 @pytest.mark.parametrize('required,error', [
     pytest.param('include', False, id='include-all'),
     pytest.param('*', False, id='include-all-alias'),

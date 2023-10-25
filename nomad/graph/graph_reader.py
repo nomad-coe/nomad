@@ -1653,17 +1653,18 @@ class FileSystemReader(GeneralReader):
             ref_path = node.current_path
 
         file: RawPathInfo
-        for file in node.archive.raw_directory_list(os_path, depth=config.depth if config.depth else -1):
-            if not config.if_include(file.path) or omit_keys is not None and any(
-                    file.path.endswith(os.path.sep + k) for k in omit_keys):
+        for file in node.archive.raw_directory_list(
+                os_path, recursive=True, depth=config.depth if config.depth else -1):
+            if not config.if_include(file.path):
                 continue
 
             results = file._asdict()
             results.pop('access', None)
             results['m_is'] = 'File' if results.pop('is_file') else 'Directory'
-            if config.directive is DirectiveType.resolved and (resolved := self._offload(
-                    node.upload_id, file.path, config, config)):
-                results[Token.ENTRY] = resolved
+            if omit_keys is None or all(not file.path.endswith(os.path.sep + k) for k in omit_keys):
+                if config.directive is DirectiveType.resolved and (resolved := self._offload(
+                        node.upload_id, file.path, config, config)):
+                    results[Token.ENTRY] = resolved
 
             # need to consider the relative path and the absolute path conversion
             file_path: list = [v for v in file.path.split('/') if v]  # path from upload root
