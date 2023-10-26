@@ -471,11 +471,12 @@ class DocumentType():
                     if isinstance(section, Section) and issubclass(section.section_cls, EntryData):
                         schema_name = section.qualified_name()
                         for quantity_def, path in get_all_quantities(section):
+                            annotation = create_dynamic_quantity_annotation(quantity_def)
+                            if not annotation:
+                                continue
                             full_name = f'data.{path}{schema_separator}{schema_name}'
-                            quantities_dynamic[full_name] = SearchQuantity(
-                                Elasticsearch(self, definition=quantity_def, dynamic=True),
-                                qualified_name=full_name
-                            )
+                            search_quantity = SearchQuantity(annotation, qualified_name=full_name)
+                            quantities_dynamic[full_name] = search_quantity
         self.quantities.update(quantities_dynamic)
 
     def _register(self, annotation, prefix):
@@ -1379,26 +1380,36 @@ def get_searchable_quantity_value_field(annotation: Elasticsearch, aggregation: 
     return None
 
 
+def create_dynamic_quantity_annotation(quantity_def: Quantity, doc_type: DocumentType = None) -> Optional[Elasticsearch]:
+    '''Given a quantity definition, this function will return the corresponding
+    ES annotation if one can be built.
+    '''
+    if quantity_def.shape != []:
+        return None
+    try:
+        annotation = Elasticsearch(definition=quantity_def, dynamic=True, doc_type=doc_type)
+        annotation.mapping['type']
+    except NotImplementedError:
+        return None
+
+    return annotation
+
+
 def create_searchable_quantity(
     quantity_def: Quantity,
     quantity_path: Quantity,
     section: MSection = None,
     path_archive: str = None,
     schema_name: str = None,
-    archive: 'EntryArchive' = None
 ) -> Optional['SearchableQuantity']:
     '''Transforms a quantity definition into a SearchQuantity.
     '''
     from nomad.datamodel.datamodel import SearchableQuantity
 
-    if quantity_def.shape != [] or not schema_name:
+    annotation = create_dynamic_quantity_annotation(quantity_def)
+    if not annotation:
         return None
-
-    try:
-        annotation = Elasticsearch(definition=quantity_def, dynamic=True)
-        mapping = annotation.mapping['type']
-    except NotImplementedError:
-        return None
+    mapping = annotation.mapping['type']
 
     searchable_quantity = SearchableQuantity(
         id=f'{quantity_path}{schema_separator}{schema_name}' if schema_name else quantity_path,

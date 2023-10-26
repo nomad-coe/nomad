@@ -25,6 +25,8 @@ from nomad.metainfo import Quantity, MSection, SubSection, Datetime, MEnum
 from nomad.datamodel.datamodel import EntryMetadata, SearchableQuantity, EntryArchive
 from nomad.metainfo.elasticsearch_extension import schema_separator
 from nomad.datamodel import EntryData
+# from tests.data.schemas.nomadschemaexample.schema import MySchema
+from tests.config import python_schema_name
 
 
 @pytest.mark.parametrize('source_quantity, source_value, target_quantity, target_value', [
@@ -88,3 +90,49 @@ def test_search_quantities_nested():
         (f'data.children.value{schema_separator}test_metadata.TestSchema', 'child1'),
         (f'data.children.value{schema_separator}test_metadata.TestSchema', 'child2')
     ]
+
+
+def populate_child(data):
+    from nomadschemaexample.schema import MySection
+    data.child = MySection(name='test')
+
+
+def populate_reference(data):
+    from nomadschemaexample.schema import MySection
+    data.child = MySection()
+    data.reference_section = data.child
+
+
+@pytest.mark.parametrize('source_quantity, source_value, target_quantity, target_value, definition', [
+    pytest.param('name', 'test', SearchableQuantity.str_value, 'test', f'{python_schema_name}.name', id='str'),
+    pytest.param('count', 1, SearchableQuantity.int_value, 1, f'{python_schema_name}.count', id='int'),
+    pytest.param('frequency', 1.0, SearchableQuantity.float_value, 1.0, f'{python_schema_name}.frequency', id='float'),
+    pytest.param('timestamp', datetime.fromtimestamp(0, tz=pytz.UTC), SearchableQuantity.datetime_value, datetime(1970, 1, 1, 0, 0, tzinfo=pytz.UTC), f'{python_schema_name}.timestamp', id='datetime'),
+    pytest.param('non_scalar', np.eye(3), None, np.eye(3), None, id='non-scalar'),
+    pytest.param('reference_section', populate_reference, None, datetime(1970, 1, 1, 0, 0, tzinfo=pytz.UTC), None, id='references are skipped'),
+    pytest.param('child.name', populate_child, SearchableQuantity.str_value, 'test', 'nomadschemaexample.schema.MySection.name', id='child quantity'),
+])
+def test_search_quantities_plugin(plugin_schema, source_quantity, source_value, target_quantity, target_value, definition):
+    '''Tests that different types of search quantities are loaded correctly from
+    plugin and saved into the search_quantities field.'''
+    from nomadschemaexample.schema import MySchema
+
+    data = MySchema()
+
+    if callable(source_value):
+        source_value(data)
+    else:
+        setattr(data, source_quantity, source_value)
+    archive = EntryArchive(data=data, metadata=EntryMetadata())
+    archive.metadata.apply_archive_metadata(archive)
+
+    if target_quantity:
+        assert len(archive.metadata.search_quantities) == 1
+    else:
+        assert len(archive.metadata.search_quantities) == 0
+        return
+
+    searchable_quantity = archive.metadata.search_quantities[0]
+    assert searchable_quantity.m_get(target_quantity) == target_value
+    assert searchable_quantity.id == f'data.{source_quantity}{schema_separator}{python_schema_name}'
+    assert searchable_quantity.definition == definition

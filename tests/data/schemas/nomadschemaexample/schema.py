@@ -1,6 +1,7 @@
 from nomad.metainfo import Quantity, Package, Section, MEnum, Datetime, MSection, SubSection
 from nomad.datamodel.data import EntryData
 from nomad.datamodel.metainfo.annotations import ELNAnnotation, ELNComponentEnum
+import numpy as np
 
 m_package = Package()
 
@@ -50,6 +51,16 @@ class MySchema(EntryData):
         type=Datetime,
         a_eln=ELNAnnotation(component=ELNComponentEnum.DateTimeEditQuantity),
         description='For testing datetime field.'
+    )
+    reference_section = Quantity(
+        type=MySection,
+        a_eln=ELNAnnotation(component=ELNComponentEnum.ReferenceEditQuantity),
+        description='For testing section reference.'
+    )
+    non_scalar = Quantity(
+        type=np.float64,
+        shape=[3, 3],
+        description='For testing non-scalar field.'
     )
 
     child = SubSection(section_def=MySection, repeats=False)

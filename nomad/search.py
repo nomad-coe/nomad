@@ -61,7 +61,7 @@ from nomad.app.v1.models.models import (
 from nomad.metainfo.elasticsearch_extension import (
     index_entries, entry_type, entry_index, DocumentType,
     material_type, entry_type, material_entry_type,
-    entry_index, Index, DocumentType, SearchQuantity, Elasticsearch, update_materials,
+    entry_index, Index, DocumentType, SearchQuantity, create_dynamic_quantity_annotation, update_materials,
     get_searchable_quantity_value_field, schema_separator, yaml_prefix, parse_quantity_name
 )
 
@@ -536,12 +536,9 @@ def get_yaml_quantity(path, schema, dtype, doc_type):
     '''Creates a SearchQuantity definition for a YAML quantity.
     '''
     quantity_def = Quantity(type=dtype)
+    annotation = create_dynamic_quantity_annotation(quantity_def, doc_type)
     quantity = SearchQuantity(
-        Elasticsearch(
-            doc_type,
-            definition=quantity_def,
-            dynamic=True
-        ),
+        annotation,
         qualified_name=f'{path}{schema_separator}{schema}'
     )
     return quantity
