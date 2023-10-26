@@ -834,7 +834,6 @@ class EntryMetadata(MSection):
                     section,
                     '.'.join([str(x) for x in location]),
                     schema_name,
-                    archive
                 )
                 if searchable_quantity:
                     search_quantities.append(searchable_quantity)
