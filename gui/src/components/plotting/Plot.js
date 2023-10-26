@@ -210,13 +210,14 @@ const Plot = React.memo(forwardRef(({
       margin: {
         l: theme.spacing(4),
         r: theme.spacing(1.5),
-        t: theme.spacing(1),
+        t: theme.spacing(layout?.title?.text ? 5 : 1),
         b: theme.spacing(6)
       },
       title: {
         font: {
           family: theme.typography.fontFamily
-        }
+        },
+        yanchor: 'middle'
       },
       legend: {
         bgcolor: 'rgba(255, 255, 255, 0.9)',
