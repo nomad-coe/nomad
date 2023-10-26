@@ -255,17 +255,43 @@ SourceJsonDialogButton.propTypes = {
   data: PropTypes.any
 }
 
-export const SourceJson = React.memo(function SourceJson({data, ...props}) {
+const useSourceJsonStyles = makeStyles(theme => ({
+  stickyContainer: {
+    zIndex: 1,
+    width: '100%',
+    height: 0,
+    position: 'sticky',
+    left: 0
+  },
+  actionContainer: {
+    position: 'relative'
+  },
+  action: {
+    position: 'absolute',
+    right: 0,
+    top: "1rem",
+    transform: 'translate(0, -50%)'
+  }
+}))
+export const SourceJson = React.memo(({data, ...props}) => {
+  const styles = useSourceJsonStyles()
   const dataToRender = typeof data === 'object' ? data : {data: data}
   // serialized json has "private" values that might contain circles removed
   // might still have circles and fail
-  let code
+  let code = null
   try {
     code = JSON.stringify(data, (name, value) => name.startsWith('_') ? undefined : value, 2)
   } catch {}
 
-  return <Box display="flex" flexDirection="row" alignItems="start">
-    <Box flexGrow={1}>
+  return <>
+    {code && <div className={styles.stickyContainer}>
+      <div className={styles.actionContainer}>
+        <div className={styles.action}>
+          <CopyToClipboardButton code={code} />
+        </div>
+      </div>
+    </div>}
+    <Box minHeight="2rem" display="flex" alignItems="center">
       <ReactJson
         src={dataToRender}
         enableClipboard={false}
@@ -274,8 +300,7 @@ export const SourceJson = React.memo(function SourceJson({data, ...props}) {
         {...props}
       />
     </Box>
-    {code && <CopyToClipboardButton code={code} />}
-  </Box>
+  </>
 })
 SourceJson.propTypes = {
   data: PropTypes.any
