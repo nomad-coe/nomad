@@ -944,6 +944,8 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
           tooltip={`Show section data as JSON`}
           title={`Underlying section data as JSON`}
           data={section}
+          maxWidth="sm"
+          fullWidth={true}
         />
       </Grid>
     ) : (
