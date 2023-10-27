@@ -51,6 +51,7 @@ nav:
   - Explanation:
     - From files to data: explanation/basics.md
     - Structured data: explanation/data.md
+    - Processing: explanation/processing.md
     - Architecture: explanation/architecture.md
     - Why you need an Oasis: explanation/oasis.md
   - Reference:
