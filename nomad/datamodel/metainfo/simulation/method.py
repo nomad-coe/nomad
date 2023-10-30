@@ -1061,26 +1061,34 @@ class Interaction(MSection):
         cut-offs, potential versions.
         ''')
 
+    n_inter = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        Total number of interactions of this type for interaction groupings.
+        '''
+    )
+
     n_atoms = Quantity(
         type=np.int32,
         shape=[],
         description='''
-        Number of atoms included in the interaction
+        Number of atoms included in (each instance of) the interaction.
         '''
     )
 
     atom_labels = Quantity(
-        type=str,
-        shape=['n_atoms'],
+        type=np.dtype(str),
+        shape=[],
         description='''
-        Labels of the atoms described by the interaction.
+        Labels of the atoms described by the interaction. Can be a list of lists for interaction groupings.
         ''')
 
     atom_indices = Quantity(
-        type=np.int32,
-        shape=['n_atoms'],
+        type=np.dtype(np.int32),
+        shape=[],
         description='''
-        Indices of the atoms in the system described by the interaction.
+        Indices of the atoms in the system described by the interaction. Can be a list of lists for interaction groupings.
         ''')
 
     functional_form = Quantity(
@@ -1103,6 +1111,8 @@ class Interaction(MSection):
         description='''
         Dictionary of label and parameters of the interaction potential.
         ''')
+
+    contributions = SubSection(sub_section=SectionProxy('Interaction'), repeats=True)
 
 
 class Model(MSection):
