@@ -90,6 +90,13 @@ class AtomsGroup(MSection):
         with these atoms.
         ''')
 
+    bond_list = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within this atoms_group.
+        ''')
+
     atoms_group = SubSection(sub_section=SectionProxy('AtomsGroup'), repeats=True)
 
 
