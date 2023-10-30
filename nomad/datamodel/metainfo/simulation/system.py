@@ -233,6 +233,13 @@ class Atoms(MSection):
         zero.
         ''')
 
+    bond_list = Quantity(
+        type=np.dtype(np.int32),
+        shape=[],
+        description='''
+        List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within the entire system.
+        ''')
+
     def to_ase(self, raise_exp: bool = False):
         '''
         Returns an ASE Object that represents the data in this section.
