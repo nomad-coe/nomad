@@ -7146,8 +7146,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "n_atoms",
-                "description": "Number of atoms included in the interaction",
+                "name": "n_inter",
+                "description": "Total number of interactions of this type for interaction groupings.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "int32"
@@ -7158,33 +7158,41 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
-                "name": "atom_labels",
-                "description": "Labels of the atoms described by the interaction.",
+                "name": "n_atoms",
+                "description": "Number of atoms included in (each instance of) the interaction.",
                 "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
+                  "type_kind": "numpy",
+                  "type_data": "int32"
                 },
-                "shape": [
-                  "n_atoms"
-                ]
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
-                "name": "atom_indices",
-                "description": "Indices of the atoms in the system described by the interaction.",
+                "name": "atom_labels",
+                "description": "Labels of the atoms described by the interaction. Can be a list of lists for interaction groupings.",
                 "type": {
                   "type_kind": "numpy",
-                  "type_data": "int32"
+                  "type_data": "str_"
                 },
-                "shape": [
-                  "n_atoms"
-                ]
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "atom_indices",
+                "description": "Indices of the atoms in the system described by the interaction. Can be a list of lists for interaction groupings.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "functional_form",
                 "description": "Specifies the functional form of the interaction potential.",
@@ -7196,7 +7204,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 7,
                 "m_parent_sub_section": "quantities",
                 "name": "n_parameters",
                 "description": "Specifies the number of parameters in the interaction potential.",
@@ -7208,7 +7216,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 8,
                 "m_parent_sub_section": "quantities",
                 "name": "parameters",
                 "description": "Dictionary of label and parameters of the interaction potential.",
@@ -7216,6 +7224,16 @@ window.nomadArtifacts = {
                   "type_kind": "Any"
                 },
                 "shape": []
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "contributions",
+                "sub_section": "/packages/1/section_definitions/17",
+                "repeats": true
               }
             ]
           },
@@ -8777,6 +8795,18 @@ window.nomadArtifacts = {
                   "type_data": "bool"
                 },
                 "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "bond_list",
+                "description": "List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within this atoms_group.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": []
               }
             ],
             "sub_sections": [
@@ -9011,6 +9041,18 @@ window.nomadArtifacts = {
                 "type": {
                   "type_kind": "python",
                   "type_data": "bool"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 15,
+                "m_parent_sub_section": "quantities",
+                "name": "bond_list",
+                "description": "List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within the entire system.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
                 },
                 "shape": []
               }
