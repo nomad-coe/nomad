@@ -157,7 +157,7 @@ def is_safe_relative_path(path: str) -> bool:
     It may end with a single '/', indicating that a folder is referred. For referring to
     the base folder, the empty string should be used (not '.' etc).
     '''
-    if type(path) != str:
+    if not isinstance(path, str):
         return False
     if path == '':
         return True

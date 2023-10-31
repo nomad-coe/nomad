@@ -381,7 +381,7 @@ class BundleImporter:
         # Validate embargo settings
         if self.embargo_length is not None:
             self.upload.embargo_length = self.embargo_length  # Importing with different embargo
-        assert type(self.upload.embargo_length) == int and 0 <= self.upload.embargo_length <= 36, (
+        assert isinstance(self.upload.embargo_length, int) and 0 <= self.upload.embargo_length <= 36, (
             'Invalid embargo_length, must be between 0 and 36 months')
 
     def _import_datasets(self) -> Tuple[List[datamodel.Dataset], Dict[str, str]]:

@@ -51,7 +51,7 @@ def perform_entries_raw_test(
         client, headers={}, query={}, owner=None, files={}, total=-1, files_per_entry=5,
         status_code=200, http_method='get'):
 
-    if type(total) == int:
+    if isinstance(total, int):
         total_entries = total_mainfiles = total
     else:
         total_entries, total_mainfiles = total

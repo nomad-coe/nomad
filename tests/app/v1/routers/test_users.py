@@ -95,7 +95,7 @@ def test_users(client, args, expected_status_code, expected_content):
         assert_user(user, expected_content)
 
     if user_id:
-        if type(user_id) != list:
+        if not isinstance(user_id, list):
             rv = client.get(f'users?user_id={user_id}')
             assert rv.status_code == expected_status_code
             if rv.status_code == 200:

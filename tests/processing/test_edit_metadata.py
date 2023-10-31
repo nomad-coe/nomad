@@ -147,7 +147,7 @@ def convert_to_comparable_value(quantity, value, from_format, user):
         return convert_to_comparable_value_single(quantity, value, from_format, user)
     if value is None and from_format == 'es':
         return []
-    if type(value) != list:
+    if not isinstance(value, list):
         value = [value]
     return [convert_to_comparable_value_single(quantity, v, from_format, user) for v in value]
 
@@ -397,7 +397,7 @@ def test_list_quantities(proc_infra, purged_app, example_data_writeable, example
         return dataset_ref
 
     def replace_dataset_ref_or_reflist(ref_or_reflist):
-        if type(ref_or_reflist) == list:
+        if isinstance(ref_or_reflist, list):
             return [replace_dataset_ref(ref) for ref in ref_or_reflist]
         return replace_dataset_ref(ref_or_reflist)
 
@@ -410,7 +410,7 @@ def test_list_quantities(proc_infra, purged_app, example_data_writeable, example
                 kwargs[arg] = kwargs.pop(arg + suffix)
         datasets = kwargs['metadata'].get('datasets')
         if datasets is not None:
-            if type(datasets) == dict:
+            if isinstance(datasets, dict):
                 datasets = {op: replace_dataset_ref_or_reflist(v) for op, v in datasets.items()}
             else:
                 datasets = replace_dataset_ref_or_reflist(datasets)

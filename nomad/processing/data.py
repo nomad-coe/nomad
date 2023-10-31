@@ -427,7 +427,7 @@ class MetadataEditRequestHandler:
                 return True, self._verified_value_single(definition, raw_value)
             else:
                 # We have a non-scalar quantity
-                if type(raw_value) == dict:
+                if isinstance(raw_value, dict):
                     # The raw value is a dict - expected to contain keys add/remove/set
                     assert raw_value, 'No operation specified'
                     for key in raw_value:
@@ -450,7 +450,7 @@ class MetadataEditRequestHandler:
 
                 verified_ops = {}
                 for op, values in raw_ops.items():
-                    values = values if type(values) == list else [values]
+                    values = values if isinstance(values, list) else [values]
                     verified_values = [self._verified_value_single(definition, v, op) for v in values]
                     verified_ops[op] = verified_values
 
@@ -486,13 +486,13 @@ class MetadataEditRequestHandler:
                 datetime.fromisoformat(value)  # Throws exception if badly formatted timestamp
             return None if value == '' else value
         elif isinstance(definition.type, metainfo.MEnum):
-            assert type(value) == str, 'Expected a string value'
+            assert isinstance(value, str), 'Expected a string value'
             if value == '':
                 return None
             assert value in definition.type._values, f'Bad enum value {value}'
             return value
         elif isinstance(definition.type, metainfo.Reference):
-            assert type(value) == str, 'Expected a string value'
+            assert isinstance(value, str), 'Expected a string value'
             reference_type = definition.type.target_section_def.section_cls
             if reference_type in [datamodel.User, datamodel.Author]:
                 if value in self.encountered_users:
@@ -2236,7 +2236,7 @@ class Upload(Proc):
         query = Entry.objects(upload_id=self.upload_id)[start:end]
         if not order_by:
             return query
-        if type(order_by) == str:
+        if isinstance(order_by, str):
             return query.order_by(order_by)
         assert type(order_by) == tuple, 'order_by must be a string or a tuple if set'
         return query.order_by(*order_by)

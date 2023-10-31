@@ -87,7 +87,7 @@ def provider_specific_fields() -> Dict[str, SearchQuantity]:
         if len(nmd_name_split) == 1:
             # plain metadata
             pass
-        elif not nmd_name_split[0] in ['results']:
+        elif nmd_name_split[0] not in ['results']:
             # other domains fields that do not make sense in the optimade context
             continue
         elif len(nmd_name_split) > 2 and nmd_name_split[1] == 'optimade':

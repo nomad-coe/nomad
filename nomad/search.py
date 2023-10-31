@@ -1046,7 +1046,7 @@ def _api_to_es_aggregation(
             es_agg.bucket(f'agg:parents:{name}', A('reverse_nested'))
 
     elif isinstance(agg, AutoDateHistogramAggregation):
-        if not quantity.annotation.mapping['type'] in ['date']:
+        if quantity.annotation.mapping['type'] not in ['date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a auto date histogram aggregation',
                 loc=['aggregations', name, AggType.HISTOGRAM, 'quantity'])
@@ -1056,7 +1056,7 @@ def _api_to_es_aggregation(
             format='yyyy-MM-dd'))
 
     elif isinstance(agg, DateHistogramAggregation):
-        if not quantity.annotation.mapping['type'] in ['date']:
+        if quantity.annotation.mapping['type'] not in ['date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a date histogram aggregation',
                 loc=['aggregations', name, AggType.HISTOGRAM, 'quantity'])
@@ -1066,7 +1066,7 @@ def _api_to_es_aggregation(
             format='yyyy-MM-dd'))
 
     elif isinstance(agg, HistogramAggregation):
-        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long', 'date']:
+        if quantity.annotation.mapping['type'] not in ['integer', 'float', 'double', 'long', 'date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a histogram aggregation',
                 loc=['aggregations', name, AggType.HISTOGRAM, 'quantity'])
@@ -1079,7 +1079,7 @@ def _api_to_es_aggregation(
             AggType.HISTOGRAM, field=quantity.search_field, interval=agg.interval, **params))
 
     elif isinstance(agg, MinMaxAggregation):
-        if not quantity.annotation.mapping['type'] in ['integer', 'float', 'double', 'long', 'date']:
+        if quantity.annotation.mapping['type'] not in ['integer', 'float', 'double', 'long', 'date']:
             raise QueryValidationError(
                 f'The quantity {quantity} cannot be used in a mix-max aggregation',
                 loc=['aggregations', name, 'min_max', 'quantity'])

@@ -69,7 +69,7 @@ def perform_post_put_file(
         client, action, url, mode, file_paths, user_auth=None, token=None, accept='application/json',
         **query_args):
     ''' Posts or puts a file. '''
-    if type(file_paths) == str:
+    if isinstance(file_paths, str):
         file_paths = [file_paths]
     headers = {'Accept': accept}
     if user_auth:
@@ -135,7 +135,7 @@ def assert_file_upload_and_processing(
     the results.
     '''
     source_paths = source_paths or []
-    if type(source_paths) == str:
+    if isinstance(source_paths, str):
         source_paths = [source_paths]
     user_auth, token = test_auth_dict[user]
     # Use either token or bearer token for the post operation (never both)
@@ -199,7 +199,7 @@ def assert_expected_mainfiles(upload_id, expected_mainfiles):
         entries = [e.mainfile for e in Entry.objects(upload_id=upload_id)]
         assert set(entries) == set(expected_mainfiles), 'Wrong entries found'
         for entry in Entry.objects(upload_id=upload_id):
-            if type(expected_mainfiles) != dict or expected_mainfiles[entry.mainfile]:
+            if not isinstance(expected_mainfiles, dict) or expected_mainfiles[entry.mainfile]:
                 assert entry.process_status == ProcessStatus.SUCCESS
             else:
                 assert entry.process_status == ProcessStatus.FAILURE
@@ -858,13 +858,13 @@ def test_get_upload_raw_path(
         if mime_type == 'application/zip':
             if expected_content:
                 with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
-                    if type(expected_content) == str:
+                    if isinstance(expected_content, str):
                         # Single file - check content
                         with zip_file.open(os.path.basename(path), 'r') as f:
                             file_content = f.read()
                             assert expected_content.encode() in file_content
                     else:
-                        assert type(expected_content) == list
+                        assert isinstance(expected_content, list)
                         # Directory - check content
                         zip_paths = zip_file.namelist()
                         # Check: only root elements specified in expected_content are allowed
@@ -1185,7 +1185,7 @@ def test_put_upload_raw_path(
     action = 'PUT'
     url = f'uploads/{upload_id}/raw/{target_path}'
     published = False
-    all_entries_should_succeed = not (type(expected_mainfiles) == dict and False in expected_mainfiles.values())
+    all_entries_should_succeed = not (isinstance(expected_mainfiles, dict) and False in expected_mainfiles.values())
     expected_process_status = ProcessStatus.SUCCESS if 'wait_for_processing' in query_args else None
 
     response, _ = assert_file_upload_and_processing(
@@ -1533,7 +1533,7 @@ def test_post_upload(
     '''
     Posts an upload, with different arguments.
     '''
-    if type(source_paths) == str:
+    if isinstance(source_paths, str):
         source_paths = [source_paths]
     if test_limit:
         monkeypatch.setattr('nomad.config.services.upload_limit', 0)
