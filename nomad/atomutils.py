@@ -47,6 +47,7 @@ from MDAnalysis.core.topology import Topology
 from MDAnalysis.core._get_readers import get_reader_for
 from MDAnalysis.core.universe import Universe
 import MDAnalysis.analysis.rdf as MDA_RDF
+import networkx
 
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
@@ -1464,7 +1465,8 @@ def _calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
 
 
 def _get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None):
-
+    '''
+    '''
     if moltypes is None:
         atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
         moltypes = np.unique(atoms_moltypes)
@@ -1743,7 +1745,6 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     '''
     Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
     '''
-
     if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
         return
     selection = ' '.join([str(i) for i in molecule_atom_indices])
@@ -1768,7 +1769,6 @@ def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topo
     '''
     Calculates the radius of gyration as a function of time for each polymer in the system.
     '''
-
     if not system_topology:
         return []
 
@@ -1786,62 +1786,71 @@ def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topo
 
     return rg_results
 
-def get_molecules_from_bond_list(n_particles: int, bond_list: List[int], particle_types: List[str] = None, particles_typeid: array[int] = None):
+
+def get_molecules_from_bond_list(n_particles: int, bond_list: List[tuple], particle_types: List[str] = None, particles_typeid: array[int] = None):
     '''
     Returns a dictionary with molecule info from the list of bonds
     '''
-
     system_graph = networkx.empty_graph(n_particles)
     system_graph.add_edges_from([(i[0], i[1]) for i in bond_list])
     molecules = [system_graph.subgraph(c).copy() for c in networkx.connected_components(system_graph)]
-    mol_dict = []
-    for i_mol, mol in enumerate(molecules):
-        mol_dict.append({})
-        mol_dict[i_mol]['indices'] = np.array(mol.nodes())
-        mol_dict[i_mol]['bonds'] = np.array(mol.edges())
-        mol_dict[i_mol]['type'] = 'molecule'
-        mol_dict[i_mol]['is_molecule'] = True
+    molecule_info: List[Any] = []
+    molecule_dict: Dict = {}
+    for mol in molecules:
+        molecule_dict = {}
+        molecule_dict['indices'] = np.array(mol.nodes())
+        molecule_dict['bonds'] = np.array(mol.edges())
+        molecule_dict['type'] = 'molecule'
+        molecule_dict['is_molecule'] = True
         if particles_typeid is None and len(particle_types) == n_particles:
-            mol_dict[i_mol]['names'] = [particle_types[int(x)] for x in sorted(np.array(mol_dict[i_mol]['indices']))]
+            molecule_dict['names'] = [particle_types[int(x)] for x in sorted(np.array(molecule_dict['indices']))]
         if particle_types is not None and particles_typeid is not None:
-            mol_dict[i_mol]['names'] = [particle_types[particles_typeid[int(x)]] for x in sorted(np.array(mol_dict[i_mol]['indices']))]
-
-    return mol_dict
+            molecule_dict['names'] = [particle_types[particles_typeid[int(x)]] for x in sorted(np.array(molecule_dict['indices']))]
+        molecule_info.append(molecule_dict)
+    return molecule_info
 
 
 def is_same_molecule(mol_1: dict, mol_2: dict):
     '''
     Checks whether the 2 input molecule dictionary (see "get_molecules_from_bond_list()" above) represent the same molecule type, i.e., same particle types and corresponding bond connections.
     '''
+    def get_bond_list_dict(bond_list_names, bond_list_counts):
+        return {bond[0] + '-' + bond[1]: bond_list_counts[i_bond] for i_bond, bond in enumerate(bond_list_names)}
 
-    if sorted(mol_1['names']) == sorted(mol_2['names']):
-        mol_1_shift = np.min(mol_1['indices'])
-        mol_2_shift = np.min(mol_2['indices'])
-        mol_1_bonds_shift = mol_1['bonds'] - mol_1_shift
-        mol_2_bonds_shift = mol_2['bonds'] - mol_2_shift
-
-        bond_list_1 = [sorted((mol_1['names'][i], mol_1['names'][j])) for i, j in mol_1_bonds_shift]
-        bond_list_2 = [sorted((mol_2['names'][i], mol_2['names'][j])) for i, j in mol_2_bonds_shift]
-
-        bond_list_names_1, bond_list_counts_1 = np.unique(bond_list_1, axis=0, return_counts=True)
-        bond_list_names_2, bond_list_counts_2 = np.unique(bond_list_2, axis=0, return_counts=True)
-
-        bond_list_dict_1 = {bond[0] + '-' + bond[1]: bond_list_counts_1[i_bond] for i_bond, bond in enumerate(bond_list_names_1)}
-        bond_list_dict_2 = {bond[0] + '-' + bond[1]: bond_list_counts_2[i_bond] for i_bond, bond in enumerate(bond_list_names_2)}
-        if bond_list_dict_1 == bond_list_dict_2:
-            return True
-
+    if sorted(mol_1['names']) != sorted(mol_2['names']):
         return False
+
+    mol_1_shift = np.min(mol_1['indices'])
+    mol_2_shift = np.min(mol_2['indices'])
+    mol_1_bonds_shift = mol_1['bonds'] - mol_1_shift
+    mol_2_bonds_shift = mol_2['bonds'] - mol_2_shift
+
+    bond_list_1 = [sorted((mol_1['names'][i], mol_1['names'][j])) for i, j in mol_1_bonds_shift]
+    bond_list_2 = [sorted((mol_2['names'][i], mol_2['names'][j])) for i, j in mol_2_bonds_shift]
+
+    bond_list_names_1, bond_list_counts_1 = np.unique(bond_list_1, axis=0, return_counts=True)
+    bond_list_names_2, bond_list_counts_2 = np.unique(bond_list_2, axis=0, return_counts=True)
+
+    bond_list_dict_1 = get_bond_list_dict(bond_list_names_1, bond_list_counts_1)
+    bond_list_dict_2 = get_bond_list_dict(bond_list_names_2, bond_list_counts_2)
+
+    if bond_list_dict_1 == bond_list_dict_2:
+        return True
+
+    return False
 
 
 def get_composition(children_names):
+    '''
+    '''
     children_count_tup = np.unique(children_names, return_counts=True)
     formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
     return formula
 
 
 def get_bond_list_from_model_contributions(sec_run, method_index: int = -1, model_index: int = -1):
-
+    '''
+    '''
     sec_method = sec_run.get('method')[method_index] if sec_run.get('method') is not None else None
     sec_force_field = sec_method.force_field if sec_method is not None else None
     sec_model = sec_force_field.get('model')[model_index] if sec_force_field is not None else None
@@ -1849,11 +1858,13 @@ def get_bond_list_from_model_contributions(sec_run, method_index: int = -1, mode
     contributions = contributions if contributions is not None else []
     bond_list = []
     for contribution in contributions:
-        if contribution.type == 'bond':
-            atom_indices = contribution.atom_indices
-            if contribution.n_inter:  # all bonds have been grouped into one contribution
-                bond_list = [tuple(indices) for indices in atom_indices]
-            else:
-                bond_list.append(tuple(contribution.atom_indices))
+        if contribution.type != 'bond':
+            continue
+
+        atom_indices = contribution.atom_indices
+        if contribution.n_inter:  # all bonds have been grouped into one contribution
+            bond_list = [tuple(indices) for indices in atom_indices]
+        else:
+            bond_list.append(tuple(contribution.atom_indices))
 
     return bond_list

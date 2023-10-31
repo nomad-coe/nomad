@@ -1061,7 +1061,7 @@ class Interaction(MSection):
         cut-offs, potential versions.
         ''')
 
-    n_inter = Quantity(
+    n_interactions = Quantity(
         type=np.dtype(np.int32),
         shape=[],
         description='''
@@ -1085,7 +1085,7 @@ class Interaction(MSection):
         ''')
 
     atom_indices = Quantity(
-        type=np.dtype(np.int32),
+        type=np.int32,
         shape=[],
         description='''
         Indices of the atoms in the system described by the interaction. Can be a list of lists for interaction groupings.
