@@ -1258,13 +1258,18 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                     sec_atoms_fr.lattice_vectors.magnitude[2][2] * length_conversion,
                     90, 90, 90]  # TODO: extend to non-cubic boxes
 
-    # get the bonds
+    # get the bonds  # TODO extend to multiple storage options for interactions
     bonds = []
     contributions = sec_model.get('contributions') if sec_model is not None else []
     contributions = contributions if contributions is not None else []
     for contribution in contributions:
-        if contribution.type == 'bond':  # and contribution.atom_indices is not None:
-            bonds.append(tuple(contribution.atom_indices))
+        if contribution.type == 'bond':
+            atom_indices = contribution.atom_indices
+            if contribution.n_inter:  # all bonds have been grouped into one contribution
+                bonds = [tuple(indices) for indices in atom_indices]
+            else:
+                bonds.append(tuple(contribution.atom_indices))
+
 
     # get the system times
     system_timestep = 1.0 * ureg.picosecond
