@@ -1260,16 +1260,9 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 
     # get the bonds  # TODO extend to multiple storage options for interactions
     bonds = []
-    contributions = sec_model.get('contributions') if sec_model is not None else []
-    contributions = contributions if contributions is not None else []
-    for contribution in contributions:
-        if contribution.type == 'bond':
-            atom_indices = contribution.atom_indices
-            if contribution.n_inter:  # all bonds have been grouped into one contribution
-                bonds = [tuple(indices) for indices in atom_indices]
-            else:
-                bonds.append(tuple(contribution.atom_indices))
-
+    bonds = sec_atoms.bond_list
+    if not bonds:
+        bonds = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
 
     # get the system times
     system_timestep = 1.0 * ureg.picosecond
