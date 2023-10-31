@@ -394,7 +394,7 @@ registerFilter(
 registerFilter(
   'results.properties.electronic.dos_electronic',
   idElectronic,
-  {...nestedQuantity, label: 'Density of States (DOS)'},
+  {...nestedQuantity, label: 'Density of States'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
   ]

@@ -101,35 +101,35 @@ def test_band_gap():
 def test_dos_electronic():
     gap_fill = [[0, 1], [2, 3]]
 
-    # DOS without energy references
+    # DOS without energy references (hence band gap information cannot be extracted)
     archive = get_template_dos()
-    dos = archive.results.properties.electronic.dos_electronic[0]
-    assert dos.spin_polarized is False
-    assert dos.total[0].value.shape == (101,)
-    assert dos.energies.shape == (101,)
+    dos = archive.results.properties.electronic.dos_electronic_new[0]
+    assert dos.spin_polarized is False and len(dos.data) == 1
+    assert dos.data[0].total.value.shape == dos.data[0].energies.shape == (101,)
 
     # Unpolarized DOS with gap:
     efermi = 1.5
     archive = get_template_dos(energy_reference_fermi=efermi)
-    dos = archive.results.properties.electronic.dos_electronic[0]
-    assert len(dos.band_gap) == 1
-    assert dos.band_gap[0].energy_highest_occupied is not None
-    assert dos.band_gap[0].energy_lowest_unoccupied is not None
-    assert dos.spin_polarized is False
-    assert dos.total[0].value.shape == (101,)
-    assert dos.energies.shape == (101,)
+    dos = archive.results.properties.electronic.dos_electronic_new[0]
+    assert dos.spin_polarized is False and len(dos.data) == 1
+    assert len(dos.data[0].band_gap) == 1
+    assert dos.data[0].band_gap[0].energy_highest_occupied is not None
+    assert dos.data[0].band_gap[0].energy_highest_occupied.to('eV').magnitude == pytest.approx(1.0)
+    assert dos.data[0].band_gap[0].energy_lowest_unoccupied is not None
+    assert dos.data[0].band_gap[0].energy_lowest_unoccupied.to('eV').magnitude == pytest.approx(1.9)
+    assert dos.data[0].band_gap[0].value.to('eV').magnitude == pytest.approx(0.9)
+    assert dos.data[0].total.value.shape == dos.data[0].energies.shape == (101,)
 
     # Polarized DOS
     efermi = 1.5
     archive = get_template_dos(fill=[gap_fill, gap_fill], energy_reference_fermi=efermi)
-    dos = archive.results.properties.electronic.dos_electronic[0]
-    assert len(dos.band_gap) == 2
-    assert dos.band_gap[0].energy_highest_occupied is not None
-    assert dos.band_gap[0].energy_lowest_unoccupied is not None
-    assert dos.spin_polarized is True
-    assert dos.total[0].value.shape == (101,)
-    assert dos.total[1].value.shape == (101,)
-    assert dos.energies.shape == (101,)
+    dos = archive.results.properties.electronic.dos_electronic_new[0]
+    assert dos.spin_polarized is True and len(dos.data) == 2
+    assert dos.data[0].spin_channel == 0 and dos.data[1].spin_channel == 1
+    for nspin in range(len(dos.data)):
+        assert dos.data[nspin].total.value.shape == dos.data[nspin].energies.shape == (101,)
+    assert dos.data[0].band_gap[0].value == dos.data[1].band_gap[0].value
+    assert dos.data[0].band_gap[0].value.to('eV').magnitude == pytest.approx(0.9)
 
     # Vibrational instead of electronic
     archive = get_template_dos(type='vibrational')

@@ -208,6 +208,7 @@ def available_properties(root: MSection) -> List[str]:
         'electronic.band_structure_electronic.band_gap': 'electronic.band_structure_electronic.band_gap',
         'electronic.band_structure_electronic': 'band_structure_electronic',
         'electronic.dos_electronic': 'dos_electronic',
+        'electronic.dos_electronic_new': 'dos_electronic_new',
         'electronic.greens_functions_electronic': 'greens_functions_electronic',
         'vibrational.dos_phonon': 'dos_phonon',
         'vibrational.band_structure_phonon': 'band_structure_phonon',
@@ -2079,6 +2080,8 @@ class DOS(MSection):
     m_def = Section(
         description='''
         Base class for density of states information.
+
+        OLD VERSION: it will eventually be deprecated, please, don't use it!
         ''',
     )
     energies = Quantity(
@@ -2097,18 +2100,12 @@ class DOS(MSection):
     )
 
 
-class DOSPhonon(DOS):
-    m_def = Section(
-        description='''
-        Contains the total phonon density of states.
-        ''',
-    )
-
-
 class DOSElectronic(DOS):
     m_def = Section(
         description='''
         Contains the total electronic density of states.
+
+        OLD VERSION: it will eventually be deprecated.
         ''',
     )
     label = Quantity(
@@ -2138,6 +2135,100 @@ class DOSElectronic(DOS):
         Fermi energy.
         '''
     )
+
+
+class DOSNew(MSection):
+    m_def = Section(
+        description='''
+        Section containign the density of states data.
+
+        It includes the total DOS and the projected DOS values. We differentiate `species_projected` as the
+        projected DOS for same atomic species, `atom_projected` as the projected DOS for different
+        atoms in the cell, and `orbital_projected` as the projected DOS for the orbitals of each
+        atom.
+        ''',
+    )
+    energies = Quantity(
+        type=Dos.energies,
+        description='''
+        Total DOS values for the entire system and all species.
+        ''',
+    )
+    total = Quantity(
+        type=DosValues,
+        description='''
+        Total DOS values for the entire system and all species.
+        ''',
+    )
+    species_projected = Quantity(
+        type=DosValues,
+        shape=['*'],
+        description='''
+        Projected DOS values per species.
+        ''',
+    )
+    atom_projected = Quantity(
+        type=DosValues,
+        shape=['*'],
+        description='''
+        Projected DOS values per atom.
+        ''',
+    )
+    orbital_projected = Quantity(
+        type=DosValues,
+        shape=['*'],
+        description='''
+        Projected DOS values per orbital and per atom.
+        ''',
+    )
+    spin_channel = Dos.spin_channel.m_copy()
+    energy_fermi = Dos.energy_fermi.m_copy()
+    energy_ref = Dos.energy_ref.m_copy()
+    band_gap = SubSection(
+        sub_section=BandGapDeprecated.m_def,
+        repeats=True,
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
+    )
+
+
+class DOSPhonon(DOS):
+    m_def = Section(
+        description='''
+        Contains the phonon density of states.
+        ''',
+    )
+
+
+class DOSElectronicNew(MSection):
+    m_def = Section(
+        description='''
+        Contains the electronic Density of States (DOS). This section can be repeated to refer to
+        different methodologies (e.g., label = 'DFT', 'GW', 'TB', etc.), and it can be spin-polarized
+        or not. The sub-section data points to each (if present) spin channels.
+        ''',
+    )
+    label = Quantity(
+        type=str,
+        description='''
+        Label to identify the method employed to obtain the DOS data ('DFT', 'GW', etc.).
+        ''')
+    spin_polarized = Quantity(
+        type=bool,
+        description='''
+        Whether the DOS is spin-polarized, i.e. is contains channels for both
+        spin values.
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    has_projected = Quantity(
+        type=bool,
+        description='''
+        Whether the DOS has information about projections (species-, atom-, and/or orbital-
+        projected).
+        ''',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    data = SubSection(sub_section=DOSNew.m_def, repeats=True)
 
 
 class BandStructure(MSection):
@@ -2521,6 +2612,7 @@ class ElectronicProperties(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True)
     )
     dos_electronic = SubSection(sub_section=DOSElectronic.m_def, repeats=True)
+    dos_electronic_new = SubSection(sub_section=DOSElectronicNew.m_def, repeats=True)
     band_structure_electronic = SubSection(sub_section=BandStructureElectronic.m_def, repeats=True)
     greens_functions_electronic = SubSection(sub_section=GreensFunctionsElectronic.m_def, repeats=True)
 

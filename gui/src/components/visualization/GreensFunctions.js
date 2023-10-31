@@ -75,10 +75,6 @@ const GreensFunctions = React.memo(({
   const [finalData, setFinalData] = useState(
     data || Object.fromEntries(Object.keys(types).map(type => [type, [data]]))
   )
-  const nPlots = data
-    ? Object.entries(data).reduce((accumulator, currentValue) => accumulator + (currentValue[1]?.length || 0), 0)
-    : 0
-  console.log(nPlots)
 
   // Side effect that runs when the data that is displayed should change. By
   // running all this heavy stuff as a side effect, the first render containing

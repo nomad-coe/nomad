@@ -158,7 +158,7 @@ const ElectronicProperties = React.memo(({
         <BandGap data={band_gap}/>
       </PropertyItem>
       {gf !== false &&
-        <PropertyItem title="Green's functions" xs={12} height='auto'>
+        <PropertyItem title="Green's functions" xs={12} height="auto">
           <GreensFunctions
             data={gf}
             provenance={dmftprovenance}

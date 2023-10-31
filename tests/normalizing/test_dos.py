@@ -81,25 +81,27 @@ def test_energy_reference_detection(ranges, highest, lowest, fermi, expected_hig
     lowest = lowest[0] if lowest else lowest
     highest = highest[0] if highest else highest
     archive = get_template_dos(ranges, fermi, highest, lowest, n)
+    assert len(archive.run[0].calculation[0].dos_electronic) == 1
     dos = archive.run[0].calculation[0].dos_electronic[0]
-    n_channels = len(dos.total)
-    for i_channel in range(n_channels):
-        gap = dos.band_gap[i_channel]
-        assert gap.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
-            expected_highest[i_channel]
-        )
-        assert gap.energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(
-            expected_lowest[i_channel]
-        )
+    gap = dos.band_gap[0]
+    assert gap.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
+        expected_highest[0]
+    )
+    assert gap.energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(
+        expected_lowest[0]
+    )
 
 
 def test_dos_magnitude(dos_si_vasp: EntryArchive, dos_si_exciting: EntryArchive, dos_si_fhiaims: EntryArchive):
     """
-    Verify that the raw DOS extracted from similar systems describes the same number of electrons
+    Verify that the raw DOS extracted from similar systems describes the same number of
+    electrons. Testing for VASP, exciting and FHI-aims DOS Si2 parsing.
     """
     codes_to_check = list(locals().values())  # TODO add test for normalized DOS
-    dos_ints = [integrate_dos(dos_si.run[0].calculation[-1].dos_electronic[-1])
-                for dos_si in codes_to_check]
+    dos_ints = [
+        integrate_dos(dos_si.run[0].calculation[-1].dos_electronic)
+        for dos_si in codes_to_check
+    ]
 
     # Compare each DOS with its neighbor
     for index in range(len(dos_ints))[:-1]:

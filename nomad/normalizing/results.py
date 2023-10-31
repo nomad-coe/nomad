@@ -18,7 +18,7 @@
 
 import re
 import numpy as np
-from typing import List, Union, Any, Optional, Iterable
+from typing import List, Union, Any, Optional, Dict
 import ase.data
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
 import matid.geometry  # pylint: disable=import-error
@@ -64,6 +64,8 @@ from nomad.datamodel.results import (
     BandStructureElectronic,
     BandStructurePhonon,
     DOSElectronic,
+    DOSNew,
+    DOSElectronicNew,
     DOSPhonon,
     GreensFunctionsElectronic,
     EnergyFreeHelmholtz,
@@ -246,14 +248,14 @@ class ResultsNormalizer(Normalizer):
             else:
                 self.entry_archive.metadata.entry_name = f'{type_tag}'
 
-    def resolve_band_gap(self, path: list[str]) -> Union[List[BandGap], None]:
+    def resolve_band_gap(self, path: list[str]) -> List[BandGap]:
         """Extract all band gaps from the given `path` and return them in a list along
         with their provenance.
         """
         band_gaps = traverse_reversed(self.entry_archive, path)
         if not band_gaps:
             return None
-        bg_root: List[BandGap] = []
+        bg_root: list[BandGap] = []
         for bg in band_gaps:
             bg_results = BandGap()
             bg_results.index = bg.index
@@ -265,7 +267,7 @@ class ResultsNormalizer(Normalizer):
             bg_root.insert(0, bg_results)
         return bg_root
 
-    def resolve_band_structure(self, path: list[str]) -> Union[List[BandStructureElectronic], None]:
+    def resolve_band_structure(self, path: list[str]) -> List[BandStructureElectronic]:
         """Returns a new section containing an electronic band structure. In
         the case of multiple valid band structures, only the latest one is
         considered.
@@ -302,37 +304,96 @@ class ResultsNormalizer(Normalizer):
                 bs_root.insert(0, bs_results)
         return bs_root
 
-    def resolve_dos(self, path: list[str]) -> Union[List[DOSElectronic], None]:
+    def resolve_dos_deprecated(self, path: list[str]) -> List[DOSElectronic]:
         """Returns a reference to the section containing an electronic dos. In
         the case of multiple valid DOSes, only the latest one is reported.
 
         DOS is reported only under the following conditions:
             - There is a non-empty array of dos_values_normalized.
             - There is a non-empty array of dos_energies.
-        """
-        doss = traverse_reversed(self.entry_archive, path)
-        if not doss:
-            return None
-        dos_root: List[DOSElectronic] = []
-        for dos in doss:
-            energies = dos.energies
-            values = np.array([d.value.magnitude for d in dos.total])
-            if valid_array(energies) and valid_array(values):
-                dos_results = DOSElectronic()
-                dos_results.energies = dos
-                dos_results.total = dos.total
-                n_channels = values.shape[0]
-                dos_results.spin_polarized = n_channels > 1
-                dos_results.energy_fermi = dos.energy_fermi
-                dos.label = dos.kind
-                for info in dos.band_gap:
-                    info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
-                    dos_results.m_add_sub_section(DOSElectronic.band_gap, info_new)
-                dos_root.insert(0, dos_results)
-        return dos_root
 
-    def resolve_greens_functions(self, path: list[str]) -> Union[List[GreensFunctionsElectronic], None]:
-        """Returns a reference to the section containing the electronic Green's functions.
+        NOTE: this function will be eventually deprecated. This is because DOSElectronic refers
+        to an old schema which will be deleted. The new function `resolve_dos` should be the
+        one which persists over time.
+        """
+        dos_sections = extract_section(self.entry_archive, path, full_list=True)
+        # The old mapping does not work for the new spin-polarized schema
+        if not dos_sections or len(dos_sections) == 2:
+            return []
+        dos = dos_sections[0]
+        energies = dos.energies
+        values = np.array([d.value.magnitude for d in dos.total])
+        dos_results = None
+        if valid_array(energies) and valid_array(values):
+            dos_results = DOSElectronic()
+            dos_results.energies = dos
+            dos_results.total = dos.total
+            dos_results.energy_fermi = dos.energy_fermi
+        return [dos_results] if dos_results else []
+
+    def resolve_dos(self, path: list[str]) -> List[DOSElectronicNew]:
+        """Returns a section containing the references for an electronic DOS. This section
+        is then stored under `archive.results.properties.electronic.dos_electronic_new`.
+
+        If the calculation is spin-polarized, inside this new section there is a list `data` of
+        length 2 and a boolean `spin_polarized` set to true. It also reference the species-,
+        atom-, and orbital-projected DOS, if these are present.
+
+        This section is populated only when there are non-empty arrays for energies and DOS.total values.
+
+        Args:
+            path (list[str]): the path to the dos_electronic section to be extracted from the
+                self.entry_archive.
+
+        Returns:
+            List[DOSElectronicNew]: the mapped DOS.
+        """
+        dos_sections = extract_section(self.entry_archive, path, full_list=True)
+        if not dos_sections:
+            return []
+        dos_results = None  # this is done to avoid problems of generating empty sections if no valid_arrays
+        for dos_section in dos_sections:
+            energies = dos_section.energies
+            values = np.array([d.value.magnitude for d in dos_section.total])
+            if valid_array(energies) and valid_array(values):
+                dos_results = DOSElectronicNew() if not dos_results else dos_results
+                dos_data = dos_results.m_create(DOSNew)
+                dos_data.energies = dos_section
+                dos_data.total = dos_section.total[-1]
+                dos_data.energy_fermi = dos_section.energy_fermi
+                dos_data.energy_ref = dos_section.energy_ref
+                # Storing deprecated BandGap info
+                for info in dos_section.band_gap:
+                    info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
+                    dos_data.m_add_sub_section(DOSNew.band_gap, info_new)
+                # Spin-polarized
+                dos_results.spin_polarized = len(dos_sections) == 2
+                dos_data.spin_channel = dos_section.spin_channel
+                # Projected DOS
+                has_projected = False
+                _projected_sections = {key: value for key, value in dos_section.m_def.all_sub_sections.items() if 'projected' in key}
+                _projected_data = {key: value for key, value in dos_data.m_def.all_quantities.items() if 'projected' in key}
+                for key, value in _projected_sections.items():
+                    dos_projected = dos_section.m_get(value)
+                    if dos_projected is not None and len(dos_projected) > 0:
+                        dos_data.m_set(_projected_data.get(key), dos_projected)
+                        has_projected = True
+                dos_results.has_projected = has_projected
+        return [dos_results] if dos_results else []
+
+    def resolve_greens_functions(self, path: list[str]) -> List[GreensFunctionsElectronic]:
+        """Returns a section containing the references of the electronic Greens functions.
+        This section is then stored under `archive.results.properties.electronic`.
+
+        This section is only populated if there are non-zero values of the tau, matsubara_freq,
+        or frequencies, and its respective greens_function quantities.
+
+        Args:
+            path (list[str]): the path to the dos_electronic section to be extracted from the
+                self.entry_archive.
+
+        Returns:
+            List[GreensFunctionsElectronic]: the mapped Greens functions.
         """
         greens_functions = extract_section(self.entry_archive, path, full_list=True)
         if not greens_functions:
@@ -340,21 +401,25 @@ class ResultsNormalizer(Normalizer):
         gfs_root: List[GreensFunctionsElectronic] = []
         for gfs in greens_functions:
             gfs_results = GreensFunctionsElectronic()
+            # tau-axes quantities
             tau = gfs.tau
             if valid_array(tau):
                 gfs_results.tau = gfs
                 gfs_results.greens_function_tau = gfs if valid_array(gfs.greens_function_tau) else None
+            # matsubara_freq-axes quantities
             matsubara_freq = gfs.matsubara_freq
             if valid_array(matsubara_freq):
                 gfs_results.matsubara_freq = gfs
                 gfs_results.greens_function_iw = gfs if valid_array(gfs.greens_function_iw) else None
                 gfs_results.self_energy_iw = gfs if valid_array(gfs.self_energy_iw) else None
+            # frequencies-axes quantities
             frequencies = gfs.frequencies
             if valid_array(frequencies):
                 gfs_results.frequencies = gfs
                 gfs_results.greens_function_freq = gfs if valid_array(gfs.greens_function_freq) else None
                 gfs_results.self_energy_freq = gfs if valid_array(gfs.self_energy_freq) else None
                 gfs_results.hybridization_function_freq = gfs if valid_array(gfs.hybridization_function_freq) else None
+            # Other GFs quantities
             gfs_results.orbital_occupations = gfs if valid_array(gfs.orbital_occupations) else None
             gfs_results.quasiparticle_weights = gfs if valid_array(gfs.quasiparticle_weights) else None
             if gfs.chemical_potential:
@@ -363,27 +428,18 @@ class ResultsNormalizer(Normalizer):
             gfs_root.append(gfs_results)
         return gfs_root
 
-    def get_gw_workflow_properties(self):
-        bg_electronic, bs_electronic, dos_electronic, _ = self.electronic_properties
-        for method in ['dft', 'gw']:
-            name = method.upper()
-            for bg in self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"]):
-                bg.label = name
-                bg_electronic.append(bg)
-            for bs in self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"]):
-                bs.label = name
-                for band_gap in bs.band_gap:
-                    band_gap.label = name
-                bs_electronic.append(bs)
-            for dos in self.resolve_dos(["workflow2", "results", f"dos_{method}"]):
-                dos.label = name
-                for band_gap in dos.band_gap:
-                    band_gap.label = name
-                dos_electronic.append(dos)
-        return [bg_electronic, bs_electronic, dos_electronic, []]
-
     def resolve_spectra(self, path: list[str]) -> Union[List[Spectra], None]:
-        """Returns a reference to the section containing the electronic Spectra.
+        """Returns a section containing the references for a Spectra. This section is then
+        stored under `archive.results.properties.spectroscopic`.
+
+        This section is populated only when there are non-empty arrays for energies and intensities.
+
+        Args:
+            path (list[str]): the path to the spectra section to be extracted from the
+                self.entry_archive.
+
+        Returns:
+            List[Spectra]: the mapped Spectra.
         """
         spectra = traverse_reversed(self.entry_archive, path)
         if not spectra:
@@ -409,75 +465,80 @@ class ResultsNormalizer(Normalizer):
                     spectra_root.insert(0, spectra_results)
         return spectra_root
 
-    def get_dmft_workflow_properties(self):
-        bg_electronic, bs_electronic, dos_electronic, gf_electronic = self.electronic_properties
-        for method in ['dft', 'projection']:
-            name = method.upper()
-            band_gaps = self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"])
-            band_structures = self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"])
-            dos = self.resolve_dos(["workflow2", "results", f"dos_{method}"])
-            for bg in band_gaps:
-                bg.label = name
-                bg_electronic.append(bg)
-            for bs in band_structures:
-                bs.label = name
-                for band_gap in bs.band_gap:
-                    band_gap.label = name
-                bs_electronic.append(bs)
-            for d in dos:
-                d.label = name
-                for band_gap in d.band_gap:
-                    band_gap.label = name
-                dos_electronic.append(d)
-        band_gaps = self.resolve_band_gap(["workflow2", "results", "band_gap_dmft"])
-        for bg in band_gaps:
-            bg.label = 'DMFT'
-            bg_electronic.append(bg)
-        greens_functions = self.resolve_greens_functions(["workflow2", "results", "greens_functions_dmft"])
-        for gf in greens_functions:
-            gf.label = 'DMFT'
-            gf_electronic.append(gf)
-        return [bg_electronic, bs_electronic, dos_electronic, gf_electronic]
+    def _resolve_workflow_gs_properties(self, methods: list[str], properties: list[str]) -> None:
+        """Resolves the ground state (gs) properties passed as a list `properties` (band_gap,
+        band_structure, dos) for a given list of `methods` (dft, gw, projection, maxent).
 
-    def get_maxent_workflow_properties(self):
-        bg_electronic, bs_electronic, dos_electronic, gf_electronic = self.electronic_properties
-        band_gaps = self.resolve_band_gap(["workflow2", "results", "band_gap_maxent"])
-        for bg in band_gaps:
-            bg.label = 'MaxEnt'
-            bg_electronic.append(bg)
-        dos = self.resolve_dos(["workflow2", "results", "dos_maxent"])
-        for d in dos:
-            d.label = 'MaxEnt'
-            d.append(bg)
+        Args:
+            methods (list[str]): the list of methods from which the properties are resolved.
+            properties (list[str]): the list of properties to be resolved from `workflow2.results`.
+        """
+        for method in methods:
+            name = 'Projection' if method == 'projection' else 'MaxEnt' if method == 'maxent' else method.upper()
+            for prop in properties:
+                property_list = self.electronic_properties.get(prop)
+                method_property_resolved = getattr(self, f'resolve_{prop}')(['workflow2', 'results', f'{prop}_{method}'])
+                for item in method_property_resolved:
+                    item.label = name
+                    property_list.append(item)
+
+    def get_gw_workflow_properties(self) -> None:
+        """Gets the GW workflow (DFT+GW) properties and stores them in the self.electronic_properties
+        dictionary.
+        """
+        properties = ['band_gap', 'band_structure', 'dos']
+        methods = ['dft', 'gw']
+        self._resolve_workflow_gs_properties(methods, properties)
+
+    def get_dmft_workflow_properties(self) -> None:
+        """Gets the DMFT workflow (DFT+Projection+DMFT) properties and stores them in the
+        self.electronic_properties dictionary.
+        """
+        properties = ['band_gap', 'band_structure', 'dos']
+        methods = ['dft', 'projection']
+        self._resolve_workflow_gs_properties(methods, properties)
+        # Resolving DMFT Greens functions
+        gfs_electronic: List[GreensFunctionsElectronic] = self.electronic_properties.get('greens_functions')  # type: ignore
+        gfs_electronic_dmft = self.resolve_greens_functions(['workflow2', 'results', 'greens_functions_dmft'])
+        for item in gfs_electronic_dmft:
+            item.label = 'DMFT'
+            gfs_electronic.append(item)
+
+    def get_maxent_workflow_properties(self) -> None:
+        """Gets the MaxEnt workflow (DMFT+MaxEnt) properties and stores them in the self.electronic_properties
+        dictionary.
+        """
+        properties = ['band_gap', 'dos']
+        methods = ['maxent']
+        self._resolve_workflow_gs_properties(methods, properties)
+        # Resolving DMFT Greens functions
+        gfs_electronic: List[GreensFunctionsElectronic] = self.electronic_properties.get('greens_functions')  # type: ignore
         for method in ['dmft', 'maxent']:
-            greens_functions = self.resolve_greens_functions(["workflow2", "results", f"greens_functions_{method}"])
-            for gf in greens_functions:
-                gf.label = 'DMFT' if method == 'dmft' else 'MaxEnt'
-                gf_electronic.append(gf)
-        return [bg_electronic, bs_electronic, dos_electronic, gf_electronic]
+            name = 'MaxEnt' if method == 'maxent' else method.upper()
+            gfs = self.resolve_greens_functions(['workflow2', 'results', f'greens_functions_{method}'])
+            for item in gfs:
+                item.label = name
+                gfs_electronic.append(item)
 
-    def get_xs_workflow_properties(self):
-        bg_electronic, bs_electronic, dos_electronic, _ = self.electronic_properties
-        spct_electronic = self.spectra
-        for method in ['dft', 'gw']:
-            name = method.upper()
-            for bg in self.resolve_band_gap(["workflow2", "results", f"band_gap_{method}"]):
-                bg.label = name
-                bg_electronic.append(bg)
-            for bs in self.resolve_band_structure(["workflow2", "results", f"band_structure_{method}"]):
-                bs.label = name
-                for band_gap in bs.band_gap:
-                    band_gap.label = name
-                bs_electronic.append(bs)
-            for dos in self.resolve_dos(["workflow2", "results", f"dos_{method}"]):
-                dos.label = name
-                for band_gap in dos.band_gap:
-                    band_gap.label = name
-                dos_electronic.append(dos)
+    def get_xs_workflow_properties(self, spectra: List[Spectra]) -> List[Spectra]:
+        """Gets the XS workflow (DFT+GW+BSE) workflow properties and stores them in self.electronic_properties
+        and in spectra. Then it returns the new Spectra section with the resolved data
+
+        Args:
+            spectra (Union[List[Spectra], None]): the input Spectra section resolved from
+                `archive.run`.
+
+        Returns:
+            Union[List[Spectra], None]: the mapped Spectra from `workflow2.results`.
+        """
+        properties = ['band_gap', 'band_structure', 'dos']
+        methods = ['dft', 'gw']
+        self._resolve_workflow_gs_properties(methods, properties)
+        spct_electronic = spectra
         spectra = self.resolve_spectra(["workflow2", "results", "spectra", "spectrum_polarization"])
         if spectra:
             spct_electronic = spectra
-        return ([bg_electronic, bs_electronic, dos_electronic, []], spct_electronic)
+        return spct_electronic
 
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
         """Returns a new section containing a phonon band structure. In
@@ -815,47 +876,53 @@ class ResultsNormalizer(Normalizer):
 
         # Electronic and Spectroscopic
         #   electronic properties list
-        bg_electronic = self.resolve_band_gap(['run', 'calculation', 'band_gap'])
-        bs_electronic = self.resolve_band_structure(['run', 'calculation', 'band_structure_electronic'])
-        dos_electronic = self.resolve_dos(['run', 'calculation', 'dos_electronic'])
-        gfs_electronic = self.resolve_greens_functions(['run', 'calculation', 'greens_functions'])
-        self.electronic_properties = [bg_electronic, bs_electronic, dos_electronic, gfs_electronic]
+        ElectronicPropertyTypes = Dict[
+            str, Union[
+                List[BandGap],
+                List[BandStructureElectronic],
+                List[DOSElectronic],
+                List[DOSElectronicNew],
+                List[GreensFunctionsElectronic]
+            ]
+        ]
+        electronic_properties: ElectronicPropertyTypes = {
+            'band_gap': self.resolve_band_gap(['run', 'calculation', 'band_gap']),
+            'band_structure': self.resolve_band_structure(['run', 'calculation', 'band_structure_electronic']),
+            'dos_deprecated': self.resolve_dos_deprecated(['run', 'calculation', 'dos_electronic']),
+            'dos': self.resolve_dos(['run', 'calculation', 'dos_electronic']),
+            'greens_functions': self.resolve_greens_functions(['run', 'calculation', 'greens_functions'])
+        }
+        self.electronic_properties = electronic_properties
         #   spectroscopic properties list
         spectra = self.resolve_spectra(['run', 'calculation', 'spectra'])
-        self.spectra = spectra
         # Resolving GW, XS workflow properties
         workflow = self.entry_archive.workflow2
         if workflow:
             workflow_name = workflow.m_def.name
             if workflow_name == 'GW':
-                self.electronic_properties = self.get_gw_workflow_properties()
+                self.get_gw_workflow_properties()
             elif workflow_name == 'DMFT':
-                self.electronic_properties = self.get_dmft_workflow_properties()
+                self.get_dmft_workflow_properties()
             elif workflow_name == 'MaxEnt':
-                self.electronic_properties = self.get_maxent_workflow_properties()
+                self.get_maxent_workflow_properties()
             elif workflow_name == 'PhotonPolarization':
                 spectra = self.resolve_spectra(['workflow2', 'results', 'spectrum_polarization'])
-                if spectra is not None:
-                    self.spectra = spectra
             elif workflow_name == 'XS':
-                (self.electronic_properties, self.spectra) = self.get_xs_workflow_properties()
+                spectra = self.get_xs_workflow_properties(spectra)
 
         method_def = {value.sub_section.name: value for _, value in ElectronicProperties.m_def.all_sub_sections.items()}
-        if any(self.electronic_properties):
+        if any(len(value) > 0 for value in self.electronic_properties.values()):
             electronic = ElectronicProperties()
-            for electronic_property in self.electronic_properties:
-                if electronic_property:
-                    if isinstance(electronic_property, Iterable):
-                        for prop in electronic_property:
-                            electronic.m_add_sub_section(method_def[prop.m_def.name], prop)
-                    else:
-                        continue
+            for electronic_property in self.electronic_properties.values():
+                if len(electronic_property) > 0:
+                    for prop in electronic_property:
+                        electronic.m_add_sub_section(method_def[prop.m_def.name], prop)
             properties.electronic = electronic
 
         # Spectroscopic
-        if self.spectra:
+        if spectra:
             spectroscopic = SpectroscopicProperties()
-            spectroscopic.spectra = self.spectra
+            spectroscopic.spectra = spectra
             properties.spectroscopic = spectroscopic
 
         # Vibrational

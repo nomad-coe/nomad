@@ -21,47 +21,28 @@ import { resolveInternalRef } from '../../../utils'
 import { PropertyCard } from './PropertyCard'
 import ElectronicProperties from '../../visualization/ElectronicProperties'
 import { resolveGreensFunctions } from '../../visualization/GreensFunctions'
+import { resolveDosNew, resolveDosOld } from '../../visualization/DOS'
 
 const ElectronicPropertiesCard = React.memo(({index, properties, archive}) => {
   // Find out which properties are present
-  const hasDos = properties.has('dos_electronic')
+  const hasDosNew = properties.has('dos_electronic_new')
+  const hasDosOld = properties.has('dos_electronic')
   const hasBs = properties.has('band_structure_electronic')
   const hasBandGap = properties.has('electronic.band_structure_electronic.band_gap')
   const hasGf = properties.has('greens_functions_electronic')
 
   // Do not show the card if none of the properties are available
-  if (!hasDos && !hasBs && !hasBandGap && !hasGf) return null
+  if (!hasDosNew && !hasDosOld && !hasBs && !hasBandGap && !hasGf) return null
 
-  let dosReferences = archive?.results?.properties?.electronic?.dos_electronic || []
   let bsReferences = archive?.results?.properties?.electronic?.band_structure_electronic || []
   const pattern = '\\.\\./(?:entries|upload/archive|uploads.+?archive)/(.+?)(?:/archive#|#)(.+)'
   if (!Array.isArray(bsReferences)) bsReferences = [bsReferences]
-  if (!Array.isArray(dosReferences)) dosReferences = [dosReferences]
 
-  // Resolve DOS data
-  let dos = hasDos ? undefined : false
+  // Resolve the new DOS schema data. For older entries, resolve the old DOS schema data
+  let dos = (hasDosOld || hasDosNew) ? undefined : false
   if (archive) {
-    dos = []
-    for (const reference of dosReferences) {
-      const d = {}
-      const match = reference.energies.match(pattern)
-      const path = match ? match[2] : reference.energies
-      const totalPath = match ? reference.total.map(ref => ref.match(pattern)[2]) : reference.total
-      const sourceArchive = match ? (archive.m_ref_archives[match[1]] || archive.m_ref_archives[reference.energies.split('#')[0]]) : archive
-      if (sourceArchive) {
-        d.energies = resolveInternalRef(path, sourceArchive)
-        const internalRef = resolveInternalRef(totalPath, sourceArchive)
-        d.densities = internalRef.map(dos => dos.value)
-        d.normalization_factors = internalRef.map(dos => dos.normalization_factor)
-      }
-      d.name = reference.label
-      if (reference.band_gap) {
-        d.energy_highest_occupied = Math.max(...reference.band_gap.map(x => x.energy_highest_occupied))
-      }
-      d.m_path = `${archive?.metadata?.entry_id}/data/results/properties/electronic/dos_electronic`
-      if (d.energies && d.densities) dos.push(d)
-    }
-    dos = dos.length === 0 ? false : dos
+    if (hasDosNew) dos = resolveDosNew(properties, archive, pattern)
+    if (!hasDosNew && hasDosOld) dos = resolveDosOld(properties, archive, pattern)
   }
 
   // Resolve band structure data
