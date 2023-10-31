@@ -53,6 +53,7 @@ from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 from nomad.units import ureg
 from nomad.metainfo import MSection
+from nomad.utils import extract_section
 
 
 valid_elements = set(ase.data.chemical_symbols[1:])
@@ -1865,10 +1866,16 @@ def get_bond_list_from_model_contributions(sec_run: MSection, method_index: int 
 
     bond_list: List[tuple]
     '''
-    sec_method = sec_run.get('method')[method_index] if sec_run.get('method') is not None else None
+    if method_index == -1:
+        sec_method = extract_section(sec_run, ['method'])
+    else:
+        sec_method = extract_section(sec_run, ['method'], full_list=True)[method_index] if extract_section(sec_run, ['method']) is not None else None
     sec_force_field = sec_method.force_field if sec_method is not None else None
-    sec_model = sec_force_field.get('model')[model_index] if sec_force_field is not None else None
-    contributions = sec_model.get('contributions') if sec_model is not None else []
+    if model_index == -1:
+        sec_model = extract_section(sec_force_field, ['model'])
+    else:
+        sec_model = extract_section(sec_force_field, ['model'], full_list=True)[model_index] if sec_force_field is not None else None
+    contributions = sec_model.contributions if sec_model is not None else []
     contributions = contributions if contributions is not None else []
     bond_list = []
     for contribution in contributions:
