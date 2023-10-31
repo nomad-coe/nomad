@@ -81,10 +81,10 @@ def test_gw_workflow(gw_workflow):
     assert results.method.simulation.gw.basis_set_type == 'plane waves'
     assert not results.properties.electronic.band_gap
     assert not results.properties.electronic.greens_functions_electronic
-    assert len(results.properties.electronic.dos_electronic) == 2
+    assert len(results.properties.electronic.dos_electronic_new) == 2
     assert len(results.properties.electronic.band_structure_electronic) == 2
-    assert results.properties.electronic.dos_electronic[0].label == 'DFT'
-    assert results.properties.electronic.dos_electronic[1].label == 'GW'
+    assert results.properties.electronic.dos_electronic_new[0].label == 'DFT'
+    assert results.properties.electronic.dos_electronic_new[1].label == 'GW'
 
 
 def test_dmft_workflow(dmft_workflow):
@@ -109,7 +109,7 @@ def test_dmft_workflow(dmft_workflow):
     assert results.method.simulation.dmft.jh.magnitude == 0.6e-19
     assert results.m_xpath('properties.electronic.band_gap')
     assert len(results.properties.electronic.band_gap) == 1
-    assert results.properties.electronic.band_gap[0].label == 'PROJECTION'
+    assert results.properties.electronic.band_gap[0].label == 'Projection'
     assert results.m_xpath('properties.electronic.band_structure_electronic')
     assert len(results.properties.electronic.band_structure_electronic) == 1
     # TODO check why this testing is not passing
@@ -138,8 +138,8 @@ def test_maxent_workflow(maxent_workflow):
     assert results.method.simulation.dmft.u.magnitude == 4.0e-19
     assert results.method.simulation.dmft.jh.magnitude == 0.6e-19
     assert results.method.simulation.dmft.analytical_continuation == 'MaxEnt'
-    assert results.m_xpath('properties.electronic.dos_electronic')
-    assert len(results.properties.electronic.dos_electronic) == 1
+    assert results.m_xpath('properties.electronic.dos_electronic_new')
+    assert len(results.properties.electronic.dos_electronic_new) == 1
     assert results.m_xpath('properties.electronic.greens_functions_electronic')
     assert len(results.properties.electronic.greens_functions_electronic) == 2
     assert results.properties.electronic.greens_functions_electronic[0].label == 'DMFT'
@@ -198,7 +198,7 @@ def test_xs_workflow(xs_workflow):
     assert results.method.simulation.bse.starting_point_names == ['GGA_X_PBE']
     assert results.method.simulation.bse.basis_set_type == 'plane waves'
     assert results.properties.electronic and results.properties.spectroscopic
-    assert results.properties.electronic.dos_electronic[0].label == 'DFT'
+    assert results.properties.electronic.dos_electronic_new[0].label == 'DFT'
     assert len(results.properties.spectroscopic.spectra) == 2
     assert results.properties.spectroscopic.spectra[0].provenance != results.properties.spectroscopic.spectra[1].provenance
 

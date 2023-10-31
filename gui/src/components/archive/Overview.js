@@ -55,6 +55,7 @@ const useOverviewDOSStyles = makeStyles({
 export const OverviewDOSElectronic = React.memo(({def, section, units}) => {
   const style = useOverviewDOSStyles()
   const data = useMemo(() => ([{
+    version: 'old',
     energies: section.energies,
     densities: section.total.map(dos => dos.value),
     energy_highest_occupied: section.band_gap

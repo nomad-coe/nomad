@@ -1123,7 +1123,18 @@ class DosValues(AtomicValues):
 class Dos(Atomic):
     '''
     Section containing information of an electronic-energy or phonon density of states
-    (DOS) evaluation.
+    (DOS) evaluation per spin channel.
+
+    It includes the total DOS and the projected DOS values. We differentiate `species_projected` as the
+    projected DOS for same atomic species, `atom_projected` as the projected DOS for different
+    atoms in the cell, and `orbital_projected` as the projected DOS for the orbitals of each
+    atom. These are hierarchically connected as:
+
+        atom_projected = sum_{orbitals} orbital_projected
+
+        species_projected = sum_{atoms} atom_projected
+
+        total = sum_{species} species_projected
     '''
 
     m_def = Section(validate=False)
@@ -1136,41 +1147,50 @@ class Dos(Atomic):
         ''')
 
     energies = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         shape=['n_energies'],
         unit='joule',
         description='''
         Contains the set of discrete energy values for the DOS.
         ''')
 
-    energy_shift = Quantity(
-        type=np.dtype(np.float64),
-        shape=[],
-        unit='joule',
-        description='''
-        Value necessary to shift the energies array so that the energy zero corresponds to
-        the highest occupied energy level.
-        ''')
-
-    band_gap = SubSection(sub_section=BandGapDeprecated.m_def, repeats=True)
-
     energy_fermi = Quantity(
-        type=np.dtype(np.float64),
+        type=np.float64,
         unit="joule",
         shape=[],
-        description="""
+        description='''
         Fermi energy.
-        """)
+        ''')
 
+    energy_ref = Quantity(
+        type=np.float64,
+        unit="joule",
+        shape=[],
+        description='''
+        Energy level denoting the origin along the energy axis, used for comparison and visualization.
+        It is defined as the energy_highest_occupied and does not necessarily coincide with energy_fermi.
+        ''')
+
+    spin_channel = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        Spin channel of the corresponding DOS. It can take values of 0 or 1.
+        ''')
+
+    # TODO total is neither repeated, nor inheriting from AtomicValues; we have to change this when overhauling.
     total = SubSection(sub_section=DosValues.m_def, repeats=True)
 
-    atom_projected = SubSection(sub_section=DosValues.m_def, repeats=True)
-
     species_projected = SubSection(sub_section=DosValues.m_def, repeats=True)
+
+    atom_projected = SubSection(sub_section=DosValues.m_def, repeats=True)
 
     orbital_projected = SubSection(sub_section=DosValues.m_def, repeats=True)
 
     fingerprint = SubSection(sub_section=DosFingerprint.m_def, repeats=False)
+
+    # TODO deprecate this subsection
+    band_gap = SubSection(sub_section=BandGapDeprecated.m_def, repeats=True)
 
 
 class ElectronicStructureProvenance(ProvenanceTracker):

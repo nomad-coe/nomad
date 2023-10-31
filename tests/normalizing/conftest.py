@@ -344,11 +344,12 @@ def add_template_dos(
         raise ValueError('Cannot create spin polarized DOS for non-electronic data.')
     scc = template.run[0].calculation[0]
     dos_type = Calculation.dos_electronic if type == 'electronic' else Calculation.dos_phonon
-    dos = scc.m_create(Dos, dos_type)
     energies = np.linspace(-5, 5, n_values)
     for i, range_list in enumerate(fill):
+        dos = scc.m_create(Dos, dos_type)
+        dos.spin_channel = i if (len(fill) == 2 and type == 'electronic') else None
+        dos.energies = energies * ureg.electron_volt
         dos_total = dos.m_create(DosValues, Dos.total)
-        dos_total.spin = i
         dos_value = np.zeros(n_values)
         for r in range_list:
             idx_bottom = (np.abs(energies - r[0])).argmin()
@@ -356,7 +357,6 @@ def add_template_dos(
             dos_value[idx_bottom:idx_top] = 1
         dos_total.value = dos_value
 
-    dos.energies = energies * ureg.electron_volt
     if energy_reference_fermi is not None:
         energy_reference_fermi *= ureg.electron_volt
     if energy_reference_highest_occupied is not None:
