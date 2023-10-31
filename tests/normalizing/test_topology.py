@@ -340,22 +340,22 @@ def test_topology_2d(surface, ref_topologies):
                 if ref_atoms_property_key == 'm_def':
                     continue
                 atoms_property = atoms[ref_atoms_property_key]
-                if type(atoms_property) == list:
+                if isinstance(atoms_property, list):
                     property = atoms_property[0]
-                    if type(property) == list:
+                    if isinstance(property, list):
                         assert np.allclose(atoms_property, ref_atoms_property, rtol=1e-05, atol=1e-9)
-                    elif type(property) == dict:
+                    elif isinstance(property, dict):
                         for property_keys, property_values in property.items():
                             ref_property = ref_atoms_property[0][property_keys]
                             assert property_values == ref_property
-                elif type(atoms_property) == dict:
+                elif isinstance(atoms_property, dict):
                     for property_keys, property_values in atoms_property.items():
                         ref_property_value = ref_atoms_property[property_keys]
-                        if type(property_values) == float:
+                        if isinstance(property_values, float):
                             assert np.allclose(property_values, ref_property_value, rtol=1e-05, atol=1e-9)
                         else:
                             assert ref_atoms_property == property_values
-                elif type(atoms_property) == float:
+                elif isinstance(atoms_property, float):
                     assert np.allclose(ref_atoms_property, atoms_property, rtol=1e-05, atol=1e-9)
                 else:
                     assert ref_atoms_property == atoms_property

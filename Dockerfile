@@ -101,7 +101,6 @@ COPY .pylintrc \
      LICENSE \
      MANIFEST.in \
      mkdocs.yml \
-     pycodestyle.ini \
      pyproject.toml \
      pytest.ini \
      README.md \

@@ -781,7 +781,7 @@ def secondary_building_units(ase_atom):
                 metal = sum(metal_oxy, [])
                 metal = [i for i in metal if i not in porphyrin_checker]
                 closest_atoms = sum(
-                    [[i for i in graph[j] if i != atoms and not ase_atom[i].symbol in transition_metals()] for j in connected], [])
+                    [[i for i in graph[j] if i != atoms and ase_atom[i].symbol not in transition_metals()] for j in connected], [])
 
                 if len(metal) > 0:
                     all_carbon_indices = sum([[i for i in graph[j] if i in connected]

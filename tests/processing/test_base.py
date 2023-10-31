@@ -49,12 +49,12 @@ def assert_proc(proc, current_process, process_status=ProcessStatus.SUCCESS, err
 def assert_events(expected_events: List[Union[str, List[str]]]):
     ind = 0
     for expected in expected_events:
-        if type(expected) == str:
+        if isinstance(expected, str):
             # str -> expect a specific event
             assert ind <= len(events), f'Not enough events, expecting {expected}'
             assert expected == events[ind]
             ind += 1
-        elif type(expected) == list:
+        elif isinstance(expected, list):
             # list -> expecting a number of events, in any order
             while expected:
                 assert ind <= len(events), f'Not enough events, expecting one of {expected}'
@@ -216,7 +216,7 @@ class ParentProc(Proc):
                     events.append(f'{self.parent_id}:join:fail')
                     assert False, 'failing in join'
                 else:
-                    if type(join_arg) == bool:
+                    if isinstance(join_arg, bool):
                         join_arg = [join_arg]
                     for i, succeed in enumerate(join_arg):
                         # Start up another child
@@ -316,7 +316,7 @@ def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events
         assert child.process_status == expected_child_status
     for i, join_arg in enumerate(join_args):
         if join_arg != fail:
-            if type(join_arg) == bool:
+            if isinstance(join_arg, bool):
                 join_arg = [join_arg]
             for i2, succeed in enumerate(join_arg):
                 child = ChildProc.get(f'rejoin{i + 1}.{i2}')

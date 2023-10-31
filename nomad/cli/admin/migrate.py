@@ -505,6 +505,6 @@ def _wrap_author(author):
     If the author is a str, it is instead returned as it is. This is used to get an object
     which is hashable and can be used in sets.
     '''
-    if type(author) == str:
+    if isinstance(author, str):
         return author
     return tuple((k, author[k]) for k in sorted(author.keys()))

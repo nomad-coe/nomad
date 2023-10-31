@@ -112,7 +112,7 @@ def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tu
             if isinstance(match_result, Iterable):
                 assert parser.creates_children, 'Illegal return value - parser does not specify `creates_children`'
                 for mainfile_key in match_result:  # type: ignore
-                    assert mainfile_key and type(mainfile_key) == str, (
+                    assert mainfile_key and isinstance(mainfile_key, str), (
                         f'Child keys must be strings, got {type(mainfile_key)}')
                 mainfile_keys = sorted(match_result)  # type: ignore
             else:

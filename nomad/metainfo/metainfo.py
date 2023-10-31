@@ -1423,7 +1423,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         return
 
                 elif dimensions == 1:
-                    if type(value) == str or not isinstance(value, IterableABC):
+                    if isinstance(value, str) or not isinstance(value, IterableABC):
                         raise TypeError(
                             f'The shape of {quantity_def} requires an iterable value, but {value} is not iterable.')
 
@@ -1495,7 +1495,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                         return
 
                 elif dimensions == 1:
-                    if type(m_quantity.value) == str or not isinstance(m_quantity.value, IterableABC):
+                    if isinstance(m_quantity.value, str) or not isinstance(m_quantity.value, IterableABC):
                         raise TypeError(
                             f'The shape of {quantity_def} requires an iterable value, '
                             f'but {m_quantity.value} is not iterable.')
@@ -1689,7 +1689,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             if dimension == 0:
                 attr_value = self.__set_normalize(tgt_attr, attr_value)
             elif dimension == 1:
-                if type(attr_value) == str or not isinstance(attr_value, IterableABC):
+                if isinstance(attr_value, str) or not isinstance(attr_value, IterableABC):
                     raise TypeError(f'The shape requires an iterable value, but {attr_value} is not.')
 
                 if tgt_attr.type == complex:

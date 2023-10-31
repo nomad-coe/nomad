@@ -398,7 +398,7 @@ pytest -sv tests
     If you excluded plugins in your [NOMAD config](### `nomad.yaml`), then those tests
     will also fail.
 
-We use Pylint, pycodestyle, and mypy to ensure code quality. To run those:
+We use Pylint, ruff, and mypy to ensure code quality. To run those:
 
 ```shell
 nomad dev qa --skip-tests

@@ -88,13 +88,20 @@ python linting:
   before_script:
     - cd /app
   script:
-    - pycodestyle --config=pycodestyle.ini nomad tests
+    - ruff nomad tests --output-format gitlab > $CI_PROJECT_DIR/gl-code-quality-report.json
     - pylint --rcfile=.pylintrc nomad tests
     - mypy nomad tests
   rules:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
+  artifacts:
+    name: "nomad_code_quality"
+    when: always
+    reports:
+      codequality: gl-code-quality-report.json 
+
+    expire_in: never
 
 gui linting:
   stage: test
