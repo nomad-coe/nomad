@@ -1079,7 +1079,7 @@ class Interaction(MSection):
 
     atom_labels = Quantity(
         type=np.dtype(str),
-        shape=[],
+        shape=['n_interactions', 'n_atoms'],
         description='''
         Labels of the atoms described by the interaction. Can be a list of lists for interaction groupings.
         ''')

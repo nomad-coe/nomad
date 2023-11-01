@@ -1263,7 +1263,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     # get the bonds  # TODO extend to multiple storage options for interactions
     bonds = []
     bonds = sec_atoms.bond_list
-    if bonds is not []:
+    if bonds is not None or len(bonds):
         bonds = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
 
     # get the system times
@@ -1607,6 +1607,63 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     max_mols: the maximum number of molecules per bead group for calculating the msd, for efficiency purposes.
     50k was tested and is very fast and does not seem to have any memory issues.
     '''
+    def parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
+        '''
+        See __get_nojump_positions().
+        '''
+        __ = universe.trajectory[0]
+        prev = np.array(selection.positions)
+        box = universe.trajectory[0].dimensions[:3]
+        sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])  # type: ignore[name-match]
+        jump_data = (
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l'))
+        )
+
+        for i_frame, _ in enumerate(universe.trajectory[1:]):
+            curr = np.array(selection.positions)
+            delta = ((curr - prev) / box).round().astype(np.int8)
+            prev = np.array(curr)
+            for d in range(3):
+                col, = np.where(delta[:, d] != 0)
+                jump_data[d].col.extend(col)
+                jump_data[d].row.extend([i_frame] * len(col))
+                jump_data[d].data.extend(delta[col, d])
+
+        return jump_data
+
+
+    def generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
+        '''
+        See __get_nojump_positions().
+        '''
+        jump_data = parse_jumps(universe, selection)
+        n_frames = len(universe.trajectory)
+        n_atoms = selection.positions.shape[0]
+
+        nojump_matrices = tuple(
+            sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
+        )
+        return nojump_matrices
+
+
+    def get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup) -> NDArray:
+        '''
+        Unwraps the positions to create a continuous trajectory without jumps across periodic boundaries.
+        '''
+        nojump_matrices = generate_nojump_matrices(universe, selection)
+        box = universe.trajectory[0].dimensions[:3]
+
+        nojump_positions = []
+        for i_frame, __ in enumerate(universe.trajectory):
+            delta = np.array(np.vstack(
+                [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
+            ).T) * box
+            nojump_positions.append(selection.positions - delta)
+
+        return np.array(nojump_positions)
+
     def mean_squared_displacement(start: NDArray, current: NDArray):
         '''
         Calculates mean square displacement between current and initial (start) coordinates.
@@ -1673,7 +1730,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     msd_results['diffusion_constant'] = []
     msd_results['error_diffusion_constant'] = []
     for moltype in moltypes:
-        positions = __get_nojump_positions(universe, bead_groups[moltype])
+        positions = get_nojump_positions(universe, bead_groups[moltype])
         results = shifted_correlation_average(mean_squared_displacement, times, positions)
         if results:
             msd_results['value'].append(results[1])
@@ -1690,64 +1747,6 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
 
     return msd_results
-
-
-def __parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
-    '''
-    See __get_nojump_positions().
-    '''
-    __ = universe.trajectory[0]
-    prev = np.array(selection.positions)
-    box = universe.trajectory[0].dimensions[:3]
-    sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])  # type: ignore[name-match]
-    jump_data = (
-        sparse_data(data=array('b'), row=array('l'), col=array('l')),
-        sparse_data(data=array('b'), row=array('l'), col=array('l')),
-        sparse_data(data=array('b'), row=array('l'), col=array('l'))
-    )
-
-    for i_frame, _ in enumerate(universe.trajectory[1:]):
-        curr = np.array(selection.positions)
-        delta = ((curr - prev) / box).round().astype(np.int8)
-        prev = np.array(curr)
-        for d in range(3):
-            col, = np.where(delta[:, d] != 0)
-            jump_data[d].col.extend(col)
-            jump_data[d].row.extend([i_frame] * len(col))
-            jump_data[d].data.extend(delta[col, d])
-
-    return jump_data
-
-
-def __generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
-    '''
-    See __get_nojump_positions().
-    '''
-    jump_data = __parse_jumps(universe, selection)
-    n_frames = len(universe.trajectory)
-    n_atoms = selection.positions.shape[0]
-
-    nojump_matrices = tuple(
-        sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
-    )
-    return nojump_matrices
-
-
-def __get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup) -> NDArray:
-    '''
-    Unwraps the positions to create a continuous trajectory without jumps across periodic boundaries.
-    '''
-    nojump_matrices = __generate_nojump_matrices(universe, selection)
-    box = universe.trajectory[0].dimensions[:3]
-
-    nojump_positions = []
-    for i_frame, __ in enumerate(universe.trajectory):
-        delta = np.array(np.vstack(
-            [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
-        ).T) * box
-        nojump_positions.append(selection.positions - delta)
-
-    return np.array(nojump_positions)
 
 
 def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices: NDArray) -> Dict:
@@ -1824,25 +1823,19 @@ def is_same_molecule(mol_1: dict, mol_2: dict) -> bool:
     Checks whether the 2 input molecule dictionary (see "get_molecules_from_bond_list()" above)
     represent the same molecule type, i.e., same particle types and corresponding bond connections.
     '''
-    def get_bond_list_dict(bond_list_names, bond_list_counts):
+    def get_bond_list_dict(mol):
+        mol_shift = np.min(mol['indices'])
+        mol_bonds_shift = mol['bonds'] - mol_shift
+        bond_list = [sorted((mol['names'][i], mol['names'][j])) for i, j in mol_bonds_shift]
+        bond_list_names, bond_list_counts = np.unique(bond_list, axis=0, return_counts=True)
+
         return {bond[0] + '-' + bond[1]: bond_list_counts[i_bond] for i_bond, bond in enumerate(bond_list_names)}
 
     if sorted(mol_1['names']) != sorted(mol_2['names']):
         return False
 
-    mol_1_shift = np.min(mol_1['indices'])
-    mol_2_shift = np.min(mol_2['indices'])
-    mol_1_bonds_shift = mol_1['bonds'] - mol_1_shift
-    mol_2_bonds_shift = mol_2['bonds'] - mol_2_shift
-
-    bond_list_1 = [sorted((mol_1['names'][i], mol_1['names'][j])) for i, j in mol_1_bonds_shift]
-    bond_list_2 = [sorted((mol_2['names'][i], mol_2['names'][j])) for i, j in mol_2_bonds_shift]
-
-    bond_list_names_1, bond_list_counts_1 = np.unique(bond_list_1, axis=0, return_counts=True)
-    bond_list_names_2, bond_list_counts_2 = np.unique(bond_list_2, axis=0, return_counts=True)
-
-    bond_list_dict_1 = get_bond_list_dict(bond_list_names_1, bond_list_counts_1)
-    bond_list_dict_2 = get_bond_list_dict(bond_list_names_2, bond_list_counts_2)
+    bond_list_dict_1 = get_bond_list_dict(mol_1)
+    bond_list_dict_2 = get_bond_list_dict(mol_2)
 
     if bond_list_dict_1 == bond_list_dict_2:
         return True
@@ -1866,17 +1859,9 @@ def get_bond_list_from_model_contributions(sec_run: MSection, method_index: int 
 
     bond_list: List[tuple]
     '''
-    if method_index == -1:
-        sec_method = extract_section(sec_run, ['method'])
-    else:
-        sec_method = extract_section(sec_run, ['method'], full_list=True)[method_index] if extract_section(sec_run, ['method']) is not None else None
-    sec_force_field = sec_method.force_field if sec_method is not None else None
-    if model_index == -1:
-        sec_model = extract_section(sec_force_field, ['model'])
-    else:
-        sec_model = extract_section(sec_force_field, ['model'], full_list=True)[model_index] if sec_force_field is not None else None
-    contributions = sec_model.contributions if sec_model is not None else []
-    contributions = contributions if contributions is not None else []
+    contributions = []
+    if sec_run.m_xpath(f'method[{method_index}].force_field.model[{model_index}].contributions'):
+        contributions = sec_run.method[method_index].force_field.model[model_index].contributions
     bond_list = []
     for contribution in contributions:
         if contribution.type != 'bond':
