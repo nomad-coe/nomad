@@ -233,9 +233,8 @@ export const PeriodicTable = React.memo(({
   const cellWidth = (width - 2 * padding - 17 * margin) / 18
   const cellHeight = (height - 2 * padding - 9 * margin) / 10
 
-  return <div className={clsx(styles.root, className)} data-testid={testID}>
+  return <div ref={ref} className={clsx(styles.root, className)} data-testid={testID}>
     <svg
-      ref={ref}
       width="100%"
       height="100%"
       viewBox={`0 0 ${width || 0} ${height || 0}`}
