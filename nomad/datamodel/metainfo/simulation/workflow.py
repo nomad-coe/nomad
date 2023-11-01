@@ -36,7 +36,7 @@ from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, BandGap, Dos, BandStructure, BandEnergies, Density, Potential, Spectra,
     ElectronicStructureProvenance, GreensFunctions,
     RadiusOfGyration as RadiusOfGyrationCalculation,
-    RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation)
+    RadiusOfGyrationValues as RadiusOfGyrationValuesCalculation, EnergyEntry)
 from nomad.atomutils import archive_to_universe
 from nomad.atomutils import (
     calc_molecular_rdf,
@@ -948,10 +948,11 @@ class GeometryOptimization(SerialSimulation):
         if invalid:
             logger.warning('Energy not reported for an calculation that is part of a geometry optimization')
         if energies:
-            self.results.energies = energies
+            self.results.energies = energies * EnergyEntry.value.unit
 
-        if not self.results.final_energy_difference:
-            self.results.final_energy_difference = resolve_difference(energies)
+        energy_difference = resolve_difference(energies)
+        if not self.results.final_energy_difference and energy_difference is not None:
+            self.results.final_energy_difference = energy_difference * EnergyEntry.value.unit
 
         if not self.results.final_force_maximum:
             if len(self._calculations) > 0:

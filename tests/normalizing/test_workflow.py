@@ -209,7 +209,7 @@ def test_geometry_optimization_workflow(workflow_archive):
     sec_workflow = vasp_archive.workflow2
     assert sec_workflow.method.type == 'cell_shape'
     assert sec_workflow.results.calculation_result_ref.m_def.name == 'Calculation'
-    assert sec_workflow.results.final_energy_difference > 0.0
+    assert sec_workflow.results.final_energy_difference.to('eV').magnitude == approx(0.00012532)
     assert sec_workflow.results.optimization_steps == 3
     assert sec_workflow.results.final_force_maximum > 0.0
     assert sec_workflow.results.is_converged_geometry
