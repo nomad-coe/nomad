@@ -249,7 +249,7 @@ window.nomadEnv = {
                 "size": "xl"
               },
               "structure": {
-                "label": "Structure",
+                "label": "Structure / Symmetry",
                 "level": 1,
                 "size": "s"
               },
@@ -394,16 +394,16 @@ window.nomadEnv = {
                 "label": "Method name",
                 "align": "left"
               },
+              "results.method.simulation.dft.xc_functional_type": {
+                "label": "Jacob's ladder",
+                "align": "left"
+              },
               "upload_create_time": {
                 "label": "Upload time",
                 "align": "left"
               },
               "authors": {
                 "label": "Authors",
-                "align": "left"
-              },
-              "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC Functional Type",
                 "align": "left"
               },
               "results.method.simulation.precision.apw_cutoff": {
@@ -442,32 +442,8 @@ window.nomadEnv = {
                 "label": "Space group number",
                 "align": "left"
               },
-              "results.eln.lab_ids": {
-                "label": "Lab IDs",
-                "align": "left"
-              },
-              "results.eln.sections": {
-                "label": "Sections",
-                "align": "left"
-              },
-              "results.eln.methods": {
-                "label": "Methods",
-                "align": "left"
-              },
-              "results.eln.tags": {
-                "label": "Tags",
-                "align": "left"
-              },
-              "results.eln.instruments": {
-                "label": "Instruments",
-                "align": "left"
-              },
               "entry_name": {
                 "label": "Name",
-                "align": "left"
-              },
-              "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "mainfile": {
@@ -495,6 +471,7 @@ window.nomadEnv = {
               "results.material.chemical_formula_hill",
               "results.method.simulation.program_name",
               "results.method.method_name",
+              "results.method.simulation.dft.xc_functional_type",
               "upload_create_time",
               "authors"
             ]
@@ -523,7 +500,7 @@ window.nomadEnv = {
                 "size": "xl"
               },
               "structure": {
-                "label": "Structure",
+                "label": "Structure / Symmetry",
                 "level": 1,
                 "size": "s"
               },
@@ -621,6 +598,249 @@ window.nomadEnv = {
               "combine"
             ]
           },
+          "dashboard": {
+            "widgets": [
+              {
+                "type": "periodictable",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 9,
+                    "w": 13,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 11,
+                    "w": 14,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 11,
+                    "w": 14,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                "quantity": "results.material.elements",
+                "scale": "linear"
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 9,
+                    "w": 6,
+                    "x": 30,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 24,
+                    "y": 5
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 5,
+                    "x": 19,
+                    "y": 6
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 12,
+                    "y": 8
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 13
+                  }
+                },
+                "quantity": "results.material.symmetry.space_group_symbol",
+                "scale": "linear",
+                "showinput": true
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 9,
+                    "w": 6,
+                    "x": 19,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 11,
+                    "w": 5,
+                    "x": 19,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 5,
+                    "x": 19,
+                    "y": 0
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 0,
+                    "y": 8
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 8
+                  }
+                },
+                "quantity": "results.material.structural_type",
+                "scale": "1/8",
+                "showinput": false
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 9,
+                    "w": 6,
+                    "x": 13,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 11,
+                    "w": 5,
+                    "x": 14,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 5,
+                    "x": 14,
+                    "y": 0
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 8,
+                    "w": 6,
+                    "x": 12,
+                    "y": 0
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 8
+                  }
+                },
+                "quantity": "results.method.simulation.program_name",
+                "scale": "1/4",
+                "showinput": true
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "xxl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 9,
+                    "w": 5,
+                    "x": 25,
+                    "y": 0
+                  },
+                  "xl": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 24,
+                    "y": 0
+                  },
+                  "lg": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 5,
+                    "x": 14,
+                    "y": 6
+                  },
+                  "md": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 6,
+                    "w": 6,
+                    "x": 6,
+                    "y": 8
+                  },
+                  "sm": {
+                    "minH": 3,
+                    "minW": 3,
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 13
+                  }
+                },
+                "quantity": "results.material.symmetry.crystal_system",
+                "scale": "linear",
+                "showinput": false
+              }
+            ]
+          },
           "filters_locked": {
             "quantities": "results.method.simulation.program_name"
           }
@@ -700,7 +920,7 @@ window.nomadEnv = {
                 "size": "xl"
               },
               "structure": {
-                "label": "Structure",
+                "label": "Structure / Symmetry",
                 "level": 1,
                 "size": "s"
               },
@@ -1250,7 +1470,7 @@ window.nomadEnv = {
                 "size": "xl"
               },
               "structure": {
-                "label": "Structure",
+                "label": "Structure / Symmetry",
                 "level": 1,
                 "size": "s"
               },
@@ -1896,7 +2116,7 @@ window.nomadEnv = {
                 "size": "xl"
               },
               "structure": {
-                "label": "Structure",
+                "label": "Structure / Symmetry",
                 "level": 1,
                 "size": "s"
               },

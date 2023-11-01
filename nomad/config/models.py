@@ -1111,7 +1111,7 @@ class UI(StrictSettings):
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
                             'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
-                            'structure': {'label': 'Structure', 'level': 1},
+                            'structure': {'label': 'Structure / Symmetry', 'level': 1},
                             'method': {'label': 'Method', 'level': 0},
                             'precision': {'label': 'Precision', 'level': 1},
                             'dft': {'label': 'DFT', 'level': 1},
@@ -1152,6 +1152,7 @@ class UI(StrictSettings):
                             'results.material.chemical_formula_hill',
                             'results.method.simulation.program_name',
                             'results.method.method_name',
+                            'results.method.simulation.dft.xc_functional_type',
                             'upload_create_time',
                             'authors'
                         ],
@@ -1159,9 +1160,9 @@ class UI(StrictSettings):
                             'results.material.chemical_formula_hill': {'label': 'Formula', 'align': 'left'},
                             'results.method.simulation.program_name': {'label': 'Program name'},
                             'results.method.method_name': {'label': 'Method name'},
+                            'results.method.simulation.dft.xc_functional_type': {'label': "Jacob's ladder"},
                             'upload_create_time': {'label': 'Upload time', 'align': 'left'},
                             'authors': {'label': 'Authors', 'align': 'left'},
-                            'results.method.simulation.dft.xc_functional_type': {'label': 'XC Functional Type'},
                             'results.method.simulation.precision.apw_cutoff': {'label': 'APW Cutoff'},
                             'results.method.simulation.precision.basis_set': {'label': 'Basis Set'},
                             'results.method.simulation.precision.k_line_density': {'label': 'k-line Density'},
@@ -1171,13 +1172,7 @@ class UI(StrictSettings):
                             'results.material.symmetry.crystal_system': {'label': 'Crystal system'},
                             'results.material.symmetry.space_group_symbol': {'label': 'Space group symbol'},
                             'results.material.symmetry.space_group_number': {'label': 'Space group number'},
-                            'results.eln.lab_ids': {'label': 'Lab IDs'},
-                            'results.eln.sections': {'label': 'Sections'},
-                            'results.eln.methods': {'label': 'Methods'},
-                            'results.eln.tags': {'label': 'Tags'},
-                            'results.eln.instruments': {'label': 'Instruments'},
                             'entry_name': {'label': 'Name', 'align': 'left'},
-                            'entry_type': {'label': 'Entry type', 'align': 'left'},
                             'mainfile': {'label': 'Mainfile', 'align': 'left'},
                             'comment': {'label': 'Comment', 'align': 'left'},
                             'references': {'label': 'References', 'align': 'left'},
@@ -1189,7 +1184,7 @@ class UI(StrictSettings):
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
                             'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
-                            'structure': {'label': 'Structure', 'level': 1},
+                            'structure': {'label': 'Structure / Symmetry', 'level': 1},
                             'method': {'label': 'Method', 'level': 0},
                             'precision': {'label': 'Precision', 'level': 1},
                             'dft': {'label': 'DFT', 'level': 1},
@@ -1209,9 +1204,77 @@ class UI(StrictSettings):
                             'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
                         }
                     },
+                    'dashboard': {
+                        'widgets': [
+                            {
+                                'type': 'periodictable',
+                                'scale': 'linear',
+                                'quantity': 'results.material.elements',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 9, 'w': 13, 'y': 0, 'x': 0},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 11, 'w': 14, 'y': 0, 'x': 0},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 11, 'w': 14, 'y': 0, 'x': 0},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 8, 'w': 12, 'y': 0, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 8, 'w': 12, 'y': 0, 'x': 0}
+                                }
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': 'linear',
+                                'quantity': 'results.material.symmetry.space_group_symbol',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 9, 'w': 6, 'y': 0, 'x': 30},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 5, 'x': 24},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 5, 'w': 5, 'y': 6, 'x': 19},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 8, 'x': 12},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 13, 'x': 6}
+                                }
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': False,
+                                'scale': '1/8',
+                                'quantity': 'results.material.structural_type',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 9, 'w': 6, 'y': 0, 'x': 19},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 11, 'w': 5, 'y': 0, 'x': 19},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 6, 'w': 5, 'y': 0, 'x': 19},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 8, 'x': 0},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 8, 'x': 6}
+                                }
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': True,
+                                'scale': '1/4',
+                                'quantity': 'results.method.simulation.program_name',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 9, 'w': 6, 'y': 0, 'x': 13},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 11, 'w': 5, 'y': 0, 'x': 14},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 6, 'w': 5, 'y': 0, 'x': 14},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 8, 'w': 6, 'y': 0, 'x': 12},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 8, 'x': 0}
+                                }
+                            },
+                            {
+                                'type': 'terms',
+                                'showinput': False,
+                                'scale': 'linear',
+                                'quantity': 'results.material.symmetry.crystal_system',
+                                'layout': {
+                                    'xxl': {'minH': 3, 'minW': 3, 'h': 9, 'w': 5, 'y': 0, 'x': 25},
+                                    'xl': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 0, 'x': 24},
+                                    'lg': {'minH': 3, 'minW': 3, 'h': 5, 'w': 5, 'y': 6, 'x': 14},
+                                    'md': {'minH': 3, 'minW': 3, 'h': 6, 'w': 6, 'y': 8, 'x': 6},
+                                    'sm': {'minH': 3, 'minW': 3, 'h': 5, 'w': 6, 'y': 13, 'x': 0}
+                                }
+                            }
+                        ]
+                    },
                     'filters_locked': {
                         'quantities': 'results.method.simulation.program_name',
-                    },
+                    }
                 },
                 'materials': {
                     'label': 'Materials',
@@ -1271,7 +1334,7 @@ class UI(StrictSettings):
                         'options': {
                             'material': {'label': 'Material', 'level': 0},
                             'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
-                            'structure': {'label': 'Structure', 'level': 1},
+                            'structure': {'label': 'Structure / Symmetry', 'level': 1},
                             'method': {'label': 'Method', 'level': 0},
                             'dft': {'label': 'DFT', 'level': 1},
                             'gw': {'label': 'GW', 'level': 1},
@@ -1619,7 +1682,7 @@ class UI(StrictSettings):
                         'options': {
                             'material': {'label': 'Absorber Material', 'level': 0},
                             'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
-                            'structure': {'label': 'Structure', 'level': 1},
+                            'structure': {'label': 'Structure / Symmetry', 'level': 1},
                             'electronic': {'label': 'Electronic Properties', 'level': 0},
                             'solarcell': {'label': 'Solar Cell Properties', 'level': 0},
                             'eln': {'label': 'Electronic Lab Notebook', 'level': 0},
@@ -1912,7 +1975,7 @@ class UI(StrictSettings):
                         'options': {
                             'material': {'label': 'Catalyst Material', 'level': 0},
                             'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
-                            'structure': {'label': 'Structure', 'level': 1},
+                            'structure': {'label': 'Structure / Symmetry', 'level': 1},
                             'heterogeneouscatalyst': {'label': 'Catalytic Properties', 'level': 0},
                             'eln': {'label': 'Electronic Lab Notebook', 'level': 0},
                             'custom_quantities': {'label': 'User Defined Quantities', 'level': 0, 'size': 'l'},

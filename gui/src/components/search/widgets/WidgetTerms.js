@@ -88,7 +88,8 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1)
   },
   count: {
-    marginTop: theme.spacing(0.5),
+    height: '1.2rem',
+    marginTop: theme.spacing(0.25),
     marginRight: theme.spacing(1),
     display: 'flex',
     justifyContent: 'flex-end',
@@ -107,7 +108,7 @@ export const WidgetTerms = React.memo((
   className,
   'data-testid': testID
 }) => {
-  const {useAgg, useFilterState} = useSearchContext()
+  const {useAgg, useFilterState, filterData} = useSearchContext()
   const styles = useStyles()
   const [filter, setFilter] = useFilterState(quantity)
   const { height, ref } = useResizeDetector()
@@ -116,7 +117,15 @@ export const WidgetTerms = React.memo((
 
   // The terms aggregations need to request at least 1 item or an API error is thrown
   const aggSize = useMemo(() => Math.max(Math.floor(height / inputItemHeight), 1), [height])
-  const aggConfig = useMemo(() => ({type: 'terms', size: aggSize}), [aggSize])
+  const aggConfig = useMemo(() => {
+    const config = {type: 'terms', size: aggSize}
+    // If a fixed list of options is used, we must restrict the aggregation
+    // return values with 'include'. Otherwise the returned results may not
+    // contain the correct values.
+    const options = filterData[quantity]?.options
+    if (options) config.include = Object.keys(options)
+    return config
+  }, [aggSize, filterData, quantity])
   const agg = useAgg(quantity, !isNil(height), id, aggConfig)
   const max = agg ? Math.max(...agg.data.map(option => option.count)) : 0
 
