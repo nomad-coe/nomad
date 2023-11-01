@@ -1641,8 +1641,10 @@ class Upload(Proc):
         external_db: the repository or external database where the original data resides
         main_author: The id of the main author of this upload (normally its creator).
         coauthors: A list of upload coauthors.
+        coauthor_groups: A list of coauthor groups.
         reviewers: A user provided list of reviewers. Reviewers can see the whole upload,
             also if it is unpublished or embargoed.
+        reviewer_groups: A list of reviewer groups.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, processing, upload).
 
@@ -1660,7 +1662,9 @@ class Upload(Proc):
     external_db = StringField()
     main_author = StringField(required=True)
     coauthors = ListField(StringField())
+    coauthor_groups = ListField(StringField())
     reviewers = ListField(StringField())
+    reviewer_groups = ListField(StringField())
     last_update = DateTimeField()
     publish_time = DateTimeField()
     embargo_length = IntField(default=0, required=True)

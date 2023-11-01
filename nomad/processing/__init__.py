@@ -66,6 +66,7 @@ from nomad.processing.base import (
     ProcNotRegistered,
     ProcessStatus,
     ProcessAlreadyRunning,
+    UserGroup,
 )
 from nomad.processing.data import Upload, Entry, MetadataEditRequestHandler
 from nomad.app.resources import main
