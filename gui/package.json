@@ -54,7 +54,7 @@
     "react-markdown": "^8.0.3",
     "react-mathjax": "^1.0.1",
     "react-pdf": "^5.7.2",
-    "react-resize-detector": "^7.1.2",
+    "react-resize-detector": "^9.1.0",
     "react-router-cache-route": "^1.12.11",
     "react-router-dom": "^5.1.2",
     "react-scripts": "4.0.3",
@@ -126,7 +126,7 @@
       "not IE <= 11",
       "not Android <= 4.4"
     ],
-    "//":"Note for @himanel1: The extra >0.2% added below is to help transpile @react-hookz which is a dependency for @h5web/app.",
+    "//": "Note for @himanel1: The extra >0.2% added below is to help transpile @react-hookz which is a dependency for @h5web/app.",
     "development": [
       ">0.2%",
       "last 1 chrome version",
