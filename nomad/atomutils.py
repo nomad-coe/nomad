@@ -53,7 +53,6 @@ from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 from nomad.units import ureg
 from nomad.metainfo import MSection
-from nomad.utils import extract_section
 
 
 valid_elements = set(ase.data.chemical_symbols[1:])
@@ -1147,8 +1146,6 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_atoms_group = sec_system_top.atoms_group
         sec_calculation = sec_run.calculation
         sec_method = sec_run.method[method_index] if sec_run.get('method') is not None else None
-        sec_force_field = sec_method.force_field if sec_method is not None else None
-        sec_model = sec_force_field.model[model_index] if sec_force_field is not None else None
     except IndexError:
         logging.warning('Supplied indices or necessary sections do not exist in archive. Cannot build the MDA universe.')
         return None
@@ -1793,7 +1790,7 @@ def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topo
     return rg_results
 
 
-def get_molecules_from_bond_list(n_particles: int, bond_list: List[tuple], particle_types: List[str] = None, particles_typeid: array[int] = None) -> List[Dict]:
+def get_molecules_from_bond_list(n_particles: int, bond_list: List[tuple], particle_types: List[str] = None, particles_typeid: array = None) -> List[Dict]:
     '''
     Returns a list of dictionaries with molecule info from each instance in the list of bonds.
     '''
