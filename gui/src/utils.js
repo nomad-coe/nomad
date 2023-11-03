@@ -763,7 +763,8 @@ export function pluralize(word, count, inclusive, format = true, prefix) {
     'filter': 'filters',
     'mainfile': 'mainfiles',
     'folder': 'folders',
-    'has': 'have'
+    'has': 'have',
+    'activity': 'activities'
   }
   const words = word.trim().split(" ")
   let lastWord = words[words.length - 1]

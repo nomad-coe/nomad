@@ -49,6 +49,7 @@ import { useErrors } from '../errors'
 import DefinitionsCard from './properties/DefinitionsCard'
 import { ErrorHandler } from '../ErrorHandler'
 import ReferenceUsingCard from "./properties/ReferenceCard"
+import SampleHistoryUsingCard from "./properties/SampleHistoryCard"
 import { useEntryStore, useEntryContext, useIndex } from './EntryContext'
 import DeleteEntriesButton from '../uploads/DeleteEntriesButton'
 
@@ -191,6 +192,7 @@ const OverviewView = React.memo(() => {
       spectroscopic: SpectroscopicPropertiesCard,
       workflow: WorkflowCard,
       references: ReferenceUsingCard,
+      history: SampleHistoryUsingCard,
       relatedResources: RelatedResourcesCard
     }
 
