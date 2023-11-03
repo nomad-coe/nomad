@@ -216,7 +216,7 @@ def test_geometry_optimization_workflow(workflow_archive):
 
     tasks = sec_workflow.tasks
     assert len(tasks) == len(vasp_archive.run[0].calculation)
-    assert tasks[0].inputs[0].section == vasp_archive.run[0].system[0]
+    assert tasks[0].inputs[0].section == vasp_archive.run[0].method[0]
     assert tasks[-1].outputs[0].section == vasp_archive.run[0].calculation[-1]
 
 

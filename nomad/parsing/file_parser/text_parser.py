@@ -217,51 +217,6 @@ class Quantity:
         return f'{self.name}({", ".join(sub_quantities[:5])}{"..." if len(sub_quantities) > 5 else ""})'
 
 
-class DataTextParser(FileParser):
-    '''
-    Parser for structured data text files using numpy.loadtxt
-
-    Arguments:
-        mainfile: the file to be parsed
-        dtype: data type
-    '''
-    def __init__(self, **kwargs):
-        self._dtype: Type = kwargs.get('dtype', float)
-        mainfile: str = kwargs.get('mainfile', None)
-        self._mainfile_contents: str = kwargs.get('mainfile_contents', None)
-        logger = kwargs.get('logger', get_logger(__name__))
-        super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
-        self.init_parameters()
-
-    def init_parameters(self):
-        '''
-        Method to call after loading data.
-        '''
-        pass
-
-    @property
-    def data(self):
-        '''
-        Returns the loaded data
-        '''
-        if self._file_handler is None:
-            try:
-                if self.mainfile is not None:
-                    self._file_handler = np.loadtxt(self.mainfile)
-                else:
-                    if self._mainfile_contents is None:
-                        self._mainfile_contents = self.mainfile_obj.read()
-                    self._file_handler = np.frombuffer(self._mainfile_contents, dtype=self._dtype)
-            except Exception:
-                return
-
-            self.init_parameters()
-        return self._file_handler
-
-    def parse(self):
-        pass
-
-
 class TextParser(FileParser):
     '''
     Parser for unstructured text files using the re module. The quantities to be parsed
@@ -557,3 +512,38 @@ class TextParser(FileParser):
             if quantity.sub_parser is not None:
                 quantity.sub_parser.clear()
         self._file_handler = None
+
+
+class DataTextParser(TextParser):
+    '''
+    Parser for structured data text files using numpy.loadtxt
+
+    Arguments:
+        mainfile: the file to be parsed
+        dtype: data type
+    '''
+    def __init__(self, **kwargs):
+        self._dtype: Type = kwargs.get('dtype', float)
+        self._mainfile_contents: str = kwargs.get('mainfile_contents', '')
+        super().__init__(**kwargs)
+
+    def parse(self, key=None):
+        super().parse(key=key)
+        if key == 'data':
+            try:
+                data = None
+                if self.mainfile is not None:
+                    data = np.loadtxt(self.mainfile)
+                else:
+                    if not self._mainfile_contents and self.mainfile_obj:
+                        self._mainfile_contents = self.mainfile_obj.read()
+                    if self._mainfile_contents:
+                        buffer = self._mainfile_contents
+                        if isinstance(buffer, str):
+                            buffer = buffer.encode()
+                        if buffer:
+                            data = np.frombuffer(buffer, dtype=self._dtype)
+                if data is not None:
+                    self._results['data'] = data
+            except Exception:
+                self.logger.error('Failed to load data file.')
