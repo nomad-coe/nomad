@@ -7146,7 +7146,7 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "n_inter",
+                "name": "n_interactions",
                 "description": "Total number of interactions of this type for interaction groupings.",
                 "type": {
                   "type_kind": "numpy",
@@ -7176,7 +7176,10 @@ window.nomadArtifacts = {
                   "type_kind": "numpy",
                   "type_data": "str_"
                 },
-                "shape": []
+                "shape": [
+                  "n_interactions",
+                  "n_atoms"
+                ]
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",

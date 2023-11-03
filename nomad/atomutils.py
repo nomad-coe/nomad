@@ -1633,7 +1633,6 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
 
         return jump_data
 
-
     def generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
         '''
         See __get_nojump_positions().
@@ -1646,7 +1645,6 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
             sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
         )
         return nojump_matrices
-
 
     def get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup) -> NDArray:
         '''
