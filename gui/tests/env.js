@@ -69,6 +69,9 @@ window.nomadEnv = {
           "spectroscopic": {
             "error": "Could not render spectroscopic properties."
           },
+          "history": {
+            "error": "Could not render history card."
+          },
           "workflow": {
             "error": "Could not render workflow card."
           },
@@ -111,6 +114,10 @@ window.nomadEnv = {
               },
               "entry_type": {
                 "label": "Entry type",
+                "align": "left"
+              },
+              "entry_create_time": {
+                "label": "Entry creation time",
                 "align": "left"
               },
               "upload_name": {

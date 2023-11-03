@@ -114,7 +114,7 @@ const SearchPage = React.memo(({
           <Dashboard/>
         </Box>
         <Box position="relative" zIndex={1}>
-          <SearchResults />
+          <SearchResults/>
         </Box>
         <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>
       </Box>

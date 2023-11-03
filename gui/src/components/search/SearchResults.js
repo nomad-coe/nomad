@@ -36,8 +36,8 @@ import { useSearchContext } from './SearchContext'
 /**
  * Displays the list of search results.
  */
-const SearchResults = React.memo(function SearchResults(props) {
-  const {noAction, onSelectedChanged, defaultUncollapsedEntryID, 'data-testid': testID, ...otherProps} = props
+const SearchResults = React.memo((props) => {
+  const {noAction, onSelectedChanged, defaultUncollapsedEntryID, title, 'data-testid': testID, PaperProps, ...otherProps} = props
   const {columns, resource, rows, useResults, useApiQuery} = useSearchContext()
   const {data, pagination, setPagination} = useResults()
   const apiQuery = useApiQuery()
@@ -82,7 +82,7 @@ const SearchResults = React.memo(function SearchResults(props) {
     actions = MaterialRowActions
   }
 
-  return <Paper data-testid={testID}>
+  return <Paper data-testid={testID} {...PaperProps}>
     <Datatable
       data={data}
       pagination={pagination}
@@ -94,7 +94,7 @@ const SearchResults = React.memo(function SearchResults(props) {
       onSelectedChanged={rows?.selection?.enabled ? setSelected : undefined}
       {...otherProps}
     >
-      <DatatableToolbar title={`${formatInteger(data.length)}/${pluralize('result', pagination.total, true, true, 'search')}`}>
+      <DatatableToolbar title={`${formatInteger(data.length)}/${pluralize(title || 'result', pagination.total, true, true, title ? undefined : 'search')}`}>
         {rows?.selection?.enabled &&
           <DatatableToolbarActions selection>
             {buttons}
@@ -111,13 +111,13 @@ const SearchResults = React.memo(function SearchResults(props) {
     </Datatable>
   </Paper>
 })
-SearchResults.propTypes = {
-  noAction: PropTypes.bool,
-  onSelectedChanged: PropTypes.func,
-  defaultUncollapsedEntryID: PropTypes.string
-}
 
 SearchResults.propTypes = {
+  noAction: PropTypes.bool,
+  PaperProps: PropTypes.object,
+  onSelectedChanged: PropTypes.func,
+  defaultUncollapsedEntryID: PropTypes.string,
+  title: PropTypes.string,
   'data-testid': PropTypes.string
 }
 

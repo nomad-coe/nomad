@@ -209,6 +209,11 @@ const SearchContextRaw = React.memo(({
           ? formatTimestamp(row.upload_create_time)
           : <i>no upload time</i>
       },
+      entry_create_time: {
+        render: row => row?.entry_create_time
+          ? formatTimestamp(row.entry_create_time)
+          : <i>no entry time</i>
+      },
       authors: {
         render: row => authorList(row),
         align: 'left'
