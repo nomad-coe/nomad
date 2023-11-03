@@ -1049,7 +1049,7 @@ class UI(StrictSettings):
     )
     apps: Apps = Field(
         Apps(**{
-            'exclude': ['heterogeneouscatalyst'],
+            'exclude': ['heterogeneouscatalyst', 'mofs'],
             'options': {
                 'entries': {
                     'label': 'Entries',
@@ -1986,6 +1986,134 @@ class UI(StrictSettings):
                     },
                     'filters_locked': {
                         'quantities': 'results.properties.catalytic'
+                    }
+                },
+                'mofs': {
+                    'label': 'Metal-Organic Frameworks',
+                    'path': 'mofs',
+                    'category': 'Use Cases',
+                    'description': 'Search metal-organic frameworks (MOFs)',
+                    'readme': inspect.cleandoc(r'''
+                        This page allows you to search **metal-organic framework
+                        (MOF) data** within NOMAD. The filter menu on the left
+                        and the shown default columns are specifically designed
+                        for MOF exploration. The dashboard directly shows useful
+                        interactive statistics about the data.
+                    '''),
+                    'dashboard': {
+                        'widgets': [
+                            {
+                                "scale": "linear",
+                                "quantity": "results.material.elements",
+                                "type": "periodictable",
+                                "layout": {
+                                    "xxl": {"minH": 3, "minW": 3, "h": 10, "w": 25, "y": 0, "x": 0},
+                                    "xl": {"minH": 3, "minW": 3, "h": 9, "w": 19, "y": 0, "x": 0},
+                                    "lg": {"minH": 3, "minW": 3, "h": 9, "w": 15, "y": 0, "x": 0},
+                                    "md": {"minH": 3, "minW": 3, "h": 8, "w": 11, "y": 0, "x": 0},
+                                    "sm": {"minH": 3, "minW": 3, "h": 6, "w": 9, "y": 0, "x": 0}
+                                }
+                            },
+                            {
+                                "type": "terms",
+                                "scale": "linear",
+                                "quantity": "results.material.topology.sbu_type",
+                                "layout": {
+                                    "xxl": {"minH": 3, "minW": 3, "h": 10, "w": 11, "y": 0, "x": 25},
+                                    "xl": {"minH": 3, "minW": 3, "h": 9, "w": 7, "y": 0, "x": 19},
+                                    "lg": {"minH": 3, "minW": 3, "h": 9, "w": 9, "y": 0, "x": 15},
+                                    "md": {"minH": 3, "minW": 3, "h": 8, "w": 7, "y": 0, "x": 11},
+                                    "sm": {"minH": 3, "minW": 3, "h": 6, "w": 3, "y": 0, "x": 9}
+                                }
+                            },
+                            {
+                                "type": "histogram",
+                                "autorange": 'false',
+                                'showinput': 'true',
+                                "nbins": 30,
+                                "scale": "linear",
+                                "quantity": "results.material.topology.pore_limiting_diameter",
+                                "layout": {
+                                    "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 19, "y": 10, "x": 0},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 9, "x": 0},
+                                    "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 9, "x": 0},
+                                    "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 8, "x": 0},
+                                    "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 6, "x": 0}
+                                }
+                            },
+                            {
+                                "type": "histogram",
+                                "autorange": 'false',
+                                "nbins": 30,
+                                "scale": "linear",
+                                "quantity": "results.material.topology.largest_cavity_diameter",
+                                "layout": {
+                                    "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 17, "y": 10, "x": 19},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 14, "x": 0},
+                                    "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 14, "x": 0},
+                                    "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 8, "x": 9},
+                                    "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 6, "x": 6}
+                                }
+                            },
+                            {
+                                "type": "histogram",
+                                "autorange": 'false',
+                                "nbins": 30,
+                                "scale": "linear",
+                                "quantity": "results.material.topology.accessible_surface_area",
+                                "layout": {
+                                    "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 19, "y": 16, "x": 0},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 9, "x": 13},
+                                    "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 9, "x": 11},
+                                    "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 12, "x": 0},
+                                    "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 9, "x": 0}
+                                }
+                            },
+                            {
+                                "type": "histogram",
+                                "autorange": 'false',
+                                "nbins": 30,
+                                "scale": "linear",
+                                "quantity": "results.material.topology.void_fraction",
+                                "layout": {
+                                    "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 17, "y": 16, "x": 19},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 14, "x": 13},
+                                    "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 14, "x": 11},
+                                    "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 12, "x": 9},
+                                    "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 9, "x": 6}
+                                }
+                            }
+                        ]
+                    },
+                    'columns': {
+                        'selected': [
+                            'results.material.chemical_formula_iupac',
+                            'mainfile',
+                            'authors'
+                        ],
+                        'options': {
+                            'results.material.chemical_formula_iupac': {'label': 'Formula', 'align': 'left'},
+                            'mainfile': {'label': 'Mainfile', 'align': 'left'},
+                            'upload_create_time': {'label': 'Upload time', 'align': 'left'},
+                            'authors': {'label': 'Authors', 'align': 'left'},
+                            'comment': {'label': 'Comment', 'align': 'left'},
+                            'datasets': {'label': 'Datasets', 'align': 'left'},
+                            'published': {'label': 'Access'},
+                        }
+                    },
+                    'filter_menus': {
+                        'options': {
+                            'material': {'label': 'Material', 'level': 0},
+                            'elements': {'label': 'Elements / Formula', 'level': 1, 'size': 'xl'},
+                            'structure': {'label': 'Structure', 'level': 1},
+                            'electronic': {'label': 'Electronic Properties', 'level': 0},
+                            'author': {'label': 'Author / Origin / Dataset', 'level': 0, 'size': 'm'},
+                            'metadata': {'label': 'Visibility / IDs / Schema', 'level': 0},
+                            'optimade': {'label': 'Optimade', 'level': 0, 'size': 'm'},
+                        }
+                    },
+                    'filters_locked': {
+                        'results.material.topology.label': 'MOF'
                     }
                 },
             }
