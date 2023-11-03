@@ -2838,13 +2838,14 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
     def values(self):
         return {key: val for key, val in self.__dict__.items() if not key.startswith('m_')}.values()
 
-    def m_xpath(self, expression: str):
+    def m_xpath(self, expression: str, dict: bool=True):
         '''
         Provides an interface to jmespath search functionality.
 
         Arguments:
             expression: A string compatible with the jmespath specs representing the
                 search. See https://jmespath.org/ for complete description.
+            dict: Specifies if search result is to be converted to string.
 
         .. code-block:: python
 
@@ -2855,8 +2856,8 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
             metainfo_section.m_xpath('sccs[?energy_total < `1.0E-23`].system')
 
         '''
-
-        return to_dict(jmespath.search(expression, self))
+        result = jmespath.search(expression, self)
+        return to_dict(result) if dict else result
 
 
 class MCategory(metaclass=MObjectMeta):
