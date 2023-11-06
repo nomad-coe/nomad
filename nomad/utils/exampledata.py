@@ -16,8 +16,9 @@
 # limitations under the License.
 #
 
-from typing import List, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any
 from datetime import datetime, timedelta
+import os
 
 from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, Results
@@ -108,6 +109,57 @@ class ExampleData:
             upload_files = files.UploadFiles.get(upload_id)
             if upload_files is not None:
                 upload_files.delete()
+
+    def create_entry_from_file(
+            self, mainfile: str, entry_archive: Optional[EntryArchive] = None,
+            entry_id: Optional[str] = None, upload_id: Optional[str] = None,
+            parser_name: Optional[str] = None):
+        '''Creates an entry from a mainfile which then gets parsed and normalized.'''
+        from nomad.parsing import parsers
+        from nomad import parsing
+
+        assert upload_id in self.uploads, 'Must create the upload first'
+
+        if entry_id is None:
+            entry_id = f'test_entry_id_{self._entry_id_counter}'
+            self._entry_id_counter += 1
+
+        if entry_archive is None:
+            entry_archive = EntryArchive()
+
+        mainfile_path = os.path.abspath(mainfile)
+        parser, _ = parsers.match_parser(mainfile_path, strict=True, parser_name=parser_name)
+        if isinstance(parser, parsing.MatchingParser):
+            parser_name = parser.name
+        else:
+            parser_name = parser.__class__.__name__
+
+        assert parser is not None, 'there is no parser matching %s' % mainfile
+        parser.parse(mainfile=mainfile, archive=entry_archive)
+
+        entry_metadata = entry_archive.metadata
+        if entry_metadata is None:
+            entry_metadata = entry_archive.m_create(EntryMetadata)
+
+        entry_metadata.m_update(
+            entry_id=entry_id,
+            upload_id=upload_id,
+            mainfile=mainfile,
+            entry_hash='dummy_hash_' + entry_id,
+            domain='dft',
+            entry_create_time=self._next_time_stamp(),
+            processed=True,
+            parser_name=parser_name)
+        entry_metadata.m_update(**self.entry_defaults)
+
+        for normalizer_class in normalizers:
+            normalizer = normalizer_class(entry_archive)
+            normalizer.normalize()
+
+        self.archives[entry_id] = entry_archive
+        self.upload_entries.setdefault(entry_metadata.upload_id, []).append(entry_id)
+
+        return entry_archive
 
     def create_upload(self, upload_id, published=None, **kwargs):
         '''

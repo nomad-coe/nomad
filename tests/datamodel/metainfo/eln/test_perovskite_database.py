@@ -15,14 +15,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
 
-from tests.normalizing.conftest import run_processing
+from nomad.datamodel.datamodel import EntryArchive
+from nomad.datamodel.context import ClientContext
+from nomad.utils.exampledata import ExampleData
 
 
-def test_processing(raw_files, no_warn):
+def test_processing(raw_files, no_warn, test_user, mongo):
     directory = 'tests/data/datamodel/metainfo/eln/perovskite_database'
     mainfile = 'example.archive.json'
-    test_archive = run_processing(directory, mainfile)
+    upload_id = 'test_upload_id'
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id=upload_id, published=False)
+    context = ClientContext(local_dir=directory, upload_id=upload_id)
+
+    test_archive = data.create_entry_from_file(
+        upload_id=upload_id,
+        mainfile=os.path.join(directory, mainfile),
+        entry_archive=EntryArchive(m_context=context)
+    )
+
+    data.save(with_es=False)
 
     # assert archive
     assert test_archive.metadata.entry_type == 'PerovskiteSolarCell'

@@ -1867,7 +1867,7 @@ class ReadableIdentifiers(ArchiveSection):
                 first_short = unidecode(author.first_name)[:2]
                 last_short = unidecode(author.last_name)[:2]
                 self.owner = first_short + last_short
-            if author and self.institute is None and getattr(author, 'affiliation', None):
+            if author and self.institute is None and author.affiliation:
                 unwanted_words = ("zu", "of", "the", "fur", "für")
                 institute = ''
                 all_words = re.split(' |-|_|,|:|;', unidecode(author.affiliation))
