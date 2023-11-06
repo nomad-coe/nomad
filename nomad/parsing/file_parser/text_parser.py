@@ -162,7 +162,7 @@ class Quantity:
 
                 return val
 
-            elif isinstance(val, np.ndarray) or isinstance(val, list):
+            elif isinstance(val, (list, np.ndarray)):
                 try:
                     dtype = float if self.dtype is None else self.dtype
                     val_test = np.array(val, dtype=dtype)

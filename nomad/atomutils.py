@@ -639,7 +639,6 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
             ridge_indices = voronoi.ridge_dict[key]
             new_ridge_indices = [index_map[i] for i in ridge_indices]
             faces.append(new_ridge_indices)
-    faces = faces
 
     brillouin_zone = {
         'vertices': vertices,
@@ -1202,7 +1201,6 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                 mol_res_counter += 1
             molecule_n_res.append(mol_res_counter)
             n_molecules += 1
-    n_residues = n_residues
 
     # reorder the residues by atom_indices
     residue_data = np.array([

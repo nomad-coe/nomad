@@ -350,7 +350,6 @@ class KeycloakMock:
         self.users[user.user_id] = dict(
             email=user.email, username=user.username, first_name=user.first_name,
             last_name=user.last_name, user_id=user.user_id)
-        return None
 
     def get_user(self, user_id=None, username=None, email=None):
         if user_id is not None:

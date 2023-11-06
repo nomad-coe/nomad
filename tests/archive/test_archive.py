@@ -637,9 +637,9 @@ def example_data_with_reference(proc_infra, test_user, json_dict):
     from nomad.search import search
     results = search().data
     assert len(results) == 6
-    for i in {0, 1, 5}:
+    for i in (0, 1, 5):
         assert 'entry_references' not in results[i]
-    for i in {2, 3, 4}:
+    for i in (2, 3, 4):
         assert 'entry_references' in results[i]
 
     yield data

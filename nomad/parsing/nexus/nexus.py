@@ -262,7 +262,7 @@ class NexusParser(Parser):
             if subelem is None:
                 continue
             if type_filter:
-                if not (isinstance(subelem, MSection) or isinstance(subelem, MSubSectionList)):
+                if not (isinstance(subelem, (MSection, MSubSectionList))):
                     continue
                 if isinstance(subelem, list):
                     if len(subelem) > 0:

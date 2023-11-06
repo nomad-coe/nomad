@@ -155,7 +155,7 @@ class FileParser(ABC):
             return
 
         if unit is not None:
-            if isinstance(unit, pint.Quantity) or isinstance(unit, pint.Unit):
+            if isinstance(unit, (pint.Quantity, pint.Unit)):
                 val = val * unit
 
             elif isinstance(val, pint.Quantity):

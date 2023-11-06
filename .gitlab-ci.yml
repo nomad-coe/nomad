@@ -89,7 +89,6 @@ python linting:
     - cd /app
   script:
     - ruff nomad tests --output-format gitlab > $CI_PROJECT_DIR/gl-code-quality-report.json
-    - pylint --rcfile=.pylintrc nomad tests
     - mypy nomad tests
   rules:
     - if: $CI_COMMIT_TAG
@@ -99,7 +98,7 @@ python linting:
     name: "nomad_code_quality"
     when: always
     reports:
-      codequality: gl-code-quality-report.json 
+      codequality: gl-code-quality-report.json
 
     expire_in: never
 
@@ -117,7 +116,6 @@ gui linting:
       when: never
     - when: on_success
 
-
 check python dependencies:
   stage: test
   image: python:3.9
@@ -133,7 +131,6 @@ check python dependencies:
       when: never
     - when: manual
       allow_failure: true
-
 
 check gui artifacts:
   stage: test
@@ -154,7 +151,6 @@ check gui artifacts:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
-
 
 python tests:
   stage: test
@@ -202,7 +198,6 @@ python tests:
       when: never
     - when: on_success
 
-
 install tests:
   stage: test
   image: python:3.9
@@ -214,7 +209,6 @@ install tests:
     - python -m nomad.cli parse vasp.xml
     - pip install git+https://github.com/nomad-coe/nomad-parser-example.git
     - python -m exampleparser tests/data/examples/example.out
-
 
 gui tests:
   stage: test
@@ -247,7 +241,6 @@ gui tests:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
-
 
 deploy dev:
   stage: deploy
@@ -462,7 +455,6 @@ python package:
   rules:
     - when: manual
       allow_failure: true
-
 
 pypi package:
   stage: release

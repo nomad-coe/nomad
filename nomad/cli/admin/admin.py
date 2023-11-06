@@ -102,7 +102,6 @@ def lift_embargo(dry, parallel):
                 upload.edit_upload_metadata(
                     edit_request_json=dict(metadata={'embargo_length': 0}),
                     user_id=config.services.admin_user_id)
-    return
 
 
 @admin.group(help='Generate scripts and commands for nomad operation.')

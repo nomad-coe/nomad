@@ -52,8 +52,7 @@ The *backend* of nomad is written in Python. This includes all parsers, normaliz
 and other data processing. We only use Python 3 and there is no compatibility with
 Python 2. Code is formatted close to [pep8](https://www.python.org/dev/peps/pep-0008/),
 critical parts use [pep484](https://www.python.org/dev/peps/pep-0484/) type-hints.
-[ruff](https://docs.astral.sh/ruff),
-[pylint](https://www.pylint.org/), and
+[ruff](https://docs.astral.sh/ruff), and
 [mypy](http://mypy-lang.org/) (static type checker) are used to ensure quality.
 Tests are written with [pytest](https://docs.pytest.org/en/latest/contents.html).
 Logging is done with [structlog](https://www.structlog.org/en/stable/) and *logstash* (see

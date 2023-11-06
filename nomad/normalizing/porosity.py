@@ -60,7 +60,6 @@ class PorosityNormalizer(SystemBasedNormalizer):
 
     def __init__(self, archive):
         super().__init__(archive, only_representatives=True)
-        return
 
     def normalize_system(self, system, is_representative):
         if not is_representative:
@@ -327,7 +326,6 @@ def put_contents(filename, output):
     '''
     with open(filename, 'w', encoding='utf-8') as f:
         f.writelines(output)
-    return
 
 
 def get_contents(filename):

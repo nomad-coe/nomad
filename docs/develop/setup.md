@@ -398,11 +398,11 @@ pytest -sv tests
     If you excluded plugins in your [NOMAD config](### `nomad.yaml`), then those tests
     will also fail.
 
-We use Pylint, ruff, and mypy to ensure code quality. To run those:
-
+We use Ruff and Mypy to maintain code quality. Additionally, we recommend installing the Ruff [plugins](https://docs.astral.sh/ruff/integrations/) for your code editor to streamline the process. To execute Ruff and Mypy from the command line, you can utilize the following command:
 ```shell
 nomad dev qa --skip-tests
 ```
+
 
 To run all tests and code QA:
 
