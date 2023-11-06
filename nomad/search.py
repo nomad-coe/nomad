@@ -1325,7 +1325,7 @@ def _buckets_to_interval(
             buckets = agg.buckets
             # When buckets have been defined, but no explicit limits are given,
             # a min-max aggregation has to be performed.
-            if buckets is not None is None:
+            if buckets is not None:
                 histogram_requests[agg_name] = agg
 
     # If no buckets determined, continue normally

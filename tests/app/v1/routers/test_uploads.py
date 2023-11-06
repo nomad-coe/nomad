@@ -1888,7 +1888,6 @@ def test_get_upload_bundle(
                     if include:
                         expected_files.add(rel_path)
             assert expected_files == set(zip_file.namelist())
-    return
 
 
 @pytest.mark.parametrize('publish, test_duplicate, user, export_args, query_args, expected_status_code', [
@@ -1936,7 +1935,6 @@ def test_post_upload_bundle(
         assert_processing(client, upload_id, user_auth, published=publish)
         upload = Upload.get(upload_id)
         assert upload.from_oasis and upload.oasis_deployment_url
-    return
 
 
 @pytest.mark.parametrize('authorized, expected_status_code', [

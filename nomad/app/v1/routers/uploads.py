@@ -282,7 +282,6 @@ class RawDirPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         assert not order_by, 'Cannot specify `order_by` for rawdir calls'
-        return None
 
     @validator('page_after_value')
     def validate_page_after_value(cls, page_after_value, values):  # pylint: disable=no-self-argument

@@ -724,4 +724,3 @@ class TabularDataParser(MatchingParser):
         logger.error('''
         You are trying to use the legacy tabular parser. Now it is encapsulated in buitl-in TableData
         ''')
-        return

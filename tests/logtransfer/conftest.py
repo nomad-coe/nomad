@@ -5,8 +5,8 @@ from multiprocessing import Process
 import socket
 import time
 
-import nomad.config as config
-import nomad.logtransfer as logtransfer
+from nomad import config
+from nomad import logtransfer
 
 
 logging.getLogger('logtransfer_server').setLevel(level=logging.CRITICAL)

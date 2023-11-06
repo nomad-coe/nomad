@@ -41,10 +41,8 @@ def qa(skip_tests: bool, exitfirst: bool):
     if not skip_tests:
         click.echo('Run tests ...')
         ret_code += os.system('python -m pytest -sv%s tests' % ('x' if exitfirst else ''))
-    click.echo('Run code style checks ...')
+    click.echo('Run code style and lint checks ...')
     ret_code += os.system('python -m ruff nomad tests')
-    click.echo('Run linter ...')
-    ret_code += os.system('python -m pylint --rcfile=.pylintrc nomad tests')
     click.echo('Run static type checks ...')
     ret_code += os.system('python -m mypy nomad tests')
 

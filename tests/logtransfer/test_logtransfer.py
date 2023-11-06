@@ -3,7 +3,7 @@ import time
 import json
 import pytest
 
-import nomad.logtransfer as logtransfer
+from nomad import logtransfer
 from logging import LogRecord
 import logging
 from nomad.utils.structlogging import LogstashFormatter

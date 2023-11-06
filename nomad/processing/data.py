@@ -212,7 +212,7 @@ class MetadataEditRequestHandler:
             upload_id: str = None):
         # Initialization
         assert user, 'Must specify `user`'
-        assert isinstance(edit_request, dict) or isinstance(edit_request, StagingUploadFiles), (
+        assert isinstance(edit_request, (StagingUploadFiles, dict)), (
             '`edit_request` must be either a json dictionary or a :class:`StagingUploadfiles` object')
         self.logger = logger
         self.user = user
