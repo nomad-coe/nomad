@@ -17,7 +17,7 @@
 #
 
 import os.path
-from typing import Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict
 from collections.abc import Iterable
 
 from nomad import config
@@ -49,7 +49,7 @@ except ImportError:
     pass
 
 
-def match_parser(mainfile_path: str, strict=True, parser_name: str = None) -> Tuple[Parser, List[str]]:
+def match_parser(mainfile_path: str, strict=True, parser_name: Optional[str] = None) -> Tuple[Parser, List[str]]:
     '''
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
