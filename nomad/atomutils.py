@@ -1259,7 +1259,7 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
 
     # get the bonds  # TODO extend to multiple storage options for interactions
     bonds = sec_atoms.bond_list
-    if not bonds:
+    if bonds is None:
         bonds = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
 
     # get the system times
