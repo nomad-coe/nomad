@@ -1258,9 +1258,8 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                     90, 90, 90]  # TODO: extend to non-cubic boxes
 
     # get the bonds  # TODO extend to multiple storage options for interactions
-    bonds = []
     bonds = sec_atoms.bond_list
-    if bonds is not None or len(bonds):
+    if not bonds:
         bonds = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
 
     # get the system times
@@ -1863,7 +1862,7 @@ def get_bond_list_from_model_contributions(sec_run: MSection, method_index: int 
             continue
 
         atom_indices = contribution.atom_indices
-        if contribution.n_inter:  # all bonds have been grouped into one contribution
+        if contribution.n_interactions:  # all bonds have been grouped into one contribution
             bond_list = [tuple(indices) for indices in atom_indices]
         else:
             bond_list.append(tuple(contribution.atom_indices))
