@@ -1,7 +1,9 @@
 definitions:
   name: Complex Schema
   sections:
-    MyEntry: # MyEntry section has only one quantity `MyEntryQuantity`
+    MyEntry:  # MyEntry section has only one quantity `MyEntryQuantity`
+      base_sections:
+        - nomad.datamodel.data.EntryData
       quantities:
         MyEntryQuantity:
           type: str
@@ -82,6 +84,7 @@ definitions:
         MyEntrySubsection:
           repeats: true
           section:
+            base_section: nomad.datamodel.data.EntryData
             quantities: # A quantiy for the entry_section that holds a reference to the
             # entries created by the parser
               refs_quantity:

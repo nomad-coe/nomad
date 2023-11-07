@@ -49,6 +49,16 @@ root_mapping = {
 }
 
 
+def get_nested_value(data, path):
+    current = data
+    for key in path:
+        if key in current:
+            current = current[key]
+        else:
+            return None
+    return current
+
+
 def create_archive(entry_dict, context, file_name, file_type, logger):
     if not context.raw_path_exists(file_name):
         with context.raw_file(file_name, 'w') as outfile:
@@ -134,12 +144,20 @@ class TableData(ArchiveSection):
 
         mapping_options = annotation.mapping_options
         if mapping_options:
+            row_sections_counter: Dict[str, int] = {}
             for mapping_option in mapping_options:
                 try:
                     file_mode = mapping_option.file_mode
                     mapping_mode = mapping_option.mapping_mode
                     column_sections = mapping_option.sections if mapping_mode == TabularMode.column else None
                     row_sections = mapping_option.sections if mapping_mode == TabularMode.row else None
+                    if row_sections:
+                        keys = [key.split('/')[0] for key in row_sections]
+                        for key in keys:
+                            if key in row_sections_counter:
+                                row_sections_counter[key] += 1
+                            else:
+                                row_sections_counter[key] = 0
                 except Exception:
                     raise TabularParserError(
                         "Couldn't extract the list of mapping_options. Double-check the mapping_options")
@@ -174,22 +192,29 @@ class TableData(ArchiveSection):
                         _parse_row_mode(self, row_sections, data, logger)
 
                 if file_mode == TabularFileModeEnum.multiple_new_entries:
-                    for row_section in row_sections:
-                        if row_section == root_mapping['root']:
-                            self._parse_entry_mode(data, self.m_def, archive, is_root=root_mapping['root'], logger=logger)
+                    for index, row_section in enumerate(row_sections):
+                        if index > 0:
+                            logger.warning(
+                                f"{row_section} is not parsed."
+                                f"Consider creating a new mapping mode to create new entries from this section")
                         else:
-                            entry_section_list = row_section.split('/')
-                            entry_section_instance = create_subsection(
-                                self.m_def.all_properties[entry_section_list.pop(0)],
-                                entry_section_list)
+                            if row_section == root_mapping['root']:
+                                self._parse_entry_mode(data, self.m_def, archive, is_root=root_mapping['root'],
+                                                       data_file=data_file, logger=logger)
+                            else:
+                                entry_section_list = row_section.split('/')
+                                entry_section_instance = create_subsection(
+                                    self.m_def.all_properties[entry_section_list.pop(0)],
+                                    entry_section_list)
 
-                            self._parse_entry_mode(data, entry_section_instance, archive, logger=logger)
+                                self._parse_entry_mode(data, entry_section_instance, archive, logger=logger)
 
                 if file_mode == TabularFileModeEnum.single_new_entry:
                     if column_sections:
-                        self._parse_single_new_entry(parse_columns, data, column_sections, archive, logger)
+                        self._parse_single_new_entry(parse_columns, data, column_sections, archive, None, logger)
                     if row_sections:
-                        self._parse_single_new_entry(_parse_row_mode, data, row_sections, archive, logger)
+                        self._parse_single_new_entry(_parse_row_mode, data, row_sections, archive, row_sections_counter,
+                                                     logger)
 
         else:
             parse_columns(data, self)
@@ -202,46 +227,44 @@ class TableData(ArchiveSection):
         except AttributeError:
             self.fill_archive_from_datafile = False
 
-    def _parse_single_new_entry(self, parser, data, section_list, archive, logger):
+    def _parse_single_new_entry(self, parser, data, section_list, archive, sections_counter, logger):
+        section_to_write = {}
         for single_entry_section in section_list:
             target_section_str = single_entry_section.split('/')[0] if '/' in single_entry_section else single_entry_section
-            if target_section_str == root_mapping['root']:
-                target_section = self.m_def.section_cls()
-                section_to_entry = target_section
-            elif target_section_str in single_entry_section:
-                target_section = self.m_def.all_properties[target_section_str].sub_section.section_cls()
-                section_to_entry = target_section
-            is_quantity_def = False
-            for quantity_def in target_section.m_def.all_quantities.values():
-                if isinstance(quantity_def.type, Reference):
-                    try:
-                        section_to_entry = quantity_def.type.target_section_def.section_cls()
-                        is_quantity_def = True
-                    except AttributeError:
-                        continue
+            if not section_to_write:
+                if target_section_str == root_mapping['root']:
+                    target_section = self.m_def.section_cls()
+                    section_to_entry = target_section
+                elif target_section_str in single_entry_section:
+                    target_section = self.m_def.all_properties[target_section_str].sub_section.section_cls()
+                    section_to_entry = target_section
+                is_quantity_def = False
+                for quantity_def in target_section.m_def.all_quantities.values():
+                    if isinstance(quantity_def.type, Reference):
+                        try:
+                            section_to_entry = quantity_def.type.target_section_def.section_cls()
+                            is_quantity_def = True
+                        except AttributeError:
+                            continue
+                section_to_write = section_to_entry
+            if not any(item.label == 'EntryData' for item in section_to_entry.m_def.all_base_sections):
+                logger.warning(
+                    f"make sure to inherit from EntryData in your base sections in {section_to_entry.m_def.name}")
             if not is_quantity_def:
                 pass
                 # raise TabularParserError(
                 #     f"To create a new entry from {target_section_str}, it should be of type Reference.")
             if parser.__code__.co_argcount == 2:
-                parser(data, section_to_entry)
+                parser(data, section_to_write)
             else:
                 # If there is a match, then remove the matched sections from row_sections so the main entry
                 # does not populate the matched row_section
                 matched_rows = [re.sub(r"^.*?\/", "", single_entry_section)]
-                parser(section_to_entry, matched_rows, data, logger)
+                parser(section_to_write, matched_rows, data, logger)
             entry_name = set_entry_name(quantity_def, target_section, 0)
 
-            from nomad.datamodel import EntryArchive, EntryMetadata
-
-            child_archive = EntryArchive(
-                data=section_to_entry,
-                m_context=archive.m_context,
-                metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=entry_name))
-
-            filename = f'{target_section.m_def.name}.archive.yaml'
-            create_archive(child_archive.m_to_dict(), archive.m_context, filename, 'yaml', logger)
-
+            counter = sections_counter[target_section_str] if target_section_str else ''
+            filename = f'{target_section.m_def.name}{counter}.archive.yaml'
             child_entry_id = generate_entry_id(archive.m_context.upload_id, filename, None)
 
             if is_quantity_def:
@@ -254,8 +277,15 @@ class TableData(ArchiveSection):
                     setattr(self, single_entry_section.split('/')[0], None)
                 self.m_add_sub_section(
                     self.m_def.all_properties[single_entry_section.split('/')[0]], target_section, -1)
+        from nomad.datamodel import EntryArchive, EntryMetadata
 
-    def _parse_entry_mode(self, data, subsection_def, archive, is_root=False, logger=None):
+        child_archive = EntryArchive(
+            data=section_to_entry,
+            m_context=archive.m_context,
+            metadata=EntryMetadata(upload_id=archive.m_context.upload_id, entry_name=entry_name))
+        create_archive(child_archive.m_to_dict(), archive.m_context, filename, 'yaml', logger)
+
+    def _parse_entry_mode(self, data, subsection_def, archive, is_root=False, data_file=None, logger=None):
         section = None
         is_referenced_section = False
         if is_root:
@@ -274,6 +304,14 @@ class TableData(ArchiveSection):
             if not section:
                 section = subsection_def.sub_section.section_cls()
             child_sections = parse_table(data, section.m_def, logger=logger)
+
+        try:
+            all_base_sections = section.all_base_sections
+        except Exception:
+            all_base_sections = section.m_def.all_base_sections
+        if not any(item.label == 'EntryData' for item in all_base_sections):
+            logger.warning(f"make sure to inherit from EntryData in your base sections in {section.name}")
+
         try:
             mainfile_name = getattr(getattr(section.m_root(), 'metadata'), 'mainfile')
         except (AttributeError, TypeError):
@@ -299,19 +337,36 @@ class TableData(ArchiveSection):
 
         # if mode is #root when creating multiple new entries, then append the first child to the current entry,
         # and create new ones from second child onwards
+        ref_entry_name = None
         if is_root:
             first_child = child_sections.pop(0)
-            first_child_entry_name = archive.metadata.mainfile.split('.archive')
+            try:
+                ref_entry_name: str = first_child.m_def.more.get('label_quantity', None)
+                segments = ref_entry_name.split('#/data/')[1].split('/')
+                current_child_entry_name = [get_nested_value(first_child, segments), '.yaml']
+            except Exception:
+                current_child_entry_name = archive.metadata.mainfile.split('.archive')
             self.m_update_from_dict(first_child.m_to_dict())
 
         for index, child_section in enumerate(child_sections):
-            filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
+            if ref_entry_name:
+                ref_entry_name: str = child_section.m_def.more.get('label_quantity', None)
+                segments = ref_entry_name.split('#/data/')[1].split('/')
+                filename = f"{get_nested_value(child_section, segments)}.entry_data.archive.{file_type}"
+                current_child_entry_name = [get_nested_value(child_section, segments), '.yaml']
+            else:
+                filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
+
             if is_root:
-                entry_name: str = f'{first_child_entry_name[0]}_{index + 1}.archive{first_child_entry_name[1]}'
+                entry_name: str = f'{current_child_entry_name[0]}_{index + 1}.archive{current_child_entry_name[1]}'
             else:
                 entry_name: str = set_entry_name(quantity_def, child_section, index)
 
             try:
+                for data_quantity_def in child_section.m_def.all_quantities.values():
+                    annotation = data_quantity_def.m_get_annotations('tabular_parser')
+                    if annotation:
+                        child_section.m_update_from_dict({annotation.m_definition.name: data_file})
                 child_archive = EntryArchive(
                     data=child_section,
                     m_context=archive.m_context,
