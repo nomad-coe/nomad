@@ -4,7 +4,7 @@ set -e
 
 working_dir=$(pwd)
 project_dir=$(dirname $(dirname $(realpath $0)))
-REMOTE_TOOLS_PATH=$working_dir/dependencies/nomad-remote-tools-hub/docker/
+REMOTE_TOOLS_PATH=$project_dir/dependencies/nomad-remote-tools-hub/docker
 
 cd $project_dir/examples/data
 
