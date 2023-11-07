@@ -207,12 +207,13 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
   const [published, setPublished] = useState(true)
   const {
     useSetFilter,
-    useFiltersState,
+    useFilters,
     useFiltersLocked,
+    useUpdateFilter,
     filters: filterList
   } = useSearchContext()
   const filtersLocked = useFiltersLocked()
-  const [filters, setFilters] = useFiltersState([...allFilters]
+  const filters = useFilters([...allFilters]
     .filter(
       filter => filter !== 'visibility' &&
       filter !== 'processed' &&
@@ -221,6 +222,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
       filter !== 'main_author.user_id' &&
       !filtersLocked[filter]
     ))
+  const updateFilter = useUpdateFilter()
   const uploadContext = useUploadPageContext()
   const entryContext = useEntryStore()
   const {uploadId} = uploadContext || entryContext
@@ -269,7 +271,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
 
   const handleResetSearch = () => {
     return Object.keys(filters).forEach(key => {
-      setFilters([key, undefined])
+      updateFilter([key, undefined])
     })
   }
 

@@ -23,10 +23,10 @@ import { SearchContext } from './SearchContext'
 
 test.each([
   ['integer', 'results.material.n_elements', 12, 'Number Of Elements', 'n_elements=12'],
-  ['string', 'results.material.symmetry.crystal_system', 'cubic', 'Crystal System', 'crystal_system=cubic'],
+  ['string', 'results.material.symmetry.crystal_system', 'cubic', 'Crystal System', 'cubic'],
   ['float', 'results.method.simulation.precision.k_line_density', 12.3, 'K Line Density (Å)', 'k_line_density=12.3'],
   ['datetime', 'upload_create_time', 0, 'Upload Create Time', 'upload_create_time=01/01/1970'],
-  ['boolean', 'results.properties.electronic.dos_electronic.spin_polarized', 'false', 'Spin-polarized', 'results.properties.electronic.dos_electronic.spin_polarized=true']
+  ['boolean', 'results.properties.electronic.dos_electronic.spin_polarized', 'false', 'Spin-polarized', 'false']
 ])('%s', async (name, quantity, input, title, output) => {
   const context = ui.apps.options.entries
   render(

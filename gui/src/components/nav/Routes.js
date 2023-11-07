@@ -196,7 +196,6 @@ const searchRoutes = Object.values(ui?.apps?.options || {})
       category: context.category,
       render: (props) => (
         <SearchContext
-          {...props}
           resource={context.resource}
           initialSchemas={context?.schemas}
           initialPagination={context.pagination}

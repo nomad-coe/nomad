@@ -99,7 +99,7 @@ const SearchBar = React.memo(({
     filters,
     filterData,
     filterFullnames,
-    useSetFilters,
+    useUpdateFilter,
     useFiltersLocked,
     useParseQuery
   } = useSearchContext()
@@ -109,7 +109,7 @@ const SearchBar = React.memo(({
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
   const filtersLocked = useFiltersLocked()
-  const setFilter = useSetFilters()
+  const updateFilter = useUpdateFilter()
   const parseQuery = useParseQuery()
 
   const [quantitiesAll, quantitiesAllSet, quantitiesSuggestable] = useMemo(() => {
@@ -292,7 +292,7 @@ const SearchBar = React.memo(({
 
     // Submit to search context on successful validation.
     if (valid) {
-      setFilter([quantityFullname, old => {
+      updateFilter([quantityFullname, old => {
         const multiple = filterData[quantityFullname].multiple
         return (comparison || isNil(old) || !multiple)
           ? queryValue
@@ -303,7 +303,7 @@ const SearchBar = React.memo(({
     } else {
       setError(`Invalid query`)
     }
-  }, [inputValue, checkMetainfo, units, setFilter, filterData, parseQuery, filtersLocked])
+  }, [inputValue, checkMetainfo, units, updateFilter, filterData, parseQuery, filtersLocked])
 
   // Handle clear button
   const handleClose = useCallback(() => {

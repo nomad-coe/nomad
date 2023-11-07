@@ -17,6 +17,7 @@
  */
 
 import React, { useCallback, useEffect, useState, useRef, useMemo, useContext } from 'react'
+import compose from 'compose-function'
 import {
   atom,
   atomFamily,
@@ -41,10 +42,10 @@ import {
   cloneDeep
 } from 'lodash'
 import qs from 'qs'
+import { useLocation, useHistory } from 'react-router-dom'
 import { Box, Link, makeStyles } from '@material-ui/core'
 import { v4 as uuidv4 } from 'uuid'
 import PropTypes from 'prop-types'
-import { useHistory } from 'react-router-dom'
 import { useApi } from '../api'
 import {
   authorList,
@@ -87,6 +88,81 @@ WidthConstrained.propTypes = {
 
 const debounceTime = 450
 
+function parseQueryString(queryString) {
+  return queryString
+    ? qs.parse(queryString, {comma: true})
+    : undefined
+}
+
+const RouteListener = React.memo(() => {
+  const location = useLocation()
+  const history = useHistory()
+  const { useQueryString, useSetFilters, useParseQueries } = useSearchContext()
+  const queryString = useQueryString()()
+  const setFilters = useSetFilters()
+  const oldQueryString = useRef(queryString)
+  const parseQueries = useParseQueries()
+
+  // When query changes, update history
+  useEffect(() => {
+    if (queryString !== oldQueryString.current) {
+      oldQueryString.current = queryString
+      history.replace(history.location.pathname + '?' + queryString)
+    }
+  }, [history, queryString])
+
+  // When location changes, update SearchContext if query has changed.  Note
+  // that empty query string preserves the old filters, as this will enable
+  // people to preserve filters when changing apps.
+  useEffect(() => {
+    const queryString = location.search.slice(1)
+    if (!isEmpty(queryString) && queryString !== oldQueryString.current) {
+      oldQueryString.current = queryString
+      setFilters(parseQueries(parseQueryString(queryString)))
+    }
+  }, [location.search, setFilters, parseQueries])
+
+  return null
+})
+
+RouteListener.propTypes = {
+}
+
+/**
+ * HOC that handles the two-way syncing of URL query parameters and
+ * SearchContext filter values.
+ */
+export const withQueryString = (WrappedComponent) => {
+  const WithQueryString = ({initialFilterValues, children, ...rest}) => {
+    const firstRender = useRef(true)
+    const valueRef = useRef()
+
+    useMemo(() => {
+      if (firstRender.current) {
+        const split = window.location.href.split('?')
+        const search = (split.length !== 1)
+          ? split.pop()
+          : {}
+        valueRef.current = {...(initialFilterValues || {}), ...parseQueryString(search)}
+        firstRender.current = false
+      }
+    }, [initialFilterValues])
+
+    return <WrappedComponent {...rest} initialFilterValues={valueRef.current}>
+      {children}
+      <RouteListener />
+    </WrappedComponent>
+  }
+
+  WithQueryString.displayName = `withFilter(${WrappedComponent.displayName || WrappedComponent.name})`
+  WithQueryString.propTypes = {
+    initialFilterValues: PropTypes.object, // Determines which filters are available
+    children: PropTypes.node // Determines which filters are available
+  }
+
+  return WithQueryString
+}
+
 /**
  * React context that provides access to the search state implemented with
  * Recoil.js. The purpose of this context is to hide the Recoil.js
@@ -107,7 +183,7 @@ const debounceTime = 450
  * it actually changes the state of that component or not.
  */
 export const searchContext = React.createContext()
-const SearchContextRaw = React.memo(({
+export const SearchContextRaw = React.memo(({
   resource,
   initialFiltersLocked,
   initialColumns,
@@ -292,13 +368,6 @@ const SearchContextRaw = React.memo(({
         filterDefaults[key] = value.default
       }
     }
-    const location = window.location.href
-    const split = location.split('?')
-    let queryURL = {}
-    if (split.length !== 1) {
-      const qs = split.pop();
-      [queryURL] = parseQueryString(qs, initialFilterData, initialFilterAbbreviations.filterFullnames)
-    }
     const initialAggs = {}
     for (const key of initialFilterPaths) {
       initialAggs[key] = {
@@ -306,7 +375,7 @@ const SearchContextRaw = React.memo(({
       }
     }
     return [
-      {...(initialFilterValues || {}), ...queryURL},
+      parseQueries(initialFilterValues, initialFilterData, initialFilterAbbreviations.filterFullnames),
       initialAggs,
       filterDefaults
     ]
@@ -323,12 +392,12 @@ const SearchContextRaw = React.memo(({
       useFilterValue,
       useSetFilter,
       useFilterState,
-      useFiltersState,
+      useFilters,
       useFilterNames,
       useFiltersData,
       useFilterMaps,
       useResetFilters,
-      useUpdateQueryString,
+      useQueryString,
       useDynamicQueryModes,
       aggsFamily,
       useWidgetValue,
@@ -346,6 +415,7 @@ const SearchContextRaw = React.memo(({
       useAggs,
       useSetAggsResponse,
       useSetFilters,
+      useUpdateFilter,
       useIsMenuOpen,
       useSetIsMenuOpen,
       useIsCollapsed,
@@ -415,6 +485,7 @@ const SearchContextRaw = React.memo(({
       key: `dynamicQueryModesFamily_${contextID}`,
       default: (name) => undefined
     })
+
     // Used to get/set the state of all filters at once
     const filtersState = selector({
       key: `filtersState_${contextID}`,
@@ -426,9 +497,10 @@ const SearchContextRaw = React.memo(({
         }
         return query
       },
-      set: ({set}, [key, value, queryMode]) => {
-        set(queryFamily(key), value)
-        if (queryMode) set(dynamicQueryModesFamily(key), queryMode)
+      set: ({get, set}, values) => {
+        for (const key of get(filterNamesState)) {
+          set(queryFamily(key), values?.[key])
+        }
       }
     })
 
@@ -759,7 +831,7 @@ const SearchContextRaw = React.memo(({
       const setter = useSetRecoilState(queryFamily(section || name))
       const dynamicQueryModeSetter = useSetRecoilState(dynamicQueryModesFamily(section || name))
 
-      const handleSet = useCallback((value, config = undefined) => {
+      return useCallback((value, config = undefined) => {
         updatedFilters.current.add(name)
         dynamicQueryModeSetter(config?.queryMode)
         section
@@ -775,7 +847,6 @@ const SearchContextRaw = React.memo(({
             ? (old) => clearEmpty(value(old))
             : clearEmpty(value))
       }, [name, dynamicQueryModeSetter, section, setter, subname])
-      return handleSet
     }
 
     /**
@@ -792,21 +863,19 @@ const SearchContextRaw = React.memo(({
     }
 
     /**
-     * Hook that returns a function for updating the query string.
+     * Hook that returns a function that returns the current query as a query string
      *
      * @returns {function} A function that updates the query string to reflect the
      * current search page state.
      */
-    const useUpdateQueryString = () => {
-      const history = useHistory()
+    const useQueryString = () => {
       const query = useRecoilValue(queryState)
       const filtersData = useRecoilValue(filtersDataState)
       const {filterAbbreviations} = useRecoilValue(filterMapsState)
 
       return useCallback(() => {
-        const queryString = convertQueryGUIToQS(query, filtersData, filterAbbreviations)
-        history.replace(history.location.pathname + '?' + queryString)
-      }, [history, query, filtersData, filterAbbreviations])
+        return convertQueryGUIToQS(query, filtersData, filterAbbreviations)
+      }, [query, filtersData, filterAbbreviations])
     }
 
     /**
@@ -887,7 +956,7 @@ const SearchContextRaw = React.memo(({
      * @param {string} names Names of the filters.
      * @returns Array containing the filter values in a map and a setter function.
      */
-    const useFiltersState = (names) => {
+    const useFilters = (names) => {
       // We dynamically create a Recoil.js selector that is subscribed to the
       // filters specified in the input. This way only the specified filters will
       // cause a render. Recoil.js requires that each selector/atom has an unique
@@ -905,17 +974,12 @@ const SearchContextRaw = React.memo(({
               query[key] = filter
             }
             return query
-          },
-          set: ({set}, [key, value]) => {
-            set(queryFamily(key), isFunction(value)
-              ? old => clearEmpty(value(old))
-              : clearEmpty(value))
           }
         })
       // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [])
 
-      return useRecoilState(filterState)
+      return useRecoilValue(filterState)
     }
 
     /**
@@ -985,6 +1049,17 @@ const SearchContextRaw = React.memo(({
       return useSetRecoilState(filtersState)
     }
 
+    /**
+     * Used to update a single filter value with a dynamic name. Supports
+     * callback and optionally also setting the queryMode.
+     */
+    const useUpdateFilter = () => {
+      return useRecoilCallback(({set}) => ([key, value, queryMode]) => {
+        set(queryFamily(key), value)
+        if (queryMode) set(dynamicQueryModesFamily(key), queryMode)
+      }, [])
+    }
+
     return {
       useFilterLocked,
       useFiltersLocked,
@@ -992,9 +1067,9 @@ const SearchContextRaw = React.memo(({
       useFilterValue,
       useSetFilter,
       useFilterState,
-      useFiltersState,
+      useFilters,
       useResetFilters,
-      useUpdateQueryString,
+      useQueryString,
       useDynamicQueryModes,
       aggsFamily,
       useWidgetValue,
@@ -1007,6 +1082,7 @@ const SearchContextRaw = React.memo(({
       useResetWidgets,
       useAgg,
       useSetFilters,
+      useUpdateFilter,
       useQuery,
       useFilterNames: () => useRecoilValue(filterNamesState),
       useFiltersData: () => useRecoilValue(filtersDataState),
@@ -1058,7 +1134,6 @@ const SearchContextRaw = React.memo(({
   const filtersLocked = useFiltersLocked()
   const required = useRequired()
   const resultsUsed = useResultsUsed()
-  const updateQueryString = useUpdateQueryString()
 
   /**
    * This function is used to sync up API calls so that they update the search
@@ -1304,12 +1379,6 @@ const SearchContextRaw = React.memo(({
     )
   }, [query, aggs, pagination, required, resultsUsed, apiCallInterMediate, updateAggsResponse, setPagination, setResults, setApiData])
 
-  // This updated the query string to represent the latest value within the
-  // search context.
-  useEffect(() => {
-    updateQueryString()
-  }, [updateQueryString])
-
   // The context contains a set of functions that can be used to hook into
   // different data.
   const values = useMemo(() => {
@@ -1439,17 +1508,29 @@ const SearchContextRaw = React.memo(({
     }
 
     /**
-     * Hook that returns a function for parsing filter values into a form that
-     * is supported by the GUI. The parsing depends on the SearchContext as
-     * filters may define a custom deserialization function and only certain
-     * filters may be available.
+     * Hook that returns a function for parsing a single filter key, value pair
+     * into a form that is supported by the GUI. The parsing depends on the
+     * SearchContext as filters may define a custom deserialization function and
+     * only certain filters may be available.
      * */
     const useParseQuery = () => {
-      const parse = useCallback(
+      return useCallback(
         (key, value, units, path, multiple) => parseQuery(key, value, filtersData, units, path, multiple),
         []
       )
-      return parse
+    }
+
+    /**
+     * Hook that returns a function for parsing an object containing filter
+     * values into a form that is supported by the GUI. The parsing depends on
+     * the SearchContext as filters may define a custom deserialization function
+     * and only certain filters may be available.
+     * */
+    const useParseQueries = () => {
+      return useCallback(
+        (values) => parseQueries(values, filtersData, filterFullnames),
+        []
+      )
     }
 
     return {
@@ -1472,10 +1553,11 @@ const SearchContextRaw = React.memo(({
       useApiQuery,
       useQuery,
       useParseQuery,
+      useParseQueries,
       useFilterValue,
       useSetFilter,
       useFilterState,
-      useFiltersState,
+      useFilters,
       useResetFilters,
       useRefresh,
       useFilterLocked,
@@ -1489,12 +1571,13 @@ const SearchContextRaw = React.memo(({
       useAddWidget,
       useRemoveWidget,
       useResetWidgets,
-      useUpdateQueryString,
+      useQueryString,
       useResults,
       useHits,
       useAgg,
       useAggCall,
-      useSetFilters
+      useSetFilters,
+      useUpdateFilter
     }
   }, [
     resource,
@@ -1515,7 +1598,7 @@ const SearchContextRaw = React.memo(({
     useFilterValue,
     useSetFilter,
     useFilterState,
-    useFiltersState,
+    useFilters,
     useResetFilters,
     useFilterLocked,
     useFiltersLocked,
@@ -1528,7 +1611,7 @@ const SearchContextRaw = React.memo(({
     useAddWidget,
     useRemoveWidget,
     useResetWidgets,
-    useUpdateQueryString,
+    useQueryString,
     usePagination,
     useResults,
     useResultsUsed,
@@ -1539,6 +1622,7 @@ const SearchContextRaw = React.memo(({
     useAggs,
     useQuery,
     useSetFilters,
+    useUpdateFilter,
     apiCallInterMediate,
     apiCall,
     aggsFamily,
@@ -1567,7 +1651,8 @@ SearchContextRaw.propTypes = {
   children: PropTypes.node
 }
 
-export const SearchContext = withFilters(SearchContextRaw)
+// export const SearchContext = withQueryString(withFilters(SearchContextRaw))
+export const SearchContext = compose(withQueryString, withFilters)(SearchContextRaw)
 
 /**
  * Hook for accessing the current SearchContext.
@@ -1644,21 +1729,6 @@ function parseQueries(query, filtersData, filterFullnames, units = undefined) {
     }
   }
   return newQuery
-}
-
-/**
- * Parses a URL query string into a query object that can be used within
- * search context.
- *
- * @param {string} queryString URL querystring, encoded or not.
- * @param {object} filtersData All of the filters that are available
- * @returns Returns an object containing the query. Values are converted into
- * datatypes that are directly compatible with the filter components.
- */
-function parseQueryString(queryString, filtersData, filterFullnames) {
-  const queryObj = qs.parse(queryString, {comma: true})
-  const query = parseQueries(queryObj, filtersData, filterFullnames)
-  return [query]
 }
 
 /**
