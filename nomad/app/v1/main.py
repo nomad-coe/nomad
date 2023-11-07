@@ -73,6 +73,12 @@ async def redirect_to_docs(req: Request):
 app.add_route('/', redirect_to_docs, include_in_schema=False)
 
 
+@app.middleware('http')
+async def log_request_time(request: Request, call_next):
+    with utils.timer(logger, 'time to handle request', url=request.url.path):
+        return await call_next(request)
+
+
 @app.exception_handler(Exception)
 async def unicorn_exception_handler(request: Request, e: Exception):
     logger.error('unexpected exception in API', url=request.url, exc_info=e)

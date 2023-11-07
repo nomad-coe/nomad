@@ -339,18 +339,19 @@ _bad_metadata_edit_response = status.HTTP_400_BAD_REQUEST, {
 
 
 def perform_search(*args, **kwargs):
-    try:
-        search_response = search(*args, **kwargs)
-        search_response.es_query = None
-        return search_response
-    except QueryValidationError as e:
-        raise RequestValidationError(errors=e.errors)
-    except AuthenticationRequiredError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-    except SearchError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Elasticsearch could not process your query: %s' % str(e))
+    with utils.timer(logger, 'time to handle search'):
+        try:
+            search_response = search(*args, **kwargs)
+            search_response.es_query = None
+            return search_response
+        except QueryValidationError as e:
+            raise RequestValidationError(errors=e.errors)
+        except AuthenticationRequiredError as e:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        except SearchError as e:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f'Elasticsearch could not process your query: {str(e)}')
 
 
 @router.post(
@@ -787,10 +788,10 @@ _entries_archive_docstring = strip('''
     responses=create_responses(_bad_owner_response, _bad_archive_required_response))
 async def post_entries_archive_query(
         request: Request, data: EntriesArchive, user: User = Depends(create_user_dependency())):
-
-    return _answer_entries_archive_request(
-        owner=data.owner, query=data.query, pagination=data.pagination,
-        required=data.required, user=user)
+    with utils.timer(logger, 'time to handle archive query (search+filtering)', url=request.url.path):
+        return _answer_entries_archive_request(
+            owner=data.owner, query=data.query, pagination=data.pagination,
+            required=data.required, user=user)
 
 
 @router.get(
@@ -1153,7 +1154,8 @@ async def post_entry_archive_query(
     Returns a partial archive for the given `entry_id` based on the `required` specified
     in the body.
     '''
-    return answer_entry_archive_request(dict(entry_id=entry_id), required=data.required, user=user)
+    with utils.timer(logger, 'time to handle archive query (filtering)', entry_id=entry_id):
+        return answer_entry_archive_request(dict(entry_id=entry_id), required=data.required, user=user)
 
 
 def edit(query: Query, user: User, mongo_update: Dict[str, Any] = None, re_index=True) -> List[str]:
