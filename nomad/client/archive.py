@@ -15,14 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 import asyncio
 from asyncio import Semaphore
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 import threading
 
-import httpx
-from httpx import Timeout
+from click import progressbar
+from httpx import Timeout, AsyncClient
 from keycloak import KeycloakOpenID
 
 from nomad import config, metainfo as mi
@@ -107,6 +108,8 @@ class ArchiveQuery:
     Authentication is created by using valid `username` and `password`.
     If any is invalid, authenticated access is not available.
 
+    Setting a high value for `semaphore` may cause the server to return 500, 502, 504 errors.
+
     Params:
         owner (str): ownership scope
         query (dict): query
@@ -115,30 +118,33 @@ class ArchiveQuery:
         after (str): specify the starting upload id to query, if users have knowledge of uploads,
             they may wish to start from a specific upload, default: ''
         results_max (int): maximum results to query, default: 1000
-        page_size (int): size of page in each query, default: 100
+        page_size (int): size of page in each query, cannot exceed the limit 10000, default: 100
         username (str): username for authenticated access, default: ''
         password (str): password for authenticated access, default: ''
         retry (int): number of retry when fetching uploads, default: 4
-        sleep_time (float): sleep time for retry, default: 1.
+        sleep_time (float): sleep time for retry, default: 4.
+        semaphore (int): number of concurrent downloads, this depends on server settings, default: 4
     '''
 
     def __init__(
             self, owner: str = 'visible', query: dict = None, required: dict = None,
-            url: str = None, after: str = None, results_max: int = 1000, page_size: int = 10,
-            username: str = None, password: str = None, retry: int = 4, sleep_time: float = 4,
-            from_api: bool = False):
+            url: str = None, after: str = None, results_max: int = 1000, page_size: int = 100,
+            username: str = None, password: str = None, retry: int = 4, sleep_time: float = 4.,
+            from_api: bool = False, semaphore: int = 4):
         self._owner: str = owner
         self._required = required if required else dict(run='*')
-        self._query_list: List[dict] = []
+        self._query_list: list[dict] = [{'quantities': list(_collect(self._required, EntryArchive.m_def))}]
         if query:
             self._query_list.append(query)
-        self._query_list.append({'quantities': list(_collect(self._required, EntryArchive.m_def))})
         self._url: str = url if url else config.client.url + '/v1'
         self._after: str = after
         self._results_max: int = results_max if results_max > 0 else 1000
-        self._page_size: int = page_size if page_size > 0 else 10
+        self._page_size: int = min(page_size, 9999) if page_size > 0 else 100
+        if self._page_size > self._results_max:
+            self._page_size = self._results_max
         self._retry: int = retry if retry >= 0 else 4
-        self._sleep_time: float = sleep_time if sleep_time > 0. else 1.
+        self._sleep_time: float = sleep_time if sleep_time > 0. else 4.
+        self._semaphore = semaphore
 
         from nomad.client import Auth
         self._auth = Auth(user=username, password=password, from_api=from_api)
@@ -148,7 +154,7 @@ class ArchiveQuery:
             client_id=config.keycloak.client_id)
 
         # local data storage
-        self._uploads: List[Tuple[str, int]] = []
+        self._entries: list[tuple[str, str]] = []
         self._current_after: str = self._after
         self._current_results: int = 0
 
@@ -177,30 +183,21 @@ class ArchiveQuery:
         Generate fetch request.
         '''
 
-        request = {
+        request: dict = {
             'owner': self._owner,
             'query': self._query,
-            'pagination': {
-                'page_size': 0
-            },
-            'aggregations': {
-                'uploads': {
-                    'terms': {
-                        'quantity': 'upload_id',
-                        'pagination': {
-                            'page_size': self._page_size,
-                            'page_after_value': self._current_after
-                        }
-                    }
-                }
-            }
+            'pagination': {'page_size': self._page_size},
+            "required": {"include": ["entry_id", "upload_id"]}
         }
+
+        if self._current_after:
+            request['pagination']['page_after_value'] = self._current_after
 
         # print(f'Current request: {request}')
 
         return request
 
-    def _download_request(self, upload_id: str, upload_count: int) -> dict:
+    def _download_request(self, entry_id: str) -> dict:
         '''
         Generate download request.
         '''
@@ -209,8 +206,8 @@ class ArchiveQuery:
         request['query'] = {'and': []}
         for t_list in self._query_list:
             request['query']['and'].append(t_list)
-        request['query']['and'].append({'upload_id': upload_id})
-        request.setdefault('pagination', {'page_size': upload_count})
+        request['query']['and'].append({'entry_id': entry_id})
+        request.setdefault('pagination', {'page_size': 1})
 
         # print(f'Current request: {request}')
 
@@ -221,11 +218,11 @@ class ArchiveQuery:
         Clear all fetched and downloaded data. Users can then call .fetch() and .download() again.
         '''
 
-        self._uploads: List[Tuple[str, Any]] = []  # (id, count)
+        self._entries = []
         self._current_after = self._after
         self._current_results = 0
 
-    async def _fetch_async(self, number: int = 0) -> int:
+    async def _fetch_async(self, number: int) -> int:
         '''
         There is no need to perform fetching asynchronously as the required number of uploads
         depends on previous queries.
@@ -239,7 +236,7 @@ class ArchiveQuery:
             The number of entries fetched
         '''
 
-        # if maximum number of entries have been previously fetched
+        # if the maximum number of entries has been previously fetched
         # not going to fetch more entries
         if self._current_results >= self._results_max:
             return 0
@@ -251,7 +248,7 @@ class ArchiveQuery:
         num_retry: int = 0
         num_entry: int = 0
 
-        async with httpx.AsyncClient(timeout=Timeout(timeout=300)) as session:
+        async with AsyncClient(timeout=Timeout(timeout=300)) as session:
             while True:
                 response = await session.post(
                     self._fetch_url, json=self._fetch_request, headers=self._auth.headers())
@@ -262,7 +259,7 @@ class ArchiveQuery:
                         reason = response_json.get("description") or response_json.get(
                             "detail") or "unknown reason"
                         raise ValueError(f'Server returns {response.status_code}: {reason}')
-                    if response.status_code in [500, 502, 504]:
+                    if response.status_code in (500, 502, 504):
                         if num_retry > self._retry:
                             print('Maximum retry reached.')
                             break
@@ -274,48 +271,40 @@ class ArchiveQuery:
 
                 response_json = response.json()
 
-                data = response_json['aggregations']['uploads']['terms']
-                header = [(bucket['value'], int(bucket['count'])) for bucket in data['data']]
-                self._current_after = data['pagination'].get('next_page_after_value', None)
+                self._current_after = response_json['pagination'].get('next_page_after_value', None)
 
-                current_size: int = sum([count for _, count in header])
+                data = [(entry['entry_id'], entry['upload_id']) for entry in response_json['data']]
+                current_size: int = len(data)
 
                 # no more entries
                 if current_size == 0:
                     break
 
-                if self._current_results + current_size >= self._results_max:
+                if self._current_results + current_size > self._results_max:
                     # current query has sufficient entries to exceed the limit
-                    for upload_id, count in header:
-                        self._current_results += count
-                        num_entry += count
-                        # required number of entries have been acquired
-                        if self._current_results >= self._results_max:
-                            entry_difference = self._current_results - self._results_max
-                            self._current_results -= entry_difference
-                            num_entry -= entry_difference
-                            self._uploads.append((upload_id, count - entry_difference))
-                            self._current_after = upload_id
-                            break
-                        else:
-                            self._uploads.append((upload_id, count))
+                    data = data[:self._results_max - self._current_results]
+                    self._current_results += len(data)
+                    self._entries.extend(data)
                     break
                 else:
                     # current query should be added
                     num_entry += current_size
                     self._current_results += current_size
-                    self._uploads.extend(header)
+                    self._entries.extend(data)
 
                     # if exceeds the required number, exit
                     # `self._current_after` is automatically set
                     if num_entry >= number:
                         break
 
+                if self._current_after is None:
+                    break
+
         print(f'{num_entry} entries are qualified and added to the download list.')
 
         return num_entry
 
-    async def _download_async(self, number: int = 0) -> List[EntryArchive]:
+    async def _download_async(self, number: int) -> List[EntryArchive]:
         '''
         Download required entries asynchronously.
 
@@ -325,27 +314,23 @@ class ArchiveQuery:
         Returns:
             A list of EntryArchive
         '''
+        semaphore = Semaphore(self._semaphore)
 
-        num_entry: int = 0
-        num_upload: int = 0
-        for _, count in self._uploads:
-            num_entry += count
-            num_upload += 1
-            if num_entry >= number:
-                break
+        with progressbar(length=number, label=f'Downloading {number} entries...') as bar:
+            async with AsyncClient(timeout=Timeout(timeout=300)) as session:
+                tasks = [asyncio.create_task(
+                    self._acquire(
+                        ids, session, semaphore, bar)) for ids in self._entries[:number]]
+                results = await asyncio.gather(*tasks)
 
-        semaphore = Semaphore(30)
+        return [result for result in results if result]
 
-        async with httpx.AsyncClient(timeout=Timeout(timeout=300)) as session:
-            tasks = [asyncio.create_task(
-                self._acquire(
-                    upload, session, semaphore)) for upload in self._uploads[:num_upload]]
-            results = await asyncio.gather(*tasks)
-
-        # flatten 2D list
-        return [result for sub_results in results for result in sub_results]
-
-    async def _acquire(self, upload: Tuple[str, int], session, semaphore) -> List[EntryArchive]:
+    async def _acquire(
+            self, ids: tuple[str, str],
+            session: AsyncClient,
+            semaphore: Semaphore,
+            bar
+    ) -> EntryArchive | None:
         '''
         Perform the download task.
 
@@ -360,28 +345,28 @@ class ArchiveQuery:
             A list of EntryArchive
         '''
 
-        request = self._download_request(upload[0], upload[1])
+        entry_id, upload_id = ids
+
+        request = self._download_request(entry_id)
 
         async with semaphore:
             response = await session.post(self._download_url, json=request, headers=self._auth.headers())
+            bar.update(1)
+            self._entries.remove(ids)
+
             if response.status_code >= 400:
                 print(
-                    f'Request with upload id {upload[0]} returns {response.status_code},'
+                    f'Request with entry id {entry_id} returns {response.status_code},'
                     f' will retry in the next download call...')
-                return []
+                self._entries.append(ids)
+                return None
 
             # successfully downloaded data
-            # extract and remove the corresponding id in the list
-            response_json = response.json()
-
-            self._uploads.remove(upload)
-
-            context = ClientContext(self._url, upload_id=upload[0], auth=self._auth)
-            result = [EntryArchive.m_from_dict(
-                result['archive'], m_context=context) for result in response_json['data']]
+            context = ClientContext(self._url, upload_id=upload_id, auth=self._auth)
+            result = EntryArchive.m_from_dict(response.json()['data'][0]['archive'], m_context=context)
 
             if not result:
-                print(f'No result returned for id {upload[0]}, is the query proper?')
+                print(f'No result returned for id {entry_id}, is the query proper?')
 
             return result
 
@@ -412,7 +397,7 @@ class ArchiveQuery:
             A list of downloaded EntryArchive
         '''
 
-        pending_size: int = sum([count for _, count in self._uploads])
+        pending_size: int = len(self._entries)
 
         # download all at once
         if number == 0:
@@ -424,8 +409,6 @@ class ArchiveQuery:
         elif pending_size < number:
             # if not sufficient fetched entries, fetch first
             self.fetch(number - pending_size)
-
-        print('Downloading required data...')
 
         return run_async(self._download_async, number)
 
@@ -443,7 +426,7 @@ class ArchiveQuery:
         Asynchronous interface for use in a running event loop.
         '''
 
-        pending_size: int = sum([count for _, count in self._uploads])
+        pending_size: int = len(self._entries)
 
         # download all at once
         if number == 0:
@@ -456,9 +439,7 @@ class ArchiveQuery:
             # if not sufficient fetched entries, fetch first
             await self.async_fetch(number - pending_size)
 
-        print('Downloading required data...')
-
         return await self._download_async(number)
 
-    def upload_list(self) -> List[Tuple[str, int]]:
-        return self._uploads
+    def entry_list(self) -> list[tuple[str, str]]:
+        return self._entries
