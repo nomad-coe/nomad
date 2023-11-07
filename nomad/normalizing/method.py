@@ -137,22 +137,35 @@ class MethodNormalizer():
             method.workflow_name = self.entry_archive.workflow2.m_def.name
         # if the entry is a GW or XS workflow, keep method_name as DFT+XS
         if method.workflow_name in ['GW', 'XS']:
-            try:
-                gs_method = self.entry_archive.workflow2.tasks[0].task.tasks[-1].inputs[1].section  # Ground-state method
-                repr_method = gs_method
-
-                if len(self.entry_archive.workflow2.tasks[-1].task.inputs) > 1:
-                    xs_method = self.entry_archive.workflow2.tasks[-1].task.inputs[1].section  # Excited-state method
-                else:
-                    xs_method = self.entry_archive.workflow2.tasks[-1].task.tasks[-1].inputs[1].section
-
-                if xs_method.gw:
-                    method_name = f'{get_method_name(repr_method)}+GW'
-                elif xs_method.bse:
-                    method_name = f'{get_method_name(repr_method)}+BSE'
-            except Exception:
-                self.logger.warning('Error finding the DFT and ExcitedState (GW, BSE) method sections from workflow refs.')
+            gs_task = self.entry_archive.workflow2.tasks[0]  # Ground-state task
+            xs_task = self.entry_archive.workflow2.tasks[-1]  # Excited-state (GW, XS) task
+            # Trying to resolve the gs_method and the representative method (repr_method)
+            gs_method = None
+            for input in gs_task.task.tasks[-1].inputs:
+                if 'method' in input.name:
+                    gs_method = input.section
+                    break
+            if not gs_method:
+                self.logger.warning('Could not resolve the DFT method section from workflow refs.')
                 return method
+            repr_method = gs_method
+            # Trying to resolve the xs_method section and the method_name
+            xs_method = None
+            if len(xs_task.task.inputs) > 1:
+                xs_method = xs_task.task.inputs[1].section  # Excited-state method (BSE, XS cases)
+            else:  # Special GW workflow case
+                for input in xs_task.task.tasks[-1].inputs:
+                    if 'method' in input.name:
+                        xs_method = input.section
+                        break
+            if not xs_method:
+                self.logger.warning('Could not resolve the excited-state method section (GW, BSE) from workflow refs.')
+                return method
+            # Finding the proper workflow method_name
+            if xs_method.gw:
+                method_name = f'{get_method_name(repr_method)}+GW'
+            elif xs_method.bse:
+                method_name = f'{get_method_name(repr_method)}+BSE'
         elif method.workflow_name == 'DMFT':
             repr_method = self.entry_archive.workflow2.method.dmft_method_ref  # DMFT method
             repr_method = repr_method.m_parent
