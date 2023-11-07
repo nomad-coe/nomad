@@ -48,7 +48,8 @@ dependencies = [
     'bitarray>=2.3.5',
     'scikit-learn>=1.0.2',
     'toposort',
-    'openpyxl>=3.0.0'
+    'openpyxl>=3.0.0',
+    'networkx==2.6.3'
 ]
 
 [project.urls]

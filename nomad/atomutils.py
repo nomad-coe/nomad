@@ -47,11 +47,12 @@ from MDAnalysis.core.topology import Topology
 from MDAnalysis.core._get_readers import get_reader_for
 from MDAnalysis.core.universe import Universe
 import MDAnalysis.analysis.rdf as MDA_RDF
+import networkx
 
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
 from nomad.units import ureg
-# from nomad.parsing.file_parser import Quantity
+from nomad.metainfo import MSection
 
 
 valid_elements = set(ase.data.chemical_symbols[1:])
@@ -990,7 +991,7 @@ def create_empty_universe(
         n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
         atom_resindex: NDArray[Int] = None, residue_segindex: NDArray[Int] = None,
         flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False,
-        timestep: float = None):
+        timestep: float = None) -> MDAnalysis.Universe:
     '''Create a blank Universe
 
     This function was adapted from the function empty() within the MDA class Universe().
@@ -1082,7 +1083,7 @@ def create_empty_universe(
     return universe
 
 
-def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, model_index: int = -1):
+def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, model_index: int = -1) -> MDAnalysis.Universe:
     '''Extract the topology from a provided run section of an archive entry
 
         Input:
@@ -1144,8 +1145,6 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_atoms_group = sec_system_top.atoms_group
         sec_calculation = sec_run.calculation
         sec_method = sec_run.method[method_index] if sec_run.get('method') is not None else None
-        sec_force_field = sec_method.force_field if sec_method is not None else None
-        sec_model = sec_force_field.model[model_index] if sec_force_field is not None else None
     except IndexError:
         logging.warning('Supplied indices or necessary sections do not exist in archive. Cannot build the MDA universe.')
         return None
@@ -1256,13 +1255,10 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
                     sec_atoms_fr.lattice_vectors.magnitude[2][2] * length_conversion,
                     90, 90, 90]  # TODO: extend to non-cubic boxes
 
-    # get the bonds
-    bonds = []
-    contributions = sec_model.get('contributions') if sec_model is not None else []
-    contributions = contributions if contributions is not None else []
-    for contribution in contributions:
-        if contribution.type == 'bond':  # and contribution.atom_indices is not None:
-            bonds.append(tuple(contribution.atom_indices))
+    # get the bonds  # TODO extend to multiple storage options for interactions
+    bonds = sec_atoms.bond_list
+    if bonds is None:
+        bonds = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
 
     # get the system times
     system_timestep = 1.0 * ureg.picosecond
@@ -1374,7 +1370,7 @@ def __correlation(function, positions: List[float]):
 
 def shifted_correlation_average(function: Callable, times: NDArray, positions: NDArray,
                                 index_distribution: Callable = __log_indices, correlation: Callable = __correlation,
-                                segments: int = 10, window: float = 0.5, skip: int = 0):
+                                segments: int = 10, window: float = 0.5, skip: int = 0) -> tuple[NDArray, NDArray]:
 
     '''
     Code adapted from MDevaluate module: https://github.com/mdevaluate/mdevaluate.git
@@ -1452,7 +1448,7 @@ def shifted_correlation_average(function: Callable, times: NDArray, positions: N
     return correlation_times, result
 
 
-def _calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
+def _calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3) -> tuple[float, float]:
     '''
     Determines the diffusion constant from a fit of the mean squared displacement
     vs. time according to the Einstein relation.
@@ -1463,8 +1459,10 @@ def _calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3):
     return slope * 1 / (2 * dim), error
 
 
-def _get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None):
-
+def _get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None) -> Dict[str, BeadGroup]:
+    '''
+    Creates bead groups based on the molecular types as defined by the MDAnalysis universe.
+    '''
     if moltypes is None:
         atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
         moltypes = np.unique(atoms_moltypes)
@@ -1477,7 +1475,7 @@ def _get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str
     return bead_groups
 
 
-def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_prune: int = 1, interval_indices=None, max_mols: int = 5000):
+def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_prune: int = 1, interval_indices=None, max_mols: int = 5000) -> Dict:
     '''
     Calculates the radial distribution functions between for each unique pair of
     molecule types as a function of their center of mass distance.
@@ -1485,10 +1483,9 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
     max_mols: the maximum number of molecules per bead group for calculating the rdf, for efficiency purposes.
     '''
-
     # TODO 5k default for max_mols was set after > 50k was giving problems. Should do further testing to see where the appropriate limit should be set.
     if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
-        return
+        return {}
 
     n_frames = universe.trajectory.n_frames
     if n_frames < n_traj_split:
@@ -1506,7 +1503,7 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
         if np.sum(n_frames_split) != n_frames:
             logging.error('Something went wrong with input parameters in calc_molecular_rdf().'
                           'Radial distribution functions will not be calculated.')
-            return
+            return {}
         if not interval_indices:
             interval_indices = [[i] for i in range(n_traj_split)]
 
@@ -1596,7 +1593,7 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     return rdf_results
 
 
-def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max_mols: int = 5000):
+def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max_mols: int = 5000) -> Dict:
     '''
     Calculates the mean squared displacement for the center of mass of each
     molecule type.
@@ -1604,6 +1601,60 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     max_mols: the maximum number of molecules per bead group for calculating the msd, for efficiency purposes.
     50k was tested and is very fast and does not seem to have any memory issues.
     '''
+    def parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
+        '''
+        See __get_nojump_positions().
+        '''
+        __ = universe.trajectory[0]
+        prev = np.array(selection.positions)
+        box = universe.trajectory[0].dimensions[:3]
+        sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])  # type: ignore[name-match]
+        jump_data = (
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
+            sparse_data(data=array('b'), row=array('l'), col=array('l'))
+        )
+
+        for i_frame, _ in enumerate(universe.trajectory[1:]):
+            curr = np.array(selection.positions)
+            delta = ((curr - prev) / box).round().astype(np.int8)
+            prev = np.array(curr)
+            for d in range(3):
+                col, = np.where(delta[:, d] != 0)
+                jump_data[d].col.extend(col)
+                jump_data[d].row.extend([i_frame] * len(col))
+                jump_data[d].data.extend(delta[col, d])
+
+        return jump_data
+
+    def generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
+        '''
+        See __get_nojump_positions().
+        '''
+        jump_data = parse_jumps(universe, selection)
+        n_frames = len(universe.trajectory)
+        n_atoms = selection.positions.shape[0]
+
+        nojump_matrices = tuple(
+            sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
+        )
+        return nojump_matrices
+
+    def get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup) -> NDArray:
+        '''
+        Unwraps the positions to create a continuous trajectory without jumps across periodic boundaries.
+        '''
+        nojump_matrices = generate_nojump_matrices(universe, selection)
+        box = universe.trajectory[0].dimensions[:3]
+
+        nojump_positions = []
+        for i_frame, __ in enumerate(universe.trajectory):
+            delta = np.array(np.vstack(
+                [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
+            ).T) * box
+            nojump_positions.append(selection.positions - delta)
+
+        return np.array(nojump_positions)
 
     def mean_squared_displacement(start: NDArray, current: NDArray):
         '''
@@ -1613,20 +1664,20 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
         return (vec ** 2).sum(axis=1).mean()
 
     if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
-        return
+        return {}
 
     n_frames = universe.trajectory.n_frames
     if n_frames < 50:
         warnings.warn('At least 50 frames required to calculate molecular'
                       ' mean squared displacements, skipping.', UserWarning)
-        return
+        return {}
 
     dt = getattr(universe.trajectory, 'dt')
     if dt is None:
         warnings.warn(
             'Universe is missing time step, cannot calculate molecular'
             ' mean squared displacements, skipping.', UserWarning)
-        return
+        return {}
     times = np.arange(n_frames) * dt
 
     bead_groups = _get_molecular_bead_groups(universe)
@@ -1671,7 +1722,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     msd_results['diffusion_constant'] = []
     msd_results['error_diffusion_constant'] = []
     for moltype in moltypes:
-        positions = __get_nojump_positions(universe, bead_groups[moltype])
+        positions = get_nojump_positions(universe, bead_groups[moltype])
         results = shifted_correlation_average(mean_squared_displacement, times, positions)
         if results:
             msd_results['value'].append(results[1])
@@ -1690,62 +1741,12 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     return msd_results
 
 
-def __parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
-    __ = universe.trajectory[0]
-    prev = np.array(selection.positions)
-    box = universe.trajectory[0].dimensions[:3]
-    sparse_data = namedtuple('SparseData', ['data', 'row', 'col'])  # type: ignore[name-match]
-    jump_data = (
-        sparse_data(data=array('b'), row=array('l'), col=array('l')),
-        sparse_data(data=array('b'), row=array('l'), col=array('l')),
-        sparse_data(data=array('b'), row=array('l'), col=array('l'))
-    )
-
-    for i_frame, _ in enumerate(universe.trajectory[1:]):
-        curr = np.array(selection.positions)
-        delta = ((curr - prev) / box).round().astype(np.int8)
-        prev = np.array(curr)
-        for d in range(3):
-            col, = np.where(delta[:, d] != 0)
-            jump_data[d].col.extend(col)
-            jump_data[d].row.extend([i_frame] * len(col))
-            jump_data[d].data.extend(delta[col, d])
-
-    return jump_data
-
-
-def __generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
-    jump_data = __parse_jumps(universe, selection)
-    n_frames = len(universe.trajectory)
-    n_atoms = selection.positions.shape[0]
-
-    nojump_matrices = tuple(
-        sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
-    )
-    return nojump_matrices
-
-
-def __get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):
-    nojump_matrices = __generate_nojump_matrices(universe, selection)
-    box = universe.trajectory[0].dimensions[:3]
-
-    nojump_positions = []
-    for i_frame, __ in enumerate(universe.trajectory):
-        delta = np.array(np.vstack(
-            [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
-        ).T) * box
-        nojump_positions.append(selection.positions - delta)
-
-    return np.array(nojump_positions)
-
-
-def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices: NDArray):
+def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices: NDArray) -> Dict:
     '''
     Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
     '''
-
     if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
-        return
+        return {}
     selection = ' '.join([str(i) for i in molecule_atom_indices])
     selection = f'index {selection}'
     molecule = universe.select_atoms(selection)
@@ -1764,11 +1765,10 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     return rg_results
 
 
-def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topology):
+def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topology: MSection) -> List[Dict]:
     '''
     Calculates the radius of gyration as a function of time for each polymer in the system.
     '''
-
     if not system_topology:
         return []
 
@@ -1785,3 +1785,84 @@ def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topo
             rg_results.append(rg_result)
 
     return rg_results
+
+
+def get_molecules_from_bond_list(n_particles: int, bond_list: List[tuple], particle_types: List[str] = None, particles_typeid: array = None) -> List[Dict]:
+    '''
+    Returns a list of dictionaries with molecule info from each instance in the list of bonds.
+    '''
+    system_graph = networkx.empty_graph(n_particles)
+    system_graph.add_edges_from([(i[0], i[1]) for i in bond_list])
+    molecules = [system_graph.subgraph(c).copy() for c in networkx.connected_components(system_graph)]
+    molecule_info: List[Dict] = []
+    molecule_dict: Dict = {}
+    for mol in molecules:
+        molecule_dict = {}
+        molecule_dict['indices'] = np.array(mol.nodes())
+        molecule_dict['bonds'] = np.array(mol.edges())
+        molecule_dict['type'] = 'molecule'
+        molecule_dict['is_molecule'] = True
+        if particles_typeid is None and len(particle_types) == n_particles:
+            molecule_dict['names'] = [particle_types[int(x)] for x in sorted(np.array(molecule_dict['indices']))]
+        if particle_types is not None and particles_typeid is not None:
+            molecule_dict['names'] = [particle_types[particles_typeid[int(x)]] for x in sorted(np.array(molecule_dict['indices']))]
+        molecule_info.append(molecule_dict)
+    return molecule_info
+
+
+def is_same_molecule(mol_1: dict, mol_2: dict) -> bool:
+    '''
+    Checks whether the 2 input molecule dictionary (see "get_molecules_from_bond_list()" above)
+    represent the same molecule type, i.e., same particle types and corresponding bond connections.
+    '''
+    def get_bond_list_dict(mol):
+        mol_shift = np.min(mol['indices'])
+        mol_bonds_shift = mol['bonds'] - mol_shift
+        bond_list = [sorted((mol['names'][i], mol['names'][j])) for i, j in mol_bonds_shift]
+        bond_list_names, bond_list_counts = np.unique(bond_list, axis=0, return_counts=True)
+
+        return {bond[0] + '-' + bond[1]: bond_list_counts[i_bond] for i_bond, bond in enumerate(bond_list_names)}
+
+    if sorted(mol_1['names']) != sorted(mol_2['names']):
+        return False
+
+    bond_list_dict_1 = get_bond_list_dict(mol_1)
+    bond_list_dict_2 = get_bond_list_dict(mol_2)
+
+    if bond_list_dict_1 == bond_list_dict_2:
+        return True
+
+    return False
+
+
+def get_composition(children_names: List[str]) -> str:
+    '''
+    Generates a generalized "chemical formula" based on the provided list `children_names`,
+    with the format X(m)Y(n) for children_names X and Y of quantities m and n, respectively.
+    '''
+    children_count_tup = np.unique(children_names, return_counts=True)
+    formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
+    return formula
+
+
+def get_bond_list_from_model_contributions(sec_run: MSection, method_index: int = -1, model_index: int = -1) -> List[tuple]:
+    '''
+    Generates bond list of tuples using the list of bonded force field interactions stored under run[].method[].force_field.model[].
+
+    bond_list: List[tuple]
+    '''
+    contributions = []
+    if sec_run.m_xpath(f'method[{method_index}].force_field.model[{model_index}].contributions'):
+        contributions = sec_run.method[method_index].force_field.model[model_index].contributions
+    bond_list = []
+    for contribution in contributions:
+        if contribution.type != 'bond':
+            continue
+
+        atom_indices = contribution.atom_indices
+        if contribution.n_interactions:  # all bonds have been grouped into one contribution
+            bond_list = [tuple(indices) for indices in atom_indices]
+        else:
+            bond_list.append(tuple(contribution.atom_indices))
+
+    return bond_list

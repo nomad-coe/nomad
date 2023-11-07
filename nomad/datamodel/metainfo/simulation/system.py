@@ -90,6 +90,13 @@ class AtomsGroup(MSection):
         with these atoms.
         ''')
 
+    bond_list = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within this atoms_group.
+        ''')
+
     atoms_group = SubSection(sub_section=SectionProxy('AtomsGroup'), repeats=True)
 
 
@@ -231,6 +238,13 @@ class Atoms(MSection):
         description='''
         Specifies if the space group is symmorphic. Set to True if all translations are
         zero.
+        ''')
+
+    bond_list = Quantity(
+        type=np.int32,
+        shape=[],
+        description='''
+        List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within the entire system.
         ''')
 
     def to_ase(self, raise_exp: bool = False):
