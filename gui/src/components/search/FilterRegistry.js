@@ -533,8 +533,8 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'available_properties', ...termQuantityAll},
-    {name: 'provenance.molecular_dynamics.ensemble_type', ...termQuantity},
-    {name: 'provenance.molecular_dynamics.time_step', ...numberHistogramQuantity}
+    {name: 'provenance.molecular_dynamics.ensemble_type', ...termQuantity, label: 'Ensemble Type'},
+    {name: 'provenance.molecular_dynamics.time_step', ...numberHistogramQuantity, label: 'Time Step'}
   ]
 )
 

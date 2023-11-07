@@ -19,17 +19,15 @@ import React, { useCallback } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isNil, isPlainObject, isEmpty } from 'lodash'
+import { isNil, isPlainObject } from 'lodash'
 import { FilterChip, FilterChipGroup, FilterAnd, FilterOr } from './FilterChip'
 import { useSearchContext } from './SearchContext'
 import { useUnits } from '../../units'
-import { DType } from '../../utils'
 
 /**
- * Smart component that displays a set of FilterGroups and FilterChips for
- * the given quantities.
+ * Smart component that displays a set of FilterGroups and FilterChips for the
+ * given quantities.
  */
-const typesWithLabel = new Set([DType.Boolean, DType.Int, DType.Float])
 const useStyles = makeStyles(theme => {
   const paddingVertical = theme.spacing(1)
   const paddingHorizontal = theme.spacing(1.5)
@@ -59,23 +57,22 @@ const FilterSummary = React.memo(({
   className,
   classes
 }) => {
-  const { filterData, filterAbbreviations, useFiltersState } = useSearchContext()
-  const [filters, setFilter] = useFiltersState(quantities)
-  // TODO: locked filters are currently not shown to keep the layout tidier
-  const filtersLocked = {} // useFiltersLockedState(quantities)
+  const { filterData, filterAbbreviations, useFilters, useUpdateFilter } = useSearchContext()
+  const filters = useFilters(quantities)
+  const updateFilter = useUpdateFilter()
   const theme = useTheme()
   const units = useUnits()
   const styles = useStyles({classes: classes, theme: theme})
 
   // Creates a set of chips for a quantity
-  const createChips = useCallback((name, label, filterValue, onDelete, locked) => {
+  const createChips = useCallback((name, label, filterValue, onDelete, locked, nested) => {
     const newChips = []
     if (isNil(filterValue)) {
       return
     }
     // If query has multiple elements, we display a chip for each. For
     // numerical values we also display the quantity name.
-    const {metaType, serializerPretty: serializer, customSerialization} = filterData[name]
+    const {serializerPretty: serializer, customSerialization} = filterData[name]
     const isArray = filterValue instanceof Array
     const isSet = filterValue instanceof Set
     const isObj = isPlainObject(filterValue)
@@ -101,7 +98,7 @@ const FilterSummary = React.memo(({
         const displayValue = serializer(value, units)
         const item = <FilterChip
           locked={locked}
-          label={typesWithLabel.has(metaType) ? `${label}=${displayValue}` : displayValue}
+          label={nested ? `${label}=${displayValue}` : displayValue}
           onDelete={() => {
             let newValue
             if (isSet) {
@@ -161,8 +158,7 @@ const FilterSummary = React.memo(({
   const chips = []
   for (const quantity of quantities || []) {
     const filterValue = filters[quantity]
-    const filterLockedValue = filtersLocked[quantity]
-    if (isNil(filterValue) && isNil(filterLockedValue)) {
+    if (isNil(filterValue)) {
       continue
     }
     // Nested filters
@@ -180,29 +176,19 @@ const FilterSummary = React.memo(({
             } else {
               newSection[key] = newValue
             }
-            setFilter([quantity, newSection])
+            updateFilter([quantity, newSection])
           }
-          newChips = newChips.concat(createChips(`${quantity}.${key}`, key, value, onDelete, locked))
+          newChips = newChips.concat(createChips(`${quantity}.${key}`, key, value, onDelete, locked, true))
           if (index !== entries.length - 1) {
             newChips.push(<FilterAnd key={`${quantity}-and`}/>)
           }
         })
       }
-      addChipsForSection(filterLockedValue, true)
-      if (!isEmpty(filterValue) && !isEmpty(filterLockedValue)) {
-        newChips.push(<FilterAnd key={`${quantity}-locked-and`}/>)
-      }
       addChipsForSection(filterValue, false)
     // Regular non-nested filters
     } else {
-      const onDelete = (newValue) => setFilter([quantity, newValue])
+      const onDelete = (newValue) => updateFilter([quantity, newValue])
       const label = filterAbbreviations[quantity]
-      if (!isNil(filterLockedValue)) {
-        newChips = newChips.concat(createChips(quantity, label, filterLockedValue, onDelete, true))
-        if (!isNil(filterValue)) {
-          newChips.push(<FilterAnd key={`${quantity}-locked-and`}/>)
-        }
-      }
       newChips = newChips.concat(createChips(quantity, label, filterValue, onDelete, false))
     }
 
