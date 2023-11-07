@@ -7,7 +7,6 @@ to work with processed data.
 As a requirement, you have to install the `nomad-lab` Python package. Follow the
 [How to install nomad-lab](pythonlib.md) guide.
 
-
 ## Getting started
 
 To define a query, one can, for example, write
@@ -20,36 +19,38 @@ query = ArchiveQuery(query={}, required={}, page_size=10, results_max=10000)
 
 Although the above query object has an empty query.
 
-The query object is constructed only. To access the desired data, users need to perform two operations manually.
+The query object is constructed only.
+To access the desired data, users need to perform two operations manually.
+Two interfaces that can be used in different environments are provided.
 
 ### Synchronous Interface
 
 #### Fetch
 
-The fetch process is carried out **synchronously**. Users can call
+The fetch process is carried out **synchronously**. Users can call the following to fetch up to `results_max` entries.
 
 ```python
 # number_of_entries = query.fetch(1000) # fetch 1000 entries
 number_of_entries = query.fetch()  # fetch at most results_max entries
 ```
 
-to perform the fetch process to fetch up to `results_max` entries. An indicative number `n` can be provided `fetch(n)`
-. Given that each upload may contain various numbers of entries, the fetch process guarantees at least `n` entries
-will be fetched. The exact number is determined by `page_size`, indicating how many uploads in each page. However, this
-would be limited to the `results_max`. The exact qualified number of entries will be returned. Meanwhile, the qualified
-upload list would be populated with their IDs. To check all qualified upload IDs, one can call `upload_list()` method to
+An indicative number `n` can be provided `fetch(n)` to fetch `n` entries at once.
+The fetch process may submit multiple requests to the server, each request asks for `page_size` entries.
+The number of qualified entries will be returned.
+Meanwhile, the qualified entry list would be populated with their IDs.
+To check all qualified upload IDs, one can call `entry_list()` method to
 return the full list.
 
 ```python
-print(query.upload_list())
+print(query.entry_list())
 ```
 
 If applicable, it is possible to fetch a large number of entries first and then perform a second fetch by using some
-upload ID in the first fetch result as the `after` argument so that some middle segment can be downloaded.
+entry ID in the first fetch result as the `after` argument so that some middle segment can be downloaded.
 
 #### Download
 
-After fetching the qualified uploads, the desired data can be downloaded **asynchronously**. One can call
+After fetching the qualified entries, the desired data can be downloaded **asynchronously**. One can call
 
 ```python
 # results = query.download(1000) # download 1000 entries
@@ -77,8 +78,8 @@ while True:
     total_results.extend(result)
 ```
 
-There is no retry mechanism in the download process. If any uploads fail to be downloaded due to server error, it is
-kept in the list otherwise removed.
+There is no retry mechanism in the download process.
+If any entries fail to be downloaded due to server error, it is kept in the list otherwise removed.
 
 ### Asynchronous Interface
 
@@ -105,8 +106,8 @@ nest_asyncio.apply()
 
 Here we show a valid query and acquire data from server.
 
-We first define the desired query and construct the object. We limit the maximum number of entries to be 10000 and 10
-uploads per page.
+We first define the desired query and construct the object.
+We limit the maximum number of entries to be 10000 and 10 entries per page.
 
 ```python
 from nomad.client.archive import ArchiveQuery
@@ -133,63 +134,53 @@ query = ArchiveQuery(query=query, required=required, page_size=10, results_max=1
 Let's fetch some entries.
 
 ```python
-query.fetch(1000)
-print(query.upload_list())
+query.fetch(10)
+print(query.entry_list())
 ```
 
-If we print the upload list, it would be
+If we print the entry list, it would be
 
 ```text
-[('-19NlAwxTCCXb6YT9Plifw', 526), ('-2ewONNGTZ68zuTQ6zrRZw', 4), ('-3LrFBvFQtCtmEp3Hy15EA', 12), ('-3ofEqLvSZiqo59vtf-TAQ', 4), ('-4W-jogwReafpdva4ELdrw', 32), ('-BLVfvlJRWawtHyuUWvP_g', 68), ('-Dm30DqRQX6pZUbJYwHUmw', 320), ('-Jfjp-lZSjqyaph2chqZfw', 6), ('-K2QS7s4QiqRg6nMPqzaTw', 82), ('-Li36ZXhQPucJvkd8yzYoA', 10)]
+[('---CU_ejqV7yjEFteUAH0rG0SKIS', 'aimE2ajMQnOKruRbQjzpCA'), ('---Dz9vL-eyErWEk7-1tX4zLVmwo', 'Vyb6k1OTRSuyXfvsRk4CPQ'), ('---pRcX7NG_XDx_4ufUaeEnZnmrO', 'IL_YBCD8TSyLlsqzIcBgYw'), ('--0RSTtl4mvX3Nd0JjhL_V1YV1ip', 'tF8R9nmZTyyfnv2zWADI0A'), ('--0SDuSOM_gpweM3PDb0WOFgYDyv', 'mLO6o1GBShWrtXfoSJHgfw'), ('--0jLz1eNRwtR_oRxPpgVC9U437y', 'HVheHWfxTpe28HhbHpcO1A'), ('--1cY4hzXaXdThxsw7saN3nd3xyt', 'h79v1yw_Qf-kOVTa0WYfdg'), ('--2nakQLLxyI_vsEOIbwzHMgWWPQ', 'iIGUoyaiT5i4b4UynPlnSQ'), ('--3-SQGOswGzwaEo5QiQNCcZQhi8', '1lQ90kNaSWyJXBQ_kK91Tg'), ('--3Km0GSVTHRkNCJHHjQdHqxwVfR', 'dHAJP-NvQw22FoBeDXiAIg')]
 ```
 
-So upload `-19NlAwxTCCXb6YT9Plifw` has 526 qualified entries, upload `-2ewONNGTZ68zuTQ6zrRZw` has 4 qualified entries,
-and so on. The summation of the above entries gives 1064 entries in total as shown in terminal message.
+Each is a tuple of two strings. The first is the entry ID while the second is the upload ID.
 
 Now data can be downloaded.
 
 ```python
-result = query.download(100)
-print(f'Downloaded {len(result)} entries.')  # Downloaded 526 entries.
+result = query.download(8)
+print(f'Downloaded {len(result)} entries.')  # Downloaded 100 entries.
 ```
 
-Since the first upload has 526 entries, they will be downloaded in this call. The list would have the first upload
-removed as it has been downloaded.
+The first eight entries will be downloaded.
+If one prints the list again, only the last two are present.
+
+```python
+print(query.entry_list())
+```
 
 ```text
-[('-2ewONNGTZ68zuTQ6zrRZw', 4), ('-3LrFBvFQtCtmEp3Hy15EA', 12), ('-3ofEqLvSZiqo59vtf-TAQ', 4), ('-4W-jogwReafpdva4ELdrw', 32), ('-BLVfvlJRWawtHyuUWvP_g', 68), ('-Dm30DqRQX6pZUbJYwHUmw', 320), ('-Jfjp-lZSjqyaph2chqZfw', 6), ('-K2QS7s4QiqRg6nMPqzaTw', 82), ('-Li36ZXhQPucJvkd8yzYoA', 10)]
+[('--3-SQGOswGzwaEo5QiQNCcZQhi8', '1lQ90kNaSWyJXBQ_kK91Tg'), ('--3Km0GSVTHRkNCJHHjQdHqxwVfR', 'dHAJP-NvQw22FoBeDXiAIg')]
 ```
 
 It is possible to download more data.
+We perform one more download call to illustrate that the fetch process will be automatically triggered.
 
 ```python
-result = query.download(300)
-print(f'Downloaded {len(result)} entries.')  # Downloaded 440 entries.
+result = query.download(5)
+print(f'Downloaded {len(result)} entries.')  # Downloaded 200 entries.
 ```
 
-The first six uploads will be downloaded to meet the required (at least) 300 entries, which total to 440 entries. What's
-left in the list would be
-
-```text
-[('-Jfjp-lZSjqyaph2chqZfw', 6), ('-K2QS7s4QiqRg6nMPqzaTw', 82), ('-Li36ZXhQPucJvkd8yzYoA', 10)]
-```
-
-We perform one more download call to illustrate that fetch process will be automatically performed.
-
-```python
-result = query.download(100)
-print(f'Downloaded {len(result)} entries.')  # Downloaded 102 entries.
-```
-
-In the above, we request additional 100 entries, however, the list contains only `6+82+10=98` entries, fetch process
-will be called to fetch new entries from server. You will see the following message in terminal.
+In the above, we request five entries.
+However, the list contains only two entries, the fetch process will be called to fetch extra three entries from server.
+But since the page size is 10, the server will return 10 entries.
+You will see the following message in the terminal.
 
 ```text
 Fetching remote uploads...
-787 entries are qualified and added to the download list.
-Downloading required data...
-Downloaded 102 entries.
-[('-NiRWNGjS--JtFoEnYrCfg', 8), ('-OcPUKZtS6u3lXlkWBM4qg', 129), ('-PA35e2ZRsq4AdDfBU4M_g', 14), ('-TG77dGiSTyrDAFNqTKa6Q', 366), ('-VzlPYtnS4q1tSl3NOmlCw', 178), ('-XeqzVqwSMCJFwhvDqWs8A', 14), ('-Y7gwnleQI6Q61jp024fXQ', 16), ('-Zf1RO1MQXegYVTbFybtQQ', 8), ('-Zm4S9VGRdOX-kbF1J5lOA', 50)]
+10 entries are qualified and added to the download list.
+Downloading 5 entries...  [####################################]  100%
 ```
 
 ## Argument List
@@ -198,7 +189,7 @@ The following arguments are acceptable for `ArchiveQuery`.
 
 - `owner` : `str` The scope of data to access. Default: `'visible'`
 - `query` : `dict` The API query. There are no validations of any means carried out by the class, users shall make sure
-  the provided query is valid. Otherwise, server would return error message.
+  the provided query is valid. Otherwise, server would return error messages.
 - `required` : `dict` The required quantities.
 - `url` : `str` The database url. It can be the one of your local database. The official NOMAD database is used be
   default if no valid one defined. Default: `http://nomad-lab.eu/prod/v1/api`
@@ -213,7 +204,6 @@ The following arguments are acceptable for `ArchiveQuery`.
   This argument limits the maximum times of retry.
 - `sleep_time` : `float` The interval of fetch retry.
 
-
 ## The complete example
 
 !!! attention
@@ -221,5 +211,5 @@ The following arguments are acceptable for `ArchiveQuery`.
     and this example might not yet produce results on the public nomad data.
 
 ```python
---8<-- "examples/archive/archive_query.py"
+--8 < -- "examples/archive/archive_query.py"
 ```
