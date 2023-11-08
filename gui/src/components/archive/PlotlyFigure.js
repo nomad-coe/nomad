@@ -28,7 +28,7 @@ const traverse = (value, callback, parent = null, key = null) => {
   }
 }
 
-const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef, title}) {
+const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef, title, metaInfoLink}) {
   const units = useUnits()
 
   const plotlyGraphObj = useMemo(() => {
@@ -238,6 +238,7 @@ const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef
       floatTitle={title}
       fixedMargins={true}
       config={plotlyGraphObj.config}
+      metaInfoLink={metaInfoLink}
     />
   </Box>
 })
@@ -245,7 +246,8 @@ PlotlyFigure.propTypes = {
   plot: PropTypes.object.isRequired,
   sectionDef: PropTypes.object.isRequired,
   section: PropTypes.object,
-  title: PropTypes.string
+  title: PropTypes.string,
+  metaInfoLink: PropTypes.string
 }
 
 export default withErrorHandler(

@@ -100,7 +100,7 @@
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^14.2.0",
     "@welldone-software/why-did-you-render": "^7.0.1",
-    "babel-eslint": "^10.1.0",
+    "@babel/eslint-parser": "^7.22.15",
     "craco-workbox": "^0.2.0",
     "eslint": "^7.11.0",
     "eslint-config-standard": "^17.0.0",

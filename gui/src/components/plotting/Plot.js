@@ -579,9 +579,9 @@ const Plot = React.memo(forwardRef(({
       <Action key="capture" tooltip='Capture image' onClick={handleCapture}>
         <CameraAlt/>
       </Action>
-      <Action key="archive" tooltip='View data in the archive' onClick={() => { history.push(metaInfoLink) }}>
+      {metaInfoLink && <Action key="archive" tooltip='View data in the archive' onClick={() => { history.push(metaInfoLink) }}>
         <ViewList/>
-      </Action>
+      </Action>}
     </>
     return (defaultActions || actions)
       ? <div className={styles.footer}>

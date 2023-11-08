@@ -906,7 +906,7 @@ export function getAllVisibleProperties(sectionDef) {
 }
 
 function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
-  const {handleArchiveChanged} = useEntryStore() || {}
+  const {handleArchiveChanged, uploadId, entryId} = useEntryStore() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
   const lane = useContext(laneContext)
@@ -1073,7 +1073,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
         </Compartment>
       )}
       {subSectionCompartment}
-      {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section}/>}
+      {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section} uploadId={uploadId} entryId={entryId}/>}
     </React.Fragment>
   } else {
     const attributes = section?.m_attributes || {}
@@ -1091,7 +1091,7 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
           <Item key={key} itemKey={`m_attributes:${key}`}>{key}</Item>
         ))}
       </Compartment>}
-      {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section}/>}
+      {(def.m_annotations?.plot || def._allBaseSections.map(section => section.name).includes('PlotSection')) && <SectionPlots sectionDef={def} section={section} uploadId={uploadId} entryId={entryId}/>}
     </React.Fragment>
   }
   const eln = def?.m_annotations?.eln
@@ -1439,10 +1439,13 @@ FoldableList.defaultProps = ({
   pageSize: 25
 })
 
-export const SectionPlots = React.memo(function SectionPlots({section, sectionDef}) {
+export const SectionPlots = React.memo(function SectionPlots({section, sectionDef, uploadId, entryId}) {
   let sortedFigures
   const annotationPlot = sectionDef?.m_annotations?.plot && sectionDef.m_annotations?.plot
   if (section?.figures) {
+    section?.figures.forEach((figure, index) => {
+      figure.pathIndex = index
+    })
     const [indexedFigures, otherFigures] = section.figures && partition(section.figures, figure => figure?.index !== undefined)
     sortedFigures = indexedFigures.sort((a, b) => a.index - b.index)
     sortedFigures = [...sortedFigures, ...otherFigures]
@@ -1454,7 +1457,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
     sortedFigures?.forEach(plot => {
       if (plot?.figure) {
         plot.figure.data = (Array.isArray(plot?.figure?.data) ? [...plot?.figure?.data] : [{...plot?.figure?.data}])
-        validPlots.push({plot: plot.figure, label: plot.label || plot?.layout?.title?.text || 'Untitled', type: 'PlotSection'})
+        validPlots.push({pathIndex: plot.pathIndex, plot: plot.figure, label: plot.label || plot?.layout?.title?.text || 'Untitled', type: 'PlotSection'})
       }
     })
     const annotationPlots = annotationPlot
@@ -1510,6 +1513,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
               section={section}
               plot={plot.plot}
               title={plot.label}
+              metaInfoLink={uploadId && entryId && `/user/uploads/upload/id/${uploadId}/entry/id/${entryId}/data/data/figures:${plot.pathIndex}/figure`}
             />
             : <XYPlot
               key={index}
@@ -1524,7 +1528,9 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
 })
 SectionPlots.propTypes = {
   sectionDef: PropTypes.object.isRequired,
-  section: PropTypes.object
+  section: PropTypes.object,
+  uploadId: PropTypes.string,
+  entryId: PropTypes.string
 }
 
 function FullStorageQuantity({value, def}) {
