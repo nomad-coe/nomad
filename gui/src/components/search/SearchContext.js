@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -100,27 +101,29 @@ const RouteListener = React.memo(() => {
   const { useQueryString, useSetFilters, useParseQueries } = useSearchContext()
   const queryString = useQueryString()()
   const setFilters = useSetFilters()
-  const oldQueryString = useRef(queryString)
   const parseQueries = useParseQueries()
+  const oldQuery = useRef()
 
   // When query changes, update history
   useEffect(() => {
-    if (queryString !== oldQueryString.current) {
-      oldQueryString.current = queryString
-      history.replace(history.location.pathname + '?' + queryString)
-    }
+    history.replace(history.location.pathname + '?' + queryString)
+    oldQuery.current = queryString
   }, [history, queryString])
 
-  // When location changes, update SearchContext if query has changed.  Note
-  // that empty query string preserves the old filters, as this will enable
-  // people to preserve filters when changing apps.
+  // When location changes, update SearchContext if query has changed.
   useEffect(() => {
-    const queryString = location.search.slice(1)
-    if (!isEmpty(queryString) && queryString !== oldQueryString.current) {
-      oldQueryString.current = queryString
+    // The query string needs to contain everything in the hash as well, since
+    // the syntax for data within custom schemas uses a hashtag. TODO: Keycloak
+    // seems to use the hashtag for special purposes as well, which causes some
+    // clashes when loading the page from scratch.
+    const queryString = location.search.slice(1) + location.hash.startsWith("#state=") ? '' : location.hash
+    // Empty query string preserves the old filters, as this will enable people
+    // to preserve filters when changing apps. This causes minor
+    // inconsistencies, but might be better for the UX.
+    if (!isEmpty(queryString) && queryString !== oldQuery.current) {
       setFilters(parseQueries(parseQueryString(queryString)))
     }
-  }, [location.search, setFilters, parseQueries])
+  }, [location, setFilters, parseQueries])
 
   return null
 })
