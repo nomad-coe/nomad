@@ -333,6 +333,17 @@ class DocumentType():
                 of any annotation in the sub section definitions. By default only
                 sub sections with elasticsearch annotation are traversed.
         '''
+
+        mapping = self._create_mapping_recursive(section_def, prefix, auto_include_subsections)
+
+        # Register all dynamic quantities
+        self.reload_quantities_dynamic()
+
+        return mapping
+
+    def _create_mapping_recursive(
+            self, section_def: Section, prefix: str = None,
+            auto_include_subsections: bool = False):
         mappings: Dict[str, Any] = {}
 
         if self == material_type and prefix is None:
@@ -359,7 +370,7 @@ class DocumentType():
                     # TODO e.g. viewers, entry_coauthors, etc. ... should be treated as multiple inner docs
                     # assert quantity_def.is_scalar
 
-                    reference_mapping = self.create_mapping(
+                    reference_mapping = self._create_mapping_recursive(
                         cast(Section, quantity_def.type.target_section_def),
                         prefix=qualified_name)
                     if len(reference_mapping['properties']) > 0:
@@ -394,7 +405,7 @@ class DocumentType():
             qualified_name = re.sub(r'\.?metadata', '', qualified_name)
             qualified_name = None if qualified_name == '' else qualified_name
 
-            sub_section_mapping = self.create_mapping(
+            sub_section_mapping = self._create_mapping_recursive(
                 sub_section_def.sub_section, prefix=qualified_name,
                 auto_include_subsections=continue_with_auto_include_subsections)
 
@@ -416,9 +427,6 @@ class DocumentType():
                     self.nested_object_keys.sort(key=lambda item: len(item))
 
         self.mapping = dict(properties=mappings)
-
-        # Register all dynamic quantities
-        self.reload_quantities_dynamic()
 
         return self.mapping
 
@@ -448,16 +456,26 @@ class DocumentType():
                     )
                 packages.add(plugin.python_package)
 
-        # Import all quantities from the EntryData models found from plugin
-        # packages
-        def get_all_quantities(m_def, prefix=None):
+        # Use to get all quantities from the given definition, TODO: Circular
+        # definitions are here avoided by simply keeping track of which
+        # definitions have been used already in the current "branch". When
+        # creating the dynamic quantities, this is the only way to prevent
+        # infinite recursion, but it should be made possible in the GUI + search
+        # API to query arbitrarily deep into the data structure.
+        def get_all_quantities(m_def, prefix=None, branch=None):
+            if branch is None:
+                branch = set()
             for quantity_name, quantity in m_def.all_quantities.items():
                 quantity_name = f'{prefix}.{quantity_name}' if prefix else quantity_name
                 yield quantity, quantity_name
             for sub_section_def in m_def.all_sub_sections.values():
+                if sub_section_def in branch:
+                    continue
+                new_branch = set(branch)
+                new_branch.add(sub_section_def)
                 name = sub_section_def.name
                 full_name = f'{prefix}.{name}' if prefix else name
-                for item in get_all_quantities(sub_section_def.sub_section, full_name):
+                for item in get_all_quantities(sub_section_def.sub_section, full_name, new_branch):
                     yield item
 
         quantities_dynamic = {}
