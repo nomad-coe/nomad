@@ -97,6 +97,22 @@ def populate_child(data):
     data.child = MySection(name='test')
 
 
+def populate_recursive(data):
+    from nomadschemaexample.schema import MySectionRecursiveA, MySectionRecursiveB
+    data.child_recursive = MySectionRecursiveA(
+        child=MySectionRecursiveB(name_b='test_b')
+    )
+
+
+def populate_recursive_secondary(data):
+    from nomadschemaexample.schema import MySectionRecursiveA, MySectionRecursiveB
+    data.child_recursive = MySectionRecursiveA(
+        child=MySectionRecursiveB(
+            child=MySectionRecursiveA(name_a='test_a')
+        )
+    )
+
+
 def populate_reference(data):
     from nomadschemaexample.schema import MySection
     data.child = MySection()
@@ -108,6 +124,8 @@ def populate_reference(data):
     pytest.param('count', 1, SearchableQuantity.int_value, 1, f'{python_schema_name}.count', id='int'),
     pytest.param('frequency', 1.0, SearchableQuantity.float_value, 1.0, f'{python_schema_name}.frequency', id='float'),
     pytest.param('timestamp', datetime.fromtimestamp(0, tz=pytz.UTC), SearchableQuantity.datetime_value, datetime(1970, 1, 1, 0, 0, tzinfo=pytz.UTC), f'{python_schema_name}.timestamp', id='datetime'),
+    pytest.param('child_recursive.child.name_b', populate_recursive, SearchableQuantity.str_value, 'test_b', 'nomadschemaexample.schema.MySectionRecursiveB.name_b', id='recursive value: first level'),
+    pytest.param('child_recursive.child.child.name_a', populate_recursive_secondary, SearchableQuantity.str_value, 'test_a', 'nomadschemaexample.schema.MySectionRecursiveA.name_a', id='recursive value: second level'),
     pytest.param('non_scalar', np.eye(3), None, np.eye(3), None, id='non-scalar'),
     pytest.param('reference_section', populate_reference, None, datetime(1970, 1, 1, 0, 0, tzinfo=pytz.UTC), None, id='references are skipped'),
     pytest.param('child.name', populate_child, SearchableQuantity.str_value, 'test', 'nomadschemaexample.schema.MySection.name', id='child quantity'),

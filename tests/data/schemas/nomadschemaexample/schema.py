@@ -1,4 +1,4 @@
-from nomad.metainfo import Quantity, Package, Section, MEnum, Datetime, MSection, SubSection
+from nomad.metainfo import Quantity, Package, Section, MEnum, Datetime, MSection, SubSection, SectionProxy
 from nomad.datamodel.data import EntryData
 from nomad.datamodel.metainfo.annotations import ELNAnnotation, ELNComponentEnum
 import numpy as np
@@ -13,6 +13,16 @@ class MySection(MSection):
         a_eln=ELNAnnotation(component=ELNComponentEnum.StringEditQuantity),
         description='For testing subsection quantity.'
     )
+
+
+class MySectionRecursiveA(MSection):
+    child = SubSection(section_def=SectionProxy("MySectionRecursiveB"))
+    name_a = Quantity(type=str)
+
+
+class MySectionRecursiveB(MSection):
+    child = SubSection(section_def=MySectionRecursiveA)
+    name_b = Quantity(type=str)
 
 
 class MySchema(EntryData):
@@ -65,6 +75,7 @@ class MySchema(EntryData):
 
     child = SubSection(section_def=MySection, repeats=False)
     child_repeating = SubSection(section_def=MySection, repeats=True)
+    child_recursive = SubSection(section_def=MySectionRecursiveA)
 
     def normalize(self, archive, logger):
         super(MySchema, self).normalize(archive, logger)
