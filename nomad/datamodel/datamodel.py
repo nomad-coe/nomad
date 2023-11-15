@@ -432,8 +432,9 @@ class EntryMetadata(MSection):
         origin: A short human readable description of the entries origin. Usually it is the
             handle of an external database/repository or the name of the main author.
         main_author: Id of the main author of this entry.
-        coauthors: A user provided list of co-authors for the whole upload. These can view
-            and edit the upload when in staging, and view it also if it is embargoed.
+        coauthors: A list of co-authors for the whole upload. These can view and edit the
+            upload when in staging, and view it also if it is embargoed.
+        coauthor_groups: List of co-author groups, cf. `coauthors`.
         entry_coauthors: Ids of all co-authors (excl. the main author and upload coauthors)
             specified on the entry level, rather than on the upload level. They are shown
             as authors of this entry alongside its main author and upload coauthors.
@@ -441,6 +442,7 @@ class EntryMetadata(MSection):
             the main author and the upload coauthors, reviewers can find, see, and download
             all data from the upload and all its entries, even if it is in staging or has
             an embargo.
+        reviewer_groups: List of reviewer groups, cf. `reviewers`.
         datasets: Ids of all datasets that this entry appears in
     """
 
@@ -748,6 +750,17 @@ class EntryMetadata(MSection):
         """,
     )
 
+    coauthor_groups = Quantity(
+        # Note: This attribute is not stored in ES
+        type=str,
+        shape=['0..*'],
+        default=[],
+        categories=[MongoUploadMetadata, EditableUserMetadata],
+        description="""
+            A list of co-author groups for the whole upload, cf. `coauthors`.
+        """,
+    )
+
     entry_coauthors = Quantity(
         # Note: This attribute is not stored in ES
         type=author_reference,
@@ -769,6 +782,17 @@ class EntryMetadata(MSection):
         description="""
             A user provided list of reviewers. Reviewers can see the whole upload, also if
             it is unpublished or embargoed
+        """,
+    )
+
+    reviewer_groups = Quantity(
+        # Note: This attribute is not stored in ES
+        type=str,
+        shape=['0..*'],
+        default=[],
+        categories=[MongoUploadMetadata, EditableUserMetadata],
+        description="""
+            A list of reviewer groups, cf. `reviewers`.
         """,
     )
 

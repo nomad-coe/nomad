@@ -41,7 +41,11 @@ from tests.processing.test_edit_metadata import (
     all_coauthor_metadata,
     all_admin_metadata,
 )
-from tests.app.v1.routers.common import assert_response, assert_browser_download_headers
+from tests.app.v1.routers.common import (
+    assert_response,
+    assert_browser_download_headers,
+    perform_get,
+)
 from nomad import config, files, infrastructure
 from nomad.config.models import BundleImportSettings
 from nomad.processing import Upload, Entry, ProcessStatus
@@ -53,26 +57,13 @@ from .test_entries import assert_archive_response
 
 """
 These are the tests for all API operations below ``uploads``. The tests are organized
-using the following type of methods: fixtures, ``perfrom_*_test``, ``assert_*``, and
+using the following type of methods: fixtures, ``perform_*``, ``assert_*``, and
 ``test_*``. While some ``test_*`` methods test individual API operations, some
 test methods will test multiple API operations that use common aspects like
 supporting queries, pagination, or the owner parameter. The test methods will use
-``perform_*_test`` methods as an parameter. Similarely, the ``assert_*`` methods allow
+``perform_*`` methods as a parameter. Similarly, the ``assert_*`` methods allow
 to assert for certain aspects in the responses.
 """
-
-
-def perform_get(
-    client, base_url, user_auth=None, accept='application/json', **query_args
-):
-    headers = {}
-    if accept:
-        headers['Accept'] = accept
-    if user_auth:
-        headers.update(user_auth)
-
-    response = client.get(build_url(base_url, query_args), headers=headers)
-    return response
 
 
 def perform_post_put_file(

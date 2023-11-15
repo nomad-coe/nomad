@@ -34,6 +34,7 @@ from nomad.metainfo.metainfo import (
     Datetime,
 )
 from nomad import config
+from nomad.groups import UserGroup
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
@@ -187,6 +188,10 @@ class User(Author):
 
         assert self.user_id is not None
         return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
+
+    @cached(cache=TTLCache(maxsize=2048, ttl=60))
+    def get_user_groups(self):
+        return UserGroup.get_by_user_id(self.user_id)
 
 
 class UserReference(Reference):

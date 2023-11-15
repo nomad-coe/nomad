@@ -27,7 +27,7 @@ from nomad.utils import deep_get
 
 from nomad.datamodel import results
 
-from tests.utils import assert_at_least, assert_url_query_args
+from tests.utils import assert_at_least, assert_url_query_args, build_url
 
 n_code_names = results.Simulation.program_name.a_elasticsearch[
     0
@@ -1574,3 +1574,40 @@ def perform_quantity_search_test(
     response = response.json()
     api_result = deep_get(response['data'][0], *quantity.split('.'))
     assert api_result == result
+
+
+def build_headers(accept: Optional[str] = None, user_auth: Optional[dict] = None):
+    headers = {}
+    if accept:
+        headers['Accept'] = accept
+    if user_auth:
+        headers.update(user_auth)
+
+    return headers
+
+
+def perform_get(
+    client, base_url, user_auth=None, accept='application/json', **query_args
+):
+    headers = build_headers(accept, user_auth)
+    url = build_url(base_url, query_args)
+    response = client.get(url, headers=headers)
+    return response
+
+
+def perform_post(
+    client, base_url, user_auth=None, accept='application/json', **query_args
+):
+    headers = build_headers(accept, user_auth)
+    url = build_url(base_url, query_args)
+    response = client.post(url, headers=headers)
+    return response
+
+
+def perform_delete(
+    client, base_url, user_auth=None, accept='application/json', **query_args
+):
+    headers = build_headers(accept, user_auth)
+    url = build_url(base_url, query_args)
+    response = client.delete(url, headers=headers)
+    return response
