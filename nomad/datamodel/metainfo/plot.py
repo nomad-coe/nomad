@@ -20,12 +20,18 @@ from nomad.metainfo import Quantity, SubSection, Package, MSection, JSON
 import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import logging
 import numpy as np
+from copy import deepcopy
+from datetime import datetime
 
 
 class PlotlyError(Exception):
     ''' Plotly errors. '''
+    pass
+
+
+class PlotSectionError(Exception):
+    ''' PlotSection errors. '''
     pass
 
 
@@ -39,7 +45,7 @@ def get_figure_layout(annotation):
     return label, index
 
 
-def express_do_plot(plotly_express_annotation, archive):
+def express_do_plot(plotly_express_annotation, archive, logger):
     method_name = plotly_express_annotation.pop('method')
     layout = plotly_express_annotation.get('layout', None)
     if layout:
@@ -57,8 +63,10 @@ def express_do_plot(plotly_express_annotation, archive):
                     resolved_value = None
                     try:
                         resolved_value = archive.m_resolve(f'/data/{item[1:]}')
+                        if resolved_value and resolved_value[0] and isinstance(resolved_value[0], datetime):
+                            resolved_value = [value.isoformat() for value in resolved_value]
                     except Exception as e:
-                        logging.warning(e)
+                        logger.warning(e)
                     items.append(resolved_value)
                 else:
                     items.append(item)
@@ -68,8 +76,10 @@ def express_do_plot(plotly_express_annotation, archive):
                 resolved_value = None
                 try:
                     resolved_value = archive.m_resolve(f'/data/{value[1:]}')
+                    if resolved_value and resolved_value[0] and isinstance(resolved_value[0], datetime):
+                        resolved_value = [value.isoformat() for value in resolved_value]
                 except Exception as e:
-                    logging.warning(e)
+                    logger.warning(e)
                 kwargs[key] = resolved_value
             else:
                 kwargs[key] = value
@@ -189,9 +199,9 @@ class PlotSection(ArchiveSection):
 
         self.figures = []
         all_figures = []
-        plotly_express_annotations = self.m_def.m_get_annotations('plotly_express', None)
-        plotly_graph_object_annotations = self.m_def.m_get_annotations('plotly_graph_object', None)
-        plotly_subplots_annotations = self.m_def.m_get_annotations('plotly_subplots', None)
+        plotly_express_annotations = deepcopy(self.m_def.m_get_annotations('plotly_express', None))
+        plotly_graph_object_annotations = deepcopy(self.m_def.m_get_annotations('plotly_graph_object', None))
+        plotly_subplots_annotations = deepcopy(self.m_def.m_get_annotations('plotly_subplots', None))
 
         if isinstance(plotly_express_annotations, dict):
             plotly_express_annotations = [plotly_express_annotations]
@@ -214,82 +224,96 @@ class PlotSection(ArchiveSection):
 
         if plotly_express_annotations:
             for plotly_express_annotation in plotly_express_annotations:
-                label, figure_index = get_figure_layout(plotly_express_annotation)
-                fig, layout, traces = express_do_plot(plotly_express_annotation, archive)
                 try:
-                    all_traces = go.Figure(fig.data[0])
-                    total_layout = layout
-                except Exception as e:
-                    raise PlotlyError(e)
-                for trace in traces:
-                    trace_fig, layout, _ = express_do_plot(trace, archive)
+                    label, figure_index = get_figure_layout(plotly_express_annotation)
+                    fig, layout, traces = express_do_plot(plotly_express_annotation, archive, logger)
                     try:
-                        all_traces.add_trace(trace_fig.data[0])
+                        all_traces = go.Figure(fig.data[0])
+                        total_layout = layout
                     except Exception as e:
                         raise PlotlyError(e)
-                if total_layout:
-                    try:
-                        all_traces.update_layout(**total_layout)
-                    except Exception as e:
-                        raise PlotlyError(e)
-                plotly_graph_object = all_traces.to_plotly_json()
-                all_figures.append({"label": label, "index": figure_index, "graph_object": plotly_graph_object})
+                    for trace in traces:
+                        trace_fig, layout, _ = express_do_plot(trace, archive, logger)
+                        try:
+                            all_traces.add_trace(trace_fig.data[0])
+                        except Exception as e:
+                            raise PlotlyError(e)
+                    if total_layout:
+                        try:
+                            all_traces.update_layout(**total_layout)
+                        except Exception as e:
+                            raise PlotlyError(e)
+                    plotly_graph_object = all_traces.to_plotly_json()
+                    all_figures.append({"label": label, "index": figure_index, "graph_object": plotly_graph_object})
+                except Exception as error:
+                    if isinstance(error, PlotlyError):
+                        #Handle internal plotly errors as warning to not stop all figures. Easier to figure out problem.
+                        logger.warning(error)
+                    else:
+                        raise PlotSectionError(error)
 
         if plotly_subplots_annotations:
             for plotly_subplots_annotation in plotly_subplots_annotations:
-                label, figure_index = get_figure_layout(plotly_subplots_annotation)
-                parameters = plotly_subplots_annotation.get('parameters', None)
-                if parameters:
-                    rows = parameters.get('rows', None)
-                    cols = parameters.get('cols', None)
-                    if rows and cols:
-                        subplot_titles = [''] * rows * cols
-                        plotly_express_list = plotly_subplots_annotation.get('plotly_express', [])
-                        for index, plotly_express in enumerate(plotly_express_list):
-                            title = plotly_express.get('title', None)
-                            if title is not None:
-                                title = plotly_express.get('layout', {}).get('title', {}).get('text', None)
-                            if title is not None:
-                                subplot_titles[index] = title
+                try:
+                    label, figure_index = get_figure_layout(plotly_subplots_annotation)
+                    parameters = plotly_subplots_annotation.get('parameters', None)
+                    if parameters:
+                        rows = parameters.get('rows', None)
+                        cols = parameters.get('cols', None)
+                        if rows and cols:
+                            subplot_titles = [''] * rows * cols
+                            plotly_express_list = plotly_subplots_annotation.get('plotly_express', [])
+                            for index, plotly_express in enumerate(plotly_express_list):
+                                title = plotly_express.get('title', None)
+                                if title is not None:
+                                    title = plotly_express.get('layout', {}).get('title', {}).get('text', None)
+                                if title is not None:
+                                    subplot_titles[index] = title
 
-                        default_parameters = {**{"subplot_titles": subplot_titles}, **parameters}
-                        try:
-                            figure = make_subplots(**default_parameters)
-                        except Exception as e:
-                            raise PlotlyError(e)
-
-                        for row in range(1, rows + 1):
-                            for col in range(1, cols + 1):
-                                if len(plotly_express_list) > 0:
-                                    plotly_express_annotation = plotly_express_list.pop(0)
-                                    fig, sub_layout, traces = express_do_plot(plotly_express_annotation, archive)
-                                    try:
-                                        if sub_layout:
-                                            fig.update_layout(**sub_layout)
-                                        figure.add_trace(fig.data[0], row=row, col=col)
-                                        for trace in traces:
-                                            trace_fig, layout, _ = express_do_plot(trace, archive)
-                                            try:
-                                                figure.add_trace(trace_fig.data[0], row=row, col=col)
-                                            except Exception as e:
-                                                raise PlotlyError(e)
-                                        if sub_layout:
-                                            xaxis = sub_layout.get('xaxis', None)
-                                            if xaxis:
-                                                figure.update_xaxes(xaxis, row=row, col=col)
-                                            yaxis = sub_layout.get('yaxis', None)
-                                            if yaxis:
-                                                figure.update_yaxes(yaxis, row=row, col=col)
-                                    except Exception as e:
-                                        raise PlotlyError(e)
-                        layout = plotly_subplots_annotation.get('layout', None)
-                        if layout:
+                            default_parameters = {**{"subplot_titles": subplot_titles}, **parameters}
                             try:
-                                figure.update_layout(**layout)
+                                figure = make_subplots(**default_parameters)
                             except Exception as e:
                                 raise PlotlyError(e)
-                        plotly_graph_object = figure.to_plotly_json()
-                        all_figures.append({"label": label, "index": figure_index, "graph_object": plotly_graph_object})
+
+                            for row in range(1, rows + 1):
+                                for col in range(1, cols + 1):
+                                    if len(plotly_express_list) > 0:
+                                        plotly_express_annotation = plotly_express_list.pop(0)
+                                        fig, sub_layout, traces = express_do_plot(plotly_express_annotation, archive, logger)
+                                        try:
+                                            if sub_layout:
+                                                fig.update_layout(**sub_layout)
+                                            figure.add_trace(fig.data[0], row=row, col=col)
+                                            for trace in traces:
+                                                trace_fig, layout, _ = express_do_plot(trace, archive, logger)
+                                                try:
+                                                    figure.add_trace(trace_fig.data[0], row=row, col=col)
+                                                except Exception as e:
+                                                    raise PlotlyError(e)
+                                            if sub_layout:
+                                                xaxis = sub_layout.get('xaxis', None)
+                                                if xaxis:
+                                                    figure.update_xaxes(xaxis, row=row, col=col)
+                                                yaxis = sub_layout.get('yaxis', None)
+                                                if yaxis:
+                                                    figure.update_yaxes(yaxis, row=row, col=col)
+                                        except Exception as e:
+                                            raise PlotlyError(e)
+                            layout = plotly_subplots_annotation.get('layout', None)
+                            if layout:
+                                try:
+                                    figure.update_layout(**layout)
+                                except Exception as e:
+                                    raise PlotlyError(e)
+                            plotly_graph_object = figure.to_plotly_json()
+                            all_figures.append({"label": label, "index": figure_index, "graph_object": plotly_graph_object})
+                except Exception as error:
+                    if isinstance(error, PlotlyError):
+                        #Handle internal plotly errors as warning to not stop all figures. Easier to figure out problem.
+                        logger.warning(error)
+                    else:
+                        raise PlotSectionError(error)
 
         for figure in all_figures:
             self.figures.append(PlotlyFigure(label=figure["label"], index=figure["index"], figure=figure["graph_object"]))
