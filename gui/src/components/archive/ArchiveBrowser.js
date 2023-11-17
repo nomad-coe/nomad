@@ -1454,10 +1454,11 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
 
   const plots = useMemo(() => {
     const validPlots = []
+    let key = 0
     sortedFigures?.forEach(plot => {
       if (plot?.figure) {
         plot.figure.data = (Array.isArray(plot?.figure?.data) ? [...plot?.figure?.data] : [{...plot?.figure?.data}])
-        validPlots.push({pathIndex: plot.pathIndex, plot: plot.figure, label: plot.label || plot?.layout?.title?.text || 'Untitled', type: 'PlotSection'})
+        validPlots.push({pathIndex: plot.pathIndex, plot: plot.figure, key: key, label: plot.label || plot?.layout?.title?.text || 'Untitled', type: 'PlotSection'})
       }
     })
     const annotationPlots = annotationPlot
@@ -1469,7 +1470,8 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
         const pathParts = Array.isArray(yAxis) ? ['unnamed'] : yAxis.split('/')
         plot.label = pathParts[pathParts.length - 1]
       }
-      validPlots.push({plot: plot, label: plot.label || 'Untitled', type: 'PlotAnnotation'})
+      validPlots.push({plot: plot, key: key, label: plot.label || 'Untitled', type: 'PlotAnnotation'})
+      key = key + 1
     })
     return validPlots
   }, [annotationPlot, sortedFigures])
@@ -1505,10 +1507,10 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
         ))}
       </TextField>}
       {selected.map(index => plots?.[index])
-        ?.map((plot, index) => {
+        ?.map((plot) => {
           return plot.type === 'PlotSection'
             ? <PlotlyFigure
-              key={index}
+              key={plot.key}
               sectionDef={sectionDef}
               section={section}
               plot={plot.plot}
@@ -1516,7 +1518,7 @@ export const SectionPlots = React.memo(function SectionPlots({section, sectionDe
               metaInfoLink={uploadId && entryId && `/user/uploads/upload/id/${uploadId}/entry/id/${entryId}/data/data/figures:${plot.pathIndex}/figure`}
             />
             : <XYPlot
-              key={index}
+              key={plot.key}
               sectionDef={sectionDef}
               section={section}
               plot={plot.plot}
