@@ -137,14 +137,14 @@ def test_method_dft_plus_u(dft_plus_u):
     assert method.simulation.dft.hubbard_kanamori_model[0].double_counting_correction == 'Dudarev'
 
 
-def test_method_projection(projection):
+def test_method_tb_wannier(tb_wannier):
     """Methodology from a Projection calculation"""
-    method = projection.results.method
-    assert method.method_name == "Projection"
+    method = tb_wannier.results.method
+    assert method.method_name == "TB"
     assert method.simulation.program_name == "Wannier90"
     assert method.simulation.program_version == "3.1.0"
-    assert method.simulation.projection.type == 'wannier'
-    assert method.simulation.projection.localization_type == "single_shot"
+    assert method.simulation.tb.type == 'Wannier'
+    assert method.simulation.tb.localization_type == "single_shot"
 
 
 def test_method_gw(gw):

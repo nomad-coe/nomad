@@ -91,7 +91,7 @@ def test_dmft_workflow(dmft_workflow):
     """Testing DMFT workflow entry"""
     workflow = dmft_workflow.workflow2
     assert workflow.name == 'DMFT'
-    assert not workflow.method.projection_method_ref.wannier.is_maximally_localized
+    assert not workflow.method.tb_method_ref.wannier.is_maximally_localized
     assert workflow.method.dmft_method_ref.n_impurities == 1
     assert workflow.method.dmft_method_ref.n_correlated_orbitals[0] == 3
     assert workflow.method.dmft_method_ref.n_electrons[0] == 1.0
@@ -109,7 +109,7 @@ def test_dmft_workflow(dmft_workflow):
     assert results.method.simulation.dmft.jh.magnitude == 0.6e-19
     assert results.m_xpath('properties.electronic.band_gap')
     assert len(results.properties.electronic.band_gap) == 1
-    assert results.properties.electronic.band_gap[0].label == 'Projection'
+    assert results.properties.electronic.band_gap[0].label == 'TB'
     assert results.m_xpath('properties.electronic.band_structure_electronic')
     assert len(results.properties.electronic.band_structure_electronic) == 1
     # TODO check why this testing is not passing

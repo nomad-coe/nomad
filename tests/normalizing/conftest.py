@@ -38,7 +38,7 @@ from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_a
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
     Method, BasisSetContainer, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, Photon, BSE, DMFT, AtomParameters, Projection, Wannier,
+    Electronic, Smearing, Scf, GW, Photon, BSE, DMFT, AtomParameters, TB, Wannier,
     LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
     AtomsGroup, System, Atoms as NOMADAtoms)
@@ -197,15 +197,16 @@ def get_template_excited(type: str) -> EntryArchive:
     return template
 
 
-def get_template_projection() -> EntryArchive:
-    '''Returns a basic archive template for a Projection calculation.
+def get_template_tb_wannier() -> EntryArchive:
+    '''Returns a basic archive template for a TB calculation.
     '''
     template = get_template_computation()
     run = template.run[-1]
     run.program = Program(name='Wannier90', version='3.1.0')
     method = run.m_create(Method)
-    method_proj = method.m_create(Projection)
-    method_proj.wannier = Wannier(is_maximally_localized=False)
+    method_tb = method.m_create(TB)
+    method_tb.name = 'Wannier'
+    method_tb.wannier = Wannier(is_maximally_localized=False)
     system = run.system[-1]
     system.m_add_sub_section(System.atoms_group, AtomsGroup(
         label='Br',
@@ -544,34 +545,34 @@ def get_template_gw_workflow() -> EntryArchive:
 
 def get_template_dmft_workflow() -> EntryArchive:
     # Defining Projection and DMFT SinglePoint archives and adding band_structure and greens_functions to them.
-    archive_proj = get_template_projection()
+    archive_tb = get_template_tb_wannier()
     archive_dmft = get_template_dmft()
-    archive_proj = add_template_band_structure(archive_proj)
+    archive_tb = add_template_band_structure(archive_tb)
     archive_dmft = add_template_greens_functions(archive_dmft)
     # Normalizing SinglePoint archives BEFORE defining the DMFT workflow entry
-    run_normalize(archive_proj)
+    run_normalize(archive_tb)
     run_normalize(archive_dmft)
     # Defining Projection and DMFT tasks for later the DMFT workflow
-    task_proj = TaskReference(task=archive_proj.workflow2)
+    task_proj = TaskReference(task=archive_tb.workflow2)
     task_proj.name = 'Projection'
-    task_proj.inputs = [Link(name='Input structure', section=archive_proj.run[-1].system[-1])]
-    task_proj.outputs = [Link(name='Output Projection calculation', section=archive_proj.run[-1].calculation[-1])]
+    task_proj.inputs = [Link(name='Input structure', section=archive_tb.run[-1].system[-1])]
+    task_proj.outputs = [Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])]
     task_dmft = TaskReference(task=archive_dmft.workflow2)
     task_dmft.name = 'DMFT'
-    task_dmft.inputs = [Link(name='Output Projection calculation', section=archive_proj.run[-1].calculation[-1])]
+    task_dmft.inputs = [Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])]
     task_dmft.outputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
     # DMFT workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
     run = template.m_create(Run)
     run.program = archive_dmft.run[-1].program
-    run.system = archive_proj.run[-1].system
+    run.system = archive_tb.run[-1].system
     workflow = DMFTworkflow()
     workflow.name = 'DMFT'
     workflow_method = DMFTMethod(
-        projection_method_ref=archive_proj.run[-1].method[-1].projection,
+        tb_method_ref=archive_tb.run[-1].method[-1].tb,
         dmft_method_ref=archive_dmft.run[-1].method[-1].dmft)
     workflow.m_add_sub_section(DMFTworkflow.method, workflow_method)
-    workflow.m_add_sub_section(DMFTworkflow.inputs, Link(name='Input structure', section=archive_proj.run[-1].system[-1]))
+    workflow.m_add_sub_section(DMFTworkflow.inputs, Link(name='Input structure', section=archive_tb.run[-1].system[-1]))
     workflow.m_add_sub_section(DMFTworkflow.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
     workflow.m_add_sub_section(DMFTworkflow.tasks, task_proj)
     workflow.m_add_sub_section(DMFTworkflow.tasks, task_dmft)
@@ -928,9 +929,9 @@ def dft_plus_u() -> EntryArchive:
 
 
 @pytest.fixture(scope='session')
-def projection() -> EntryArchive:
-    '''Wannier Projection calculation.'''
-    template = get_template_projection()
+def tb_wannier() -> EntryArchive:
+    '''Wannier TB calculation.'''
+    template = get_template_tb_wannier()
     return run_normalize(template)
 
 

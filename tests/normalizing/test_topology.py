@@ -39,7 +39,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     mos2,
     mos2_topology,
     stacked_graphene_boron_nitride_topology,
-    projection
+    tb_wannier
 )
 
 
@@ -419,8 +419,8 @@ def test_topology_3d(bulk):
     assert conv.atoms is not None
 
 
-def test_topology_projection(projection):
-    system = projection.run[-1].system[-1]
+def test_topology_tb_wannier(tb_wannier):
+    system = tb_wannier.run[-1].system[-1]
     assert system.type == 'bulk'
     assert len(system.atoms_group) == 1
     assert system.atoms_group[-1].label == 'Br'
@@ -429,7 +429,7 @@ def test_topology_projection(projection):
     assert not system.atoms_group[-1].is_molecule
     assert system.atoms_group[-1].atom_indices[0] == 0
     assert not system.atoms_group[-1].atoms_group
-    material = projection.results.material
+    material = tb_wannier.results.material
     assert material.structural_type == system.type
     assert material.topology
     topology = material.topology

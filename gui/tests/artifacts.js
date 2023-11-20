@@ -2686,7 +2686,7 @@ window.nomadArtifacts = {
         "type_kind": "Enum",
         "type_data": [
           "DFT",
-          "Projection",
+          "TB",
           "GW",
           "DMFT",
           "CoreHole",
@@ -2938,24 +2938,26 @@ window.nomadArtifacts = {
       "aggregatable": false,
       "dynamic": false
     },
-    "results.method.simulation.projection.type": {
+    "results.method.simulation.tb.type": {
       "name": "type",
-      "description": "Projection type for the virtual orbitals: Wannier or Slater-Koster formalisms, or a\ncustom tight-binding model.",
+      "description": "Tight-binding model type: Slater Koster fitting, DFTB approximation, xTB perturbation\ntheory, or Wannier projection.",
       "type": {
         "type_kind": "Enum",
         "type_data": [
-          "wannier",
-          "slater_koster",
-          "custom"
+          "Slater-Koster",
+          "DFTB",
+          "xTB",
+          "Wannier",
+          "not processed"
         ]
       },
       "aggregatable": true,
       "dynamic": false,
       "suggestion": true
     },
-    "results.method.simulation.projection.localization_type": {
+    "results.method.simulation.tb.localization_type": {
       "name": "localization_type",
-      "description": "Localization type of the virtual Wannier orbitals.",
+      "description": "Localization type of the Wannier orbitals.",
       "type": {
         "type_kind": "Enum",
         "type_data": [
@@ -5032,9 +5034,9 @@ window.nomadArtifacts = {
       "nested": true,
       "repeats": true
     },
-    "results.method.simulation.projection": {
-      "name": "projection",
-      "description": "\n        Methodology for a Projection calculation.\n        ",
+    "results.method.simulation.tb": {
+      "name": "tb",
+      "description": "\n        Methodology for a Tight-Binding calculation.\n        ",
       "nested": false,
       "repeats": false
     },
@@ -7495,6 +7497,431 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 22,
             "m_parent_sub_section": "section_definitions",
+            "name": "TightBindingOrbital",
+            "description": "Section to define an orbital including the name of orbital and shell number and the on-site energy.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "orbital_name",
+                "description": "The name of the orbital.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "cell_index",
+                "description": "The index of the cell in 3 dimensional.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                },
+                "shape": [
+                  3
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "atom_index",
+                "description": "The index of the atom.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "shell",
+                "description": "The shell number.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "int32"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "onsite_energy",
+                "description": "On-site energy of the orbital.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 23,
+            "m_parent_sub_section": "section_definitions",
+            "name": "TwoCenterBond",
+            "description": "Section to define a two-center approximation bond between two atoms.",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "bond_label",
+                "description": "Name of the Slater-Koster bond to identify the bond.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "center1",
+                "description": "Name of the Slater-Koster bond to identify the bond.",
+                "sub_section": "/packages/1/section_definitions/22",
+                "repeats": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "center2",
+                "description": "Name of the Slater-Koster bond to identify the bond.",
+                "sub_section": "/packages/1/section_definitions/22",
+                "repeats": false
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 24,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SlaterKosterBond",
+            "description": "Section to define a two-center approximation bond between two atoms",
+            "base_sections": [
+              "/packages/1/section_definitions/23"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "sss",
+                "description": "The Slater Koster integral of type sigma between two s orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "sps",
+                "description": "The Slater Koster integral of type sigma between s and p orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "sds",
+                "description": "The Slater Koster integral of type sigma between s and d orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "sfs",
+                "description": "The Slater Koster integral of type sigma between s and f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "pps",
+                "description": "The Slater Koster integral of type sigma between two p orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "ppp",
+                "description": "The Slater Koster integral of type pi between two p orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "pds",
+                "description": "The Slater Koster integral of type sigma between p and d orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 7,
+                "m_parent_sub_section": "quantities",
+                "name": "pdp",
+                "description": "The Slater Koster integral of type pi between p and d orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 8,
+                "m_parent_sub_section": "quantities",
+                "name": "pfs",
+                "description": "The Slater Koster integral of type sigma between p and f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 9,
+                "m_parent_sub_section": "quantities",
+                "name": "pfp",
+                "description": "The Slater Koster integral of type pi between p and f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 10,
+                "m_parent_sub_section": "quantities",
+                "name": "dds",
+                "description": "The Slater Koster integral of type sigma between two d orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 11,
+                "m_parent_sub_section": "quantities",
+                "name": "ddp",
+                "description": "The Slater Koster integral of type pi between two d orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 12,
+                "m_parent_sub_section": "quantities",
+                "name": "ddd",
+                "description": "The Slater Koster integral of type delta between two d orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 13,
+                "m_parent_sub_section": "quantities",
+                "name": "dfs",
+                "description": "The Slater Koster integral of type sigma between d and f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 14,
+                "m_parent_sub_section": "quantities",
+                "name": "dfp",
+                "description": "The Slater Koster integral of type pi between d and f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 15,
+                "m_parent_sub_section": "quantities",
+                "name": "dfd",
+                "description": "The Slater Koster integral of type delta between d and f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 16,
+                "m_parent_sub_section": "quantities",
+                "name": "ffs",
+                "description": "The Slater Koster integral of type sigma between two f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 17,
+                "m_parent_sub_section": "quantities",
+                "name": "ffp",
+                "description": "The Slater Koster integral of type pi between two f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 18,
+                "m_parent_sub_section": "quantities",
+                "name": "ffd",
+                "description": "The Slater Koster integral of type delta between two f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 19,
+                "m_parent_sub_section": "quantities",
+                "name": "fff",
+                "description": "The Slater Koster integral of type phi between two f orbitals.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 25,
+            "m_parent_sub_section": "section_definitions",
+            "name": "SlaterKoster",
+            "description": "Section containing the various parameters that define a Slater-Koster",
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "orbitals",
+                "sub_section": "/packages/1/section_definitions/22",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "bonds",
+                "sub_section": "/packages/1/section_definitions/24",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "overlaps",
+                "sub_section": "/packages/1/section_definitions/24",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 26,
+            "m_parent_sub_section": "section_definitions",
+            "name": "xTB",
+            "description": "Section containing the parameters pertaining to an extended tight-binding (xTB) calculation.",
+            "base_sections": [
+              "/packages/1/section_definitions/18"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "hamiltonian",
+                "sub_section": "/packages/1/section_definitions/17",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "overlap",
+                "sub_section": "/packages/1/section_definitions/17",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
+                "name": "repulsion",
+                "sub_section": "/packages/1/section_definitions/17",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "sub_sections",
+                "name": "magnetic",
+                "sub_section": "/packages/1/section_definitions/17",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "sub_sections",
+                "name": "coulomb",
+                "sub_section": "/packages/1/section_definitions/17",
+                "repeats": true
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 27,
+            "m_parent_sub_section": "section_definitions",
             "name": "Wannier",
             "description": "Section containing the various parameters that define a Wannier tight-binding method.",
             "quantities": [
@@ -7576,27 +8003,46 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 23,
+            "m_parent_index": 28,
             "m_parent_sub_section": "section_definitions",
-            "name": "Projection",
-            "description": "Section containing the various parameters that define a Wannier90-like projection",
+            "name": "TB",
+            "description": "Section containing the parameters pertaining to a tight-binding calculation. The TB model can be derived from the Slater-Koster integrals, the xTB perturbation theory, or\nthe Wannier projection.",
+            "base_sections": [
+              "/packages/1/section_definitions/18"
+            ],
             "sub_sections": [
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
+                "name": "slater_koster",
+                "sub_section": "/packages/1/section_definitions/25",
+                "repeats": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "xtb",
+                "sub_section": "/packages/1/section_definitions/26",
+                "repeats": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "sub_sections",
                 "name": "wannier",
-                "sub_section": "/packages/1/section_definitions/22",
+                "sub_section": "/packages/1/section_definitions/27",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 24,
+            "m_parent_index": 29,
             "m_parent_sub_section": "section_definitions",
             "name": "HoppingMatrix",
-            "description": "Section containing the hopping/overlap matrix elements between N projected orbitals.",
+            "description": "Section containing the hopping/overlap matrix elements between N projected orbitals. This is also the output of a TB calculation.",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -7654,7 +8100,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 25,
+            "m_parent_index": 30,
             "m_parent_sub_section": "section_definitions",
             "name": "LatticeModelHamiltonian",
             "description": "Section containing the parameters of the non-interacting parts of a lattice model Hamiltonian.",
@@ -7703,7 +8149,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
-                "sub_section": "/packages/1/section_definitions/24",
+                "sub_section": "/packages/1/section_definitions/29",
                 "repeats": false
               },
               {
@@ -7718,7 +8164,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 26,
+            "m_parent_index": 31,
             "m_parent_sub_section": "section_definitions",
             "name": "CoreHole",
             "description": "Section containing the various parameters that define a core-hole calculation. It can be within BSE as a \"core\" subsection.",
@@ -7795,7 +8241,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 27,
+            "m_parent_index": 32,
             "m_parent_sub_section": "section_definitions",
             "name": "ExcitedStateMethodology",
             "description": "Base class containing the common numerical parameters typical of excited-state calculations.",
@@ -7881,12 +8327,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 28,
+            "m_parent_index": 33,
             "m_parent_sub_section": "section_definitions",
             "name": "Screening",
             "description": "Section containing the various parameters that define a screening calculation, as for example, in RPA.",
             "base_sections": [
-              "/packages/1/section_definitions/27"
+              "/packages/1/section_definitions/32"
             ],
             "quantities": [
               {
@@ -7904,12 +8350,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 29,
+            "m_parent_index": 34,
             "m_parent_sub_section": "section_definitions",
             "name": "GW",
             "description": "Section containing the various parameters that define a GW calculation.",
             "base_sections": [
-              "/packages/1/section_definitions/27"
+              "/packages/1/section_definitions/32"
             ],
             "quantities": [
               {
@@ -7980,18 +8426,18 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "screening",
-                "sub_section": "/packages/1/section_definitions/28"
+                "sub_section": "/packages/1/section_definitions/33"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 30,
+            "m_parent_index": 35,
             "m_parent_sub_section": "section_definitions",
             "name": "BSE",
             "description": "Section containing the various parameters that define a BSE calculation.",
             "base_sections": [
-              "/packages/1/section_definitions/27"
+              "/packages/1/section_definitions/32"
             ],
             "quantities": [
               {
@@ -8048,20 +8494,20 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "screening",
-                "sub_section": "/packages/1/section_definitions/28"
+                "sub_section": "/packages/1/section_definitions/33"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "core_hole",
-                "sub_section": "/packages/1/section_definitions/26"
+                "sub_section": "/packages/1/section_definitions/31"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 31,
+            "m_parent_index": 36,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFT",
             "description": "Section containing the various parameters that define a DMFT calculation",
@@ -8180,90 +8626,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 32,
-            "m_parent_sub_section": "section_definitions",
-            "name": "TBModel",
-            "description": "Section containing the parameters pertaining to a tight-binding calculation.",
-            "base_sections": [
-              "/packages/1/section_definitions/18"
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "hamiltonian",
-                "sub_section": "/packages/1/section_definitions/17",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "sub_sections",
-                "name": "overlap",
-                "sub_section": "/packages/1/section_definitions/17",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "sub_sections",
-                "name": "repulsion",
-                "sub_section": "/packages/1/section_definitions/17",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "sub_sections",
-                "name": "magnetic",
-                "sub_section": "/packages/1/section_definitions/17",
-                "repeats": true
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "sub_sections",
-                "name": "coulomb",
-                "sub_section": "/packages/1/section_definitions/17",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 33,
-            "m_parent_sub_section": "section_definitions",
-            "name": "TB",
-            "description": "Section containing the parameters pertaining to a tight-binding calculation.",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "kind",
-                "description": "The kind of tight-binding model used. Can be orthogonal or non-orthogonal.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              }
-            ],
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "model",
-                "sub_section": "/packages/1/section_definitions/32",
-                "repeats": true
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 34,
+            "m_parent_index": 37,
             "m_parent_sub_section": "section_definitions",
             "name": "NeighborSearching",
             "description": "Section containing the parameters for neighbor searching/lists during a molecular dynamics run.",
@@ -8297,7 +8660,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 35,
+            "m_parent_index": 38,
             "m_parent_sub_section": "section_definitions",
             "name": "ForceCalculations",
             "description": "Section containing the parameters for force calculations according to the referenced force field during a molecular dynamics run.",
@@ -8354,14 +8717,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "neighbor_searching",
-                "sub_section": "/packages/1/section_definitions/34",
+                "sub_section": "/packages/1/section_definitions/37",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 36,
+            "m_parent_index": 39,
             "m_parent_sub_section": "section_definitions",
             "name": "ForceField",
             "description": "Section containing the parameters pertaining to a force field calculation.",
@@ -8379,14 +8742,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
                 "name": "force_calculations",
-                "sub_section": "/packages/1/section_definitions/35",
+                "sub_section": "/packages/1/section_definitions/38",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 37,
+            "m_parent_index": 40,
             "m_parent_sub_section": "section_definitions",
             "name": "Smearing",
             "description": "Section containing the parameters related to the smearing of the electronic density of states at the Fermi level.",
@@ -8430,7 +8793,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 38,
+            "m_parent_index": 41,
             "m_parent_sub_section": "section_definitions",
             "name": "Electronic",
             "description": "Section containing the parameters related to the electronic structure.",
@@ -8557,13 +8920,13 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "smearing",
-                "sub_section": "/packages/1/section_definitions/37"
+                "sub_section": "/packages/1/section_definitions/40"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 39,
+            "m_parent_index": 42,
             "m_parent_sub_section": "section_definitions",
             "name": "Method",
             "description": "Section containing the various parameters that define the theory and the approximations (convergence, thresholds, etc.) behind the calculation.",
@@ -8594,7 +8957,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/42"
                 },
                 "shape": []
               },
@@ -8609,7 +8972,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/42"
                 },
                 "shape": []
               },
@@ -8636,7 +8999,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/42"
                 },
                 "shape": [
                   "n_references"
@@ -8655,15 +9018,15 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
-                "name": "projection",
-                "sub_section": "/packages/1/section_definitions/23"
+                "name": "tb",
+                "sub_section": "/packages/1/section_definitions/28"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "lattice_model_hamiltonian",
-                "sub_section": "/packages/1/section_definitions/25",
+                "sub_section": "/packages/1/section_definitions/30",
                 "repeats": true
               },
               {
@@ -8671,53 +9034,46 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "gw",
-                "sub_section": "/packages/1/section_definitions/29"
+                "sub_section": "/packages/1/section_definitions/34"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "sub_sections",
                 "name": "bse",
-                "sub_section": "/packages/1/section_definitions/30"
+                "sub_section": "/packages/1/section_definitions/35"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "sub_sections",
                 "name": "dmft",
-                "sub_section": "/packages/1/section_definitions/31"
+                "sub_section": "/packages/1/section_definitions/36"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "sub_sections",
-                "name": "tb",
-                "sub_section": "/packages/1/section_definitions/33"
+                "name": "force_field",
+                "sub_section": "/packages/1/section_definitions/39"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
-                "name": "force_field",
-                "sub_section": "/packages/1/section_definitions/36"
+                "name": "core_hole",
+                "sub_section": "/packages/1/section_definitions/31"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 8,
-                "m_parent_sub_section": "sub_sections",
-                "name": "core_hole",
-                "sub_section": "/packages/1/section_definitions/26"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "k_mesh",
                 "sub_section": "/packages/1/section_definitions/2"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 10,
+                "m_parent_index": 9,
                 "m_parent_sub_section": "sub_sections",
                 "name": "frequency_mesh",
                 "sub_section": "/packages/1/section_definitions/3",
@@ -8725,7 +9081,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 11,
+                "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "time_mesh",
                 "sub_section": "/packages/1/section_definitions/4",
@@ -8733,21 +9089,21 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 12,
+                "m_parent_index": 11,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electronic",
-                "sub_section": "/packages/1/section_definitions/38"
+                "sub_section": "/packages/1/section_definitions/41"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 13,
+                "m_parent_index": 12,
                 "m_parent_sub_section": "sub_sections",
                 "name": "scf",
                 "sub_section": "/packages/1/section_definitions/5"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 14,
+                "m_parent_index": 13,
                 "m_parent_sub_section": "sub_sections",
                 "name": "atom_parameters",
                 "more": {
@@ -8758,7 +9114,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 15,
+                "m_parent_index": 14,
                 "m_parent_sub_section": "sub_sections",
                 "name": "molecule_parameters",
                 "more": {
@@ -8769,7 +9125,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 16,
+                "m_parent_index": 15,
                 "m_parent_sub_section": "sub_sections",
                 "name": "electrons_representation",
                 "more": {
@@ -8780,7 +9136,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 17,
+                "m_parent_index": 16,
                 "m_parent_sub_section": "sub_sections",
                 "name": "photon",
                 "sub_section": "/packages/1/section_definitions/10",
@@ -11663,7 +12019,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the specific method section.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/42"
                 },
                 "shape": []
               }
@@ -12807,7 +13163,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/42"
                 },
                 "shape": []
               },
@@ -13149,7 +13505,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "hopping_matrix",
-                "sub_section": "/packages/1/section_definitions/24",
+                "sub_section": "/packages/1/section_definitions/29",
                 "repeats": true
               },
               {
@@ -13635,7 +13991,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/1/section_definitions/39",
+                "sub_section": "/packages/1/section_definitions/42",
                 "repeats": true
               },
               {
@@ -17023,8 +17379,8 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 16,
             "m_parent_sub_section": "section_definitions",
-            "name": "Projection",
-            "description": "\n        Methodology for a Projection calculation.\n        ",
+            "name": "TB",
+            "description": "\n        Methodology for a Tight-Binding calculation.\n        ",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -17032,20 +17388,23 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.method.simulation.projection.type",
-                    "results.method.simulation.projection.type__suggestion"
+                    "results.method.simulation.tb.type",
+                    "results.method.simulation.tb.type__suggestion"
                   ]
                 },
                 "name": "type",
-                "description": "Projection type for the virtual orbitals: Wannier or Slater-Koster formalisms, or a\ncustom tight-binding model.",
+                "description": "Tight-binding model type: Slater Koster fitting, DFTB approximation, xTB perturbation\ntheory, or Wannier projection.",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
-                    "wannier",
-                    "slater_koster",
-                    "custom"
+                    "Slater-Koster",
+                    "DFTB",
+                    "xTB",
+                    "Wannier",
+                    "not processed"
                   ]
-                }
+                },
+                "default": "not processed"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -17053,12 +17412,12 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.method.simulation.projection.localization_type",
-                    "results.method.simulation.projection.localization_type__suggestion"
+                    "results.method.simulation.tb.localization_type",
+                    "results.method.simulation.tb.localization_type__suggestion"
                   ]
                 },
                 "name": "localization_type",
-                "description": "Localization type of the virtual Wannier orbitals.",
+                "description": "Localization type of the Wannier orbitals.",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -17717,7 +18076,7 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
-                "name": "projection",
+                "name": "tb",
                 "sub_section": "/packages/5/section_definitions/16",
                 "repeats": false
               },
@@ -17875,7 +18234,7 @@ window.nomadArtifacts = {
                   "type_kind": "Enum",
                   "type_data": [
                     "DFT",
-                    "Projection",
+                    "TB",
                     "GW",
                     "DMFT",
                     "CoreHole",
@@ -18746,7 +19105,7 @@ window.nomadArtifacts = {
                 "name": "volumes",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/19/section_definitions/56/quantities/1"
+                  "type_data": "/packages/19/section_definitions/59/quantities/1"
                 }
               },
               {
@@ -18756,7 +19115,7 @@ window.nomadArtifacts = {
                 "name": "energies_raw",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/19/section_definitions/56/quantities/2"
+                  "type_data": "/packages/19/section_definitions/59/quantities/2"
                 }
               },
               {
@@ -18766,7 +19125,7 @@ window.nomadArtifacts = {
                 "name": "energies_fit",
                 "type": {
                   "type_kind": "quantity_reference",
-                  "type_data": "/packages/19/section_definitions/55/quantities/1"
+                  "type_data": "/packages/19/section_definitions/58/quantities/1"
                 }
               }
             ]
@@ -72988,7 +73347,7 @@ window.nomadArtifacts = {
                 "description": "Reference to the GW methodology.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/29"
+                  "type_data": "/packages/1/section_definitions/34"
                 }
               }
             ]
@@ -73026,6 +73385,123 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 42,
             "m_parent_sub_section": "section_definitions",
+            "name": "TBResults",
+            "base_sections": [
+              "/packages/19/section_definitions/1"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_first_principles",
+                "description": "Reference to the First-principles band gap.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/3/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "band_gap_tb",
+                "description": "Reference to the TB band gap.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/3/section_definitions/19"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "band_structure_first_principles",
+                "description": "Reference to the first-principles band structure.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/3/section_definitions/14"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "band_structure_tb",
+                "description": "Reference to the tight-Binding band structure.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/3/section_definitions/14"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 43,
+            "m_parent_sub_section": "section_definitions",
+            "name": "TBMethod",
+            "base_sections": [
+              "/packages/19/section_definitions/0"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "tb_method_ref",
+                "description": "Reference to the tight-Binding methodology.",
+                "type": {
+                  "type_kind": "reference",
+                  "type_data": "/packages/1/section_definitions/28"
+                }
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 44,
+            "m_parent_sub_section": "section_definitions",
+            "name": "TB",
+            "base_sections": [
+              "/packages/19/section_definitions/10"
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "method",
+                "sub_section": "/packages/19/section_definitions/43"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "results",
+                "categories": [
+                  "/packages/17/category_definitions/0"
+                ],
+                "sub_section": "/packages/19/section_definitions/42"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 45,
+            "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarizationResults",
             "description": "Groups all polarization outputs: spectrum.",
             "base_sections": [
@@ -73061,7 +73537,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 43,
+            "m_parent_index": 46,
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarizationMethod",
             "description": "Defines the full macroscopic dielectric tensor methodology: BSE method reference.",
@@ -73077,14 +73553,14 @@ window.nomadArtifacts = {
                 "description": "BSE methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/30"
+                  "type_data": "/packages/1/section_definitions/35"
                 }
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 44,
+            "m_parent_index": 47,
             "m_parent_sub_section": "section_definitions",
             "name": "PhotonPolarization",
             "description": "The PhotonPolarization workflow is generated in an extra EntryArchive FOR all polarization EntryArchives present in the upload. It groups them for a set of given method parameters.\n\nThis entry is also recognized as the full macroscopic dielectric tensor entry (e.g. calculated\nvia BSE).",
@@ -73097,7 +73573,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/19/section_definitions/43"
+                "sub_section": "/packages/19/section_definitions/46"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -73107,13 +73583,13 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/19/section_definitions/42"
+                "sub_section": "/packages/19/section_definitions/45"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 45,
+            "m_parent_index": 48,
             "m_parent_sub_section": "section_definitions",
             "name": "XSResults",
             "description": "Groups DFT, GW and PhotonPolarization outputs: band gaps (DFT, GW), DOS (DFT, GW), band structures (DFT, GW), spectra (PhotonPolarization). The ResultsNormalizer takes\ncare of adding a label 'DFT' or 'GW' in the method `get_xs_workflow_properties`.",
@@ -73212,14 +73688,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectra",
-                "sub_section": "/packages/19/section_definitions/42",
+                "sub_section": "/packages/19/section_definitions/45",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 46,
+            "m_parent_index": 49,
             "m_parent_sub_section": "section_definitions",
             "name": "XSMethod",
             "base_sections": [
@@ -73228,7 +73704,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 47,
+            "m_parent_index": 50,
             "m_parent_sub_section": "section_definitions",
             "name": "XS",
             "description": "The XS workflow is generated in an extra EntryArchive IF both the DFT SinglePoint and the PhotonPolarization EntryArchives are present in the upload.",
@@ -73241,7 +73717,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/19/section_definitions/46"
+                "sub_section": "/packages/19/section_definitions/49"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -73251,13 +73727,13 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/19/section_definitions/45"
+                "sub_section": "/packages/19/section_definitions/48"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 48,
+            "m_parent_index": 51,
             "m_parent_sub_section": "section_definitions",
             "name": "MaxEntResults",
             "description": "Groups DMFT and MaxEnt outputs: greens functions (DMFT, MaxEnt), band gaps (MaxEnt), DOS (MaxEnt), band structures (MaxEnt). The ResultsNormalizer takes care of adding a\nlabel 'DMFT' or 'MaxEnt' in the method `get_maxent_workflow_properties`.",
@@ -73325,7 +73801,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 49,
+            "m_parent_index": 52,
             "m_parent_sub_section": "section_definitions",
             "name": "MaxEntMethod",
             "description": "Groups DMFT and MaxEnt input methodologies: DMFT method references, MaxEnt method reference.",
@@ -73341,7 +73817,7 @@ window.nomadArtifacts = {
                 "description": "DMFT methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/31"
+                  "type_data": "/packages/1/section_definitions/36"
                 }
               },
               {
@@ -73352,14 +73828,14 @@ window.nomadArtifacts = {
                 "description": "MaxEnt methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/39"
+                  "type_data": "/packages/1/section_definitions/42"
                 }
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 50,
+            "m_parent_index": 53,
             "m_parent_sub_section": "section_definitions",
             "name": "MaxEnt",
             "description": "The MaxEnt (Maximum Entropy) workflow is generated in an extra EntryArchive IF both the DMFT SinglePoint and the MaxEnt SinglePoint EntryArchives are present in the upload.",
@@ -73372,7 +73848,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/19/section_definitions/49"
+                "sub_section": "/packages/19/section_definitions/52"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -73382,16 +73858,16 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/19/section_definitions/48"
+                "sub_section": "/packages/19/section_definitions/51"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 51,
+            "m_parent_index": 54,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFTResults",
-            "description": "Groups DFT, Projection and DMFT outputs: band gaps (all), DOS (DFT, Projection), band structures (DFT, Projection), Greens functions (DMFT). The ResultsNormalizer takes care\nof adding a label 'DFT', 'PROJECTION, or 'DMFT' in the method `get_dmft_workflow_properties`.",
+            "description": "Groups DFT, TB and DMFT outputs: band gaps (all), DOS (DFT, TB), band structures (DFT, TB), Greens functions (DMFT). The ResultsNormalizer takes care\nof adding a label 'DFT', 'PROJECTION, or 'DMFT' in the method `get_dmft_workflow_properties`.",
             "base_sections": [
               "/packages/19/section_definitions/1"
             ],
@@ -73414,8 +73890,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
-                "name": "band_gap_projection",
-                "description": "Projection band gap.",
+                "name": "band_gap_tb",
+                "description": "TB band gap.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/3/section_definitions/19"
@@ -73470,8 +73946,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
-                "name": "band_structure_projection",
-                "description": "Ref to the projected band structure.",
+                "name": "band_structure_tb",
+                "description": "Ref to the TB band structure.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/3/section_definitions/14"
@@ -73484,8 +73960,8 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
-                "name": "dos_projection",
-                "description": "Ref to the projected density of states.",
+                "name": "dos_tb",
+                "description": "Ref to the TB density of states.",
                 "type": {
                   "type_kind": "reference",
                   "type_data": "/packages/3/section_definitions/17"
@@ -73512,10 +73988,10 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 52,
+            "m_parent_index": 55,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFTMethod",
-            "description": "Groups DFT, Projection and DMFT input methodologies: starting XC functional, electrons representation (basis set), Projection method reference, DMFT method reference.",
+            "description": "Groups DFT, TB and DMFT input methodologies: starting XC functional, electrons representation (basis set), TB method reference, DMFT method reference.",
             "base_sections": [
               "/packages/19/section_definitions/0"
             ],
@@ -73546,11 +74022,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
-                "name": "projection_method_ref",
-                "description": "Projection methodology reference.",
+                "name": "tb_method_ref",
+                "description": "TB methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/23"
+                  "type_data": "/packages/1/section_definitions/28"
                 }
               },
               {
@@ -73561,17 +74037,17 @@ window.nomadArtifacts = {
                 "description": "DMFT methodology reference.",
                 "type": {
                   "type_kind": "reference",
-                  "type_data": "/packages/1/section_definitions/31"
+                  "type_data": "/packages/1/section_definitions/36"
                 }
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 53,
+            "m_parent_index": 56,
             "m_parent_sub_section": "section_definitions",
             "name": "DMFT",
-            "description": "The DMFT workflow is generated in an extra EntryArchive IF both the Projection SinglePoint and the DMFT SinglePoint EntryArchives are present in the upload.",
+            "description": "The DMFT workflow is generated in an extra EntryArchive IF both the TB SinglePoint and the DMFT SinglePoint EntryArchives are present in the upload.",
             "base_sections": [
               "/packages/19/section_definitions/10"
             ],
@@ -73581,7 +74057,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/19/section_definitions/52"
+                "sub_section": "/packages/19/section_definitions/55"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -73591,13 +74067,13 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/19/section_definitions/51"
+                "sub_section": "/packages/19/section_definitions/54"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 54,
+            "m_parent_index": 57,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateMethod",
             "base_sections": [
@@ -73620,7 +74096,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 55,
+            "m_parent_index": 58,
             "m_parent_sub_section": "section_definitions",
             "name": "EOSFit",
             "description": "Section containing results of an equation of state fit.",
@@ -73719,7 +74195,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 56,
+            "m_parent_index": 59,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfStateResults",
             "base_sections": [
@@ -73775,14 +74251,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eos_fit",
-                "sub_section": "/packages/19/section_definitions/55",
+                "sub_section": "/packages/19/section_definitions/58",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 57,
+            "m_parent_index": 60,
             "m_parent_sub_section": "section_definitions",
             "name": "EquationOfState",
             "base_sections": [
@@ -73794,7 +74270,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/19/section_definitions/54"
+                "sub_section": "/packages/19/section_definitions/57"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -73804,13 +74280,13 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/19/section_definitions/56"
+                "sub_section": "/packages/19/section_definitions/59"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 58,
+            "m_parent_index": 61,
             "m_parent_sub_section": "section_definitions",
             "name": "ChemicalReactionMethod",
             "base_sections": [
@@ -73834,7 +74310,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 59,
+            "m_parent_index": 62,
             "m_parent_sub_section": "section_definitions",
             "name": "ChemicalReactionResults",
             "base_sections": [
@@ -73869,7 +74345,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 60,
+            "m_parent_index": 63,
             "m_parent_sub_section": "section_definitions",
             "name": "ChemicalReaction",
             "base_sections": [
@@ -73881,7 +74357,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "method",
-                "sub_section": "/packages/19/section_definitions/58"
+                "sub_section": "/packages/19/section_definitions/61"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -73891,7 +74367,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/17/category_definitions/0"
                 ],
-                "sub_section": "/packages/19/section_definitions/59"
+                "sub_section": "/packages/19/section_definitions/62"
               }
             ]
           }

@@ -31,9 +31,9 @@ import FilterSubMenuStructure from './FilterSubMenuStructure'
 import FilterSubMenuMethod from './FilterSubMenuMethod'
 import FilterSubMenuPrecision from './FilterSubMenuPrecision'
 import FilterSubMenuDFT from './FilterSubMenuDFT'
+import FilterSubMenuTB from './FilterSubMenuTB'
 import FilterSubMenuGW from './FilterSubMenuGW'
 import FilterSubMenuBSE from './FilterSubMenuBSE'
-import FilterSubMenuProjection from './FilterSubMenuProjection'
 import FilterSubMenuDMFT from './FilterSubMenuDMFT'
 import FilterSubMenuEELS from './FilterSubMenuEELS'
 import FilterSubMenuElectronic from './FilterSubMenuElectronic'
@@ -58,9 +58,9 @@ export const menuMap = {
   method: FilterSubMenuMethod,
   precision: FilterSubMenuPrecision,
   dft: FilterSubMenuDFT,
+  tb: FilterSubMenuTB,
   gw: FilterSubMenuGW,
   bse: FilterSubMenuBSE,
-  projection: FilterSubMenuProjection,
   dmft: FilterSubMenuDMFT,
   eels: FilterSubMenuEELS,
   electronic: FilterSubMenuElectronic,

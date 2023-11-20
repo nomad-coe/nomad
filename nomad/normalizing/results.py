@@ -467,14 +467,14 @@ class ResultsNormalizer(Normalizer):
 
     def _resolve_workflow_gs_properties(self, methods: list[str], properties: list[str]) -> None:
         """Resolves the ground state (gs) properties passed as a list `properties` (band_gap,
-        band_structure, dos) for a given list of `methods` (dft, gw, projection, maxent).
+        band_structure, dos) for a given list of `methods` (dft, gw, tb, maxent).
 
         Args:
             methods (list[str]): the list of methods from which the properties are resolved.
             properties (list[str]): the list of properties to be resolved from `workflow2.results`.
         """
         for method in methods:
-            name = 'Projection' if method == 'projection' else 'MaxEnt' if method == 'maxent' else method.upper()
+            name = 'MaxEnt' if method == 'maxent' else 'FirstPrinciples' if method == 'first_principles' else method.upper()
             for prop in properties:
                 property_list = self.electronic_properties.get(prop)
                 method_property_resolved = getattr(self, f'resolve_{prop}')(['workflow2', 'results', f'{prop}_{method}'])
@@ -490,12 +490,20 @@ class ResultsNormalizer(Normalizer):
         methods = ['dft', 'gw']
         self._resolve_workflow_gs_properties(methods, properties)
 
+    def get_tb_workflow_properties(self):
+        """Gets the TB workflow (DFT+TB or GW+TB) properties and stores them in the self.electronic_properties
+        dictionary.
+        """
+        properties = ['band_gap', 'band_structure', 'dos']
+        methods = ['first_principles', 'tb']
+        self._resolve_workflow_gs_properties(methods, properties)
+
     def get_dmft_workflow_properties(self) -> None:
-        """Gets the DMFT workflow (DFT+Projection+DMFT) properties and stores them in the
+        """Gets the DMFT workflow (DFT+TB+DMFT) properties and stores them in the
         self.electronic_properties dictionary.
         """
         properties = ['band_gap', 'band_structure', 'dos']
-        methods = ['dft', 'projection']
+        methods = ['dft', 'tb']
         self._resolve_workflow_gs_properties(methods, properties)
         # Resolving DMFT Greens functions
         gfs_electronic: List[GreensFunctionsElectronic] = self.electronic_properties.get('greens_functions')  # type: ignore
@@ -901,6 +909,8 @@ class ResultsNormalizer(Normalizer):
             workflow_name = workflow.m_def.name
             if workflow_name == 'GW':
                 self.get_gw_workflow_properties()
+            elif workflow_name == 'TB':
+                self.get_tb_workflow_properties()
             elif workflow_name == 'DMFT':
                 self.get_dmft_workflow_properties()
             elif workflow_name == 'MaxEnt':

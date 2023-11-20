@@ -1694,27 +1694,28 @@ class DFT(MSection):
         a_elasticsearch=[Elasticsearch(material_entry_type, nested=True)])
 
 
-class Projection(MSection):
+class TB(MSection):
     m_def = Section(
         description='''
-        Methodology for a Projection calculation.
+        Methodology for a Tight-Binding calculation.
         '''
     )
     type = Quantity(
-        type=MEnum(['wannier', 'slater_koster', 'custom']),
+        type=MEnum(['Slater-Koster', 'DFTB', 'xTB', 'Wannier'] + [not_processed]),
+        default=not_processed,
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default')
         ],
         description='''
-        Projection type for the virtual orbitals: Wannier or Slater-Koster formalisms, or a
-        custom tight-binding model.
+        Tight-binding model type: Slater Koster fitting, DFTB approximation, xTB perturbation
+        theory, or Wannier projection.
         '''
     )
     localization_type = Quantity(
         type=MEnum(['single_shot', 'maximally_localized']),
         description='''
-        Localization type of the virtual Wannier orbitals.
+        Localization type of the Wannier orbitals.
         ''',
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
@@ -1929,7 +1930,7 @@ class Simulation(MSection):
         ],
     )
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
-    projection = SubSection(sub_section=Projection.m_def, repeats=False)
+    tb = SubSection(sub_section=TB.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
     bse = SubSection(sub_section=BSE.m_def, repeats=False)
     dmft = SubSection(sub_section=DMFT.m_def, repeats=False)
@@ -2019,10 +2020,8 @@ class Method(MSection):
     )
     method_name = Quantity(
         type=MEnum(
-            [
-                'DFT', 'Projection', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS',
-                'XRD', config.services.unavailable_value
-            ]
+            'DFT', 'TB', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS', 'XRD',
+            config.services.unavailable_value
         ),
         description='''
         Common name for the used method.
