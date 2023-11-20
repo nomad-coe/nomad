@@ -86,8 +86,7 @@ window.nomadEnv = {
     },
     "apps": {
       "exclude": [
-        "heterogeneouscatalyst",
-        "mofs"
+        "heterogeneouscatalyst"
       ],
       "options": {
         "entries": {
@@ -3082,7 +3081,7 @@ window.nomadEnv = {
                     "minH": 3,
                     "minW": 3,
                     "h": 9,
-                    "w": 7,
+                    "w": 11,
                     "x": 19,
                     "y": 0
                   },
@@ -3130,7 +3129,7 @@ window.nomadEnv = {
                     "minH": 3,
                     "minW": 3,
                     "h": 5,
-                    "w": 13,
+                    "w": 15,
                     "x": 0,
                     "y": 9
                   },
@@ -3180,7 +3179,7 @@ window.nomadEnv = {
                     "minH": 3,
                     "minW": 3,
                     "h": 5,
-                    "w": 13,
+                    "w": 15,
                     "x": 0,
                     "y": 14
                   },
@@ -3230,8 +3229,8 @@ window.nomadEnv = {
                     "minH": 3,
                     "minW": 3,
                     "h": 5,
-                    "w": 13,
-                    "x": 13,
+                    "w": 15,
+                    "x": 15,
                     "y": 9
                   },
                   "lg": {
@@ -3280,8 +3279,8 @@ window.nomadEnv = {
                     "minH": 3,
                     "minW": 3,
                     "h": 5,
-                    "w": 13,
-                    "x": 13,
+                    "w": 15,
+                    "x": 15,
                     "y": 14
                   },
                   "lg": {

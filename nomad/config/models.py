@@ -1050,7 +1050,7 @@ class UI(StrictSettings):
     )
     apps: Apps = Field(
         Apps(**{
-            'exclude': ['heterogeneouscatalyst', 'mofs'],
+            'exclude': ['heterogeneouscatalyst'],
             'options': {
                 'entries': {
                     'label': 'Entries',
@@ -2022,7 +2022,7 @@ class UI(StrictSettings):
                                 "quantity": "results.material.topology.sbu_type",
                                 "layout": {
                                     "xxl": {"minH": 3, "minW": 3, "h": 10, "w": 11, "y": 0, "x": 25},
-                                    "xl": {"minH": 3, "minW": 3, "h": 9, "w": 7, "y": 0, "x": 19},
+                                    "xl": {"minH": 3, "minW": 3, "h": 9, "w": 11, "y": 0, "x": 19},
                                     "lg": {"minH": 3, "minW": 3, "h": 9, "w": 9, "y": 0, "x": 15},
                                     "md": {"minH": 3, "minW": 3, "h": 8, "w": 7, "y": 0, "x": 11},
                                     "sm": {"minH": 3, "minW": 3, "h": 6, "w": 3, "y": 0, "x": 9}
@@ -2037,7 +2037,7 @@ class UI(StrictSettings):
                                 "quantity": "results.material.topology.pore_limiting_diameter",
                                 "layout": {
                                     "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 19, "y": 10, "x": 0},
-                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 9, "x": 0},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 15, "y": 9, "x": 0},
                                     "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 9, "x": 0},
                                     "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 8, "x": 0},
                                     "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 6, "x": 0}
@@ -2051,7 +2051,7 @@ class UI(StrictSettings):
                                 "quantity": "results.material.topology.largest_cavity_diameter",
                                 "layout": {
                                     "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 17, "y": 10, "x": 19},
-                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 14, "x": 0},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 15, "y": 14, "x": 0},
                                     "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 14, "x": 0},
                                     "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 8, "x": 9},
                                     "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 6, "x": 6}
@@ -2065,7 +2065,7 @@ class UI(StrictSettings):
                                 "quantity": "results.material.topology.accessible_surface_area",
                                 "layout": {
                                     "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 19, "y": 16, "x": 0},
-                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 9, "x": 13},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 15, "y": 9, "x": 15},
                                     "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 9, "x": 11},
                                     "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 12, "x": 0},
                                     "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 9, "x": 0}
@@ -2079,7 +2079,7 @@ class UI(StrictSettings):
                                 "quantity": "results.material.topology.void_fraction",
                                 "layout": {
                                     "xxl": {"minH": 3, "minW": 3, "h": 6, "w": 17, "y": 16, "x": 19},
-                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 13, "y": 14, "x": 13},
+                                    "xl": {"minH": 3, "minW": 3, "h": 5, "w": 15, "y": 14, "x": 15},
                                     "lg": {"minH": 3, "minW": 3, "h": 5, "w": 12, "y": 14, "x": 11},
                                     "md": {"minH": 3, "minW": 3, "h": 4, "w": 9, "y": 12, "x": 9},
                                     "sm": {"minH": 3, "minW": 3, "h": 3, "w": 6, "y": 9, "x": 6}

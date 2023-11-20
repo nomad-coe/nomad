@@ -31,6 +31,7 @@ describe('', () => {
   afterAll(() => closeAPI())
 
   test.each(
+    // [ui.apps.options['mofs']]
     Object.entries(ui.apps.options)
   )('renders search page correctly, context: %s', async (key, context) => {
     render(
