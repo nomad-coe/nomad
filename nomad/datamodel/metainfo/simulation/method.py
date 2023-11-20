@@ -1250,6 +1250,232 @@ class DFT(MSection):
     xc_functional = SubSection(sub_section=XCFunctional.m_def)
 
 
+class TightBindingOrbital(MSection):
+    '''
+    Section to define an orbital including the name of orbital and shell number and the on-site energy.
+    '''
+
+    m_def = Section(validate=False)
+
+    orbital_name = Quantity(
+        type=str,
+        description='''
+        The name of the orbital.
+        ''')
+
+    cell_index = Quantity(
+        type=np.int32,
+        shape=[3],
+        description='''
+            The index of the cell in 3 dimensional.
+            ''')
+
+    atom_index = Quantity(
+        type=np.int32,
+        description='''
+        The index of the atom.
+        ''')
+
+    shell = Quantity(
+        type=np.int32,
+        description='''
+        The shell number.
+        ''')
+
+    onsite_energy = Quantity(
+        type=np.float64,
+        description='''
+        On-site energy of the orbital.
+        ''')
+
+
+class TwoCenterBond(MSection):
+    '''
+    Section to define a two-center approximation bond between two atoms.
+    '''
+
+    m_def = Section(validate=False)
+
+    bond_label = Quantity(
+        type=str,
+        shape=[],
+        description='''
+        Name of the Slater-Koster bond to identify the bond.
+        ''')
+
+    center1 = SubSection(
+        sub_section=TightBindingOrbital.m_def,
+        repeats=False,
+        description='''
+        Name of the Slater-Koster bond to identify the bond.
+        ''')
+
+    center2 = SubSection(
+        sub_section=TightBindingOrbital.m_def,
+        repeats=False,
+        description='''
+            Name of the Slater-Koster bond to identify the bond.
+            ''')
+
+
+class SlaterKosterBond(TwoCenterBond):
+    '''
+    Section to define a two-center approximation bond between two atoms
+    '''
+
+    m_def = Section(validate=False)
+
+    sss = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between two s orbitals.
+        ''')
+
+    sps = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between s and p orbitals.
+        ''')
+
+    sds = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between s and d orbitals.
+        ''')
+
+    sfs = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between s and f orbitals.
+        ''')
+
+    pps = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between two p orbitals.
+        ''')
+
+    ppp = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type pi between two p orbitals.
+        ''')
+
+    pds = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between p and d orbitals.
+        ''')
+
+    pdp = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type pi between p and d orbitals.
+        ''')
+
+    pfs = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between p and f orbitals.
+        ''')
+
+    pfp = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type pi between p and f orbitals.
+        ''')
+
+    dds = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between two d orbitals.
+        ''')
+
+    ddp = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type pi between two d orbitals.
+        ''')
+
+    ddd = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type delta between two d orbitals.
+        ''')
+
+    dfs = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between d and f orbitals.
+        ''')
+
+    dfp = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type pi between d and f orbitals.
+        ''')
+
+    dfd = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type delta between d and f orbitals.
+        ''')
+
+    ffs = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type sigma between two f orbitals.
+        ''')
+
+    ffp = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type pi between two f orbitals.
+        ''')
+
+    ffd = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type delta between two f orbitals.
+        ''')
+
+    fff = Quantity(
+        type=np.float64,
+        description='''
+        The Slater Koster integral of type phi between two f orbitals.
+        ''')
+
+
+class SlaterKoster(MSection):
+    '''
+    Section containing the various parameters that define a Slater-Koster
+    '''
+
+    m_def = Section(validate=False)
+
+    orbitals = SubSection(sub_section=TightBindingOrbital.m_def, repeats=True)
+    bonds = SubSection(sub_section=SlaterKosterBond.m_def, repeats=True)
+    overlaps = SubSection(sub_section=SlaterKosterBond.m_def, repeats=True)
+
+
+class xTB(Model):
+    '''
+    Section containing the parameters pertaining to an extended tight-binding (xTB) calculation.
+    '''
+
+    m_def = Section(validate=False)
+
+    hamiltonian = SubSection(sub_section=Interaction.m_def, repeats=True)
+
+    overlap = SubSection(sub_section=Interaction.m_def, repeats=True)
+
+    repulsion = SubSection(sub_section=Interaction.m_def, repeats=True)
+
+    magnetic = SubSection(sub_section=Interaction.m_def, repeats=True)
+
+    coulomb = SubSection(sub_section=Interaction.m_def, repeats=True)
+
+
 class Wannier(MSection):
     '''
     Section containing the various parameters that define a Wannier tight-binding method.
@@ -1298,20 +1524,24 @@ class Wannier(MSection):
         ''')
 
 
-class Projection(MSection):
+class TB(Model):
     '''
-    Section containing the various parameters that define a Wannier90-like projection
+    Section containing the parameters pertaining to a tight-binding calculation. The TB
+    model can be derived from the Slater-Koster integrals, the xTB perturbation theory, or
+    the Wannier projection.
     '''
 
     m_def = Section(validate=False)
 
+    slater_koster = SubSection(sub_section=SlaterKoster.m_def, repeats=False)
+    xtb = SubSection(sub_section=xTB.m_def, repeats=False)
     wannier = SubSection(sub_section=Wannier.m_def, repeats=False)
 
 
 class HoppingMatrix(MSection):
     '''
-    Section containing the hopping/overlap matrix elements between N projected
-    orbitals.
+    Section containing the hopping/overlap matrix elements between N projected orbitals. This
+    is also the output of a TB calculation.
     '''
 
     m_def = Section(validate=False)
@@ -1706,41 +1936,6 @@ class DMFT(MSection):
         ''')
 
 
-class TBModel(Model):
-    '''
-    Section containing the parameters pertaining to a tight-binding calculation.
-    '''
-
-    m_def = Section(validate=False)
-
-    hamiltonian = SubSection(sub_section=Interaction.m_def, repeats=True)
-
-    overlap = SubSection(sub_section=Interaction.m_def, repeats=True)
-
-    repulsion = SubSection(sub_section=Interaction.m_def, repeats=True)
-
-    magnetic = SubSection(sub_section=Interaction.m_def, repeats=True)
-
-    coulomb = SubSection(sub_section=Interaction.m_def, repeats=True)
-
-
-class TB(MSection):
-    '''
-    Section containing the parameters pertaining to a tight-binding calculation.
-    '''
-
-    m_def = Section(validate=False)
-
-    kind = Quantity(
-        type=str,
-        shape=[],
-        description='''
-        The kind of tight-binding model used. Can be orthogonal or non-orthogonal.
-        ''')
-
-    model = SubSection(sub_section=TBModel.m_def, repeats=True)
-
-
 class NeighborSearching(MSection):
     '''
     Section containing the parameters for neighbor searching/lists during a molecular dynamics run.
@@ -2046,7 +2241,7 @@ class Method(ArchiveSection):
 
     dft = SubSection(sub_section=DFT.m_def)
 
-    projection = SubSection(sub_section=Projection.m_def)
+    tb = SubSection(sub_section=TB.m_def)
 
     lattice_model_hamiltonian = SubSection(sub_section=LatticeModelHamiltonian.m_def, repeats=True)
 
@@ -2055,8 +2250,6 @@ class Method(ArchiveSection):
     bse = SubSection(sub_section=BSE.m_def)
 
     dmft = SubSection(sub_section=DMFT.m_def)
-
-    tb = SubSection(sub_section=TB.m_def)
 
     force_field = SubSection(sub_section=ForceField.m_def)
 

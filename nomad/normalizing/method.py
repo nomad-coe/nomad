@@ -32,7 +32,7 @@ from nomad import config
 from nomad.datamodel.metainfo.simulation.method import (
     KMesh, Method as MethodRun)
 from nomad.datamodel.results import (
-    Method, Electronic, Simulation, HubbardKanamoriModel, DFT, Projection, GW, BSE, DMFT,
+    Method, Electronic, Simulation, HubbardKanamoriModel, DFT, TB, GW, BSE, DMFT,
     Precision, Material, xc_treatments, xc_treatments_extended)
 
 
@@ -64,7 +64,7 @@ class MethodNormalizer():
             if section_method.electronic and section_method.electronic.method:
                 method_name = section_method.electronic.method
             else:
-                for method in ['gw', 'projection', 'dmft', 'core_hole', 'bse']:
+                for method in ['gw', 'tb', 'dmft', 'core_hole', 'bse']:
                     if section_method.m_xpath(method):
                         method_name = getattr(section_method, method).m_def.name
                         break
@@ -169,7 +169,7 @@ class MethodNormalizer():
         elif method.workflow_name == 'DMFT':
             repr_method = self.entry_archive.workflow2.method.dmft_method_ref  # DMFT method
             repr_method = repr_method.m_parent
-            method_name = 'Projection+DMFT'
+            method_name = 'TB+DMFT'
         elif method.workflow_name == 'MaxEnt':
             repr_method = self.entry_archive.workflow2.method.dmft_method_ref  # DMFT method
             repr_method = repr_method.m_parent
@@ -252,10 +252,10 @@ class MethodNormalizer():
         elif self.method_name == 'CoreHole':  # TODO check if this is going to be normalized to results
             simulation = Simulation()
             method.method_name = 'CoreHole'
-        elif self.method_name in ['Projection']:  # TODO extend for 'DFT+Projection'
-            simulation = ProjectionMethod(
+        elif self.method_name in ['TB']:  # TODO extend for 'DFT+TB'
+            simulation = TBMethod(
                 self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
-        elif self.method_name in ['DMFT', 'Projection+DMFT', 'DMFT+MaxEnt']:  # TODO extend for 'DFT+DMFT', 'DFT+Projection+DMFT'
+        elif self.method_name in ['DMFT', 'TB+DMFT', 'DMFT+MaxEnt']:  # TODO extend for 'DFT+DMFT', 'DFT+TB+DMFT'
             simulation = DMFTMethod(
                 self.logger, repr_method=self.repr_method, method=method, method_name=self.method_name).simulation()
         else:
@@ -777,24 +777,21 @@ class ExcitedStateMethod(ElectronicMethod):
         return simulation
 
 
-class ProjectionMethod(ElectronicMethod):
-    """Projection (Wannier, SlaterKoster) Method normalized into results.simulation
+class TBMethod(ElectronicMethod):
+    """TB (Wannier, SlaterKoster, DFTB, xTB) Method normalized into results.simulation
     """
     def simulation(self) -> Simulation:
         simulation = Simulation()
-        self._method.method_name = 'Projection'
-        projection = Projection()
-        if self._repr_method.projection.wannier:
-            projection.type = 'wannier'
-            if self._repr_method.projection.wannier.is_maximally_localized:
-                projection.localization_type = 'maximally_localized'
+        self._method.method_name = 'TB'
+        tb = TB()
+        if self._repr_method.tb.name in ['Slater-Koster', 'Wannier', 'xTB', 'DFTB']:
+            tb.type = self._repr_method.tb.name
+        if self._repr_method.tb.wannier:
+            if self._repr_method.tb.wannier.is_maximally_localized:
+                tb.localization_type = 'maximally_localized'
             else:
-                projection.localization_type = 'single_shot'
-        elif self._repr_method.projection.slater_koster:
-            projection.type = 'slater_koster'
-        else:
-            projection.type = 'custom'
-        simulation.projection = projection
+                tb.localization_type = 'single_shot'
+        simulation.tb = tb
         return simulation
 
 

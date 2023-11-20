@@ -35,9 +35,9 @@ const idElements = 'elements'
 const idStructure = 'structure'
 const idMethod = 'method'
 const idDFT = 'dft'
+const idTB = 'tb'
 const idGW = 'gw'
 const idBSE = 'bse'
-const idProjection = 'projection'
 const idDMFT = 'dmft'
 const idPrecision = 'precision'
 const idProperties = 'properties'
@@ -278,6 +278,8 @@ registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...t
 registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
+registerFilter('results.method.simulation.tb.type', idTB, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.tb.localization_type', idTB, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
 registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
   ...termQuantity,
@@ -308,8 +310,6 @@ registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
 })
 registerFilter('results.method.simulation.bse.basis_set_type', idBSE, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: '1/4', label: `GW Type`})
-registerFilter('results.method.simulation.projection.type', idProjection, {...termQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.projection.localization_type', idProjection, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dmft.impurity_solver_type', idDMFT, {...termQuantity})
 registerFilter('results.method.simulation.dmft.magnetic_state', idDMFT, {...termQuantity})
 registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: '1/2'})

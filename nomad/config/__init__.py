@@ -387,6 +387,11 @@ plugins = Plugins(options={
     'parsers/wannier90': Parser(
         python_package='electronicparsers.wannier90',
         mainfile_contents_re=r'\|\s*WANNIER90\s*\|'),
+    'parsers/tbstudio': Parser(
+        python_package='electronicparsers.tbstudio',
+        mainfile_mime_re=r'(application/json)|(text/.*)',
+        mainfile_name_re=r'.*\.tbm',
+        mainfile_contents_re=r'"ApplicationFullName": "Tight Binding Studio"'),
     'parsers/w2dynamics': Parser(
         python_package='electronicparsers.w2dynamics',
         mainfile_name_re=(r'^.*\.(h5|hdf5)$'),

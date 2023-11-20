@@ -29,7 +29,7 @@ from nomad.datamodel.metainfo.common import FastAccess
 from nomad.datamodel.metainfo.workflow import Workflow, Link, Task
 from nomad.datamodel.metainfo.simulation.system import System, AtomsGroup
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, XCFunctional, BasisSetContainer, GW as GWMethodology, Projection as ProjectionMethodology,
+    Method, XCFunctional, BasisSetContainer, GW as GWMethodology, TB as TBMethodology,
     DMFT as DMFTMethodology, BSE as BSEMethodology
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -2637,6 +2637,83 @@ class GW(SerialSimulation):
                 self.results.m_set(section, calc_section)
 
 
+class TBResults(SimulationWorkflowResults):
+
+    band_gap_first_principles = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+            Reference to the First-principles band gap.
+            ''')
+
+    band_gap_tb = Quantity(
+        type=Reference(BandGap),
+        shape=['*'],
+        description='''
+            Reference to the TB band gap.
+            ''')
+
+    band_structure_first_principles = Quantity(
+        type=Reference(BandStructure),
+        shape=['*'],
+        description='''
+        Reference to the first-principles band structure.
+        ''')
+
+    band_structure_tb = Quantity(
+        type=Reference(BandStructure),
+        shape=['*'],
+        description='''
+        Reference to the tight-Binding band structure.
+        ''')
+
+
+class TBMethod(SimulationWorkflowMethod):
+
+    tb_method_ref = Quantity(
+        type=Reference(TBMethodology),
+        description='''
+        Reference to the tight-Binding methodology.
+        ''')
+
+
+class TB(SerialSimulation):
+
+    method = SubSection(sub_section=TBMethod)
+
+    results = SubSection(sub_section=TBResults)
+
+    def normalize(self, archive, logger):
+        super().normalize(archive, logger)
+
+        if not self.method:
+            self.method = TBMethod()
+
+        if not self.results:
+            self.results = TBResults()
+
+        if len(self.tasks) != 2:
+            logger.error('Expected two tasks.')
+            return
+
+        first_principles_task = self.tasks[0]
+        tb_task = self.tasks[1]
+
+        for name, section in self.results.m_def.all_quantities.items():
+            calc_name = '_'.join(name.split('_')[:-1])
+            if name.endswith('first_principles'):
+                calc_name = '_'.join(name.split('_')[:-2])
+            if calc_name in ['band_structure']:
+                calc_name = f'{calc_name}_electronic'
+            calc_section = []
+            if 'first_principles' in name:
+                calc_section = getattr(first_principles_task.outputs[-1].section, calc_name)
+            elif 'tb' in name:
+                calc_section = getattr(tb_task.outputs[-1].section, calc_name)
+            if calc_section:
+                self.results.m_set(section, calc_section)
+
+
 class PhotonPolarizationResults(SimulationWorkflowResults):
     '''Groups all polarization outputs: spectrum.
     '''
@@ -2880,8 +2957,8 @@ class MaxEnt(SerialSimulation):
 
 
 class DMFTResults(SimulationWorkflowResults):
-    '''Groups DFT, Projection and DMFT outputs: band gaps (all), DOS (DFT, Projection), band
-    structures (DFT, Projection), Greens functions (DMFT). The ResultsNormalizer takes care
+    '''Groups DFT, TB and DMFT outputs: band gaps (all), DOS (DFT, TB), band
+    structures (DFT, TB), Greens functions (DMFT). The ResultsNormalizer takes care
     of adding a label 'DFT', 'PROJECTION, or 'DMFT' in the method `get_dmft_workflow_properties`.
     '''
 
@@ -2892,11 +2969,11 @@ class DMFTResults(SimulationWorkflowResults):
         DFT band gap.
         ''')
 
-    band_gap_projection = Quantity(
+    band_gap_tb = Quantity(
         type=Reference(BandGap),
         shape=['*'],
         description='''
-        Projection band gap.
+        TB band gap.
         ''')
 
     band_gap_dmft = Quantity(
@@ -2920,18 +2997,18 @@ class DMFTResults(SimulationWorkflowResults):
         Ref to the DFT density of states.
         ''')
 
-    band_structure_projection = Quantity(
+    band_structure_tb = Quantity(
         type=Reference(BandStructure),
         shape=['*'],
         description='''
-        Ref to the projected band structure.
+        Ref to the TB band structure.
         ''')
 
-    dos_projection = Quantity(
+    dos_tb = Quantity(
         type=Reference(Dos),
         shape=['*'],
         description='''
-        Ref to the projected density of states.
+        Ref to the TB density of states.
         ''')
 
     greens_functions_dmft = Quantity(
@@ -2943,8 +3020,8 @@ class DMFTResults(SimulationWorkflowResults):
 
 
 class DMFTMethod(SimulationWorkflowMethod):
-    '''Groups DFT, Projection and DMFT input methodologies: starting XC functional, electrons
-    representation (basis set), Projection method reference, DMFT method reference.
+    '''Groups DFT, TB and DMFT input methodologies: starting XC functional, electrons
+    representation (basis set), TB method reference, DMFT method reference.
     '''
 
     starting_point = Quantity(
@@ -2959,10 +3036,10 @@ class DMFTMethod(SimulationWorkflowMethod):
         Basis set used.
         ''')
 
-    projection_method_ref = Quantity(
-        type=Reference(ProjectionMethodology),
+    tb_method_ref = Quantity(
+        type=Reference(TBMethodology),
         description='''
-        Projection methodology reference.
+        TB methodology reference.
         ''')
 
     dmft_method_ref = Quantity(
@@ -2973,7 +3050,7 @@ class DMFTMethod(SimulationWorkflowMethod):
 
 
 class DMFT(SerialSimulation):
-    '''The DMFT workflow is generated in an extra EntryArchive IF both the Projection SinglePoint
+    '''The DMFT workflow is generated in an extra EntryArchive IF both the TB SinglePoint
     and the DMFT SinglePoint EntryArchives are present in the upload.
     '''
     # TODO extend to reference a DFT SinglePoint.
@@ -2986,7 +3063,7 @@ class DMFT(SerialSimulation):
         super().normalize(archive, logger)
 
         if len(self.tasks) != 2:
-            logger.error('Expected two tasks: Projection and DMFT SinglePoint tasks')
+            logger.error('Expected two tasks: TB and DMFT SinglePoint tasks')
             return
 
         proj_task = self.tasks[0]
@@ -3000,7 +3077,7 @@ class DMFT(SerialSimulation):
             if calc_name in ['dos', 'band_structure']:
                 calc_name = f'{calc_name}_electronic'
             calc_section = []
-            if 'projection' in name:
+            if 'tb' in name:
                 calc_section = getattr(proj_task.outputs[-1].section, calc_name)
             elif 'dmft' in name:
                 calc_section = getattr(dmft_task.outputs[-1].section, calc_name)

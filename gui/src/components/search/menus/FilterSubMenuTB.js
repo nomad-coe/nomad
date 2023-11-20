@@ -22,7 +22,7 @@ import { InputGrid, InputGridItem } from '../input/InputGrid'
 import InputField from '../input/InputField'
 import { InputCheckboxValue } from '../input/InputCheckbox'
 
-const FilterSubMenuProjection = React.memo(({
+const FilterSubMenuTB = React.memo(({
   id,
   ...rest
 }) => {
@@ -33,14 +33,14 @@ const FilterSubMenuProjection = React.memo(({
     id={id}
     actions={<InputCheckboxValue
       quantity="results.method.method_name"
-      value="Projection"
-      description="Search Projection entries"
+      value="TB"
+      description="Search TB entries"
     />}
     {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.method.simulation.projection.type"
+          quantity="results.method.simulation.tb.type"
           visible={visible}
           xs={12}
           disableSearch
@@ -48,7 +48,7 @@ const FilterSubMenuProjection = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.method.simulation.projection.localization_type"
+          quantity="results.method.simulation.tb.localization_type"
           visible={visible}
           xs={12}
           disableSearch
@@ -57,8 +57,8 @@ const FilterSubMenuProjection = React.memo(({
     </InputGrid>
   </FilterSubMenu>
 })
-FilterSubMenuProjection.propTypes = {
+FilterSubMenuTB.propTypes = {
   id: PropTypes.string
 }
 
-export default FilterSubMenuProjection
+export default FilterSubMenuTB

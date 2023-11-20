@@ -275,6 +275,11 @@ window.nomadEnv = {
                 "level": 1,
                 "size": "s"
               },
+              "tb": {
+                "label": "TB",
+                "level": 1,
+                "size": "s"
+              },
               "gw": {
                 "label": "GW",
                 "level": 1,
@@ -282,11 +287,6 @@ window.nomadEnv = {
               },
               "bse": {
                 "label": "BSE",
-                "level": 1,
-                "size": "s"
-              },
-              "projection": {
-                "label": "Projection",
                 "level": 1,
                 "size": "s"
               },
@@ -526,6 +526,11 @@ window.nomadEnv = {
                 "level": 1,
                 "size": "s"
               },
+              "tb": {
+                "label": "TB",
+                "level": 1,
+                "size": "s"
+              },
               "gw": {
                 "label": "GW",
                 "level": 1,
@@ -533,11 +538,6 @@ window.nomadEnv = {
               },
               "bse": {
                 "label": "BSE",
-                "level": 1,
-                "size": "s"
-              },
-              "projection": {
-                "label": "Projection",
                 "level": 1,
                 "size": "s"
               },
@@ -941,6 +941,11 @@ window.nomadEnv = {
                 "level": 1,
                 "size": "s"
               },
+              "tb": {
+                "label": "TB",
+                "level": 1,
+                "size": "s"
+              },
               "gw": {
                 "label": "GW",
                 "level": 1,
@@ -948,11 +953,6 @@ window.nomadEnv = {
               },
               "bse": {
                 "label": "BSE",
-                "level": 1,
-                "size": "s"
-              },
-              "projection": {
-                "label": "Projection",
                 "level": 1,
                 "size": "s"
               },
