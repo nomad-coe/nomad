@@ -65,7 +65,15 @@ material_movo = {
     "chemical_formula_reduced": "MoVO",
     "chemical_formula_hill": "MoVO"
 }
-
+material_mof = {
+    'material_id': 'mock-material-id',
+    "material_name": "movo",
+    "elements": ["Fe", "C", "O"],
+    "chemical_formula_descriptive": "COFe",
+    "chemical_formula_reduced": "COFe",
+    "chemical_formula_hill": "COFe",
+    "topology": [{'label': 'MOF'}]
+}
 method_dft_vasp = {
     'simulation': {
         'program_name': 'VASP',
@@ -125,7 +133,6 @@ properties_catalysis = {
         }
     }
 }
-
 eln_catalysis = {
     "sections": [
         "CatalystSample"
@@ -211,6 +218,16 @@ def search():
         results={
             'material': material_perovskite,
             'method': method_eels,
+            'properties': {}
+        },
+    )
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=create_uuid(),
+        mainfile='upload/archive.json',
+        results={
+            'material': material_mof,
+            'method': method_dft_vasp,
             'properties': {}
         },
     )
