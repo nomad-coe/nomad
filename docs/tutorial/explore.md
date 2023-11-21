@@ -7,5 +7,5 @@ This tutorial shows how to use NOMAD's search interface and structured data brow
     [here](https://nomad-lab.eu/prod/v1/test/gui/search/entries).
 
 <div class="youtube">
-<iframe src="https://www.youtube.com/embed/38S2U-TIvxE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe src="https://www.youtube-nocookie.com/embed/38S2U-TIvxE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>

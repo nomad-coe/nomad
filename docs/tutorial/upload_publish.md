@@ -13,5 +13,5 @@ We will perform these steps with NOMAD's graphical user interface and its APIs.
     [here](https://nomad-lab.eu/prod/v1/test/gui/search/entries).
 
 <div class="youtube">
-<iframe src="https://www.youtube.com/embed/3rVvfYoUbO0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe src="https://www.youtube-nocookie.com/embed/3rVvfYoUbO0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
