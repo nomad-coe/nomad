@@ -8,6 +8,6 @@ against the NOMAD API.
     [here](https://nomad-lab.eu/prod/v1/test/gui/search/entries).
 
 <div class="youtube">
-<iframe src="https://www.youtube.com/embed/G1frBCrxC0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+<iframe src="https://www.youtube-nocookie.com/embed/G1frBCrxC0g" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 
