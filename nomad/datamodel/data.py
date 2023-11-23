@@ -83,10 +83,13 @@ class EntryData(ArchiveSection):
 
         from nomad.datamodel.results import Results
         from nomad.datamodel.metainfo.simulation.workflow import SimulationWorkflow
+        from nomad.datamodel import EntryArchive
 
         # TODO entry_type should only be assigned if not already defined (done to pass eln test)
-        if not isinstance(archive.workflow2, SimulationWorkflow) and not archive.metadata.entry_type:
-            archive.metadata.entry_type = self.m_def.name
+        if not isinstance(archive.workflow2, SimulationWorkflow) \
+            and not archive.metadata.entry_type \
+            and isinstance(self.m_parent, EntryArchive):
+                archive.metadata.entry_type = self.m_def.name
         if archive.metadata.entry_name is None and archive.metadata.mainfile:
             archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)
 
