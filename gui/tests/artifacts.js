@@ -2733,6 +2733,17 @@ window.nomadArtifacts = {
       "dynamic": false,
       "suggestion": true
     },
+    "results.method.simulation.program_version_internal": {
+      "name": "program_version_internal",
+      "description": "The version tag used internally by the development team.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "aggregatable": true,
+      "dynamic": false,
+      "suggestion": true
+    },
     "results.method.simulation.dft.basis_set_type": {
       "name": "basis_set_type",
       "description": "The used basis set functions.",
@@ -13707,7 +13718,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "version",
-                "description": "Specifies the version of the program that was used. This should be the version\nnumber of an official release, the version tag or a commit id as well as the\nlocation of the repository.",
+                "description": "Specifies the official release version of the program that was used.",
                 "categories": [
                   "/packages/4/category_definitions/0",
                   "/packages/4/category_definitions/1"
@@ -13721,6 +13732,20 @@ window.nomadArtifacts = {
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "version_internal",
+                "description": "Specifies a program version tag used internally for development purposes.\nAny kind of tagging system is supported, including git commit hashes.",
+                "categories": [
+                  "/packages/4/category_definitions/1"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "compilation_datetime",
                 "description": "Contains the program compilation date and time from *Unix epoch* (00:00:00 UTC on\n1 January 1970) in seconds. For date and times without a timezone, the default\ntimezone GMT is used.",
@@ -13737,7 +13762,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "compilation_host",
                 "description": "Specifies the host on which the program was compiled.",
@@ -18056,6 +18081,24 @@ window.nomadArtifacts = {
                 },
                 "name": "program_version",
                 "description": "The version of the used program.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "default": "not processed"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.method.simulation.program_version_internal",
+                    "results.method.simulation.program_version_internal__suggestion"
+                  ]
+                },
+                "name": "program_version_internal",
+                "description": "The version tag used internally by the development team.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"

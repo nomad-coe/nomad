@@ -255,6 +255,7 @@ registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: 
 registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_version', idMethod, termQuantity)
+registerFilter('results.method.simulation.program_version_internal', idMethod, termQuantity)
 registerFilter('results.method.simulation.precision.native_tier', idPrecision, {...termQuantity, placeholder: "E.g. VASP - accurate", label: 'Code-specific Tier'})
 registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.precision.basis_set', idPrecision, {...termQuantity, scale: '1/4'})

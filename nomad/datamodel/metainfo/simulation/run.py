@@ -68,11 +68,17 @@ class Program(MSection):
         type=str,
         shape=[],
         description='''
-        Specifies the version of the program that was used. This should be the version
-        number of an official release, the version tag or a commit id as well as the
-        location of the repository.
+        Specifies the official release version of the program that was used.
         ''',
         categories=[AccessoryInfo, ProgramInfo])
+
+    version_internal = Quantity(
+        type=str,
+        description='''
+        Specifies a program version tag used internally for development purposes.
+        Any kind of tagging system is supported, including git commit hashes.
+        ''',
+        categories=[ProgramInfo])
 
     compilation_datetime = Quantity(
         type=np.dtype(np.float64),

@@ -1183,7 +1183,7 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
         'material': {
             'dimensionality': '3D', 'symmetry': {'crystal_system': 'cubic'}, 'elements': ['H', 'O'], 'elements_exclusive': 'H O',
             'material_id': 'test_material_id', 'structural_type': 'not processed', 'n_elements': 2},
-        'method': {'simulation': {'program_version': 'not processed', 'dft': {
+        'method': {'simulation': {'program_version': 'not processed', 'program_version_internal': 'not processed', 'dft': {
             'basis_set_type': 'unavailable', 'core_electron_treatment': 'unavailable', 'xc_functional_type': 'GGA',
             'xc_functional_names': [], 'jacobs_ladder': 'not processed'}, 'program_name': 'VASP'}}, 'properties': {
             'available_properties': ['dos_electronic'], 'n_calculations': 1,

@@ -1929,6 +1929,15 @@ class Simulation(MSection):
             Elasticsearch(suggestion='default')
         ],
     )
+    program_version_internal = Quantity(
+        type=str,
+        default='not processed',
+        description='The version tag used internally by the development team.',
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default')
+        ],
+    )
     dft = SubSection(sub_section=DFT.m_def, repeats=False)
     tb = SubSection(sub_section=TB.m_def, repeats=False)
     gw = SubSection(sub_section=GW.m_def, repeats=False)
