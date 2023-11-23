@@ -3365,7 +3365,10 @@ class Quantity(Property):
                 except Exception as e:
                     raise DeriveError(f'Could not derive value for {self}: {str(e)}')
 
-            value = self.default
+            if isinstance(self.default, (dict, list)):
+                value = self.default.copy()
+            else:
+                value = self.default
 
         except AttributeError:
             # class (def) attribute case, because obj is None
