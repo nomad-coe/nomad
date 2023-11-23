@@ -325,6 +325,7 @@ class MethodNormalizer():
         method.equation_of_state_id = self.equation_of_state_id(method.method_id, self.material.chemical_formula_hill)
         simulation.program_name = self.run.program.name
         simulation.program_version = self.run.program.version
+        simulation.program_version_internal = self.run.program.version_internal
         method.simulation = simulation
         return method
 
