@@ -260,6 +260,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   useEffect(() => {
     if (!value || value === '') {
       setError({error: null, processingError: null})
+      setEntry(null)
       return
     }
     const resolveValue = async () => {

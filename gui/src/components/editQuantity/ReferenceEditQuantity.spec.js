@@ -115,14 +115,14 @@ const testCreateReferenceDialog = async () => {
 
 test.each([
   [
-    'referenceEditQuantity 1',
+    'correct reference',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity',
     '4WgzB6xcTzWB_Xk9UNUH4HB3IRKJ',
     'test',
     'password'
   ]
-])('test %s', async (name, state, snapshot, entryId, username, password) => {
+])('test referenceEditQuantity %s', async (name, state, snapshot, entryId, username, password) => {
   await startAPI(state, snapshot, username, password)
   await render(
     <EntryContext entryId={entryId}>
@@ -186,7 +186,7 @@ test.each([
 
 test.each([
   [
-    'referenceEditQuantity lost entry',
+    'lost entry',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity-lost-entry',
     'ScmGivaG2TTQTSYjlJGjIaSF_xTn',
@@ -196,7 +196,7 @@ test.each([
     'The referenced value does not exist anymore'
   ],
   [
-    'referenceEditQuantity wrong upload id',
+    'wrong upload id',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity-wrong-upload-id',
     'qZrvjM8MQcd1NX0CYF-2sJqjrgKR',
@@ -206,7 +206,7 @@ test.each([
     'The referenced value does not exist anymore'
   ],
   [
-    'referenceEditQuantity lost path',
+    'lost path',
     'tests.states.entry.references',
     'tests/data/editquantity/referenceEditQuantity-lost-path',
     '12GPrF13SLmhgKkvjdCbmNKeMfUv',
@@ -215,7 +215,7 @@ test.each([
     'ref5.archive.yaml#wrong/path',
     'The provided path does not exist'
   ]
-])('test %s', async (name, state, snapshot, entryId, username, password, inputValue, error) => {
+])('test referenceEditQuantity %s', async (name, state, snapshot, entryId, username, password, inputValue, error) => {
   await startAPI(state, snapshot, username, password)
   await render(
     <EntryContext entryId={entryId}>

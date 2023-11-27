@@ -209,6 +209,9 @@ function SectionSelectAutocomplete(props) {
     if (!internalError) {
       if (value?.entry_id && value?.value) {
         loadSections(value)
+      } else {
+        setInputValue({primary: '', secondary: ''})
+        setLastInputValue({primary: '', secondary: ''})
       }
     }
   }, [internalError, loadSections, onError, value])
