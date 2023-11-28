@@ -197,7 +197,6 @@ class PlotSection(ArchiveSection):
     def normalize(self, archive, logger):
         super(PlotSection, self).normalize(archive, logger)
 
-        self.figures = []
         all_figures = []
         plotly_express_annotations = deepcopy(self.m_def.m_get_annotations('plotly_express', None))
         plotly_graph_object_annotations = deepcopy(self.m_def.m_get_annotations('plotly_graph_object', None))
@@ -314,6 +313,14 @@ class PlotSection(ArchiveSection):
                         logger.warning(error)
                     else:
                         raise PlotSectionError(error)
+
+        # Only remove existing figure, if we add more figures.
+        # Ideally, we would just add figures. But with our current ELN implementation
+        # this might add the same set of figures over and over again.
+        # But, if we always remove all existing figures, figures produced and uploaded
+        # by users, will be lost. This is a bit of a tradeoff.
+        if len(all_figures) > 0:
+            self.figures = []
 
         for figure in all_figures:
             self.figures.append(PlotlyFigure(label=figure["label"], index=figure["index"], figure=figure["graph_object"]))

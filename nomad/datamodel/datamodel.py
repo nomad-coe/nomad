@@ -20,6 +20,7 @@
 
 from typing import List, Any
 from enum import Enum
+import os.path
 
 import rfc3161ng
 from elasticsearch_dsl import analyzer, tokenizer
@@ -927,6 +928,13 @@ class EntryArchive(ArchiveSection):
         if not archive.metadata.entry_type:
             if archive.definitions is not None:
                 archive.metadata.entry_type = 'Schema'
+
+        if not archive.metadata.entry_name:
+            if archive.definitions is not None:
+               archive.metadata.entry_name = archive.definitions.name
+
+        if not archive.metadata.entry_name and archive.metadata.mainfile:
+            archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)
 
     def m_update_from_dict(self, dct) -> None:
         super().m_update_from_dict(dct)

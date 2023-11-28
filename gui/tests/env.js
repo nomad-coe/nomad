@@ -3322,7 +3322,9 @@ window.nomadEnv = {
         }
       }
     },
-    "north": {},
+    "north": {
+      "enabled": true
+    },
     "example_uploads": {}
   }
 }

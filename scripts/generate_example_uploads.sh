@@ -14,6 +14,10 @@ zip -r -j uploads/theory.zip theory/*
 zip -r -j uploads/eln.zip eln/*
 zip -r -j uploads/tabular.zip tabular/*
 
+cd cow_tutorial
+zip -r ../uploads/cow_tutorial.zip *
+cd ..
+
 zip -r -j uploads/apm.zip apm/*
 zip -r -j uploads/mpes.zip $REMOTE_TOOLS_PATH/mpes/example/*
 zip -r -j uploads/ellips.zip $REMOTE_TOOLS_PATH/ellips/example/*

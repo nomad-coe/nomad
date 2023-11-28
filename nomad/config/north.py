@@ -50,6 +50,7 @@ class NORTHTool(BaseModel):
     description: str = None
     short_description: str = None
     cmd: str = None
+    with_path: bool = False
     path_prefix: str = None
     mount_path: str = None
     icon: str = None
@@ -67,7 +68,7 @@ class NORTH(NomadSettings):
     '''
     Settings related to the operation of the NOMAD remote tools hub service *north*.
     '''
-    enabled: Optional[str] = Field(description='''
+    enabled: Optional[str] = Field(True, description='''
         Enables or disables the NORTH API and UI views. This is independent of
         whether you run a jupyter hub or not.
     ''')
@@ -99,8 +100,9 @@ class NORTH(NomadSettings):
             'jupyter': NORTHTool(
                 short_description='Basic jupyter run with an empty notebook or on given notebook file.',
                 description='### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.',
-                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:v0.0.1',
-                path_prefix='tree',
+                image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:prod',
+                path_prefix='lab/tree',
+                with_path=True,
                 mount_path='/home/jovyan',
                 icon='jupyter_logo.svg',
                 file_extensions=[

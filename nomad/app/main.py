@@ -37,6 +37,9 @@ from .dcat.main import app as dcat_app
 from .optimade import optimade_app
 from .h5grove_app import app as h5grove_app
 
+from nomad.cli.dev import get_gui_artifacts_js
+from nomad.cli.dev import get_gui_config
+
 
 class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -136,10 +139,14 @@ app.mount(f'{app_base}/gui', GuiFiles(directory=gui_folder, check_dir=False), na
 
 @app.on_event('startup')
 async def startup_event():
+    from nomad.cli.dev import get_gui_artifacts_js
+    from nomad.cli.dev import get_gui_config
+    from nomad import infrastructure
     from nomad.parsing.parsers import import_all_parsers
+    from nomad.metainfo.elasticsearch_extension import entry_type
+
     import_all_parsers()
 
-    from nomad import infrastructure
     # each subprocess is supposed disconnect and
     # connect again: https://jira.mongodb.org/browse/PYTHON-2090
     try:
@@ -148,10 +155,8 @@ async def startup_event():
     except Exception:
         pass
 
-    from nomad.cli.dev import get_gui_artifacts_js
+    entry_type.reload_quantities_dynamic()
     GuiFiles.gui_artifacts_data = get_gui_artifacts_js()
-
-    from nomad.cli.dev import get_gui_config
     GuiFiles.gui_env_data = get_gui_config()
 
     config_data = [

@@ -2170,15 +2170,6 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if self.m_parent_sub_section is not None:
                     yield 'm_parent_sub_section', self.m_parent_sub_section.name
 
-                annotations = {}
-                for annotation_name, annotation in self.m_annotations.items():
-                    if isinstance(annotation, list):
-                        annotation_value = [serialize_annotation(item) for item in annotation]
-                    else:
-                        annotation_value = [serialize_annotation(annotation)]
-                    annotations[annotation_name] = annotation_value
-                if len(annotations) > 0:
-                    yield 'm_annotations', annotations
             elif with_root_def:
                 yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
@@ -2192,6 +2183,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 yield 'm_def', self.m_def.definition_reference(self)
                 if with_def_id:
                     yield 'm_def_id', self.m_def.definition_id
+
+            annotations = {}
+            for annotation_name, annotation in self.m_annotations.items():
+                if isinstance(annotation, list):
+                    annotation_value = [serialize_annotation(item) for item in annotation]
+                else:
+                    annotation_value = [serialize_annotation(annotation)]
+                annotations[annotation_name] = annotation_value
+            if len(annotations) > 0:
+                yield 'm_annotations', annotations
 
             # quantities
             sec_path = self.m_path()
