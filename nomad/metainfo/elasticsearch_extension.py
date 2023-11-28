@@ -449,7 +449,7 @@ class DocumentType():
         # package name is encountered.
         packages = set()
         for plugin in config.plugins.filtered_values():
-            if plugin.plugin_type == 'schema':
+            if plugin.plugin_type in ['schema', 'parser']:
                 if plugin.python_package in packages:
                     raise ValueError(
                         f'Your plugin configuration contains two packages with the same name: {plugin.python_package}.'

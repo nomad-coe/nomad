@@ -58,6 +58,7 @@ class ToolModel(NORTHTool):
 class ToolResponseModel(BaseModel):
     tool: str
     username: str
+    upload_mount_dir: Optional[str]
     data: ToolModel
 
 
@@ -148,7 +149,8 @@ async def get_tool(
 async def start_tool(
     tool: ToolModel = Depends(tool),
     access_token: str = Depends(oauth2_scheme),
-    user: User = Depends(create_user_dependency(required=True))
+    user: User = Depends(create_user_dependency(required=True)),
+    upload_id: Optional[str] = None
 ):
     tool.state = ToolStateEnum.stopped
 
@@ -172,6 +174,7 @@ async def start_tool(
         # On Linux: The maximum length for a file name is 255 bytes
         return path_name[:230]
 
+    upload_mount_dir = None
     user_id = str(user.user_id)
     upload_query = Q()
     upload_query &= Q(main_author=user_id) | Q(coauthors=user_id)
@@ -189,6 +192,9 @@ async def start_tool(
             upload_dir = f'uploads/{truncate(slugify(upload.upload_name))}-{upload.upload_id}'
         else:
             upload_dir = f'uploads/{upload.upload_id}'
+
+        if upload.upload_id == upload_id:
+            upload_mount_dir = upload_dir
 
         uploads.append(
             {
@@ -213,7 +219,8 @@ async def start_tool(
         return ToolResponseModel(
             tool=tool.name,
             username=user.username,
-            data=_get_status(tool, user))
+            data=_get_status(tool, user),
+            upload_mount_dir=upload_mount_dir)
 
     url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
     body = {
@@ -224,7 +231,10 @@ async def start_tool(
         },
         'environment': {
             'SUBFOLDER': f'{config.services.api_base_path.rstrip("/")}/north/user/{user.username}/',
-            'JUPYTERHUB_CLIENT_API_URL': f'{config.north_url()}/hub/api'
+            'JUPYTERHUB_CLIENT_API_URL': f'{config.north_url()}/hub/api',
+            'NOMAD_CLIENT_USER': user.username,
+            'NOMAD_CLIENT_ACCESS_TOKEN': access_token,
+            'NOMAD_CLIENT_URL': config.api_url(ssl=config.services.https_upload)
         },
         'user_home': {
             'host_path': os.path.join(config.fs.north_home_external, user.user_id),
@@ -253,7 +263,8 @@ async def start_tool(
     return ToolResponseModel(
         tool=tool.name,
         username=user.username,
-        data=_get_status(tool, user))
+        data=_get_status(tool, user),
+        upload_mount_dir=upload_mount_dir)
 
 
 @router.delete(

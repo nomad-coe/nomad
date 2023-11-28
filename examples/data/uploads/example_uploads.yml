@@ -23,6 +23,16 @@ Basic examples:
       file in combination with a custom schema. The schema describes what the columns
       in the excel file mean and NOMAD can parse everything accordingly to
       produce a **FAIR** dataset.
+Tutorials:
+  cow_tutorial:
+    path: examples/data/uploads/cow_tutorial.zip
+    title: NOMAD as a Data Management Framework Tutorial
+    description: |
+      This upload provides a notebook as a tutorial that demonstrates how to use NOMAD
+      for managing custom data and file types. Based on a simple *Countries of the World*
+      dataset, it shows how to model the data in a schema, do parsing and normalization,
+      process data, access existing data with NOMAD's API for analysis, and how to
+      add visualization to your data.
 FAIRmat examples:
   ellips:
     path: examples/data/uploads/ellips.zip

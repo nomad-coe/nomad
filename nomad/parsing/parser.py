@@ -209,7 +209,6 @@ class MatchingParser(Parser):
         self.code_category = code_category
         self.metadata = metadata
 
-        assert self.code_name, f'please provide a code name for {name}'
         self.domain = domain
         self.level = level
         self._mainfile_binary_header = mainfile_binary_header

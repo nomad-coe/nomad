@@ -90,7 +90,7 @@ const useStyles = makeStyles(theme => ({
 }))
 
 const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}) {
-  const {name, title, version, description, short_description, icon} = tool
+  const {name, title, version, description, short_description, icon, path_prefix, with_path} = tool
   const styles = useStyles()
   const {api} = useApi()
   const {raiseError} = useErrors()
@@ -116,12 +116,16 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
   const launch = useCallback(() => {
     // We get the current actual tools status and do not use the one used to display the status!
     setState('starting')
-    api.post(`north/${name}`)
+    api.post(`north/${name}?upload_id=${uploadId}`)
       .then((response) => {
-        // const toolUrl = `${northBase}/${response.data.upload_urls[uploadId]}/${path}`
-        // name == response.tool == response.data.name
         console.log(response)
-        const toolUrl = `${northBase}/user/${response.username}/${response.tool}`
+        let toolUrl = `${northBase}/user/${response.username}/${response.tool}`
+        if (with_path && response.upload_mount_dir && path) {
+          if (path_prefix) {
+            toolUrl = `${toolUrl}/${path_prefix}`
+          }
+          toolUrl = `${toolUrl}/${response.upload_mount_dir}/${path}`
+        }
         console.log(toolUrl)
         window.open(toolUrl, name)
         setState(response.data.state)
@@ -130,7 +134,7 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
         raiseError(errors)
         setState('stopped')
       })
-  }, [setState, api, raiseError, name])
+  }, [setState, api, raiseError, name, with_path, uploadId, path, path_prefix])
 
   const stop = useCallback(() => {
     setState('stopping')
@@ -172,7 +176,7 @@ const NorthTool = React.memo(function NorthTool({tool, uploadId, path, children}
             <Typography><b>{title || name}{version && <span> ({version})</span>}</b>: {short_description || description}</Typography>
           </Box>
         </Box>
-        <NorthToolButtons/>
+        <NorthToolButtons />
       </Box>
     </northToolContext.Provider>
   )

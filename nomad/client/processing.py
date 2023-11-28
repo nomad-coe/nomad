@@ -93,8 +93,12 @@ def normalize_all(entry_archive, logger=None):
     '''
     from nomad import normalizing
 
+    entry_domain = None
+    if entry_archive.metadata:
+        entry_domain == entry_archive.metadata.domain
     for normalizer in normalizing.normalizers:
-        if normalizer.domain is None or normalizer.domain == entry_archive.metadata.domain:
+
+        if normalizer.domain is None or normalizer.domain == entry_domain:
             normalize(normalizer, entry_archive, logger=logger)
 
 

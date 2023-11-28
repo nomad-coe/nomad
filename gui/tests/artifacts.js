@@ -77194,6 +77194,13 @@ window.nomadArtifacts = {
         "description": "This upload demonstrates the used of tabular data. In this example we use an *xlsx*\nfile in combination with a custom schema. The schema describes what the columns\nin the excel file mean and NOMAD can parse everything accordingly to\nproduce a **FAIR** dataset.\n"
       }
     },
+    "Tutorials": {
+      "cow_tutorial": {
+        "path": "examples/data/uploads/cow_tutorial.zip",
+        "title": "NOMAD as a Data Management Framework Tutorial",
+        "description": "This upload provides a notebook as a tutorial that demonstrates how to use NOMAD\nfor managing custom data and file types. Based on a simple *Countries of the World*\ndataset, it shows how to model the data in a schema, do parsing and normalization,\nprocess data, access existing data with NOMAD's API for analysis, and how to\nadd visualization to your data.\n"
+      }
+    },
     "FAIRmat examples": {
       "ellips": {
         "path": "examples/data/uploads/ellips.zip",
@@ -77244,11 +77251,12 @@ window.nomadArtifacts = {
   },
   "northTools": {
     "jupyter": {
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:v0.0.1",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:prod",
       "description": "### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.",
       "short_description": "Basic jupyter run with an empty notebook or on given notebook file.",
       "cmd": null,
-      "path_prefix": "tree",
+      "with_path": true,
+      "path_prefix": "lab/tree",
       "mount_path": "/home/jovyan",
       "icon": "jupyter_logo.svg",
       "file_extensions": [
@@ -77272,6 +77280,7 @@ window.nomadArtifacts = {
       "description": "Run Nion Swift to analyze data.",
       "short_description": "Run NionSwift to analyze data as well as prepare focus series reconstructions",
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": null,
@@ -77290,6 +77299,7 @@ window.nomadArtifacts = {
       "description": "Includes multiple NeXus tools for visualization and analysis.",
       "short_description": null,
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": null,
@@ -77317,6 +77327,7 @@ window.nomadArtifacts = {
       "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data. It shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry) application definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.",
       "short_description": "An example for analyzing ellipsometric data.",
       "cmd": null,
+      "with_path": false,
       "path_prefix": "lab/tree",
       "mount_path": "/home/jovyan",
       "icon": "jupyter_logo.svg",
@@ -77342,6 +77353,7 @@ window.nomadArtifacts = {
       "description": "This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:\n\n- Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format. There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.\n- Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.\n- An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).",
       "short_description": "An example for analyzing mpes data.",
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": null,
@@ -77365,6 +77377,7 @@ window.nomadArtifacts = {
       "description": "Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS xml files into NeXus.",
       "short_description": "An example for analyzing XPS data.",
       "cmd": null,
+      "with_path": false,
       "path_prefix": "lab/tree",
       "mount_path": "/home/jovyan",
       "icon": "jupyter_logo.svg",
@@ -77392,6 +77405,7 @@ window.nomadArtifacts = {
       "description": "AT this moment, the reader works for two types of experiments, Scanning Tunneling Microscopy (STM) and Scanning Tunneling Spectroscopy (STS) from Scanning Probe Microscopy. It can only transform the data from Nanonis machine generated files into standarised nexus application definition NXsts. The present version of STS reader can handle files from two specific software versions generic 5e and genric 4.5.",
       "short_description": "An example for analyzing SPM (STM /STS) experiment.",
       "cmd": null,
+      "with_path": false,
       "path_prefix": "lab/tree",
       "mount_path": "/home/jovyan",
       "icon": "jupyter_logo.svg",
@@ -77415,6 +77429,7 @@ window.nomadArtifacts = {
       "description": "Baseline webtop image for test",
       "short_description": null,
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": null,
@@ -77433,6 +77448,7 @@ window.nomadArtifacts = {
       "description": "Miscellaneous tools from the atom probe community:\nCurrently APTyzer, paraprobe-toolbox, and APAV",
       "short_description": "An example for analyzing atom probe data.",
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": "jupyter_logo.svg",
@@ -77451,6 +77467,7 @@ window.nomadArtifacts = {
       "description": "ImageJ and Fiji with amongst others several electron-microscopy specific plug-ins",
       "short_description": "ImageJ and Fiji for image processing",
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": "jupyter_logo.svg",
@@ -77469,6 +77486,7 @@ window.nomadArtifacts = {
       "description": "FRWR3 in-line holography/focus series reconstruction code",
       "short_description": "Inline electron holography by C. Koch",
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": "jupyter_logo.svg",
@@ -77487,6 +77505,7 @@ window.nomadArtifacts = {
       "description": "VESTA, GPAW, and abTEM configured in one container for simulating images and diffraction patterns in transmission electron microscopy",
       "short_description": "Electronic structure supported image simulation for transmission electron microscopy.",
       "cmd": null,
+      "with_path": false,
       "path_prefix": null,
       "mount_path": "/config",
       "icon": "jupyter_logo.svg",
