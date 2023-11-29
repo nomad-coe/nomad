@@ -808,25 +808,6 @@ class Elasticsearch(DefinitionAnnotation):
         if self._mapping is not None:
             return self._mapping
 
-        if self.suggestion:
-            from elasticsearch_dsl import Completion
-            # The standard analyzer will retain numbers unlike the simple
-            # analyzer which is the default.
-            self._mapping = Completion(analyzer='standard').to_dict()
-            return self._mapping
-
-        if self._custom_mapping is not None:
-            from elasticsearch_dsl import Field
-
-            if isinstance(self._custom_mapping, Field):
-                self._mapping = self._custom_mapping.to_dict()
-            elif isinstance(self._custom_mapping, str):
-                self._mapping = dict(type=self._custom_mapping)
-            else:
-                self._mapping = self._custom_mapping
-
-            return self._mapping
-
         def compute_mapping(quantity: Quantity) -> Dict[str, Any]:
             '''Used to generate an ES mapping based on the quantity definition if
             no custom mapping is provided.
@@ -870,10 +851,31 @@ class Elasticsearch(DefinitionAnnotation):
                 raise NotImplementedError(
                     'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
 
-        self._mapping = compute_mapping(cast(Quantity, self.definition))
+        if self.suggestion:
+            from elasticsearch_dsl import Completion
+            # The standard analyzer will retain numbers unlike the simple
+            # analyzer which is the default.
+            self._mapping = Completion(analyzer='standard').to_dict()
+        elif self._custom_mapping is not None:
+            from elasticsearch_dsl import Field
+
+            if isinstance(self._custom_mapping, Field):
+                self._mapping = self._custom_mapping.to_dict()
+            elif isinstance(self._custom_mapping, str):
+                self._mapping = dict(type=self._custom_mapping)
+            else:
+                self._mapping = self._custom_mapping
+        else:
+            self._mapping = compute_mapping(cast(Quantity, self.definition))
 
         if not self.index:
             self._mapping['index'] = False
+
+        # For all keyword mappings, we ignore text that is bigger than the limit
+        # set by lucene, see more in the ES docs:
+        # https://www.elastic.co/guide/en/elasticsearch/reference/7.17/ignore-above.html
+        if self._mapping['type'] == "keyword":
+            self._mapping['ignore_above'] = 8191
 
         return self._mapping
 

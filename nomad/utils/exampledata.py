@@ -58,6 +58,7 @@ class ExampleData:
             additional_files_path: str = None):
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
+        errors = None
 
         # Save
         if with_mongo:
@@ -81,7 +82,8 @@ class ExampleData:
 
         if with_es:
             archives = list(self.archives.values())
-            search.index(archives, update_materials=True, refresh=True)
+            errors = search.index(archives, update_materials=True, refresh=True)
+            assert not errors, f'The following errors encountered during indexing: {errors}'
 
         if with_files:
             for upload_id, upload_dict in self.uploads.items():

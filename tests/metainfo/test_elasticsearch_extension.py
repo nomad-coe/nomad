@@ -23,6 +23,7 @@ from elasticsearch_dsl import Keyword
 
 from nomad import config
 from nomad.utils.exampledata import ExampleData
+from nomad.datamodel.datamodel import SearchableQuantity
 from nomad.metainfo import MSection, Quantity, SubSection, Datetime, Unit, MEnum
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch, create_indices, index_entries_with_materials,
@@ -58,6 +59,36 @@ def example_data_normalizers(elastic_module, raw_files_module, mongo_module, tes
     assert search(query=dict(upload_id=upload_id)).pagination.total == 0
 
 
+@pytest.fixture(scope="module")
+def example_data_large_keyword(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
+    data = ExampleData(main_author=test_user)
+    upload_id = 'id_search_quantities_index'
+
+    data.create_upload(
+        upload_id=upload_id,
+        upload_name=upload_id,
+        published=True)
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=f'test_entry',
+        mainfile=f'test_content/test.archive.json',
+        search_quantities=[
+            SearchableQuantity(
+                id=f'data.name',
+                definition=f'data.name',
+                path_archive='data.name',
+                str_value=' '.join(['test'] * 10000)
+            ),
+        ]
+    )
+    data.save(with_files=False, with_mongo=False)
+
+    yield
+
+    # The data is deleted
+    data.delete()
+
+
 @pytest.mark.parametrize('quantity, search_str, response_str', [
     pytest.param("results.material.chemical_formula_hill", "OH2", "H2O", id='formula-reorder')
 ])
@@ -67,6 +98,13 @@ def test_normalizer(quantity, search_str, response_str, api_v1, example_data_nor
     """
     for resource in ["entries", "materials"]:
         perform_quantity_search_test(quantity, resource, search_str, response_str, api_v1)
+
+
+def test_keyword_ignore(example_data_large_keyword):
+    '''Test that large keywords are ignored correctly.'''
+    # 'match' queries against the 'text' mapping should still work
+    from nomad.search import search
+    assert search(query={'search_quantities.str_value': 'test'}).pagination.total == 1
 
 
 class Material(MSection):
