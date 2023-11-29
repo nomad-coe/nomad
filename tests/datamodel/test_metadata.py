@@ -25,7 +25,6 @@ from nomad.metainfo import Quantity, MSection, SubSection, Datetime, MEnum
 from nomad.datamodel.datamodel import EntryMetadata, SearchableQuantity, EntryArchive
 from nomad.metainfo.elasticsearch_extension import schema_separator
 from nomad.datamodel import EntryData
-# from tests.data.schemas.nomadschemaexample.schema import MySchema
 from tests.config import python_schema_name
 
 
@@ -126,7 +125,7 @@ def populate_reference(data):
     pytest.param('timestamp', datetime.fromtimestamp(0, tz=pytz.UTC), SearchableQuantity.datetime_value, datetime(1970, 1, 1, 0, 0, tzinfo=pytz.UTC), f'{python_schema_name}.timestamp', id='datetime'),
     pytest.param('child_recursive.child.name_b', populate_recursive, SearchableQuantity.str_value, 'test_b', 'nomadschemaexample.schema.MySectionRecursiveB.name_b', id='recursive value: first level'),
     pytest.param('child_recursive.child.child.name_a', populate_recursive_secondary, SearchableQuantity.str_value, 'test_a', 'nomadschemaexample.schema.MySectionRecursiveA.name_a', id='recursive value: second level'),
-    pytest.param('non_scalar', np.eye(3), None, np.eye(3), None, id='non-scalar'),
+    pytest.param('non_scalar', np.eye(3), None, None, None, id='non-scalar'),
     pytest.param('reference_section', populate_reference, None, datetime(1970, 1, 1, 0, 0, tzinfo=pytz.UTC), None, id='references are skipped'),
     pytest.param('child.name', populate_child, SearchableQuantity.str_value, 'test', 'nomadschemaexample.schema.MySection.name', id='child quantity'),
 ])
