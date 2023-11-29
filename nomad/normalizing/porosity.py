@@ -287,7 +287,7 @@ def mof_properties(original_atoms, indices_in_parent, parent_system, topology):
         )
         mof_group.sbu_coordination_number = len(
             linker.info['point_of_extension'])
-        if linker.info['sbu_type'] == 'ferrocenelike':
+        if 'sbu_type' in list(linker.info.keys()):
             mof_group.sbu_type = linker.info['sbu_type']
         add_system(mof_group, topology, sbu_group)
         add_system_info(mof_group, topology)
