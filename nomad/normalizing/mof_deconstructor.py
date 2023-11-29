@@ -797,9 +797,10 @@ def secondary_building_units(ase_atom):
                 i for i in connected if ase_atom[i].symbol in transition_metals()]
             metal = [i for i in metal if i not in ferocene_metal]
             if atoms not in porphyrin_checker:
-                if len(metal) == 1:
-                    atom_pairs_at_breaking_point[atoms] = metal[0]
-                    bonds_to_break.append([atoms] + metal)
+                if len(metal) >= 1:
+                    for met in metal:
+                        atom_pairs_at_breaking_point[atoms] = met
+                        bonds_to_break.append([atoms] + [met])
 
         if ase_atom[atoms].symbol == 'S':
             seen = sum(list(all_sulfides.values())
@@ -1307,7 +1308,8 @@ def find_unique_building_units(list_of_connected_components, atom_pairs_at_break
                 molecule_to_write.info['sbu_type'] = 'IRMOF_sbu'
             elif is_ferrocene(molecule_to_write, graph_sbu):
                 molecule_to_write.info['sbu_type'] = 'ferrocenelike'
-                ferocene_metal = all_ferrocene_metals(molecule_to_write, graph_sbu)
+                ferocene_metal = all_ferrocene_metals(
+                    molecule_to_write, graph_sbu)
                 non_ferocene_metal = [
                     i for i in metal if i not in ferocene_metal]
                 if len(non_ferocene_metal) == 0:
