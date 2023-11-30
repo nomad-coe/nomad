@@ -1412,6 +1412,7 @@ def search(
     )
 
     doc_type = index.doc_type
+    skip_sort = False
 
     # The first half of this method creates the ES query. Then the query is run on ES.
     # The second half is about transforming the ES response to a MetadataResponse.
@@ -1429,6 +1430,12 @@ def search(
     if isinstance(query, EsQuery):
         es_query = cast(EsQuery, query)
     else:
+        # TODO this is a temporary performance hot-fix. Sort is expensive and we sort
+        # by default. In the future, the client should explicitly state if sort is necessary.
+        # Now, we simply do never sort, if there is a top-level AND match for a single id in the query.
+        # In this case, there wil always be just one result and sorting is not necessary.
+        # This catches a lot of problematic queries as a hot-fix.
+        skip_sort = isinstance(query, dict) and isinstance(query.get(doc_type.id_field, None), str)
         query = normalize_api_query(cast(Query, query), doc_type=doc_type)
         es_query = create_es_query(cast(Query, query))
 
@@ -1446,7 +1453,8 @@ def search(
         pagination.order_by = doc_type.id_field
 
     sort, order_quantity, page_after_value = _api_to_es_sort(pagination, doc_type=doc_type)
-    search = search.sort(sort)
+    if not skip_sort:
+        search = search.sort(sort)
     search = search.extra(size=pagination.page_size, track_total_hits=True)
 
     if pagination.page_offset:
