@@ -291,6 +291,8 @@ def test_keys(key):
     assert key.strip() in query_archive(f, {key: '*'})
 
 
+@pytest.mark.skipif(config.normalize.springer_db_path is None,
+                    reason='Springer DB path missing')
 def test_read_springer():
     springer = read_archive(config.normalize.springer_db_path)
     with pytest.raises(KeyError):
