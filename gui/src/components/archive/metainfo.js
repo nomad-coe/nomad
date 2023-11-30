@@ -601,7 +601,7 @@ export class Metainfo {
   /**
    * Resolves a reference found inside this metainfo object
    */
-  async resolveDefinition(reference) {
+  async resolveDefinition(reference, raise = true) {
     if (typeof reference !== 'string') {
       // already resolved
       return reference
@@ -616,7 +616,7 @@ export class Metainfo {
       } else {
         // Not found in cache. Fetch it.
         resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
-        await this._getMetainfoAsync(resolvedUrl)
+        await this._getMetainfoAsync(resolvedUrl, raise)
         return this._frozenMetainfoCache[versionHash] // Should now be in the cache
       }
     }
@@ -627,15 +627,15 @@ export class Metainfo {
     resolvedUrl = resolveNomadUrl(reference, this._parsedUrl)
     if (resolvedUrl.entryId && resolvedUrl.qualifiedName) {
       // Reference to entry metainfo
-      const metainfo = await this._getMetainfoAsync(resolvedUrl)
+      const metainfo = await this._getMetainfoAsync(resolvedUrl, raise)
       return metainfo.getDefByQualifiedName(resolvedUrl.qualifiedName)
     } else if (resolvedUrl.qualifiedName) {
       // Reference to the system metainfo, using qualified name
-      const systemMetainfo = this._url === systemMetainfoUrl ? this : await this._getMetainfoAsync(systemMetainfoUrl)
+      const systemMetainfo = this._url === systemMetainfoUrl ? this : await this._getMetainfoAsync(systemMetainfoUrl, raise)
       return systemMetainfo.getDefByQualifiedName(resolvedUrl.qualifiedName)
     } else if (resolvedUrl.entryId) {
       // Reference to entry metainfo
-      const metainfo = await this._getMetainfoAsync(resolvedUrl)
+      const metainfo = await this._getMetainfoAsync(resolvedUrl, raise)
       return metainfo.getDefByPath(resolvedUrl.path)
     }
     throw new Error(`Bad reference encountered: ${reference}`)

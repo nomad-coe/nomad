@@ -290,7 +290,7 @@ const DataStore = React.memo(({children}) => {
    * an object with default values, mostly undefined or nulls, will be returned). Note, it
    * does not cause the store to fetch any data, it just returns what's currently in the store.
    */
-  function getEntry(deploymentUrl, entryId) {
+  function getEntry(deploymentUrl, entryId, raise = true) {
     if (!entryId) return undefined
     if (deploymentUrl !== apiBase) throw new Error('Fetching entries from external deployments is not yet supported')
     let entryStoreObj = entryStore.current[entryId]
@@ -315,6 +315,7 @@ const DataStore = React.memo(({children}) => {
         savedArchiveVersion: 0,
         archiveHasChanges: false,
 
+        raise: raise, // Whether to use raiseError on exceptions
         error: undefined, // If we had an api error from the last store refresh
         isRefreshing: false,
         requestOptions: {requireMetadata: false, requireArchive: undefined}, // Options specifying data requested
@@ -335,9 +336,9 @@ const DataStore = React.memo(({children}) => {
    * Gets an entry from the store asychronously, waiting for the store to refresh if needed.
    * If the required data has already been fetched, we return the store object immediately.
    */
-  async function getEntryAsync(deploymentUrl, entryId, requireMetadata, requireArchive) {
+  async function getEntryAsync(deploymentUrl, entryId, requireMetadata, requireArchive, raise = true) {
     if (!entryId) return undefined
-    const entryStoreObj = getEntry(deploymentUrl, entryId)
+    const entryStoreObj = getEntry(deploymentUrl, entryId, raise)
     if (entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)) {
       return entryStoreObj // Store has already been refreshed with the required options
     }
@@ -349,7 +350,7 @@ const DataStore = React.memo(({children}) => {
           resolve(newStoreObj)
         }
       }
-      subscribeToEntry(deploymentUrl, entryId, cb, requireMetadata, requireArchive)
+      subscribeToEntry(deploymentUrl, entryId, cb, requireMetadata, requireArchive, raise)
     })
   }
 
@@ -357,7 +358,7 @@ const DataStore = React.memo(({children}) => {
    * Subscribes the callback cb to an entry, and returns a function to be called to unsubscribe.
    * Typically used in useEffect. The callback will be called when the store value changes.
    */
-  function subscribeToEntry(deploymentUrl, entryId, cb, requireMetadata, requireArchive) {
+  function subscribeToEntry(deploymentUrl, entryId, cb, requireMetadata, requireArchive, raise = true) {
     if (!entryId) return undefined
     if (requireMetadata === undefined || !(requireArchive === undefined || requireArchive === '*' || typeof requireArchive === 'object')) {
       throw Error('Store error: bad subscription parameter supplied')
@@ -369,14 +370,14 @@ const DataStore = React.memo(({children}) => {
       entryStoreObj.requestOptions.requireArchive, requireArchive)
     // Add subscription and trigger refresh if needed
     addSubscription(entryStoreObj, cb)
-    initiateEntryRefreshIfNeeded(deploymentUrl, entryId)
+    initiateEntryRefreshIfNeeded(deploymentUrl, entryId, raise)
     return function unsubscriber() { removeSubscription(entryStore.current, entryId, cb) }
   }
 
   /**
    * Updates the store entry with the specified data and notifies all subscribers.
    */
-  function updateEntry(deploymentUrl, entryId, dataToUpdate) {
+  function updateEntry(deploymentUrl, entryId, dataToUpdate, raise = true) {
     const oldStoreObj = getEntry(deploymentUrl, entryId)
     const newStoreObj = {...oldStoreObj, ...dataToUpdate}
     // Compute derived values not set by the refreshEntry method
@@ -398,13 +399,13 @@ const DataStore = React.memo(({children}) => {
     // Report any unexpected api errors to the user
     if (newStoreObj.exists && newStoreObj.error && (!oldStoreObj.error || oldStoreObj.error?.apiMessage !== newStoreObj.error?.apiMessage)) {
       // Unexpected error occured when refreshing
-      raiseError(newStoreObj.error)
+      raise && raiseError(newStoreObj.error)
     }
     // Possibly, start a refresh job
-    initiateEntryRefreshIfNeeded(deploymentUrl, entryId)
+    initiateEntryRefreshIfNeeded(deploymentUrl, entryId, raise)
   }
 
-  async function refreshEntry(deploymentUrl, entryId) {
+  async function refreshEntry(deploymentUrl, entryId, raise = true) {
     // Internal use: refresh an entry store obj with data from the API.
     let entryStoreObj = getEntry(deploymentUrl, entryId)
     let refreshOptions = {...entryStoreObj.requestOptions}
@@ -491,7 +492,7 @@ const DataStore = React.memo(({children}) => {
     }
 
     dataToUpdate.isRefreshing = false
-    updateEntry(deploymentUrl, entryId, dataToUpdate)
+    updateEntry(deploymentUrl, entryId, dataToUpdate, raise)
   }
 
   /**
@@ -505,7 +506,7 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
-  async function initiateEntryRefreshIfNeeded(deploymentUrl, entryId) {
+  async function initiateEntryRefreshIfNeeded(deploymentUrl, entryId, raise = true) {
     // Internal use: check if a refresh of the store is needed, and if so, initiate it.
     let entryStoreObj = getEntry(deploymentUrl, entryId)
     if (entryStoreObj.isRefreshing) return // refresh already in progress
@@ -520,7 +521,7 @@ const DataStore = React.memo(({children}) => {
     const lastRefreshSatisfiesOptions = entryRefreshSatisfiesOptions(entryStoreObj, requireMetadata, requireArchive)
     if (!entryStoreObj.error && (!lastRefreshSatisfiesOptions || entryStoreObj.isProcessing)) {
       // Need to fetch data from the api
-      refreshEntry(deploymentUrl, entryId)
+      refreshEntry(deploymentUrl, entryId, raise)
     } else {
       entryStoreObj.isRefreshing = false
     }
@@ -587,7 +588,7 @@ const DataStore = React.memo(({children}) => {
    * particular section definition, we return the metainfo object which *contains* this
    * definition, not just the definition itself.
    */
-  async function getMetainfoAsync(url) {
+  async function getMetainfoAsync(url, raise = true) {
     if (!url) return null
     // Check cache (different caches, depending on if we have a versionHash or not)
     let metainfoData
@@ -602,14 +603,14 @@ const DataStore = React.memo(({children}) => {
     }
     if (!metainfoData) {
       // Not found in cache. Fetch data object.
-      metainfoData = await fetchMetainfoData(metainfoBaseUrl)
+      metainfoData = await fetchMetainfoData(metainfoBaseUrl, raise)
       if (!metainfoBaseUrl.versionHash) {
         metainfoDataStore.current[metainfoBaseUrl] = metainfoData
       }
     }
     // If needed, create metainfo (which will also initiate parsing)
     if (!metainfoData._metainfo) {
-      const parent = metainfoBaseUrl === systemMetainfoUrl ? undefined : await getMetainfoAsync(systemMetainfoUrl)
+      const parent = metainfoBaseUrl === systemMetainfoUrl ? undefined : await getMetainfoAsync(systemMetainfoUrl, raise)
       metainfoData._metainfo = new Metainfo(
         parent, metainfoData, getMetainfoAsync, frozenMetainfoCache.current, externalInheritanceCache.current)
     }
@@ -663,7 +664,7 @@ const DataStore = React.memo(({children}) => {
     }
   }
 
-  async function fetchMetainfoData(metainfoBaseUrl) {
+  async function fetchMetainfoData(metainfoBaseUrl, raise = true) {
     // Internal use: fetches the metainfo data
     if (metainfoBaseUrl === systemMetainfoUrl) {
       currentSystemMetainfoData._url = systemMetainfoUrl
@@ -685,7 +686,7 @@ const DataStore = React.memo(({children}) => {
       return frozenMetainfo
     } else if (parsedMetainfoBaseUrl.entryId) {
       const entryStoreObj = await getEntryAsync(
-        parsedMetainfoBaseUrl.deploymentUrl, parsedMetainfoBaseUrl.entryId, false, metainfoArchiveFilter)
+        parsedMetainfoBaseUrl.deploymentUrl, parsedMetainfoBaseUrl.entryId, false, metainfoArchiveFilter, raise)
       if (entryStoreObj.error) {
         throw new Error(`Error fetching entry ${parsedMetainfoBaseUrl.entryId}: ${entryStoreObj.error}`)
       } else if (!entryStoreObj.archive?.definitions) {

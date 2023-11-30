@@ -298,11 +298,16 @@ const FilterSubMenuCustomQuantities = React.memo(({
       for (const path of response.aggregations.paths.terms.data) {
         const searchableQuantity = path.entries[0].search_quantities
         const [section_path, quantity_path] = rsplit(searchableQuantity.definition, '.', 1)
-        const sectionDef = await metainfo.resolveDefinition(section_path)
-        const quantityDef = sectionDef?._properties?.[quantity_path]
 
         // The definition may not exist in the installation if e.g. the
-        // definition is removed while old data is not reprocessed)
+        // definition is removed, or access rights to YAML files are changed.
+        // In this case the value is not shown.
+        let quantityDef
+        try {
+          const sectionDef = await metainfo.resolveDefinition(section_path, false)
+          quantityDef = sectionDef?._properties?.[quantity_path]
+        } catch (error) {
+        }
         if (!quantityDef) continue
 
         const type = getDatatype(quantityDef)
@@ -394,7 +399,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
         <InputGrid>
           <InputGridItem xs={12}>
             <Typography>
-              There are not quantities to search for. Add some data first.
+              Could not find valid quantities to search for. Make sure that you have access to the data and that the metainfo associated with the quantities can be loaded correctly.
             </Typography>
           </InputGridItem>
         </InputGrid>
