@@ -385,24 +385,14 @@ pytest -sv tests
 ```
 
 !!! note
-    Some of these tests will fail because a few large files are not included in the Git
-    repository. You may ignore these for local testing, they are still checked by the
-    CI/CD pipeline:
-
-    ```text
-    FAILED tests/archive/test_archive.py::test_read_springer - AttributeError: 'NoneType' object has no attribute 'seek'
-    FAILED tests/normalizing/test_material.py::test_material_bulk - assert None
-    FAILED tests/normalizing/test_system.py::test_springer_normalizer - IndexError: list index out of range
-    ```
-
     If you excluded plugins in your [NOMAD config](### `nomad.yaml`), then those tests
-    will also fail.
+    will fail.
 
 We use Ruff and Mypy to maintain code quality. Additionally, we recommend installing the Ruff [plugins](https://docs.astral.sh/ruff/integrations/) for your code editor to streamline the process. To execute Ruff and Mypy from the command line, you can utilize the following command:
+
 ```shell
 nomad dev qa --skip-tests
 ```
-
 
 To run all tests and code QA:
 

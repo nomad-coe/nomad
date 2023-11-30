@@ -382,6 +382,8 @@ def test_aflow_prototypes():
     assert prototype_label == "186-SZn-hP4"
 
 
+@pytest.mark.skipif(config.normalize.springer_db_path is None,
+                    reason='Springer DB path missing')
 def test_springer_normalizer():
     '''
     Ensure the Springer normalizer works well with the VASP example.
