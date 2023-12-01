@@ -18,7 +18,7 @@
 import React, { } from 'react'
 import PropTypes from 'prop-types'
 import { SectionTable } from '../Quantity'
-import { useUnits } from '../../units'
+import { useUnitContext } from '../units/UnitContext'
 import { withErrorHandler } from '../ErrorHandler'
 import NoData from './NoData'
 import Placeholder from './Placeholder'
@@ -37,7 +37,7 @@ const columns = {
  * table.
  */
 const BandGap = React.memo(({data, section, 'data-testid': testID}) => {
-  const units = useUnits()
+  const {units} = useUnitContext()
   const extendedColumns = {}
   if (data && data[0].label) {
     extendedColumns.label = {label: '', align: 'left'}

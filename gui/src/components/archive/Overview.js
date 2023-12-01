@@ -12,7 +12,8 @@ import BrillouinZone from '../visualization/BrillouinZone'
 import BandStructure from '../visualization/BandStructure'
 import Spectra from '../visualization/Spectra'
 import DOS from '../visualization/DOS'
-import { Quantity, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { useUnitContext } from '../units/UnitContext'
 import { electronicRange } from '../../config'
 import EnergyVolumeCurve from '../visualization/EnergyVolumeCurve'
 
@@ -262,7 +263,7 @@ OverviewEquationOfState.propTypes = ({
 
 export const Overview = React.memo((props) => {
   const {def} = props
-  const units = useUnits()
+  const {units} = useUnitContext()
   const path = window.location.href.split('/').pop().split(':')[0]
 
   if (def.name === 'BandStructure' && path === 'band_structure_electronic') {

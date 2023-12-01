@@ -22,7 +22,9 @@ import {
   FormLabel, Slider
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
-import {Quantity, Unit, useUnits} from '../../units'
+import {Quantity} from '../units/Quantity'
+import {Unit} from '../units/Unit'
+import {useUnitContext} from '../units/UnitContext'
 import {UnitSelect} from './NumberEditQuantity'
 import {getFieldProps} from './StringEditQuantity'
 
@@ -30,10 +32,10 @@ export const SliderEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, minValue, maxValue, ...sliderProps} = props
   const {label} = getFieldProps(quantityDef)
 
-  const systemUnits = useUnits()
+  const {units} = useUnitContext()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
   const dimension = defaultUnit && defaultUnit.dimension()
-  const [unit, setUnit] = useState(systemUnits[dimension] || quantityDef.unit)
+  const [unit, setUnit] = useState(units[dimension]?.definition || quantityDef.unit)
   const minValueConverted = useMemo(() => {
     return unit
       ? new Quantity(minValue, quantityDef.unit).to(unit).value()

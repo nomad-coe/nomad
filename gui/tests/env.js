@@ -19,6 +19,347 @@ window.nomadEnv = {
       "title": "NOMAD"
     },
     "unit_systems": {
+      "options": {
+        "Custom": {
+          "label": "Custom",
+          "units": {
+            "length": {
+              "definition": "\u00c5",
+              "locked": false
+            },
+            "time": {
+              "definition": "fs",
+              "locked": false
+            },
+            "energy": {
+              "definition": "eV",
+              "locked": false
+            },
+            "pressure": {
+              "definition": "GPa",
+              "locked": false
+            },
+            "angle": {
+              "definition": "\u00b0",
+              "locked": false
+            },
+            "dimensionless": {
+              "definition": "dimensionless",
+              "locked": false
+            },
+            "mass": {
+              "definition": "kg",
+              "locked": false
+            },
+            "current": {
+              "definition": "A",
+              "locked": false
+            },
+            "temperature": {
+              "definition": "K",
+              "locked": false
+            },
+            "luminosity": {
+              "definition": "cd",
+              "locked": false
+            },
+            "luminous_flux": {
+              "definition": "lm",
+              "locked": false
+            },
+            "substance": {
+              "definition": "mol",
+              "locked": false
+            },
+            "information": {
+              "definition": "bit",
+              "locked": false
+            },
+            "force": {
+              "definition": "N",
+              "locked": false
+            },
+            "power": {
+              "definition": "W",
+              "locked": false
+            },
+            "charge": {
+              "definition": "C",
+              "locked": false
+            },
+            "resistance": {
+              "definition": "\u03a9",
+              "locked": false
+            },
+            "conductance": {
+              "definition": "S",
+              "locked": false
+            },
+            "inductance": {
+              "definition": "H",
+              "locked": false
+            },
+            "magnetic_flux": {
+              "definition": "Wb",
+              "locked": false
+            },
+            "magnetic_field": {
+              "definition": "T",
+              "locked": false
+            },
+            "frequency": {
+              "definition": "Hz",
+              "locked": false
+            },
+            "luminance": {
+              "definition": "nit",
+              "locked": false
+            },
+            "illuminance": {
+              "definition": "lx",
+              "locked": false
+            },
+            "electric_potential": {
+              "definition": "V",
+              "locked": false
+            },
+            "capacitance": {
+              "definition": "F",
+              "locked": false
+            },
+            "activity": {
+              "definition": "kat",
+              "locked": false
+            }
+          }
+        },
+        "SI": {
+          "label": "International System of Units (SI)",
+          "units": {
+            "dimensionless": {
+              "definition": "dimensionless",
+              "locked": true
+            },
+            "length": {
+              "definition": "m",
+              "locked": true
+            },
+            "mass": {
+              "definition": "kg",
+              "locked": true
+            },
+            "time": {
+              "definition": "s",
+              "locked": true
+            },
+            "current": {
+              "definition": "A",
+              "locked": true
+            },
+            "temperature": {
+              "definition": "K",
+              "locked": true
+            },
+            "luminosity": {
+              "definition": "cd",
+              "locked": true
+            },
+            "luminous_flux": {
+              "definition": "lm",
+              "locked": true
+            },
+            "substance": {
+              "definition": "mol",
+              "locked": true
+            },
+            "angle": {
+              "definition": "rad",
+              "locked": true
+            },
+            "information": {
+              "definition": "bit",
+              "locked": true
+            },
+            "force": {
+              "definition": "N",
+              "locked": true
+            },
+            "energy": {
+              "definition": "J",
+              "locked": true
+            },
+            "power": {
+              "definition": "W",
+              "locked": true
+            },
+            "pressure": {
+              "definition": "Pa",
+              "locked": true
+            },
+            "charge": {
+              "definition": "C",
+              "locked": true
+            },
+            "resistance": {
+              "definition": "\u03a9",
+              "locked": true
+            },
+            "conductance": {
+              "definition": "S",
+              "locked": true
+            },
+            "inductance": {
+              "definition": "H",
+              "locked": true
+            },
+            "magnetic_flux": {
+              "definition": "Wb",
+              "locked": true
+            },
+            "magnetic_field": {
+              "definition": "T",
+              "locked": true
+            },
+            "frequency": {
+              "definition": "Hz",
+              "locked": true
+            },
+            "luminance": {
+              "definition": "nit",
+              "locked": true
+            },
+            "illuminance": {
+              "definition": "lx",
+              "locked": true
+            },
+            "electric_potential": {
+              "definition": "V",
+              "locked": true
+            },
+            "capacitance": {
+              "definition": "F",
+              "locked": true
+            },
+            "activity": {
+              "definition": "kat",
+              "locked": true
+            }
+          }
+        },
+        "AU": {
+          "label": "Hartree atomic units (AU)",
+          "units": {
+            "dimensionless": {
+              "definition": "dimensionless",
+              "locked": true
+            },
+            "length": {
+              "definition": "bohr",
+              "locked": true
+            },
+            "mass": {
+              "definition": "m_e",
+              "locked": true
+            },
+            "time": {
+              "definition": "atomic_unit_of_time",
+              "locked": true
+            },
+            "current": {
+              "definition": "atomic_unit_of_current",
+              "locked": true
+            },
+            "temperature": {
+              "definition": "atomic_unit_of_temperature",
+              "locked": true
+            },
+            "luminosity": {
+              "definition": "cd",
+              "locked": false
+            },
+            "luminous_flux": {
+              "definition": "lm",
+              "locked": false
+            },
+            "substance": {
+              "definition": "mol",
+              "locked": false
+            },
+            "angle": {
+              "definition": "rad",
+              "locked": false
+            },
+            "information": {
+              "definition": "bit",
+              "locked": false
+            },
+            "force": {
+              "definition": "atomic_unit_of_force",
+              "locked": true
+            },
+            "energy": {
+              "definition": "Ha",
+              "locked": true
+            },
+            "power": {
+              "definition": "W",
+              "locked": false
+            },
+            "pressure": {
+              "definition": "atomic_unit_of_pressure",
+              "locked": true
+            },
+            "charge": {
+              "definition": "C",
+              "locked": false
+            },
+            "resistance": {
+              "definition": "\u03a9",
+              "locked": false
+            },
+            "conductance": {
+              "definition": "S",
+              "locked": false
+            },
+            "inductance": {
+              "definition": "H",
+              "locked": false
+            },
+            "magnetic_flux": {
+              "definition": "Wb",
+              "locked": false
+            },
+            "magnetic_field": {
+              "definition": "T",
+              "locked": false
+            },
+            "frequency": {
+              "definition": "Hz",
+              "locked": false
+            },
+            "luminance": {
+              "definition": "nit",
+              "locked": false
+            },
+            "illuminance": {
+              "definition": "lx",
+              "locked": false
+            },
+            "electric_potential": {
+              "definition": "V",
+              "locked": false
+            },
+            "capacitance": {
+              "definition": "F",
+              "locked": false
+            },
+            "activity": {
+              "definition": "kat",
+              "locked": false
+            }
+          }
+        }
+      },
       "selected": "Custom"
     },
     "entry": {

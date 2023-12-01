@@ -28,7 +28,8 @@ import { SearchContext } from './SearchContext'
 import { defaultFilterData } from './FilterRegistry'
 import { format } from 'date-fns'
 import { DType } from '../../utils'
-import { Unit, unitSystems } from '../../units'
+import { Unit } from '../units/Unit'
+import { ui } from '../../config'
 import { menuMap } from './menus/FilterMainMenu'
 
 /*****************************************************************************/
@@ -36,7 +37,7 @@ import { menuMap } from './menus/FilterMainMenu'
 /**
  * Render within a search context.
  */
-const WrapperSearch = ({children}) => {
+export const WrapperSearch = ({children}) => {
   return <WrapperDefault>
     <SearchContext resource="entries">
       {children}
@@ -70,7 +71,7 @@ export async function expectFilterTitle(quantity, label, description, unit, disa
   const finalDescription = description || data?.description
   if (!disableUnit) {
     const finalUnit = unit || (
-      data?.unit && new Unit(data?.unit).toSystem(unitSystems.Custom.units).label()
+      data?.unit && new Unit(data?.unit).toSystem(ui.unit_systems.options.Custom.units).label()
     )
     if (finalUnit) finalLabel = `${finalLabel} (${finalUnit})`
   }

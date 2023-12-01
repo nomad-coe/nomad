@@ -19,7 +19,9 @@ import React, {useState, useEffect, useMemo, useCallback, forwardRef} from 'reac
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core'
 import { getDeep, hasWebGLSupport, parseQuantityName } from '../../utils'
-import { useUnits, Quantity, Unit } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import * as d3 from 'd3'
 import { isArray, isNil } from 'lodash'
 import FilterTitle from '../search/FilterTitle'
@@ -108,7 +110,7 @@ const PlotScatter = React.memo(forwardRef((
   const styles = useStyles()
   const theme = useTheme()
   const [finalData, setFinalData] = useState(!data ? data : undefined)
-  const units = useUnits()
+  const {units} = useUnitContext()
   const { filterData } = useSearchContext()
   const history = useHistory()
 

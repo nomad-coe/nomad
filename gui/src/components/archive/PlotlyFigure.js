@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react'
 import {Box} from '@material-ui/core'
-import {Quantity as Q, useUnits} from '../../units'
+import {Quantity as Q} from '../units/Quantity'
+import {useUnitContext} from '../units/UnitContext'
 import {titleCase, resolveInternalRef} from '../../utils'
 import {cloneDeep, merge} from 'lodash'
 import Plot from '../plotting/Plot'
@@ -29,7 +30,7 @@ const traverse = (value, callback, parent = null, key = null) => {
 }
 
 const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef, title, metaInfoLink}) {
-  const units = useUnits()
+  const {units} = useUnitContext()
 
   const plotlyGraphObj = useMemo(() => {
     if (!sectionDef?._properties) {

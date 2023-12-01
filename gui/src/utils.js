@@ -17,7 +17,7 @@
  */
 import minimatch from 'minimatch'
 import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase, isEmpty } from 'lodash'
-import { Quantity } from './units'
+import { Quantity } from './components/units/Quantity'
 import { format } from 'date-fns'
 import { dateFormat, guiBase, apiBase, searchQuantities, parserMetadata, schemaSeparator, dtypeSeparator, yamlSchemaPrefix } from './config'
 const crypto = require('crypto')
@@ -605,10 +605,10 @@ export function getDeserializer(dtype, dimension) {
           throw Error(`Could not parse the number ${split[0]}`)
         }
         return split.length === 1
-          ? new Quantity(value, units?.[dimension]?.name || 'dimensionless')
+          ? new Quantity(value, units?.[dimension]?.definition || 'dimensionless')
           : new Quantity(value, split[1])
       } if (isNumber(value)) {
-        return new Quantity(value, units?.[dimension]?.name || 'dimensionless')
+        return new Quantity(value, units?.[dimension]?.definition || 'dimensionless')
       }
       return value
     }
@@ -1382,9 +1382,9 @@ export const alphabet = [
  * Function for creating suggestions functionality for a list of string values.
  * Mimics the suggestion logic used by the suggestions API endpoint.
  *
- * @param {str} category Category for the suggestions
  * @param {array} values Array of available values
  * @param {number} minLength Minimum input length before suggestions are considered.
+ * @param {str} category Category for the suggestions
  * @param {func} text Function that maps the value into the suggested text input
  *
  * @return {object} Object containing a list of options and a function for

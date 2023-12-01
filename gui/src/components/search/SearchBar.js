@@ -32,7 +32,6 @@ import {
   ListItemText
 } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
-import { useUnits } from '../../units'
 import { DType, getSchemaAbbreviation } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext } from './SearchContext'
@@ -94,7 +93,6 @@ const SearchBar = React.memo(({
   className
 }) => {
   const styles = useStyles()
-  const units = useUnits()
   const {
     filters,
     filterData,
@@ -188,7 +186,7 @@ const SearchBar = React.memo(({
     const presence = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*\\*\\s*$`))
     if (presence) {
       quantityFullname = `quantities`
-      queryValue = parseQuery(quantityFullname, presence[1], units) // are units still necessary?
+      queryValue = parseQuery(quantityFullname, presence[1])
       valid = true
     }
 
@@ -204,7 +202,7 @@ const SearchBar = React.memo(({
           return
         }
         try {
-          queryValue = parseQuery(quantityFullname, equals[2], units)
+          queryValue = parseQuery(quantityFullname, equals[2])
         } catch (error) {
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return
@@ -240,7 +238,7 @@ const SearchBar = React.memo(({
         }
         let quantityValue
         try {
-          quantityValue = parseQuery(quantityFullname, value, units, undefined, false)
+          quantityValue = parseQuery(quantityFullname, value, undefined, false)
         } catch (error) {
           console.log(error)
           setError(`Invalid value for this metainfo. Please check your syntax.`)
@@ -274,8 +272,8 @@ const SearchBar = React.memo(({
         }
         queryValue = {}
         try {
-          queryValue[opMapReverse[op1]] = parseQuery(quantityFullname, a, units, undefined, false)
-          queryValue[opMap[op2]] = parseQuery(quantityFullname, c, units, undefined, false)
+          queryValue[opMapReverse[op1]] = parseQuery(quantityFullname, a, undefined, false)
+          queryValue[opMap[op2]] = parseQuery(quantityFullname, c, undefined, false)
         } catch (error) {
           setError(`Invalid value for this metainfo. Please check your syntax.`)
           return
@@ -303,7 +301,7 @@ const SearchBar = React.memo(({
     } else {
       setError(`Invalid query`)
     }
-  }, [inputValue, checkMetainfo, units, updateFilter, filterData, parseQuery, filtersLocked])
+  }, [inputValue, checkMetainfo, updateFilter, filterData, parseQuery, filtersLocked])
 
   // Handle clear button
   const handleClose = useCallback(() => {

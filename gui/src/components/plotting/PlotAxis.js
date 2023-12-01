@@ -22,7 +22,9 @@ import { makeStyles } from '@material-ui/core/styles'
 import { isArray, isNil } from 'lodash'
 import { useResizeDetector } from 'react-resize-detector'
 import { getScaler, getTicks } from './common'
-import { useUnits, Quantity, Unit } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import { formatNumber, DType } from '../../utils'
 import PlotLabel from './PlotLabel'
 import PlotTick from './PlotTick'
@@ -93,7 +95,7 @@ const PlotAxis = React.memo(({
   classes,
   'data-testid': testID}) => {
   const styles = usePlotAxisStyles(classes)
-  const units = useUnits()
+  const {units} = useUnitContext()
   const unitObj = useMemo(() => new Unit(unit), [unit])
   const {height, width, ref} = useResizeDetector()
   const orientation = {

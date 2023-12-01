@@ -23,7 +23,7 @@ import {
   Box, Divider, makeStyles
 } from '@material-ui/core'
 import ClipboardIcon from '@material-ui/icons/Assignment'
-import HelpDialog from '../Help'
+import { HelpButton } from '../Help'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { guiBase, servicesUploadLimit } from '../../config'
 import NewUploadButton from './NewUploadButton'
@@ -167,42 +167,45 @@ function UploadCommands({uploadCommands}) {
             <ClipboardIcon />
           </IconButton>
         </Tooltip>
-        {/* <button>Copy to clipboard with button</button> */}
       </CopyToClipboard>
-      <HelpDialog icon={<DetailsIcon/>} maxWidth="md" title="Alternative shell commands" content={`
-        As an experienced shell and *curl* user, you can modify the commands to
-        your liking.
+      <Tooltip title="Alternative shell commands">
+        <span>
+          <HelpButton maxWidth="md" title="Alternative shell commands" content={`
+            As an experienced shell and *curl* user, you can modify the commands to
+            your liking.
 
-        The given command can be modified. To see progress on large files, use
-        \`\`\`
-          ${uploadCommands.upload_progress_command}
-        \`\`\`
-        To \`tar\` and upload multiple folders in one command, use
-        \`\`\`
-        ${uploadCommands.upload_tar_command}
-        \`\`\`
+            The given command can be modified. To see progress on large files, use
+            \`\`\`
+              ${uploadCommands.upload_progress_command}
+            \`\`\`
+            To \`tar\` and upload multiple folders in one command, use
+            \`\`\`
+            ${uploadCommands.upload_tar_command}
+            \`\`\`
 
-        ### Form data vs. streaming
-        NOMAD accepts stream data (\`-T <local_file>\`) (like in the
-        examples above) or multi-part form data (\`-X PUT -f file=@<local_file>\`):
-        \`\`\`
-        ${uploadCommands.upload_command_form}
-        \`\`\`
-        We generally recommend to use streaming, because form data can produce very
-        large HTTP request on large files. Form data has the advantage of carrying
-        more information (e.g. the file name) to our servers (see below).
+            ### Form data vs. streaming
+            NOMAD accepts stream data (\`-T <local_file>\`) (like in the
+            examples above) or multi-part form data (\`-X PUT -f file=@<local_file>\`):
+            \`\`\`
+            ${uploadCommands.upload_command_form}
+            \`\`\`
+            We generally recommend to use streaming, because form data can produce very
+            large HTTP request on large files. Form data has the advantage of carrying
+            more information (e.g. the file name) to our servers (see below).
 
-        #### Upload names
-        With multi-part form data (\`-X PUT -f file=@<local_file>\`), your upload will
-        be named after the file by default. With stream data (\`-T <local_file>\`)
-        there will be no default name. To set a custom name, you can use the URL
-        parameter \`name\`:
-        \`\`\`
-        ${uploadCommands.upload_command_with_name}
-        \`\`\`
-        Make sure to user proper [URL encoding](https://www.w3schools.com/tags/ref_urlencode.asp)
-        and shell encoding, if your name contains spaces or other special characters.
-      `}/>
+            #### Upload names
+            With multi-part form data (\`-X PUT -f file=@<local_file>\`), your upload will
+            be named after the file by default. With stream data (\`-T <local_file>\`)
+            there will be no default name. To set a custom name, you can use the URL
+            parameter \`name\`:
+            \`\`\`
+            ${uploadCommands.upload_command_with_name}
+            \`\`\`
+            Make sure to user proper [URL encoding](https://www.w3schools.com/tags/ref_urlencode.asp)
+            and shell encoding, if your name contains spaces or other special characters.
+          `}/>
+        </span>
+      </Tooltip>
     </div>
   </div>
 }

@@ -160,7 +160,7 @@ Action.propTypes = {
   onMouseUp: PropTypes.func,
   tooltip: PropTypes.string,
   TooltipProps: PropTypes.object,
-  ButtonComponent: PropTypes.object,
+  ButtonComponent: PropTypes.elementType,
   ButtonProps: PropTypes.object,
   className: PropTypes.string,
   classes: PropTypes.object,

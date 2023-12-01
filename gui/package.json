@@ -17,6 +17,7 @@
     "@material-ui/pickers": "^3.3.10",
     "@navjobs/upload": "^3.2.0",
     "@react-keycloak/web": "^3.4.0",
+    "@testing-library/react-hooks": "^8.0.1",
     "@tinymce/tinymce-react": "^4.1.0",
     "autosuggest-highlight": "^3.1.1",
     "base-64": "^1.0.0",

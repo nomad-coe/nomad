@@ -18,7 +18,8 @@
 import React, { useCallback, useMemo } from 'react'
 import { Subject } from 'rxjs'
 import PropTypes from 'prop-types'
-import { Quantity, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { useUnitContext } from '../units/UnitContext'
 import DOS from './DOS'
 import BandStructure from './BandStructure'
 import BrillouinZone from './BrillouinZone'
@@ -54,7 +55,7 @@ const ElectronicProperties = React.memo(({
   // We resolve the DMFT methodology from results.method
   const dmftprovenance = index?.results?.method?.simulation?.dmft || []
 
-  const units = useUnits()
+  const {units} = useUnitContext()
   const range = useMemo(() => new Quantity(electronicRange, 'electron_volt').toSystem(units).value(), [units])
   const bsLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])
   const dosLayout = useMemo(() => ({yaxis: {autorange: false, range: range}}), [range])

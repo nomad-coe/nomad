@@ -105,7 +105,7 @@ class Options(OptionsBase):
     '''Common configuration class used for enabling/disabling certain
     elements and defining the configuration of each element.
     '''
-    options: Dict[str, Any] = Field({}, description='Contains the available options.')
+    options: Optional[Dict[str, Any]] = Field({}, description='Contains the available options.')
 
     def filtered_keys(self) -> List[str]:
         '''Returns a list of keys that fullfill the include/exclude
@@ -696,15 +696,120 @@ class Archive(NomadSettings):
         ''')
 
 
-class UnitSystemEnum(str, Enum):
-    CUSTOM = 'Custom'
-    SI = 'SI'
-    AU = 'AU'
+class UnitSystemUnit(StrictSettings):
+    definition: str = Field(description='''
+        The unit definition. Can be a mathematical expression that combines
+        several units, e.g. `(kg * m) / s^2`. You should only use units that are
+        registered in the NOMAD unit registry (`nomad.units.ureg`).
+    ''')
+    locked: Optional[bool] = Field(False, description='Whether the unit is locked in the unit system it is defined in.')
 
 
-class UnitSystems(StrictSettings):
-    '''Controls the used unit system.'''
-    selected: UnitSystemEnum = Field(description='Controls the default unit system.')
+dimensions = [
+    # Base units
+    'dimensionless',
+    'length',
+    'mass',
+    'time',
+    'current',
+    'temperature',
+    'luminosity',
+    'luminous_flux',
+    'substance',
+    'angle',
+    'information',
+    # Derived units with specific name
+    'force',
+    'energy',
+    'power',
+    'pressure',
+    'charge',
+    'resistance',
+    'conductance',
+    'inductance',
+    'magnetic_flux',
+    'magnetic_field',
+    'frequency',
+    'luminance',
+    'illuminance',
+    'electric_potential',
+    'capacitance',
+    'activity'
+]
+dimension_list = '\n'.join([' - ' + str(dim) for dim in dimensions])
+
+
+class UnitSystem(StrictSettings):
+    label: str = Field(description='Short, descriptive label used for this unit system.')
+    units: Optional[Dict[str, UnitSystemUnit]] = Field(description=f'''
+        Contains a mapping from each dimension to a unit. If a unit is not
+        specified for a dimension, the SI equivalent will be used by default.
+        The following dimensions are available:
+        {dimension_list}
+    ''')
+
+    @root_validator(pre=True)
+    def __dimensions_and_si_defaults(cls, values):  # pylint: disable=no-self-argument
+        '''Adds SI defaults for dimensions that are missing a unit.'''
+        units = values.get('units', {})
+        from nomad.units import ureg
+        from pint import UndefinedUnitError
+
+        # Check that only supported dimensions and units are used
+        for key in units.keys():
+            if key not in dimensions:
+                raise AssertionError(f'Unsupported dimension "{key}" used in a unit system. The supported dimensions are: {dimensions}.')
+
+        # Fill missing units with SI defaults
+        SI = {
+            'dimensionless': 'dimensionless',
+            'length': 'm',
+            'mass': 'kg',
+            'time': 's',
+            'current': 'A',
+            'temperature': 'K',
+            'luminosity': 'cd',
+            'luminous_flux': 'lm',
+            'substance': 'mol',
+            'angle': 'rad',
+            'information': 'bit',
+            'force': 'N',
+            'energy': 'J',
+            'power': 'W',
+            'pressure': 'Pa',
+            'charge': 'C',
+            'resistance': 'Ω',
+            'conductance': 'S',
+            'inductance': 'H',
+            'magnetic_flux': 'Wb',
+            'magnetic_field': 'T',
+            'frequency': 'Hz',
+            'luminance': 'nit',
+            'illuminance': 'lx',
+            'electric_potential': 'V',
+            'capacitance': 'F',
+            'activity': 'kat'
+        }
+        for dimension in dimensions:
+            if dimension not in units:
+                units[dimension] = {'definition': SI[dimension]}
+
+        # Check that units are available in registry, and thus also in the GUI.
+        for value in units.values():
+            definition = value['definition']
+            try:
+                ureg.Unit(definition)
+            except UndefinedUnitError as e:
+                raise AssertionError(f'Unsupported unit "{definition}" used in a unit registry.')
+
+        values['units'] = units
+
+        return values
+
+
+class UnitSystems(OptionsSingle):
+    '''Controls the available unit systems.'''
+    options: Optional[Dict[str, UnitSystem]] = Field(description='Contains the available unit systems.')
 
 
 class Theme(StrictSettings):
@@ -727,7 +832,7 @@ class Card(StrictSettings):
 
 class Cards(Options):
     '''Contains the overview page card definitions and controls their visibility.'''
-    options: Dict[str, Card] = Field(description='Contains the available card options.')
+    options: Optional[Dict[str, Card]] = Field(description='Contains the available card options.')
 
 
 class Entry(StrictSettings):
@@ -775,7 +880,7 @@ class Columns(OptionsMulti):
     Contains column definitions, controls their availability and specifies the default
     selection.
     '''
-    options: Dict[str, Column] = Field(description='''
+    options: Optional[Dict[str, Column]] = Field(description='''
         All available column options. Note here that the key must correspond to a
         quantity path that exists in the metadata.
     ''')
@@ -826,7 +931,7 @@ class FilterMenuActionCheckbox(FilterMenuAction):
 
 class FilterMenuActions(Options):
     '''Contains filter menu action definitions and controls their availability.'''
-    options: Dict[str, FilterMenuActionCheckbox] = Field(
+    options: Optional[Dict[str, FilterMenuActionCheckbox]] = Field(
         description='Contains options for filter menu actions.'
     )
 
@@ -848,7 +953,7 @@ class FilterMenu(StrictSettings):
 
 class FilterMenus(Options):
     '''Contains filter menu definitions and controls their availability.'''
-    options: Dict[str, FilterMenu] = Field(description='Contains the available filter menu options.')
+    options: Optional[Dict[str, FilterMenu]] = Field(description='Contains the available filter menu options.')
 
 
 class Schemas(OptionsBase):
@@ -999,7 +1104,7 @@ class App(StrictSettings):
 
 class Apps(Options):
     '''Contains App definitions and controls their availability.'''
-    options: Dict[str, App] = Field(description='Contains the available app options.')
+    options: Optional[Dict[str, App]] = Field(description='Contains the available app options.')
 
 
 class ExampleUploads(OptionsBase):
@@ -1017,7 +1122,85 @@ class UI(StrictSettings):
         description='Controls the site theme and identity.'
     )
     unit_systems: UnitSystems = Field(
-        UnitSystems(**{'selected': 'Custom'}),
+        UnitSystems(**{
+            'selected': 'Custom',
+            'options': {
+                'Custom': {
+                    'label': 'Custom',
+                    'units': {
+                        'length': {'definition': 'Å'},
+                        'time': {'definition': 'fs'},
+                        'energy': {'definition': 'eV'},
+                        'pressure': {'definition': 'GPa'},
+                        'angle': {'definition': '°'},
+                    }
+                },
+                'SI': {
+                    'label': 'International System of Units (SI)',
+                    'units': {
+                        'dimensionless': {'definition': 'dimensionless', 'locked': True},
+                        'length': {'definition': 'm', 'locked': True},
+                        'mass': {'definition': 'kg', 'locked': True},
+                        'time': {'definition': 's', 'locked': True},
+                        'current': {'definition': 'A', 'locked': True},
+                        'temperature': {'definition': 'K', 'locked': True},
+                        'luminosity': {'definition': 'cd', 'locked': True},
+                        'luminous_flux': {'definition': 'lm', 'locked': True},
+                        'substance': {'definition': 'mol', 'locked': True},
+                        'angle': {'definition': 'rad', 'locked': True},
+                        'information': {'definition': 'bit', 'locked': True},
+                        'force': {'definition': 'N', 'locked': True},
+                        'energy': {'definition': 'J', 'locked': True},
+                        'power': {'definition': 'W', 'locked': True},
+                        'pressure': {'definition': 'Pa', 'locked': True},
+                        'charge': {'definition': 'C', 'locked': True},
+                        'resistance': {'definition': 'Ω', 'locked': True},
+                        'conductance': {'definition': 'S', 'locked': True},
+                        'inductance': {'definition': 'H', 'locked': True},
+                        'magnetic_flux': {'definition': 'Wb', 'locked': True},
+                        'magnetic_field': {'definition': 'T', 'locked': True},
+                        'frequency': {'definition': 'Hz', 'locked': True},
+                        'luminance': {'definition': 'nit', 'locked': True},
+                        'illuminance': {'definition': 'lx', 'locked': True},
+                        'electric_potential': {'definition': 'V', 'locked': True},
+                        'capacitance': {'definition': 'F', 'locked': True},
+                        'activity': {'definition': 'kat', 'locked': True}
+                    }
+                },
+                'AU': {
+                    'label': 'Hartree atomic units (AU)',
+                    'units': {
+                        'dimensionless': {'definition': 'dimensionless', 'locked': True},
+                        'length': {'definition': 'bohr', 'locked': True},
+                        'mass': {'definition': 'm_e', 'locked': True},
+                        'time': {'definition': 'atomic_unit_of_time', 'locked': True},
+                        'current': {'definition': 'atomic_unit_of_current', 'locked': True},
+                        'temperature': {'definition': 'atomic_unit_of_temperature', 'locked': True},
+                        'luminosity': {'definition': 'cd', 'locked': False},
+                        'luminous_flux': {'definition': 'lm', 'locked': False},
+                        'substance': {'definition': 'mol', 'locked': False},
+                        'angle': {'definition': 'rad', 'locked': False},
+                        'information': {'definition': 'bit', 'locked': False},
+                        'force': {'definition': 'atomic_unit_of_force', 'locked': True},
+                        'energy': {'definition': 'Ha', 'locked': True},
+                        'power': {'definition': 'W', 'locked': False},
+                        'pressure': {'definition': 'atomic_unit_of_pressure', 'locked': True},
+                        'charge': {'definition': 'C', 'locked': False},
+                        'resistance': {'definition': 'Ω', 'locked': False},
+                        'conductance': {'definition': 'S', 'locked': False},
+                        'inductance': {'definition': 'H', 'locked': False},
+                        'magnetic_flux': {'definition': 'Wb', 'locked': False},
+                        'magnetic_field': {'definition': 'T', 'locked': False},
+                        'frequency': {'definition': 'Hz', 'locked': False},
+                        'luminance': {'definition': 'nit', 'locked': False},
+                        'illuminance': {'definition': 'lx', 'locked': False},
+                        'electric_potential': {'definition': 'V', 'locked': False},
+                        'capacitance': {'definition': 'F', 'locked': False},
+                        'activity': {'definition': 'kat', 'locked': False}
+                    }
+                },
+            }
+        }),
         description='Controls the available unit systems.'
     )
     entry: Entry = Field(

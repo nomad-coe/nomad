@@ -24,7 +24,9 @@ import Plot from '../plotting/Plot'
 import { QuantityTable, QuantityRow, QuantityCell } from '../Quantity'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { diffTotal } from '../../utils'
-import { Quantity, Unit, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 
 const energyUnit = new Unit('joule')
@@ -39,7 +41,7 @@ const GeometryOptimization = React.memo(({
   'data-testid': testID
 }) => {
   const [finalData, setFinalData] = useState(!energies ? energies : undefined)
-  const units = useUnits()
+  const {units} = useUnitContext()
   const theme = useTheme()
 
   // Side effect that runs when the data that is displayed should change. By

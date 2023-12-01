@@ -50,7 +50,7 @@ import Placeholder from './Placeholder'
 import { Actions, Action } from '../Actions'
 import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { isNil } from 'lodash'
-import { Quantity } from '../../units'
+import { Quantity } from '../units/Quantity'
 
 export const WrapMode = {
   Original: "original",

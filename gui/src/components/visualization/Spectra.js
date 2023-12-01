@@ -23,7 +23,9 @@ import { MoreVert } from '@material-ui/icons'
 import Plot from '../plotting/Plot'
 import { mergeObjects } from '../../utils'
 import { getLineStyles } from '../plotting/common'
-import { Quantity, Unit, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import { withErrorHandler } from '../ErrorHandler'
 import { Action } from '../Actions'
 
@@ -42,7 +44,7 @@ const Spectra = React.memo(({
 }) => {
   const [finalData, setFinalData] = useState(!data ? data : undefined)
   const theme = useTheme()
-  const units = useUnits()
+  const {units} = useUnitContext()
   const [anchorEl, setAnchorEl] = React.useState(null)
   const [spectraNormalize, setSpectraNormalize] = useState(true)
 

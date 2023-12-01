@@ -15,67 +15,57 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import { Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Tooltip } from '@material-ui/core'
+import React, { useCallback, useState } from 'react'
+import { Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@material-ui/core'
 import Markdown from './Markdown'
 import PropTypes from 'prop-types'
 import HelpIcon from '@material-ui/icons/Help'
 
-export const HelpContext = React.createContext()
+export const HelpButton = ({title, content, maxWidth, IconProps, children, ...IconButtonProps}) => {
+  const [open, setOpen] = useState(false)
+  const handleToggleOpen = useCallback(() => {
+    setOpen(old => !old)
+    IconButtonProps?.onClick?.()
+  }, [IconButtonProps])
 
-class HelpDialog extends React.Component {
-  static propTypes = {
-    title: PropTypes.string,
-    content: PropTypes.string.isRequired,
-    children: PropTypes.node,
-    maxWidth: PropTypes.string
-  }
-
-  state = {
-    isOpen: false
-  }
-
-  constructor(props) {
-    super(props)
-    this.handleOpen = this.handleOpen.bind(this)
-    this.handleClose = this.handleClose.bind(this)
-  }
-
-  handleClose() {
-    this.setState({isOpen: false})
-  }
-
-  handleOpen() {
-    this.setState({isOpen: true})
-  }
-
-  render() {
-    const {title, content, children, maxWidth, ...rest} = this.props
-    return (
-      <React.Fragment>
-        <Tooltip title={title}>
-          <IconButton {...rest} onClick={this.handleOpen}>
-            {children || <HelpIcon/>}
-          </IconButton>
-        </Tooltip>
-        <Dialog
-          maxWidth={maxWidth}
-          onClose={this.handleClose}
-          open={this.state.isOpen}
-        >
-          <DialogTitle>{title || 'Help'}</DialogTitle>
-          <DialogContent>
-            <Markdown>{content}</Markdown>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => this.handleClose()} color="primary">
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </React.Fragment>
-    )
-  }
+  return <>
+    <IconButton {...IconButtonProps} onClick={handleToggleOpen}>
+      {children || <HelpIcon {...IconProps}/>}
+    </IconButton>
+    <HelpDialog title={title} content={content} open={open} onClose={handleToggleOpen} maxWidth={maxWidth} />
+  </>
 }
 
-export default HelpDialog
+HelpButton.propTypes = {
+  title: PropTypes.string,
+  content: PropTypes.string,
+  maxWidth: PropTypes.string,
+  IconProps: PropTypes.object,
+  children: PropTypes.node
+}
+
+const HelpDialog = ({title, content, maxWidth, open, onClose}) => {
+  return <Dialog
+    maxWidth={maxWidth}
+    onClose={onClose}
+    open={open}
+  >
+    <DialogTitle>{title || 'Help'}</DialogTitle>
+    <DialogContent>
+      <Markdown>{content}</Markdown>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={onClose} color="primary">
+        Close
+      </Button>
+    </DialogActions>
+  </Dialog>
+}
+
+HelpDialog.propTypes = {
+  title: PropTypes.string,
+  content: PropTypes.string,
+  maxWidth: PropTypes.string,
+  open: PropTypes.bool,
+  onClose: PropTypes.func
+}
