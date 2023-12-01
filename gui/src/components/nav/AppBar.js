@@ -26,7 +26,7 @@ import {
   makeStyles
 } from '@material-ui/core'
 import LoginLogout from '../LoginLogout'
-import UnitSelector from '../UnitSelector'
+import UnitMenu from '../units/UnitMenu'
 import MainMenu from './MainMenu'
 import { useLoading } from '../api'
 import { guiBase, oasis } from '../../config'
@@ -64,7 +64,6 @@ const useStyles = makeStyles(theme => ({
   toolbar: {
     display: 'flex',
     flexDirection: 'row'
-    // paddingRight: theme.spacing(3)
   },
   logoImg: {
     height: 44,
@@ -87,8 +86,6 @@ const useStyles = makeStyles(theme => ({
   navigation: {
     flexGrow: 1,
     marginRight: theme.spacing(1),
-    // marginBottom: theme.spacing(1),
-    // marginTop: theme.spacing(0.25),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -124,7 +121,7 @@ export default function AppBar() {
       </div>
       <div className={styles.actions}>
         <LoginLogout color="primary" classes={{button: styles.menuItem}} />
-        <UnitSelector className={styles.menuItem}></UnitSelector>
+        <UnitMenu className={styles.menuItem} />
       </div>
     </Toolbar>
     <LoadingIndicator className={styles.progress}/>

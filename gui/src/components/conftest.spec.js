@@ -39,10 +39,11 @@ import { seconds, server } from '../setupTests'
 import { Router, MemoryRouter } from 'react-router-dom'
 import { createBrowserHistory } from 'history'
 import { APIProvider } from './api'
+import { UnitProvider } from './units/UnitContext'
 import { ErrorSnacks, ErrorBoundary } from './errors'
 import DataStore from './DataStore'
 import { defaultFilterData } from './search/FilterRegistry'
-import { keycloakBase, searchQuantities } from '../config'
+import { keycloakBase, searchQuantities, ui } from '../config'
 import { useKeycloak } from '@react-keycloak/web'
 import { GlobalMetainfo } from './archive/metainfo'
 
@@ -104,15 +105,20 @@ export const WrapperDefault = ({children}) => {
       <MuiPickersUtilsProvider utils={DateFnsUtils}>
         <ErrorSnacks>
           <ErrorBoundary>
-            <DataStore>
-              <GlobalMetainfo>
-                <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
-                  <MemoryRouter>
-                    {children}
-                  </MemoryRouter>
-                </Router>
-              </GlobalMetainfo>
-            </DataStore>
+            <UnitProvider
+              initialUnitSystems={ui?.unit_systems?.options}
+              initialSelected={ui?.unit_systems?.selected}
+              >
+              <DataStore>
+                <GlobalMetainfo>
+                  <Router history={createBrowserHistory({basename: process.env.PUBLIC_URL})}>
+                    <MemoryRouter>
+                      {children}
+                    </MemoryRouter>
+                  </Router>
+                </GlobalMetainfo>
+              </DataStore>
+            </UnitProvider>
           </ErrorBoundary>
         </ErrorSnacks>
       </MuiPickersUtilsProvider>
@@ -140,7 +146,12 @@ export const WrapperNoAPI = ({children}) => {
         <MemoryRouter>
           <ErrorSnacks>
             <ErrorBoundary>
-              {children}
+              <UnitProvider
+                initialUnitSystems={ui?.unit_systems?.options}
+                initialSelected={ui?.unit_systems?.selected}
+                >
+                {children}
+              </UnitProvider>
             </ErrorBoundary>
           </ErrorSnacks>
         </MemoryRouter>

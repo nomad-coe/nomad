@@ -19,7 +19,9 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {TextField, makeStyles, Box, Checkbox, Tooltip} from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import PropTypes from 'prop-types'
-import {getUnits, Unit, Quantity, useUnits, parseQuantity} from '../../units'
+import {Quantity, parseQuantity} from '../units/Quantity'
+import {Unit} from '../units/Unit'
+import {useUnitContext, getUnits} from '../units/UnitContext'
 import {debounce, isNil} from 'lodash'
 import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
 import {useErrors} from '../errors'
@@ -203,7 +205,7 @@ NumberField.propTypes = {
 
 export const NumberEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, ...otherProps} = props
-  const systemUnits = useUnits()
+  const {units} = useUnitContext()
   const {raiseError} = useErrors()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
   const dimension = defaultUnit && defaultUnit.dimension(false)
@@ -229,7 +231,7 @@ export const NumberEditQuantity = React.memo((props) => {
 
   const [unit, setUnit] = useState(
     defaultDisplayUnitObj ||
-    (systemUnits[dimension]?.name && new Unit(systemUnits[dimension]?.name)) ||
+    (units[dimension]?.definition && new Unit(units[dimension]?.definition)) ||
     defaultUnit
   )
 
@@ -256,7 +258,6 @@ export const NumberEditQuantity = React.memo((props) => {
   // Handle a change in the unit dialog
   const handleUnitChange = useCallback((newUnit) => {
     if (!checked && quantityDef.unit && newUnit && !isNil(value)) {
-      // const displayedValue = new Quantity(value, quantityDef.unit).to(unit).value()
       const storedValue = new Quantity(Number(displayedValue), newUnit).to(quantityDef.unit).value()
       onChange(storedValue)
     }

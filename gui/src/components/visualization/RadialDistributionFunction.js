@@ -23,7 +23,9 @@ import { useTheme } from '@material-ui/core/styles'
 import Plot from '../plotting/Plot'
 import { PropertyItem, PropertySubGrid } from '../entry/properties/PropertyCard'
 import { getLocation } from '../../utils'
-import { Quantity, Unit, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import { ErrorHandler, withErrorHandler } from '../ErrorHandler'
 import { getLineStyles } from '../plotting/common'
 
@@ -44,7 +46,7 @@ const RadialDistributionFunction = React.memo(({
   const theme = useTheme()
   const [finalData, setFinalData] = useState(rdf)
   const [finalLayout, setFinalLayout] = useState()
-  const units = useUnits()
+  const {units} = useUnitContext()
 
   // Check that the data is valid. Otherwise raise an exception.
   assert(isPlainObject(rdf), 'Invalid rdf data provided.')

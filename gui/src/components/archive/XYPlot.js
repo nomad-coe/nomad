@@ -1,6 +1,7 @@
 import React, {useMemo} from 'react'
 import {Box, useTheme} from '@material-ui/core'
-import {Quantity as Q, useUnits} from '../../units'
+import {Quantity as Q} from '../units/Quantity'
+import { useUnitContext } from '../units/UnitContext'
 import {titleCase, resolveInternalRef} from '../../utils'
 import {getLineStyles} from '../plotting/common'
 import { merge } from 'lodash'
@@ -17,7 +18,7 @@ class XYPlotError extends Error {
 
 const XYPlot = React.memo(function XYPlot({plot, section, sectionDef, title}) {
   const theme = useTheme()
-  const units = useUnits()
+  const {units} = useUnitContext()
   const xAxis = plot.x || plot['x_axis'] || plot['xAxis']
   const yAxis = plot.y || plot['y_axis'] || plot['yAxis']
 

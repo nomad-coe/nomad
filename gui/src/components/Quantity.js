@@ -41,7 +41,9 @@ import Placeholder from './visualization/Placeholder'
 import Ellipsis from './visualization/Ellipsis'
 import NoData from './visualization/NoData'
 import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
-import { Quantity as Q, Unit, useUnits } from '../units'
+import { Quantity as Q } from './units/Quantity'
+import { Unit } from './units/Unit'
+import { useUnitContext } from './units/UnitContext'
 import { defaultFilterData } from './search/FilterRegistry'
 import { MaterialLink, RouteLink } from './nav/Routes'
 
@@ -157,7 +159,7 @@ const Quantity = React.memo((props) => {
     ((presets.renderValue && !isNil(value)) && presets.renderValue(value)) ||
     ((quantity?.name && !isNil(quantity.type)) && getRenderFromType(quantity, data))
 
-  const units = useUnits()
+  const {units} = useUnitContext()
   let content = null
   let clipboardContent = null
 

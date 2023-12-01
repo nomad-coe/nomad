@@ -21,7 +21,9 @@ import { useTheme } from '@material-ui/core/styles'
 import { MoreVert } from '@material-ui/icons'
 import Plot from '../plotting/Plot'
 import { add, mergeObjects, resolveInternalRef } from '../../utils'
-import { Quantity, Unit, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import { withErrorHandler } from '../ErrorHandler'
 import { Action } from '../Actions'
 import { msgNormalizationWarning } from '../../config'
@@ -39,7 +41,7 @@ const DOS = React.memo(({
   'data-testid': testID,
   ...other
 }) => {
-  const units = useUnits()
+  const {units} = useUnitContext()
 
   // Merge custom layout with default layout
   const initialLayout = useMemo(() => {

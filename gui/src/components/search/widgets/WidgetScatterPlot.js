@@ -40,7 +40,9 @@ import { CropFree, PanTool, Fullscreen, Replay } from '@material-ui/icons'
 import { autorangeDescription } from './WidgetHistogram'
 import { styled } from '@material-ui/core/styles'
 import { DType } from '../../../utils'
-import { Quantity, Unit, useUnits } from '../../../units'
+import { Quantity } from '../../units/Quantity'
+import { Unit } from '../../units/Unit'
+import { useUnitContext } from '../../units/UnitContext'
 
 // Predefined in order to not break memoization
 const dtypesNumeric = new Set([DType.Int, DType.Float])
@@ -91,7 +93,7 @@ export const WidgetScatterPlot = React.memo((
   onSelected
 }) => {
   const styles = useStyles()
-  const units = useUnits()
+  const {units} = useUnitContext()
   const canvas = useRef()
   const [float, setFloat] = useState(false)
   const [loading, setLoading] = useState(true)

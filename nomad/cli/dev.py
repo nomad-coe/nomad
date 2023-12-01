@@ -482,27 +482,6 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
 
     # Some units need to be added manually.
     unit_list.extend([
-        # Gigapascal
-        {
-            'name': 'gigapascal',
-            'dimension': 'pressure',
-            'label': 'Gigapascal',
-            'abbreviation': 'GPa',
-        },
-        # Millibar
-        {
-            'name': 'millibar',
-            'dimension': 'pressure',
-            'label': 'Millibar',
-            'abbreviation': 'mbar',
-        },
-        # Femtosecond
-        {
-            'name': 'femtosecond',
-            'dimension': 'time',
-            'label': 'Femtosecond',
-            'abbreviation': 'fs',
-        },
         # Kilogram as SI base unit
         {
             'name': 'kilogram',

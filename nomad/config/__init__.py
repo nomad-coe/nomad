@@ -493,7 +493,7 @@ def _check_config():
     ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.api_base_path.rstrip("/")}/north'
 
 
-def _merge(a: Union[dict, BaseModel], b: Union[dict, BaseModel], path: List[str] = None) -> Union[dict, BaseModel]:
+def _merge(a: Union[dict, BaseModel], b: Union[dict, BaseModel]) -> Union[dict, BaseModel]:
     '''
     Recursively merges b into a. Will add new key-value pairs, and will
     overwrite existing key-value pairs. Notice that this mutates the original
@@ -513,13 +513,17 @@ def _merge(a: Union[dict, BaseModel], b: Union[dict, BaseModel], path: List[str]
     def get(target, key):
         return target[key] if isinstance(target, dict) else getattr(target, key)
 
-    if path is None: path = []
-    for key in b.__dict__ if isinstance(b, BaseModel) else b:
+    # None values are ignored
+    if b is None:
+        return a
+    for key in (b.__dict__ if isinstance(b, BaseModel) else b):
         value = get(b, key)
         if has(a, key):
             child = get(a, key)
-            if isinstance(value, (BaseModel, dict)) and isinstance(child, (BaseModel, dict)):
-                _merge(child, value, path + [str(key)])
+            # Objects are merged
+            if isinstance(value, (BaseModel, dict)) or isinstance(child, (BaseModel, dict)):
+                _merge(child, value)
+            # Other types are replaced
             else:
                 set(a, key, value)
         else:

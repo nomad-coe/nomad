@@ -27,7 +27,9 @@ import InputHeader from './InputHeader'
 import InputTooltip from './InputTooltip'
 import { inputSectionContext } from './InputSection'
 import { InputTextField } from './InputText'
-import { useUnits, Quantity, Unit } from '../../../units'
+import { Quantity } from '../../units/Quantity'
+import { Unit } from '../../units/Unit'
+import { useUnitContext } from '../../units/UnitContext'
 import { DType, formatNumber } from '../../../utils'
 import { getInterval } from '../../plotting/common'
 import { dateFormat } from '../../../config'
@@ -118,7 +120,7 @@ export const Range = React.memo(({
   classes,
   'data-testid': testID
 }) => {
-  const units = useUnits()
+  const {units} = useUnitContext()
   const {filterData, useAgg, useFilterState, useIsStatisticsEnabled} = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const repeats = sectionContext?.repeats

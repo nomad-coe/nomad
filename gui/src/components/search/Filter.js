@@ -25,7 +25,7 @@ import {
   DType,
   multiTypes
 } from '../../utils'
-import { Unit } from '../../units'
+import { Unit } from '../units/Unit'
 
 /**
  * Filter is a wrapper for metainfo (quantity or section) that can be searched.

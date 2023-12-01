@@ -17,15 +17,24 @@
  */
 
 import React from 'react'
-import { renderNoAPI, screen } from './conftest.spec'
+import { renderNoAPI, screen } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
-import UnitSelector from './UnitSelector'
+import UnitMenu from './UnitMenu'
 
-test('initial unit selection is read correctly from config', async () => {
+test('initial state is read correctly from config', async () => {
+  renderNoAPI(<UnitMenu />)
+
+  // Correct unit system is selected
   const selection = window.nomadEnv.ui.unit_systems.selected
-  renderNoAPI(<UnitSelector />)
   const button = screen.getByButtonText("Units")
   await userEvent.click(button)
-  const optionSI = screen.getByLabelText(selection)
-  expect(optionSI).toBeChecked()
+  const optionSelected = screen.getByLabelText(selection)
+  expect(optionSelected).toBeChecked()
+
+  // Dimension is shown
+  screen.getByDisplayValue('Activity')
+
+  // Unit is shown
+  const selectedUnit = window.nomadEnv.ui.unit_systems.options[selection].units.activity.definition
+  screen.getByDisplayValue(selectedUnit)
 })

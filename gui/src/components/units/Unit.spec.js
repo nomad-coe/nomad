@@ -17,47 +17,29 @@
  */
 
 import { Unit as UnitMathJS } from 'mathjs'
-import { Quantity, dimensionMap, unitMap } from './units'
+import { Unit } from './Unit'
+import { unitMap } from './UnitContext'
 
 test('each unit can be created using its full name, alias or short form (+ all available prefixes)', async () => {
   for (const [name, def] of Object.entries(unitMap)) {
     // Full name + prefixes
-    expect(new Quantity(1, name)).not.toBeNaN()
+    expect(new Unit(name)).not.toBeNaN()
     if (def.prefixes) {
       for (const prefix of Object.keys(UnitMathJS.PREFIXES[def.prefixes.toUpperCase()])) {
-        expect(new Quantity(1, `${prefix}${name}`)).not.toBeNaN()
+        expect(new Unit(`${prefix}${name}`)).not.toBeNaN()
       }
     }
     // Aliases + prefixes
     if (def.aliases) {
       for (const alias of def.aliases) {
-        expect(new Quantity(1, alias)).not.toBeNaN()
+        expect(new Unit(alias)).not.toBeNaN()
         if (def.prefixes) {
           for (const prefix of Object.keys(UnitMathJS.PREFIXES[def.prefixes.toUpperCase()])) {
-            expect(new Quantity(1, `${prefix}${alias}`)).not.toBeNaN()
+            expect(new Unit(`${prefix}${alias}`)).not.toBeNaN()
           }
         }
       }
     }
-  }
-})
-
-test('unit conversion works both ways for each compatible unit', async () => {
-  // Create a list of all possible conversions
-  const conversions = []
-  for (const dimension of Object.values(dimensionMap)) {
-    const units = dimension.units
-    for (const unitA of units) {
-      for (const unitB of units) {
-        conversions.push([unitA, unitB])
-      }
-    }
-  }
-  for (const [unitA, unitB] of conversions) {
-    const a = new Quantity(1, unitA)
-    const b = a.to(unitB)
-    const c = b.to(unitA)
-    expect(a.value()).toBeCloseTo(c.value(), 10)
   }
 })
 
@@ -76,8 +58,22 @@ test.each([
   ['chain', 'meter*meter/second^2', '(m m) / s^2']
 ]
 )('label abbreviation: %s', async (name, unit, label) => {
-  const a = new Quantity(1, unit)
+  const a = new Unit(unit)
   expect(a.label()).toBe(label)
+})
+
+test.each([
+  ['dimensionless', 'dimensionless', 'dimensionless'],
+  ['single unit', 'meter', 'length'],
+  ['fixed order 1', 'meter * second', 'length time'],
+  ['fixed order 2', 'second * meter', 'length time'],
+  ['power', 'meter^3 * second^-1', 'length^3 time^-1'],
+  ['in derived', 'joule', 'energy', false],
+  ['in base', 'joule', 'mass length^2 time^-2']
+]
+)('test getting dimension": %s', async (name, unit, dimension, base = true) => {
+  const a = new Unit(unit)
+  expect(a.dimension(base)).toBe(dimension)
 })
 
 test.each([
@@ -104,78 +100,25 @@ test.each([
   ['unit starting with a number', '1/minute', '1/second', 's^-1']
 ]
 )('test conversion with "to()": %s', async (name, unitA, unitB, labelB) => {
-  const a = new Quantity(1, unitA)
+  const a = new Unit(unitA)
   const b = a.to(unitB)
-  expect(b.value()).not.toBeNaN()
   expect(b.label()).toBe(labelB)
 })
 
 test.each([
-  ['conversion with single unit', 'meter', {length: {name: 'angstrom'}}, 'Å'],
-  ['conversion with power', 'meter^2', {length: {name: 'angstrom'}}, 'Å^2'],
-  ['do not simplify', 'gram*angstrom/fs^2', {mass: {name: 'kilogram'}, length: {name: 'meter'}, time: {name: 'second'}}, '(kg m) / s^2'],
-  ['do not convert to base', 'eV', {energy: {name: 'joule'}}, 'J'],
-  ['combination', 'a_u_force * angstrom', {force: {name: 'newton'}, length: {name: 'meter'}}, 'N m'],
-  ['use base units if derived unit not defined in system', 'newton * meter', {mass: {name: 'kilogram'}, time: {name: 'second'}, length: {name: 'meter'}}, '(kg m m) / s^2']
+  ['conversion with single unit', 'meter', {length: {definition: 'angstrom'}}, 'Å'],
+  ['conversion with power', 'meter^2', {length: {definition: 'angstrom'}}, 'Å^2'],
+  ['do not simplify', 'gram*angstrom/fs^2', {mass: {definition: 'kilogram'}, length: {definition: 'meter'}, time: {definition: 'second'}}, '(kg m) / s^2'],
+  ['do not convert to base', 'eV', {energy: {definition: 'joule'}}, 'J'],
+  ['combination', 'a_u_force * angstrom', {force: {definition: 'newton'}, length: {definition: 'meter'}}, 'N m'],
+  ['use base units if derived unit not defined in system', 'newton * meter', {mass: {definition: 'kilogram'}, time: {definition: 'second'}, length: {definition: 'meter'}}, '(kg m m) / s^2'],
+  ['unit definition with prefix', 'kg^2', {mass: {definition: 'mg'}}, 'mg^2'],
+  ['expression as definition', 'N', {force: {definition: '(kg m) / s^2'}}, '(kg m) / s^2']
 ]
 )('test conversion with "toSystem()": %s', async (name, unit, system, label) => {
-  const a = new Quantity(1, unit)
+  const a = new Unit(unit)
   const b = a.toSystem(system)
-  expect(b.value()).not.toBeNaN()
   expect(b.label()).toBe(label)
-})
-
-test.each([
-  ['dimensionless', 'dimensionless', 'dimensionless'],
-  ['single unit', 'meter', 'length'],
-  ['fixed order 1', 'meter * second', 'length time'],
-  ['fixed order 2', 'second * meter', 'length time'],
-  ['power', 'meter^3 * second^-1', 'length^3 time^-1'],
-  ['in derived', 'joule', 'energy', false],
-  ['in base', 'joule', 'mass length^2 time^-2']
-]
-)('test getting dimension": %s', async (name, unit, dimension, base = true) => {
-  const a = new Quantity(1, unit)
-  expect(a.dimension(base)).toBe(dimension)
-})
-
-test.each([
-  ['celsius to kelvin', 'celsius', 'kelvin', 5, 278.15],
-  ['fahrenheit to kelvin', 'fahrenheit', 'kelvin', 5, 258.15],
-  ['celsius to fahrenheit', 'celsius', 'fahrenheit', 5, 41],
-  ['celsius to kelvin: derived unit (implicit delta)', 'joule/celsius', 'joule/kelvin', 5, 5],
-  ['celsius to kelvin: derived unit (explicit delta)', 'joule/delta_celsius', 'joule/kelvin', 5, 5],
-  ['fahrenheit to kelvin: derived unit (offset not applied)', 'joule/fahrenheit', 'joule/kelvin', 5, 9 / 5 * 5],
-  ['celsius to fahrenheit: derived unit (offset not applied)', 'joule/celsius', 'joule/fahrenheit', 5, 5 / 9 * 5]
-]
-)('test temperature conversion": %s', async (name, unitA, unitB, valueA, valueB) => {
-  const a = new Quantity(valueA, unitA)
-  const b = a.to(unitB)
-  const c = b.to(unitA)
-  expect(b.value()).toBeCloseTo(valueB, 10)
-  expect(c.value()).toBeCloseTo(valueA, 10)
-})
-
-test.each([
-  [0],
-  [1],
-  [2],
-  [3]
-]
-)('test different value dimensions: %sD', async (dimension) => {
-  let value = 1
-  for (let i = 0; i < dimension; ++i) {
-    value = [value]
-  }
-  const a = new Quantity(value, 'angstrom')
-  const b = a.to('nanometer')
-  let valueA = a.value()
-  let valueB = b.value()
-  for (let i = 0; i < dimension; ++i) {
-    valueA = valueA[0]
-    valueB = valueB[0]
-  }
-  expect(valueA).toBeCloseTo(10 * valueB)
 })
 
 test.each([
@@ -187,6 +130,6 @@ test.each([
 ]
 )('invalid conversions with "to()": %s', async (name, unitA, unitB) => {
   expect(() => {
-    new Quantity(1, unitA).to(unitB)
+    new Unit(unitA).to(unitB)
   }).toThrow()
 })

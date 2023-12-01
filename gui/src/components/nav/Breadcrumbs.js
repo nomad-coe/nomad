@@ -18,9 +18,8 @@
 
 import React, { useCallback, useMemo } from 'react'
 import { matchPath, useLocation, Link as RouterLink } from 'react-router-dom'
-import { Typography, Breadcrumbs as MUIBreadcrumbs, Link, Box, makeStyles } from '@material-ui/core'
-import HelpDialog from '../Help'
-import HelpIcon from '@material-ui/icons/Help'
+import { Typography, Breadcrumbs as MUIBreadcrumbs, Link, Box, makeStyles, Tooltip } from '@material-ui/core'
+import { HelpButton } from '../Help'
 import { allRoutes } from './Routes'
 import {useDataStore} from "../DataStore"
 
@@ -31,9 +30,6 @@ const useStyles = makeStyles(theme => ({
   },
   help: {
     marginLeft: theme.spacing(0.5)
-  },
-  helpIcon: {
-    fontSize: 18
   },
   ellipsis: {
     direction: 'rtl',
@@ -89,9 +85,11 @@ const Breadcrumbs = React.memo(function Breadcrumbs() {
           return <Box key={i} display="flex" flexDirection="row" alignItems="center">
             {title}
             {route.help && (
-              <HelpDialog className={styles.help} size="small" {...route.help}>
-                <HelpIcon className={styles.helpIcon} />
-              </HelpDialog>
+              <Tooltip title={route?.help?.title || ""}>
+                <span>
+                  <HelpButton className={styles.help} size="small" IconProps={{fontSize: 'small'}} {...route.help} />
+                </span>
+              </Tooltip>
             )}
           </Box>
         } else {

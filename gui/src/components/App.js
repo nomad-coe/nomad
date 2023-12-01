@@ -33,6 +33,7 @@ import Navigation from './nav/Navigation'
 import GUIMenu from './GUIMenu'
 import { APIProvider, GlobalLoginRequired, onKeycloakEvent } from './api'
 import DataStore from './DataStore'
+import { UnitProvider } from './units/UnitContext'
 import { GlobalMetainfo } from './archive/metainfo'
 
 const keycloak = new Keycloak({
@@ -57,21 +58,26 @@ export default function App() {
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
             <ErrorSnacks>
               <ErrorBoundary>
-                <DataStore>
-                  <GlobalMetainfo>
-                    <Router history={history}>
-                      <QueryParamProvider ReactRouterRoute={Route}>
-                        <MuiThemeProvider theme={nomadTheme}>
-                          <CssBaseline />
-                          <GlobalLoginRequired>
-                            <Navigation />
-                            <GUIMenu/>
-                          </GlobalLoginRequired>
-                        </MuiThemeProvider>
-                      </QueryParamProvider>
-                    </Router>
-                  </GlobalMetainfo>
-                </DataStore>
+                <UnitProvider
+                  initialUnitSystems={ui?.unit_systems?.options}
+                  initialSelected={ui?.unit_systems?.selected}
+                  >
+                  <DataStore>
+                    <GlobalMetainfo>
+                      <Router history={history}>
+                        <QueryParamProvider ReactRouterRoute={Route}>
+                          <MuiThemeProvider theme={nomadTheme}>
+                            <CssBaseline />
+                            <GlobalLoginRequired>
+                              <Navigation />
+                              <GUIMenu/>
+                            </GlobalLoginRequired>
+                          </MuiThemeProvider>
+                        </QueryParamProvider>
+                      </Router>
+                    </GlobalMetainfo>
+                  </DataStore>
+                </UnitProvider>
               </ErrorBoundary>
             </ErrorSnacks>
           </MuiPickersUtilsProvider>

@@ -22,7 +22,7 @@ import userEvent from '@testing-library/user-event'
 import { expectQuantity, screen } from '../conftest.spec'
 import { expectPlotButtons } from '../visualization/conftest.spec'
 import { traverseDeep, serializeMetainfo } from '../../utils'
-import { unitSystems } from '../../units'
+import { ui } from '../../config'
 
 /*****************************************************************************/
 // Expects
@@ -115,7 +115,7 @@ export async function expectMethodologyItem(
     expect(root.getByText(title)).toBeInTheDocument()
     for (const [key, value] of traverseDeep(data, true)) {
       const quantity = `${path}.${key.join('.')}`
-      expectQuantity(quantity, serializeMetainfo(quantity, value, unitSystems.Custom.units))
+      expectQuantity(quantity, serializeMetainfo(quantity, value, ui.unit_systems.options.Custom.units))
     }
   }
 }

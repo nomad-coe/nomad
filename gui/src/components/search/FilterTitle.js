@@ -22,7 +22,8 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { useSearchContext } from './SearchContext'
 import { inputSectionContext } from './input/InputSection'
-import { useUnits, Unit } from '../../units'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 
 /**
  * Title for a metainfo quantity or section that is used in a search context.
@@ -68,7 +69,7 @@ const FilterTitle = React.memo(({
   const styles = useStaticStyles({classes: classes})
   const { filterData } = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
-  const units = useUnits()
+  const {units} = useUnitContext()
   const section = sectionContext?.section
 
   // Create the final label

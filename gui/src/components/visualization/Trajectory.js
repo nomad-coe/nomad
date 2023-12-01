@@ -26,7 +26,9 @@ import {
   PropertyProvenanceItem,
   PropertyProvenanceList
 } from '../entry/properties/PropertyCard'
-import { Quantity, Unit, useUnits } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
+import { useUnitContext } from '../units/UnitContext'
 import { withErrorHandler } from '../ErrorHandler'
 import { getPlotLayoutVertical, getPlotTracesVertical } from '../plotting/common'
 
@@ -60,7 +62,7 @@ const Trajectory = React.memo(({
   if (energyPotential !== false) ++nPlots
   const styles = useStyles({classes: classes})
   const theme = useTheme()
-  const units = useUnits()
+  const {units} = useUnitContext()
   const [finalData, setFinalData] = useState(nPlots === 0 ? false : undefined)
   const [finalLayout, setFinalLayout] = useState()
 

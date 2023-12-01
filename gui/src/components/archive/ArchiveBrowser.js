@@ -35,7 +35,8 @@ import { ArchiveTitle, DefinitionLabel, metainfoAdaptorFactory } from './Metainf
 import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
-import { Quantity as Q, useUnits } from '../../units'
+import { Quantity as Q } from '../units/Quantity'
+import { useUnitContext } from '../units/UnitContext'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
@@ -648,7 +649,7 @@ const convertComplexArray = (real, imag) => {
 }
 
 function QuantityItemPreview({value, def}) {
-  const units = useUnits()
+  const {units} = useUnitContext()
   if (isReference(def)) {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -725,7 +726,7 @@ QuantityItemPreview.propTypes = ({
 })
 
 const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
-  const units = useUnits()
+  const {units} = useUnitContext()
 
   const getRenderValue = useCallback(value => {
     let finalValue

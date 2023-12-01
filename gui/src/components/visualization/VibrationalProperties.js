@@ -23,7 +23,7 @@ import BandStructure from './BandStructure'
 import HeatCapacity from './HeatCapacity'
 import { PropertyGrid, PropertyItem } from '../entry/properties/PropertyCard'
 import HelmholtzFreeEnergy from './HelmholtzFreeEnergy'
-import { Quantity } from '../../units'
+import { Quantity } from '../units/Quantity'
 
 const VibrationalProperties = React.memo(({
   bs,

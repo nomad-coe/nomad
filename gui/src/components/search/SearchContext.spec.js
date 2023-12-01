@@ -15,30 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React from 'react'
-import { renderSearchEntry } from './conftest.spec'
+import { renderHook } from '@testing-library/react-hooks'
+import { WrapperSearch } from './conftest.spec'
 import { useSearchContext } from './SearchContext'
-import { unitSystems, Quantity } from '../../units'
+import { Quantity } from '../units/Quantity'
 import { isEqualWith } from 'lodash'
 
-/**
- * Function that exposes the useSearchContext hook.
- */
-function setup() {
-  const returnVal = {}
-
-  function TestComponent() {
-    const {useParseQuery} = useSearchContext()
-    const parseQuery = useParseQuery()
-    Object.assign(returnVal, {parseQuery})
-    return null
-  }
-  renderSearchEntry(
-    <TestComponent />
-  )
-
-  return returnVal
-}
 describe('parseQuery', function() {
   test.each([
     ['unit not specified', 'results.material.topology.cell.a', '1', new Quantity(1, 'angstrom'), undefined],
@@ -47,16 +29,18 @@ describe('parseQuery', function() {
     ['filter hat accepts multiple values is wrapped in set', 'results.material.material_id', 'abcd', new Set(['abcd']), undefined],
     ['filter that does not accept multiple values is not wrapped in set', 'visibility', 'public', 'public', undefined]
   ])('%s', async (name, quantity, input, output, error) => {
-    const parseQuery = setup().parseQuery
+    const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: WrapperSearch })
+    const { result: resultUseParseQuery } = renderHook(() => resultUseSearchContext.current.useParseQuery(), {})
+    const parseQuery = resultUseParseQuery.current
     if (!error) {
       function customizer(a, b) {
         if (a instanceof Quantity) {
           return a.equal(b)
         }
       }
-      expect(isEqualWith(parseQuery(quantity, input, unitSystems.Custom.units), output, customizer)).toBe(true)
+      expect(isEqualWith(parseQuery(quantity, input), output, customizer)).toBe(true)
     } else {
-      expect(() => parseQuery(quantity, input, unitSystems.Custom.units)).toThrow(error)
+      expect(() => parseQuery(quantity, input)).toThrow(error)
     }
     }
   )

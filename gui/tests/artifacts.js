@@ -78437,14 +78437,6 @@ window.nomadArtifacts = {
       "offset": 0.0
     },
     {
-      "name": "femtosecond",
-      "dimension": "time",
-      "label": "Femtosecond",
-      "abbreviation": "fs",
-      "definition": "1e-15 second",
-      "offset": 0.0
-    },
-    {
       "name": "fermi",
       "dimension": "length",
       "label": "Fermi",
@@ -78564,14 +78556,6 @@ window.nomadArtifacts = {
         "G"
       ],
       "definition": "0.0001 kilogram / ampere / second ^ 2",
-      "offset": 0.0
-    },
-    {
-      "name": "gigapascal",
-      "dimension": "pressure",
-      "label": "Gigapascal",
-      "abbreviation": "GPa",
-      "definition": "1000000000.0 kilogram / meter / second ^ 2",
       "offset": 0.0
     },
     {
@@ -78987,14 +78971,6 @@ window.nomadArtifacts = {
         "mas"
       ],
       "definition": "4.84813681109536e-09 radian",
-      "offset": 0.0
-    },
-    {
-      "name": "millibar",
-      "dimension": "pressure",
-      "label": "Millibar",
-      "abbreviation": "mbar",
-      "definition": "100.0 kilogram / meter / second ^ 2",
       "offset": 0.0
     },
     {

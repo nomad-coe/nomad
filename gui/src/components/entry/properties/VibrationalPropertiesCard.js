@@ -18,7 +18,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
-import { useUnits } from '../../../units'
+import { useUnitContext } from '../../units/UnitContext'
 import { getLocation, resolveInternalRef } from '../../../utils'
 import { refPath } from '../../archive/metainfo'
 import VibrationalProperties from '../../visualization/VibrationalProperties'
@@ -27,7 +27,7 @@ import VibrationalProperties from '../../visualization/VibrationalProperties'
  * Card displaying vibrational properties.
  */
 const VibrationalPropertiesCard = React.memo(({index, properties, archive}) => {
-  const units = useUnits()
+  const {units} = useUnitContext()
   const urlPrefix = `${getLocation()}/data`
 
   // Find out which properties are present

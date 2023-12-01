@@ -22,7 +22,7 @@ import clsx from 'clsx'
 import { isNil, isPlainObject } from 'lodash'
 import { FilterChip, FilterChipGroup, FilterAnd, FilterOr } from './FilterChip'
 import { useSearchContext } from './SearchContext'
-import { useUnits } from '../../units'
+import { useUnitContext } from '../units/UnitContext'
 
 /**
  * Smart component that displays a set of FilterGroups and FilterChips for the
@@ -61,7 +61,7 @@ const FilterSummary = React.memo(({
   const filters = useFilters(quantities)
   const updateFilter = useUpdateFilter()
   const theme = useTheme()
-  const units = useUnits()
+  const {units} = useUnitContext()
   const styles = useStyles({classes: classes, theme: theme})
 
   // Creates a set of chips for a quantity

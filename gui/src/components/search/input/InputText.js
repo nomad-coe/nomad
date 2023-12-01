@@ -18,14 +18,13 @@
 import React, { useCallback, useState, useMemo, useRef } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
-import { useRecoilValue } from 'recoil'
 import clsx from 'clsx'
 import { CircularProgress, Tooltip, IconButton, TextField } from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
+import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown'
 import CloseIcon from '@material-ui/icons/Close'
 import { isNil } from 'lodash'
 import { useSearchContext } from '../SearchContext'
-import { guiState } from '../../GUIMenu'
 import { useSuggestions } from '../../../hooks'
 import { searchQuantities } from '../../../config'
 import Placeholder from '../../visualization/Placeholder'
@@ -40,13 +39,11 @@ const useInputTextFieldStyles = makeStyles(theme => ({
 }))
 export const InputTextField = React.memo((props) => {
   const initialLabel = useState(props.label)[0]
-  const inputVariant = useRecoilValue(guiState('inputVariant'))
-  const inputSize = useRecoilValue(guiState('inputSize'))
   const styles = useInputTextFieldStyles({classes: props.classes})
 
   return props.loading
     ? <Placeholder className={clsx(props.className, styles.root)} />
-    : <TextField size={inputSize} variant={inputVariant} {...props} hiddenLabel={!initialLabel}/>
+    : <TextField size="small" variant="filled" {...props} hiddenLabel={!initialLabel}/>
 })
 
 InputTextField.propTypes = {
@@ -57,7 +54,8 @@ InputTextField.propTypes = {
 }
 
 /*
- * Generic text field component that should be used for most user inputs.
+ * Customized version of Autocomplete with custom NOMAD styling and behaviour.
+ *
  * Defines default behaviour for user input such as clearing inputs when
  * pressing esc and submitting values when pressing enter. Can also display
  * customizable list of suggestions.
@@ -70,6 +68,16 @@ const useInputTextStyles = makeStyles(theme => ({
     justifyContent: 'center',
     flexDirection: 'column',
     boxSizing: 'border-box'
+  },
+  popupIndicatorOpen: {
+    transform: 'rotate(180deg)'
+  },
+  adornmentList: {
+    display: 'flex',
+    alignItems: 'center'
+  },
+  adornment: {
+    padding: '3px'
   },
   listbox: {
       boxSizing: 'border-box',
@@ -89,22 +97,28 @@ export const InputText = React.memo(({
   onAccept,
   onSelect,
   onBlur,
+  onFocus,
   onError,
   getOptionLabel,
   groupBy,
   renderOption,
   renderGroup,
+  suggestAllOnFocus,
+  showOpenSuggestions,
   ListboxComponent,
   filterOptions,
   className,
   classes,
   TextFieldProps,
   InputProps,
-  PaperComponent
+  PaperComponent,
+  disableClearable,
+  disableAcceptOnBlur
 }) => {
   const theme = useTheme()
   const styles = useInputTextStyles({classes: classes, theme: theme})
   const [open, setOpen] = useState(false)
+  const [suggestAll, setSuggestAll] = useState(false)
   const disabled = TextFieldProps?.disabled
   // The highlighted item is stored in a ref to keep the component more
   // responsive during browsing the suggestions
@@ -112,8 +126,8 @@ export const InputText = React.memo(({
 
   // Clears the input value and closes suggestions list
   const clearInputValue = useCallback(() => {
-    onError && onError(undefined)
-    onChange && onChange("")
+    onError?.(undefined)
+    onChange?.("")
     setOpen(false)
   }, [onChange, onError])
 
@@ -124,9 +138,9 @@ export const InputText = React.memo(({
 
   // Handle blur
   const handleBlur = useCallback(() => {
-    onBlur && onBlur()
-    onAccept && onAccept(value)
-  }, [onBlur, onAccept, value])
+    onBlur?.()
+    !disableAcceptOnBlur && onAccept?.(value)
+  }, [onBlur, onAccept, value, disableAcceptOnBlur])
 
   // Handles special key presses
   const handleKeyDown = useCallback((event) => {
@@ -145,9 +159,9 @@ export const InputText = React.memo(({
     // or if menu is not open submit the value.
     if (event.key === 'Enter') {
       if (open && highlightRef.current) {
-        onSelect && onSelect(getOptionLabel(highlightRef.current).trim())
+        onSelect?.(getOptionLabel(highlightRef.current).trim())
       } else {
-        onAccept && onAccept(value && value.trim())
+        onAccept?.(value && value.trim())
       }
       event.stopPropagation()
       event.preventDefault()
@@ -158,12 +172,13 @@ export const InputText = React.memo(({
   // Handle input events. Errors are cleaned in input change, regular typing
   // emits onChange, selection with mouse emits onSelect.
   const handleInputChange = useCallback((event, value, reason) => {
+    setSuggestAll(false)
     onError && onError(undefined)
     if (event) {
       if (reason === 'reset') {
-        onSelect && onSelect(value)
+        onSelect?.(value)
       } else {
-        onChange && onChange(value)
+        onChange?.(value)
       }
     }
   }, [onChange, onSelect, onError])
@@ -191,8 +206,12 @@ export const InputText = React.memo(({
       getOptionSelected={(option, value) => false}
       groupBy={groupBy}
       renderGroup={renderGroup}
-      filterOptions={filterOptions}
+      filterOptions={suggestAll
+          ? (opt) => opt
+          : filterOptions
+      }
       renderOption={renderOption}
+      selectOnFocus={true}
       renderInput={(params) => {
         // We need to strip out the styling of the input field that is imposed
         // by Autocomplete. Otherwise the styles enabled by the
@@ -203,25 +222,41 @@ export const InputText = React.memo(({
           size="small"
           helperText={error || undefined}
           error={!!error}
+          onFocus={() => { suggestAllOnFocus && setSuggestAll(true); onFocus?.() } }
           onKeyDown={handleKeyDown}
           InputLabelProps={{shrink}}
           InputProps={{
             ...params.InputProps,
-            endAdornment: (<>
-              {loading ? <CircularProgress color="inherit" size={20} /> : null}
-              {(value?.length || null) && <>
-                <Tooltip title="Clear">
-                  <IconButton
+            endAdornment: (<div className={styles.adornmentList}>
+              {loading ? <CircularProgress color="inherit" size={20} className={styles.adornment} /> : null}
+              {(value?.length && !disableClearable)
+                ? <Tooltip title="Clear">
+                    <IconButton
+                      size="small"
+                      disabled={disabled}
+                      onClick={clearInputValue}
+                      className={styles.iconButton}
+                      aria-label="clear"
+                    >
+                      <CloseIcon/>
+                    </IconButton>
+                  </Tooltip>
+                : null
+              }
+              {(showOpenSuggestions)
+                ? <IconButton
                     size="small"
-                    onClick={clearInputValue}
-                    className={styles.iconButton}
-                    aria-label="clear"
+                    disabled={disabled}
+                    onClick={() => setOpen(old => !old)}
+                    className={clsx(styles.popupIndicator, {
+                      [styles.popupIndicatorOpen]: open
+                    })}
                   >
-                    <CloseIcon/>
-                  </IconButton>
-                </Tooltip>
-              </>}
-            </>),
+                    <ArrowDropDownIcon />
+                </IconButton>
+                : null
+              }
+            </div>),
             ...InputProps
           }}
           {...TextFieldProps}
@@ -241,6 +276,7 @@ InputText.propTypes = {
   onSelect: PropTypes.func, // Triggered when an option is selected from suggestions
   onAccept: PropTypes.func, // Triggered when value should be accepted
   onBlur: PropTypes.func, // Triggered when text goes out of focus
+  onFocus: PropTypes.func, // Triggered when text is focused
   onError: PropTypes.func, // Triggered when any errors should be cleared
   getOptionLabel: PropTypes.func,
   groupBy: PropTypes.func,
@@ -251,12 +287,17 @@ InputText.propTypes = {
   TextFieldProps: PropTypes.object,
   InputProps: PropTypes.object,
   filterOptions: PropTypes.func,
+  disableClearable: PropTypes.bool,
+  disableAcceptOnBlur: PropTypes.bool,
+  suggestAllOnFocus: PropTypes.bool, // Whether to provide all suggestion values when input is focused
+  showOpenSuggestions: PropTypes.bool, // Whether to show button for opening suggestions
   className: PropTypes.string,
   classes: PropTypes.object
 }
 
 InputText.defaultProps = {
-  getOptionLabel: (option) => option.value
+  getOptionLabel: (option) => option.value,
+  showOpenSuggestions: false
 }
 
 /*

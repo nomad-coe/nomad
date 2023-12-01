@@ -20,7 +20,8 @@ import PropTypes from 'prop-types'
 import { useTheme } from '@material-ui/core/styles'
 import Plot from '../plotting/Plot'
 import { mergeObjects } from '../../utils'
-import { Quantity, Unit } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
 import { withErrorHandler } from '../ErrorHandler'
 
 const HelmholtzFreeEnergy = React.memo(({

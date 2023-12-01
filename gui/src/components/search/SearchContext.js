@@ -61,13 +61,15 @@ import {
   rsplit,
   parseOperator
 } from '../../utils'
-import { Quantity, Unit } from '../../units'
+import { Quantity } from '../units/Quantity'
+import { Unit } from '../units/Unit'
 import { useErrors } from '../errors'
 import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import UploadStatusIcon from '../uploads/UploadStatusIcon'
 import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
 import { withFilters } from './FilterRegistry'
+import { useUnitContext } from '../units/UnitContext'
 
 const useWidthConstrainedStyles = makeStyles(theme => ({
   root: {
@@ -200,6 +202,7 @@ export const SearchContextRaw = React.memo(({
   children
 }) => {
   const {api, user} = useApi()
+  const {units} = useUnitContext()
   const {raiseError} = useErrors()
   const oldQuery = useRef(undefined)
   const oldPagination = useRef(undefined)
@@ -1518,7 +1521,7 @@ export const SearchContextRaw = React.memo(({
      * */
     const useParseQuery = () => {
       return useCallback(
-        (key, value, units, path, multiple) => parseQuery(key, value, filtersData, units, path, multiple),
+        (key, value, path, multiple) => parseQuery(key, value, filtersData, units, path, multiple),
         []
       )
     }
@@ -1632,7 +1635,8 @@ export const SearchContextRaw = React.memo(({
     updateAggsResponse,
     setPagination,
     setResults,
-    setApiData
+    setApiData,
+    units
   ])
 
   return <searchContext.Provider value={values}>
