@@ -1596,11 +1596,17 @@ def perform_get(
 
 
 def perform_post(
-    client, base_url, user_auth=None, accept='application/json', **query_args
+    client,
+    base_url,
+    user_auth=None,
+    accept='application/json',
+    data=None,
+    json=None,
+    **query_args,
 ):
     headers = build_headers(accept, user_auth)
     url = build_url(base_url, query_args)
-    response = client.post(url, headers=headers)
+    response = client.post(url, headers=headers, data=data, json=json)
     return response
 
 

@@ -2579,15 +2579,15 @@ def get_role_query(roles: List[UploadRole], user: User) -> Q:
     if not roles:
         roles = list(UploadRole)
 
-    user_groups = user.get_user_groups()
+    group_ids = user.get_group_ids()
 
     role_query = Q()
     if UploadRole.main_author in roles:
         role_query |= Q(main_author=user.user_id)
     if UploadRole.coauthor in roles:
-        role_query |= Q(coauthors=user.user_id) | Q(coauthor_groups__in=user_groups)
+        role_query |= Q(coauthors=user.user_id) | Q(coauthor_groups__in=group_ids)
     if UploadRole.reviewer in roles:
-        role_query |= Q(reviewers=user.user_id) | Q(reviewer_groups__in=user_groups)
+        role_query |= Q(reviewers=user.user_id) | Q(reviewer_groups__in=group_ids)
 
     return role_query
 
@@ -2599,8 +2599,8 @@ def is_user_upload_viewer(upload: Upload, user: User):
     if user.user_id in upload.viewers:
         return True
 
-    user_groups = user.get_user_groups()
-    if not set(user_groups).isdisjoint(upload.viewers):
+    group_ids = user.get_group_ids()
+    if not set(group_ids).isdisjoint(upload.viewers):
         return True
 
     return False
@@ -2613,8 +2613,8 @@ def is_user_upload_writer(upload: Upload, user: User):
     if user.user_id in upload.writers:
         return True
 
-    user_groups = user.get_user_groups()
-    if not set(user_groups).isdisjoint(upload.writers):
+    group_ids = user.get_group_ids()
+    if not set(group_ids).isdisjoint(upload.writers):
         return True
 
     return False

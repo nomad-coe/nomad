@@ -112,7 +112,7 @@ async def get_user_group(group_id: str):
 
 
 @router.post(
-    '/',
+    '',
     tags=[default_tag],
     status_code=status.HTTP_201_CREATED,
     summary='Create user group.',
@@ -153,7 +153,6 @@ async def update_user_group(
     if members is not None:
         check_user_ids(members)
 
-    print(user_group_dict)
     user_group.update(**user_group_dict)
     user_group.save()
     user_group.reload()

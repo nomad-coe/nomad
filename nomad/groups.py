@@ -71,3 +71,11 @@ def get_user_ids_by_group_ids(group_ids: list[str]) -> set[str]:
         user_ids.update(group.members)
 
     return user_ids
+
+
+def get_user_group(group_id: str) -> Optional[UserGroup]:
+    return UserGroup.objects(group_id=group_id).first()
+
+
+def user_group_exists(group_id: str) -> bool:
+    return get_user_group(group_id) is not None

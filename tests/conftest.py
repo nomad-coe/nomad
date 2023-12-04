@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Tuple, List
+from typing import Any, Tuple, List
 from pathlib import Path
 import math
 import pytest
@@ -55,6 +55,7 @@ from nomad.processing import ProcessStatus
 from nomad.app.main import app
 from nomad.utils.exampledata import ExampleData
 from nomad.metainfo.elasticsearch_extension import schema_separator
+from nomad.groups import UserGroup, create_user_group
 
 from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
@@ -482,6 +483,70 @@ def no_warn(caplog):
             except Exception:
                 msg = record.msg
             assert False, msg
+
+
+def test_user_group_uuid(handle: Any):
+    """Returns a test user group uuid based on the handle."""
+    return str(handle).rjust(22, 'G')
+
+
+test_user_groups = {
+    'admin_owner_group': dict(
+        group_name='Admin Owner Group',
+        owner=test_user_uuid(0),
+        group_id=test_user_group_uuid(0),
+    ),
+    'user_owner_group': dict(
+        group_name='Test Owner Group',
+        owner=test_user_uuid(1),
+        group_id=test_user_group_uuid(1),
+    ),
+    'other_owner_group': dict(
+        group_name='Other Owner Group',
+        owner=test_user_uuid(2),
+        group_id=test_user_group_uuid(2),
+    ),
+    'mixed_group': dict(
+        group_name='Mixed Group',
+        owner=test_user_uuid(0),
+        members=[test_user_uuid(1), test_user_uuid(2)],
+        group_id=test_user_group_uuid(3),
+    ),
+}
+
+
+@pytest.fixture(scope='session')
+def user_owner_group():
+    return UserGroup(**test_user_groups['user_owner_group'])
+
+
+@pytest.fixture(scope='session')
+def other_owner_group():
+    return UserGroup(**test_user_groups['other_owner_group'])
+
+
+@pytest.fixture(scope='session')
+def mixed_group():
+    return UserGroup(**test_user_groups['mixed_group'])
+
+
+def _user_groups():
+    user_groups = []
+    for group in test_user_groups.values():
+        user_group = create_user_group(**group)
+        user_groups.append(user_group)
+
+    return user_groups
+
+
+@pytest.fixture(scope='module')
+def user_groups_module(mongo_module):
+    return _user_groups()
+
+
+@pytest.fixture(scope='function')
+def user_groups_function(mongo_function):
+    return _user_groups()
 
 
 @pytest.fixture(scope='function')
@@ -1232,6 +1297,39 @@ def example_data_writeable(mongo_function, test_user, normalized):
     yield
 
     data.delete()
+
+
+@pytest.fixture(scope='module')
+def example_data_groups(
+    mongo_module, user_groups_module, test_user, other_owner_group, mixed_group
+):
+    data = ExampleData(main_author=test_user)
+
+    data.create_upload(
+        upload_id='id_no_group',
+    )
+
+    data.create_upload(
+        upload_id='id_coauthor_other_group',
+        coauthor_groups=[other_owner_group.group_id],
+    )
+
+    data.create_upload(
+        upload_id='id_reviewer_other_group',
+        reviewer_groups=[other_owner_group.group_id],
+    )
+
+    data.create_upload(
+        upload_id='id_coauthor_mixed_group',
+        coauthor_groups=[mixed_group.group_id],
+    )
+
+    data.create_upload(
+        upload_id='id_reviewer_mixed_group',
+        reviewer_groups=[mixed_group.group_id],
+    )
+
+    data.save(with_files=False)
 
 
 @pytest.fixture(scope='function')

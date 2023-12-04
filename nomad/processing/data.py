@@ -391,8 +391,8 @@ class MetadataEditRequestHandler:
                 return self._error('No matching upload found', 'upload_id')
 
             is_admin = self.user.is_admin
-            user_groups = self.user.get_user_groups()
-            ids = {self.user.user_id}.union(user_groups)
+            group_ids = self.user.get_group_ids()
+            ids = {self.user.user_id}.union(group_ids)
             for upload in self.affected_uploads:
                 is_main_author = self.user.user_id == upload.main_author
                 is_coauthor = upload.coauthors and not ids.isdisjoint(upload.writers)
