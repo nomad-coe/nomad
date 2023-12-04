@@ -25,13 +25,8 @@ import {
   Button,
   Menu,
   MenuItem,
-  Tooltip,
   Typography,
-  FormControl,
-  FormLabel,
-  FormControlLabel,
-  Radio,
-  RadioGroup
+  FormControlLabel
 } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import {
@@ -43,7 +38,7 @@ import {
   ViewList,
   GetApp
 } from '@material-ui/icons'
-import { DownloadSystemMenu } from '../buttons/DownloadSystemButton'
+import { DownloadSystemMenu, WrapModeRadio } from '../buttons/DownloadSystemButton'
 import Floatable from './Floatable'
 import NoData from './NoData'
 import Placeholder from './Placeholder'
@@ -52,11 +47,6 @@ import { withErrorHandler, withWebGLErrorHandler } from '../ErrorHandler'
 import { isNil } from 'lodash'
 import { Quantity } from '../units/Quantity'
 
-export const WrapMode = {
-  Original: "original",
-  Wrap: "wrap",
-  Unwrap: "unwrap"
-}
 /**
  * Used to control a 3D system visualization that is implemented in the
  * 'children' prop. This allows for an easier change of visualization
@@ -315,29 +305,7 @@ const StructureBase = React.memo(({
                 label='Show simulation cell'
               />
             </MenuItem>
-            <FormControl key='wrap' component="fieldset" className={styles.menuItem}>
-              <FormLabel component="legend">Wrap mode</FormLabel>
-              <RadioGroup
-                value={wrapMode}
-                onChange={handleWrapModeChange}
-                >
-                {Object.entries(WrapMode).map(([key, value]) =>
-                  <FormControlLabel
-                    key={key}
-                    value={value}
-                    control={<Radio color="primary" disabled={disableWrapMode}/>}
-                    label={<Tooltip
-                      title={{
-                        [WrapMode.Original]: 'Original positions',
-                        [WrapMode.Wrap]: 'Positions wrapped inside the cell respecting periodic boundary conditions',
-                        [WrapMode.Unwrap]: 'Reconstructs positions so that small structures are not split by periodic cell boundary.'
-                      }[value]}>
-                        <span>{key}</span>
-                    </Tooltip>}
-                  />
-                )}
-              </RadioGroup>
-            </FormControl>
+            <WrapModeRadio value={wrapMode} onChange={handleWrapModeChange} disabled={disableWrapMode} className={styles.menuItem}/>
           </Menu>
         </div>
       </div>

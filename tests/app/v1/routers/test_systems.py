@@ -31,7 +31,7 @@ from nomad.datamodel.results import Results, Material, System
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System as SystemRun, Atoms
 from nomad.utils.exampledata import ExampleData
-from nomad.app.v1.routers.systems import format_map, FormatFeature
+from nomad.app.v1.routers.systems import format_map, FormatFeature, WrapModeEnum
 
 from .common import assert_response, assert_browser_download_headers
 
@@ -90,6 +90,18 @@ atoms_missing_positions = Atoms(
     species=[7, 8],
 )
 
+atoms_wrap_mode = Atoms(
+    n_atoms=2,
+    labels=["C", "H"],
+    species=[6, 1],
+    positions=np.array([[-15, -15, -15], [17, 17, 17]]) * ureg.angstrom,
+    lattice_vectors=np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]) * ureg.angstrom,
+    periodic=[True, True, True],
+)
+
+atoms_wrap_mode_no_pbc = atoms_wrap_mode.m_copy()
+atoms_wrap_mode_no_pbc.periodic = [False, False, False]
+
 
 @pytest.fixture(scope="module")
 def example_data_systems(elastic_module, mongo_module, test_user):
@@ -104,6 +116,8 @@ def example_data_systems(elastic_module, mongo_module, test_user):
         SystemRun(atoms=atoms_with_cell),
         SystemRun(atoms=atoms_missing_positions),
         SystemRun(atoms=atoms_without_cell),
+        SystemRun(atoms=atoms_wrap_mode),
+        SystemRun(atoms=atoms_wrap_mode_no_pbc),
     ])])
     archive.results = Results(
         material=Material(
@@ -133,8 +147,8 @@ def example_data_systems(elastic_module, mongo_module, test_user):
     assert search(query=dict(upload_id=upload_id)).pagination.total == 0
 
 
-def run_query(entry_id, path, format, client):
-    response = client.get(f'systems/{entry_id}/?path={path}&format={format}', headers={})
+def run_query(entry_id, path, format, client, wrap_mode=None):
+    response = client.get(f'systems/{entry_id}/?path={path}&format={format}{f"&wrap_mode={wrap_mode}" if wrap_mode else ""}', headers={})
     return response
 
 
@@ -332,3 +346,21 @@ def test_indices(path, filename, n_atoms, client, example_data_systems):
     )
     atoms = ase.io.read(BytesIO(response.content), format='cif')
     assert len(atoms) == n_atoms
+
+
+@pytest.mark.parametrize("path, wrap_mode, expected_positions", [
+    pytest.param('/run/0/system/3', None, [[-15, -15, -15], [17, 17, 17]], id='default'),
+    pytest.param('/run/0/system/3', WrapModeEnum.original, [[-15, -15, -15], [17, 17, 17]], id='original'),
+    pytest.param('/run/0/system/3', WrapModeEnum.wrap, [[0, 0, 0], [2, 2, 2]], id='wrap, pbc=[1, 1, 1]'),
+    pytest.param('/run/0/system/4', WrapModeEnum.wrap, [[-15, -15, -15], [17, 17, 17]], id='wrap, pbc=[0, 0, 0]'),
+    pytest.param('/run/0/system/3', WrapModeEnum.unwrap, [[1.5, 1.5, 1.5], [3.5, 3.5, 3.5]], id='unwrap, pbc=[1, 1, 1]'),
+    pytest.param('/run/0/system/4', WrapModeEnum.unwrap, [[-15, -15, -15], [17, 17, 17]], id='unwrap, pbc=[0, 0, 0]'),
+])
+def test_wrap_mode(path, wrap_mode, expected_positions, client, example_data_systems):
+    '''Test that the wrap_mode parameter is handled correctly.
+    '''
+    response = run_query('systems_entry_1', path, 'xyz', client, wrap_mode)
+    assert_response(response, 200)
+    atoms = ase.io.read(StringIO(response.text), format='xyz')
+    positions = atoms.get_positions()
+    assert np.allclose(positions, expected_positions)

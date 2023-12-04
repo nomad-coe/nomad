@@ -109,7 +109,7 @@ const UnitMenu = React.memo(({
       <Box px={2.5} py={1} width="20rem">
         <Actions>
           <ActionHeader>
-            <Typography variant='h6'>
+            <Typography variant='h6' fontSize='0.9rem'>
               Unit Settings
             </Typography>
           </ActionHeader>
