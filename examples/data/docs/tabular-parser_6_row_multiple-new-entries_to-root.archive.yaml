@@ -8,7 +8,7 @@ definitions:
       m_annotations:
         eln:
       more:
-        label_quantity: my_quantity_1
+        label_quantity: '#/data/my_quantity_1'
       quantities:
         data_file:
           type: str
