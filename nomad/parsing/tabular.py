@@ -247,9 +247,11 @@ class TableData(ArchiveSection):
                         except AttributeError:
                             continue
                 section_to_write = section_to_entry
-            if not any(item.label == 'EntryData' for item in section_to_entry.m_def.all_base_sections):
+            if not any(
+                    (item.label == 'EntryData' or item.label == 'ArchiveSection')
+                    for item in section_to_entry.m_def.all_base_sections):
                 logger.warning(
-                    f"make sure to inherit from EntryData in your base sections in {section_to_entry.m_def.name}")
+                    f"make sure to inherit from EntryData in the base sections of {section_to_entry.m_def.name}")
             if not is_quantity_def:
                 pass
                 # raise TabularParserError(
@@ -277,8 +279,9 @@ class TableData(ArchiveSection):
                     setattr(self, single_entry_section.split('/')[0], None)
                 self.m_add_sub_section(
                     self.m_def.all_properties[single_entry_section.split('/')[0]], target_section, -1)
-        from nomad.datamodel import EntryArchive, EntryMetadata
 
+        from nomad.datamodel import EntryArchive, EntryMetadata
+        section_to_entry.fill_archive_from_datafile = False
         child_archive = EntryArchive(
             data=section_to_entry,
             m_context=archive.m_context,
@@ -313,7 +316,7 @@ class TableData(ArchiveSection):
             logger.warning(f"make sure to inherit from EntryData in your base sections in {section.name}")
 
         try:
-            mainfile_name = getattr(getattr(section.m_root(), 'metadata'), 'mainfile')
+            mainfile_name = getattr(child_sections[0], section.m_def.more.get('label_quantity', None))
         except (AttributeError, TypeError):
             logger.info('could not extract the mainfile from metadata. Setting a default name.')
             mainfile_name = section.m_def.name
@@ -346,12 +349,14 @@ class TableData(ArchiveSection):
                 current_child_entry_name = [get_nested_value(first_child, segments), '.yaml']
             except Exception:
                 current_child_entry_name = archive.metadata.mainfile.split('.archive')
+            first_child.m_context = archive.m_context
             self.m_update_from_dict(first_child.m_to_dict())
 
         for index, child_section in enumerate(child_sections):
             if ref_entry_name:
                 ref_entry_name: str = child_section.m_def.more.get('label_quantity', None)
-                segments = ref_entry_name.split('#/data/')[1].split('/')
+                segments = ref_entry_name.split('#/data/')[1].split('/') if ref_entry_name.find(
+                    '/') else ref_entry_name
                 filename = f"{get_nested_value(child_section, segments)}.entry_data.archive.{file_type}"
                 current_child_entry_name = [get_nested_value(child_section, segments), '.yaml']
             else:
@@ -367,6 +372,7 @@ class TableData(ArchiveSection):
                     annotation = data_quantity_def.m_get_annotations('tabular_parser')
                     if annotation:
                         child_section.m_update_from_dict({annotation.m_definition.name: data_file})
+                child_section.fill_archive_from_datafile = False
                 child_archive = EntryArchive(
                     data=child_section,
                     m_context=archive.m_context,
@@ -391,7 +397,7 @@ m_package.__init_metainfo__()
 
 def set_entry_name(quantity_def, child_section, index) -> str:
     if name := child_section.m_def.more.get('label_quantity', None):
-        entry_name = f"{child_section[name]}_{index}"
+        entry_name = f"{child_section[name.split('#/data/')[1]]}_{index}"
     elif isinstance(quantity_def.type, Reference):
         entry_name = f"{quantity_def.type._target_section_def.name}_{index}"
     else:
@@ -674,7 +680,7 @@ def _strip_whitespaces_from_df_columns(df):
         cleaned_col_name = col_name.strip().split('.')[0]
         count = 0
         for string in transformed_column_names.values():
-            if cleaned_col_name in string:
+            if cleaned_col_name == string.split('.')[0]:
                 count += 1
         if count:
             transformed_column_names.update({col_name: f'{cleaned_col_name}.{count}'})
@@ -755,8 +761,8 @@ class TabularDataParser(MatchingParser):
         return None
 
     def is_mainfile(
-        self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-        compression: str = None
+            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
+            compression: str = None
     ) -> Union[bool, Iterable[str]]:
         # We use the main file regex capabilities of the superclass to check if this is a
         # .csv file

@@ -4,20 +4,37 @@ definitions:
   name: Periodic Table
   sections:
     Element:
+      more:
+        label_quantity: '#/data/name'
       base_sections:
-        # We use ElnBaseSection here. This provides a few quantities (name, description, tags)
+        # We use ElnBaseSection here. This provides a few quantities (name, ags)description, t
         # that are added to the search index. If we map table columns to these quantities,
         # we can make those cells available for search.
         - nomad.datamodel.metainfo.eln.ElnBaseSection
         # Schemas that are used to directly parse table files (.csv, .xlsx), need to
-        # have the first definition to extend nomad.parsing.tabular.TableRow.
-        - nomad.parsing.tabular.TableRow
+        # have the first definition to extend nomad.parsing.tabular.TableData.
+        - nomad.parsing.tabular.TableData
       m_annotations:
         # We might not want to show all ElnBaseSection quantities.
         eln:
           hide:
             - lab_id
       quantities:
+        # data_file contains the information on how to parse the excel/csv file. Here we want to create
+        # as many entries as there are rows in the excel file and map the quantities annotated with 'tabular' from
+        # the tabular data into the nomad schema of each entry.
+        data_file:
+          type: str
+          default: data.xlsx
+          m_annotations:
+            tabular_parser:
+              parsing_options:
+                comment: '#'
+              mapping_options:
+                - mapping_mode: row
+                  file_mode: multiple_new_entries
+                  sections:
+                    - '#root'
         # Tags will be picked up by ElnBaseSection and put into search. We do not really
         # use this to edit the tags, but we define a default that is then add to
         # all row data.
