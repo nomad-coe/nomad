@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -29,7 +28,8 @@ import { makeStyles } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import { isNil, isEqual, range } from 'lodash'
 import { Stage, Vector3 } from 'ngl'
-import StructureBase, { WrapMode } from './StructureBase'
+import StructureBase from './StructureBase'
+import { wrapModes } from '../buttons/DownloadSystemButton'
 import * as THREE from 'three'
 import { withErrorHandler } from '../ErrorHandler'
 import { useAsyncError } from '../../hooks'
@@ -67,7 +67,7 @@ const StructureNGL = React.memo(({
   const [showCell, setShowCell] = useState(true)
   const [showLatticeConstants, setShowLatticeConstants] = useState(true)
   const [disableShowLatticeConstants, setDisableShowLatticeContants] = useState(true)
-  const [wrapMode, setWrapMode] = useState(WrapMode.Wrap)
+  const [wrapMode, setWrapMode] = useState(wrapModes.wrap.key)
   const [disableWrapMode, setDisableWrapMode] = useState(false)
   const [disableShowCell, setDisableShowCell] = useState(false)
   const [disableShowBonds, setDisableShowBonds] = useState(false)
@@ -350,7 +350,7 @@ const StructureNGL = React.memo(({
           atoms: atomRepr,
           sele: sele,
           indices: indices,
-          wrapMode: (isMonomer || isMolecule) ? WrapMode.Unwrap : WrapMode.Wrap
+          wrapMode: (isMonomer || isMolecule) ? wrapModes.unwrap.key : wrapModes.wrap.key
         }
         for (const child of top.child_systems || []) {
           if (!child.atoms) addRepresentation(child)
@@ -1220,7 +1220,7 @@ function wrapRepresentation(component, representation) {
   }
 
   // Use wrapped positions
-  if (wrapMode === WrapMode.Wrap) {
+  if (wrapMode === wrapModes.wrap.key) {
     if (!isNil(representation.posWrap)) {
       posNew = representation.posWrap
     } else {
@@ -1232,7 +1232,7 @@ function wrapRepresentation(component, representation) {
       representation.posWrap = posNew
     }
   // Use unwrapped positions
-  } else if (wrapMode === WrapMode.Unwrap) {
+  } else if (wrapMode === wrapModes.unwrap.key) {
     if (!isNil(representation.posUnwrap)) {
       posNew = representation.posUnwrap
     } else {
@@ -1246,7 +1246,7 @@ function wrapRepresentation(component, representation) {
       representation.posUnwrap = posNew
     }
   // Use original positions
-  } else if (wrapMode === WrapMode.Original) {
+  } else if (wrapMode === wrapModes.original.key) {
     posNew = representation.posCart
   } else {
     throw Error('Invalid wrapmode provided.')

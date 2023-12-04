@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Union, Dict, List
+from typing import Dict, List, Union
 from io import StringIO, BytesIO
 from collections import OrderedDict
 from enum import Enum
@@ -30,7 +30,7 @@ from MDAnalysis.coordinates.PDB import PDBWriter
 
 from nomad.units import ureg
 from nomad.utils import strip, deep_get, query_list_to_dict
-from nomad.atomutils import Formula
+from nomad.atomutils import Formula, wrap_positions, unwrap_positions
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms, mda_universe_from_nomad_atoms
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from .entries import answer_entry_archive_request
@@ -183,6 +183,25 @@ class TempFormatEnum(str, Enum):
 FormatEnum = TempFormatEnum("FormatEnum", {format: format for format in format_map.keys()})  # type: ignore
 
 
+wrap_mode_map: Dict[str, dict] = OrderedDict({
+    'original': {'description': 'The original positions as set in the data'},
+    'wrap': {'description': 'Positions are wrapped to be inside the cell respecting periodic boundary conditions'},
+    'unwrap': {'description': strip('''
+        Positions are reconstructed so that the structure is not split by
+        periodic cell boundaries. Note that this produces meaningful results
+        only if the system dimensions are smaller than the unit cell.
+    ''')},
+})
+
+
+class TempWrapModeEnum(str, Enum):
+    pass
+
+
+WrapModeEnum = TempWrapModeEnum("WrapModeEnum", {wrap_mode: wrap_mode for wrap_mode in wrap_mode_map.keys()})  # type: ignore
+wrap_mode_description = "\n".join([f'- `{key}`: {value["description"]}' for [key, value] in wrap_mode_map.items()])
+
+
 _file_response = status.HTTP_200_OK, {
     'content': {'application/octet-stream': {}},
     'description': strip('''
@@ -237,10 +256,21 @@ Here is a brief rundown of the different features each format supports:
 
 {format_features}'''
         ),
+        wrap_mode: WrapModeEnum = Query(  # type: ignore
+            default=WrapModeEnum.original,
+            description=f'''Determines how to handle atomic positions for the requested system. The available options are:
+
+{wrap_mode_description}
+
+            '''),
         user: User = Depends(create_user_dependency(signature_token_auth_allowed=True))):
     '''
     Build and retrieve a structure file containing an atomistic system stored
-    within an entry. Note that some formats are more restricted and cannot fully
+    within an entry.
+
+    All length dimensions in the structure files are in Ångstroms (=1e-10 meter).
+
+    Note that some formats are more restricted and cannot fully
     describe certains kinds of systems. For examples some entries within NOMAD
     do not contain a unit cell (e.g. molecules), whereas some formats require it
     to be present.
@@ -322,6 +352,20 @@ Here is a brief rundown of the different features each format supports:
             formula = Formula(''.join(atoms.labels)).format('iupac')
         except Exception:
             pass
+
+        # Handle wrap mode
+        if wrap_mode == WrapModeEnum.wrap:
+            atoms.positions = wrap_positions(
+                atoms.positions.magnitude,
+                atoms.lattice_vectors.magnitude,
+                atoms.periodic
+            )
+        elif wrap_mode == WrapModeEnum.unwrap:
+            atoms.positions = unwrap_positions(
+                atoms.positions.magnitude,
+                atoms.lattice_vectors.magnitude,
+                atoms.periodic
+            )
 
         content = format_info['writer'](atoms, entry_id, formula)
     except Exception as e:

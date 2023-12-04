@@ -112,51 +112,158 @@ def is_valid_basis(basis: NDArray[Any]) -> bool:
     return True
 
 
+def translate_pretty(
+        fractional: NDArray[Any],
+        pbc: Union[bool, NDArray[Any]]) -> NDArray[Any]:
+    """Translates atoms such that fractional positions are minimized."""
+    pbc = pbc2pbc(pbc)
+
+    for i in range(3):
+        if not pbc[i]:
+            continue
+
+        indices = np.argsort(fractional[:, i])
+        sp = fractional[indices, i]
+
+        widths = (np.roll(sp, 1) - sp) % 1.0
+        fractional[:, i] -= sp[np.argmin(widths)]
+        fractional[:, i] %= 1.0
+    return fractional
+
+
+def get_center_of_positions(
+        positions: NDArray[Any],
+        cell: NDArray[Any] = None,
+        pbc: Union[bool, NDArray[Any]] = True,
+        weights=None,
+        relative=False) -> NDArray[Any]:
+    """Calculates the center of positions with the given weighting. Also takes
+    the periodicity of the system into account.
+
+    The algorithm is replicated from:
+    https://en.wikipedia.org/wiki/Center_of_mass#Systems_with_periodic_boundary_conditions
+
+    Args:
+        positions: Positions of the atoms. Whether these are cartesian or
+            relative is controlled by the 'relative' argument.
+        cell: Unit cell
+        pbc: Periodic boundary conditions
+        relative: If true, the input and output positions are given relative to
+            the unit cell. Otherwise the positions are cartesian.
+
+    Returns:
+        The position of the center of mass in the given system.
+    """
+    pbc = pbc2pbc(pbc)
+    relative_positions = positions if relative else to_scaled(positions, cell)
+
+    rel_com = np.zeros((1, 3))
+    for i_comp in range(3):
+        i_pbc = pbc[i_comp]
+        i_pos = relative_positions[:, i_comp]
+        if i_pbc:
+            theta = i_pos * 2 * np.pi
+            xi = np.cos(theta)
+            zeta = np.sin(theta)
+            if weights:
+                xi *= weights
+                zeta *= weights
+
+            xi_mean = np.mean(xi)
+            zeta_mean = np.mean(zeta)
+
+            mean_theta = np.arctan2(-zeta_mean, -xi_mean) + np.pi
+            com_rel = mean_theta / (2 * np.pi)
+            rel_com[0, i_comp] = com_rel
+        else:
+            if weights:
+                total_weight = np.sum(weights)
+                rel_com[0, i_comp] = np.sum(i_pos * weights) / total_weight
+            else:
+                rel_com[0, i_comp] = np.sum(i_pos)
+
+    return rel_com if relative else to_cartesian(rel_com, cell)
+
+
 def wrap_positions(
         positions: NDArray[Any],
         cell: NDArray[Any] = None,
         pbc: Union[bool, NDArray[Any]] = True,
         center: NDArray[Any] = [0.5, 0.5, 0.5],
-        eps: float = 1e-12) -> NDArray[Any]:
+        pretty_translation=False,
+        eps: float = 1e-12,
+        relative=False) -> NDArray[Any]:
     '''
-    Wraps the given position so that they are within the unit cell. If no
-    cell is given, scaled positions are assumed. For wrapping cartesian
-    positions you also need to provide the cell.
+    Wraps the given position so that they are within the unit cell.
 
     Args:
-        positions: Positions of the atoms. Accepts both scaled and
-            cartesian positions.
-        cell: Lattice vectors for wrapping cartesian positions.
+        positions: Positions of the atoms. Whether these are cartesian or
+            relative is controlled by the 'relative' argument.
+        cell: Lattice vectors.
         pbc: For each axis in the unit cell decides whether the positions will
             be wrapped along this axis.
         center: The position in fractional coordinates that the wrapped
             positions will be nearest possible to.
         eps: Small number to prevent slightly negative coordinates from being
             wrapped.
+        relative: If true, the input and output positions are given relative to
+            the unit cell. Otherwise the positions are cartesian.
     '''
-    if not hasattr(center, '__len__'):
-        center = (center,) * 3
-
     pbc = pbc2pbc(pbc)
     shift = np.asarray(center) - 0.5 - eps
 
     # Don't change coordinates when pbc is False
     shift[np.logical_not(pbc)] = 0.0
 
-    if cell is None:
-        fractional = positions
-    else:
-        fractional = to_scaled(positions, cell)
-    fractional -= shift
+    relative_pos = positions if relative else to_scaled(positions, cell)
+    relative_pos -= shift
 
-    for i, periodic in enumerate(pbc):
-        if periodic:
-            fractional[:, i] %= 1.0
-        fractional[:, i] += shift[i]
-    if cell is not None:
-        return np.dot(fractional, cell)
+    if pretty_translation:
+        relative_pos = translate_pretty(relative_pos, pbc)
+        shift = np.asarray(center) - 0.5
+        shift[np.logical_not(pbc)] = 0.0
+        relative_pos += shift
     else:
-        return fractional
+        for i, periodic in enumerate(pbc):
+            if periodic:
+                relative_pos[:, i] %= 1.0
+                relative_pos[:, i] += shift[i]
+
+    return relative_pos if relative else to_cartesian(relative_pos, cell)
+
+
+def unwrap_positions(
+        positions: NDArray[Any],
+        cell: NDArray[Any],
+        pbc: Union[bool, NDArray[Any]],
+        relative=False) -> NDArray[Any]:
+    '''
+    Unwraps the given positions so that continuous structures are not broken by
+    cell boundaries.
+
+    Args:
+        positions: Positions of the atoms. Whether these are cartesian or
+            relative is controlled by the 'relative' argument.
+        cell: Lattice vectors.
+        pbc: For each axis in the unit cell decides whether the positions will
+            be wrapped along this axis.
+        center: The position in fractional coordinates that the wrapped
+            positions will be nearest possible to.
+        eps: Small number to prevent slightly negative coordinates from being
+            wrapped.
+        relative: If true, the input and output positions are given relative to
+            the unit cell. Otherwise the positions are cartesian.
+    '''
+    pbc = pbc2pbc(pbc)
+    if not any(pbc):
+        return positions
+
+    relative_pos = positions if relative else to_scaled(positions, cell)
+    center_of_pos = get_center_of_positions(relative_pos, pbc=pbc, relative=True)
+    relative_shifted = relative_pos + ([[0.5, 0.5, 0.5]] - center_of_pos)
+    wrapped_relative_pos = wrap_positions(relative_shifted, pbc=pbc, relative=True)
+
+    return wrapped_relative_pos if relative else to_cartesian(wrapped_relative_pos, cell)
 
 
 def chemical_symbols(atomic_numbers: Iterable[int]) -> List[str]:
