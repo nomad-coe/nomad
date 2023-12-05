@@ -151,6 +151,7 @@ export class Filter {
     this.labelFull = parentName ? `${parentName} ${this.label}` : this.label
 
     this.parent = parent
+    this.group = params.group
     this.placeholder = params?.placeholder
     this.multiple = params?.multiple === undefined
       ? multiTypes.has(this.dtype)
@@ -172,8 +173,8 @@ export class Filter {
     this.serializerExact = params?.serializerExact || getSerializer(this.dtype, false)
     this.serializerPretty = params?.serializerPretty || getSerializer(this.dtype, true)
     this.deserializer = params?.deserializer || getDeserializer(this.dtype, this.dimension)
-    this.aggregatable = def?.aggregatable === undefined ? false : def?.aggregatable
-    this.widget = params?.widget || getWidgetConfig(this.dtype, def?.aggregatable)
+    this.aggregatable = params?.aggregatable === undefined ? false : params?.aggregatable
+    this.widget = params?.widget || getWidgetConfig(this.dtype, params?.aggregatable)
 
     if (this.default && !this.global) {
       throw Error(`Error constructing filter for ${this.name}: only filters that do not correspond to a metainfo value may have default values set.`)

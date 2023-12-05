@@ -270,8 +270,18 @@ def test_quantity_values(indices, example_data):
     pytest.param(
         {"search_quantities": {"id": f"data.text{schema_separator}tests.test_search.DataSection", "str_value": "one"}}, 0, id='uses-nested'),
 ])
-def test_search_query_dynamic(indices, example_eln_data, api_query, total):
-    '''Tests that search queries targeting dynamic quantities work for different data types.'''
+def test_search_quantities(indices, example_eln_data, api_query, total):
+    '''Tests that search queries targeting search_quantities work for different data types.'''
+    results = search(owner='all', query=WithQuery(query=api_query).query)
+    assert results.pagination.total == total  # pylint: disable=no-member
+
+
+@pytest.mark.parametrize('api_query, total', [
+    pytest.param({'nexus.NXiv_temp.ENTRY.DATA.temperature__field:gt': 0}, 1, id='nexus float'),
+    pytest.param({'nexus.NXiv_temp.ENTRY.definition__field': 'NXiv_temp'}, 1, id='nexus str'),
+])
+def test_search_query_nexus(indices, example_data_nexus, api_query, total):
+    '''Tests that search queries targeting nexus works correctly.'''
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
 

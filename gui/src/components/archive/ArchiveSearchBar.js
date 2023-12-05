@@ -21,7 +21,7 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { Paper, Tooltip, IconButton } from '@material-ui/core'
 import SearchIcon from '@material-ui/icons/Search'
-import { CustomPaper, useStyles } from '../search/SearchBar'
+import { useStyles } from '../search/SearchBar'
 import { InputMetainfo } from '../search/input/InputMetainfo'
 
 /**
@@ -48,13 +48,11 @@ const ArchiveSearchBar = React.memo(({options, group, onChange, className}) => {
       onChange={setValue}
       onSelect={handleSelect}
       onAccept={handleAccept}
-      PaperComponent={CustomPaper}
       options={options}
       group={group}
       TextFieldProps={{
         variant: "outlined",
         placeholder: "Type your keyword here",
-        className: styles.textField,
         size: "medium"
       }}
       InputProps={{

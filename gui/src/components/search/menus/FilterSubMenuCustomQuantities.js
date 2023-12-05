@@ -269,7 +269,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
       const response = await api.post('entries/query', {
         'owner': 'visible',
         'query': {
-          'quantities': 'data'
+          'quantities:any': ['data', 'nexus']
         },
         'pagination': {
           'page_size': 0

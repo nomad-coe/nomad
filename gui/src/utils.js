@@ -1391,7 +1391,7 @@ export const alphabet = [
  *   filtering them based on the input.
  */
 export function getSuggestions(
-  values, minLength = 2, category, text = (value) => value) {
+  values, minLength = 2, category) {
   const options = values
     .map(value => {
       const optionCleaned = value.trim().replace(/_/g, ' ').toLowerCase()
@@ -1401,7 +1401,6 @@ export function getSuggestions(
       return {
         value: value,
         category: category,
-        text: text && text(value),
         tokens: tokens
       }
     })

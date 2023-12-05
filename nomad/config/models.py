@@ -101,6 +101,18 @@ class OptionsBase(StrictSettings):
         return included and not excluded
 
 
+class OptionsGlob(StrictSettings):
+    '''Controls the availability of different options with the possibility of
+    using glob/wildcard syntax.
+    '''
+    include: Optional[List[str]] = Field(description='''
+        List of included options. Supports glob/wildcard syntax.
+    ''')
+    exclude: Optional[List[str]] = Field(description='''
+        List of excluded options. Supports glob/wildcard syntax. Has higher precedence than include.
+    ''')
+
+
 class Options(OptionsBase):
     '''Common configuration class used for enabling/disabling certain
     elements and defining the configuration of each element.
@@ -956,12 +968,19 @@ class FilterMenus(Options):
     options: Optional[Dict[str, FilterMenu]] = Field(description='Contains the available filter menu options.')
 
 
-class Schemas(OptionsBase):
-    '''Controls the availability of schemas.'''
-
-
-class Filters(OptionsBase):
-    '''Controls the availability of filters.'''
+class Filters(OptionsGlob):
+    '''Controls the availability of filters in the app. Filters are pieces of
+    (meta)info than can be queried in the search interface of the app, but also
+    targeted in the rest of the app configuration. The `include` and `exlude`
+    attributes can use glob syntax to target metainfo, e.g. `results.*` or
+    `*.#myschema.schema.MySchema`.
+    '''
+    include: Optional[List[str]] = Field(description='''
+        List of included options. Supports glob/wildcard syntax.
+    ''')
+    exclude: Optional[List[str]] = Field(description='''
+        List of excluded options. Supports glob/wildcard syntax. Has higher precedence than include.
+    ''')
 
 
 class Layout(StrictSettings):
@@ -1087,7 +1106,6 @@ class App(StrictSettings):
         description='Controls the display of entry rows in the results table.'
     )
     filter_menus: FilterMenus = Field(description='Filter menus displayed on the left side of the screen.')
-    schemas: Optional[Schemas] = Field(description='Controls the schemas that are available in this app.')
     filters: Optional[Filters] = Field(
         Filters(exclude=['mainfile', 'entry_name', 'combine']),
         description='Controls the filters that are available in this app.'

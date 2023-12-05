@@ -178,6 +178,7 @@ if TYPE_CHECKING:
 schema_separator = '#'
 dtype_separator = '#'
 yaml_prefix = 'entry_id:'
+nexus_prefix = 'nexus.'
 
 
 class DocumentType():
@@ -993,8 +994,8 @@ class SearchQuantity():
         '''Returns a filter for this quantity.
         '''
         if self.dynamic:
-            path, schema_name = self.qualified_name.split(schema_separator, 1)
-            searchable_quantity = create_searchable_quantity(self.definition, path, schema_name=schema_name)
+            path, schema, _ = parse_quantity_name(self.qualified_name)
+            searchable_quantity = create_searchable_quantity(self.definition, path, schema_name=schema)
             filter_path = Q('term', search_quantities__id=searchable_quantity.id)
 
             return filter_path
@@ -1472,6 +1473,11 @@ def create_searchable_quantity(
 
 
 def parse_quantity_name(name: str) -> Tuple[str, Optional[str], Optional[str]]:
+    '''Used to parse a quantity name into three parts:
+      - path: Path in the schema
+      - schema (optional): Schema identifider
+      - dtype (optional): Data type contained in the name
+    '''
     dtype = None
     schema = None
     parts = name.split(schema_separator, 1)

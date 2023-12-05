@@ -42,6 +42,12 @@ columns:
     upload_create_time:
       label: 'Upload time'
       align: 'left'
+# Dictionary of search filters that are always enabled for queries made within
+# this app. This is especially important to narrow down the results to the
+# wanted subset. Any available search filter can be targeted here.
+filters_locked:
+  upload_create_time:
+    gte: 0
 # Controls the filter menus shown on the left
 filter_menus:
   options:
@@ -52,12 +58,6 @@ filter_menus:
       label: 'Elements / Formula'
       level: 1
       size: 'xl'
-# Dictionary of search filters that are always enabled for queries made within
-# this app. This is especially important to narrow down the results to the
-# wanted subset. Any available search filter can be targeted here.
-filters_locked:
-  upload_create_time:
-    gte: 0
 # Controls the default dashboard shown in the search interface
 dashboard:
   widgets:
@@ -120,16 +120,20 @@ ui:
 If no explicit rules are added in `ui.apps.include` or `ui.apps.exclude`, these
 new options will be included by default.
 
-## Adding schemas into an app
+## Using schema quantities in an app
 
-Each app may define the schemas that should be enabled in it. By adding a schema
-into the app, an additional selection of quantities from that schema will be
-available for use in the app. This means that these quantities can be queried in
-the search interface of the app, but also targeted in the rest of the app
-configuration as explained below in
-[using quantities from a schema within an app](#using-quantities-from-a-schema-within-an-app).
+Each app may define additional **filters** that should be enabled in it. Filters
+have a special meaning in the app context: filters are pieces of (meta)info than
+can be queried in the search interface of the app, but also targeted in the rest
+of the app configuration as explained below in. By default, none of the
+quantities from custom schemas are loaded as filters, and they need to be
+explicitly added.
 
-### Schema names
+!!! note
+
+    Note that not all of the quantities from a custom schema can be exposed as
+    filters. At the moment we only support targeting **scalar** quantities from
+    custom schemas.
 
 Each schema has a unique name within the NOMAD ecosystem, which is needed to
 target them in the configuration. The name depends on the resource in which the
@@ -145,34 +149,33 @@ if you have uploaded a schema YAML file containing a section definition called
 `MySchema`, and it has been assigned an `entry_id`, the schema name will be
 `entry_id:<entry_id>.MySchema`.
 
-Schemas may be included or excluded by using the [`schemas`](#schemas) field
-in the app config:
+The quantities from schemas may be included or excluded as filter by using the
+[`filters`](#filters) field in the app config. This option supports a
+wildcard/glob syntax for including/excluding certain filters. For example, to
+include all filters from the Python schema defined in the class
+`myschema.schema.MySchema`, you could use:
 
 ```yaml
 myapp:
-  schemas:
+  filters:
     include:
-      - 'myschema.schema.MySchema'
+      - '*#myschema.schema.MySchema'
 ```
 
-YAML schemas are not known at run-time, so they can only be targeted by using
-the full path, whereas python schemas can also be targeted by using a glob
-pattern, e.g.
+The same thing for a YAML schema could be achieved with:
 
 ```yaml
 myapp:
-  schemas:
+  filters:
     include:
-      - 'myschema.*'
+      - '*#entry_id:<entry_id>.MySchema'
 ```
 
-### Using quantities from a schema within an app
-
-Once a schema is included in an app, the quantities from it can be targeted in
-the rest of the app. The app configuration often refers to specific quantities
-in a schema to configure parts of the user interface. For example, one could
-configure the results table to show a new column using one of the schema
-quantities with:
+Once quantities from a schema are included in an app as filters, they can be
+targeted in the rest of the app. The app configuration often refers to specific
+filters to configure parts of the user interface. For example,
+one could configure the results table to show a new column using one of the
+schema quantities with:
 
 ```yaml
 myapp:
@@ -194,13 +197,6 @@ by a hashtag (#), for example `data.mysection.myquantity#entry_id:<entry_id>.MyS
 - Quantities that are common for all NOMAD entries can be targeted by using only
 the path without the need for specifying a schema, e.g. `results.material.symmetry.space_group`.
 
-!!! note
-
-    Note that not all of the quantities from a custom schema will be available
-    for e.g. usage in the search interface. At the moment we only support
-    targeting **scalar** quantities from custom schemas.
-
 ## App configuration reference
-
 
 {{ pydantic_model('nomad.config.models.App')}}

@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -57,7 +56,6 @@ import {
   formatNumber,
   setToArray,
   parseQuantityName,
-  getOptions,
   rsplit,
   parseOperator
 } from '../../utils'
@@ -196,7 +194,7 @@ export const SearchContextRaw = React.memo(({
   initialFilterMenus,
   initialPagination,
   initialDashboard,
-  initialFilters,
+  initialFilterData,
   initialFilterGroups,
   initialFilterValues,
   children
@@ -218,22 +216,12 @@ export const SearchContextRaw = React.memo(({
   const indexLocked = useRef(0)
 
   // Initialize the set of filters that are available in this context
-  const {initialFilterPaths, initialFilterData, initialFilterAbbreviations} = useMemo(() => {
-    const filterPathsList = getOptions(initialFilters)
-    const initialFilterPaths = new Set(filterPathsList)
-    const initialFilterData = Object.fromEntries(filterPathsList.map(
-      (name) => {
-        if (!initialFilters.options[name]) {
-          const error = `Filter definition for ${name} not found.`
-          raiseError(error)
-          throw Error(error)
-        }
-        return [name, initialFilters.options[name]]
-      }
-    ))
-    const initialFilterAbbreviations = getAbbreviations(initialFilterData)
-    return {initialFilterPaths, initialFilterData, initialFilterAbbreviations}
-  }, [initialFilters, raiseError])
+  const {initialFilterPaths, initialFilterAbbreviations} = useMemo(() => {
+    return {
+      initialFilterPaths: new Set(Object.keys(initialFilterData)),
+      initialFilterAbbreviations: getAbbreviations(initialFilterData)
+    }
+  }, [initialFilterData])
 
   // The final set of columns
   const columns = useMemo(() => {
@@ -385,7 +373,7 @@ export const SearchContextRaw = React.memo(({
       initialAggs,
       filterDefaults
     ]
-  }, [initialFilterData, initialFilterPaths, initialFilterAbbreviations, initialFilterValues])
+  }, [initialFilterData, initialFilterAbbreviations, initialFilterValues, initialFilterPaths])
 
   // Atoms + setters and getters are used instead of regular React states to
   // avoid re-rendering components that are not depending on these values. The
@@ -479,10 +467,12 @@ export const SearchContextRaw = React.memo(({
       key: `filtersData_${contextID}`,
       default: initialFilterData
     })
+
     const filterNamesState = selector({
       key: `filters${contextID}`,
       get: ({get}) => new Set(Object.keys(get(filtersDataState)))
     })
+
     const queryFamily = atomFamily({
       key: `queryFamily_${contextID}`,
       default: (name) => initialQuery[name]
@@ -1652,13 +1642,12 @@ SearchContextRaw.propTypes = {
   initialFilterMenus: PropTypes.object,
   initialPagination: PropTypes.object,
   initialDashboard: PropTypes.object,
-  initialFilters: PropTypes.object, // Determines which filters are available
+  initialFilterData: PropTypes.object, // Determines which filters are available
   initialFilterGroups: PropTypes.object, // Maps filter groups to a set of filter names
   initialFilterValues: PropTypes.object, // Here one can provide default filter values
   children: PropTypes.node
 }
 
-// export const SearchContext = withQueryString(withFilters(SearchContextRaw))
 export const SearchContext = compose(withQueryString, withFilters)(SearchContextRaw)
 
 /**
