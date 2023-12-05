@@ -136,6 +136,7 @@ def _all_metainfo_packages():
         _all_metainfo_environment = Environment()
         for package in Package.registry.values():
             _all_metainfo_environment.m_add_sub_section(Environment.packages, package)
+
     return _all_metainfo_environment
 
 
@@ -162,9 +163,10 @@ def _generate_search_quantities():
             metadict['aggregatable'] = search_quantity.aggregatable
             metadict['dynamic'] = search_quantity.dynamic
             if search_quantity.dynamic:
-                _, schema = search_quantity.qualified_name.split(schema_separator, 1)
-                metadict['schema'] = schema
-                keys.append('schema')
+                splitted = search_quantity.qualified_name.split(schema_separator, 1)
+                if len(splitted) == 2:
+                    metadict['schema'] = splitted[1]
+                    keys.append('schema')
 
         result = {}
         for key in keys:

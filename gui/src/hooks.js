@@ -142,8 +142,8 @@ export function useSuggestions(quantitiesSuggest, quantitiesAll, input, filterDa
               if (esSuggestions) {
                 suggestionsTemp[quantity.name] = esSuggestions.map(suggestion => ({
                   category: quantity.name,
-                  value: suggestion.value,
-                  text: `${quantity.name}=${suggestion.value}`
+                  value: suggestion.value
+                  // text: `${quantity.name}=${suggestion.value}`
                 }))
               }
             }

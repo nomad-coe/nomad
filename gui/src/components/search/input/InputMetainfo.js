@@ -34,9 +34,9 @@ import { VariableSizeList } from 'react-window'
 import { InputText } from './InputText'
 
 /**
- * Wrapper around InputText that is specialized in showing metainfo options.
+ * A metainfo option shown as a suggestion.
  */
-export const useInputStyles = makeStyles(theme => ({
+export const useMetainfoOptionStyles = makeStyles(theme => ({
   optionText: {
     flexGrow: 1,
     overflowX: 'scroll',
@@ -70,6 +70,43 @@ export const useInputStyles = makeStyles(theme => ({
     }
   }
 }))
+export const MetainfoOption = ({id, options}) => {
+  const styles = useMetainfoOptionStyles()
+  const option = options[id]
+  const primary = option.primary || option.definition?.quantity || option.key
+  const dtype = option.dtype || option.definition?.dtype
+  const schema = getSchemaAbbreviation(option.schema || option.definition?.schema)
+  const secondary = option.secondary || ((dtype || schema)
+    ? `${dtype} ${schema ? `| ${schema}` : ''}`
+    : null)
+  const description = option.description || option.definition?.description
+
+  return <div className={styles.option}>
+    <ListItemText
+      primary={primary}
+      secondary={secondary}
+      className={styles.optionText}
+      primaryTypographyProps={{className: styles.noWrap}}
+      secondaryTypographyProps={{className: styles.noWrap}}
+    />
+    {description &&
+      <Tooltip title={description || ''}>
+        <div className="description">
+          <HelpOutlineIcon fontSize="small" color="action"/>
+        </div>
+      </Tooltip>
+    }
+  </div>
+}
+
+MetainfoOption.propTypes = {
+  id: PropTypes.string,
+  options: PropTypes.object
+}
+
+/**
+ * Wrapper around InputText that is specialized in showing metainfo options.
+ */
 export const InputMetainfo = React.memo(({
   label,
   value,
@@ -84,10 +121,9 @@ export const InputMetainfo = React.memo(({
   TextFieldProps,
   InputProps,
   PaperComponent,
-  group
+  group,
+  loading
 }) => {
-  const styles = useInputStyles()
-
   // Predefine all option objects, all option paths and also pre-tokenize the
   // options for faster matching.
   const { keys, keysSet, filter } = useMemo(() => {
@@ -150,30 +186,8 @@ export const InputMetainfo = React.memo(({
     renderGroup={group && renderGroup}
     getOptionLabel={option => option}
     filterOptions={filterOptions}
-    renderOption={(key) => {
-      const option = options[key]
-      const primary = option.primary || option.definition?.name || option.key
-      const dtype = option.dtype || option.definition?.dtype
-      const schema = getSchemaAbbreviation(option.schema || option.definition?.schema)
-      const secondary = option.secondary || `${dtype} ${schema ? `| ${schema}` : ''}`
-      const description = option.description || option.definition?.description
-      return <div className={styles.option}>
-        <ListItemText
-          primary={primary}
-          secondary={secondary}
-          className={styles.optionText}
-          primaryTypographyProps={{className: styles.noWrap}}
-          secondaryTypographyProps={{className: styles.noWrap}}
-        />
-        {description &&
-          <Tooltip title={description || ''}>
-            <div className="description">
-              <HelpOutlineIcon fontSize="small" color="action"/>
-            </div>
-          </Tooltip>
-        }
-      </div>
-    }}
+    loading={loading}
+    renderOption={(id) => <MetainfoOption id={id} options={options} />}
   />
 })
 
@@ -200,7 +214,8 @@ InputMetainfo.propTypes = {
   group: PropTypes.bool, // Set to true if group should be shown
   TextFieldProps: PropTypes.object,
   InputProps: PropTypes.object,
-  PaperComponent: PropTypes.any
+  PaperComponent: PropTypes.any,
+  loading: PropTypes.bool
 }
 
 InputMetainfo.defaultProps = {
@@ -280,7 +295,7 @@ InputSearchMetainfo.propTypes = {
 /**
  * Custom virtualized list component for displaying metainfo values.
  */
-const ListboxMetainfo = React.forwardRef((props, ref) => {
+export const ListboxMetainfo = React.forwardRef((props, ref) => {
   const { children, ...other } = props
   const itemSize = 64
   const headerSize = 40
@@ -336,9 +351,9 @@ const OuterElementType = React.forwardRef((props, ref) => {
   return <div ref={ref} {...props} {...outerProps} />
 })
 
-const renderGroup = (params) => [
+export const renderGroup = (params) => [
   <ListSubheader key={params.key} component="div">
-    {params.group}
+    {`${params.group} suggestions`}
   </ListSubheader>,
   params.children
 ]

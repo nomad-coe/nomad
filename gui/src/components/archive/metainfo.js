@@ -18,6 +18,7 @@
 
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
+import { isEmpty } from 'lodash'
 import { useErrors } from '../errors'
 import { useApi } from '../api'
 import { useDataStore } from '../DataStore'
@@ -231,9 +232,35 @@ export class Metainfo {
    */
   getDefByQualifiedName(qualifiedName) {
     const defQualifiedNameSegments = qualifiedName.split('.')
-    const packageName = defQualifiedNameSegments.slice(0, -1).join('.')
-    const sectionName = defQualifiedNameSegments[defQualifiedNameSegments.length - 1]
-    return this._packageDefs[packageName || '*']?._sections?.[sectionName]
+    let def
+
+    // Nexus inner sections require special handling as they are not stored at
+    // the package root
+    if (qualifiedName.startsWith('nexus.')) {
+      const pkg = this._packageDefs[defQualifiedNameSegments.shift()]
+      const sectionName = defQualifiedNameSegments.shift()
+      for (const section_def of pkg.section_definitions) {
+        if (sectionName === section_def.name) {
+          def = section_def
+          break
+        }
+      }
+      for (const part of defQualifiedNameSegments) {
+        for (const inner_section_def of def.inner_section_definitions) {
+          if (part === inner_section_def.name) {
+            def = inner_section_def
+            break
+          }
+        }
+      }
+    } else {
+      const packageName = defQualifiedNameSegments.slice(0, -1).join('.')
+      const sectionName = defQualifiedNameSegments[defQualifiedNameSegments.length - 1]
+      const pkg = this._packageDefs[packageName || '*']
+      def = pkg?._sections?.[sectionName]
+    }
+
+    return def
   }
 
   /**
@@ -781,25 +808,36 @@ export function traverse(section, definition, path, callback) {
 }
 
 /**
- * Allows to traverse a given section through all its sub-sections.
+ * Generator for efficiently returning all quantities of a section. Note that
+ * speed becomes quite important with very large metainfo.
  *
- * @param {Object} section The section to traverse
  * @param {Object} definition The definition of the section
- * @param {str} path The archive path to the section
- * @param {function} callback The callback that is called on each section
+ * @param {str} prefix The current path
+ * @param {array} branch Container that is populated with with add secion
+ * definitions that have been ancountered on a certain path through the
+ * metainfo. This information is used for avoiding loops that may be
+ * present in the metainfo.
+ *
  */
-export function traverseDefinition(definition, path = '', callback) {
-  callback(definition, path)
+export function * getQuantities(definition, prefix, branch, repeats = false) {
+  if (!branch) {
+    branch = new Set()
+  }
   if (definition._allProperties) {
     for (const def of definition._allProperties) {
-      const childPath = path ? `${path}.${def.name}` : def.name
-      traverseDefinition(def, childPath, callback)
+        const quantityName = prefix ? `${prefix}.${def.name}` : def.name
+        if (def.m_def === 'nomad.metainfo.metainfo.Quantity') {
+          yield [def, quantityName, repeats || !isEmpty(def.shape)]
+        } else {
+          yield * getQuantities(def, quantityName, new Set(branch), repeats || def.repeats)
+        }
     }
   }
-  if (definition.sub_section) {
-    for (const def of definition.sub_section._allProperties) {
-      traverseDefinition(def, `${path}.${def.name}`, callback)
-    }
+  const sub_section_def = definition.sub_section
+  if (sub_section_def) {
+    if (branch.has(sub_section_def)) return
+    branch.add(sub_section_def)
+    yield * getQuantities(sub_section_def, prefix, branch, repeats)
   }
 }
 

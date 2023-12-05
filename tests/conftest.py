@@ -991,6 +991,45 @@ def example_data_schema_python(elastic_module, raw_files_module, mongo_module, t
 
 
 @pytest.fixture(scope='function')
+def example_data_nexus(elastic_module, raw_files_module, mongo_module, test_user, normalized):
+    '''
+    Contains entries that store data using a python schema.
+    '''
+    data = ExampleData(main_author=test_user)
+    upload_id = 'id_nexus_published'
+
+    data.create_upload(
+        upload_id=upload_id,
+        upload_name=upload_id,
+        published=True)
+    data.create_entry(
+        upload_id=upload_id,
+        entry_id=f'test_entry_nexus',
+        mainfile=f'test_content/test.archive.json',
+        search_quantities=[
+            SearchableQuantity(
+                id=f'nexus.NXiv_temp.ENTRY.DATA.temperature__field',
+                definition='nexus.NXiv_temp.ENTRY.DATA.temperature__field',
+                path_archive='nexus.NXiv_temp.ENTRY.0.DATA.0.temperature__field',
+                float_value=273.15
+            ),
+            SearchableQuantity(
+                id=f'nexus.NXiv_temp.ENTRY.definition__field',
+                definition='nexus.NXiv_temp.NXentry.definition__field',
+                path_archive='nexus.NXiv_temp.ENTRY.0.definition__field',
+                str_value='NXiv_temp'
+            ),
+        ]
+    )
+    data.save(with_files=False)
+
+    yield
+
+    # The data is deleted after fixture goes out of scope
+    data.delete()
+
+
+@pytest.fixture(scope='function')
 def example_data_schema_yaml(elastic_module, raw_files, no_warn, raw_files_module, mongo_module, test_user, normalized):
     '''
     Contains entries that store data using a python schema.

@@ -20,22 +20,16 @@ import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import assert from 'assert'
 import { isNil, has } from 'lodash'
-import Autocomplete from '@material-ui/lab/Autocomplete'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
-import CloseIcon from '@material-ui/icons/Close'
-import {
-  TextField,
-  CircularProgress,
-  Paper,
-  Tooltip,
-  ListItemText
-} from '@material-ui/core'
+import { Paper, Tooltip } from '@material-ui/core'
 import IconButton from '@material-ui/core/IconButton'
-import { DType, getSchemaAbbreviation } from '../../utils'
+import { DType } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext } from './SearchContext'
 import { quantityNameSearch } from './FilterRegistry'
+import { MetainfoOption, ListboxMetainfo, renderGroup } from './input/InputMetainfo'
+import { InputText } from './input/InputText'
 
 const opMap = {
   '<=': 'lte',
@@ -52,11 +46,6 @@ const opMapReverse = {
 
 const numericTypes = new Set([DType.Timestamp, DType.Int, DType.Float])
 
-// Customized paper component for the autocompletion options
-export const CustomPaper = (props) => {
-  return <Paper elevation={3} {...props} />
-}
-
 export const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
@@ -68,20 +57,6 @@ export const useStyles = makeStyles(theme => ({
   },
   iconButton: {
     padding: 10
-  },
-  divider: {
-    height: '2rem'
-  },
-  endAdornment: {
-    position: 'static'
-  },
-  examples: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 'calc(100% + 4px)',
-    padding: theme.spacing(2),
-    fontStyle: 'italic'
   }
 }))
 
@@ -103,8 +78,6 @@ const SearchBar = React.memo(({
   } = useSearchContext()
   const [inputValue, setInputValue] = useState('')
   const [suggestionInput, setSuggestionInput] = useState('')
-  const [highlighted, setHighlighted] = useState({value: ''})
-  const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
   const filtersLocked = useFiltersLocked()
   const updateFilter = useUpdateFilter()
@@ -156,6 +129,31 @@ const SearchBar = React.memo(({
     return quantitiesAll.filter((q) => suggestionNames.has(q.name))
   }, [quantitiesAll, suggestionNames])
   const [suggestions, loading] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput, filterData)
+  const {options, keys} = useMemo(() => {
+    const keys = []
+    const options = {}
+    for (const suggestion of suggestions) {
+      let filter, key, primary
+      if (suggestion.category === quantityNameSearch) {
+        filter = filterData[suggestion.value]
+        key = suggestion.value
+        primary = filter?.quantity || suggestion.value
+      } else {
+        key = `${suggestion.category}=${suggestion.value}`
+        primary = key
+      }
+      keys.push(key)
+      options[key] = {
+        key: key,
+        group: suggestion.category,
+        dtype: filter?.dtype,
+        schema: filter?.schema,
+        primary: primary,
+        description: filter?.description
+      }
+    }
+    return {options, keys}
+  }, [suggestions, filterData])
 
   // Used to check the validity of the given quantity name
   const checkMetainfo = useCallback((name) => {
@@ -171,8 +169,8 @@ const SearchBar = React.memo(({
 
   // Triggered when a value is submitted by pressing enter or clicking the
   // search icon.
-  const handleSubmit = useCallback(() => {
-    if (inputValue.trim().length === 0) {
+  const handleSubmit = useCallback((value) => {
+    if (!value?.trim()?.length) {
       return
     }
     const reString = '[^\\s=<>](?:[^=<>]*[^\\s=<>])?'
@@ -183,7 +181,7 @@ const SearchBar = React.memo(({
     let comparison = true
 
     // Presence query
-    const presence = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*\\*\\s*$`))
+    const presence = value.match(new RegExp(`^\\s*(${reString})\\s*=\\s*\\*\\s*$`))
     if (presence) {
       quantityFullname = `quantities`
       queryValue = parseQuery(quantityFullname, presence[1])
@@ -192,7 +190,7 @@ const SearchBar = React.memo(({
 
     // Equality query
     if (!valid) {
-      const equals = inputValue.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
+      const equals = value.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
       if (equals) {
         const quantityName = equals[1]
         const [fullName, error] = checkMetainfo(quantityName)
@@ -214,7 +212,7 @@ const SearchBar = React.memo(({
 
     // Simple LTE/GTE query
     if (!valid) {
-      const ltegte = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
+      const ltegte = value.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
       if (ltegte) {
         const a = ltegte[1]
         const op = ltegte[2]
@@ -252,7 +250,7 @@ const SearchBar = React.memo(({
 
     // Sandwiched LTE/GTE query
     if (!valid) {
-      const ltegteSandwich = inputValue.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
+      const ltegteSandwich = value.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
       if (ltegteSandwich) {
         const a = ltegteSandwich[1]
         const op1 = ltegteSandwich[2]
@@ -297,54 +295,25 @@ const SearchBar = React.memo(({
           : new Set([...old, ...queryValue])
       }])
       setInputValue('')
-      setOpen(false)
     } else {
       setError(`Invalid query`)
     }
-  }, [inputValue, checkMetainfo, updateFilter, filterData, parseQuery, filtersLocked])
+  }, [checkMetainfo, updateFilter, filterData, parseQuery, filtersLocked])
 
-  // Handle clear button
-  const handleClose = useCallback(() => {
-    setInputValue('')
-    setOpen(false)
+  const handleSelect = useCallback((key) => {
+    setInputValue(key)
   }, [])
-
-  const handleHighlight = useCallback((event, value, reason) => {
-    setHighlighted(value)
-  }, [])
-
-  // When enter is pressed, select currently highlighted value and close menu,
-  // or if menu is not open submit the value.
-  const handleEnter = useCallback((event) => {
-    if (event.key === 'Enter') {
-      if (open && highlighted?.text) {
-        setInputValue(highlighted.text)
-        setOpen(false)
-      } else {
-        handleSubmit()
-      }
-      event.stopPropagation()
-      event.preventDefault()
-    }
-  }, [open, highlighted, handleSubmit])
 
   // Handle typing events. After a debounce time has expired, a list of
   // suggestion will be retrieved if they are available for this metainfo and
   // the input is deemed meaningful.
-  const handleInputChange = useCallback((event, value, reason) => {
+  const handleInputChange = useCallback((value) => {
     setError(error => error ? undefined : null)
     setInputValue(value)
     value = value?.trim()
     if (!value) {
       setSuggestionInput('')
-      setOpen(false)
       return
-    } else {
-      setOpen(true)
-    }
-    if (reason !== 'input') {
-      setSuggestionInput('')
-      setOpen(false)
     }
 
     // If some input is given, and the quantity supports suggestions, we use
@@ -369,71 +338,37 @@ const SearchBar = React.memo(({
   }, [quantitiesSuggestable, filterFullnames])
 
   return <Paper className={clsx(className, styles.root)}>
-    <Autocomplete
-      className={styles.input}
-      freeSolo
-      clearOnBlur={false}
-      inputValue={inputValue}
-      value={null}
-      open={open}
-      onOpen={() => { if (inputValue.trim() !== '') { setOpen(true) } }}
-      onClose={() => setOpen(false)}
-      fullWidth
-      disableClearable
-      PaperComponent={CustomPaper}
-      classes={{endAdornment: styles.endAdornment}}
-      groupBy={(option) => option.category}
-      options={suggestions}
-      onInputChange={handleInputChange}
-      onHighlightChange={handleHighlight}
-      getOptionLabel={(option) => option.text}
-      // Notice that we need to override the default filterOptions as it is
-      // performing unwanted filtering.
-      filterOptions={(options) => options}
-      renderOption={(opt) => {
-        const option = filterData?.[opt.value]
-        const dtype = option?.dtype || option?.definition?.dtype
-        const schema = getSchemaAbbreviation(option?.schema || option?.definition?.schema)
-        const primary = option?.quantity || opt.value
-        const secondary = option && `${dtype} ${schema ? `| ${schema}` : ''}`
-        return <ListItemText
-          primary={primary}
-          secondary={secondary}
-        />
+    <InputText
+      value={inputValue || null}
+      onChange={handleInputChange}
+      onSelect={handleSelect}
+      onAccept={handleSubmit}
+      suggestions={keys}
+      ListboxComponent={ListboxMetainfo}
+      TextFieldProps={{
+        variant: 'outlined',
+        placeholder: 'Type your query or keyword here',
+        label: error || undefined,
+        error: !!error,
+        InputLabelProps: { shrink: true },
+        size: "medium"
       }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          className={styles.textField}
-          variant="outlined"
-          placeholder="Type your query or keyword here"
-          label={error || undefined}
-          error={!!error}
-          onKeyDown={handleEnter}
-          InputLabelProps={{ shrink: true }}
-          InputProps={{
-            ...params.InputProps,
-            classes: {
-              notchedOutline: styles.notchedOutline
-            },
-            startAdornment: <Tooltip title="Add filter">
-              <IconButton onClick={handleSubmit} className={styles.iconButton} aria-label="search">
-                <SearchIcon />
-              </IconButton>
-            </Tooltip>,
-            endAdornment: (<>
-              {loading ? <CircularProgress color="inherit" size={20} /> : null}
-              {(inputValue?.length || null) && <>
-                <Tooltip title="Clear">
-                  <IconButton onClick={handleClose} className={styles.iconButton} aria-label="clear">
-                    <CloseIcon />
-                  </IconButton>
-                </Tooltip>
-              </>}
-            </>)
-          }}
-        />
-      )}
+      InputProps={{
+        classes: {
+          notchedOutline: styles.notchedOutline
+        },
+        startAdornment: <Tooltip title="Add filter">
+          <IconButton onClick={() => handleSubmit(inputValue)} className={styles.iconButton} aria-label="search">
+            <SearchIcon />
+          </IconButton>
+        </Tooltip>
+      }}
+      groupBy={(key) => options?.[key]?.group}
+      renderGroup={renderGroup}
+      getOptionLabel={option => option}
+      filterOptions={(options) => options}
+      loading={loading}
+      renderOption={(id) => <MetainfoOption id={id} options={options} />}
     />
   </Paper>
 })

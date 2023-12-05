@@ -33,6 +33,7 @@ partially implemented.
 '''
 
 from typing import Union, List, Tuple, Iterable, Any, cast, Dict, Iterator, Generator, Callable, Optional
+import sys
 import re
 import fnmatch
 import math
@@ -49,7 +50,7 @@ from nomad import config, infrastructure, utils
 from nomad import datamodel
 from nomad.app.v1.models import models
 from nomad.datamodel import EntryArchive, EntryMetadata, user_reference, author_reference
-from nomad.metainfo import Quantity, Datetime
+from nomad.metainfo import Quantity, Datetime, Package
 from nomad.app.v1.models.models import (
     AggregationPagination, Criteria, MetadataPagination, Pagination, PaginationResponse,
     QuantityAggregation, Query, MetadataRequired,
@@ -62,8 +63,29 @@ from nomad.metainfo.elasticsearch_extension import (
     index_entries, entry_type, entry_index, DocumentType,
     material_type, entry_type, material_entry_type,
     entry_index, Index, DocumentType, SearchQuantity, create_dynamic_quantity_annotation, update_materials,
-    get_searchable_quantity_value_field, schema_separator, yaml_prefix, parse_quantity_name
+    get_searchable_quantity_value_field, schema_separator, yaml_prefix, nexus_prefix, parse_quantity_name
 )
+
+
+_metainfo_initialized = False
+
+
+def _import_nexus_metainfo():
+    '''The nexus metainfo may not have been imported, and needs to be loaded
+    here.'''
+    global _metainfo_initialized
+    if _metainfo_initialized:
+        return
+
+    from nomad.parsing import nexus
+
+    module = sys.modules.get('pynxtools')
+    if module:
+        pkg: Package = getattr(module, 'm_package', None)
+        if pkg is not None and isinstance(pkg, Package):
+            if (pkg.name not in Package.registry):
+                pkg.__init_metainfo__()
+    _metainfo_initialized = True
 
 
 class AggType(str, Enum):
@@ -314,7 +336,7 @@ def _api_to_es_required(required: MetadataRequired, pagination: MetadataPaginati
 
     def includes_dynamic(include):
         for pattern in [] if include is None else include:
-            if pattern.startswith('data'):
+            if pattern.startswith('data') or pattern.startswith('nexus'):
                 return True
         return False
 
@@ -460,7 +482,10 @@ def _es_to_entry_dict(hit, required: MetadataRequired = None, requires_filtering
                         if key in search_quantity:
                             dtype = value
                             break
-                    quantity = get_yaml_quantity(path, schema, dtype, doc_type)
+                    quantity = get_quantity(Quantity(type=dtype), path, schema, doc_type)
+                elif path.startswith(nexus_prefix):
+                    definition = get_definition(path)
+                    quantity = get_quantity(definition, path, schema, doc_type)
                 else:
                     continue
             value_field_name = get_searchable_quantity_value_field(quantity.annotation)
@@ -468,6 +493,7 @@ def _es_to_entry_dict(hit, required: MetadataRequired = None, requires_filtering
                 continue
             value = search_quantity[value_field_name]
             flattened_dict[path_archive] = value
+
         entry_dict.update(utils.rebuild_dict(flattened_dict))
 
     # Here we do additional filtering that could not be done by ES directly
@@ -532,16 +558,30 @@ class QueryValidationError(Exception):
         self.errors = [ErrorWrapper(Exception(error), loc=loc)]
 
 
-def get_yaml_quantity(path, schema, dtype, doc_type):
-    '''Creates a SearchQuantity definition for a YAML quantity.
+def get_quantity(definition, path, schema, doc_type):
+    '''Creates a SearchQuantity definition for the given quantity definition.
     '''
-    quantity_def = Quantity(type=dtype)
-    annotation = create_dynamic_quantity_annotation(quantity_def, doc_type)
-    quantity = SearchQuantity(
-        annotation,
-        qualified_name=f'{path}{schema_separator}{schema}'
-    )
+    annotation = create_dynamic_quantity_annotation(definition, doc_type)
+    qualified_name = f'{path}{schema_separator}{schema}' if schema else path
+    quantity = SearchQuantity(annotation, qualified_name=qualified_name)
     return quantity
+
+
+def get_definition(path):
+    parts = path.split('.')
+    package = Package.registry.get(parts.pop(0))
+    root = None
+    section_name = parts.pop(0)
+    for section in package.section_definitions:
+        if section.name == section_name:
+            root = section
+            break
+    for i_part, part in enumerate(parts):
+        if i_part == len(parts) - 1:
+            root = root.all_quantities[part]
+        else:
+            root = root.all_sub_sections[part].sub_section
+    return root
 
 
 def validate_quantity(
@@ -566,9 +606,14 @@ def validate_quantity(
     if doc_type is None:
         doc_type = entry_type
 
+    # Primarily, look for the definition in the pre-registered static search
+    # quantities.
     quantity = doc_type.quantities.get(quantity_name)
+
     if quantity is None:
         path, schema, dtype = parse_quantity_name(quantity_name)
+        # Queries targeting YAML are translated into dynamic quantity searches
+        # on the fly using the provided data type.
         if schema and schema.startswith(yaml_prefix):
             datatype = {
                 'int': int,
@@ -584,7 +629,18 @@ def validate_quantity(
                     'that target a custom YAML schema.'),
                     loc=[quantity_name] if loc is None else loc
                 )
-            quantity = get_yaml_quantity(path, schema, datatype, doc_type)
+            quantity = get_quantity(Quantity(type=datatype), path, schema, doc_type)
+        # Queries targeting nexus are translated into dynamic quantity searches
+        # on the fly by looking at the definition in the metainfo.
+        elif path.startswith(nexus_prefix):
+            try:
+                definition = get_definition(path)
+                quantity = get_quantity(definition, path, schema, doc_type)
+            except Exception as e:
+                raise QueryValidationError(
+                    f'Could not find the definition for "{path}" in the metainfo.',
+                    loc=[quantity_name] if loc is None else loc
+                ) from e
         else:
             raise QueryValidationError(
                 f'{quantity_name} is not a {doc_type} quantity',
@@ -1397,6 +1453,10 @@ def search(
         aggregations: Dict[str, Aggregation] = {},
         user_id: str = None,
         index: Index = entry_index) -> MetadataResponse:
+
+    # Lazy-loading of the the metainfo definitions. When done in this manner,
+    # the definitions do not slow down other parts unnecessarily.
+    _import_nexus_metainfo()
 
     # If histogram aggregations only provide the number of buckets, we need to
     # separately query the min/max values before forming the histogram

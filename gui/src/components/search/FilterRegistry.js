@@ -18,7 +18,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { useGlobalMetainfo, traverseDefinition } from '../archive/metainfo'
+import { useGlobalMetainfo, getQuantities } from '../archive/metainfo'
 import { setToArray, DType, getSuggestions, getOptions, getDatatype, glob, parseQuantityName } from '../../utils'
 import { searchQuantities, schemaSeparator, dtypeSeparator, yamlSchemaPrefix } from '../../config'
 import { Filter, getEnumOptions } from './Filter'
@@ -29,6 +29,14 @@ import { useErrors } from '../errors'
 // Containers for filter information
 export const defaultFilterGroups = {} // Mapping from a group name -> set of filter names
 export const defaultFilterData = {} // Stores data for each registered filter
+const dtypeMap = {
+  [DType.Int]: 'int',
+  [DType.Float]: 'float',
+  [DType.Timestamp]: 'datetime',
+  [DType.String]: 'str',
+  [DType.Enum]: 'str',
+  [DType.Boolean]: 'bool'
+}
 
 // Ids for the filter menus: used to tie filter chips to a specific menu.
 const idElements = 'elements'
@@ -91,12 +99,9 @@ function addToGroup(groups, groupName, quantityName) {
  * @param {obj} config Data object containing options for the filter.
  */
 function saveFilter(name, group, config, parent) {
-  if (group) {
-    addToGroup(defaultFilterGroups, group, name)
-  }
   const def = searchQuantities[name]
   const {path: quantity, schema} = parseQuantityName(name)
-  const newConf = {...(config || {}), quantity, schema, name: config?.name || def?.name || name}
+  const newConf = {...(config || {}), quantity, schema, name: config?.name || def?.name || name, aggregatable: def?.aggregatable, group: group}
   const data = defaultFilterData[name] || new Filter(def, newConf, parent)
   defaultFilterData[name] = data
   return data
@@ -128,7 +133,7 @@ function registerFilterOptions(name, group, target, label, description, options)
       aggs: {
         terms: {
           set: ((target) => (config) => ({quantity: target, include: keys, ...config}))(target),
-          get: ((target) => (agg) => agg)(target)
+          get: (() => (agg) => agg)(target)
         }
       },
       value: {
@@ -367,7 +372,7 @@ registerFilter('custom_quantities', idCustomQuantities, {
   },
   multiple: false,
   value: {
-    set: (newQuery, oldQuery, value) => {
+    set: () => {
       // TODO: We ignore the query here, it is later added to the final API query.
       // We had to do this hack, because there is not way to add a logical query
       // behind a prefix.
@@ -691,8 +696,7 @@ export function getStaticSuggestions(quantities, filterData) {
       suggestions[quantity] = getSuggestions(
         options,
         minLength,
-        quantity,
-        (value) => `${quantity}=${value}`
+        quantity
       )
     }
   }
@@ -714,36 +718,115 @@ export function getStaticSuggestions(quantities, filterData) {
  * any components that rely on them.
  */
 export const withFilters = (WrappedComponent) => {
-  const WithFilters = ({initialSchemas, initialFilters, ...rest}) => {
-    // Here we load the python schemas, and determine which YAML schemas to download
-    const [yamlSchemas, initialFilterData, initialFilterGroups] = useMemo(() => {
-      const yamlSchemas = getOptions(initialSchemas)
-        .filter((name) => name.startsWith(yamlSchemaPrefix))
+  const WithFilters = ({initialFilters, ...rest}) => {
+    // Here we load the python schemas, and determine which YAML/Nexus schemas
+    // to load later.
+    const [yamlOptions, nexusOptions, initialFilterData, initialFilterGroups] = useMemo(() => {
+      const options = getOptions(initialFilters)
+      const yamlOptions = options.filter((name) => name.includes(`#${yamlSchemaPrefix}`))
+      const nexusOptions = options.filter((name) => name.startsWith('nexus.'))
+
+      // Perform glob filtering on default filters. Only exclude affects the
+      // default filters.
+      const defaultFilters = {}
+      for (const [key, value] of Object.entries(defaultFilterData)) {
+        if (glob(key, [key], initialFilters?.exclude)) {
+          defaultFilters[key] = value
+          if (value.group) {
+            addToGroup(defaultFilterGroups, value.group, key)
+          }
+        }
+      }
+
+      // Load the python filters from plugins
       const pythonFilterData = {}
       const mergedFilterGroups = {...defaultFilterGroups}
       for (const [name, def] of Object.entries(searchQuantities)) {
-        if (def.dynamic && glob(def.schema, initialSchemas?.include, initialSchemas?.exclude)) {
+        if (def.dynamic && glob(name, initialFilters?.include, initialFilters?.exclude)) {
           const {path, schema} = parseQuantityName(name)
-          pythonFilterData[name] = new Filter(def, {name: path, quantity: path, schema})
+          const params = {
+            name: path,
+            quantity: path,
+            schema,
+            aggregatable: def.aggregatable
+          }
+          pythonFilterData[name] = new Filter(def, params)
           addToGroup(mergedFilterGroups, idCustomQuantities, name)
         }
       }
 
       return [
-        yamlSchemas,
-        {...defaultFilterData, ...pythonFilterData},
+        yamlOptions,
+        nexusOptions,
+        {...defaultFilters, ...pythonFilterData},
         mergedFilterGroups
       ]
-    }, [initialSchemas])
+    }, [initialFilters])
+
     const metainfo = useGlobalMetainfo()
+    const [loadingYaml, setLoadingYaml] = useState(yamlOptions.length)
+    const [loadingNexus, setLoadingNexus] = useState(nexusOptions.length)
+    const [filters, setFilters] = useState(initialFilterData)
+    const [filterGroups, setFilterGroups] = useState({...initialFilterGroups})
     const { raiseError } = useErrors()
-    const [loading, setLoading] = useState(yamlSchemas.length)
-    const [filters, setFilters] = useState({...initialFilters, options: initialFilterData})
-    const [filterGroups, setFilterGroups] = useState(initialFilterGroups)
+
+    // Nexus metainfo is loaded here once metainfo is ready
+    useEffect(() => {
+      if (!nexusOptions.length || !metainfo) return
+      const pkg = metainfo._packageDefs['nexus']
+      const sections = pkg.section_definitions
+      const nexusFilters = {}
+      const nexusFilterGroups = {}
+      for (const section of sections) {
+        const sectionPath = `nexus.${section.name}`
+
+        // The NeXus section is skipped (it contains duplicate information)
+        if (sectionPath === 'nexus.NeXus') continue
+
+        // Only applications definitions are loaded
+        if (section?.more?.nx_category !== 'application') continue
+
+        // Sections from which no quantities are included are skipped
+        if (!glob(sectionPath, initialFilters?.include, initialFilters?.exclude) && !initialFilters?.include.some(x => x.includes(sectionPath))) {
+          continue
+        }
+
+        // Add all included quantities recursively
+        for (const [def, path, repeats] of getQuantities(section)) {
+          const filterPath = `${sectionPath}.${path}`
+          const included = glob(filterPath, initialFilters?.include, initialFilters?.exclude)
+          if (!included) continue
+          const dtype = dtypeMap[getDatatype(def)]
+          // TODO: For some Nexus quantities, the data types cannot be fetched.
+          if (!dtype) {
+            continue
+          }
+          const params = {
+            name: filterPath,
+            quantity: filterPath,
+            aggregatable: new Set([DType.String, DType.Enum, DType.Boolean]).has(getDatatype(def)),
+            repeats: repeats
+          }
+          nexusFilters[filterPath] = new Filter(def, params)
+          addToGroup(nexusFilterGroups, idCustomQuantities, filterPath)
+        }
+      }
+      setFilters((old) => ({...old, ...nexusFilters}))
+      setFilterGroups((old) => {
+        const newGroups = {...old}
+        for (const [groupName, names] of Object.entries(nexusFilterGroups)) {
+          for (const quantityName of [...names]) {
+            addToGroup(newGroups, groupName, quantityName)
+          }
+        }
+        return newGroups
+      })
+      setLoadingNexus(false)
+    }, [metainfo, nexusOptions, initialFilters])
 
     // YAML schemas are loaded here asynchronously
     useEffect(() => {
-      if (!yamlSchemas.length || !metainfo) return
+      if (!yamlOptions.length || !metainfo) return
       async function fetchSchemas(options) {
         const yamlFilters = {}
         const yamlFilterGroups = {}
@@ -752,33 +835,28 @@ export const withFilters = (WrappedComponent) => {
           try {
             schemaDefinition = await metainfo.resolveDefinition(schemaPath)
           } catch (e) {
-            raiseError(`Unable to load the schema ${schemaPath} defined for this app. Please check that the path is correct and you have access to it.`)
+            raiseError(`
+              Unable to load the schema ${schemaPath} that is used in this app.
+              If the schema has not been published, please make sure that you
+              are logged in and have the correct access rights.
+            `)
             throw e
           }
-          traverseDefinition(schemaDefinition, 'data', (def, path) => {
-            if (def.m_def !== 'nomad.metainfo.metainfo.Quantity') return
-            let dtype = getDatatype(def)
-            dtype = {
-              [DType.Int]: 'int',
-              [DType.Float]: 'float',
-              [DType.Timestamp]: 'datetime',
-              [DType.String]: 'str',
-              [DType.Enum]: 'str',
-              [DType.Boolean]: 'bool'
-            }[dtype]
+          for (const [def, path] of getQuantities(schemaDefinition)) {
+            const dtype = dtypeMap[getDatatype(def)]
             if (!dtype) {
               throw Error(`Unable to load the data type for ${path}.`)
             }
-            const filterPath = `${path}${schemaSeparator}${schemaPath}`
+            const filterPath = `data.${path}${schemaSeparator}${schemaPath}`
+            const included = glob(filterPath, initialFilters?.include, initialFilters?.exclude)
+            if (!included) continue
             const apiPath = `${filterPath}${dtypeSeparator}${dtype}`
             const {path: quantity, schema} = parseQuantityName(filterPath)
             yamlFilters[filterPath] = new Filter(def, {name: path, schema, quantity, requestQuantity: apiPath})
             addToGroup(yamlFilterGroups, idCustomQuantities, filterPath)
-          })
+          }
         }
-        setFilters((old) => {
-          return {...old, options: {...old.options, ...yamlFilters}}
-        })
+        setFilters((old) => ({...old, ...yamlFilters}))
         setFilterGroups((old) => {
           const newGroups = {...old}
           for (const [groupName, names] of Object.entries(yamlFilterGroups)) {
@@ -788,16 +866,20 @@ export const withFilters = (WrappedComponent) => {
           }
           return newGroups
         })
-        setLoading(false)
+        setLoadingYaml(false)
       }
-      fetchSchemas(yamlSchemas)
-    }, [yamlSchemas, metainfo, raiseError])
 
-    return loading
+      // Get a list of all distinct YAML schemas. These are loaded one by one
+      // and the required filters are registered from each.
+      const yamlSchemas = new Set(yamlOptions.map(x => x.split('#').pop()))
+      fetchSchemas(yamlSchemas)
+    }, [yamlOptions, metainfo, raiseError, initialFilters])
+
+    return (loadingYaml || loadingNexus)
       ? <Box margin={1}>
           <Typography>Loading the required schemas...</Typography>
         </Box>
-      : <WrappedComponent {...rest} initialFilters={filters} initialFilterGroups={filterGroups}/>
+      : <WrappedComponent {...rest} initialFilterData={filters} initialFilterGroups={filterGroups}/>
   }
 
   WithFilters.displayName = `withFilter(${WrappedComponent.displayName || WrappedComponent.name})`
