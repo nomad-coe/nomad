@@ -103,6 +103,19 @@ class Schema(PythonPluginBase):
     ''')
 
 
+class Normalizer(PythonPluginBase):
+    '''
+    A Normalizer describes a NOMAD normalizer that can be loaded as a plugin.
+    '''
+    normalizer_class_name: str = Field(description='''
+        The fully qualified name of the Python class that implements the normalizer.
+        This class must have a function `def normalize(self, logger)`.
+    ''')
+    plugin_type: Literal['normalizer'] = Field('normalizer', description='''
+        The type of the plugin. This has to be the string `normalizer` for normalizer plugins.
+    ''')
+
+
 class Parser(PythonPluginBase):
     '''
     A Parser describes a NOMAD parser that can be loaded as a plugin.
@@ -205,8 +218,7 @@ class Parser(PythonPluginBase):
         return MatchingParserInterface(**data)
 
 
-Plugin = Annotated[Union[Schema, Parser], Field(discriminator='plugin_type')]
-
+Plugin = Annotated[Union[Schema, Normalizer, Parser], Field(discriminator='plugin_type')]
 
 class Plugins(Options):
     options: Dict[str, Plugin] = Field(dict(), description='The available plugin.')

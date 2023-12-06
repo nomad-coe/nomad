@@ -15,5 +15,6 @@ rm -rf nomad-oasis-with-plugins/.volumes nomad-oasis-with-plugins/configs nomad-
 cp -r nomad-oasis/configs nomad-oasis/docker-compose.yaml nomad-oasis/.volumes nomad-oasis-with-plugins/
 git clone https://github.com/nomad-coe/nomad-schema-plugin-example.git ./nomad-oasis-with-plugins/nomad-schema-plugin-example
 git clone https://github.com/nomad-coe/nomad-parser-plugin-example.git ./nomad-oasis-with-plugins/nomad-parser-plugin-example
+git clone https://github.com/nomad-coe/nomad-normalizer-plugin-example.git ./nomad-oasis-with-plugins/nomad-normalizer-plugin-example
 cat nomad-oasis-with-plugins/nomad.yaml >> nomad-oasis-with-plugins/configs/nomad.yaml
 zip -r $project_dir/docs/assets/nomad-oasis-with-plugins.zip nomad-oasis-with-plugins -x "**/.gitignore" -x "nomad-oasis-with-plugins/nomad.yaml"

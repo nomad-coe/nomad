@@ -39,3 +39,6 @@
 [submodule "examples/plugins/parser"]
 	path = examples/plugins/parser
 	url = https://github.com/nomad-coe/nomad-parser-plugin-example.git
+[submodule "examples/plugins/normalizer"]
+	path = examples/plugins/normalizer
+	url = https://github.com/nomad-coe/nomad-normalizer-plugin-example.git
