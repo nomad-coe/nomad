@@ -540,6 +540,8 @@ class ExperimentStep(ActivityStep):
             self.start_time = self.activity.datetime
 
     def to_task(self) -> Task:
+        if self.activity is None:
+            return Task(name=self.name)
         return TaskReference(task=self.activity.m_parent.workflow2)
 
 
