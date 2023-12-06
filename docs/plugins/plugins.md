@@ -7,7 +7,7 @@ We support different kinds of plugins:
 
 - Python **schema**
 - **parser**
-- **normalizer** (coming soon...)
+- **normalizer**
 - additional custom **APIs** (coming soon...)
 
 ## Develop a plugin
@@ -20,6 +20,7 @@ add plugins to a NOMAD installation.
 
 - [schema plugin](https://github.com/nomad-coe/nomad-schema-plugin-example)
 - [parser plugin](https://github.com/nomad-coe/nomad-parser-plugin-example)
+- [normalizer plugin](https://github.com/nomad-coe/nomad-normalizer-plugin-example.git)
 
 ### Plugin anatomy
 
@@ -97,6 +98,7 @@ Now follow the instructions for one of our examples and try for yourself:
 
 - [schema plugin](https://github.com/nomad-coe/nomad-schema-plugin-example)
 - [parser plugin](https://github.com/nomad-coe/nomad-parser-plugin-example)
+- [normalizer plugin](https://github.com/nomad-coe/nomad-normalizer-plugin-example)
 
 
 ## Publish a plugin
@@ -201,7 +203,7 @@ directory via the volumes section of the `app` and `worker` services in your `do
 
 For example, you can do this by adding an extension to the `docker-compose.yaml`, e.g. a file called
 `docker-compose.plugins.yaml`. Assuming you cloned the example plugins above into the Oasis folder as
-`./nomad-schema-plugin-example` and `./nomad-parser-plugin-example`,
+`./nomad-schema-plugin-example`, `./nomad-parser-plugin-example` and `./nomad-normalizer-plugin-example`,
 your `docker-compose.plugins.yaml` should look like this:
 
 ```yaml
@@ -210,10 +212,12 @@ services:
     volumes:
       - ./nomad-schema-plugin-example/nomadschemaexample:/app/plugins/nomadschemaexample
       - ./nomad-parser-plugin-example/nomadparserexample:/app/plugins/nomadparserexample
+      - ./nomad-normalizer-plugin-example/nomadparserexample:/app/plugins/nomadparserexample
   app:
     volumes:
       - ./nomad-schema-plugin-example/nomadschemaexample:/app/plugins/nomadschemaexample
       - ./nomad-parser-plugin-example/nomadparserexample:/app/plugins/nomadparserexample
+      - ./nomad-normalizer-plugin-example/nomadparserexample:/app/plugins/nomadparserexample
 ```
 
 You have to tell docker that there are now two compose files. This can be done via the
@@ -233,6 +237,7 @@ cd nomad-oasis-with-plugins
 sudo chown -R 1000 .volumes
 sudo chown -R 1000 nomad-schema-plugin-example
 sudo chown -R 1000 nomad-parser-plugin-example
+sudo chown -R 1000 nomad-normalizer-plugin-example
 export COMPOSE_FILE=docker-compose.yaml:docker-compose.plugins.yaml
 docker compose pull
 docker compose up -d

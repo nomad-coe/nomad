@@ -1,5 +1,6 @@
 nomad-schema-plugin-example/
 nomad-parser-plugin-example/
+nomad-normalizer-plugin-example/
 configs/
 docker-compose.yaml
 !nomad.yaml

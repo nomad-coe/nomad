@@ -46,10 +46,18 @@ from .normalizer import Normalizer
 
 normalizers: List[Type[Normalizer]] = []
 
-for normalizer in config.normalize.normalizers.filtered_values():
+def add_normalizer(class_name: str):
     try:
-        package, cls = normalizer.rsplit('.', 1)
+        package, cls = class_name.rsplit('.', 1)
         normalizer = getattr(importlib.import_module(package), cls)
         normalizers.append(normalizer)
     except Exception as e:
-        raise ImportError(f'Cannot import normalizer {normalizer}', e)
+        raise ImportError(f'Cannot import normalizer {class_name}', e)
+
+
+for plugin_name, plugin in config.plugins.options.items():
+    if isinstance(plugin, config.Normalizer) and config.plugins.filter(plugin_name):
+        add_normalizer(plugin.normalizer_class_name)
+
+for normalizer in config.normalize.normalizers.filtered_values():
+    add_normalizer(normalizer)
