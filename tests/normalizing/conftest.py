@@ -22,10 +22,14 @@ from ase import Atoms
 import ase.build
 import re
 from warnings import warn
+import importlib
 
+from nomad import config
 from nomad.units import ureg
+from nomad.utils import get_logger
 from nomad.normalizing import normalizers
-from nomad.datamodel import EntryArchive
+from nomad.metainfo import SubSection, Quantity, Reference
+from nomad.datamodel import EntryArchive, ArchiveSection
 from nomad.datamodel.results import (
     Relation,
     SymmetryNew as Symmetry,
@@ -45,31 +49,9 @@ from nomad.datamodel.metainfo.simulation.system import (
 from nomad.datamodel.metainfo.simulation.calculation import (
     Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies,
     RadiusOfGyration, RadiusOfGyrationValues, GreensFunctions, Spectra, ElectronicStructureProvenance)
-from nomad.datamodel.metainfo.simulation.workflow import (
-    DiffusionConstantValues,
-    MolecularDynamicsMethod,
-    MeanSquaredDisplacement,
-    MeanSquaredDisplacementValues,
-    MolecularDynamicsResults,
-    RadialDistributionFunction,
-    RadialDistributionFunctionValues,
-    SinglePoint,
-    GeometryOptimization,
-    GeometryOptimizationMethod,
-    Elastic,
-    ElasticResults,
-    MolecularDynamics,
-    EquationOfState,
-    EquationOfStateResults,
-    EOSFit,
-)
+from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.datamodel.metainfo.workflow import (
     Link, TaskReference
-)
-from nomad.datamodel.metainfo.simulation.workflow import (
-    GWMethod, GW as GWworkflow, DMFTMethod, DMFT as DMFTworkflow, PhotonPolarization,
-    PhotonPolarizationMethod, PhotonPolarizationResults, XS as XSworkflow, MaxEntMethod,
-    MaxEnt as MaxEntworkflow
 )
 from nomad.datamodel.metainfo.measurements import (
     Measurement, Sample, EELSMeasurement, Spectrum, Instrument
@@ -85,6 +67,15 @@ from tests.parsing.test_parsing import parsed_template_example  # pylint: disabl
 from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parse_file
 from tests.test_files import create_test_upload_files
+
+
+simulationworkflowschema = None
+for plugin in config.plugins.filtered_values():
+    if isinstance(plugin, config.Schema) and plugin.name == 'simulationworkflowschema':
+        simulationworkflowschema = importlib.import_module(plugin.python_package)
+
+
+SCHEMA_IMPORT_ERROR = 'Schema not defined.'
 
 
 def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
@@ -174,7 +165,8 @@ def get_template_dft() -> EntryArchive:
     method.dft = DFT(xc_functional=xc_functional)
     scc = run.calculation[-1]
     scc.method_ref = method
-    template.workflow2 = GeometryOptimization()
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.GeometryOptimization()
     return template
 
 
@@ -193,7 +185,8 @@ def get_template_excited(type: str) -> EntryArchive:
         method.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
     scc = run.calculation[-1]
     scc.method_ref = method
-    template.workflow2 = SinglePoint()
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
 
 
@@ -218,7 +211,8 @@ def get_template_tb_wannier() -> EntryArchive:
     ))
     scc = run.calculation[-1]
     scc.method_ref = method
-    template.workflow2 = SinglePoint()
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
 
 
@@ -238,7 +232,8 @@ def get_template_dmft() -> EntryArchive:
     method_dmft.starting_method_ref = input_method
     scc = run.calculation[-1]
     scc.method_ref = method_dmft
-    template.workflow2 = SinglePoint()
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
 
 
@@ -252,7 +247,8 @@ def get_template_maxent() -> EntryArchive:
     method = run.m_create(Method)
     scc = run.calculation[-1]
     scc.method_ref = method
-    template.workflow2 = SinglePoint()
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
 
 
@@ -528,18 +524,19 @@ def get_template_gw_workflow() -> EntryArchive:
     run = template.m_create(Run)
     run.program = archive_dft.run[-1].program
     run.system = archive_dft.run[-1].system
-    workflow = GWworkflow()
-    workflow.name = 'GW'
-    workflow_method = GWMethod(
-        gw_method_ref=archive_gw.run[-1].method[-1].gw,
-        starting_point=archive_dft.run[-1].method[-1].dft.xc_functional,
-        electrons_representation=archive_dft.run[-1].method[-1].electrons_representation[-1])
-    workflow.m_add_sub_section(GWworkflow.method, workflow_method)
-    workflow.m_add_sub_section(GWworkflow.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
-    workflow.m_add_sub_section(GWworkflow.outputs, Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]))
-    workflow.m_add_sub_section(GWworkflow.tasks, task_dft)
-    workflow.m_add_sub_section(GWworkflow.tasks, task_gw)
-    template.workflow2 = workflow
+    if simulationworkflowschema:
+        workflow = simulationworkflowschema.GW()
+        workflow.name = 'GW'
+        workflow_method = simulationworkflowschema.GWMethod(
+            gw_method_ref=archive_gw.run[-1].method[-1].gw,
+            starting_point=archive_dft.run[-1].method[-1].dft.xc_functional,
+            electrons_representation=archive_dft.run[-1].method[-1].electrons_representation[-1])
+        workflow.m_add_sub_section(simulationworkflowschema.GW.method, workflow_method)
+        workflow.m_add_sub_section(simulationworkflowschema.GW.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.GW.outputs, Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.GW.tasks, task_dft)
+        workflow.m_add_sub_section(simulationworkflowschema.GW.tasks, task_gw)
+        template.workflow2 = workflow
     return template
 
 
@@ -566,17 +563,18 @@ def get_template_dmft_workflow() -> EntryArchive:
     run = template.m_create(Run)
     run.program = archive_dmft.run[-1].program
     run.system = archive_tb.run[-1].system
-    workflow = DMFTworkflow()
-    workflow.name = 'DMFT'
-    workflow_method = DMFTMethod(
-        tb_method_ref=archive_tb.run[-1].method[-1].tb,
-        dmft_method_ref=archive_dmft.run[-1].method[-1].dmft)
-    workflow.m_add_sub_section(DMFTworkflow.method, workflow_method)
-    workflow.m_add_sub_section(DMFTworkflow.inputs, Link(name='Input structure', section=archive_tb.run[-1].system[-1]))
-    workflow.m_add_sub_section(DMFTworkflow.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
-    workflow.m_add_sub_section(DMFTworkflow.tasks, task_proj)
-    workflow.m_add_sub_section(DMFTworkflow.tasks, task_dmft)
-    template.workflow2 = workflow
+    if simulationworkflowschema:
+        workflow = simulationworkflowschema.DMFT()
+        workflow.name = 'DMFT'
+        workflow_method = simulationworkflowschema.DMFTMethod(
+            tb_method_ref=archive_tb.run[-1].method[-1].tb,
+            dmft_method_ref=archive_dmft.run[-1].method[-1].dmft)
+        workflow.m_add_sub_section(simulationworkflowschema.DMFT.method, workflow_method)
+        workflow.m_add_sub_section(simulationworkflowschema.DMFT.inputs, Link(name='Input structure', section=archive_tb.run[-1].system[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.DMFT.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.DMFT.tasks, task_proj)
+        workflow.m_add_sub_section(simulationworkflowschema.DMFT.tasks, task_dmft)
+        template.workflow2 = workflow
     return template
 
 
@@ -606,20 +604,21 @@ def get_template_maxent_workflow() -> EntryArchive:
     scc = run.m_create(Calculation)
     scc.system_ref = run.system[-1]
     template = add_template_dos(template)
-    workflow = MaxEntworkflow()
-    workflow.name = 'MaxEnt'
-    workflow_method = MaxEntMethod(
-        dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
-        maxent_method_ref=archive_maxent.run[-1].method[-1])
-    workflow.m_add_sub_section(MaxEntworkflow.method, workflow_method)
-    workflow.m_add_sub_section(MaxEntworkflow.inputs, Link(name='Input structure', section=archive_dmft.run[-1].system[-1]))
-    outputs = [
-        Link(name='Output MaxEnt Sigma calculation', section=archive_dmft.run[-1].calculation[-1]),
-        Link(name='Output MaxEnt calculation', section=template.run[-1].calculation[-1])]
-    workflow.outputs = outputs
-    workflow.m_add_sub_section(MaxEntworkflow.tasks, task_dmft)
-    workflow.m_add_sub_section(MaxEntworkflow.tasks, task_maxent)
-    template.workflow2 = workflow
+    if simulationworkflowschema:
+        workflow = simulationworkflowschema.MaxEnt()
+        workflow.name = 'MaxEnt'
+        workflow_method = simulationworkflowschema.MaxEntMethod(
+            dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
+            maxent_method_ref=archive_maxent.run[-1].method[-1])
+        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.method, workflow_method)
+        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.inputs, Link(name='Input structure', section=archive_dmft.run[-1].system[-1]))
+        outputs = [
+            Link(name='Output MaxEnt Sigma calculation', section=archive_dmft.run[-1].calculation[-1]),
+            Link(name='Output MaxEnt calculation', section=template.run[-1].calculation[-1])]
+        workflow.outputs = outputs
+        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.tasks, task_dmft)
+        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.tasks, task_maxent)
+        template.workflow2 = workflow
     return template
 
 
@@ -675,23 +674,24 @@ def get_template_bse_workflow() -> EntryArchive:
     run.system = archive_photon_1.run[-1].system
     method = run.m_create(Method)
     method.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
-    workflow = PhotonPolarization()
-    workflow.name = 'BSE'
-    workflow_method = PhotonPolarizationMethod(bse_method_ref=template.run[-1].method[-1].bse)
-    workflow.m_add_sub_section(PhotonPolarization.method, workflow_method)
-    spectras = [spectra_1, spectra_2]
-    workflow_results = PhotonPolarizationResults(
-        n_polarizations=2,
-        spectrum_polarization=spectras
-    )
-    workflow.m_add_sub_section(PhotonPolarization.results, workflow_results)
-    workflow.m_add_sub_section(PhotonPolarization.inputs, Link(name='Input structure', section=archive_photon_1.run[-1].system[-1]))
-    workflow.m_add_sub_section(PhotonPolarization.inputs, Link(name='Input BSE methodology', section=template.run[-1].method[-1]))
-    workflow.m_add_sub_section(PhotonPolarization.outputs, Link(name='Output polarization 1', section=archive_photon_1.run[-1].calculation[-1]))
-    workflow.m_add_sub_section(PhotonPolarization.outputs, Link(name='Output polarization 2', section=archive_photon_2.run[-1].calculation[-1]))
-    workflow.m_add_sub_section(PhotonPolarization.tasks, task_photon_1)
-    workflow.m_add_sub_section(PhotonPolarization.tasks, task_photon_2)
-    template.workflow2 = workflow
+    if simulationworkflowschema:
+        workflow = simulationworkflowschema.PhotonPolarization()
+        workflow.name = 'BSE'
+        workflow_method = simulationworkflowschema.PhotonPolarizationMethod(bse_method_ref=template.run[-1].method[-1].bse)
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.method, workflow_method)
+        spectras = [spectra_1, spectra_2]
+        workflow_results = simulationworkflowschema.PhotonPolarizationResults(
+            n_polarizations=2,
+            spectrum_polarization=spectras
+        )
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.results, workflow_results)
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.inputs, Link(name='Input structure', section=archive_photon_1.run[-1].system[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.inputs, Link(name='Input BSE methodology', section=template.run[-1].method[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.outputs, Link(name='Output polarization 1', section=archive_photon_1.run[-1].calculation[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.outputs, Link(name='Output polarization 2', section=archive_photon_2.run[-1].calculation[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.tasks, task_photon_1)
+        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.tasks, task_photon_2)
+        template.workflow2 = workflow
     return template
 
 
@@ -723,14 +723,15 @@ def get_template_xs_workflow() -> EntryArchive:
     run = template.m_create(Run)
     run.program = archive_dft.run[-1].program
     run.system = archive_dft.run[-1].system
-    workflow = XSworkflow()
-    workflow.name = 'XS'
-    workflow.m_add_sub_section(XSworkflow.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
-    workflow.m_add_sub_section(XSworkflow.outputs, Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section))
-    workflow.m_add_sub_section(XSworkflow.outputs, Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section))
-    workflow.m_add_sub_section(XSworkflow.tasks, task_dft)
-    workflow.m_add_sub_section(XSworkflow.tasks, task_bse)
-    template.workflow2 = workflow
+    if simulationworkflowschema:
+        workflow = simulationworkflowschema.XS()
+        workflow.name = 'XS'
+        workflow.m_add_sub_section(simulationworkflowschema.XS.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
+        workflow.m_add_sub_section(simulationworkflowschema.XS.outputs, Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section))
+        workflow.m_add_sub_section(simulationworkflowschema.XS.outputs, Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section))
+        workflow.m_add_sub_section(simulationworkflowschema.XS.tasks, task_dft)
+        workflow.m_add_sub_section(simulationworkflowschema.XS.tasks, task_bse)
+        template.workflow2 = workflow
     return template
 
 
@@ -969,12 +970,13 @@ def mechanical_elastic() -> EntryArchive:
     template = get_template_dft()
 
     # Elastic workflow
-    template.workflow2 = Elastic()
-    template.workflow2.results = ElasticResults(
-        shear_modulus_hill=10000,
-        shear_modulus_reuss=10000,
-        shear_modulus_voigt=10000,
-    )
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.Elastic()
+        template.workflow2.results = simulationworkflowschema.ElasticResults(
+            shear_modulus_hill=10000,
+            shear_modulus_reuss=10000,
+            shear_modulus_voigt=10000,
+        )
 
     return run_normalize(template)
 
@@ -985,15 +987,16 @@ def mechanical_eos() -> EntryArchive:
     template = get_template_dft()
 
     # EOS workflow
-    template.workflow2 = EquationOfState()
-    template.workflow2.results = EquationOfStateResults(
-        volumes=np.linspace(0, 10, 10) * ureg.angstrom ** 3,
-        energies=np.linspace(0, 10, 10) * ureg.electron_volt,
-    )
-    eos_fit = template.workflow2.results.m_create(EOSFit)
-    eos_fit.function_name = 'murnaghan'
-    eos_fit.fitted_energies = np.linspace(0, 10, 10) * ureg.electron_volt
-    eos_fit.bulk_modulus = 10000
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.EquationOfState()
+        template.workflow2.results = simulationworkflowschema.EquationOfStateResults(
+            volumes=np.linspace(0, 10, 10) * ureg.angstrom ** 3,
+            energies=np.linspace(0, 10, 10) * ureg.electron_volt,
+        )
+        eos_fit = template.workflow2.results.m_create(simulationworkflowschema.equation_of_state.EOSFit)
+        eos_fit.function_name = 'murnaghan'
+        eos_fit.fitted_energies = np.linspace(0, 10, 10) * ureg.electron_volt
+        eos_fit.bulk_modulus = 10000
 
     return run_normalize(template)
 
@@ -1180,13 +1183,18 @@ def geometry_optimization() -> EntryArchive:
     scc2.method_ref = run.method[0]
     run.m_add_sub_section(Run.system, sys1)
     run.m_add_sub_section(Run.system, sys2)
-    template.workflow2 = GeometryOptimization(
-        method=GeometryOptimizationMethod(
-            convergence_tolerance_energy_difference=1e-3 * ureg.electron_volt,
-            convergence_tolerance_force_maximum=1e-11 * ureg.newton,
-            convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
-            method='bfgs'))
-    return run_normalize(template)
+
+    if simulationworkflowschema:
+        template.workflow2 = simulationworkflowschema.GeometryOptimization(
+            method=simulationworkflowschema.GeometryOptimizationMethod(
+                convergence_tolerance_energy_difference=1e-3 * ureg.electron_volt,
+                convergence_tolerance_force_maximum=1e-11 * ureg.newton,
+                convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
+                method='bfgs',
+                type='atomic'))
+        template.workflow2.normalize(template, get_logger(__name__))
+    run_normalize(template)
+    return template
 
 
 @pytest.fixture(scope='session')
@@ -1222,6 +1230,50 @@ def molecular_dynamics() -> EntryArchive:
         )]
         calcs.append(calc)
         run.m_add_sub_section(Run.calculation, calc)
+
+    class RadialDistributionFunctionValues(ArchiveSection):
+        bins = Quantity(type=np.float64, shape=['*'])
+        n_bins = Quantity(type=int)
+        value = Quantity(type=np.float64, shape=['*'])
+        frame_start = Quantity(type=int)
+        frame_end = Quantity(type=int)
+        label = Quantity(type=str)
+
+    class RadialDistributionFunction(ArchiveSection):
+        type = Quantity(type=str)
+        radial_distribution_function_values = SubSection(
+            sub_section=RadialDistributionFunctionValues, repeats=True)
+
+    class DiffusionConstantValues(ArchiveSection):
+        value = Quantity(type=np.float64)
+        error_type = Quantity(type=str)
+        errors = Quantity(type=np.float64)
+
+    class MeanSquaredDisplacementValues(ArchiveSection):
+        times = Quantity(type=np.float64, shape=['*'])
+        n_times = Quantity(type=int)
+        value = Quantity(type=np.float64, shape=['*'])
+        label = Quantity(type=str)
+        errors = Quantity(type=np.float64, shape=['*'])
+        diffusion_constant = SubSection(sub_section=DiffusionConstantValues)
+
+    class MeanSquaredDisplacement(ArchiveSection):
+        type = Quantity(type=str)
+        direction = Quantity(type=str)
+        error_type = Quantity(type=str)
+        mean_squared_displacement_values = SubSection(sub_section=MeanSquaredDisplacementValues, repeats=True)
+
+    class MolecularDynamicsResults(ArchiveSection):
+        radial_distribution_functions = SubSection(sub_section=RadialDistributionFunction, repeats=True)
+        mean_squared_displacements = SubSection(sub_section=MeanSquaredDisplacement, repeats=True)
+
+    class MolecularDynamicsMethod(ArchiveSection):
+        thermodynamic_ensemble = Quantity(type=str)
+        integration_timestep = Quantity(type=np.float64, unit='s')
+
+    class MolecularDynamics(Workflow):
+        results = SubSection(sub_section=MolecularDynamicsResults)
+        method = SubSection(sub_section=MolecularDynamicsMethod)
 
     # Create workflow
     diff_values = DiffusionConstantValues(

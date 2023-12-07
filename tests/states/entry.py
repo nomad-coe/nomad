@@ -255,7 +255,7 @@ def bulk_modulus():
                 }
             },
             workflow={
-                'm_def': 'nomad.datamodel.metainfo.simulation.workflow.EquationOfState',
+                'm_def': 'simulationworkflowschema.EquationOfState',
                 'results': {
                     'calculation_result_ref': '/run/0/calculation/0',
                     'calculations_ref': ['/run/0/calculation/0'],
@@ -333,7 +333,7 @@ def trajectory():
                 }]
             },
             workflow={
-                'm_def': 'nomad.datamodel.metainfo.simulation.workflow.MolecularDynamics',
+                'm_def': 'simulationworkflowschema.MolecularDynamics',
                 'results': {
                     'calculation_result_ref': '/run/0/calculation/0',
                     'calculations_ref': ['/run/0/calculation/0'],
@@ -391,7 +391,7 @@ def dos_phonon():
                 }]
             },
             workflow={
-                'm_def': 'nomad.datamodel.metainfo.simulation.workflow.Phonon',
+                'm_def': 'simulationworkflowschema.Phonon',
                 'results': {
                     'calculation_result_ref': '/run/0/calculation/0',
                     'calculations_ref': ['/run/0/calculation/0'],

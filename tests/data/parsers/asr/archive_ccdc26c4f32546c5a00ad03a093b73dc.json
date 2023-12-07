@@ -355,7 +355,7 @@
             ]
         }
     ],
-    "workflow": {
-        "m_def": "nomad.datamodel.metainfo.simulation.workflow.GeometryOptimization"
+    "workflow2": {
+        "m_def": "simulationworkflowschema.geometry_optimization.GeometryOptimization"
     }
 }

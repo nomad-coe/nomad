@@ -220,6 +220,7 @@ class Parser(PythonPluginBase):
 
 Plugin = Annotated[Union[Schema, Normalizer, Parser], Field(discriminator='plugin_type')]
 
+
 class Plugins(Options):
     options: Dict[str, Plugin] = Field(dict(), description='The available plugin.')
 

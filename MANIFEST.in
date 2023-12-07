@@ -26,3 +26,7 @@ include dependencies/parsers/nexus/pynxtools/dataconverter/readers/hall/enum_map
 recursive-include dependencies/parsers/nexus/pynxtools/definitions *.xml *.xsd
 include dependencies/parsers/workflow/README.md
 recursive-include dependencies/parsers/workflow/workflowparsers *.py nomad_plugin.yaml
+include dependencies/normalizers/simulation/workflow/README.md
+recursive-include dependencies/normalizers/simulation/workflow/simulationworkflownormalizer *.py nomad_plugin.yaml
+include dependencies/schema/simulation/workflow/README.md
+recursive-include dependencies/schema/simulation/workflow/simulationworkflowschema *.py nomad_plugin.yaml

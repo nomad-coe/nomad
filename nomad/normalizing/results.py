@@ -32,7 +32,6 @@ from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
-from nomad.datamodel.metainfo.simulation.workflow import ThermodynamicsResults
 from nomad.normalizing.common import structures_2d
 from nomad.datamodel.results import (
     BandGap,
@@ -607,7 +606,7 @@ class ResultsNormalizer(Normalizer):
         workflow = self.entry_archive.workflow2
         if workflow is None or not hasattr(workflow, 'results'):
             return None
-        if not isinstance(workflow.results, ThermodynamicsResults):
+        if not workflow.results or not hasattr(workflow.results, 'temperature'):
             return None
 
         path = ["workflow2", "results"]
@@ -617,8 +616,8 @@ class ResultsNormalizer(Normalizer):
             energies = thermo_prop.vibrational_free_energy_at_constant_volume
             if valid_array(temperatures) and valid_array(energies):
                 energy_free = EnergyFreeHelmholtz()
-                energy_free.energies = thermo_prop
-                energy_free.temperatures = thermo_prop
+                energy_free.energies = energies
+                energy_free.temperatures = temperatures
                 return energy_free
 
         return None
@@ -634,7 +633,7 @@ class ResultsNormalizer(Normalizer):
         workflow = self.entry_archive.workflow2
         if workflow is None or not hasattr(workflow, 'results'):
             return None
-        if not isinstance(workflow.results, ThermodynamicsResults):
+        if not workflow.results or not hasattr(workflow.results, 'temperature'):
             return None
 
         path = ["workflow2", "results"]
@@ -643,8 +642,8 @@ class ResultsNormalizer(Normalizer):
             heat_capacities = thermo_prop.heat_capacity_c_v
             if valid_array(temperatures) and valid_array(heat_capacities):
                 heat_cap = HeatCapacityConstantVolume()
-                heat_cap.heat_capacities = thermo_prop
-                heat_cap.temperatures = thermo_prop
+                heat_cap.heat_capacities = heat_capacities
+                heat_cap.temperatures = temperatures
                 return heat_cap
 
         return None
@@ -662,7 +661,7 @@ class ResultsNormalizer(Normalizer):
                     geo_opt.trajectory = workflow.results.calculations_ref
                     if workflow.results.calculation_result_ref:
                         geo_opt.system_optimized = workflow.results.calculation_result_ref.system_ref
-                    geo_opt.energies = workflow.results
+                    geo_opt.energies = workflow.results.energies
                     geo_opt.final_energy_difference = workflow.results.final_energy_difference
                     geo_opt.final_force_maximum = workflow.results.final_force_maximum
                     geo_opt.final_displacement_maximum = workflow.results.final_displacement_maximum
@@ -1105,8 +1104,8 @@ class ResultsNormalizer(Normalizer):
         if valid_array(energies_raw):
             ev_curves.append(EnergyVolumeCurve(
                 type="raw",
-                volumes=workflow.results,
-                energies_raw=workflow.results,
+                volumes=workflow.results.volumes,
+                energies_raw=workflow.results.energies,
             ))
         else:
             self.logger.warning("missing eos energies")
@@ -1121,8 +1120,8 @@ class ResultsNormalizer(Normalizer):
             if valid_array(energies_fitted):
                 ev_curves.append(EnergyVolumeCurve(
                     type=function_name,
-                    volumes=workflow.results,
-                    energies_fit=fit,
+                    volumes=workflow.results.volumes,
+                    energies_fit=energies_fitted,
                 ))
 
         return ev_curves

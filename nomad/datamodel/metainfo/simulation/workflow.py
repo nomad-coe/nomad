@@ -44,6 +44,9 @@ from nomad.atomutils import (
     calc_molecular_radius_of_gyration)
 
 
+# TODO remove this after reprocessing with the new schema defined in
+# simulationworkflowschema plug in https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git
+
 def resolve_difference(values):
     delta_values = None
 

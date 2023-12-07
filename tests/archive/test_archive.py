@@ -35,6 +35,7 @@ from nomad.archive import (
     create_partial_archive, compute_required_with_referenced, RequiredReader,
 )
 from nomad.utils.exampledata import ExampleData
+from tests.normalizing.conftest import simulationworkflowschema, SCHEMA_IMPORT_ERROR
 
 
 def create_example_uuid(index: int = 0):
@@ -380,7 +381,7 @@ def json_dict():
         }
     ],
     "workflow2": {
-        "m_def": "nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow",
+        "m_def": "simulationworkflowschema.SimulationWorkflow",
         "results": {
             "calculation_result_ref": "/run/0/calculation/1"
         }
@@ -624,7 +625,7 @@ def example_data_with_reference(proc_infra, test_user, json_dict):
     del json_dict['results']
 
     for index, ref in enumerate(ref_list):
-        ref['m_def'] = 'nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow'
+        ref['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
         json_dict['workflow2'] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
@@ -699,7 +700,7 @@ def test_required_reader_with_remote_reference(
         json_dict, remote_reference_required, resolve_inplace,
         example_data_with_reference, test_user, entry_id, inplace_result):
     archive = {'workflow2': json_dict['workflow2']}
-    archive['workflow2']['m_def'] = 'nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow'
+    archive['workflow2']['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
     archive['workflow2']['tasks'] = [{
         'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
         'task': f'../entries/{entry_id}/archive#/workflow2'}]
@@ -919,7 +920,7 @@ def test_read_partial_archives(archive, mongo):
 def test_compute_required_with_referenced(archive):
     required = compute_required_with_referenced({
         'workflow2': {
-            'm_def': 'nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow',
+            'm_def': 'simulationworkflowschema',
             'results': {
                 'calculation_result_ref': {
                     'energy': {
@@ -953,7 +954,7 @@ def test_compute_required_with_referenced(archive):
 def test_compute_required_incomplete(archive):
     required = compute_required_with_referenced({
         'workflow2': {
-            'm_def': 'nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow',
+            'm_def': 'simulationworkflowschema.SimulationWorkflow',
             'results': {
                 'calculation_result_ref': {
                     'energy': {

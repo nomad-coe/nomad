@@ -181,6 +181,8 @@ where = [
     "dependencies/parsers/electronic",
     "dependencies/parsers/nexus",
     "dependencies/parsers/workflow",
+    "dependencies/normalizers/simulation/workflow",
+    "dependencies/schema/simulation/workflow"
 ]
 exclude = ["tests*"]
 namespaces = false
