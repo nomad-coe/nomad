@@ -21,6 +21,7 @@ import requests
 import re
 from urllib.parse import urlparse, parse_qs
 from lxml.html.clean import clean_html  # pylint: disable=no-name-in-module
+import numpy as np
 
 from nomad.metainfo import MSection, Section, Quantity, SubSection, Package, Datetime, MEnum, JSON, Reference
 from nomad.datamodel.data import EntryData, ElnIntegrationCategory
@@ -46,6 +47,8 @@ class LabfolderDataElementGrid(MSection):
 
     title = Quantity(type=str, description='the title of the table')
     type = Quantity(type=str, description='the title of the table')
+    value = Quantity(type=np.float16, description='value')
+    unit = Quantity(type=str, description='unit')
     children = SubSection(sub_section=LabfolderDataElementDataContent, repeats=True)
 
 
