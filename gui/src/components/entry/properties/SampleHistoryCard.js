@@ -70,7 +70,7 @@ const SampleHistoryUsingCard = memo(({ index }) => {
     'section_defs.definition_qualified_name': ['nomad.datamodel.metainfo.basesections.Activity']
   }), [index.entry_id])
 
-  if (!index.section_defs.some(def => def?.definition_qualified_name === 'nomad.datamodel.metainfo.basesections.Entity')) {
+  if (!index.section_defs?.some(def => def?.definition_qualified_name === 'nomad.datamodel.metainfo.basesections.Entity')) {
     return null
   }
 
