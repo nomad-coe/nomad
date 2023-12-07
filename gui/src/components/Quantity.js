@@ -353,7 +353,7 @@ const quantityPresets = {
     label: 'authors',
     placeholder: 'no authors',
     render: (data) => <Typography>
-      {authorList(data || [])}
+      {authorList(data || [], true)}
     </Typography>
   },
   references: {
