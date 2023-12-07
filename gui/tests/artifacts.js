@@ -61337,6 +61337,28 @@ window.nomadArtifacts = {
                   "type_kind": "python",
                   "type_data": "str"
                 }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "value",
+                "description": "value",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float16"
+                }
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "unit",
+                "description": "unit",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
               }
             ],
             "sub_sections": [
