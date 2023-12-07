@@ -82,16 +82,14 @@ class EntryData(ArchiveSection):
         super(EntryData, self).normalize(archive, logger)
 
         from nomad.datamodel.results import Results
-        from nomad.datamodel.metainfo.simulation.workflow import SimulationWorkflow
         from nomad.datamodel import EntryArchive
 
         # TODO entry_type should only be assigned if not already defined (done to pass eln test)
-        if not isinstance(archive.workflow2, SimulationWorkflow) \
-            and not archive.metadata.entry_type \
-            and isinstance(self.m_parent, EntryArchive):
+        if archive.metadata:
+            if not archive.metadata.entry_type and isinstance(self.m_parent, EntryArchive):
                 archive.metadata.entry_type = self.m_def.name
-        if archive.metadata.entry_name is None and archive.metadata.mainfile:
-            archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)
+            if archive.metadata.entry_name is None and archive.metadata.mainfile:
+                archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)
 
         if not archive.results:
             archive.results = Results()

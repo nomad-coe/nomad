@@ -27,7 +27,9 @@ from .conftest import (
     get_template_dos,
     add_template_band_structure,
     get_template_band_structure,
-    run_normalize
+    run_normalize,
+    simulationworkflowschema,
+    SCHEMA_IMPORT_ERROR
 )
 
 
@@ -51,6 +53,7 @@ def test_eels(eels):
     assert provenance.eels.resolution.to('eV').magnitude == pytest.approx(1.0)
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_bulk_modulus(mechanical_eos):
     bulk_modulus = mechanical_eos.results.properties.mechanical.bulk_modulus
     assert len(bulk_modulus) == 1
@@ -59,6 +62,7 @@ def test_bulk_modulus(mechanical_eos):
     assert modulus.value.magnitude == pytest.approx(10000)
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_shear_modulus(mechanical_elastic):
     shear_modulus = mechanical_elastic.results.properties.mechanical.shear_modulus
     assert len(shear_modulus) == 3
@@ -73,6 +77,7 @@ def test_shear_modulus(mechanical_elastic):
     assert modulus_reuss_hill.value.magnitude == 10000
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_energy_volume_curve(mechanical_eos):
     ev = mechanical_eos.results.properties.mechanical.energy_volume_curve
     assert len(ev) == 2
@@ -275,6 +280,7 @@ def test_band_structure_electronic():
     assert bs.segment[0].kpoints.shape == (100, 3)
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_dos_phonon():
     # DOS with all correct metainfo
     archive = get_template_dos(type='vibrational')
@@ -302,6 +308,7 @@ def test_dos_phonon():
     assert vibrational is None
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_band_structure_phonon():
     # Valid phonon band structure
     archive = get_template_band_structure(type='vibrational')
@@ -310,18 +317,21 @@ def test_band_structure_phonon():
     assert bs.segment[0].kpoints.shape == (100, 3)
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_energy_free_helmholtz(phonon):
     energy_free = phonon.results.properties.vibrational.energy_free_helmholtz
     assert energy_free.temperatures.shape == (11, )
     assert energy_free.energies.shape == (11, )
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_heat_capacity_constant_volume(phonon):
     heat_cap = phonon.results.properties.vibrational.heat_capacity_constant_volume
     assert heat_cap.temperatures.shape == (11, )
     assert heat_cap.heat_capacities.shape == (11, )
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_geometry_optimization(geometry_optimization):
     geo_opt_prop = geometry_optimization.results.properties.geometry_optimization
     n_frames = len(geo_opt_prop.trajectory)
@@ -333,6 +343,7 @@ def test_geometry_optimization(geometry_optimization):
     assert geo_opt_prop.type == 'atomic'
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_trajectory(molecular_dynamics):
     trajectories = molecular_dynamics.results.properties.thermodynamic.trajectory
     n_trajectories = len(trajectories)
@@ -350,6 +361,7 @@ def test_trajectory(molecular_dynamics):
     assert set(trajectory.available_properties) == set(['pressure', 'volume', 'temperature', 'energy_potential'])
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_rgs(molecular_dynamics):
     rgs = molecular_dynamics.results.properties.structural.radius_of_gyration
     n_rgs = len(rgs)
@@ -363,6 +375,7 @@ def test_rgs(molecular_dynamics):
     assert rg.label == 'MOL'
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_rdfs(molecular_dynamics):
     rdfs = molecular_dynamics.results.properties.structural.radial_distribution_function
     n_rdfs = len(rdfs)
@@ -379,6 +392,7 @@ def test_rdfs(molecular_dynamics):
     assert rdf.frame_end == 100
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_msds(molecular_dynamics):
     msds = molecular_dynamics.results.properties.dynamical.mean_squared_displacement
     n_msds = len(msds)
@@ -399,5 +413,6 @@ def test_msds(molecular_dynamics):
     assert np.array_equal(msd.diffusion_constant_errors, 0.98)
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_n_calculations(geometry_optimization):
     assert geometry_optimization.results.properties.n_calculations == 2

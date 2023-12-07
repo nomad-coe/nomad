@@ -22,7 +22,7 @@ from nomad.graph.graph_reader import EntryReader, Token
 from nomad.datamodel import EntryArchive
 from nomad.utils.exampledata import ExampleData
 from tests.archive.test_archive import assert_dict
-
+from tests.normalizing.conftest import simulationworkflowschema, SCHEMA_IMPORT_ERROR
 
 # try:
 #     from rich.pretty import pprint
@@ -202,7 +202,7 @@ def example_archive():
             }
         ],
         "workflow2": {
-            "m_def": "nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow",
+            "m_def": "simulationworkflowschema.SimulationWorkflow",
             "results": {
                 "calculation_result_ref": "/run/0/calculation/1"
             }
@@ -327,6 +327,7 @@ def example_upload(example_archive, test_user, mongo_function, elastic_function)
             expected_status_code=422
         ), id='pag-invalid-order_by')
 ])
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
     user = kwargs.get('user', 'test_user')
     query_params = kwargs.get('query_params', None)
@@ -377,9 +378,9 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
             'm_is': 'File', 'path': 'test_content/id_unpublished_1/2.aux', 'size': 8}, '3.aux': {
             'm_is': 'File', 'path': 'test_content/id_unpublished_1/3.aux', 'size': 8}, '4.aux': {
             'm_is': 'File', 'path': 'test_content/id_unpublished_1/4.aux', 'size': 8}, 'm_is': 'Directory',
-            'mainfile.json': {'m_is': 'File', 'path': 'test_content/id_unpublished_1/mainfile.json', 'size': 3231},
-            'path': 'test_content/id_unpublished_1', 'size': 3263}, 'm_is': 'Directory', 'path': 'test_content',
-        'size': 3263}}}}}, id='depth-3'),
+            'mainfile.json': {'m_is': 'File', 'path': 'test_content/id_unpublished_1/mainfile.json', 'size': 3233},
+            'path': 'test_content/id_unpublished_1', 'size': 3265}, 'm_is': 'Directory', 'path': 'test_content',
+        'size': 3265}}}}}, id='depth-3'),
 ])
 def test_fs_graph(client, test_auth_dict, example_data, depth, result):
     user_auth, _ = test_auth_dict['test_user']
@@ -416,6 +417,7 @@ def test_fs_graph(client, test_auth_dict, example_data, depth, result):
         'metadata': {'entry_id': {'doesnotexist': '*'}}
     }, True, id='not-a-section'),
 ])
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_entry_reader_with_reference(example_archive, required, error, test_user, example_upload):
     with EntryReader({Token.ARCHIVE: required}, user=test_user) as reader:
         results = reader.read('test_id')

@@ -422,7 +422,15 @@ plugins = Plugins(options={
         parser_as_interface=True),
     'parsers/chemotion/chemotion': Parser(
         python_package='nomad.parsing.chemotion',
-        parser_as_interface=True)
+        parser_as_interface=True),
+    'normalizers/simulation/workflow': Normalizer(
+        python_package='simulationworkflownormalizer'
+    ),
+    'schema/simulation/workflow': Schema(
+        name='simulationworkflowschema',
+        key='simulationworkflowschema',
+        python_package='simulationworkflowschema'
+    )
 })
 
 

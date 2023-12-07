@@ -21,12 +21,11 @@ from ase.io import Trajectory
 from nomad.units import ureg
 
 import tests
-from .conftest import run_normalize
+from .conftest import run_normalize, simulationworkflowschema, SCHEMA_IMPORT_ERROR
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.calculation import Calculation, Energy, EnergyEntry
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
-from nomad.datamodel.metainfo.simulation.workflow import EquationOfState
 
 
 def approx(value, abs=0, rel=1e-6):
@@ -63,6 +62,7 @@ def test_single_point_workflow(workflow_archive):
     assert sec_workflow.results.is_converged
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_gw_workflow(gw_workflow):
     """Testing GW workflow (DFT+GW) entry"""
     workflow = gw_workflow.workflow2
@@ -87,6 +87,7 @@ def test_gw_workflow(gw_workflow):
     assert results.properties.electronic.dos_electronic_new[1].label == 'GW'
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_dmft_workflow(dmft_workflow):
     """Testing DMFT workflow entry"""
     workflow = dmft_workflow.workflow2
@@ -117,6 +118,7 @@ def test_dmft_workflow(dmft_workflow):
     # assert results.m_xpath('properties.electronic.greens_function_electronic')
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_maxent_workflow(maxent_workflow):
     """Testing MaxEnt workflow entry"""
     workflow = maxent_workflow.workflow2
@@ -146,6 +148,7 @@ def test_maxent_workflow(maxent_workflow):
     assert results.properties.electronic.greens_functions_electronic[1].label == 'MaxEnt'
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_bse_workflow(bse_workflow):
     """Testing BSE workflow (Photon1+Photon2) entry"""
     workflow = bse_workflow.workflow2
@@ -177,6 +180,7 @@ def test_bse_workflow(bse_workflow):
     assert spectra[0].provenance != spectra[1].provenance
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_xs_workflow(xs_workflow):
     """Testing XS workflow (DFT+BSEworkflow) entry"""
     workflow = xs_workflow.workflow2
@@ -247,6 +251,7 @@ def test_phonon_workflow(workflow_archive):
     assert not sec_workflow.method.with_grueneisen_parameters
 
 
+@pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_molecular_dynamics_workflow(workflow_archive):
     lammmps_archive = workflow_archive(
         'parsers/lammps', 'tests/data/normalizers/workflow/lammps/log.lammps')
@@ -417,7 +422,7 @@ def parse_trajectory(filename):
 
     archive.run.append(run)
 
-    archive.workflow2 = EquationOfState()
+    archive.workflow2 = simulationworkflowschema.EquationOfState()
     run_normalize(archive)
 
     return archive

@@ -534,17 +534,17 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
             '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
             'mainfile_for_id_02': {
-                'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
+                'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3233},
             'mainfile_for_id_03': {
-                'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
+                'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3233},
             'mainfile_for_id_04': {
-                'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
+                'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3233},
             'mainfile_for_id_05': {
-                'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
+                'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3233},
             'mainfile_for_id_06': {
-                'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
+                'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3233},
             'mainfile_for_id_01': {
-                'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+                'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3233,
                 Token.ENTRY: {
                     'process_running': False, 'current_process': None,
                     'process_status': 'SUCCESS', 'last_status_message': None,
@@ -878,12 +878,12 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
         '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
         '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
-        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231}})
+        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3233}})
 
     __fs_print('go to entry', {
         'm_request': {
@@ -896,7 +896,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
         '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -906,7 +906,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
             }},
         'mainfile_for_id_02': {
-            'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -916,7 +916,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
             }},
         'mainfile_for_id_03': {
-            'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -926,7 +926,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
             }},
         'mainfile_for_id_04': {
-            'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -936,7 +936,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
             }},
         'mainfile_for_id_05': {
-            'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -946,7 +946,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'upload_id': 'id_published_with_ref', 'parser_name': 'parsers/vasp',
             }},
         'mainfile_for_id_06': {
-            'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -971,13 +971,13 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
         '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
         '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3233},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'process_running': False, 'current_process': None,
                 'process_status': 'SUCCESS', 'last_status_message': None, 'errors': [],
@@ -1010,13 +1010,13 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
         '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
         '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3233},
         'mainfile_for_id_01': {
-            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231,
+            'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3233,
             Token.ENTRY: {
                 'upload_id': {
                     'process_running': False, 'current_process': 'process_upload',
@@ -1052,12 +1052,12 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
         '2.aux': {'path': '2.aux', 'm_is': 'File', 'size': 8},
         '3.aux': {'path': '3.aux', 'm_is': 'File', 'size': 8},
         '4.aux': {'path': '4.aux', 'm_is': 'File', 'size': 8},
-        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3231},
-        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3231, Token.ENTRY: {
+        'mainfile_for_id_02': {'path': 'mainfile_for_id_02', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_03': {'path': 'mainfile_for_id_03', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_04': {'path': 'mainfile_for_id_04', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_05': {'path': 'mainfile_for_id_05', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_06': {'path': 'mainfile_for_id_06', 'm_is': 'File', 'size': 3233},
+        'mainfile_for_id_01': {'path': 'mainfile_for_id_01', 'm_is': 'File', 'size': 3233, Token.ENTRY: {
             'upload_id': {
                 'process_running': False, 'current_process': 'process_upload', 'process_status': 'SUCCESS',
                 'last_status_message': None, 'errors': [], 'warnings': [],
@@ -1346,12 +1346,12 @@ def test_general_reader_search(json_dict, example_data_with_reference, test_user
                 '2.aux': {'m_is': 'File', 'path': '2.aux', 'size': 8},
                 '3.aux': {'m_is': 'File', 'path': '3.aux', 'size': 8},
                 '4.aux': {'m_is': 'File', 'path': '4.aux', 'size': 8},
-                'mainfile_for_id_01': {'m_is': 'File', 'path': 'mainfile_for_id_01', 'size': 3231},
-                'mainfile_for_id_02': {'m_is': 'File', 'path': 'mainfile_for_id_02', 'size': 3231},
-                'mainfile_for_id_03': {'m_is': 'File', 'path': 'mainfile_for_id_03', 'size': 3231},
-                'mainfile_for_id_04': {'m_is': 'File', 'path': 'mainfile_for_id_04', 'size': 3231},
-                'mainfile_for_id_05': {'m_is': 'File', 'path': 'mainfile_for_id_05', 'size': 3231},
-                'mainfile_for_id_06': {'m_is': 'File', 'path': 'mainfile_for_id_06', 'size': 3231}
+                'mainfile_for_id_01': {'m_is': 'File', 'path': 'mainfile_for_id_01', 'size': 3233},
+                'mainfile_for_id_02': {'m_is': 'File', 'path': 'mainfile_for_id_02', 'size': 3233},
+                'mainfile_for_id_03': {'m_is': 'File', 'path': 'mainfile_for_id_03', 'size': 3233},
+                'mainfile_for_id_04': {'m_is': 'File', 'path': 'mainfile_for_id_04', 'size': 3233},
+                'mainfile_for_id_05': {'m_is': 'File', 'path': 'mainfile_for_id_05', 'size': 3233},
+                'mainfile_for_id_06': {'m_is': 'File', 'path': 'mainfile_for_id_06', 'size': 3233}
             }}}}}}})
 
 
@@ -1386,7 +1386,7 @@ def example_data_with_reference(elastic_function, raw_files_module, mongo_functi
     del json_dict['results']
 
     for index, ref in enumerate(ref_list):
-        ref['m_def'] = 'nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow'
+        ref['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
         json_dict['workflow2'] = ref
         data.create_entry(
             upload_id='id_published_with_ref',
@@ -1482,7 +1482,7 @@ def json_dict():
             }
         ],
         "workflow2": {
-            "m_def": "nomad.datamodel.metainfo.simulation.workflow.SimulationWorkflow",
+            "m_def": "simulationworkflowschema.SimulationWorkflow",
             "results": {
                 "calculation_result_ref": "/run/0/calculation/1"
             }

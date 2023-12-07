@@ -42,3 +42,9 @@
 [submodule "examples/plugins/normalizer"]
 	path = examples/plugins/normalizer
 	url = https://github.com/nomad-coe/nomad-normalizer-plugin-example.git
+[submodule "dependencies/normalizers/simulation/workflow"]
+	path = dependencies/normalizers/simulation/workflow
+	url = https://github.com/nomad-coe/nomad-normalizer-plugin-simulation-workflow.git
+[submodule "dependencies/schema/simulation/workflow"]
+	path = dependencies/schema/simulation/workflow
+	url = https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git
