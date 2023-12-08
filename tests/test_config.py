@@ -19,7 +19,7 @@
 import pytest
 import os
 import yaml
-from pydantic import parse_obj_as
+from pydantic import parse_obj_as, BaseModel
 
 from nomad import config
 from nomad.utils import flatten_dict
@@ -32,6 +32,23 @@ def with_config():
     old_values = config.fs.public, config.fs.archive_version_suffix
     yield config
     config.fs.public, config.fs.archive_version_suffix = old_values
+
+
+@pytest.mark.parametrize('a, b, expected', [
+    pytest.param({}, {}, {}, id='empty'),
+    pytest.param({}, None, {}, id='merge None'),
+    pytest.param(None, {}, None, id='merge to None'),
+    pytest.param({'test': 1}, {'test': 2}, {'test': 2}, id='override scalar'),
+    pytest.param(
+        {'test': {'override': 1, 'keep': 3}},
+        {'test': {'override': 2}},
+        {'test': {'override': 2, 'keep': 3}},
+        id='override dict partial'
+    ),
+])
+def test_merge(a, b, expected):
+    config._merge(a, b)
+    assert a == expected
 
 
 def test_apply(with_config, caplog):
@@ -72,18 +89,52 @@ def load_config(config_dict, monkeypatch):
     os.remove(test_nomad_yaml)
 
 
-@pytest.mark.parametrize('config_dict', [
-    pytest.param({'services': {'max_entry_download': 123}}, id='set integer'),
-    pytest.param({'services': {'api_host': 'http://myhost'}}, id='set string'),
-    pytest.param({'ui': {'theme': {'title': 'mytitle'}}}, id='set nested'),
+@pytest.mark.parametrize('config_dict, include', [
+    pytest.param(
+        {'services': {'max_entry_download': 123}},
+        {'services.max_entry_download': 123},
+        id='set integer'
+    ),
+    pytest.param(
+        {'ui': {'theme': {'title': 'mytitle'}}},
+        {'ui.theme.title': 'mytitle'},
+        id='overwrite default value in nested object'
+    ),
+    pytest.param(
+        {'ui': {
+            'apps': {
+                'options': {
+                    'entries': {
+                        'label': 'TEST',
+                        'path': 'eln',
+                        'category': 'Experiments',
+                        'columns': {'selected': ['test']},
+                        'filter_menus': {},
+                        'dashboard': {
+                            'widgets': [{'type': 'terms', 'layout': {}, 'quantity': 'test', 'scale': 'linear', 'showinput': True}]
+                        }
+                    }
+                }
+            }
+        }},
+        {'ui.apps.options.entries.dashboard.widgets': [{'type': 'terms', 'layout': {}, 'quantity': 'test', 'scale': 'linear', 'showinput': True}]},
+        id='overwrite unset object value'
+    ),
+    pytest.param(
+        {'ui': {'unit_systems': {}}},
+        {'ui.unit_systems.selected': 'Custom'},
+        id='unset values do not override'
+    ),
 ])
-def test_config(raw_files, with_config, monkeypatch, caplog, config_dict):
+def test_config_apply(raw_files, with_config, monkeypatch, caplog, config_dict, include):
     load_config(config_dict, monkeypatch)
-    for key, value in config_dict.items():
-        flat_real = flatten_dict(getattr(config, key).dict())
-        flat_expected = flatten_dict(value)
-        for key2, value2 in flat_expected.items():
-            assert flat_real[key2] == value2
+    config_dict = {}
+    for key, value in config.__dict__.items():
+        if isinstance(value, BaseModel):
+            config_dict[key] = value.dict()
+    flat_real = flatten_dict(config_dict)
+    for key, value in include.items():
+        assert flat_real[key] == value
 
 
 @pytest.mark.parametrize('config_dict, error', [

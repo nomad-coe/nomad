@@ -501,7 +501,7 @@ def _check_config():
     ui.north_base = f'{"https" if services.https else "http"}://{north.hub_host}:{north.hub_port}{services.api_base_path.rstrip("/")}/north'
 
 
-def _merge(a: Union[dict, BaseModel], b: Union[dict, BaseModel]) -> Union[dict, BaseModel]:
+def _merge(a: Union[dict, BaseModel, None], b: Union[dict, BaseModel, None]) -> Union[dict, BaseModel, None]:
     '''
     Recursively merges b into a. Will add new key-value pairs, and will
     overwrite existing key-value pairs. Notice that this mutates the original
@@ -521,21 +521,24 @@ def _merge(a: Union[dict, BaseModel], b: Union[dict, BaseModel]) -> Union[dict, 
     def get(target, key):
         return target[key] if isinstance(target, dict) else getattr(target, key)
 
-    # None values are ignored
+    # New values which are None are ignored. This means that you can't reset
+    # fields with None
     if b is None:
         return a
-    for key in (b.__dict__ if isinstance(b, BaseModel) else b):
-        value = get(b, key)
-        if has(a, key):
-            child = get(a, key)
-            # Objects are merged
-            if isinstance(value, (BaseModel, dict)) or isinstance(child, (BaseModel, dict)):
-                _merge(child, value)
-            # Other types are replaced
+    # If original value is None, it should be overwritten by new value
+    elif a is None:
+        return b
+    else:
+        for key in (b.__dict__ if isinstance(b, BaseModel) else b):
+            value = get(b, key)
+            if has(a, key):
+                child = get(a, key)
+                # Objects are merged
+                if isinstance(value, (BaseModel, dict)) or isinstance(child, (BaseModel, dict)):
+                    value = _merge(child, value)
+                set(a, key, value)
             else:
                 set(a, key, value)
-        else:
-            set(a, key, value)
     return a
 
 
@@ -595,7 +598,6 @@ def _apply(key, value, raise_error: bool = True) -> None:
 
         if isinstance(value, (dict, BaseModel)):
             value = _merge(current_value, value)
-
         setattr(current, key, value)
         logger.info(f'set config setting {full_key}={value}')
     except Exception as e:
