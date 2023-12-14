@@ -2014,7 +2014,7 @@ class Method(MSection):
     )
     method_name = Quantity(
         type=MEnum(
-            'DFT', 'TB', 'GW', 'DMFT', 'CoreHole', 'BSE', 'EELS', 'XPS', 'XRD',
+            'DFT', 'TB', 'GW', 'DMFT', 'CoreHole', 'BSE', 'kMC', 'EELS', 'XPS', 'XRD',
             config.services.unavailable_value
         ),
         description='''
