@@ -42,13 +42,11 @@ class LabfolderDataElementDataContent(MSection):
     children = SubSection(sub_section=SectionProxy('LabfolderDataElementGrid'), repeats=True)
 
 
-class LabfolderDataElementGrid(MSection):
+class LabfolderDataElementGrid(LabfolderDataElementDataContent):
     '''A labfolder grid containing data elements.'''
 
     title = Quantity(type=str, description='the title of the table')
     type = Quantity(type=str, description='the title of the table')
-    value = Quantity(type=np.float16, description='value')
-    unit = Quantity(type=str, description='unit')
     children = SubSection(sub_section=LabfolderDataElementDataContent, repeats=True)
 
 

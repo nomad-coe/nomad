@@ -61349,6 +61349,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "LabfolderDataElementGrid",
             "description": "A labfolder grid containing data elements.",
+            "base_sections": [
+              "/packages/10/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -61367,28 +61370,6 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "name": "type",
                 "description": "the title of the table",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "value",
-                "description": "value",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float16"
-                }
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "name": "unit",
-                "description": "unit",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
