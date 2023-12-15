@@ -263,7 +263,7 @@ class TableData(ArchiveSection):
                 # does not populate the matched row_section
                 matched_rows = [re.sub(r"^.*?\/", "", single_entry_section)]
                 parser(section_to_write, matched_rows, data, logger)
-            entry_name = set_entry_name(quantity_def, target_section, 0)
+            entry_name = set_entry_name(quantity_def, target_section, with_index=True, index=0)
 
             counter = sections_counter[target_section_str] if target_section_str else ''
             filename = f'{target_section.m_def.name}{counter}.archive.yaml'
@@ -316,20 +316,6 @@ class TableData(ArchiveSection):
             logger.warning(f"make sure to inherit from EntryData in your base sections in {section.name}")
 
         try:
-            mainfile_name = getattr(child_sections[0], section.m_def.more.get('label_quantity', None))
-        except (AttributeError, TypeError):
-            logger.info('could not extract the mainfile from metadata. Setting a default name.')
-            mainfile_name = section.m_def.name
-
-        file_type = 'yaml'
-        if mainfile_name.endswith('yaml'):
-            mainfile_name = mainfile_name.split('.archive.yaml')[0]
-        elif mainfile_name.endswith('json'):
-            mainfile_name = mainfile_name.split('.archive.json')[0]
-            file_type = 'json'
-        if '.entry_data' in mainfile_name:
-            return
-        try:
             if getattr(self, subsection_def.name):
                 setattr(self, subsection_def.name, MSubSectionList(self, subsection_def))
         except AttributeError:
@@ -345,27 +331,33 @@ class TableData(ArchiveSection):
             first_child = child_sections.pop(0)
             try:
                 ref_entry_name: str = first_child.m_def.more.get('label_quantity', None)
-                segments = ref_entry_name.split('#/data/')[1].split('/')
-                current_child_entry_name = [get_nested_value(first_child, segments), '.yaml']
             except Exception:
-                current_child_entry_name = archive.metadata.mainfile.split('.archive')
+                ref_entry_name = first_child.m_def.name
             first_child.m_context = archive.m_context
             self.m_update_from_dict(first_child.m_to_dict())
 
+        file_type = 'yaml'
         for index, child_section in enumerate(child_sections):
+            try:
+                mainfile_name = getattr(child_section, section.m_def.more.get('label_quantity', None))
+            except (AttributeError, TypeError):
+                logger.info('could not extract the mainfile from metadata. Setting a default name.')
+                mainfile_name = section.m_def.name
+
+            if mainfile_name.endswith('yaml'):
+                mainfile_name = mainfile_name.split('.archive.yaml')[0]
+            elif mainfile_name.endswith('json'):
+                mainfile_name = mainfile_name.split('.archive.json')[0]
+                file_type = 'json'
+            if '.entry_data' in mainfile_name:
+                return
             if ref_entry_name:
                 ref_entry_name: str = child_section.m_def.more.get('label_quantity', None)
-                segments = ref_entry_name.split('#/data/')[1].split('/') if ref_entry_name.find(
-                    '/') else ref_entry_name
-                filename = f"{get_nested_value(child_section, segments)}.entry_data.archive.{file_type}"
-                current_child_entry_name = [get_nested_value(child_section, segments), '.yaml']
+                filename = f"{ref_entry_name}_{index}.{child_section.m_def.name}.archive.{file_type}"
             else:
-                filename = f"{mainfile_name}_{index}.entry_data.archive.{file_type}"
+                filename = f"{mainfile_name}_{index}.{child_section.m_def.name}.archive.{file_type}"
 
-            if is_root:
-                entry_name: str = f'{current_child_entry_name[0]}_{index + 1}.archive{current_child_entry_name[1]}'
-            else:
-                entry_name: str = set_entry_name(quantity_def, child_section, index)
+            entry_name: str = set_entry_name(quantity_def, child_section, with_index=False)
 
             try:
                 for data_quantity_def in child_section.m_def.all_quantities.values():
@@ -395,13 +387,18 @@ class TableData(ArchiveSection):
 m_package.__init_metainfo__()
 
 
-def set_entry_name(quantity_def, child_section, index) -> str:
-    if name := child_section.m_def.more.get('label_quantity', None):
-        entry_name = f"{child_section[name.split('#/data/')[1]]}_{index}"
-    elif isinstance(quantity_def.type, Reference):
-        entry_name = f"{quantity_def.type._target_section_def.name}_{index}"
-    else:
-        entry_name = f"{quantity_def.name}_{index}"
+def set_entry_name(quantity_def, child_section, with_index=True, index=0) -> str:
+    try:
+        name = child_section.m_def.more.get('label_quantity', None)
+        entry_name = f"{child_section[name]}_{index}" if with_index else f"{child_section[name]}"
+    except Exception:
+        if name := getattr(child_section.m_def, 'name'):
+            entry_name = f"{name}_{index}" if with_index else f"{name}"
+        elif isinstance(quantity_def.type, Reference):
+            entry_name = f"{quantity_def.type._target_section_def.name}_{index}" if with_index \
+                else f"{quantity_def.type._target_section_def.name}"
+        else:
+            entry_name = f"{quantity_def.name}_{index}" if with_index else f"{quantity_def.name}"
     return entry_name
 
 
