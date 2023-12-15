@@ -356,16 +356,23 @@ const Plot = React.memo(forwardRef(({
       try {
         // Get the element which explicitly stores the computed margin and
         // perform a relayout with these values.
-        const group = canvasRef.current.children[0].children[0].children[0].children[2].children[0].children[0]
         const currentLayout = cloneDeep(canvasRef.current.layout)
         currentLayout.xaxis.automargin = false
         currentLayout.yaxis.automargin = false
         currentLayout.yaxis2.automargin = false
         if (!currentLayout.margin) currentLayout.margin = {}
-        currentLayout.margin.l = parseInt(group.getAttribute('x'))
+        const subPlots = canvasRef.current.children[0].children[0].children[0].children[2].children
+        let [xMin, xMax] = [undefined, undefined]
+        for (const subPlot of subPlots) {
+          const canvas = subPlot.children[0]
+          const left = parseInt(canvas.getAttribute('x'))
+          const right = left + parseInt(canvas.getAttribute('width'))
+          xMin = !xMin || left < xMin ? left : xMin
+          xMax = !xMax || right > xMax ? right : xMax
+        }
         const totalWidth = canvasRef.current.clientWidth
-        const plotAreaWidth = parseInt(group.getAttribute('width'))
-        currentLayout.margin.r = totalWidth - plotAreaWidth - currentLayout.margin.l
+        currentLayout.margin.l = xMin
+        currentLayout.margin.r = totalWidth - xMax
         margins.current = cloneDeep(currentLayout.margin)
         Plotly.relayout(canvasRef.current, currentLayout)
       } catch (e) {
