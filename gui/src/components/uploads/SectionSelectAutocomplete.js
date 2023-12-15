@@ -122,7 +122,7 @@ function SectionSelectAutocomplete(props) {
           shownValue: '',
           menuType: 'entry'}
       })
-      const notFoundEntries = new Set()
+      let notFoundEntries = new Set()
       entryNames.forEach(entryName => {
         if (!data.map(entry => entry.entry_name).includes(entryName)) {
           notFoundEntries.add(entryName)
@@ -133,7 +133,9 @@ function SectionSelectAutocomplete(props) {
           notFoundEntries.add(mainfile)
         }
       })
-      setEntries(data.concat([...notFoundEntries].map(entryName => {
+      data?.sort((a, b) => (a.entry_name || a.mainfile) >= (b.entry_name || b.mainfile) ? 1 : -1)
+      notFoundEntries = [...notFoundEntries].sort((a, b) => a >= b ? 1 : -1)
+      setEntries(data.concat(notFoundEntries.map(entryName => {
         return {mainfile: entryName, entry_name: entryName, menuType: 'entry'}
       })))
     }).catch(error => {

@@ -69,21 +69,21 @@ const testSectionSelectAutocomplete = async () => {
   const sectionSelectEntries = screen.getAllByTestId('section-select-entry-activated')
   expect(sectionSelectEntries.length).toBe(4)
 
-  await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('ref2.archive.yaml')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[0]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('ref3.archive.yaml')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[1]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('ref4.archive.yaml')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[2]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('ref2.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('ref5.archive.yaml')).toBeInTheDocument())
   await waitFor(() => expect(within(sectionSelectEntries[3]).queryByText('upload id: references_upload_id1')).toBeInTheDocument())
 
   const sectionSelectDeactivateEntries = screen.getAllByTestId('section-select-entry-deactivate')
 
-  await waitFor(() => expect(within(sectionSelectDeactivateEntries[0]).queryByText('ref1.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectDeactivateEntries[1]).queryByText('ref6.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectDeactivateEntries[2]).queryByText('correct-reference.data.archive.yaml')).toBeInTheDocument())
-  await waitFor(() => expect(within(sectionSelectDeactivateEntries[3]).queryByText('lost-reference.data.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[0]).queryByText('correct-reference.data.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[1]).queryByText('lost-reference.data.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[2]).queryByText('ref1.archive.yaml')).toBeInTheDocument())
+  await waitFor(() => expect(within(sectionSelectDeactivateEntries[3]).queryByText('ref6.archive.yaml')).toBeInTheDocument())
 
   const sectionSelectPaths = screen.getAllByTestId('section-select-path')
   expect(sectionSelectPaths.length).toBe(4)
