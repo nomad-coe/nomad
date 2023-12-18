@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from nomad.datamodel.data import EntryData
+from nomad.datamodel.data import EntryData, ArchiveSection
 from . import Normalizer
 
 
@@ -47,10 +47,12 @@ class MetainfoNormalizer(Normalizer):
         logger = logger.bind(normalizer=self.__class__.__name__)
         self.logger = logger
 
-        for sub_section in self.entry_archive.m_contents():
-            if isinstance(sub_section, EntryData):
-                for section in sub_section.m_all_contents():
-                    self.normalize_section(section, logger)
-            self.normalize_section(sub_section, logger)
+        def _normalize(section):
+            sub_sections = [sub_section for sub_section in section.m_contents()]
+            # TODO eln test failing because non-ArchiveSection may be normalization
+            sub_sections.sort(key=lambda x: x.normalizer_level if isinstance(x, ArchiveSection) else 0)
+            for sub_section in sub_sections:
+                _normalize(sub_section)
+            self.normalize_section(section, logger)
 
-        self.normalize_section(self.entry_archive, logger)
+        _normalize(self.entry_archive)

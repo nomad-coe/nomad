@@ -22,8 +22,8 @@ import numpy as np
 from nomad.datamodel.metainfo.plot import PlotSection
 from nomad.units import ureg
 from nomad.metainfo import (
-    MSection, Package, Quantity, SubSection, Datetime, Section)
-from nomad.datamodel.data import EntryData, UseCaseElnCategory
+    Package, Quantity, SubSection, Datetime, Section)
+from nomad.datamodel.data import EntryData, UseCaseElnCategory, ArchiveSection
 from nomad.datamodel.results import (BandGapDeprecated, BandGap, BandStructureElectronic,
                                      ElectronicProperties, Material, OptoelectronicProperties,
                                      Properties, Results, SolarCell, Symmetry)
@@ -59,7 +59,7 @@ def add_solar_cell(archive):
         archive.results.properties.optoelectronic.solar_cell = SolarCell()
 
 
-class Ref(MSection):
+class Ref(ArchiveSection):
     """Information about the source of the data. It describes who curated the data,
      the journal in which the data was published,
      the DOI number of the publication, the lead author and the publication date."""
@@ -194,7 +194,7 @@ Unpublished
                     archive.metadata.references[i] = 'https://doi.org/' + ref
 
 
-class Cell(MSection):
+class Cell(ArchiveSection):
     """
     General information about the solar cell. It includes information about the device area,
     the layer stack sequence and the device architecture.
@@ -344,7 +344,7 @@ Example:
                 archive.results.properties.optoelectronic.solar_cell.device_area = self.area_total
 
 
-class Module(MSection):
+class Module(ArchiveSection):
     """
     Specific section containing information if the reported device is a module.
     """
@@ -397,7 +397,7 @@ class Module(MSection):
             component='BoolEditQuantity'))
 
 
-class Substrate(MSection):
+class Substrate(ArchiveSection):
     """
     Information about the substrate used in the device. It describes the `substrate stack sequence`,
     the `substrate area`, the `substrate thickness`, and its provenance or fabrication method.
@@ -550,7 +550,7 @@ Unknown
             archive.results.properties.optoelectronic.solar_cell.substrate = self.stack_sequence.split(' | ')
 
 
-class ETL(MSection):
+class ETL(ArchiveSection):
     """
     A section to describe information related to the Electron Transport Layer (**ETL**).
     """
@@ -1133,7 +1133,7 @@ Ar plasma
             archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = self.stack_sequence.split(' | ')
 
 
-class Perovskite(MSection):
+class Perovskite(ArchiveSection):
     """
     This section contains information about the properties of the absorber layer. It describes
     the `chemical formula`, the `dimensionality`, the `bandgap`,
@@ -1618,7 +1618,7 @@ Ozone
             archive.results.material.elements = final_formula[1]
 
 
-class PerovskiteDeposition(MSection):
+class PerovskiteDeposition(ArchiveSection):
     """
     This section contains information about the deposition of the perovskite layer.
     """
@@ -2320,7 +2320,7 @@ Examples:
             archive.results.properties.optoelectronic.solar_cell.absorber_fabrication = self.procedure.split(' | ')
 
 
-class HTL(MSection):
+class HTL(ArchiveSection):
     """
     A section to describe information related to the Hole Transport Layer (**HTL**).
     """
@@ -2894,7 +2894,7 @@ UV-ozone
             archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = self.stack_sequence.split(' | ')
 
 
-class Backcontact(MSection):
+class Backcontact(ArchiveSection):
     """
     A section to describe information related to the back contact of the solar cell.
     """
@@ -3477,7 +3477,7 @@ UV-ozone
             archive.results.properties.optoelectronic.solar_cell.back_contact = self.stack_sequence.split(' | ')
 
 
-class Add(MSection):
+class Add(ArchiveSection):
     """
     A section to describe **additional layers** present in the device besides the
     *Substrate*, *ETL*, *Perovskite*, *HTL* and *back contact*.
@@ -4666,7 +4666,7 @@ UV-ozone
             component='EnumEditQuantity', props=dict(suggestions=[''])))
 
 
-class Encapsulation(MSection):
+class Encapsulation(ArchiveSection):
     """A section to describe information about the encapsulation of the device."""
 
     Encapsulation = Quantity(
@@ -4748,7 +4748,7 @@ Air
             component='NumberEditQuantity'))
 
 
-class JVcurve(PlotSection, MSection):
+class JVcurve(PlotSection, ArchiveSection):
     '''
     Section describing a current density, voltage curve.
     '''
@@ -4787,7 +4787,7 @@ class JVcurve(PlotSection, MSection):
         description='Voltage array of the of the *JV* curve.')
 
 
-class JV(MSection):
+class JV(ArchiveSection):
     """
     This section descirbes the current density *J* and voltage *V* characteristics
     of the solar cell. It includes the device parameters and information about how the
@@ -5505,7 +5505,7 @@ Potential biasing
             archive.results.properties.optoelectronic.solar_cell.illumination_intensity = self.light_intensity
 
 
-class Stabilised(MSection):
+class Stabilised(ArchiveSection):
     """
     A section describing if a stabilised efficiency has been measured in the solar cell.
     """
@@ -5606,7 +5606,7 @@ Short circuit
             component='EnumEditQuantity', props=dict(suggestions=['', 'false', 'www.testsite…'])))
 
 
-class EQE(PlotSection, MSection):
+class EQE(PlotSection, ArchiveSection):
     """
     A section describing the External Quantum Efficiency **EQE** of the solar cell
     and additional parameteres derived from it. If used as an ELN, a file containing
@@ -5826,7 +5826,7 @@ class EQE(PlotSection, MSection):
             self.raw_wavelength_array = self.raw_photon_energy_array.to('nm', 'sp')  # pylint: disable=E1101
 
 
-class Stability(MSection):
+class Stability(ArchiveSection):
     """
     A section decsirbing the stability measurements performed in the device.
     """
@@ -6420,7 +6420,7 @@ nan
             component='EnumEditQuantity', props=dict(suggestions=['', 'www.testsite…'])))
 
 
-class Outdoor(MSection):
+class Outdoor(ArchiveSection):
     """A section describing measurements performed in outdoor conditions"""
 
     tested = Quantity(

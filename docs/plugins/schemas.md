@@ -404,7 +404,11 @@ Here is an example:
 To add a `normalize` function, your section has to inherit from `ArchiveSection` which
 provides the base for this functionality. Now you can overwrite the `normalize` function
 and add you own behavior. Make sure to call the `super` implementation properly to
-support schemas with multiple inheritance.
+support schemas with multiple inheritance. In order to control the order by which the
+normalizations are executed, one can define `normalizer_level` which is set to 0 by
+default. The normalize functions are always called for any sub section before the parent section.
+However, the order for any sections on the same level will be from low values of `normalizer_level`
+to high.
 
 If we parse an archive like this:
 
