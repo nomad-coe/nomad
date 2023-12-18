@@ -95,7 +95,7 @@ def normalize_all(entry_archive, logger=None):
 
     entry_domain = None
     if entry_archive.metadata:
-        entry_domain == entry_archive.metadata.domain
+        entry_domain = entry_archive.metadata.domain
     for normalizer in normalizing.normalizers:
 
         if normalizer.domain is None or normalizer.domain == entry_domain:
