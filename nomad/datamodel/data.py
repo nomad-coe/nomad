@@ -34,6 +34,8 @@ class ArchiveSection(MSection):
     section normalization via the `normalize` function.
     '''
 
+    normalizer_level = 0
+
     def normalize(self, archive, logger):
         '''
         Is called during entry normalization. If you overwrite this with custom
@@ -77,7 +79,6 @@ class EntryData(ArchiveSection):
     An empty base section definition. This can be used to add new top-level sections
     to an entry.
     '''
-
     def normalize(self, archive, logger):
         super(EntryData, self).normalize(archive, logger)
 

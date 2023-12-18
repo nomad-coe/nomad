@@ -21916,6 +21916,9 @@ window.nomadArtifacts = {
             },
             "name": "Ref",
             "description": "Information about the source of the data. It describes who curated the data, the journal in which the data was published,\nthe DOI number of the publication, the lead author and the publication date.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -22110,6 +22113,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Cell",
             "description": "General information about the solar cell. It includes information about the device area, the layer stack sequence and the device architecture.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -27879,6 +27885,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Module",
             "description": "Specific section containing information if the reported device is a module.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -27985,6 +27994,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Substrate",
             "description": "Information about the substrate used in the device. It describes the `substrate stack sequence`, the `substrate area`, the `substrate thickness`, and its provenance or fabrication method.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -28627,6 +28639,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "ETL",
             "description": "A section to describe information related to the Electron Transport Layer (**ETL**).",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -34611,6 +34626,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Perovskite",
             "description": "This section contains information about the properties of the absorber layer. It describes the `chemical formula`, the `dimensionality`, the `bandgap`,\nor the `list of dopants and additives` that are in the perovskite layer.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -41324,6 +41342,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "PerovskiteDeposition",
             "description": "This section contains information about the deposition of the perovskite layer.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -46181,6 +46202,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "HTL",
             "description": "A section to describe information related to the Hole Transport Layer (**HTL**).",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -50748,6 +50772,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Backcontact",
             "description": "A section to describe information related to the back contact of the solar cell.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -52458,6 +52485,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Add",
             "description": "A section to describe **additional layers** present in the device besides the *Substrate*, *ETL*, *Perovskite*, *HTL* and *back contact*.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -53982,6 +54012,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Encapsulation",
             "description": "A section to describe information about the encapsulation of the device.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -54306,7 +54339,8 @@ window.nomadArtifacts = {
               "label_quantity": "cell_name"
             },
             "base_sections": [
-              "/packages/0/section_definitions/3"
+              "/packages/0/section_definitions/3",
+              "/packages/16/section_definitions/0"
             ],
             "quantities": [
               {
@@ -54377,6 +54411,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "JV",
             "description": "This section descirbes the current density *J* and voltage *V* characteristics of the solar cell. It includes the device parameters and information about how the\nmeasurements were performed.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -55703,6 +55740,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Stabilised",
             "description": "A section describing if a stabilised efficiency has been measured in the solar cell.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -56012,7 +56052,8 @@ window.nomadArtifacts = {
             "name": "EQE",
             "description": "A section describing the External Quantum Efficiency **EQE** of the solar cell and additional parameteres derived from it. If used as an ELN, a file containing\nthe EQE spectrum in columns can be uploaded in the quantity `data_file` to process\nautomatic calculations of several parameteres like the `bandgap` or `Urbach energy`.",
             "base_sections": [
-              "/packages/0/section_definitions/3"
+              "/packages/0/section_definitions/3",
+              "/packages/16/section_definitions/0"
             ],
             "quantities": [
               {
@@ -56326,6 +56367,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Stability",
             "description": "A section decsirbing the stability measurements performed in the device.",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -57574,6 +57618,9 @@ window.nomadArtifacts = {
             "m_parent_sub_section": "section_definitions",
             "name": "Outdoor",
             "description": "A section describing measurements performed in outdoor conditions",
+            "base_sections": [
+              "/packages/16/section_definitions/0"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
