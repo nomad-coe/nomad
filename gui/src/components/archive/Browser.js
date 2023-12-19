@@ -147,6 +147,12 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
     }
   }
 
+  const checkHdf5File = (m_nx_data_file) => {
+    if (typeof m_nx_data_file !== 'undefined') {
+      setHdf5Filename(m_nx_data_file)
+    }
+  }
+
   useLayoutEffect(() => {
     function update() {
       const height = window.innerHeight - outerRef.current.getBoundingClientRect().top - 24
@@ -219,6 +225,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
           try {
             lane.adaptor = await prev.adaptor.itemAdaptor(segment)
             checkHdf5Path(lane.adaptor?.obj?.m_attributes?.m_nx_data_path)
+            checkHdf5File(lane.adaptor?.obj?.m_attributes?.m_nx_data_file)
           } catch (error) {
             console.log(error)
             lane.error = `The item "${segment}" could not be found.`
@@ -240,6 +247,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
       if (prev) {
         prev.next = lane
         checkHdf5Path(lane.adaptor?.obj?.m_attributes?.m_nx_data_path)
+        checkHdf5File(lane.adaptor?.obj?.m_attributes?.m_nx_data_file)
       }
       newLanes.push(lane)
       if (lane.error) {

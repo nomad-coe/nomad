@@ -20,13 +20,13 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 import numpy as np
-
 from pynxtools.nexus import nexus as read_nexus  # pylint: disable=import-error
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import MSection, nexus
 from nomad.metainfo.util import MQuantity, MSubSectionList, resolve_variadic_name
 from nomad.parsing import Parser
 from nomad.units import ureg
+from pint.errors import UndefinedUnitError
 from nomad.utils import get_logger
 from nomad.datamodel.results import Material
 from nomad.datamodel.results import Results
@@ -117,11 +117,14 @@ class NexusParser(Parser):
         self.archive: Optional[EntryArchive] = None
         self.nx_root = None
         self._logger = None
+        self.nxs_fname: str = ''
 
     def _populate_data(self, depth: int, nx_path: list, nx_def: str, hdf_node, current: MSection):
         '''
         Populate attributes and fields
         '''
+        if not self.nxs_fname and hdf_node:
+            self.nxs_fname = hdf_node.file.filename.split('/')[-1]
 
         if depth < len(nx_path):
             # it is an attribute of either field or group
@@ -194,7 +197,6 @@ class NexusParser(Parser):
             unit = hdf_node.attrs.get('units', None)
 
             pint_unit: Optional[ureg.Unit] = None
-
             if unit:
                 try:
                     if unit != 'counts':
@@ -202,7 +204,8 @@ class NexusParser(Parser):
                     else:
                         pint_unit = ureg.parse_units('1')
                     field = ureg.Quantity(field, pint_unit)
-                except ValueError:
+
+                except (ValueError, UndefinedUnitError):
                     pass
 
             if metainfo_def.use_full_storage:
@@ -214,7 +217,10 @@ class NexusParser(Parser):
 
             try:
                 current.m_set(metainfo_def, field)
-                current.m_set_quantity_attribute(metainfo_def, "m_nx_data_path", hdf_node.name, quantity=field)
+                current.m_set_quantity_attribute(metainfo_def, "m_nx_data_path",
+                                                 hdf_node.name, quantity=field)
+                current.m_set_quantity_attribute(metainfo_def, "m_nx_data_file",
+                                                 self.nxs_fname, quantity=field)
                 if field_stats is not None:
                     current.m_set_quantity_attribute(metainfo_def, "nx_data_mean", field_stats[0], quantity=field)
                     current.m_set_quantity_attribute(metainfo_def, "nx_data_var", field_stats[1], quantity=field)
@@ -236,6 +242,9 @@ class NexusParser(Parser):
         hdf_path: str = hdf_info['hdf_path']
         hdf_node = hdf_info['hdf_node']
 
+        if not self.nxs_fname and hdf_node:
+            self.nxs_fname = hdf_node.file.filename.split('/')[-1]
+
         if nx_path is None:
             return
 
@@ -249,6 +258,7 @@ class NexusParser(Parser):
             current_hdf_path = current_hdf_path + ("/" + name if depth < len(nx_path) else "")
             current.m_set_section_attribute("m_nx_data_path", current_hdf_path)
 
+            current.m_set_section_attribute("m_nx_data_file", self.nxs_fname)
         self._populate_data(depth, nx_path, nx_def, hdf_node, current)
 
     def get_sub_element_names(self, elem: MSection):
@@ -279,15 +289,21 @@ class NexusParser(Parser):
                 filtered.append(individual)
         return filtered
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+    def parse(self, mainfile: str, archive: EntryArchive,
+              logger=None, child_archives=None):
+
         self.archive = archive
         self.archive.m_create(nexus.NeXus)  # type: ignore # pylint: disable=no-member
         self.nx_root = self.archive.nexus
         self._logger = logger if logger else get_logger(__name__)
 
-        nexus_helper = read_nexus.HandleNexus(logger, mainfile, None, None)
-        nexus_helper.process_nexus_master_file(self.__nexus_populate)
+        if mainfile.endswith('nxs'):
+            nexus_helper = read_nexus.HandleNexus(logger, mainfile)
+            nexus_helper.process_nexus_master_file(self.__nexus_populate)
+        else:
+            raise ValueError('No Nexus file is found to populate the nexus definition.')
 
+        # TODO: domain éxperimemt could also be registered
         if archive.metadata is None:
             return
 
@@ -298,7 +314,7 @@ class NexusParser(Parser):
                 app_def = var
                 break
         archive.metadata.entry_type = app_def
-        # TODO: domain éxperimemt could also be registered
+
 
         # Normalise element info
         if archive.results is None:

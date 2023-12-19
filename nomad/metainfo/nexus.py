@@ -333,6 +333,11 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
         if attrib.name == "m_nx_data_path":
             m_nx_data_path_exists = True
             break
+    m_nx_data_file_exists = False
+    for attrib in definition.attributes:
+        if attrib.name == "m_nx_data_file":
+            m_nx_data_file_exists = True
+            break
 
         # TODO: Add call to __add_common for description of attribs
 
@@ -341,6 +346,12 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
             name="m_nx_data_path", variable=False, shape=[], type=str,
             description="This is a nexus template property. "
             "This attribute holds the actual path of the value in the nexus data."))
+    # NeXus file.
+    if not m_nx_data_file_exists:
+        definition.attributes.append(Attribute(
+            name="m_nx_data_file", variable=False, shape=[], type=str,
+            description="This is a nexus template property. "
+            "This attribute holds the actual file name of the nexus data."))
 
     if isinstance(definition, Quantity):
         for nx_array_attr in ['nx_data_mean', 'nx_data_var', 'nx_data_min', 'nx_data_max']:

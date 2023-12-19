@@ -31,7 +31,7 @@ bitarray==2.3.5           # via nomad-dos-fingerprints (dependencies/nomad-dos-f
 bs4==0.0.1                # via nomad-lab (pyproject.toml)
 cachetools==4.2.4         # via nomad-lab (pyproject.toml)
 cattrs==22.2.0            # via requests-cache
-celery[redis]==5.2.7      # via nomad-lab (pyproject.toml)
+celery[redis]==5.2.7      # via celery, nomad-lab (pyproject.toml)
 certifi==2022.12.7        # via elasticsearch, httpcore, httpx, requests
 certipy==0.1.3            # via jupyterhub
 cffi==1.15.1              # via bcrypt, cryptography
@@ -46,7 +46,7 @@ comm==0.1.4               # via ipywidgets
 commonmark==0.9.1         # via recommonmark
 cryptography==39.0.0      # via nomad-lab (pyproject.toml), pyjwt, pyopenssl, rfc3161ng
 cycler==0.11.0            # via matplotlib
-dask[array]==2022.2.0     # via hyperspy, kikuchipy, orix, pyxem
+dask[array]==2022.2.0     # via dask, hyperspy, kikuchipy, orix, pyxem
 debugpy==1.6.5            # via ipykernel
 decorator==5.1.1          # via ipyparallel, ipython, validators
 diffpy-structure==3.1.0   # via diffsims, kikuchipy, orix
@@ -84,7 +84,7 @@ griddataformats==0.7.0    # via mdanalysis
 gsd==2.7.0                # via mdanalysis
 gunicorn==21.2.0          # via nomad-lab (pyproject.toml)
 h11==0.14.0               # via httpcore, uvicorn
-h5grove[fastapi]==1.3.0   # via nomad-lab (pyproject.toml)
+h5grove[fastapi]==1.3.0   # via h5grove, nomad-lab (pyproject.toml)
 h5py==3.6.0               # via electronicparsers (dependencies/parsers/electronic/pyproject.toml), h5grove, hyperspy, ifes-apt-tc-data-modeling, kikuchipy, nionswift, nomad-lab (pyproject.toml), orix, phonopy, pyfai, silx
 hjson==3.0.2              # via nomad-lab (pyproject.toml)
 html5lib==1.1             # via nomad-lab (pyproject.toml)
@@ -96,7 +96,7 @@ idna==3.4                 # via anyio, email-validator, jsonschema, requests, rf
 ifes-apt-tc-data-modeling==0.0.9  # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
 imageio==2.24.0           # via hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
 imagesize==1.4.1          # via sphinx
-importlib-metadata==4.13.0  # via flask, hyperspy, nomad-lab (pyproject.toml), sphinx
+importlib-metadata==4.13.0  # via flask, hyperspy, nomad-lab (pyproject.toml), pynxtools (dependencies/parsers/nexus/pyproject.toml), sphinx
 inflection==0.5.1         # via nomad-lab (pyproject.toml)
 ipykernel==6.16.2         # via ipyparallel
 ipyparallel==8.4.1        # via hyperspy
@@ -110,7 +110,7 @@ jinja2==3.0.3             # via flask, hyperspy, jupyterhub, sphinx
 jmespath==0.10.0          # via nomad-lab (pyproject.toml)
 joblib==1.1.0             # via mdanalysis, nomad-lab (pyproject.toml), scikit-learn
 jsonpointer==2.3          # via jsonschema
-jsonschema[format]==4.17.3  # via jupyter-telemetry, nomad-lab (pyproject.toml), oauthenticator
+jsonschema[format]==4.17.3  # via jsonschema, jupyter-telemetry, nomad-lab (pyproject.toml), oauthenticator
 jupyter-client==7.4.8     # via ipykernel, ipyparallel
 jupyter-core==4.12.0      # via jupyter-client
 jupyter-telemetry==0.1.0  # via jupyterhub
@@ -134,6 +134,7 @@ matplotlib-scalebar==0.8.1  # via orix
 mdanalysis==2.5.0         # via atomisticparsers (dependencies/parsers/atomistic/pyproject.toml), nomad-lab (pyproject.toml)
 mdtraj==1.9.6             # via nomad-lab (pyproject.toml)
 memoization==0.4.0        # via nomad-lab (pyproject.toml)
+mergedeep==1.3.4          # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
 mistune==2.0.4            # via m2r
 mmtf-python==1.1.3        # via mdanalysis
 mongoengine==0.25.0       # via nomad-lab (pyproject.toml)
@@ -143,11 +144,10 @@ mp-api==0.30.10           # via pymatgen
 mpmath==1.2.1             # via sympy
 mrcfile==1.4.3            # via griddataformats
 msgpack==1.0.4            # via mmtf-python, mp-api, nomad-lab (pyproject.toml)
-nanonispy @ git+https://github.com/ramav87/nanonispy.git@a0da87c58482d29624a2bf5deecb763dd1274212  # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
 natsort==8.2.0            # via hyperspy
 nest-asyncio==1.5.6       # via ipykernel, jupyter-client
 netcdf4==1.5.4            # via electronicparsers (dependencies/parsers/electronic/pyproject.toml), nomad-lab (pyproject.toml)
-networkx==2.6.3           # via matid (dependencies/matid/pyproject.toml), mdanalysis, pymatgen, radioactivedecay, scikit-image
+networkx==2.6.3           # via matid (dependencies/matid/pyproject.toml), mdanalysis, nomad-lab (pyproject.toml), pymatgen, radioactivedecay, scikit-image
 niondata==0.15.5          # via nionswift, nionswift-io
 nionswift==0.16.8         # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
 nionswift-io==0.15.1      # via nionswift
@@ -157,12 +157,12 @@ nptyping==1.4.4           # via nomad-lab (pyproject.toml)
 numba==0.56.4             # via diffsims, hyperspy, kikuchipy, orix, pyxem, sparse
 numcodecs==0.10.2         # via zarr
 numexpr==2.8.4            # via hyperspy, pyfai
-numpy==1.22.4             # via ase, biopython, cftime, dask, diffsims, f90wrap, fabio, griddataformats, gsd, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, imageio, kikuchipy, lmfit, matid (dependencies/matid/pyproject.toml), matplotlib, mdanalysis, mdtraj, mrcfile, nanonispy, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-lab (pyproject.toml), nptyping, numba, numcodecs, numexpr, numpy-quaternion, orix, pandas, phonopy, pyfai, pymatgen, pywavelets, pyxem, quippy-ase, radioactivedecay, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tifffile, xarray, zarr
+numpy==1.22.4             # via ase, biopython, cftime, dask, diffsims, f90wrap, fabio, griddataformats, gsd, h5grove, h5py, hyperspy, ifes-apt-tc-data-modeling, imageio, kikuchipy, lmfit, matid (dependencies/matid/pyproject.toml), matplotlib, mdanalysis, mdtraj, mrcfile, netcdf4, niondata, nionswift, nionswift-io, nionui, nomad-lab (pyproject.toml), nptyping, numba, numcodecs, numexpr, numpy-quaternion, orix, pandas, phonopy, pyfai, pymatgen, pywavelets, pyxem, quippy-ase, radioactivedecay, scikit-image, scikit-learn, scipy, silx, sparse, spglib, tifffile, xarray, zarr
 numpy-quaternion==2022.4.3  # via orix
 oauthenticator==15.1.0    # via nomad-lab (pyproject.toml)
 oauthlib==3.2.2           # via jupyterhub
 openpyxl==3.1.2           # via nomad-lab (pyproject.toml)
-optimade[mongo]==0.22.1   # via nomad-lab (pyproject.toml)
+optimade[mongo]==0.22.1   # via nomad-lab (pyproject.toml), optimade
 orix==0.11.1              # via diffsims, kikuchipy, pyxem
 orjson==3.9.4             # via h5grove, nomad-lab (pyproject.toml)
 packaging==23.0           # via dask, docker, gunicorn, hyperspy, ipykernel, matplotlib, mdanalysis, mongomock, pint, pooch, scikit-image, sphinx
@@ -195,7 +195,7 @@ pycparser==2.21           # via cffi
 pydantic==1.10.9          # via emmet-core, fastapi, nomad-lab (pyproject.toml), optimade
 pyfai==2023.9.0           # via pyxem
 pygments==2.14.0          # via ipython, sphinx
-pyjwt[crypto]==2.6.0      # via nomad-lab (pyproject.toml)
+pyjwt[crypto]==2.6.0      # via nomad-lab (pyproject.toml), pyjwt
 pymatgen==2023.2.28       # via asr, emmet-core, mp-api, nomad-lab (pyproject.toml)
 pymongo==4.3.3            # via mongoengine, nomad-lab (pyproject.toml), optimade
 pyopenssl==23.0.0         # via certipy
@@ -225,7 +225,7 @@ requests==2.28.2          # via docker, eelsdbconverter (dependencies/parsers/ee
 requests-cache==1.0.1     # via pynxtools (dependencies/parsers/nexus/pyproject.toml)
 rfc3161ng==2.1.3          # via nomad-lab (pyproject.toml)
 rfc3339-validator==0.1.4  # via jsonschema
-rfc3986[idna2008]==1.5.0  # via httpx
+rfc3986[idna2008]==1.5.0  # via httpx, rfc3986
 rfc3987==1.3.8            # via jsonschema
 rsa==4.9                  # via python-jose
 ruamel-yaml==0.17.21      # via jupyter-telemetry, oauthenticator, pymatgen
