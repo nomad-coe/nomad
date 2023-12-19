@@ -3551,12 +3551,17 @@ class PrimitiveQuantity(Quantity):
         # versa is not allowed for primitive types.
         if isinstance(value, pint.Quantity):
             if self.unit is None:
-                raise TypeError(f'The quantity {self} does not have a unit, but value {value} has.')
-            if self.type in MTypes.int:
+                if value.units.dimensionless:
+                    value = value.magnitude
+                else:
+                    raise TypeError(
+                        f'The quantity {self} does not have a unit, but value {value} has.')
+            elif self.type in MTypes.int:
                 raise TypeError(
                     f'Cannot save data with unit conversion into the quantity {self} '
                     'with integer data type due to possible precision loss.')
-            value = value.to(self.unit).magnitude
+            else:
+                value = value.to(self.unit).magnitude
 
         if self._list:
             if not isinstance(value, list):

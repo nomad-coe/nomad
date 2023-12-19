@@ -27,7 +27,7 @@ import pint.quantity
 from nomad.metainfo.metainfo import (
     MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
     MetainfoError, Environment, Annotation, AnnotationModel, SectionAnnotation, Context,
-    DefinitionAnnotation, derived)
+    DefinitionAnnotation, derived, MTypes)
 from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
 from nomad import utils
 from nomad.units import ureg
@@ -591,6 +591,35 @@ class TestM1:
         system.atom_positions = [[1, 2, 3]] * ureg.angstrom
         assert system.atom_positions.units == ureg.meter
         assert system.atom_positions[0][0] < 0.1 * ureg.meter
+
+    @pytest.mark.parametrize('dtype', MTypes.num)
+    @pytest.mark.parametrize('shape', [None, [1, 2]])
+    def test_setting_with_dimensionless_unit(self, dtype, shape):
+        if dtype not in MTypes.numpy:
+            shape = None
+        class TestSection(MSection):
+            test_quantity = Quantity(type=dtype, shape=shape)
+
+        test_section = TestSection()
+        if dtype in MTypes.int:
+            value = 42
+        elif dtype in MTypes.float:
+            value = 3.14
+        elif dtype in MTypes.complex:
+            value = 1+2j
+        else:
+            raise Exception('Unsupported type')
+        if shape:
+            value = np.full(shape, value, dtype=dtype)
+        test_section.test_quantity = value * ureg.dimensionless
+        if shape:
+            assert np.all(test_section.test_quantity == value)
+        elif dtype == np.float16:
+            assert test_section.test_quantity == pytest.approx(value, 1e-2)
+        elif dtype == np.float32:
+            assert test_section.test_quantity == pytest.approx(value, 1e-7)
+        else:
+            assert test_section.test_quantity == value
 
     def test_synonym(self):
         system = System()
