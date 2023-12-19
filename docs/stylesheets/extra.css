@@ -1,8 +1,12 @@
-
 .md-header__button.md-logo :where(img,svg) {
     width: 100%;
     height: 30px;
 }
+
+/* .md-nav--primary .md-nav__title[for=__drawer] {
+    background-color: var(--md-default-fg-color--lightest);
+    color: var(--md-default-fg-color--light);
+} */
 
 .md-header, .md-header__inner {
     background-color: #fff;
@@ -66,4 +70,56 @@
 .home-grid h3 {
     margin-top: 0;
     font-weight: 700;
+}
+
+.image-container p {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 1em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    align-content: stretch
+}
+
+.image-container img {
+    flex-grow: 1;
+    width: 100%;
+}
+
+.image-container::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.screenshot {
+    /* border: 1px solid var(--md-primary-fg-color--dark); */
+    box-shadow: var(--md-shadow-z3);
+    margin: 1em;
+    max-width: calc(100% - 2em) !important;
+}
+
+.nomad-button {
+    display: inline-block;
+    /* font-size: 14px; */
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    border-radius: 4px !important;
+    background-color: #2A4CDF;
+    color: #ffffff !important;
+    border: none !important;
+    margin: 0;
+
+    /* Additional styles from the original SCSS */
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+.nomad-button--card-action {
+    margin: 1em 0 0 0 !important;
 }

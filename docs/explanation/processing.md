@@ -16,7 +16,7 @@ Those matched files are now [*mainfiles*](../reference/glossary.md#mainfile) and
 3. **Persisting** (including indexing of) the extracted data.
 
 <figure markdown>
-  ![processing](processing.png)
+  ![processing](images/processing.png)
   <figcaption>Processing steps and how they interact with files, entries, and archives.</figcaption>
 </figure>
 
@@ -62,16 +62,19 @@ In most scenarios, entry processing is not triggered individually, but as part o
 processing. Many entries of one upload might be processed at the same time. Some order
 can be enforced through *processing levels*. Levels are part of the parser metadata and
 entries paired to parsers with a higher level are processed after entries with a
-parser of lower level. See als [how to write parser plugins](../plugins/parsers.md).
+parser of lower level. See also [how to write parser plugins](../howto/customization/plugins_dev.md#develop-a-parser-plugin).
 
 
 ## Customize processing
 
 NOMAD provides just the framework for processing. The actual work depends on plugins, parsers
-and schemas for specific file types. While NOMAD comes with a build-in set of plugins, you can build
-your own plugins to support new file types, ELNs, and workflows.
+and schemas for specific file types. While NOMAD comes with a build-in set of plugins, you can build your own plugins to support new file types, ELNs, and workflows.
 
-### Plugins, schemas, parsers
+### Schemas, parsers, plugins
+
+The primary function of a parser is to systematically analyze and organize the incoming data, ensuring adherence to the established schema.
+The interaction between a parser and a schema plays a crucial role in ensuring data consistency to a predefined structure. It takes raw data inputs and utilizes the schema as a guide to interpret and organize the information correctly. By connecting the parser to the schema, users can establish a framework for the expected data structure. The modular nature of the parser and schema relationship allows for flexibility, as the parser can be designed to accommodate various schemas, making it adaptable to different data models or updates in research requirements.
+This process ensures that the resulting filled template meets the compliance standards dictated by the schema.
 
 Processing is run on the NOMAD (Oasis) server as part of the NOMAD app or worker. In
 principle, executed processing code can access all files, all databases, the underlying
@@ -87,10 +90,9 @@ section, might indirectly use custom processing functionality.
 
 A parser plugin can define a new parser and therefore add to the *matching*, *parsing*, (and *normalizing*).
 A schema plugin defines new sections that can contain `normalize` functions that add to the *normalizing*.
-See also the how-tos on [plugins](../plugins/plugins.md), [parsers](../plugins/parsers.md), and [schema](../plugins/schemas.md).
+See also the how-tos on [plugins installation](../howto/oasis/plugins_install.md), and development of [parsers and schemas](../howto/customization/plugins_dev.md).
 
-
-### Matching
+#### Matching
 
 All parsers have a `is_mainfile` function. This is its signature:
 
@@ -113,7 +115,7 @@ uses certain criteria, for example:
 - regular expressions on mimetypes
 - regular expressions on header content
 
-See [How to write a parser](../plugins/parsers.md) for more details.
+See [How to write a parser](../howto/customization/plugins_dev.md#develop-a-parser-plugin) for more details.
 
 The matching step of an upload's processing, will call this function for every file
 and on all parsers. There are some hidden optimizations and additional parameters, but
@@ -122,7 +124,7 @@ The first matched parser will be used and the order of configured parser is impo
 If no parser can be matched, the file is not considered for processing and no entry
 is created.
 
-### Parsing
+#### Parsing
 
 All parsers have a `parse` function. This is its signature:
 
@@ -141,7 +143,6 @@ Each `EntryArchive` has an `m_context` field. This context provides functions
 to access the file system, open other files, open the archives of other entries,
 create or update files, spawn the processing of created or updated files.
 See also the [create files, spawn entries scenario](#creating-files-spawning-entries).
-
 
 ### Normalizing
 
@@ -176,7 +177,7 @@ function implementation.
 ### Single file, single entry
 
 <figure markdown>
-  ![processing](processing-single-single.png)
+  ![processing](images/processing-single-single.png)
 </figure>
 
 This is the "normal" case. A parser is matched to a mainfile. During processing,
@@ -185,7 +186,7 @@ only the mainfile is read to populate the `EntryArchive` with data.
 ### Multiple files, single entry
 
 <figure markdown>
-  ![processing](processing-multi-single.png)
+  ![processing](images/processing-multi-single.png)
 </figure>
 
 Same as above: a parser is matched to a mainfile. But, during processing,
@@ -195,15 +196,15 @@ to open and read other *auxiliary* files.
 
 A notable special case are ELNs with `normalize` functions and references to files.
 ELNs can be designed to link the ELN with uploaded files via `FileEditQuantities` (see
-also [How to define ELNs](../schemas/elns.md#example-eln-schema) or [ELN Annotations](../reference/annotations.md#eln-annotations)).
+also [How to define ELNs](../howto/customization/elns.md#example-eln-schema) or [ELN Annotations](../reference/annotations.md#eln-annotations)).
 The underlying ELN's schema usually defines `normalize` functions that open the referenced
-files for more data. Certain modes of the [tabular parser](../schemas/tabular.md), for example, use
+files for more data. Certain modes of the [tabular parser](../howto/customization/tabular.md), for example, use
 this.
 
 ### Single file, multiple entries
 
 <figure markdown>
-  ![processing](processing-single-multi.png)
+  ![processing](images/processing-single-multi.png)
 </figure>
 
 A parser can match a mainfile in two ways. It's `is_mainfile` function can simply return `True`,
@@ -223,7 +224,7 @@ the entry identity is internally locked to the mainfile (and the respective key)
 ### Creating files, spawning entries
 
 <figure markdown>
-  ![processing](processing-spawn.png)
+  ![processing](images/processing-spawn.png)
 </figure>
 
 During processing, parsers or `normalize` functions can also create new (or update existing)
@@ -315,7 +316,7 @@ occurs. *Readers* and *writers* might be a good strategy to re-use parts of a pa
 but *reader* and *writer* implementations remain strongly connected and inter-dependent.
 
 <figure markdown>
-  ![processing](reader-writer.png)
+  ![processing](images/reader-writer.png)
   <figcaption>Read and written data items might overlap but are rarely the same.</figcaption>
 </figure>
 

@@ -2,55 +2,59 @@ site_name: Documentation
 site_description: |
   The documentation for NOMAD v1.
 site_author: The NOMAD Authors
+repo_url: https://github.com/nomad-coe/nomad
+edit_uri: ''
 nav:
   - Home: index.md
   - Tutorial:
+    - Navigating to NOMAD: tutorial/nomad_repo.md
     - Uploading and publishing data: tutorial/upload_publish.md
-    - Exploring data on: tutorial/explore.md
+    - Exploring data: tutorial/explore.md
     - Access data via API: tutorial/access_api.md
-    - Built in schemas: tutorial/builtin.md
-    - Schemas: tutorial/custom.md
-    - Plugins: tutorial/plugins.md
-    - Third-party integration: tutorial/third_party.md
+    - Schemas and plugins: tutorial/custom.md
   - How-to guides:
-    - Data Management:
-      - How to upload/publish data for supported formats: data/upload.md
-      - How to use ELNs: data/eln.md
-      - How to explore data: data/explore.md
-      - How to use NORTH: data/north.md
-    - Customize Schemas:
-      - How to write a schema: schemas/basics.md
-      - How to define ELNs: schemas/elns.md
-      - How to use base sections: schemas/base_sections.md
-      - How to use tabular parser: schemas/tabular.md
-      - How to define workflows: schemas/workflows.md
-      - How to reference hdf5: schemas/hdf5.md
-    - Programming interfaces:
-      - How to use the API: apis/api.md
-      - How to install nomad-lab: apis/pythonlib.md
-      - How to access processed data: apis/archive_query.md
-      - How to run a parser: apis/local_parsers.md
-    - Plugins:
-      - How to develop, publish, and install plugins: plugins/plugins.md
-      - How to write schema plugins: plugins/schemas.md
-      - How to write parser plugins: plugins/parsers.md
+    - Overview: howto/overview.md
+    - Manage and find data:
+      - Upload and publish data for supported formats: howto/manage/upload.md
+      - Use ELNs: howto/manage/eln.md
+      - Explore data: howto/manage/explore.md
+      - Use NORTH: howto/manage/north.md
+    - Programmatic use:
+      - Use the API: howto/programmatic/api.md  # TODO separate into How-to and Explanation/Reference
+      - Publish data using python: howto/programmatic/publish_python.md
+      - Install nomad-lab: howto/programmatic/pythonlib.md
+      - Access processed data: howto/programmatic/archive_query.md
+      - Run a parser: howto/programmatic/local_parsers.md
+    - NOMAD Oasis:
+      - Install an Oasis: howto/oasis/install.md
+      - Customize an Oasis: howto/oasis/customize.md
+      - Install plugins: howto/oasis/plugins_install.md
+      - Configure custom apps: howto/oasis/apps.md
+      - Migrate Oasis versions: howto/oasis/migrate.md
+      - Perform admin tasks: howto/oasis/admin.md
+    - Customization:
+      - Write a schema: howto/customization/basics.md
+      - Define ELNs: howto/customization/elns.md
+      - Use base sections: howto/customization/base_sections.md
+      - Use tabular parser: howto/customization/tabular.md
+      - Define workflows: howto/customization/workflows.md
+      - Reference hdf5 files: howto/customization/hdf5.md
+      - Develop and publish plugins: howto/customization/plugins_dev.md
+      - Write a parser: howto/customization/parsers.md
+      - Write a normalizer: howto/customization/normalizers.md
     - Development:
-      - How to get started: develop/setup.md
-      - How to navigate the code: develop/code.md
-      - How to contribute: develop/contrib.md
-      - Code guidelines: develop/guides.md
-      - How to extend the search: develop/search.md
-      - How to write a parser: develop/parsers.md
-      - How to write a normalizer: develop/normalizers.md
-    - Oasis:
-      - How to install an Oasis: oasis/install.md
-      - How to customize an Oasis: oasis/customize.md
-      - How to configure custom apps: oasis/apps.md
-      - How to migrate Oasis versions: oasis/migrate.md
-      - Administrative tasks: oasis/admin.md
+      - Get started: howto/develop/setup.md
+      - Navigate the code: howto/develop/code.md
+      - Contribute: howto/develop/contrib.md
+      - Extend the search: howto/develop/search.md
+  - Domain-specific examples:
+    - Overview: examples/overview.md
+    - Computational data:
+      - Quick start: examples/computational_data/uploading.md
+      - Workflows: examples/computational_data/workflows.md
   - Explanation:
     - From files to data: explanation/basics.md
-    - Structured data: explanation/data.md
+    - Data structure: explanation/data.md
     - Processing: explanation/processing.md
     - Architecture: explanation/architecture.md
     - Why you need an Oasis: explanation/oasis.md
@@ -60,7 +64,9 @@ nav:
     - reference/cli.md
     - reference/plugins.md
     - reference/parsers.md
+    - reference/code_guidelines.md
     - reference/glossary.md
+    - reference/tutorials.md
 theme:
   name: material
   palette:
@@ -72,6 +78,8 @@ theme:
   favicon: assets/favicon.png
   features:
     - navigation.instant
+  icon:
+    repo: fontawesome/brands/github
   custom_dir: docs/theme
 # repo_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/
 markdown_extensions:
@@ -83,14 +91,25 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - mkdocs-click
+  - pymdownx.extra
   - toc:
       permalink: True
   - pymdownx.arithmatex:
       generic: true
-  - attr_list
-  - mkdocs-click
-  - pymdownx.extra
+  - pymdownx.emoji: # TODO make sure this isn't used!!
+      # below 2 lines works for mkdocs-material<=9.3, but they produce a deprecated warning
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      # below 2 lines are supposed to work for mkdocs-material>=9.4
+      # emoji_index: !!python/name:material.extensions.emoji.twemoji
+      # emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
 extra:
   generator: false
   homepage: https://nomad-lab.eu
@@ -101,10 +120,14 @@ plugins:
         module_name: nomad/mkdocs
     - redirects:
         redirect_maps:
-          'plugins.md': 'plugins/plugins.md'
-          'pythonlib.md': 'apis/pythonlib.md'
-          'oasis.md': 'oasis/install.md'
-          'develop/gitlab.md': 'develop/contrib.md'
+          'pythonlib.md': 'howto/programmatic/pythonlib.md'
+          'oasis.md': 'howto/oasis/install.md'
+          'develop/gitlab.md': 'howto/develop/contrib.md'
+    - glightbox
+    # - git-revision-date-localized
+    # TODO Fix error in pipeline when this plugin is included
+    # (with 'mkdocs-git-revision-date-localized-plugin==1.2.1' in pyproject.toml)
+    # see pipeline error here: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/jobs/2473217
 extra_css:
   - stylesheets/extra.css
 extra_javascript:

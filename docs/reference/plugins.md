@@ -2,7 +2,7 @@
 
 !!! note
 
-    You might also want to read [the plugin how-tos](../plugins/plugins.md)
+    You might also want to read [the plugin how-tos](../howto/customization/plugins_dev.md)
 
 This is a list of all built-in plugins:
 

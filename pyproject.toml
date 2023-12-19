@@ -132,15 +132,18 @@ dev = [
     'twine==3.4.2',
     'python-gitlab==2.10.1',
     'devtools==0.8.0',
-    'mkdocs==1.2.3',
-    'mkdocs-material==8.1.1',
-    'mkdocs-material-extensions==1.0.3',
+    'mkdocs==1.3.0',
+    'mkdocs-material==8.2.8',
+    'mkdocs-material-extensions==1.3.1',
     'mkdocs-macros-plugin==0.6.3',
+    'mkdocs-glightbox==0.3.5',
     'aiosmtpd',
     'mkdocs-click==0.8.0',
     'mkdocs-redirects==1.2.0',
+    'mkdocs-git-revision-date-localized-plugin==1.2.1',
     'ruff==0.1.4'
 ]
+
 
 [project.scripts]
 nomad = "nomad.cli:run_cli"

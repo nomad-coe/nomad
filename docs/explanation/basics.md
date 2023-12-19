@@ -7,7 +7,7 @@ basis to make data FAIR. It allows us to build search interfaces, APIs, visualiz
 analysis tools independent from specific file formats.
 
 <figure markdown>
-  ![datamodel](datamodel.png)
+  ![datamodel](images/datamodel.png)
   <figcaption>NOMAD's datamodel and processing</figcaption>
 </figure>
 
@@ -26,6 +26,15 @@ Raw files are managed by users and they are never changed by NOMAD.
     of related mainfiles to automatize ELNs, or
     generating additional files to convert a mainfile into a standardized format like nexus or cif.
 
+## Files
+
+We already said that all uploaded files are **raw files**. Recognized files that have an
+entry are called **mainfiles**. Only the mainfile of the entry is
+passed to the parser during processing. However, a parser can call other tools or read other files.
+Therefore, we consider all files in the same directory of the mainfile as **auxillary files**,
+even though there is not necessarily a formal relationship with the entry. If
+formal relationships with aux files are established, e.g. via a reference to the file within
+the processed data, is up to the parser.
 
 ## Entries
 
@@ -46,22 +55,28 @@ manually.
     determined by the users. Contrary to the processed data that is created
     from raw files by NOMAD.
 
+## Datasets
+
+Users can build collections of entries to form **datasets**. You can imagine datasets
+like tags or albums in other systems. Each entry can be contain in many datasets and
+a dataset can hold many entries. Datasets can also overlap. Datasets are only
+indirectly related to files. The main purpose of **datasets** in NOMAD is to have citable
+collections of data. Users can get a DOI for their datasets. Datasets have no influence
+on the processing of data.
 
 ## Processing
 
-Also the processing of entries is automatic. Initially and on each mainfile change,
+The processing of entries is automatic. Initially and on each mainfile change,
 the entry corresponding to the mainfile, will be processed. Processing consist of
-**parsing**, **normalizing**, and storing the created data.
-
+**parsing**, **normalizing**, and **persisting** the created data, as explained in more detail in the [Processing section](processing.md).
 
 ### Parsing
 
 Parsers are small programs that transform data from a recognized *mainfile* into a
 structured machine processable tree of data that we call the *archive* or [**processed data**](data.md)
 of the entry. Only one parser is used for each entry. The used parser is determined
-during matching and depends on the file format. Parsers can be added to NOMAD as
-[plugins](../plugins/parsers.md); this is a list of [all built-in parsers](../reference/parsers.md).
-
+during matching and depends on the file format. [A dedicated guide](../howto/customization/parsers.md#match-your-raw-file) shows how to match a specific file from your parser. Parsers can be added to NOMAD as
+[plugins](../howto/customization/plugins_dev.md#develop-a-parser-plugin); this is a list of [all built-in parsers](../reference/parsers.md).
 
 !!! note
     A special case is the parsing of NOMAD archive files. Usually a parser converts a file
@@ -83,7 +98,7 @@ processed data. Learn more about why to normalize in the documentation on [struc
 There are two principle ways to implement normalization in NOMAD:
 **normalizers** and **normalize** functions.
 
-[Normalizers](../develop/normalizers.md) are small programs that take processed data as input.
+[Normalizers](../howto/customization/normalizers.md) are small programs that take processed data as input.
 There is a list of normalizers registered in the [NOMAD configuration](../reference/config.md#normalize).
 In the future, normalizers might be
 added as plugins as well. They run in the configured order. Every normalizer is run
@@ -91,41 +106,22 @@ on all entries and the normalizer might decide to do something or not, depending
 it sees in the processed data.
 
 Normalize functions are special functions implemented as part of section definitions
-in [Python schemas](../plugins/schemas.md#writing-schemas-in-python-compared-to-yaml-schemas).
+in [Python schemas](../howto/customization/plugins_dev.md##writing-schemas-in-python-compared-to-yaml-schemas).
 There is a special normalizer that will go through all processed data and execute these
 function if they are defined. Normalize functions get the respective section instance as
-input. This allows [schema plugin](../plugins/schemas.md) developers to add normalizing to their sections.
+input. This allows [schema plugin](../howto/customization/plugins_dev.md#develop-a-schema-plugin) developers to add normalizing to their sections.
 Read about our [structured data](./data.md) to learn more about the different sections.
 
 ### Storing and indexing
 
 As a last technical step, the processed data is stored and some information is passed
 into the search index. The store for processed data is internal to NOMAD and processed
-data cannot be accessed directly and only via the [archive API](../apis/api.md#access-processed-data-archives)
-or [ArchiveQuery](../apis/archive_query.md) Python library functionality.
+data cannot be accessed directly and only via the [archive API](../howto/programmatic/api.md#access-processed-data-archives)
+or [ArchiveQuery](../howto/programmatic/archive_query.md) Python library functionality.
 What information is stored in the search index is determined
 by the *metadata* and *results* sections and cannot be changed by users or plugins.
 However, all scalar values in the processed data are also index as key-values pairs.
 
-!!! attention
+!!! warning "Attention"
     This part of the documentation should be more substantiated. There will be a learn section
     about the search soon.
-
-## Files
-
-We already said that all uploaded files are **raw files**. Recognized files that have an
-entry are called **mainfiles**. Only the mainfile of the entry is
-passed to the parser during processing. However, a parser can call other tools or read other files.
-Therefore, we consider all files in the same directory of the mainfile as **auxillary files**,
-even though there is not necessarily a formal relationship with the entry. If
-formal relationships with aux files are established, e.g. via a reference to the file within
-the processed data, is up to the parser.
-
-## Datasets
-
-Users can build collections of entries to form **datasets**. You can imagine datasets
-like tags or albums in other systems. Each entry can be contain in many datasets and
-a dataset can hold many entries. Datasets can also overlap. Datasets are only
-indirectly related to files. The main purpose of **datasets** in NOMAD is to have citable
-collections of data. Users can get a DOI for their datasets. Datasets have no influence
-on the processing of data.

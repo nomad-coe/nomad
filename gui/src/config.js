@@ -146,7 +146,7 @@ export const nomadTheme = createTheme({
   },
   overrides: {
     // This is used to inject global css styles through the CssBaseline
-    // component, see: https://v4.mui.com/customization/globals/#global-css
+    // component, see: https://v4.mui.com/howto/customization/globals/#global-css
     MuiCssBaseline: {
       '@global': {
         '.react-grid-item.react-grid-placeholder': {

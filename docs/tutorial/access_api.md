@@ -1,3 +1,6 @@
+!!! warning "Attention"
+    We are currently working to update this content.
+
 This video tutorial explains the basics of API and shows how to do simple requests
 against the NOMAD API.
 
