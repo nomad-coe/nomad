@@ -18,7 +18,7 @@ out the application and this documentation.
 
 *Annotations* are part of data [schemas](#schema) and they describe aspects that are not
 directly defining the type or shape of data. They often allow to alter how certain data is
-managed, represented, or edited. See [annotations in the schema documentation](../schemas/elns.md#annotations).
+managed, represented, or edited. See [annotations in the schema documentation](../howto/customization/elns.md#annotations).
 
 ### Archive
 

@@ -52,7 +52,7 @@ MySection:
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.TabularAnnotation', heading='### `tabular`') }}
 
 Each and every quantity to be filled with data from tabular data files should be annotated as the following example.
-A practical example is provided in [How To](../schemas/tabular.md#preparing-the-tabular-data-file) section.
+A practical example is provided in [How To](../howto/customization/tabular.md#preparing-the-tabular-data-file) section.
 
 ```yaml
 my_quantity:
@@ -78,18 +78,18 @@ One special quantity will be dedicated to host the tabular data file. In the fol
 
 |Tutorial ref.|`file_mode`|`mapping_mode`|`sections`|How to ref.|
 |---|---|---|---|---|
-|1|`current_entry`|`column`|`root`|[HowTo](../schemas/tabular.md#1-column-mode-current-entry-parse-to-root)|
-|2|`current_entry`|`column`|my path|[HowTo](../schemas/tabular.md#2-column-mode-current-entry-parse-to-my-path)|
+|1|`current_entry`|`column`|`root`|[HowTo](../howto/customization/tabular.md#1-column-mode-current-entry-parse-to-root)|
+|2|`current_entry`|`column`|my path|[HowTo](../howto/customization/tabular.md#2-column-mode-current-entry-parse-to-my-path)|
 |<span style="color:red">np1</span>|`current_entry`|`row`|`root`|<span style="color:red">Not possible</span>|
-|3|`current_entry`|`row`|my path|[HowTo](../schemas/tabular.md#3-row-mode-current-entry-parse-to-my-path)|
+|3|`current_entry`|`row`|my path|[HowTo](../howto/customization/tabular.md#3-row-mode-current-entry-parse-to-my-path)|
 |<span style="color:red">np2</span>|`single_new_entry`|`column`|`root`|<span style="color:red">Not possible</span>|
-|4|`single_new_entry`|`column`|my path|[HowTo](../schemas/tabular.md#4-column-mode-single-new-entry-parse-to-my-path)|
+|4|`single_new_entry`|`column`|my path|[HowTo](../howto/customization/tabular.md#4-column-mode-single-new-entry-parse-to-my-path)|
 |<span style="color:red">np3</span>|`single_new_entry`|`row`|`root`|<span style="color:red">Not possible</span>|
-|5|`single_new_entry`|`row`|my path|[HowTo](../schemas/tabular.md#5-row-mode-single-new-entry-parse-to-my-path)|
+|5|`single_new_entry`|`row`|my path|[HowTo](../howto/customization/tabular.md#5-row-mode-single-new-entry-parse-to-my-path)|
 |<span style="color:red">np4</span>|`multiple_new_entries`|`column`|`root`|<span style="color:red">Not possible</span>|
 |<span style="color:red">np5</span>|`multiple_new_entries`|`column`|my path|<span style="color:red">Not possible</span>|
-|6|`multiple_new_entries`|`row`|`root`|[HowTo](../schemas/tabular.md#6-row-mode-multiple-new-entries-parse-to-root)|
-|7|`multiple_new_entries`|`row`|my path|[HowTo](../schemas/tabular.md#7-row-mode-multiple-new-entries-parse-to-my-path)|
+|6|`multiple_new_entries`|`row`|`root`|[HowTo](../howto/customization/tabular.md#6-row-mode-multiple-new-entries-parse-to-root)|
+|7|`multiple_new_entries`|`row`|my path|[HowTo](../howto/customization/tabular.md#7-row-mode-multiple-new-entries-parse-to-my-path)|
 
 ```yaml
 data_file:

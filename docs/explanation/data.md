@@ -1,5 +1,3 @@
-# Structured data and the NOMAD Metainfo
-
 NOMAD structures data into **sections**, where each section can contain data and more sections.
 This allows to browse complex data like you would browse files and directories on your computer.
 Each section follows a **definition** and all the contained data and sub-section have a
@@ -9,7 +7,7 @@ increases consistency and interoperability, enables search, APIs, visualization,
 analysis.
 
 <figure markdown>
-  ![processed data screenshot](screenshot.png)
+  ![processed data screenshot](images/screenshot.png)
   <figcaption>Browsing structured data in the NOMAD UI (<a href="https://nomad-lab.eu/prod/v1/gui/search/entries/entry/id/zQJMKax7xk384h_rx7VW_-6bRIgi/data/run/0/system/0/atoms/positions">link</a>)</figcaption>
 </figure>
 
@@ -17,12 +15,12 @@ analysis.
 ## Schema language
 
 The bases for structured data are schemas written in a **schema language**. Our
-schema language is called the **NOMAD Metainfo** language. It
-defines the tools to define sections, organize definitions into **packages**, and define
+schema language is called the **NOMAD Metainfo** language. The name is evocative of the rich **metadata information** that should be associated with the research data and made available in a machine-readable format.
+It defines the tools to define sections, organize definitions into **packages**, and define
 section properties (**sub-sections** and **quantities**).
 
 <figure markdown>
-  ![schema language](schema_language.png)
+  ![schema language](images/schema_language.png)
   <figcaption>The NOMAD Metainfo schema language for structured data definitions</figcaption>
 </figure>
 
@@ -38,7 +36,7 @@ Quantities are related to *properties*, *attributes*, *slots*, *columns*.
 Sub-sections might be called *containment* or *composition*. Sub-sections and quantities
 with a section type also define *relationships*, *links*, or *references*.
 
-Our guide on [how to write a schema](../schemas/basics.md) explains these concepts with an example.
+Our guide on [how to write a schema](../howto/customization/basics.md) explains these concepts with an example.
 
 ## Schema
 
@@ -56,7 +54,7 @@ complement the shared entry structure. They define specific data structures to r
 specific types of data.
 
 <figure markdown>
-  ![schema language](schema.png)
+  ![schema language](images/schema.png)
   <figcaption>
     The three different categories of NOMAD schema definitions
   </figcaption>
@@ -72,16 +70,16 @@ The goal is to re-use as much as possible and to not re-invent the same sections
 and over again. Tools build around certain base section, provide an incentive to
 use them.
 
-!!! attention
+!!! warning "Attention"
     There is no detailed how-to or reference documentation on the existing base sections
     and how to use them yet.
 
-One example for re-usable base section is the [workflow package](../schemas/workflows.md).
+One example for re-usable base section is the [workflow package](../howto/customization/workflows.md).
 These allow to define workflows in a common way. They allow to place workflows in
 the shared entry structure, and the UI provides a card with workflow visualization and
 navigation for all entries that have a workflow inside.
 
-!!! attention
+!!! warning "Attention"
     Currently there are two version of the workflow schema. They are stored in two
     top-level `EntryArchive` sub-sections (`workflow` and `workflow2`). This
     will change soon to something that supports multiple workflows used in
@@ -95,7 +93,7 @@ these kinda of data. Therefore, it is important to also translate (at least some
 into a more generic and standardized form.
 
 <figure markdown>
-  ![schema language](data.png)
+  ![schema language](images/data.png)
   <figcaption>
     From specific data to more general interoperable data.
   </figcaption>
@@ -121,12 +119,12 @@ normalization algorithm needs to be implemented.
 ### Exploring the schema
 
 All built-in definitions that come with NOMAD or one of the installed plugins can
-be explored with the [Metainfo browser](https://nomad-lab.eu/prod/v1/gui/analyze/metainfo/nomad.datamodel.datamodel.EntryArchive). You can start with the root section `EntryArchive`
+be explored with the [Metainfo browser](https://nomad-lab.eu/prod/v1/gui/analyze/metainfo/nomad.datamodel.datamodel.EntryArchive){:target="_blank"}. You can start with the root section `EntryArchive`
 and browse based on sub-sections, or explore the Metainfo through packages.
 
-To see all user provided uploaded schemas, you can use a [search for the sub-section `definition`](https://nomad-lab.eu/prod/v1/gui/search/entries?quantities=definitions).
+To see all user provided uploaded schemas, you can use a [search for the sub-section `definition`](https://nomad-lab.eu/prod/v1/gui/search/entries?quantities=definitions){:target="_blank"}.
 The sub-section `definition` is a top-level `EntryArchive` sub-section. See also our
-[how-to on writing and uploading schemas](../schemas/basics.md#uploading-schemas).
+[how-to on writing and uploading schemas](../howto/customization/basics.md#uploading-schemas).
 
 ### Contributing to the Metainfo
 
@@ -136,7 +134,7 @@ Contributions here are only possible through merge requests.
 
 Base sections can be contributed via plugins. Here they can be explored in the Metainfo
 browser, your plugin can provide more tools, and you can make use of normalize functions.
-See also our [how-to on writing schema plugins](../plugins/schemas.md). You could
+See also our [how-to on writing schema plugins](../howto/customization/plugins_dev.md#develop-a-schema-plugin). You could
 also provide base sections via uploaded schemas, but those are harder to explore and
 distribute to other NOMAD installations.
 
@@ -145,7 +143,7 @@ schemas, you most likely also upload data in archive files (or use ELNs to edit 
 Here you can also provide schemas and data in the same file. In many case
 specific schemas will be small and only re-combine existing base sections.
 See also our
-[how-to on writing schemas](../schemas/basics.md).
+[how-to on writing schemas](../howto/customization/basics.md).
 
 ## Data
 
@@ -155,10 +153,10 @@ for all data. However, it is independent of the actual representation of data in
 or how it might be stored in a file or database.
 
 The Metainfo has many serialized forms. You can write `.archive.json` or `.archive.yaml`
-files yourself. NOMAD internally stores all processed data in [message pack](https://msgpack.org/). Some
+files yourself. NOMAD internally stores all processed data in [message pack](https://msgpack.org/){:target="_blank"}. Some
 of the data is stored in mongodb or elasticsearch. When you request processed data via
-API, you receive it in JSON. When you use the [ArchiveQuery](../apis/archive_query.md), all data is represented
-as Python objects (see also [here](../plugins/schemas.md#starting-example)).
+API, you receive it in JSON. When you use the [ArchiveQuery](../howto/programmatic/archive_query.md), all data is represented
+as Python objects (see also [a starting example](../howto/customization/plugins_dev.md#starting-example)).
 
 No matter what the representation is, you can rely on the structure, names, types, shapes, and units
 defined in the schema to interpret the data.
@@ -187,15 +185,15 @@ will use concrete definitions that inherit from `EntryData`. There are also spec
 sections, like `run` for simulation data and `nexus` for nexus data.
 
 !!! note
-    As shown in [Uploading schemas](../schemas/basics.md#uploading-schemas), one can, in principle, create an archive file with both `definitions` and one of the *data* sections filled, although this is not always desired because it will stick together a schema and a particular instance of that schema. They should be kept separate so that it is still possible to generate new data files from the same schema file.
+    As shown in [Uploading schemas](../howto/customization/basics.md#uploading-schemas), one can, in principle, create an archive file with both `definitions` and one of the *data* sections filled, although this is not always desired because it will stick together a schema and a particular instance of that schema. They should be kept separate so that it is still possible to generate new data files from the same schema file.
 
-!!! attention
+!!! warning "Attention"
     The results, originally only designed for computational data, will soon be revised
     an replaced by a different section. However, the necessity and function of a section
     like this remains.
 
 <figure markdown>
-  ![schema language](super_structure.png)
+  ![schema language](images/super_structure.png)
   <figcaption>
     All entries instantiate the same section share the same structure.
   </figcaption>
