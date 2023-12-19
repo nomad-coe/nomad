@@ -701,13 +701,13 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
         # the stored unit would not be serialized
         flexible_unit = getattr(definition, 'flexible_unit', False)
 
-        if not flexible_unit and unit is None:
+        if not flexible_unit and not value.units.dimensionless and unit is None:
             raise TypeError(f'The quantity {definition} does not have a unit, but value {value} does.')
 
         if type(value.magnitude) == np.ndarray and np_type != value.dtype:
             value = value.astype(np_type)
 
-        if not flexible_unit:
+        if not flexible_unit and not value.units.dimensionless:
             value = value.to(unit).magnitude
         else:
             value = value.magnitude
