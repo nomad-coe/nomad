@@ -27,7 +27,10 @@ export const DateTimeEditQuantity = React.memo((props) => {
   const [dateValue, setDateValue] = useState(value || null)
 
   useEffect(() => {
-    setDateValue(date => ((date?.toJSON && date.toJSON()) || value) === value ? date : value)
+    setDateValue(date => value
+      ? (date?.toJSON?.() || date) === value ? date : value
+      : null
+    )
   }, [value])
 
   const handleChange = useCallback((date) => {

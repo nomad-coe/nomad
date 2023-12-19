@@ -143,6 +143,7 @@
       "text-summary",
       "cobertura"
     ],
+    "globalSetup": "<rootDir>/globalSetup.js",
     "transformIgnorePatterns": [],
     "moduleNameMapper": {
       "^.+\\.(css|less)$": "<rootDir>/src/CSSStub.js",
