@@ -1289,11 +1289,17 @@ class Entry(Proc):
 
         if config.process.store_package_definition_in_mongo:
             if archive.definitions is not None:
-                store_package_definition(archive.definitions, upload_id=archive.metadata.upload_id)
+                store_package_definition(
+                    archive.definitions,
+                    upload_id=archive.metadata.upload_id,
+                    entry_id=archive.metadata.entry_id)
             if archive.data is not None:
                 pkg_definitions = getattr(archive.data.m_def.m_root(), 'definitions', None)
                 if pkg_definitions is not None:
-                    store_package_definition(pkg_definitions, upload_id=archive.metadata.upload_id)
+                    store_package_definition(
+                        pkg_definitions,
+                        upload_id=archive.metadata.upload_id,
+                        entry_id=archive.metadata.entry_id)
 
         # save the archive msg-pack
         try:

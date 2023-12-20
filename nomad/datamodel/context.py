@@ -26,7 +26,7 @@ import requests
 from nomad import utils, config
 from nomad.datamodel.util import parse_path
 from nomad.datamodel.datamodel import EntryMetadata
-from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError
+from nomad.metainfo import Context as MetainfoContext, MSection, Quantity, MetainfoReferenceError, Package
 from nomad.datamodel import EntryArchive
 
 
@@ -79,6 +79,15 @@ class Context(MetainfoContext):
         target_root: MSection = value.m_root()
 
         if global_reference:
+            # need to consider packages that are initialised via loading PART of the archive, or via mongo
+            # in that case, `_get_ids` will fail as there is no attached archive
+            # meanwhile, the reference shall be located under `definitions` in the original archive
+            # we distinguish between the two cases by checking if the target_root is a package
+            if isinstance(target_root, Package) and target_root.upload_id and target_root.entry_id:
+                upload_id, entry_id = target_root.upload_id, target_root.entry_id
+
+                return f'../uploads/{upload_id}/archive/{entry_id}#definitions/{fragment}'
+
             upload_id, entry_id = self._get_ids(target_root, required=True)
 
             return f'../uploads/{upload_id}/archive/{entry_id}#{fragment}'

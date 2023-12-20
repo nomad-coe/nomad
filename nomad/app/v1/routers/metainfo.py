@@ -41,6 +41,11 @@ class PackageDefinition(MSection):
         description='The sha1 based 40-digit long unique id for the package.',
         a_mongo=Mongo(primary_key=True, regex=r'^\w{40}$')
     )
+    entry_id = Quantity(
+        type=str,
+        description='The entry id of the upload that contains the package.',
+        a_mongo=Mongo()
+    )
     upload_id = Quantity(
         type=str,
         description='The upload id of the upload that contains the package.',
@@ -71,9 +76,10 @@ class PackageDefinition(MSection):
     def __init__(self, package: Package, **kwargs):
         super().__init__()
         self.definition_id = package.definition_id
+        if 'entry_id' in kwargs:
+            self.entry_id = kwargs.pop('entry_id')
         if 'upload_id' in kwargs:
-            self.upload_id = kwargs['upload_id']
-            del kwargs['upload_id']
+            self.upload_id = kwargs.pop('upload_id')
         self.qualified_name = package.qualified_name()
         self.date_created = datetime.datetime.utcnow()
         self.package_definition = package.m_to_dict(
@@ -134,6 +140,10 @@ def get_package_by_section_definition_id(section_definition_id: str) -> dict:
     pkg_definition = result.package_definition
     # add entry_id_based_name as a field which will be later used as the package name
     pkg_definition['entry_id_based_name'] = str(result.qualified_name)
+    if result.upload_id:
+        pkg_definition['upload_id'] = result.upload_id
+    if result.entry_id:
+        pkg_definition['entry_id'] = result.entry_id
 
     return copy.deepcopy(pkg_definition)
 

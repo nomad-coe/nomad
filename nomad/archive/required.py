@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import functools
+import re
 from typing import cast, Union, Dict, Tuple
 
 from cachetools.func import lru_cache
@@ -426,13 +427,35 @@ class RequiredReader:
             from nomad.app.v1.routers.uploads import get_upload_with_read_access
             context = ServerContext(get_upload_with_read_access(upload_id, self.user, include_others=True))
 
-        if definition is not None and definition.startswith(('#/', '/')):
-            # appears to be a local definition
-            root_definitions = to_json(archive_root['definitions'])
-            custom_def_package: Package = Package.m_from_dict(root_definitions, m_context=context)
+        def __resolve_definition_in_archive(
+                _root: dict, _path_stack: list, _upload_id: str = None, _entry_id: str = None):
+            custom_def_package: Package = Package.m_from_dict(_root, m_context=context)
+            custom_def_package.entry_id = _entry_id
+            custom_def_package.upload_id = _upload_id
             custom_def_package.init_metainfo()
-            root_path: list = [v for v in definition.split('/') if v not in ('', '#', 'definitions')]
-            return custom_def_package.m_resolve('/'.join(root_path))
+            return custom_def_package.m_resolve_path(_path_stack)
+
+        if definition is not None:
+            if definition.startswith(('#/', '/')):
+                # appears to be a local definition
+                return __resolve_definition_in_archive(
+                    to_json(archive_root['definitions']),
+                    [v for v in definition.split('/') if v not in ('', '#', 'definitions')]
+                )
+
+            # todo: !!!need to unify different formats!!! see also implementation in graph_reader.py
+            # check if m_def matches the pattern 'entry_id:example_id.example_section.example_quantity'
+            regex = re.compile(r'entry_id:(.+)(?:\.(.+))+')
+            if match := regex.match(definition):
+                entry_id = match.groups()[0]
+                from nomad.processing import Entry
+                upload_id = Entry.objects(entry_id=entry_id).first().upload_id
+                archive = self._retrieve_archive('archive', entry_id, upload_id)
+                return __resolve_definition_in_archive(
+                    to_json(archive['definitions']),
+                    list(match.groups()[1:]),
+                    upload_id, entry_id
+                )
 
         proxy = SectionReference.deserialize(None, None, definition)
         proxy.m_proxy_context = context

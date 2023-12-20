@@ -638,12 +638,26 @@ def split_python_definition(definition_with_id: str) -> Tuple[list, Optional[str
         my_package.my_section@my_id  ==> (['my_package', 'my_section'], 'my_id')
 
         my_package.my_section       ==> (['my_package', 'my_section'], None)
+
+        my_package/section_definitions/0 ==> (['my_package', 'section_definitions/0'], None)
     '''
+
+    def __split(name: str):
+        # The definition name must contain at least one dot which comes from the module name.
+        # The actual definition could be either a path (e.g., my_package/section_definitions/0)
+        # or a name (e.g., my_section).
+        # If it is a path (e.g., a.b.c/section_definitions/0), after split at '.', the last segment
+        # (c/section_definitions/0) contains the package name (c). It needs to be relocated.
+        segments: list = name.split('.')
+        if '/' in segments[-1]:
+            segments.extend(segments.pop().split('/', 1))
+        return segments
+
     if '@' not in definition_with_id:
-        return definition_with_id.split('.'), None
+        return __split(definition_with_id), None
 
     definition_names, definition_id = definition_with_id.split('@')
-    return definition_names.split('.'), definition_id
+    return __split(definition_names), definition_id
 
 
 def check_dimensionality(quantity_def, unit: Optional[pint.Unit]) -> None:
