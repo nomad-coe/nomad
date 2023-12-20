@@ -202,7 +202,8 @@ where = [
     "dependencies/parsers/nexus",
     "dependencies/parsers/workflow",
     "dependencies/normalizers/simulation/workflow",
-    "dependencies/schema/simulation/workflow"
+    "dependencies/schema/simulation/workflow",
+    "dependencies/schema/nomad-perovskite-solar-cells-database",
 ]
 exclude = ["tests*"]
 namespaces = false

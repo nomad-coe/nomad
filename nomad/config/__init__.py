@@ -430,6 +430,11 @@ plugins = Plugins(options={
         name='simulationworkflowschema',
         key='simulationworkflowschema',
         python_package='simulationworkflowschema'
+    ),
+    'schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database': Schema(
+        name='perovskite_solar_cell_database',
+        key='perovskite_solar_cell_database',
+        python_package='perovskite_solar_cell_database'
     )
 })
 

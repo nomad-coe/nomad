@@ -24,7 +24,6 @@ from nomad.config import Schema, Plugin
 
 from . import annotations  # Should be imported first to register the annotations before they are used
 from .simulation import m_env
-from .eln.perovskite_solar_cell_database import m_package
 from .downloads import m_package
 from .eln.labfolder import m_package
 from .eln.openbis import m_package
