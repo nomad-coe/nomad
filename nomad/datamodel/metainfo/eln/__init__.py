@@ -35,7 +35,7 @@ from nomad.datamodel.results import ELN, Results, Material
 from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section, SubSection
 from ase.data import chemical_symbols, atomic_numbers, atomic_masses
-from nomad.datamodel.metainfo.eln.perovskite_solar_cell_database import (
+from perovskite_solar_cell_database.schema_sections.utils import (
     add_solar_cell, add_band_gap
 )
 

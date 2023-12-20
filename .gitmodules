@@ -48,3 +48,6 @@
 [submodule "dependencies/schema/simulation/workflow"]
 	path = dependencies/schema/simulation/workflow
 	url = https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git
+[submodule "dependencies/schema/nomad-perovskite-solar-cells-database"]
+	path = dependencies/schema/nomad-perovskite-solar-cells-database
+	url = https://github.com/FAIRmat-NFDI/nomad-perovskite-solar-cells-database

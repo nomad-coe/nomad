@@ -30,3 +30,5 @@ include dependencies/normalizers/simulation/workflow/README.md
 recursive-include dependencies/normalizers/simulation/workflow/simulationworkflownormalizer *.py nomad_plugin.yaml
 include dependencies/schema/simulation/workflow/README.md
 recursive-include dependencies/schema/simulation/workflow/simulationworkflowschema *.py nomad_plugin.yaml
+include dependencies/schema/nomad-perovskite-solar-cells-database/README.md
+recursive-include dependencies/schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database *.py nomad_plugin.yaml
