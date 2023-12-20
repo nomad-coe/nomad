@@ -19,6 +19,7 @@
 import numpy as np
 from collections import defaultdict
 import pytest
+from nomad.client.processing import normalize
 
 from nomad.units import ureg
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
@@ -27,6 +28,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     conv_bcc,
     conv_fcc,
     rattle,
+    run_normalize,
     stack,
     surf,
     single_cu_surface_topology,
@@ -39,7 +41,8 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     mos2,
     mos2_topology,
     stacked_graphene_boron_nitride_topology,
-    tb_wannier
+    get_template_active_orbitals,
+    check_template_active_orbitals,
 )
 
 
@@ -423,12 +426,12 @@ def test_topology_tb_wannier(tb_wannier):
     system = tb_wannier.run[-1].system[-1]
     assert system.type == 'bulk'
     assert len(system.atoms_group) == 1
-    assert system.atoms_group[-1].label == 'Br'
-    assert system.atoms_group[-1].type == 'projection'
-    assert system.atoms_group[-1].n_atoms == 1
-    assert not system.atoms_group[-1].is_molecule
-    assert system.atoms_group[-1].atom_indices[0] == 0
-    assert not system.atoms_group[-1].atoms_group
+    sec_atoms_group = system.atoms_group[-1]
+    assert sec_atoms_group.type == 'active_orbitals'
+    assert sec_atoms_group.n_atoms == 1
+    assert not sec_atoms_group.is_molecule
+    assert sec_atoms_group.atom_indices[0] == 0
+    assert not sec_atoms_group.atoms_group
     material = tb_wannier.results.material
     assert material.structural_type == system.type
     assert material.topology
@@ -437,11 +440,51 @@ def test_topology_tb_wannier(tb_wannier):
     assert len(topology) == 2
     assert topology[0].label == 'original'
     assert topology[0].system_relation.type == 'root'
-    assert topology[1].label == system.atoms_group[-1].label
-    assert topology[1].structural_type == 'group'
+    assert topology[1].label == sec_atoms_group.label == 'projection'
+    assert topology[1].structural_type == 'active orbitals'
     assert topology[1].building_block is None
     assert topology[1].system_relation.type == 'group'
     assert len(topology[0].child_systems) == 1
     assert topology[0].child_systems[-1] == topology[1].system_id
     assert topology[0].elements == ['Br', 'K', 'Si']
     assert topology[1].elements == ['Br']
+
+@pytest.mark.parametrize("settings", [
+        {'e': .15, 'li': 3, 'ls': 'f'},
+        {'state': 'initial', 'e': .3, 'li': 3, 'ls': 'f', 'n': 4},
+        {'e': .9, 'li': 2, 'ls': 'd', 'n': 4, 'ml': -2, 'mls': 'xy'},
+        {'e': .25, 'li': 3, 'ls': 'f', 'ms': False},
+        {'e': .5, 'li': 1, 'ls': 'p', 'n': 4, 'ml': 0, 'mls': 'z', 'ms': False},
+        # {'state': 'initial', 'li': 2, 'ji': [2.5], 'ms': True, 'mss': 'up'},
+        # {'e': .6, 'li': 2, 'mj': [1.5]},
+        # {'i': [1, 2], 'e': [1, 0], 'li': [1, 2], 'n': [2, 4], 'ml': [0, None], 'ms': [None, False]},
+    ]
+)
+def test_topology_core_hole(settings):
+    """test several core-hole setups"""
+    template = get_template_active_orbitals(
+        settings.get('i', [0]),  # FIXME: remove this once multiple core_holes are supported
+        n_electrons_excited=settings.get('e', 0),
+        l_quantum_number=settings.get('li', 0),
+        n_quantum_number=settings.get('n'),
+        ml_quantum_number=settings.get('ml'),
+        ms_quantum_bool=settings.get('ms'),
+        j_quantum_number=settings.get('ji', []),
+        mj_quantum_number=settings.get('mj', []),
+    )
+    template = run_normalize(template)
+    evaluation = check_template_active_orbitals(
+        template,
+        #degeneracy=settings.get('degen', 1),
+        n_electrons_excited=settings.get('e', 0),
+        l_quantum_number=settings.get('li', 0),
+        l_quantum_symbol=settings.get('ls', 's'),
+        n_quantum_number=settings.get('n'),
+        ml_quantum_number=settings.get('ml'),
+        ml_quantum_symbol=settings.get('mls'),
+        ms_quantum_bool=settings.get('ms'),
+        ms_quantum_symbol=settings.get('mss'),
+        j_quantum_number=settings.get('ji'),
+        mj_quantum_number=settings.get('mj'),
+    )
+    assert all(evaluation.values())

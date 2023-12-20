@@ -326,6 +326,8 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
       node.sbu_type,
       node.sbu_coordination_number
     ].some(x => !isNil(x))
+    const hasActiveOrbitals = !isEmpty(node?.active_orbitals)
+    const hasCoreHole = hasActiveOrbitals && node?.label === 'core-hole'
     const tabMap = {
       composition: hasTopology && {
         label: 'Composition'
@@ -341,6 +343,9 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
       },
       symmetry: hasSymmetry && {
         label: 'Symmetry'
+      },
+      coreHole: hasCoreHole && {
+        label: 'Core-hole'
       }
     }
     return tabMap
@@ -447,8 +452,52 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
         </QuantityRow>
       </QuantityTable>
     </MaterialTab>
-  </>
-})
+    <MaterialTab selected={finalValue} value="coreHole">
+      <QuantityTable>
+        <QuantityRow>
+          <QuantityCell value={node?.elements} quantity="results.material.topology.elements"/>
+          <QuantityCell
+            value={node?.active_orbitals?.n_electrons_excited}
+            quantity="results.material.topology.active_orbitals.n_electrons_excited"
+            label="excited electrons"
+            hideIfUnavailable={true}
+          />
+          <QuantityCell
+            value={node?.active_orbitals?.degeneracy}
+            quantity="results.material.topology.active_orbitals.degeneracy"
+            hideIfUnavailable={true}
+          />
+        </QuantityRow>
+        <QuantityRow>
+          <QuantityCell
+            value={node?.active_orbitals?.n_quantum_number}
+            quantity="results.material.topology.active_orbitals.n_quantum_number"
+            label="n"
+            hideIfUnavailable={true}
+          />
+          <QuantityCell
+              value={node?.active_orbitals?.l_quantum_symbol}
+              quantity="results.material.topology.active_orbitals.l_quantum_symbol"
+              label="l"
+              hideIfUnavailable={true}
+            />
+          <QuantityCell
+              value={node?.active_orbitals?.ml_quantum_symbol}
+              quantity="results.material.topology.active_orbitals.ml_quantum_symbol"
+              label="ml"
+              hideIfUnavailable={true}
+            />
+          <QuantityCell
+              value={node?.active_orbitals?.ms_quantum_symbol}
+              quantity="results.material.topology.active_orbitals.ms_quantum_symbol"
+              label="spin"
+              hideIfUnavailable={true}
+            />
+        </QuantityRow>
+      </QuantityTable>
+    </MaterialTab>
+</>
+}) // TODO: Add a cell for the total charge? Or keep it for the composition? + Add j and m_j (which are numerical arrays)
 MaterialTabs.propTypes = {
   node: PropTypes.object,
   value: PropTypes.any,

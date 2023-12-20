@@ -32,7 +32,7 @@ from nomad import utils
 from nomad import config
 from nomad import atomutils
 from nomad.atomutils import Formula
-from nomad.datamodel.results import SymmetryNew as Symmetry, Material, System, Relation, structure_name_map
+from nomad.datamodel.results import CoreHole, SymmetryNew as Symmetry, Material, System, Relation, structure_name_map
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.normalizing.common import (
@@ -216,7 +216,7 @@ class TopologyNormalizer():
             if not groups: return
             for group in groups:
                 label = group.label
-                # Groups with the same label are mapped to the same system.
+                # Groups with the same label are mapped to the same system.  # TODO: change this logic for active orbitals
                 old_labels = label_to_indices[label]
                 instance_indices = group.atom_indices
                 if not len(old_labels):
@@ -225,29 +225,26 @@ class TopologyNormalizer():
                         'molecule_group': 'Group of molecules extracted from the calculation topology.',
                         'monomer_group': 'Group of monomers extracted from the calculation topology.',
                         'monomer': 'Monomer extracted from the calculation topology.',
-                        'projection': 'Atom(s) considered to obtain the projected tight-binding model.',
-                        'core_hole': 'Atom with the core-hole state.'
+                        'active_orbitals': 'Orbitals targeted by the calculation.',
                     }
                     structural_type_map = {
+                        'active_orbitals': 'active orbitals',
                         'molecule': 'molecule',
                         'molecule_group': 'group',
                         'monomer': 'monomer',
                         'monomer_group': 'group',
-                        'projection': 'group',
-                        'core_hole': 'group'
-                    }
+                    }  # determines the sub-title
                     building_block_map = {
                         'molecule': 'molecule',
                         'monomer': 'monomer',
                     }
                     relation_map = {
+                        'active_orbitals': 'group',
                         'molecule': 'subsystem',
                         'molecule_group': 'group',
                         'monomer': 'subsystem',
                         'monomer_group': 'group',
-                        'projection': 'group',
-                        'core_hole': 'group'
-                    }
+                    }  # determines the shading of non-highlighted atoms
                     system = System(
                         method='parser',
                         description=description_map.get(group.type),
@@ -269,11 +266,18 @@ class TopologyNormalizer():
                         ))
 
         add_group(groups, original)
+        active_orbital_states = self._extract_orbital()
 
         # Add the derived system information once all indices etc. are gathered.
         for top in topology.values():
             top.indices = label_to_indices.get(top.label)
             add_system_info(top, topology)
+            if top.structural_type  == 'active orbitals':
+                try:
+                    top.active_orbitals = active_orbital_states[0]
+                    active_orbital_states.pop(0)
+                except IndexError:  # FIXME temporary fix to prevent output from projection parsers
+                    self.logger.warn('Cannot assign all active orbital states to the topology.')
 
         return list(topology.values())
 
@@ -562,3 +566,31 @@ class TopologyNormalizer():
             sec_symmetry.prototype_name = structure_name_map.get(protoDict.get('Notes'))
 
         return sec_symmetry
+
+    def _extract_orbital(self) -> list[CoreHole]:
+        '''
+        Gather atomic orbitals from `run.method.atom_parameters.core_hole`.
+        Also apply normalization in the process.
+        '''
+        # Collect the active orbitals from method
+        methods = self.entry_archive.run[-1].method
+        if not methods:
+            return []
+        atom_params = getattr(methods[-1], 'atom_parameters', [])
+        active_orbitals_run = [param.core_hole for param in atom_params if getattr(param, 'core_hole')]
+        if len(active_orbitals_run) > 1:  # FIXME: currently only one set of active orbitals is supported, remove for multiple
+            self.logger.warn(
+                '''Multiple sets of active orbitals found.
+                Currently, the topology only supports 1, so only the first set is used.'''
+            )
+        # Map the active orbitals to the topology
+        active_orbitals_results: list[CoreHole] = []
+        for active_orbitals in active_orbitals_run:
+            active_orbitals.normalize(None, None)
+            active_orbitals_new = CoreHole()
+            for quantity_name in active_orbitals.quantities:
+                setattr(active_orbitals_new, quantity_name, getattr(active_orbitals, quantity_name))
+            active_orbitals_new.normalize(None, None)
+            active_orbitals_results.append(active_orbitals_new)
+            break  # FIXME: currently only one set of active orbitals is supported, remove for multiple
+        return active_orbitals_results

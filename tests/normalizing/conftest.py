@@ -15,8 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from collections import defaultdict
 import numpy as np
-from typing import List, Union
+from typing import Any, Iterable, List, Union
 import pytest
 from ase import Atoms
 import ase.build
@@ -41,7 +42,7 @@ from nomad.datamodel.optimade import Species
 from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_atoms
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    Method, BasisSetContainer, BasisSet, Electronic, DFT, XCFunctional, Functional,
+    CoreHole, Method, BasisSetContainer, BasisSet, Electronic, DFT, XCFunctional, Functional,
     Electronic, Smearing, Scf, GW, Photon, BSE, DMFT, AtomParameters, TB, Wannier,
     LatticeModelHamiltonian, HubbardKanamoriModel)
 from nomad.datamodel.metainfo.simulation.system import (
@@ -202,8 +203,8 @@ def get_template_tb_wannier() -> EntryArchive:
     method_tb.wannier = Wannier(is_maximally_localized=False)
     system = run.system[-1]
     system.m_add_sub_section(System.atoms_group, AtomsGroup(
-        label='Br',
-        type='projection',
+        label='projection',
+        type='active_orbitals',
         index=0,
         is_molecule=False,
         n_atoms=1,
@@ -214,6 +215,99 @@ def get_template_tb_wannier() -> EntryArchive:
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
+
+
+def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArchive:
+    '''Procedurally generate a CoreHole in a BrKSi2 according to the specifications given.
+    For setting the core hole, only term names that are defined in the NOMAD metainfo are allowed.
+    The minimally necessary terms are active by default, though they can be deactivated by setting `None` to mock an incorrect parsed entry.
+
+    `atom_indices` determines the target sites and overall number. It spans [0..3].
+
+    Multiple core holes can be set by passing a `list` of terms. Terms which where already of a list type now become nested.
+    For multiple core holes, the lists still have to contain `None` in all relevant positions.
+    '''
+    # instantiate skeleton
+    template = get_template_computation()  # assumes BrKSi2
+    template.run[-1].method.append(Method())
+    method, system = template.run[-1].method[-1], template.run[-1].system[-1]
+    elements = system.atoms.labels
+
+    # set atom_parameters and core_holes
+    list_terms = {'j_quantum_number', 'mj_quantum_number'}
+    for active_index, atom_index in enumerate(atom_indices):
+        method.atom_parameters.append(AtomParameters(label=elements[atom_index]))
+        core_hole = CoreHole()
+        for k, v in kwargs.items():
+            try:
+                if k not in list_terms and isinstance(v, list):  # this supports lists of several quantities for multiple core-holes
+                    if len(v):
+                        setattr(core_hole, k, v[active_index])
+                    else:
+                        setattr(core_hole, k, [])
+                else:
+                    setattr(core_hole, k, v)
+            except AttributeError:
+                pass
+        method.atom_parameters[-1].core_hole = core_hole
+        system.atoms_group.append(AtomsGroup(
+            label='core-hole', type='active_orbitals',
+            n_atoms=1, atom_indices = [atom_index],
+        ))
+    return template
+
+
+def robust_compare(a: Any, b: Any) -> bool:
+    if a is None or b is None:
+        return True  # unset values which are given a pass
+    # Check if both are NumPy arrays
+    elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+        return np.array_equal(a, b)
+    # Check if both are non-iterables (e.g., int, float)
+    elif not isinstance(a, (np.ndarray, list, tuple)) and not isinstance(b, (np.ndarray, list, tuple)):
+        return a == b
+    # Fallback case if one is an iterable and the other is not
+    return False
+
+
+def check_template_active_orbitals(template: EntryArchive, **kwargs) -> dict[str, bool]:
+    '''Evaluate a normalized results section for a CoreHole calculation,
+    when the model parameters are known a priori.
+
+    The number of core holes is controlled by `indices`.
+    Use `None` to signal that a quantity should not be checked. Just leaving it out also works.
+    '''
+    # setup
+    try:
+        topology = template.results.material.topology
+    except AttributeError:
+        raise ValueError('No topology found in template. Please run normalization first.')
+    # gather test data
+    evaluation: dict[str, list[bool]] = defaultdict(list)
+    for top in topology:
+        if getattr(top, 'active_orbitals'):
+            for quantity_name, quantity_value in kwargs.items():
+                if quantity_value is None:
+                    continue  # skip quantities that were unasked for
+                # Assuming quantity_value is either a list or a single data object
+                if not isinstance(quantity_value, (list, np.ndarray)):  # for multiple core holes
+                    quantity_value = [quantity_value]
+                extracted_values = getattr(top.active_orbitals, quantity_name, [])
+                if not isinstance(extracted_values, (list, np.ndarray)):
+                    extracted_values = [extracted_values]
+                # run over all reference values
+                if len(extracted_values) != len(quantity_value):
+                    evaluation[quantity_name].append(False)
+                    continue
+                reference_value: Any
+                for extracted_value, reference_value in zip(extracted_values, quantity_value):
+                    try:
+                        comparison: bool = robust_compare(extracted_value, reference_value)
+                    except AttributeError:
+                        comparison = True
+                    evaluation[quantity_name].append(comparison)
+            break  # FIXME: temporary fix to only check for the first core-hole
+    return {k: all(v) for k, v in evaluation.items()}
 
 
 def get_template_dmft() -> EntryArchive:
