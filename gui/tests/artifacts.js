@@ -28734,7 +28734,7 @@ window.nomadArtifacts = {
             "m_parent_index": 0,
             "m_parent_sub_section": "section_definitions",
             "name": "TableData",
-            "description": "",
+            "description": "Table data",
             "base_sections": [
               "/packages/16/section_definitions/0"
             ],

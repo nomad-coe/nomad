@@ -90,9 +90,7 @@ class TabularParserError(Exception):
 
 
 class TableData(ArchiveSection):
-    '''
-
-    '''
+    '''Table data'''
     fill_archive_from_datafile = Quantity(
         type=bool,
         a_eln=dict(component='BoolEditQuantity'),
