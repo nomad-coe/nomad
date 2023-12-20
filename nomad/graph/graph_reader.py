@@ -370,7 +370,9 @@ def _populate_result(container_root: dict, path: list, value, *, path_like=False
         while len(path_stack) > 0 and path_stack[-1].isdigit():
             target_container = _set_default(target_container, key_or_index, list)
             key_or_index = int(path_stack.pop())
-            target_container.extend([None] * max(key_or_index - len(target_container) + 1, 0))  # type: ignore
+            target_container.extend( # type: ignore
+                [None] * max(key_or_index - len(target_container) + 1, 0)
+            )
 
     # the target container does not necessarily have to be a dict or a list
     # if the result is striped due to large size, it will be replaced by a string

@@ -75,7 +75,9 @@ class PythonPluginBase(PluginBase):
                     *package_dirs)
                 if not os.path.isdir(package_path):
                     # We could not find it this way. Let's try to official way
-                    package_path = os.path.dirname(pkgutil.get_loader(python_package).get_filename())  # type: ignore
+                    package_path = os.path.dirname(
+                        pkgutil.get_loader(python_package).get_filename() # type: ignore
+                    )
             except Exception as e:
                 raise ValueError(f'The python package {python_package} cannot be loaded.', e)
             values['package_path'] = package_path

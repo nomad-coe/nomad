@@ -911,7 +911,9 @@ class TermsAggregation(BucketAggregation):
         maximum number of aggregated values to return. If you need to exaust all
         possible value, use `pagination`.
         '''))
-    include: Optional[Union[List[str], pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')]] = Field(  # type: ignore
+    include: Optional[ # type: ignore
+        Union[List[str], pydantic.constr(regex=r'^[a-zA-Z0-9_\-\s]+$')]
+    ] = Field(
         None, description=strip('''
         An optional filter for aggregation values. You can either specify a
         single string which must be contained in the aggregation value or then
@@ -980,7 +982,7 @@ class HistogramAggregation(BucketAggregation):
 
 
 class DateHistogramAggregation(BucketAggregation):
-    interval: str = Field('1M')  # type: ignore
+    interval: str = Field('1M')  #  type: ignore
 
 
 class AutoDateHistogramAggregation(BucketAggregation):
