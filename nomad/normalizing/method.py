@@ -36,7 +36,7 @@ from nomad.datamodel.results import (
     Precision, Material, xc_treatments, xc_treatments_extended)
 
 
-class MethodNormalizer():
+class MethodNormalizer():  # TODO: add normalizer for atom_parameters.label
     def __init__(self, entry_archive: EntryArchive, repr_system: MSection, material: Material, logger):
         self.entry_archive = entry_archive
         self.repr_system = repr_system
@@ -433,7 +433,7 @@ class DFTMethod(ElectronicMethod):
                 dft.smearing_kind = self._repr_method.electronic.smearing.kind
                 dft.smearing_width = self._repr_method.electronic.smearing.width
             if self._repr_method.electronic.n_spin_channels:
-                dft.spin_polarized = self._repr_method.electronic.n_spin_channels > 1
+                dft.spin_polarized = bool(self._repr_method.electronic.n_spin_channels > 1)
             dft.van_der_Waals_method = self._repr_method.electronic.van_der_waals_method
             dft.relativity_method = self._repr_method.electronic.relativity_method
         try:

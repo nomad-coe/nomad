@@ -489,11 +489,11 @@ const StructureNGL = React.memo(({
     representationRef.current = representation
     selectionRef.current = representation?.sele
 
-    // Determine the selections to show opaque
+    // Determine the selections to show opaque, i.e. as a solid color
     const opaque = new Set([selected])
 
     // Determine the selections to show transparent
-    const transparent = new Set(isGroup ? [topParent] : [])
+    const transparent = new Set((isGroup || structuralType === 'active orbitals') ? [topParent] : [])
 
     // Determine whether to show cell
     const cellVisible = !(isMolecule || isMonomer || isMonomerGroup)

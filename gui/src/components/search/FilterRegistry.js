@@ -256,6 +256,31 @@ registerFilter(
     {name: 'sbu_coordination_number', ...numberHistogramQuantity}
   ]
 )
+registerFilter(
+  'results.material.topology.elemental_composition',
+  idStructure,
+  nestedQuantity,
+  [
+    {name: 'element', ...termQuantity}
+  ]
+)
+registerFilter(
+  'results.material.topology.active_orbitals',
+  idStructure,
+  nestedQuantity,
+  [
+    {name: 'n_quantum_number', ...termQuantity},
+    {name: 'l_quantum_number', ...termQuantity},
+    {name: 'l_quantum_symbol', ...termQuantity},
+    {name: 'ml_quantum_symbol', ...termQuantity},
+    {name: 'ms_quantum_symbol', ...termQuantity},
+    {name: 'j_quantum_number', ...termQuantity},
+    {name: 'mj_quantum_number', ...termQuantity},
+    {name: 'occupation', ...termQuantity},
+    {name: 'n_electrons_excited', ...termQuantity},
+    {name: 'degeneracy', ...termQuantity}
+  ]
+)
 registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: '1/4'})

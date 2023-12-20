@@ -16,7 +16,8 @@
 # limitations under the License.
 #
 
-from typing import List
+from logging import Logger
+from typing import List, Optional
 import numpy as np
 from elasticsearch_dsl import Text
 
@@ -25,6 +26,7 @@ from ase.data import chemical_symbols
 from nomad import config
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.simulation.system import Atoms, System as SystemRun
+from nomad.datamodel.metainfo.simulation.method import CoreHole as CoreHoleRun
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_type,
@@ -41,6 +43,7 @@ from nomad.metainfo import (
     Package,
     Datetime,
 )
+from nomad.metainfo.metainfo import derived
 
 m_package = Package()
 
@@ -102,8 +105,6 @@ crystal_systems = [
     'hexagonal',
     'cubic',
 ]
-orbitals = ['s', 'p', 'd', 'f']
-orbitals += ['{}{}'.format(n, orbital) for n in range(1, 10) for orbital in orbitals]
 xc_treatments = {  # Note: respect the ordering (Python3.7+), is used in DFTMethod.xc_functional_type()
     'lda': 'LDA',
     'gga': 'GGA',
@@ -912,6 +913,72 @@ class SymmetryNew(MSection):
     wyckoff_sets = SubSection(sub_section=WyckoffSet.m_def, repeats=True)
 
 
+class CoreHole(CoreHoleRun):
+    quantities: list[str] = CoreHoleRun.quantities + ['l_quantum_symbol', 'ml_quantum_symbol', 'ms_quantum_symbol']
+
+    def normalize(self, archive, logger: Optional[Logger]):
+        super().normalize(archive, logger)
+        # TODO: replace this for a more dynamic mapping
+        self.set_l_quantum_symbol()
+        self.set_ml_quantum_symbol()
+        self.set_ms_quantum_symbol()
+
+    def set_l_quantum_symbol(self) -> str:
+        try:
+            self.l_quantum_symbol = super().l_quantum_symbols[self.l_quantum_number]
+        except (KeyError, AttributeError):
+            pass
+        return self.l_quantum_symbol
+
+    def set_ml_quantum_symbol(self) -> str:
+        try:
+            self.ml_quantum_symbol = super().ml_quantum_symbols[self.l_quantum_number][self.ml_quantum_number]
+        except (KeyError, AttributeError):
+            pass
+        return self.ml_quantum_symbol
+
+    def set_ms_quantum_symbol(self) -> str:
+        try:
+            self.ms_quantum_symbol = super().ms_quantum_symbols[self.ms_quantum_number]
+        except (KeyError, AttributeError):
+            pass
+        return self.ms_quantum_symbol
+
+    n_quantum_number = CoreHoleRun.n_quantum_number.m_copy()
+    n_quantum_number.m_annotations['elasticsearch'] = [Elasticsearch(material_type)]
+    j_quantum_number = CoreHoleRun.j_quantum_number.m_copy()
+    j_quantum_number.m_annotations['elasticsearch'] = [Elasticsearch(material_type)]
+    mj_quantum_number = CoreHoleRun.mj_quantum_number.m_copy()
+    mj_quantum_number.m_annotations['elasticsearch'] = [Elasticsearch(material_type)]
+    occupation = CoreHoleRun.occupation.m_copy()
+    occupation.m_annotations['elasticsearch'] = [Elasticsearch(material_type)]
+    n_electrons_excited = CoreHoleRun.n_electrons_excited.m_copy()
+    n_electrons_excited.m_annotations['elasticsearch'] = [Elasticsearch(material_type)]
+    degeneracy = CoreHoleRun.degeneracy.m_copy()
+    degeneracy.m_annotations['elasticsearch'] = [Elasticsearch(material_type)]
+    l_quantum_symbol = Quantity(
+        type=str,
+        description='''
+        Azimuthal $l$ in symbolic form.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    ml_quantum_symbol = Quantity(
+        type=str,
+        description='''
+        Magnetic quantum number $m_l$ in symbolic form.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+    ms_quantum_symbol = Quantity(
+        type=str,
+        description='''
+        Spin quantum number $m_s$ in symbolic form.
+        ''',
+        a_elasticsearch=Elasticsearch(material_type),
+    )
+
+
 class Relation(MSection):
     '''
     Contains information about the relation between two different systems.
@@ -1020,7 +1087,7 @@ class System(MSection):
         ],
     )
     structural_type = Quantity(
-        type=MEnum(structure_classes + ['group', 'molecule', 'monomer']),
+        type=MEnum(structure_classes + ['group', 'molecule', 'monomer', 'active orbitals']),
         description='''
         Structural class determined from the atomic structure.
         ''',
@@ -1390,6 +1457,7 @@ class System(MSection):
             Elasticsearch(material_type),
         ]
     )
+    active_orbitals = SubSection(sub_section=CoreHole.m_def, nested=False)  # TODO: extend to active orbitals + add repeats=True?
 # =============================================================================
 
 
