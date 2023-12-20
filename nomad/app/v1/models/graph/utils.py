@@ -251,8 +251,10 @@ def _generate_model(
         config = inherit_config(_DictModel.__config__, config)
         if suffix == request_suffix:
             validators = {
-                "process_extra": root_validator(  # type: ignore
-                    _DictModel.process_extra.__func__, pre=True, allow_reuse=True  # type: ignore
+                'process_extra': root_validator(  # type: ignore
+                    _DictModel.process_extra.__func__, # type: ignore
+                    pre=True,
+                    allow_reuse=True,
                 )
             }
 
