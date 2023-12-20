@@ -280,7 +280,7 @@ rope==0.21.0              # via nomad-lab (pyproject.toml)
 rsa==4.9                  # via -r requirements.txt, python-jose
 ruamel-yaml==0.17.21      # via -r requirements.txt, jupyter-telemetry, oauthenticator, pymatgen
 ruamel-yaml-clib==0.2.7   # via -r requirements.txt, ruamel-yaml
-ruff==0.1.4               # via atomisticparsers (dependencies/parsers/atomistic/pyproject.toml), nomad-lab (pyproject.toml)
+ruff==0.1.8               # via nomad-lab (pyproject.toml)
 runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 scikit-image==0.19.3      # via -r requirements.txt, hyperspy, kikuchipy, pyxem
 scikit-learn==1.0.2       # via -r requirements.txt, kikuchipy, matid (dependencies/matid/pyproject.toml), pyxem
