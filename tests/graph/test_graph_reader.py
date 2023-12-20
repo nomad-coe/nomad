@@ -20,12 +20,14 @@ import json
 from datetime import datetime
 
 import pytest
+import yaml
 
 from nomad.graph.graph_reader import (
     EntryReader, UploadReader, UserReader, FileSystemReader, MongoReader, GeneralReader, Token
 )
 from nomad.datamodel import EntryArchive
 from nomad.utils.exampledata import ExampleData
+from tests.normalizing.conftest import simulationworkflowschema
 
 
 def rprint(msg):
@@ -63,6 +65,8 @@ def assert_dict(d1, d2):
         del d1['pagination']
     if 'm_def' in d1:
         del d1['m_def']
+    if 'm_def' in d2:
+        del d2['m_def']
     assert set(d1.keys()) == set(d2.keys())
     for k, v in d1.items():
         if isinstance(v, dict):
@@ -792,6 +796,52 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                         'space_group_number': 221}]}]}]}}}}},
         Token.ARCHIVE: {'workflow2': {
             'tasks': [{'task': 'uploads/id_published_with_ref/entries/id_01/archive/workflow2'}]}}})
+    if simulationworkflowschema is not None:
+        __entry_print('entry reader to definition reader', {
+            Token.ARCHIVE: {
+                'workflow2': {
+                    'm_def': {
+                        'm_request': {
+                            'directive': 'plain',
+                        }
+                    }
+                }
+            }
+        }, result={
+            "metainfo": {
+                "simulationworkflowschema.general": {
+                    "section_definitions": [
+                        None, None,
+                        {
+                            "name": "SimulationWorkflow",
+                            "base_sections": [
+                                "metainfo/nomad.datamodel.metainfo.workflow/section_definitions/3"
+                            ],
+                            "sub_sections": [
+                                {
+                                    "name": "method",
+                                    "sub_section": "metainfo/simulationworkflowschema.general/section_definitions/0"
+                                },
+                                {
+                                    "name": "results",
+                                    "categories": [
+                                        "/category_definitions/0"
+                                    ],
+                                    "sub_section": "metainfo/simulationworkflowschema.general/section_definitions/1"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "archive": {
+                "workflow2": {
+                    "m_def": {
+                        "m_def": "metainfo/simulationworkflowschema.general/section_definitions/2"
+                    }
+                }
+            }
+        })
 
     __entry_print('go to upload, resolve explicitly', {
         'm_request': {
@@ -1353,6 +1403,155 @@ def test_general_reader_search(json_dict, example_data_with_reference, test_user
                 'mainfile_for_id_05': {'m_is': 'File', 'path': 'mainfile_for_id_05', 'size': 3233},
                 'mainfile_for_id_06': {'m_is': 'File', 'path': 'mainfile_for_id_06', 'size': 3233}
             }}}}}}})
+
+
+@pytest.fixture(scope='function')
+def custom_data(test_user, proc_infra):
+    yaml_archive = yaml.safe_load('''
+---
+definitions:
+  name: test_package_name
+  section_definitions:
+  - name: MySection
+    base_sections:
+    - nomad.datamodel.data.EntryData
+    quantities:
+    - name: my_quantity
+      type:
+        type_kind: python
+        type_data: str
+    - name: datetime_list
+      type:
+        type_kind: custom
+        type_data: nomad.metainfo.metainfo.Datetime
+      shape:
+      - "*"
+data:
+  m_def: "/definitions/section_definitions/0"
+  my_quantity: test_value
+  datetime_list:
+  - '2022-04-01'
+  - '2022-04-02'
+''')
+    archive = EntryArchive.m_from_dict(yaml_archive)
+    data = ExampleData(main_author=test_user)
+
+    data.create_upload(upload_id='id_custom', upload_name='name_published', published=True)
+    data.create_entry(
+        upload_id='id_custom',
+        entry_id='id_example',
+        entry_archive=archive)
+    data.save(with_files=True, with_es=True, with_mongo=True)
+
+    yield data
+
+    data.delete()
+
+
+def test_custom_schema_archive_and_definition(test_user, custom_data):
+    def increment():
+        n = 0
+        while True:
+            n += 1
+            yield n
+
+    counter = increment()
+
+    def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
+        with EntryReader(required, user=test_user) as reader:
+            response = reader.read('id_example')
+            if result:
+                assert_dict(response, result)
+            else:
+                rprint(f'\n\nExample: {next(counter)} -> {msg}:')
+                rprint(required)
+                if not to_file:
+                    rprint('output:')
+                    rprint(response)
+                else:
+                    with open('entry_reader_test.json', 'w') as f:
+                        f.write(json.dumps(response))
+
+    __entry_print('custom', {
+        'm_request': {
+            'directive': 'plain',
+        },
+        Token.ARCHIVE: {
+            'data': {
+                'm_request': {
+                    'directive': 'plain',
+                },
+                'm_def': {
+                    'm_request': {
+                        'directive': 'plain',
+                    },
+                }
+            }
+        }
+    }, result={
+        "complete_time": None,
+        "current_process": None,
+        "entry_create_time": "2023-12-14T17:41:42.346000",
+        "entry_id": "id_example",
+        "errors": [],
+        "last_status_message": None,
+        "mainfile_key": None,
+        "mainfile_path": "mainfile_for_id_example",
+        "parser_name": "parsers/vasp",
+        "process_running": False,
+        "process_status": "SUCCESS",
+        "upload_id": "id_custom",
+        "warnings": [],
+        "uploads": {
+            "id_custom": {
+                "entries": {
+                    "id_example": {
+                        "archive": {
+                            "definitions": {
+                                "section_definitions": [
+                                    {
+                                        "name": "MySection",
+                                        "base_sections": [
+                                            "metainfo/nomad.datamodel.data/section_definitions/1"
+                                        ],
+                                        "quantities": [
+                                            {
+                                                "name": "my_quantity",
+                                                "type": {
+                                                    "type_kind": "python",
+                                                    "type_data": "str"
+                                                }
+                                            },
+                                            {
+                                                "name": "datetime_list",
+                                                "type": {
+                                                    "type_kind": "custom",
+                                                    "type_data": "nomad.metainfo.metainfo._Datetime"
+                                                },
+                                                "shape": ["*"]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "archive": {
+            "data": {
+                "datetime_list": [
+                    "2022-04-01T00:00:00+00:00",
+                    "2022-04-02T00:00:00+00:00"
+                ],
+                "my_quantity": "test_value",
+                "m_def": {
+                    "m_def": "uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0"
+                }
+            }
+        }
+    })
 
 
 @pytest.fixture(scope='function')

@@ -46,7 +46,7 @@ from nomad.files import UploadFiles, RawPathInfo
 from nomad.metainfo import (
     SubSection, QuantityReference, Reference, Quantity, SectionReference, JSON, Package, Definition, Section
 )
-from nomad.metainfo.util import split_python_definition
+from nomad.metainfo.util import split_python_definition, MSubSectionList
 from nomad.processing import Entry, Upload, ProcessStatus
 
 logger = utils.get_logger(__name__)
@@ -265,7 +265,7 @@ def _convert_ref_to_path(ref: str, upload_id: str = None) -> list:
     # test module name
     if '.' in (stripped_ref := ref.strip('.')):
         module_path, _ = split_python_definition(stripped_ref)
-        return [Token.METAINFO, '.'.join(module_path[:-1]), module_path[-1]]
+        return [Token.METAINFO, '.'.join(module_path[:-1])] + module_path[-1].split('/')
 
     # test reference
     parse_result = parse_path(ref, upload_id)
@@ -1730,6 +1730,10 @@ class ArchiveReader(GeneralReader):
             >>> result = ArchiveReader.read_required(query, user, archive)
     '''
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.package_pool: dict = {}
+
     @staticmethod
     def __if_strip(node: GraphNode, config: RequestConfig):
         if config.max_list_size is not None and isinstance(node.archive, list) and len(
@@ -1954,8 +1958,7 @@ class ArchiveReader(GeneralReader):
             return node
 
         def __if_contains(m_def):
-            return _if_exists(self.global_root, _convert_ref_to_path(
-                m_def.definition_reference(None, global_reference=True)))
+            return _if_exists(self.global_root, _convert_ref_to_path(m_def.strict_reference()))
 
         custom_def: str | None = node.archive.get('m_def', None)
         custom_def_id: str | None = node.archive.get('m_def_id', None)
@@ -2031,14 +2034,48 @@ class ArchiveReader(GeneralReader):
         # todo: more flexible definition retrieval, accounting for definition id, mismatches, etc.
         context = ServerContext(get_upload_with_read_access(node.upload_id, self.user, include_others=True))
 
-        if m_def is not None and m_def.startswith(('#/', '/')):
-            # appears to be a local definition
-            root_definitions = to_json(node.archive_root['definitions'])
-            custom_def_package: Package = Package.m_from_dict(root_definitions, m_context=context)
-            custom_def_package.init_metainfo()
-            root_path: list = [v for v in m_def.split('/') if v not in ('', '#', 'definitions')]
-            return custom_def_package.m_resolve('/'.join(root_path))
+        def __resolve_definition_in_archive(
+                _root: dict, _path_stack: list, _upload_id: str = None, _entry_id: str = None):
+            cache_key = f'{_upload_id}:{_entry_id}'
 
+            if cache_key not in self.package_pool:
+                custom_def_package: Package = Package.m_from_dict(_root, m_context=context)
+                # package loaded in this way does not have an attached archive
+                # we manually set the upload_id and entry_id so that
+                # correct references can be generated in the corresponding method
+                custom_def_package.entry_id = _entry_id
+                custom_def_package.upload_id = _upload_id
+                custom_def_package.init_metainfo()
+                self.package_pool[cache_key] = custom_def_package
+
+            return self.package_pool[cache_key].m_resolve_path(_path_stack)
+
+        if m_def is not None:
+            if m_def.startswith(('#/', '/')):
+                # appears to be a local definition
+                return __resolve_definition_in_archive(
+                    to_json(node.archive_root['definitions']),
+                    [v for v in m_def.split('/') if v not in ('', '#', 'definitions')],
+                    node.archive_root['metadata']['upload_id'],
+                    node.archive_root['metadata']['entry_id']
+                )
+            # todo: !!!need to unify different formats!!!
+            # check if m_def matches the pattern 'entry_id:example_id.example_section.example_quantity'
+            regex = re.compile(r'entry_id:(.+)(?:\.(.+))+')
+            if match := regex.match(m_def):
+                entry_id = match.groups()[0]
+                upload_id = Entry.objects(entry_id=entry_id).first().upload_id
+                archive = self.load_archive(upload_id, entry_id)
+                return __resolve_definition_in_archive(
+                    to_json(archive['definitions']),
+                    list(match.groups()[1:]),
+                    upload_id, entry_id
+                )
+
+        # further consider when only m_def_id is given, etc.
+
+        # this is not likely to be reached
+        # it does not work anyway
         proxy = SectionReference.deserialize(None, None, m_def)
         proxy.m_proxy_context = context
         return proxy.section_cls.m_def
@@ -2107,7 +2144,7 @@ class DefinitionReader(GeneralReader):
             self._resolve(node, current_config, omit_keys=required.keys())
 
         def __convert(m_def):
-            return _convert_ref_to_path_string(m_def.definition_reference(None, global_reference=True))
+            return _convert_ref_to_path_string(m_def.strict_reference())
 
         for key, value in required.items():
             if key == GeneralReader.__CONFIG__:
@@ -2120,46 +2157,66 @@ class DefinitionReader(GeneralReader):
             if child_def is None:
                 continue
 
-            is_list: bool = isinstance(child_def, list)
+            is_list: bool = isinstance(child_def, MSubSectionList)
+
+            # for derived quantities like 'all_properties', 'all_quantities', etc.
+            # normalise them to maps
+            is_plain_container: bool = False if is_list else isinstance(child_def, (list, set, dict))
+            if is_plain_container and isinstance(child_def, (list, set)):
+                child_def = {v.name: v for v in child_def}
 
             child_path: list = node.current_path + [name]
 
-            # avoid infinite loop
+            # to avoid infinite loop
+            # put a reference string here and skip it later
             if is_list:
                 for i in self._normalise_index(index, len(child_def)):
                     if child_def[i] is not node.archive:
                         continue
                     _populate_result(node.result_root, child_path + [str(i)], __convert(child_def[i]))
-                    break
+                    break  # early return assuming children do not repeat
+            elif is_plain_container:
+                # this is a derived quantity like 'all_properties', 'all_quantities', etc.
+                # just write reference strings to the corresponding paths
+                # whether they shall be resolved or not is determined by the config and will be handled later
+                for k, v in child_def.items():
+                    _populate_result(node.result_root, child_path + [k], __convert(v))
             elif child_def is node.archive:
+                assert isinstance(child_def, Definition)
                 _populate_result(node.result_root, child_path, __convert(child_def))
 
             if isinstance(value, RequestConfig):
                 # this is a leaf, resolve it according to the config
                 def __resolve(__path, __archive):
+                    if __archive is node.archive:
+                        return
                     self._resolve(self._switch_root(node.replace(
                         current_path=__path, archive=__archive), inplace=value.resolve_inplace), value)
 
                 if is_list:
                     for i in self._normalise_index(index, len(child_def)):
-                        if child_def[i] is node.archive:
-                            continue
                         __resolve(child_path + [str(i)], child_def[i])
-                elif child_def is not node.archive:
+                elif is_plain_container:
+                    if value.directive is DirectiveType.resolved:
+                        for k, v in child_def.items():
+                            __resolve(child_path + [k], v)
+                else:
                     __resolve(child_path, child_def)
             elif isinstance(value, dict):
                 # this is a nested query, keep walking down the tree
                 def __walk(__path, __archive):
+                    if __archive is node.archive:
+                        return
                     self._walk(node.replace(current_path=__path, archive=__archive), value, current_config)
 
                 if is_list:
                     # field[start:end]: dict
                     for i in self._normalise_index(index, len(child_def)):
-                        if child_def[i] is node.archive:
-                            continue
                         __walk(child_path + [str(i)], child_def[i])
-                elif child_def is not node.archive:
-                    # field: dict
+                elif is_plain_container:
+                    for k, v in child_def.items():
+                        __walk(child_path + [k], v)
+                else:
                     __walk(child_path, child_def)
             elif isinstance(value, list):
                 # optionally support alternative syntax
@@ -2179,30 +2236,13 @@ class DefinitionReader(GeneralReader):
             return ref_type.target_quantity_def if isinstance(
                 ref_type, QuantityReference) else ref_type.target_section_def
 
-        if isinstance(node.archive, Quantity):
-            ref = node.archive.type
-            if not isinstance(ref, Reference):
-                return
-            target = __unwrap_ref(ref)
-            ref_str: str = target.definition_reference(None, global_reference=True)
-            path_stack: list = _convert_ref_to_path(ref_str)
-            # check if it has been populated
-            if ref_str in node.visited_path or _if_exists(node.ref_result_root, path_stack):
-                return None
-            return self._resolve(node.replace(
-                archive=target, current_path=path_stack,
-                result_root=node.ref_result_root,
-                visited_path=node.visited_path.union({ref_str}),
-                current_depth=node.current_depth + 1
-            ), config)
-
         def __override_path(q, s, v, p):
             '''
             Normalise all definition identifiers with unique global reference.
             '''
 
             def __convert(m_def):
-                return _convert_ref_to_path_string(m_def.definition_reference(None, global_reference=True))
+                return _convert_ref_to_path_string(m_def.strict_reference())
 
             if isinstance(s, Quantity) and isinstance(v, dict):
                 if isinstance(s.type, Reference):
@@ -2222,6 +2262,27 @@ class DefinitionReader(GeneralReader):
                 node.current_path,
                 node.archive.m_to_dict(with_out_meta=True, transform=__override_path))
 
+        if isinstance(node.archive, Quantity):
+            if isinstance(ref := node.archive.type, Reference):
+                target = __unwrap_ref(ref)
+                ref_str: str = target.strict_reference()
+                path_stack: list = _convert_ref_to_path(ref_str)
+                # check if it has been populated
+                if ref_str not in node.visited_path and not _if_exists(node.ref_result_root, path_stack):
+                    self._resolve(node.replace(
+                        archive=target, current_path=path_stack,
+                        result_root=node.ref_result_root,
+                        visited_path=node.visited_path.union({ref_str}),
+                        current_depth=node.current_depth + 1
+                    ), config)
+            # no need to do anything for quantity
+            # as quantities do no contain additional contents to be extracted
+            return
+
+        #
+        # the following is for section
+        #
+
         # no need to recursively resolve all relevant definitions if the directive is plain
         if config.directive == DirectiveType.plain:
             return
@@ -2239,7 +2300,7 @@ class DefinitionReader(GeneralReader):
         ):
             for index, base in enumerate(getattr(node.archive, name, [])):
                 section = base.sub_section.m_resolved() if unwrap else base
-                ref_str = section.definition_reference(None, global_reference=True)
+                ref_str = section.strict_reference()
                 path_stack = _convert_ref_to_path(ref_str)
                 if section is node.archive or self._check_cache(path_stack, config.hash):
                     continue
@@ -2260,7 +2321,7 @@ class DefinitionReader(GeneralReader):
         if inplace:
             return node
 
-        ref_str: str = node.archive.definition_reference(None, global_reference=True)
+        ref_str: str = node.archive.strict_reference()
         if not isinstance(node.archive, Quantity):
             _populate_result(node.result_root, node.current_path, _convert_ref_to_path_string(ref_str))
 

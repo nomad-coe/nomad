@@ -971,11 +971,14 @@ class Context:
     def resolve_section_definition(self, definition_reference: str, definition_id: str) -> Type[MSectionBound]:
         pkg_definition = self.retrieve_package_by_section_definition_id(definition_reference, definition_id)
 
-        entry_id_based_name = pkg_definition['entry_id_based_name']
-        del pkg_definition['entry_id_based_name']
-        pkg = Package.m_from_dict(pkg_definition)
+        entry_id_based_name = pkg_definition.pop('entry_id_based_name')
+        upload_id = pkg_definition.pop('upload_id', None)
+        entry_id = pkg_definition.pop('entry_id', None)
+        pkg: Package = Package.m_from_dict(pkg_definition)
         if entry_id_based_name != '*':
             pkg.entry_id_based_name = entry_id_based_name
+        pkg.upload_id = upload_id
+        pkg.entry_id = entry_id
 
         pkg.m_context = self
         pkg.init_metainfo()
@@ -2530,7 +2533,7 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
                 if sub_section is not None:
                     yield sub_section
 
-    def m_path(self, quantity_def: Quantity = None) -> str:
+    def m_path(self, *, quantity_def: Quantity = None, package_path: bool = False) -> str:
         ''' Returns the path of this section or the given quantity within the section hierarchy. '''
         if self.m_parent is None:
             return '/'
@@ -2543,7 +2546,16 @@ class MSection(metaclass=MObjectMeta):  # TODO find a way to make this a subclas
         if quantity_def is not None:
             segment = f'{segment}/{quantity_def.name}'
 
-        return f'{self.m_parent.m_path().rstrip("/")}/{segment}'
+        # for packages provide path starting from package instead of environment
+        if package_path and isinstance(self.m_parent, Package):
+            # two cases:
+            # 1. build-in packages that does not contain a valid `entry_id`
+            # 2. custom packages that need valid `upload_id` and `entry_id` (for generating correct references)
+            if self.m_parent.entry_id is not None:
+                return f'entry_id:{self.m_parent.entry_id}/{segment}'
+            return f'{self.m_parent.name}/{segment}'
+
+        return f'{self.m_parent.m_path(package_path=package_path).rstrip("/")}/{segment}'
 
     def m_root(self, cls: Type[MSectionBound] = None) -> MSectionBound:
         ''' Returns the first parent of the parent section that has no parent; the root. '''
@@ -3104,7 +3116,12 @@ class Definition(MSection):
         Creates a reference string that points to this definition from the
         given source section.
         '''
-        definition_reference = self.qualified_name()
+        if kwargs.pop('strict', False):
+            # if `strict` is set, use the strict path instead of the qualified name
+            definition_reference = self.m_path(package_path=True)
+        else:
+            definition_reference = self.qualified_name()
+
         if definition_reference.startswith('entry_id:'):
             # This is not from a python module, use archive reference instead
             # two cases:
@@ -3121,6 +3138,20 @@ class Definition(MSection):
             definition_reference += '@' + self.definition_id
 
         return definition_reference
+
+    def strict_reference(self, **kwargs):
+        '''
+        Generate a reference string for the current definition.
+        It follows a strict canonical form that is used in graph query.
+        Two possible cases:
+        1. The definition is a build-in definition.
+            nomad.my.package/section_definitions/1/quantities/2
+        2. The definition is a user-defined definition.
+            '../uploads/{upload_id}/archive/{entry_id}#{fragment}'
+        '''
+        kwargs['strict'] = True
+        kwargs['global_reference'] = True  # we always want to use global reference if possible
+        return self.definition_reference(None, **kwargs)
 
 
 class Attribute(Definition):
@@ -4069,6 +4100,8 @@ class Package(Definition):
         self.errors, self.warnings = [], []
         self.archive = None
         self.entry_id_based_name = None
+        self.upload_id = None
+        self.entry_id = None
 
     def __init_metainfo__(self):
         super().__init_metainfo__()
@@ -4143,6 +4176,22 @@ class Package(Definition):
             return self.entry_id_based_name
 
         return super().qualified_name()
+
+    def m_resolve_path(self, path_stack: list):
+        path_str = '/'.join(path_stack)
+        current_pos = path_stack.pop(0)
+        section = self.all_definitions.get(current_pos, None)
+        try:
+            while len(path_stack) > 0:
+                current_pos = path_stack.pop(0)
+                section = section.all_properties.get(current_pos, None)
+        except Exception:
+            section = None
+
+        if section is not None:
+            return section
+
+        return self.m_resolve(path_str)
 
     def normalize(self, archive, logger=None):
         if archive.definitions == self and archive.metadata:
