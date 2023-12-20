@@ -154,6 +154,7 @@ select = [
     "E", # pycodestyle
     "W", # pycodestyle
     "PL", # pylint
+    "I001", # isort
 ]
 ignore = [
     "E501", # Line too long ({width} > {limit} characters)
