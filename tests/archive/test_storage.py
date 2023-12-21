@@ -9,7 +9,13 @@ import matplotlib.pyplot as plt
 import pytest
 
 from nomad.archive import write_archive
-from nomad.archive.storage_v2 import ArchiveReadCounter, ArchiveReader, to_json, ArchiveList, ArchiveDict
+from nomad.archive.storage_v2 import (
+    ArchiveReadCounter,
+    ArchiveReader,
+    to_json,
+    ArchiveList,
+    ArchiveDict,
+)
 
 # set matplotlib font size
 plt.rcParams.update({'font.size': 6})
@@ -19,16 +25,25 @@ def generate_random_json(depth=10, width=4, simple=False):
     seed = random.random()
 
     if depth == 0 or (simple and seed < 0.4):
-        return random.choice([
-            random.randint(1, 100),
-            random.random(),
-            random.choice([True, False]),
-            ''.join(random.choices(string.ascii_letters + string.digits, k=random.randint(5, 10)))])
+        return random.choice(
+            [
+                random.randint(1, 100),
+                random.random(),
+                random.choice([True, False]),
+                ''.join(
+                    random.choices(
+                        string.ascii_letters + string.digits, k=random.randint(5, 10)
+                    )
+                ),
+            ]
+        )
 
     if seed < 0.7:
         obj = {}
         for _ in range(width):
-            key = ''.join(random.choices(string.ascii_lowercase, k=random.randint(5, 10)))
+            key = ''.join(
+                random.choices(string.ascii_lowercase, k=random.randint(5, 10))
+            )
             value = generate_random_json(depth - 1, width, True)
             obj[key] = value
         return obj
@@ -116,8 +131,10 @@ def test_generate_random_json(monkeypatch, tmp):
 
         ax.set_xlabel('fraction of paths visited')
         ax.set_ylabel('fraction of bytes read')
-        ax.set_title(f'archive size {total_size / repeat / 1024 / 1024:.2} MB d/w={depth}/{width}, toc depth={d - 1}')
-        ax.set_xlim(-.01, .1)
+        ax.set_title(
+            f'archive size {total_size / repeat / 1024 / 1024:.2} MB d/w={depth}/{width}, toc depth={d - 1}'
+        )
+        ax.set_xlim(-0.01, 0.1)
         ax.set_ylim(0, 1.05)
         ax.grid(True)
     fig.tight_layout()
@@ -140,10 +157,15 @@ def test_folder_access(monkeypatch):
 
     from nomad.archive.storage_v2 import write_archive as write_archive_v2
     from nomad import config
+
     for j in threshold:
-        monkeypatch.setattr('nomad.config.archive.small_obj_optimization_threshold', j * 1024)
+        monkeypatch.setattr(
+            'nomad.config.archive.small_obj_optimization_threshold', j * 1024
+        )
         for i in range(2, depth):
-            file_name = f'archive-{i}-{config.archive.small_obj_optimization_threshold}.msg'
+            file_name = (
+                f'archive-{i}-{config.archive.small_obj_optimization_threshold}.msg'
+            )
             file_path = f'{parent_folder}{file_name}'
             write_archive_v2(file_path, [(f'id', archive)], i)
 
@@ -176,7 +198,13 @@ def test_read_archive(monkeypatch):
     paths = []
     with open(f'{parent_folder}paths.txt', 'r') as f:
         while line := f.readline():
-            paths.append([(int(v) if v.isdigit() else v) for v in line.split(',') if v and v != '\n'])
+            paths.append(
+                [
+                    (int(v) if v.isdigit() else v)
+                    for v in line.split(',')
+                    if v and v != '\n'
+                ]
+            )
 
     rows = len(threshold)
     cols = depth - 2
@@ -202,7 +230,7 @@ def test_read_archive(monkeypatch):
             ax1.yaxis.label.set_color('blue')
             ax2.yaxis.label.set_color('red')
             ax3.yaxis.label.set_color('green')
-            ax3.spines.right.set_position(("axes", 1.2))
+            ax3.spines.right.set_position(('axes', 1.2))
             pic_pool[f'archive-{toc_depth}-{small_obj}'] = (ax1, ax2, ax3)
 
     samples = 100_000
@@ -214,7 +242,9 @@ def test_read_archive(monkeypatch):
             for j in range(rows):
                 small_obj = threshold[j] * 1024
                 ax1, ax2, ax3 = pic_pool[f'archive-{toc_depth}-{small_obj}']
-                accu_time, accu_size, avg_bytes = measure(small_obj, toc_depth, random.choices(paths, k=samples))
+                accu_time, accu_size, avg_bytes = measure(
+                    small_obj, toc_depth, random.choices(paths, k=samples)
+                )
                 ax1.semilogx(x, accu_time, color='blue')
                 ax2.semilogx(x, accu_size, color='red')
                 ax3.semilogx(x, avg_bytes, color='green')

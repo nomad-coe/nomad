@@ -29,15 +29,18 @@ from nomad.datamodel import results
 
 from tests.utils import assert_at_least, assert_url_query_args
 
-n_code_names = results.Simulation.program_name.a_elasticsearch[0].default_aggregation_size
+n_code_names = results.Simulation.program_name.a_elasticsearch[
+    0
+].default_aggregation_size
 
 
 def post_query_test_parameters(
-        entity_id: str, total: int, material_prefix: str, entry_prefix: str):
-    '''Convenience function for constructing POST query test parameters.
+    entity_id: str, total: int, material_prefix: str, entry_prefix: str
+):
+    """Convenience function for constructing POST query test parameters.
 
     Returns: List of pytest parameters for testing queries.
-    '''
+    """
     elements = f'{material_prefix}elements'
     program_name = f'{entry_prefix}results.method.simulation.program_name'
     method = f'{entry_prefix}results.method'
@@ -50,7 +53,9 @@ def post_query_test_parameters(
         pytest.param({entity_id: 'id_01'}, 200, 1, id='match'),
         pytest.param({'mispelled': 'id_01'}, 422, -1, id='not-quantity'),
         pytest.param({entity_id: ['id_01', 'id_02']}, 200, 0, id='match-list-0'),
-        pytest.param({entity_id: 'id_01', elements: ['H', 'O']}, 200, 1, id='match-list-1'),
+        pytest.param(
+            {entity_id: 'id_01', elements: ['H', 'O']}, 200, 1, id='match-list-1'
+        ),
         pytest.param({f'{entity_id}:any': ['id_01', 'id_02']}, 200, 2, id='any-short'),
         pytest.param({entity_id: {'any': ['id_01', 'id_02']}}, 200, 2, id='any'),
         pytest.param({entity_id: {'any': 'id_01'}}, 422, -1, id='any-not-list'),
@@ -61,34 +66,81 @@ def post_query_test_parameters(
         pytest.param({entity_id: {'missspelled': 'id_01'}}, 422, -1, id='not-op'),
         pytest.param({f'{entity_id}:lt': ['id_01']}, 422, -1, id='gt-shortlist'),
         pytest.param({f'{entity_id}:misspelled': 'id_01'}, 422, -1, id='not-op-short'),
-
-        pytest.param({'or': [{entity_id: 'id_01'}, {entity_id: 'id_02'}]}, 200, 2, id='or'),
-        pytest.param({'or': {entity_id: 'id_01', program_name: 'VASP'}}, 422, -1, id='or-not-list'),
-        pytest.param({'and': [{entity_id: 'id_01'}, {entity_id: 'id_02'}]}, 200, 0, id='and'),
+        pytest.param(
+            {'or': [{entity_id: 'id_01'}, {entity_id: 'id_02'}]}, 200, 2, id='or'
+        ),
+        pytest.param(
+            {'or': {entity_id: 'id_01', program_name: 'VASP'}},
+            422,
+            -1,
+            id='or-not-list',
+        ),
+        pytest.param(
+            {'and': [{entity_id: 'id_01'}, {entity_id: 'id_02'}]}, 200, 0, id='and'
+        ),
         pytest.param({'not': {entity_id: 'id_01'}}, 200, total - 1, id='not'),
         pytest.param({'not': [{entity_id: 'id_01'}]}, 422, -1, id='not-list'),
-        pytest.param({'not': {'not': {entity_id: 'id_01'}}}, 200, 1, id='not-nested-not'),
-        pytest.param({'not': {f'{entity_id}:any': ['id_01', 'id_02']}}, 200, total - 2, id='not-nested-any'),
-        pytest.param({'and': [{f'{entity_id}:any': ['id_01', 'id_02']}, {f'{entity_id}:any': ['id_02', 'id_03']}]}, 200, 1, id='and-nested-any'),
-        pytest.param({'and': [{'not': {entity_id: 'id_01'}}, {'not': {entity_id: 'id_02'}}]}, 200, total - 2, id='not-nested-not'),
-        pytest.param({method: {'simulation.program_name': 'VASP'}}, 200, total, id='inner-object'),
-        pytest.param({f'{properties}.electronic.dos_electronic.band_gap.type': 'direct'}, 200, 1, id='nested-implicit'),
-        pytest.param({f'{properties}.electronic.dos_electronic.band_gap': {'type': 'direct'}}, 200, 1, id='nested-explicit'),
-        pytest.param({properties: {'electronic.dos_electronic.band_gap': {'type': 'direct'}}}, 200, 1, id='nested-explicit-explicit'),
-        pytest.param({f'{upload_create_time}:gt': '1970-01-01'}, 200, total, id='date-1'),
-        pytest.param({f'{upload_create_time}:lt': '2099-01-01'}, 200, total, id='date-2'),
-        pytest.param({f'{upload_create_time}:gt': '2099-01-01'}, 200, 0, id='date-3')
+        pytest.param(
+            {'not': {'not': {entity_id: 'id_01'}}}, 200, 1, id='not-nested-not'
+        ),
+        pytest.param(
+            {'not': {f'{entity_id}:any': ['id_01', 'id_02']}},
+            200,
+            total - 2,
+            id='not-nested-any',
+        ),
+        pytest.param(
+            {
+                'and': [
+                    {f'{entity_id}:any': ['id_01', 'id_02']},
+                    {f'{entity_id}:any': ['id_02', 'id_03']},
+                ]
+            },
+            200,
+            1,
+            id='and-nested-any',
+        ),
+        pytest.param(
+            {'and': [{'not': {entity_id: 'id_01'}}, {'not': {entity_id: 'id_02'}}]},
+            200,
+            total - 2,
+            id='not-nested-not',
+        ),
+        pytest.param(
+            {method: {'simulation.program_name': 'VASP'}}, 200, total, id='inner-object'
+        ),
+        pytest.param(
+            {f'{properties}.electronic.dos_electronic.band_gap.type': 'direct'},
+            200,
+            1,
+            id='nested-implicit',
+        ),
+        pytest.param(
+            {f'{properties}.electronic.dos_electronic.band_gap': {'type': 'direct'}},
+            200,
+            1,
+            id='nested-explicit',
+        ),
+        pytest.param(
+            {properties: {'electronic.dos_electronic.band_gap': {'type': 'direct'}}},
+            200,
+            1,
+            id='nested-explicit-explicit',
+        ),
+        pytest.param(
+            {f'{upload_create_time}:gt': '1970-01-01'}, 200, total, id='date-1'
+        ),
+        pytest.param(
+            {f'{upload_create_time}:lt': '2099-01-01'}, 200, total, id='date-2'
+        ),
+        pytest.param({f'{upload_create_time}:gt': '2099-01-01'}, 200, 0, id='date-3'),
     ]
 
 
 def get_query_test_parameters(
-    str: dict,
-    int: dict,
-    date: dict,
-    subsection: dict,
-    total: int
+    str: dict, int: dict, date: dict, subsection: dict, total: int
 ) -> List[Any]:
-    '''Convenience function for constructing GET query test parameters.
+    """Convenience function for constructing GET query test parameters.
 
     Args:
         str: Contains name and values for a string quantity.
@@ -97,49 +149,131 @@ def get_query_test_parameters(
         nested_str: Contains name and values for a nested string quantity.
 
     Returns: List of pytest parameters for testing queries.
-    '''
+    """
     return [
         # Empty
         pytest.param({}, 200, total, id='empty'),
-
         # Errors
         pytest.param({'mispelled': 'no-value'}, 200, total, id='not-quantity'),
-
         # Match str
-        pytest.param({str['name']: str['values'][0]}, 200, str['total'], id='str-match'),
-        pytest.param({str['name'] + '__any': str['values']}, 200, str['total_any'], id='str-match-many-any'),
-        pytest.param({f'{str["name"]}__any': str['values'][0]}, 200, str['total'], id='str-any-not-list'),
-        pytest.param({str['name'] + '__all': str['values']}, 200, str['total_all'], id='str-match-many-all'),
-        pytest.param({f'{str["name"]}__missspelled': 'id_01'}, 422, -1, id='str-not-op'),
-        pytest.param({f'{str["name"]}__gt': str['values'][0]}, 200, str['total_gt'], id='str-gt'),
+        pytest.param(
+            {str['name']: str['values'][0]}, 200, str['total'], id='str-match'
+        ),
+        pytest.param(
+            {str['name'] + '__any': str['values']},
+            200,
+            str['total_any'],
+            id='str-match-many-any',
+        ),
+        pytest.param(
+            {f'{str["name"]}__any': str['values'][0]},
+            200,
+            str['total'],
+            id='str-any-not-list',
+        ),
+        pytest.param(
+            {str['name'] + '__all': str['values']},
+            200,
+            str['total_all'],
+            id='str-match-many-all',
+        ),
+        pytest.param(
+            {f'{str["name"]}__missspelled': 'id_01'}, 422, -1, id='str-not-op'
+        ),
+        pytest.param(
+            {f'{str["name"]}__gt': str['values'][0]}, 200, str['total_gt'], id='str-gt'
+        ),
         pytest.param({f'{str["name"]}__gt': str['values']}, 422, -1, id='str-gt-list'),
-
         # Match int
-        pytest.param({int["name"]: int['values'][0]}, 200, int['total'], id='int-match'),
-        pytest.param({int['name'] + '__any': int['values']}, 200, int['total_any'], id='int-match-many-any'),
-        pytest.param({int['name'] + '__all': int['values']}, 200, int['total_all'], id='int-match-many-all'),
-        pytest.param({int["name"] + '__gt': int['values'][0]}, 200, int['total_gt'], id='int-gt'),
-        pytest.param({int["name"] + '__missspelled': 2}, 422, -1, id='int-not-op-2'),
-
+        pytest.param(
+            {int['name']: int['values'][0]}, 200, int['total'], id='int-match'
+        ),
+        pytest.param(
+            {int['name'] + '__any': int['values']},
+            200,
+            int['total_any'],
+            id='int-match-many-any',
+        ),
+        pytest.param(
+            {int['name'] + '__all': int['values']},
+            200,
+            int['total_all'],
+            id='int-match-many-all',
+        ),
+        pytest.param(
+            {int['name'] + '__gt': int['values'][0]}, 200, int['total_gt'], id='int-gt'
+        ),
+        pytest.param({int['name'] + '__missspelled': 2}, 422, -1, id='int-not-op-2'),
         # Date
-        pytest.param({date["name"] + '__gt': '1970-01-01'}, 200, date['total'], id='date-gt'),
-
+        pytest.param(
+            {date['name'] + '__gt': '1970-01-01'}, 200, date['total'], id='date-gt'
+        ),
         # Q query
-        pytest.param({'q': f'{date["name"]}__gt__1970-01-01'}, 200, date['total'], id='q-date-gt'),
-        pytest.param({'q': [f'{str["name"]}__all__{str["values"][0]}', f'{str["name"]}__all__{str["values"][1]}']}, 200, str['total_all'], id='q-str-all-1'),
-        pytest.param({'q': [f'{str["name"]}__all__{str["values"][0]}', f'{str["name"]}__all__notpresent']}, 200, 0, id='q-str-all-2'),
-        pytest.param({'q': f'{str["name"]}__{str["values"][0]}'}, 200, str['total'], id='q-str-match'),
-        pytest.param({'q': f'{int["name"]}__{int["values"][0]}'}, 200, int['total'], id='q-int-match'),
-        pytest.param({'q': f'{int["name"]}__gt__{int["values"][0]}'}, 200, int['total_gt'], id='q-int-gt'),
+        pytest.param(
+            {'q': f'{date["name"]}__gt__1970-01-01'}, 200, date['total'], id='q-date-gt'
+        ),
+        pytest.param(
+            {
+                'q': [
+                    f'{str["name"]}__all__{str["values"][0]}',
+                    f'{str["name"]}__all__{str["values"][1]}',
+                ]
+            },
+            200,
+            str['total_all'],
+            id='q-str-all-1',
+        ),
+        pytest.param(
+            {
+                'q': [
+                    f'{str["name"]}__all__{str["values"][0]}',
+                    f'{str["name"]}__all__notpresent',
+                ]
+            },
+            200,
+            0,
+            id='q-str-all-2',
+        ),
+        pytest.param(
+            {'q': f'{str["name"]}__{str["values"][0]}'},
+            200,
+            str['total'],
+            id='q-str-match',
+        ),
+        pytest.param(
+            {'q': f'{int["name"]}__{int["values"][0]}'},
+            200,
+            int['total'],
+            id='q-int-match',
+        ),
+        pytest.param(
+            {'q': f'{int["name"]}__gt__{int["values"][0]}'},
+            200,
+            int['total_gt'],
+            id='q-int-gt',
+        ),
         pytest.param({'q': 'bad_encoded'}, 422, -1, id='q-bad-encode'),
         pytest.param({'q': 'missspelled__id_01'}, 422, -1, id='q-bad-quantity'),
-
         # JSON
-        pytest.param({'json_query': f'{{"{str["name"]}:any": {json.dumps(str["values"])}}}'}, 200, str['total_any'], id='json_query'),
-        pytest.param({'json_query': f'{{"{str["name"]}": ["H", "O"}}'}, 422, 0, id='invalid-json_query'),
-
+        pytest.param(
+            {'json_query': f'{{"{str["name"]}:any": {json.dumps(str["values"])}}}'},
+            200,
+            str['total_any'],
+            id='json_query',
+        ),
+        pytest.param(
+            {'json_query': f'{{"{str["name"]}": ["H", "O"}}'},
+            422,
+            0,
+            id='invalid-json_query',
+        ),
         # Search subsection
-        pytest.param({subsection['name']: subsection['values'][0]}, 200, subsection['total'], id='subsection-match'),
+        pytest.param(
+            {subsection['name']: subsection['values'][0]},
+            200,
+            subsection['total'],
+            id='subsection-match',
+        ),
     ]
 
 
@@ -152,82 +286,180 @@ def owner_test_parameters():
         pytest.param('admin', None, 401, -1, -1, -1, id='admin-wo-auth'),
         pytest.param('shared', None, 401, -1, -1, -1, id='shared-wo-auth'),
         pytest.param('public', None, 200, 23, 23, 6, id='public-wo-auth'),
-
         pytest.param('user', 'test_user', 200, 32, 30, 13, id='user-test-user'),
         pytest.param('staging', 'test_user', 200, 6, 4, 4, id='staging-test-user'),
         pytest.param('visible', 'test_user', 200, 32, 30, 13, id='visible-test-user'),
         pytest.param('admin', 'test_user', 401, -1, -1, -1, id='admin-test-user'),
         pytest.param('shared', 'test_user', 200, 32, 30, 13, id='shared-test-user'),
         pytest.param('public', 'test_user', 200, 23, 23, 6, id='public-test-user'),
-
-        pytest.param('user', 'other_test_user', 200, 0, 0, 0, id='user-other-test-user'),
-        pytest.param('staging', 'other_test_user', 200, 2, 2, 2, id='staging-other-test-user'),
-        pytest.param('visible', 'other_test_user', 200, 27, 27, 10, id='visible-other-test-user'),
-        pytest.param('shared', 'other_test_user', 200, 4, 4, 4, id='shared-other-test-user'),
-        pytest.param('public', 'other_test_user', 200, 23, 23, 6, id='public-other-test-user'),
-
+        pytest.param(
+            'user', 'other_test_user', 200, 0, 0, 0, id='user-other-test-user'
+        ),
+        pytest.param(
+            'staging', 'other_test_user', 200, 2, 2, 2, id='staging-other-test-user'
+        ),
+        pytest.param(
+            'visible', 'other_test_user', 200, 27, 27, 10, id='visible-other-test-user'
+        ),
+        pytest.param(
+            'shared', 'other_test_user', 200, 4, 4, 4, id='shared-other-test-user'
+        ),
+        pytest.param(
+            'public', 'other_test_user', 200, 23, 23, 6, id='public-other-test-user'
+        ),
         pytest.param('all', None, 200, 26, 26, 9, id='metadata-all-wo-auth'),
         pytest.param('all', 'test_user', 200, 32, 30, 13, id='metadata-all-test-user'),
-        pytest.param('all', 'other_test_user', 200, 28, 28, 11, id='metadata-all-other-test-user'),
-
+        pytest.param(
+            'all', 'other_test_user', 200, 28, 28, 11, id='metadata-all-other-test-user'
+        ),
         pytest.param('admin', 'admin_user', 200, 32, 30, 13, id='admin-admin-user'),
-        pytest.param('all', 'bad_user', 401, -1, -1, -1, id='bad-credentials')
+        pytest.param('all', 'bad_user', 401, -1, -1, -1, id='bad-credentials'),
     ]
 
 
-def pagination_test_parameters(elements: str, n_elements: str, crystal_system: str, total: int):
+def pagination_test_parameters(
+    elements: str, n_elements: str, crystal_system: str, total: int
+):
     return [
-        pytest.param({}, {'total': total, 'page_size': 10, 'next_page_after_value': 'id_10'}, 200, id='empty'),
-        pytest.param({'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01'}, 200, id='size'),
-        pytest.param({'page_size': 0}, {'total': total, 'page_size': 0}, 200, id='size-0'),
-        pytest.param({'page_size': 1, 'page_after_value': 'id_01'}, {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'}, 200, id='after'),
-        pytest.param({'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'}, {'next_page_after_value': 'id_01'}, 200, id='after-desc'),
-        pytest.param({'page_size': 10, 'page_after_value': 'id_22', 'order': 'asc'}, {'next_page_after_value': None}, 200, id='after-exhausted'),
-        pytest.param({'page_size': 1, 'order_by': n_elements}, {'next_page_after_value': '2:id_01'}, 200, id='order-by-after-int'),
-        pytest.param({'page_size': 1, 'order_by': crystal_system}, {'next_page_after_value': 'cubic:id_01'}, 200, id='order-by-after-nested'),
+        pytest.param(
+            {},
+            {'total': total, 'page_size': 10, 'next_page_after_value': 'id_10'},
+            200,
+            id='empty',
+        ),
+        pytest.param(
+            {'page_size': 1},
+            {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01'},
+            200,
+            id='size',
+        ),
+        pytest.param(
+            {'page_size': 0}, {'total': total, 'page_size': 0}, 200, id='size-0'
+        ),
+        pytest.param(
+            {'page_size': 1, 'page_after_value': 'id_01'},
+            {'page_after_value': 'id_01', 'next_page_after_value': 'id_02'},
+            200,
+            id='after',
+        ),
+        pytest.param(
+            {'page_size': 1, 'page_after_value': 'id_02', 'order': 'desc'},
+            {'next_page_after_value': 'id_01'},
+            200,
+            id='after-desc',
+        ),
+        pytest.param(
+            {'page_size': 10, 'page_after_value': 'id_22', 'order': 'asc'},
+            {'next_page_after_value': None},
+            200,
+            id='after-exhausted',
+        ),
+        pytest.param(
+            {'page_size': 1, 'order_by': n_elements},
+            {'next_page_after_value': '2:id_01'},
+            200,
+            id='order-by-after-int',
+        ),
+        pytest.param(
+            {'page_size': 1, 'order_by': crystal_system},
+            {'next_page_after_value': 'cubic:id_01'},
+            200,
+            id='order-by-after-nested',
+        ),
         pytest.param({'page_size': -1}, None, 422, id='bad-size'),
         pytest.param({'order': 'misspelled'}, None, 422, id='bad-order'),
         pytest.param({'order_by': 'misspelled'}, None, 422, id='bad-order-by'),
-        pytest.param({'order_by': elements, 'page_after_value': 'H:id_01'}, None, 422, id='order-by-list'),
-        pytest.param({'order_by': n_elements, 'page_after_value': 'some'}, None, 400, id='order-by-bad-after'),
-        pytest.param({'page_offset': 0, 'page_size': 1}, {'total': total, 'next_page_after_value': 'id_01', 'page_offset': 0}, 200, id='page-offset-1'),
-        pytest.param({'page_offset': 1, 'page_size': 1}, {'total': total, 'next_page_after_value': 'id_02', 'page_offset': 1}, 200, id='page-offset-2'),
+        pytest.param(
+            {'order_by': elements, 'page_after_value': 'H:id_01'},
+            None,
+            422,
+            id='order-by-list',
+        ),
+        pytest.param(
+            {'order_by': n_elements, 'page_after_value': 'some'},
+            None,
+            400,
+            id='order-by-bad-after',
+        ),
+        pytest.param(
+            {'page_offset': 0, 'page_size': 1},
+            {'total': total, 'next_page_after_value': 'id_01', 'page_offset': 0},
+            200,
+            id='page-offset-1',
+        ),
+        pytest.param(
+            {'page_offset': 1, 'page_size': 1},
+            {'total': total, 'next_page_after_value': 'id_02', 'page_offset': 1},
+            200,
+            id='page-offset-2',
+        ),
         pytest.param({'page_offset': 9999}, None, 422, id='page-offset-too-large'),
-        pytest.param({'page_offset': 9989}, None, 200, id='page-offset-just-small-enough'),
-        pytest.param({'page': 1, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_01', 'page': 1}, 200, id='page-1'),
-        pytest.param({'page': 2, 'page_size': 1}, {'total': total, 'page_size': 1, 'next_page_after_value': 'id_02', 'page': 2}, 200, id='page-2'),
+        pytest.param(
+            {'page_offset': 9989}, None, 200, id='page-offset-just-small-enough'
+        ),
+        pytest.param(
+            {'page': 1, 'page_size': 1},
+            {
+                'total': total,
+                'page_size': 1,
+                'next_page_after_value': 'id_01',
+                'page': 1,
+            },
+            200,
+            id='page-1',
+        ),
+        pytest.param(
+            {'page': 2, 'page_size': 1},
+            {
+                'total': total,
+                'page_size': 1,
+                'next_page_after_value': 'id_02',
+                'page': 2,
+            },
+            200,
+            id='page-2',
+        ),
         pytest.param({'page': 1000, 'page_size': 10}, None, 422, id='page-too-large'),
-        pytest.param({'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'),
-        pytest.param({'page_offset': 1, 'page': 1}, None, 422, id='only-one-page-param'),
-        pytest.param({'page_offset': 1, 'page_size': 0}, None, 422, id='page-param-only-with-page-size')
+        pytest.param(
+            {'page': 9999, 'page_size': 1}, None, 200, id='page-just-small-enough'
+        ),
+        pytest.param(
+            {'page_offset': 1, 'page': 1}, None, 422, id='only-one-page-param'
+        ),
+        pytest.param(
+            {'page_offset': 1, 'page_size': 0},
+            None,
+            422,
+            id='page-param-only-with-page-size',
+        ),
     ]
 
 
-def get_quantity(name: str, resource: Literal["entries", "materials"]) -> str:
-    '''Used to map a quantity name to the correct ES path based on the resource.
-    '''
+def get_quantity(name: str, resource: Literal['entries', 'materials']) -> str:
+    """Used to map a quantity name to the correct ES path based on the resource."""
     material_prefix = 'results.material.'
     if name.startswith(material_prefix) and resource == 'materials':
-        name = name[len(material_prefix):]
-    elif resource == "materials":
+        name = name[len(material_prefix) :]
+    elif resource == 'materials':
         name = f'entries.{name}'
     return name
 
 
 def aggregation_test_parameters(
-        str: dict,
-        enum: dict,
-        bool: dict,
-        int: dict,
-        pagination: dict,
-        pagination_order_by: Optional[dict],
-        histogram_int: dict,
-        histogram_date: dict,
-        include: dict,
-        metrics: dict,
-        empty: dict,
-        fixed: Optional[dict]) -> List[Any]:
-    '''Convenience function for constructing aggregation tests.
+    str: dict,
+    enum: dict,
+    bool: dict,
+    int: dict,
+    pagination: dict,
+    pagination_order_by: Optional[dict],
+    histogram_int: dict,
+    histogram_date: dict,
+    include: dict,
+    metrics: dict,
+    empty: dict,
+    fixed: Optional[dict],
+) -> List[Any]:
+    """Convenience function for constructing aggregation tests.
 
     Args:
         str: Contains name, total, and size for a string quantity.
@@ -245,7 +477,7 @@ def aggregation_test_parameters(
         fixed: Contains name, total and size for testing quantity with fixed number or returned terms.
 
     Returns: List of pytest parameters for testing aggregation calls.
-    '''
+    """
     default_size = 10
     default_name = str['name']
     default_total = str['total']
@@ -253,91 +485,477 @@ def aggregation_test_parameters(
 
     tests = [
         # Terms
-        pytest.param({'terms': {'quantity': str['name']}}, str['total'], min(str['size'], default_size), 200, 'test_user', id='terms-str'),
-        pytest.param({'terms': {'quantity': enum['name']}}, enum['total'], min(enum['size'], default_size), 200, 'test_user', id='terms-enum'),
-        pytest.param({'terms': {'quantity': bool['name']}}, bool['total'], min(bool['size'], default_size), 200, 'test_user', id='terms-bool'),
-        pytest.param({'terms': {'quantity': empty['name']}}, 0, 0, 200, 'test_user', id='no-results'),
-        pytest.param({'terms': {'quantity': default_name, 'entries': {'size': 10}}}, default_total, min(default_total, default_size), 200, 'test_user', id='entries'),
-        pytest.param({'terms': {'quantity': default_name, 'entries': {'size': 1}}}, default_total, min(default_total, default_size), 200, 'test_user', id='entries-size'),
-        pytest.param({'terms': {'quantity': default_name, 'entries': {'size': 0}}}, -1, -1, 422, 'test_user', id='bad-entries'),
-        pytest.param({'terms': {'quantity': default_name, 'entries': {'size': 10, 'required': {'include': [default_name, section_path]}}}}, str['total'], min(str['size'], default_size), 200, 'test_user', id='entries-include'),
-        pytest.param({'terms': {'quantity': default_name, 'entries': {'size': 10, 'required': {'exclude': ['files', 'mainfile*']}}}}, str['total'], min(str['size'], default_size), 200, 'test_user', id='entries-exclude'),
-        pytest.param({'terms': {'quantity': default_name, 'size': default_total - 1}}, default_total, default_total - 1, 200, None, id='size'),
-        pytest.param({'terms': {'quantity': default_name, 'size': 1000}}, default_total, default_total, 200, None, id='size-too-large'),
-        pytest.param({'terms': {'quantity': default_name}}, default_total, default_size, 200, None, id='size-default'),
-        pytest.param({'terms': {'quantity': default_name, 'size': -1}}, -1, -1, 422, None, id='bad-size-1'),
-        pytest.param({'terms': {'quantity': default_name, 'size': 0}}, -1, -1, 422, None, id='bad-size-2'),
-        pytest.param({'terms': {'quantity': 'does not exist'}}, -1, -1, 422, None, id='bad-quantity'),
-        pytest.param({'terms': {'quantity': pagination['name'], 'pagination': {'order': 'asc'}}}, pagination['total'], min(pagination['size'], default_size), 200, 'test_user', id='order-direction'),
-        pytest.param({'terms': {'quantity': pagination['name'], 'pagination': {'page_after_value': pagination['page_after_value']}}}, pagination['total'], pagination['page_after_value_size'], 200, 'test_user', id='after'),
-        pytest.param({'terms': {'quantity': metrics['name'], 'metrics': ['n_uploads']}}, metrics['total'], metrics['size'], 200, None, id='metrics'),
-        pytest.param({'terms': {'quantity': metrics['name'], 'metrics': ['does not exist']}}, -1, -1, 422, None, id='bad-metric'),
-        pytest.param({'terms': {'quantity': include['name'], 'include': include['include']}}, include['total'], include['size'], 200, None, id='terms-include'),
-        pytest.param({'terms': {'quantity': include['name'], 'include': '.*_0.*'}}, -1, -1, 422, None, id='terms-bad-include'),
+        pytest.param(
+            {'terms': {'quantity': str['name']}},
+            str['total'],
+            min(str['size'], default_size),
+            200,
+            'test_user',
+            id='terms-str',
+        ),
+        pytest.param(
+            {'terms': {'quantity': enum['name']}},
+            enum['total'],
+            min(enum['size'], default_size),
+            200,
+            'test_user',
+            id='terms-enum',
+        ),
+        pytest.param(
+            {'terms': {'quantity': bool['name']}},
+            bool['total'],
+            min(bool['size'], default_size),
+            200,
+            'test_user',
+            id='terms-bool',
+        ),
+        pytest.param(
+            {'terms': {'quantity': empty['name']}},
+            0,
+            0,
+            200,
+            'test_user',
+            id='no-results',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'entries': {'size': 10}}},
+            default_total,
+            min(default_total, default_size),
+            200,
+            'test_user',
+            id='entries',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'entries': {'size': 1}}},
+            default_total,
+            min(default_total, default_size),
+            200,
+            'test_user',
+            id='entries-size',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'entries': {'size': 0}}},
+            -1,
+            -1,
+            422,
+            'test_user',
+            id='bad-entries',
+        ),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': default_name,
+                    'entries': {
+                        'size': 10,
+                        'required': {'include': [default_name, section_path]},
+                    },
+                }
+            },
+            str['total'],
+            min(str['size'], default_size),
+            200,
+            'test_user',
+            id='entries-include',
+        ),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': default_name,
+                    'entries': {
+                        'size': 10,
+                        'required': {'exclude': ['files', 'mainfile*']},
+                    },
+                }
+            },
+            str['total'],
+            min(str['size'], default_size),
+            200,
+            'test_user',
+            id='entries-exclude',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'size': default_total - 1}},
+            default_total,
+            default_total - 1,
+            200,
+            None,
+            id='size',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'size': 1000}},
+            default_total,
+            default_total,
+            200,
+            None,
+            id='size-too-large',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name}},
+            default_total,
+            default_size,
+            200,
+            None,
+            id='size-default',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'size': -1}},
+            -1,
+            -1,
+            422,
+            None,
+            id='bad-size-1',
+        ),
+        pytest.param(
+            {'terms': {'quantity': default_name, 'size': 0}},
+            -1,
+            -1,
+            422,
+            None,
+            id='bad-size-2',
+        ),
+        pytest.param(
+            {'terms': {'quantity': 'does not exist'}},
+            -1,
+            -1,
+            422,
+            None,
+            id='bad-quantity',
+        ),
+        pytest.param(
+            {'terms': {'quantity': pagination['name'], 'pagination': {'order': 'asc'}}},
+            pagination['total'],
+            min(pagination['size'], default_size),
+            200,
+            'test_user',
+            id='order-direction',
+        ),
+        pytest.param(
+            {
+                'terms': {
+                    'quantity': pagination['name'],
+                    'pagination': {'page_after_value': pagination['page_after_value']},
+                }
+            },
+            pagination['total'],
+            pagination['page_after_value_size'],
+            200,
+            'test_user',
+            id='after',
+        ),
+        pytest.param(
+            {'terms': {'quantity': metrics['name'], 'metrics': ['n_uploads']}},
+            metrics['total'],
+            metrics['size'],
+            200,
+            None,
+            id='metrics',
+        ),
+        pytest.param(
+            {'terms': {'quantity': metrics['name'], 'metrics': ['does not exist']}},
+            -1,
+            -1,
+            422,
+            None,
+            id='bad-metric',
+        ),
+        pytest.param(
+            {'terms': {'quantity': include['name'], 'include': include['include']}},
+            include['total'],
+            include['size'],
+            200,
+            None,
+            id='terms-include',
+        ),
+        pytest.param(
+            {'terms': {'quantity': include['name'], 'include': '.*_0.*'}},
+            -1,
+            -1,
+            422,
+            None,
+            id='terms-bad-include',
+        ),
         # Date histogram
-        pytest.param({'date_histogram': {'quantity': histogram_date['name']}}, histogram_date['default_size'], histogram_date['default_size'], 200, 'test-user', id='date-histogram-default'),
-        pytest.param({'date_histogram': {'quantity': histogram_date['name'], 'interval': histogram_date['interval']}}, histogram_date['interval_size'], histogram_date['interval_size'], 200, 'test-user', id='date-histogram-interval'),
-        pytest.param({'date_histogram': {'quantity': histogram_date['name'], 'interval': histogram_date['interval'], 'metrics': ['n_uploads']}}, histogram_date['interval_size'], histogram_date['interval_size'], 200, 'test-user', id='date-histogram-metrics'),
-        pytest.param({'date_histogram': {'quantity': str['name']}}, -1, -1, 422, 'test-user', id='date-histogram-no-date'),
-        pytest.param({'date_histogram': {'quantity': histogram_date['name'], 'interval': '1xy'}}, -1, -1, 400, 'test-user', id='date-histogram-bad-interval'),
+        pytest.param(
+            {'date_histogram': {'quantity': histogram_date['name']}},
+            histogram_date['default_size'],
+            histogram_date['default_size'],
+            200,
+            'test-user',
+            id='date-histogram-default',
+        ),
+        pytest.param(
+            {
+                'date_histogram': {
+                    'quantity': histogram_date['name'],
+                    'interval': histogram_date['interval'],
+                }
+            },
+            histogram_date['interval_size'],
+            histogram_date['interval_size'],
+            200,
+            'test-user',
+            id='date-histogram-interval',
+        ),
+        pytest.param(
+            {
+                'date_histogram': {
+                    'quantity': histogram_date['name'],
+                    'interval': histogram_date['interval'],
+                    'metrics': ['n_uploads'],
+                }
+            },
+            histogram_date['interval_size'],
+            histogram_date['interval_size'],
+            200,
+            'test-user',
+            id='date-histogram-metrics',
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': str['name']}},
+            -1,
+            -1,
+            422,
+            'test-user',
+            id='date-histogram-no-date',
+        ),
+        pytest.param(
+            {'date_histogram': {'quantity': histogram_date['name'], 'interval': '1xy'}},
+            -1,
+            -1,
+            400,
+            'test-user',
+            id='date-histogram-bad-interval',
+        ),
         # Int histogram
-        pytest.param({'histogram': {'quantity': histogram_int['name'], 'interval': histogram_int['interval']}}, histogram_int['interval_size'], histogram_int['interval_size'], 200, None, id='histogram-interval'),
-        pytest.param({'histogram': {'quantity': histogram_int['name'], 'buckets': histogram_int['buckets']}}, histogram_int['bucket_size'], histogram_int['bucket_size'], 200, 'test-user', id='histogram-buckets'),
-        pytest.param({'histogram': {'quantity': histogram_int['name'], 'interval': histogram_int['interval'], 'metrics': ['n_uploads']}}, histogram_int['interval_size'], histogram_int['interval_size'], 200, None, id='histogram-metric'),
-        pytest.param({'histogram': {'quantity': histogram_int['name']}}, -1, -1, 422, None, id='histogram-no-interval-or-buckets'),
-        pytest.param({'histogram': {'quantity': str['name']}}, -1, -1, 422, None, id='histogram-no-number'),
+        pytest.param(
+            {
+                'histogram': {
+                    'quantity': histogram_int['name'],
+                    'interval': histogram_int['interval'],
+                }
+            },
+            histogram_int['interval_size'],
+            histogram_int['interval_size'],
+            200,
+            None,
+            id='histogram-interval',
+        ),
+        pytest.param(
+            {
+                'histogram': {
+                    'quantity': histogram_int['name'],
+                    'buckets': histogram_int['buckets'],
+                }
+            },
+            histogram_int['bucket_size'],
+            histogram_int['bucket_size'],
+            200,
+            'test-user',
+            id='histogram-buckets',
+        ),
+        pytest.param(
+            {
+                'histogram': {
+                    'quantity': histogram_int['name'],
+                    'interval': histogram_int['interval'],
+                    'metrics': ['n_uploads'],
+                }
+            },
+            histogram_int['interval_size'],
+            histogram_int['interval_size'],
+            200,
+            None,
+            id='histogram-metric',
+        ),
+        pytest.param(
+            {'histogram': {'quantity': histogram_int['name']}},
+            -1,
+            -1,
+            422,
+            None,
+            id='histogram-no-interval-or-buckets',
+        ),
+        pytest.param(
+            {'histogram': {'quantity': str['name']}},
+            -1,
+            -1,
+            422,
+            None,
+            id='histogram-no-number',
+        ),
         # Min-max
-        pytest.param({'min_max': {'quantity': int['name']}}, 1, 1, 200, None, id='min-max'),
-        pytest.param({'min_max': {'quantity': str['name']}}, -1, -1, 422, None, id='min-max-no-number'),
+        pytest.param(
+            {'min_max': {'quantity': int['name']}}, 1, 1, 200, None, id='min-max'
+        ),
+        pytest.param(
+            {'min_max': {'quantity': str['name']}},
+            -1,
+            -1,
+            422,
+            None,
+            id='min-max-no-number',
+        ),
     ]
 
     # Optional tests for terms aggregation for fields with fixed number of return values
     if fixed:
         tests += [
-            pytest.param({'terms': {'quantity': fixed['name']}}, fixed['total'], fixed['size'], 200, None, id='fixed-values')
+            pytest.param(
+                {'terms': {'quantity': fixed['name']}},
+                fixed['total'],
+                fixed['size'],
+                200,
+                None,
+                id='fixed-values',
+            )
         ]
     # Optional tests for using order_by in pagination
     if pagination_order_by:
         tests += [
-            pytest.param({'terms': {'quantity': pagination['name'], 'pagination': {'order_by': pagination_order_by['name_str']}}}, pagination['total'], min(pagination['size'], default_size), 200, 'test_user', id='order-str'),
-            pytest.param({'terms': {'quantity': pagination['name'], 'pagination': {'order_by': pagination_order_by['name_date']}}}, pagination['total'], min(pagination['size'], default_size), 200, 'test_user', id='order-date'),
-            pytest.param({'terms': {'quantity': pagination['name'], 'pagination': {'order_by': pagination_order_by['name_int']}}}, pagination['total'], min(pagination['size'], default_size), 200, 'test_user', id='order-int'),
-            pytest.param({'terms': {'quantity': pagination['name'], 'pagination': {'order_by': pagination_order_by['name_str'], 'page_after_value': pagination['page_after_value_tiebreaker']}}}, pagination['total'], pagination['page_after_value_size'], 200, 'test_user', id='after-order'),
+            pytest.param(
+                {
+                    'terms': {
+                        'quantity': pagination['name'],
+                        'pagination': {'order_by': pagination_order_by['name_str']},
+                    }
+                },
+                pagination['total'],
+                min(pagination['size'], default_size),
+                200,
+                'test_user',
+                id='order-str',
+            ),
+            pytest.param(
+                {
+                    'terms': {
+                        'quantity': pagination['name'],
+                        'pagination': {'order_by': pagination_order_by['name_date']},
+                    }
+                },
+                pagination['total'],
+                min(pagination['size'], default_size),
+                200,
+                'test_user',
+                id='order-date',
+            ),
+            pytest.param(
+                {
+                    'terms': {
+                        'quantity': pagination['name'],
+                        'pagination': {'order_by': pagination_order_by['name_int']},
+                    }
+                },
+                pagination['total'],
+                min(pagination['size'], default_size),
+                200,
+                'test_user',
+                id='order-int',
+            ),
+            pytest.param(
+                {
+                    'terms': {
+                        'quantity': pagination['name'],
+                        'pagination': {
+                            'order_by': pagination_order_by['name_str'],
+                            'page_after_value': pagination[
+                                'page_after_value_tiebreaker'
+                            ],
+                        },
+                    }
+                },
+                pagination['total'],
+                pagination['page_after_value_size'],
+                200,
+                'test_user',
+                id='after-order',
+            ),
         ]
 
     return tests
 
 
-def aggregation_test_parameters_default(resource: Literal["entries", "materials"]):
-    '''Convenience function for constructing default aggregation tests.
+def aggregation_test_parameters_default(resource: Literal['entries', 'materials']):
+    """Convenience function for constructing default aggregation tests.
 
     Args:
         resource: The targeted resource, either 'entries' or 'materials'.
 
     Returns: List of pytest parameters for testing aggregation calls.
-    '''
+    """
     return aggregation_test_parameters(
         str={'name': get_quantity('entry_id', resource), 'total': 23, 'size': 32},
-        empty={'name': get_quantity('results.material.symmetry.structure_name', resource)},
-        enum={'name': get_quantity('results.material.dimensionality', resource), 'total': 1, 'size': 1},
-        bool={'name': get_quantity('results.properties.electronic.dos_electronic.spin_polarized', resource), 'total': 2, 'size': 2},
+        empty={
+            'name': get_quantity('results.material.symmetry.structure_name', resource)
+        },
+        enum={
+            'name': get_quantity('results.material.dimensionality', resource),
+            'total': 1,
+            'size': 1,
+        },
+        bool={
+            'name': get_quantity(
+                'results.properties.electronic.dos_electronic.spin_polarized', resource
+            ),
+            'total': 2,
+            'size': 2,
+        },
         int={'name': get_quantity('results.properties.n_calculations', resource)},
-        pagination={'name': get_quantity('upload_id', resource), 'total': 8, 'size': 8, 'page_after_value': 'id_published', 'page_after_value_tiebreaker': 'Sheldon Cooper:id_published', 'page_after_value_size': 3},
-        histogram_int={'name': get_quantity('results.properties.n_calculations', resource), 'interval': 1, 'buckets': 10, 'interval_size': 1, 'bucket_size': 1},
-        histogram_date={'name': get_quantity('upload_create_time', resource), 'interval': '1s', 'interval_size': 1, 'default_size': 1},
-        include={'name': get_quantity('entry_id', resource), 'include': '_0', 'total': 9, 'size': 9},
-        metrics={'name': get_quantity('results.method.simulation.program_name', resource), 'total': n_code_names, 'size': n_code_names},
-        fixed={'name': get_quantity('results.method.simulation.program_name', resource), 'total': n_code_names, 'size': n_code_names},
-        pagination_order_by={'name_str': get_quantity('main_author.name', resource), 'name_int': get_quantity('results.properties.n_calculations', resource), 'name_date': get_quantity('upload_create_time', resource)}
+        pagination={
+            'name': get_quantity('upload_id', resource),
+            'total': 8,
+            'size': 8,
+            'page_after_value': 'id_published',
+            'page_after_value_tiebreaker': 'Sheldon Cooper:id_published',
+            'page_after_value_size': 3,
+        },
+        histogram_int={
+            'name': get_quantity('results.properties.n_calculations', resource),
+            'interval': 1,
+            'buckets': 10,
+            'interval_size': 1,
+            'bucket_size': 1,
+        },
+        histogram_date={
+            'name': get_quantity('upload_create_time', resource),
+            'interval': '1s',
+            'interval_size': 1,
+            'default_size': 1,
+        },
+        include={
+            'name': get_quantity('entry_id', resource),
+            'include': '_0',
+            'total': 9,
+            'size': 9,
+        },
+        metrics={
+            'name': get_quantity('results.method.simulation.program_name', resource),
+            'total': n_code_names,
+            'size': n_code_names,
+        },
+        fixed={
+            'name': get_quantity('results.method.simulation.program_name', resource),
+            'total': n_code_names,
+            'size': n_code_names,
+        },
+        pagination_order_by={
+            'name_str': get_quantity('main_author.name', resource),
+            'name_int': get_quantity('results.properties.n_calculations', resource),
+            'name_date': get_quantity('upload_create_time', resource),
+        },
     )
 
 
-def aggregation_exclude_from_search_test_parameters(resource: Literal["entries", "materials"], total_per_entity: int, total: int):
+def aggregation_exclude_from_search_test_parameters(
+    resource: Literal['entries', 'materials'], total_per_entity: int, total: int
+):
     entry_id = get_quantity('entry_id', resource)
     upload_id = get_quantity('upload_id', resource)
     program_name = get_quantity('results.method.simulation.program_name', resource)
     n_elements = get_quantity('results.material.n_elements', resource)
-    band_gap = get_quantity('results.properties.electronic.band_structure_electronic.band_gap.value', resource)
+    band_gap = get_quantity(
+        'results.properties.electronic.band_structure_electronic.band_gap.value',
+        resource,
+    )
 
     def make_aggs(aggs):
         """Given a list of aggregation definitions, returns the API-compatible
@@ -349,10 +967,10 @@ def aggregation_exclude_from_search_test_parameters(resource: Literal["entries",
         for i, agg in enumerate(aggs):
             outer_agg = {f'{agg["type"]}': agg}
             aggs_api[f'agg_{i}'] = outer_agg
-            types.append(agg["type"])
-            lengths.append(agg["n_results"])
-            del agg["n_results"]
-            del agg["type"]
+            types.append(agg['type'])
+            lengths.append(agg['n_results'])
+            del agg['n_results']
+            del agg['type']
         return [aggs_api, types, lengths]
 
     return [
@@ -360,178 +978,196 @@ def aggregation_exclude_from_search_test_parameters(resource: Literal["entries",
             {
                 f'{entry_id}:any': ['id_01'],
                 upload_id: 'id_published',
-                program_name: 'VASP'
+                program_name: 'VASP',
             },
-            make_aggs([]), 1, 200,
-            id='empty'
+            make_aggs([]),
+            1,
+            200,
+            id='empty',
         ),
         pytest.param(
-            {
-                f'{entry_id}:any': ['id_01']
-            },
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': True,
-                    'n_results': 10,
-                }
-            ]),
-            1, 200,
-            id='exclude'
+            {f'{entry_id}:any': ['id_01']},
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': True,
+                        'n_results': 10,
+                    }
+                ]
+            ),
+            1,
+            200,
+            id='exclude',
         ),
         pytest.param(
-            {
-                f'{entry_id}:any': ['id_01']
-            },
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': False,
-                    'n_results': total_per_entity,
-                }
-            ]),
-            1, 200,
-            id='dont-exclude'
+            {f'{entry_id}:any': ['id_01']},
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': False,
+                        'n_results': total_per_entity,
+                    }
+                ]
+            ),
+            1,
+            200,
+            id='dont-exclude',
         ),
         pytest.param(
             {
                 f'{entry_id}:any': ['id_01'],
                 upload_id: 'id_published',
-                program_name: 'VASP'
+                program_name: 'VASP',
             },
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': True,
-                    'n_results': 10,
-                },
-                {
-                    'type': 'terms',
-                    'quantity': upload_id,
-                    'exclude_from_search': True,
-                    'n_results': 1,
-                }
-            ]),
-            1, 200,
-            id='two-aggs'
-        ),
-        pytest.param(
-            {
-                f'{entry_id}:any': ['id_01']
-            },
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': True,
-                    'n_results': 10,
-                },
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': False,
-                    'n_results': total_per_entity,
-                }
-            ]),
-            1, 200,
-            id='two-aggs-same-quantity'
-        ),
-        pytest.param(
-            {},
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': True,
-                    'n_results': 10,
-                }
-            ]),
-            total, 200,
-            id='not-in-query'
-        ),
-        pytest.param(
-            {},
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': True,
-                    'pagination': {
-                        'page_size': 20
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': True,
+                        'n_results': 10,
                     },
-                    'n_results': 20,
-                }
-            ]),
-            total, 422,
-            id='with-pagination'
+                    {
+                        'type': 'terms',
+                        'quantity': upload_id,
+                        'exclude_from_search': True,
+                        'n_results': 1,
+                    },
+                ]
+            ),
+            1,
+            200,
+            id='two-aggs',
+        ),
+        pytest.param(
+            {f'{entry_id}:any': ['id_01']},
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': True,
+                        'n_results': 10,
+                    },
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': False,
+                        'n_results': total_per_entity,
+                    },
+                ]
+            ),
+            1,
+            200,
+            id='two-aggs-same-quantity',
         ),
         pytest.param(
             {},
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'size': 20,
-                    'exclude_from_search': True,
-                    'n_results': 20,
-                }
-            ]),
-            total, 200,
-            id='with-size'
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': True,
+                        'n_results': 10,
+                    }
+                ]
+            ),
+            total,
+            200,
+            id='not-in-query',
         ),
         pytest.param(
-            {
-                'or': [{entry_id: 'id_01'}, {entry_id: 'id_05'}]
-            },
-            make_aggs([
-                {
-                    'type': 'terms',
-                    'quantity': entry_id,
-                    'exclude_from_search': True,
-                    'n_results': 10,
-                }
-            ]),
-            2, 200,
-            id='non-dict-query'
+            {},
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': True,
+                        'pagination': {'page_size': 20},
+                        'n_results': 20,
+                    }
+                ]
+            ),
+            total,
+            422,
+            id='with-pagination',
         ),
         pytest.param(
-            {
-                f'{n_elements}': {'gte': 0, 'lte': 10}
-            },
-            make_aggs([
-                {
-                    'type': 'min_max',
-                    'quantity': n_elements,
-                    'exclude_from_search': True,
-                    'n_results': 2,
-                }
-            ]),
-            total, 200,
-            id='range_min_max'
+            {},
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'size': 20,
+                        'exclude_from_search': True,
+                        'n_results': 20,
+                    }
+                ]
+            ),
+            total,
+            200,
+            id='with-size',
         ),
         pytest.param(
-            {
-                f'{band_gap}': {'gte': 0, 'lte': 10}
-            },
-            make_aggs([
-                {
-                    'type': 'min_max',
-                    'quantity': band_gap,
-                    'exclude_from_search': True,
-                    'n_results': 2,
-                }
-            ]),
-            0, 200,
-            id='nested_range_min_max'
-        )
+            {'or': [{entry_id: 'id_01'}, {entry_id: 'id_05'}]},
+            make_aggs(
+                [
+                    {
+                        'type': 'terms',
+                        'quantity': entry_id,
+                        'exclude_from_search': True,
+                        'n_results': 10,
+                    }
+                ]
+            ),
+            2,
+            200,
+            id='non-dict-query',
+        ),
+        pytest.param(
+            {f'{n_elements}': {'gte': 0, 'lte': 10}},
+            make_aggs(
+                [
+                    {
+                        'type': 'min_max',
+                        'quantity': n_elements,
+                        'exclude_from_search': True,
+                        'n_results': 2,
+                    }
+                ]
+            ),
+            total,
+            200,
+            id='range_min_max',
+        ),
+        pytest.param(
+            {f'{band_gap}': {'gte': 0, 'lte': 10}},
+            make_aggs(
+                [
+                    {
+                        'type': 'min_max',
+                        'quantity': band_gap,
+                        'exclude_from_search': True,
+                        'n_results': 2,
+                    }
+                ]
+            ),
+            0,
+            200,
+            id='nested_range_min_max',
+        ),
     ]
 
 
 def assert_response(response, status_code=None):
-    ''' General assertions for status_code and error messages '''
+    """General assertions for status_code and error messages"""
     if status_code and response.status_code != status_code:
         try:
             debug(response.json())
@@ -607,7 +1243,9 @@ def assert_required(data, required, default_key: str):
 
         elif isinstance(data, dict):
             for key, value in data.items():
-                collect_keys(value, prefix=f'{prefix}.{key}' if prefix is not None else key)
+                collect_keys(
+                    value, prefix=f'{prefix}.{key}' if prefix is not None else key
+                )
 
         else:
             keys.add(prefix)
@@ -631,12 +1269,14 @@ def assert_required(data, required, default_key: str):
                 if key != default_key and re.match(exclude_re, key):
                     found_exclude = key
 
-            assert found_exclude is None, f'{exclude} excluded but found {found_exclude}'
+            assert (
+                found_exclude is None
+            ), f'{exclude} excluded but found {found_exclude}'
 
 
 def assert_aggregations(
-        response_json, name, agg,
-        total: int = -1, size: int = -1, default_key: str = None):
+    response_json, name, agg, total: int = -1, size: int = -1, default_key: str = None
+):
     assert 'aggregations' in response_json
     assert name in response_json['aggregations']
     agg_response_obj = response_json['aggregations'][name]
@@ -660,7 +1300,9 @@ def assert_aggregations(
         if total >= 0:
             assert agg_response['pagination']['total'] == total
 
-        assert_pagination(agg.get('pagination', {}), agg_response['pagination'], data, is_get=False)
+        assert_pagination(
+            agg.get('pagination', {}), agg_response['pagination'], data, is_get=False
+        )
 
     if agg_type == 'min_max':
         assert len(data) == 2
@@ -684,8 +1326,10 @@ def assert_aggregations(
             assert 'count' in bucket
 
             value = bucket['value']
-            if agg_type == 'date_histogram': assert re.match(r'\d{4}\-\d{2}\-\d{2}', value)
-            elif agg_type == 'histogram': assert isinstance(value, (float, int))
+            if agg_type == 'date_histogram':
+                assert re.match(r'\d{4}\-\d{2}\-\d{2}', value)
+            elif agg_type == 'histogram':
+                assert isinstance(value, (float, int))
 
             for metric in agg.get('metrics', []):
                 assert metric in bucket['metrics']
@@ -697,13 +1341,16 @@ def assert_aggregations(
             assert agg['entries'].get('size', 10) >= len(bucket['entries']) > 0
             if 'required' in agg['entries']:
                 for entry in bucket['entries']:
-                    assert_required(entry, agg['entries']['required'], default_key=default_key)
+                    assert_required(
+                        entry, agg['entries']['required'], default_key=default_key
+                    )
 
 
 def assert_query_response(client, test_method, query, total, status_code):
-    '''Checks that the query response is as expected.'''
+    """Checks that the query response is as expected."""
     response_json = test_method(
-        client, query=query, status_code=status_code, total=total, http_method='get')
+        client, query=query, status_code=status_code, total=total, http_method='get'
+    )
 
     if response_json is None:
         return
@@ -726,8 +1373,17 @@ def assert_query_response(client, test_method, query, total, status_code):
     assert ('next_page_after_value' in pagination) == (total > 10)
 
 
-def assert_aggregation_response(client, test_user_auth, aggregation, total, size, status_code, user, resource: Literal["entries", "materials"]):
-    '''Checks that the aggregation response is as expected.'''
+def assert_aggregation_response(
+    client,
+    test_user_auth,
+    aggregation,
+    total,
+    size,
+    status_code,
+    user,
+    resource: Literal['entries', 'materials'],
+):
+    """Checks that the aggregation response is as expected."""
     headers = {}
     if user == 'test_user':
         headers = test_user_auth
@@ -742,9 +1398,14 @@ def assert_aggregation_response(client, test_user_auth, aggregation, total, size
         metadata_test = perform_materials_metadata_test
 
     response_json = metadata_test(
-        client, headers=headers, owner='visible', aggregations=aggregations,
+        client,
+        headers=headers,
+        owner='visible',
+        aggregations=aggregations,
         pagination=dict(page_size=0),
-        status_code=status_code, http_method='post')
+        status_code=status_code,
+        http_method='post',
+    )
 
     print(json.dumps(response_json, indent=2))
 
@@ -753,11 +1414,18 @@ def assert_aggregation_response(client, test_user_auth, aggregation, total, size
 
     for aggregation_obj in aggregation.values():
         assert_aggregations(
-            response_json, agg_id, aggregation_obj, total=total, size=size,
-            default_key=default_key)
+            response_json,
+            agg_id,
+            aggregation_obj,
+            total=total,
+            size=size,
+            default_key=default_key,
+        )
 
 
-def assert_pagination(pagination, pagination_response, data, order_by=None, order=None, is_get=True):
+def assert_pagination(
+    pagination, pagination_response, data, order_by=None, order=None, is_get=True
+):
     assert_at_least(pagination, pagination_response)
     assert len(data) <= pagination_response['page_size']
     assert len(data) <= pagination_response['total']
@@ -790,7 +1458,9 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
             assert_url_query_args(first_page_url, page_after_value=None, page=None)
         if next_page_after_value:
             assert next_page_url
-            assert_url_query_args(next_page_url, page_after_value=next_page_after_value, page=None)
+            assert_url_query_args(
+                next_page_url, page_after_value=next_page_after_value, page=None
+            )
         if page and page > 1:
             assert prev_page_url
             assert_url_query_args(prev_page_url, page=page - 1, page_after_value=None)
@@ -798,7 +1468,9 @@ def assert_pagination(pagination, pagination_response, data, order_by=None, orde
 
 def assert_browser_download_headers(response, media_type: str, filename: str):
     if media_type:
-        assert response.headers['Content-Type'].split(';')[0] == media_type.split(';')[0]
+        assert (
+            response.headers['Content-Type'].split(';')[0] == media_type.split(';')[0]
+        )
     content_disposition = response.headers['Content-Disposition']
     assert 'attachment;' in content_disposition
     if filename:
@@ -807,9 +1479,15 @@ def assert_browser_download_headers(response, media_type: str, filename: str):
 
 
 def perform_metadata_test(
-        client, endpoint: str, owner=None, headers={}, status_code=200,
-        total=None, http_method='get', **kwargs):
-
+    client,
+    endpoint: str,
+    owner=None,
+    headers={},
+    status_code=200,
+    total=None,
+    http_method='get',
+    **kwargs,
+):
     if http_method == 'get':
         params = {}
         if owner is not None:
@@ -817,7 +1495,8 @@ def perform_metadata_test(
         for value in kwargs.values():
             params.update(**value)
         response = client.get(
-            f'{endpoint}?{urlencode(params, doseq=True)}', headers=headers)
+            f'{endpoint}?{urlencode(params, doseq=True)}', headers=headers
+        )
 
     elif http_method == 'post':
         body = dict(**kwargs)
@@ -836,7 +1515,9 @@ def perform_metadata_test(
     assert 'pagination' in response_json
 
     if total is not None and total >= 0:
-        assert response_json['pagination']['total'] == total, response_json['pagination']['total']
+        assert response_json['pagination']['total'] == total, response_json[
+            'pagination'
+        ]['total']
 
     return response_json
 
@@ -852,9 +1533,17 @@ def perform_materials_metadata_test(*args, **kwargs):
 
 
 def perform_owner_test(
-        client, test_user_auth, other_test_user_auth, admin_user_auth,
-        owner, user, status_code, total, http_method, test_method):
-
+    client,
+    test_user_auth,
+    other_test_user_auth,
+    admin_user_auth,
+    owner,
+    user,
+    status_code,
+    total,
+    http_method,
+    test_method,
+):
     headers = None
     if user == 'test_user':
         headers = test_user_auth
@@ -866,15 +1555,22 @@ def perform_owner_test(
         headers = {'Authorization': 'Bearer NOTATOKEN'}
 
     test_method(
-        client, headers=headers, owner=owner, status_code=status_code, total=total,
-        http_method=http_method)
+        client,
+        headers=headers,
+        owner=owner,
+        status_code=status_code,
+        total=total,
+        http_method=http_method,
+    )
 
 
-def perform_quantity_search_test(name, resource: Literal["entries", "materials"], search, result, client):
+def perform_quantity_search_test(
+    name, resource: Literal['entries', 'materials'], search, result, client
+):
     quantity = get_quantity(name, resource)
-    body = {"query": {f"{quantity}": search}}
-    response = client.post(f"{resource}/query", json=body, headers={})
+    body = {'query': {f'{quantity}': search}}
+    response = client.post(f'{resource}/query', json=body, headers={})
     assert_response(response, 200)
     response = response.json()
-    api_result = deep_get(response["data"][0], *quantity.split("."))
+    api_result = deep_get(response['data'][0], *quantity.split('.'))
     assert api_result == result

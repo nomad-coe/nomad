@@ -47,13 +47,17 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
 
 
 def assert_topology(topology):
-    '''Checks that the given topology has a valid structure.'''
+    """Checks that the given topology has a valid structure."""
     child_map = {}
     child_map_determined = defaultdict(list)
     for top in topology:
         assert top.system_id is not None
         assert top.parent_system is not None or top.system_relation.type == 'root'
-        assert top.atoms is not None or top.atoms_ref is not None or top.indices is not None
+        assert (
+            top.atoms is not None
+            or top.atoms_ref is not None
+            or top.indices is not None
+        )
         assert top.n_atoms is not None
         assert top.elements is not None
         assert top.n_elements is not None
@@ -86,12 +90,12 @@ def assert_topology(topology):
     [
         pytest.param(True, id='fully periodic'),
         pytest.param(False, id='non-periodic'),
-    ]
+    ],
 )
 def test_topology_calculation(pbc):
-    '''Tests that a topology that originates from the calculation itself is
+    """Tests that a topology that originates from the calculation itself is
     correctly extracted.
-    '''
+    """
     topology_calculation = get_template_topology(pbc)
     topology = topology_calculation.results.material.topology
     assert_topology(topology)
@@ -188,10 +192,13 @@ def test_topology_calculation(pbc):
     assert mon.child_systems is None
 
 
-@pytest.mark.parametrize('fixture, dimensionality', [
-    pytest.param('atom', '0D', id='atom'),
-    pytest.param('molecule', '0D', id='molecule'),
-])
+@pytest.mark.parametrize(
+    'fixture, dimensionality',
+    [
+        pytest.param('atom', '0D', id='atom'),
+        pytest.param('molecule', '0D', id='molecule'),
+    ],
+)
 def test_topology_original(fixture, dimensionality, request):
     # Test that some entries only get a topology for the original system.
     entry = request.getfixturevalue(fixture)
@@ -205,9 +212,9 @@ def test_topology_original(fixture, dimensionality, request):
 
 
 def test_topology_1d(one_d):
-    '''Test that typical 1D entries get a topology that contains one subsystem
+    """Test that typical 1D entries get a topology that contains one subsystem
     and the conventional cell.
-    '''
+    """
     topology = one_d.results.material.topology
     assert_topology(topology)
     assert len(topology) == 3
@@ -241,52 +248,71 @@ def test_topology_1d(one_d):
     assert conv.cell.gamma is None
 
 
-@pytest.mark.parametrize('surface, ref_topologies', [
-    pytest.param(rattle(surf(conv_fcc('Cu'), [1, 0, 0])), single_cu_surface_topology(),
-                 id='single surface Cu FCC 100'),
-    pytest.param(rattle(surf(conv_fcc('Cu'), [1, 1, 0])), single_cu_surface_topology(),
-                 id='single surface Cu FCC 110'),
-    pytest.param(rattle(surf(conv_bcc('Cr'), [1, 0, 0])), single_cr_surface_topology(),
-                 id='single surface Cr BCC 100'),
-    pytest.param(rattle(surf(conv_bcc('Cr'), [1, 1, 0])), single_cr_surface_topology(),
-                 id='single surface Cr BCC 110'),
-    pytest.param(rattle(
-        stack(
-            surf(conv_fcc('Cu'), [1, 0, 0], vacuum=0),
-            surf(conv_fcc('Ni'), [1, 0, 0], vacuum=0)
-        )),
-        stacked_cu_ni_surface_topology(),
-        id='stacked surfaces of Cu and Ni'),
-    pytest.param(rattle(graphene()), graphene_topology(),
-                 id='single 2D layer of graphene'),
-    pytest.param(rattle(boron_nitride()), boron_nitride_topology(),
-                 id='single 2D layer of BN'),
-    pytest.param(rattle(mos2()), mos2_topology(),
-                 id='single 2D layer of MoS2'),
-    pytest.param(rattle(
-        stack(
-            graphene(),
-            boron_nitride()
-        )),
-        stacked_graphene_boron_nitride_topology(),
-        id='stacked layer of BN and C'
-    )
-])
+@pytest.mark.parametrize(
+    'surface, ref_topologies',
+    [
+        pytest.param(
+            rattle(surf(conv_fcc('Cu'), [1, 0, 0])),
+            single_cu_surface_topology(),
+            id='single surface Cu FCC 100',
+        ),
+        pytest.param(
+            rattle(surf(conv_fcc('Cu'), [1, 1, 0])),
+            single_cu_surface_topology(),
+            id='single surface Cu FCC 110',
+        ),
+        pytest.param(
+            rattle(surf(conv_bcc('Cr'), [1, 0, 0])),
+            single_cr_surface_topology(),
+            id='single surface Cr BCC 100',
+        ),
+        pytest.param(
+            rattle(surf(conv_bcc('Cr'), [1, 1, 0])),
+            single_cr_surface_topology(),
+            id='single surface Cr BCC 110',
+        ),
+        pytest.param(
+            rattle(
+                stack(
+                    surf(conv_fcc('Cu'), [1, 0, 0], vacuum=0),
+                    surf(conv_fcc('Ni'), [1, 0, 0], vacuum=0),
+                )
+            ),
+            stacked_cu_ni_surface_topology(),
+            id='stacked surfaces of Cu and Ni',
+        ),
+        pytest.param(
+            rattle(graphene()), graphene_topology(), id='single 2D layer of graphene'
+        ),
+        pytest.param(
+            rattle(boron_nitride()),
+            boron_nitride_topology(),
+            id='single 2D layer of BN',
+        ),
+        pytest.param(rattle(mos2()), mos2_topology(), id='single 2D layer of MoS2'),
+        pytest.param(
+            rattle(stack(graphene(), boron_nitride())),
+            stacked_graphene_boron_nitride_topology(),
+            id='stacked layer of BN and C',
+        ),
+    ],
+)
 def test_topology_2d(surface, ref_topologies):
-
     def compare_section(real, ref):
         """Used to compare two metainfo sections."""
         for name in ref.m_def.all_quantities.keys():
             compare_quantity(name, real, ref)
 
     def compare_quantity(name, value, ref):
-        '''Used to compare two metainfo quantities.'''
+        """Used to compare two metainfo quantities."""
         real_value = getattr(value, name)
         ref_value = getattr(ref, name)
         if ref_value is None:
             assert real_value is None
         elif isinstance(ref_value, ureg.Quantity):
-            assert real_value.magnitude == pytest.approx(ref_value.magnitude, rel=0.01, abs=0)
+            assert real_value.magnitude == pytest.approx(
+                ref_value.magnitude, rel=0.01, abs=0
+            )
         elif isinstance(ref_value, (np.ndarray, list)):
             real_array = np.array(real_value)
             ref_array = np.array(ref_value)
@@ -330,7 +356,10 @@ def test_topology_2d(surface, ref_topologies):
             if ref_topologies[ref_index].symmetry:
                 symmetry = res_system.symmetry.m_to_dict()
                 ref_symmetry = ref_topologies[ref_index].symmetry.m_to_dict()
-                for ref_symmetry_property_key, ref_symmetry_property in ref_symmetry.items():
+                for (
+                    ref_symmetry_property_key,
+                    ref_symmetry_property,
+                ) in ref_symmetry.items():
                     symmetry_property = symmetry[ref_symmetry_property_key]
                     assert ref_symmetry_property == symmetry_property
             else:
@@ -346,7 +375,9 @@ def test_topology_2d(surface, ref_topologies):
                 if isinstance(atoms_property, list):
                     property = atoms_property[0]
                     if isinstance(property, list):
-                        assert np.allclose(atoms_property, ref_atoms_property, rtol=1e-05, atol=1e-9)
+                        assert np.allclose(
+                            atoms_property, ref_atoms_property, rtol=1e-05, atol=1e-9
+                        )
                     elif isinstance(property, dict):
                         for property_keys, property_values in property.items():
                             ref_property = ref_atoms_property[0][property_keys]
@@ -355,11 +386,18 @@ def test_topology_2d(surface, ref_topologies):
                     for property_keys, property_values in atoms_property.items():
                         ref_property_value = ref_atoms_property[property_keys]
                         if isinstance(property_values, float):
-                            assert np.allclose(property_values, ref_property_value, rtol=1e-05, atol=1e-9)
+                            assert np.allclose(
+                                property_values,
+                                ref_property_value,
+                                rtol=1e-05,
+                                atol=1e-9,
+                            )
                         else:
                             assert ref_atoms_property == property_values
                 elif isinstance(atoms_property, float):
-                    assert np.allclose(ref_atoms_property, atoms_property, rtol=1e-05, atol=1e-9)
+                    assert np.allclose(
+                        ref_atoms_property, atoms_property, rtol=1e-05, atol=1e-9
+                    )
                 else:
                     assert ref_atoms_property == atoms_property
 
@@ -368,14 +406,13 @@ def test_topology_2d(surface, ref_topologies):
             ref_indices = ref_topologies[ref_index].indices
             indices = res_system.indices[0]
             indices_overlap = set(ref_indices).intersection(set(indices))
-            assert len(indices_overlap) / \
-                len(ref_indices) > 0.85
+            assert len(indices_overlap) / len(ref_indices) > 0.85
 
 
 def test_topology_3d(bulk):
-    '''Test that typical bulk entries get a topology that contains one subsystem
+    """Test that typical bulk entries get a topology that contains one subsystem
     and the conventional cell.
-    '''
+    """
     topology = bulk.results.material.topology
     assert_topology(topology)
     assert len(topology) == 3
@@ -449,21 +486,26 @@ def test_topology_tb_wannier(tb_wannier):
     assert topology[0].elements == ['Br', 'K', 'Si']
     assert topology[1].elements == ['Br']
 
-@pytest.mark.parametrize("settings", [
-        {'e': .15, 'li': 3, 'ls': 'f'},
-        {'state': 'initial', 'e': .3, 'li': 3, 'ls': 'f', 'n': 4},
-        {'e': .9, 'li': 2, 'ls': 'd', 'n': 4, 'ml': -2, 'mls': 'xy'},
-        {'e': .25, 'li': 3, 'ls': 'f', 'ms': False},
-        {'e': .5, 'li': 1, 'ls': 'p', 'n': 4, 'ml': 0, 'mls': 'z', 'ms': False},
+
+@pytest.mark.parametrize(
+    'settings',
+    [
+        {'e': 0.15, 'li': 3, 'ls': 'f'},
+        {'state': 'initial', 'e': 0.3, 'li': 3, 'ls': 'f', 'n': 4},
+        {'e': 0.9, 'li': 2, 'ls': 'd', 'n': 4, 'ml': -2, 'mls': 'xy'},
+        {'e': 0.25, 'li': 3, 'ls': 'f', 'ms': False},
+        {'e': 0.5, 'li': 1, 'ls': 'p', 'n': 4, 'ml': 0, 'mls': 'z', 'ms': False},
         # {'state': 'initial', 'li': 2, 'ji': [2.5], 'ms': True, 'mss': 'up'},
         # {'e': .6, 'li': 2, 'mj': [1.5]},
         # {'i': [1, 2], 'e': [1, 0], 'li': [1, 2], 'n': [2, 4], 'ml': [0, None], 'ms': [None, False]},
-    ]
+    ],
 )
 def test_topology_core_hole(settings):
     """test several core-hole setups"""
     template = get_template_active_orbitals(
-        settings.get('i', [0]),  # FIXME: remove this once multiple core_holes are supported
+        settings.get(
+            'i', [0]
+        ),  # FIXME: remove this once multiple core_holes are supported
         n_electrons_excited=settings.get('e', 0),
         l_quantum_number=settings.get('li', 0),
         n_quantum_number=settings.get('n'),
@@ -475,7 +517,7 @@ def test_topology_core_hole(settings):
     template = run_normalize(template)
     evaluation = check_template_active_orbitals(
         template,
-        #degeneracy=settings.get('degen', 1),
+        # degeneracy=settings.get('degen', 1),
         n_electrons_excited=settings.get('e', 0),
         l_quantum_number=settings.get('li', 0),
         l_quantum_symbol=settings.get('ls', 's'),

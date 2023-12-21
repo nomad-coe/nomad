@@ -29,21 +29,27 @@ if TYPE_CHECKING:
     )
 from nomad import utils
 from nomad.units import ureg
-from nomad.datamodel.data import EntryData, ArchiveSection, author_reference, BasicElnCategory
+from nomad.datamodel.data import (
+    EntryData,
+    ArchiveSection,
+    author_reference,
+    BasicElnCategory,
+)
 from nomad.metainfo.metainfo import MSection, MProxy, MEnum, Category, MCategory
 from nomad.datamodel.results import ELN, Results, Material
 from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section, SubSection
 from ase.data import chemical_symbols, atomic_numbers, atomic_masses
 from perovskite_solar_cell_database.schema_sections.utils import (
-    add_solar_cell, add_band_gap
+    add_solar_cell,
+    add_band_gap,
 )
 
 from nomad.datamodel.metainfo.simulation.system import System as SystemTheory, Atoms
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.eln.nexus_data_converter import (
     NexusDataConverter,
-    ElnYamlConverter
+    ElnYamlConverter,
 )
 
 from nomad.datamodel.metainfo.basesections import (
@@ -80,11 +86,12 @@ class User(MSection):
     user = Quantity(
         type=author_reference,
         description='The corresponding user for the activity.',
-        a_eln=dict(component='AuthorEditQuantity'))
+        a_eln=dict(component='AuthorEditQuantity'),
+    )
 
 
 class ElnBaseSection(ArchiveSection):
-    '''
+    """
     A generic abstract base section for ELNs that provides a few commonly used properties.
 
     If you inherit from this section, but do not need some quantities, list those
@@ -93,28 +100,32 @@ class ElnBaseSection(ArchiveSection):
     Besides predefining some quantities, these base sections will add some metadata
     to NOMAD's search. A particular example are `tags`, if you define a string
     or enum quantity in your sections named `tags`, its values will be searchable.
-    '''
+    """
 
     name = Quantity(
         type=str,
         description='A short human readable and descriptive name.',
-        a_eln=dict(component='StringEditQuantity', label='Short name'))
+        a_eln=dict(component='StringEditQuantity', label='Short name'),
+    )
 
     datetime = Quantity(
         type=Datetime,
         description='The date and time associated with this section.',
-        a_eln=dict(component='DateTimeEditQuantity'))
+        a_eln=dict(component='DateTimeEditQuantity'),
+    )
 
     lab_id = Quantity(
         type=str,
-        description='''An ID string that is unique at least for the lab that produced this
-            data.''',
-        a_eln=dict(component='StringEditQuantity', label="ID"))
+        description="""An ID string that is unique at least for the lab that produced this
+            data.""",
+        a_eln=dict(component='StringEditQuantity', label='ID'),
+    )
 
     description = Quantity(
         type=str,
         description='Any information that cannot be captured in the other fields.',
-        a_eln=dict(component='RichTextEditQuantity'))
+        a_eln=dict(component='RichTextEditQuantity'),
+    )
 
     def normalize(self, archive, logger):
         super(ElnBaseSection, self).normalize(archive, logger)
@@ -168,20 +179,25 @@ class ElnBaseSection(ArchiveSection):
 
 
 class BasicEln(ElnBaseSection, EntryData):
-    ''' The most basic ELN to instantiate. '''
-    m_def = Section(categories=[BasicElnCategory], a_eln=dict(lane_width='600px'), label='Basic ELN')
+    """The most basic ELN to instantiate."""
+
+    m_def = Section(
+        categories=[BasicElnCategory], a_eln=dict(lane_width='600px'), label='Basic ELN'
+    )
 
     tags = Quantity(
         type=str,
         shape=['*'],
         description='Add a tag that can be used for search.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
 
 class ELNProcess(Process, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a material processing activity.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -209,9 +225,10 @@ class ELNProcess(Process, EntryData):
 
 
 class BasicMeasurementResult(MeasurementResult):
-    '''
+    """
     A basic section for describing the result of a measurement.
-    '''
+    """
+
     m_def = Section(
         label='Measurement Result',
     )
@@ -224,9 +241,10 @@ class BasicMeasurementResult(MeasurementResult):
 
 
 class ELNMeasurement(Measurement, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a measurement activity.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -253,9 +271,10 @@ class ELNMeasurement(Measurement, EntryData):
 
 
 class BasicAnalysisResult(AnalysisResult):
-    '''
+    """
     A basic section for describing the result of an analysis.
-    '''
+    """
+
     m_def = Section(
         label='Analysis Result',
     )
@@ -268,9 +287,10 @@ class BasicAnalysisResult(AnalysisResult):
 
 
 class ELNAnalysis(Analysis, EntryData):
-    '''
+    """
     A basic electronic lab notebook for an analysis activity.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -297,9 +317,10 @@ class ELNAnalysis(Analysis, EntryData):
 
 
 class ELNSample(CompositeSystem, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a generic sample.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -324,9 +345,10 @@ class ELNSample(CompositeSystem, EntryData):
 
 
 class ELNSubstance(PureSubstance, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a generic sample.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -334,7 +356,9 @@ class ELNSubstance(PureSubstance, EntryData):
         ),
         a_template=dict(
             substance_identifiers=dict(),
-            substance=dict(m_def='nomad.datamodel.metainfo.basesections.PubChemPureSubstanceSection'),
+            substance=dict(
+                m_def='nomad.datamodel.metainfo.basesections.PubChemPureSubstanceSection'
+            ),
         ),
         label='Substance ELN',
     )
@@ -352,9 +376,10 @@ class ELNSubstance(PureSubstance, EntryData):
 
 
 class ELNInstrument(Instrument, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a generic instrument.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -379,9 +404,10 @@ class ELNInstrument(Instrument, EntryData):
 
 
 class ELNCollection(Collection, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a collection of entities.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -406,9 +432,10 @@ class ELNCollection(Collection, EntryData):
 
 
 class ELNExperiment(Experiment, EntryData):
-    '''
+    """
     A basic electronic lab notebook for a collection of activities.
-    '''
+    """
+
     m_def = Section(
         categories=[BasicElnCategory],
         a_eln=ELNAnnotation(
@@ -434,12 +461,13 @@ class ELNExperiment(Experiment, EntryData):
 
 # Legacy sections:
 class SampleID(ArchiveSection):
-    '''
+    """
     A base section that can be used for sample IDs.
     If the `sample_owner`, `sample_short_name`, `institute`, and `creation_datetime`
     quantities are provided, the sample_id will be automatically created as a combination
     of these four quantities.
-    '''
+    """
+
     institute = Quantity(
         type=str,
         description='Alias/short name of the home institute of the owner, i.e. *HZB*.',
@@ -466,17 +494,17 @@ class SampleID(ArchiveSection):
     )
     sample_id = Quantity(
         type=str,
-        description='''Full sample id. Ideally a human readable sample id convention,
+        description="""Full sample id. Ideally a human readable sample id convention,
         which is simple, understandable and still having chances of becoming unique.
         If the `sample_owner`, `sample_short_name`, `ìnstitute`, and `creation_datetime`
         are provided, this will be formed automatically by joining these components by an underscore (_).
         Spaces in any of the individual components will be replaced with hyphens (-).
-        An example would be hzb_oah_20200602_4001-08''',
+        An example would be hzb_oah_20200602_4001-08""",
         a_eln=dict(component='StringEditQuantity'),
     )
 
     def normalize(self, archive, logger: 'BoundLogger') -> None:
-        '''
+        """
         The normalizer for the `SampleID` class.
         If sample owner is not filled the field will be filled by the first two letters of
         the first name joined with the first two letters of the last name of the author.
@@ -494,18 +522,19 @@ class SampleID(ArchiveSection):
             archive (EntryArchive): The archive containing the section that is being
             normalized.
             logger ('BoundLogger'): A structlog logger.
-        '''
+        """
         super(SampleID, self).normalize(archive, logger)
 
         if self.sample_owner is None or self.institute is None:
             from unidecode import unidecode
+
             author = archive.metadata.main_author
             if author and self.sample_owner is None:
                 first_short = unidecode(author.first_name)[:2]
                 last_short = unidecode(author.last_name)[:2]
                 self.sample_owner = first_short + last_short
             if author and self.institute is None:
-                unwanted_words = ("zu", "of", "the", "fur", "für")
+                unwanted_words = ('zu', 'of', 'the', 'fur', 'für')
                 institute = ''
                 all_words = re.split(' |-|_|,|:|;', unidecode(author.affiliation))
                 wanted_words = [w for w in all_words if w.lower() not in unwanted_words]
@@ -538,10 +567,20 @@ class SampleID(ArchiveSection):
                 name = archive.metadata.mainfile
             self.sample_short_name = re.sub(r'_|\s', '-', name.split('.')[0])
 
-        if self.institute and self.sample_short_name and self.sample_owner and self.creation_datetime:
+        if (
+            self.institute
+            and self.sample_short_name
+            and self.sample_owner
+            and self.creation_datetime
+        ):
             creation_date = self.creation_datetime.strftime('%Y%m%d')
             sample_owner = self.sample_owner.replace(' ', '-')
-            sample_id_list = [self.institute, sample_owner, creation_date, self.sample_short_name]
+            sample_id_list = [
+                self.institute,
+                sample_owner,
+                creation_date,
+                self.sample_short_name,
+            ]
             self.sample_id = '_'.join(sample_id_list)
 
         if not archive.results:
@@ -561,131 +600,121 @@ class SampleID(ArchiveSection):
 
 
 class CASExperimentalProperty(MSection):
-    '''A section for experimental properties retrieved from the CAS API.'''
+    """A section for experimental properties retrieved from the CAS API."""
 
-    name = Quantity(
-        type=str,
-        description='CAS experimental property name.')
+    name = Quantity(type=str, description='CAS experimental property name.')
 
-    property = Quantity(
-        type=str,
-        description='CAS experimental property.')
+    property = Quantity(type=str, description='CAS experimental property.')
 
-    sourceNumber = Quantity(
-        type=str,
-        description='CAS experimental property source.')
+    sourceNumber = Quantity(type=str, description='CAS experimental property source.')
 
 
 class CASPropertyCitation(MSection):
-    '''A section for citations of the experimental properties retrieved from the CAS API.
-    '''
+    """A section for citations of the experimental properties retrieved from the CAS API."""
 
-    docUri = Quantity(
-        type=str,
-        description='CAS property citation document uri.')
+    docUri = Quantity(type=str, description='CAS property citation document uri.')
 
-    sourceNumber = Quantity(
-        type=int,
-        decription='CAS property citation source number.')
+    sourceNumber = Quantity(type=int, decription='CAS property citation source number.')
 
-    source = Quantity(
-        type=str,
-        description='CAS property citation source.')
+    source = Quantity(type=str, description='CAS property citation source.')
 
 
 class Substance(System):
-    '''A base section for any substance defined in the ELN.'''
+    """A base section for any substance defined in the ELN."""
 
     name = Quantity(
         type=str,
         description='The name of the substance entry.',
-        a_eln=dict(component='StringEditQuantity', label='Substance name'))
+        a_eln=dict(component='StringEditQuantity', label='Substance name'),
+    )
 
     lab_id = Quantity(
         type=str,
-        description='''
+        description="""
         A human human readable substance ID that is at least unique for the lab.
-        ''',
-        a_eln=dict(component='StringEditQuantity', label='Substance ID'))
+        """,
+        a_eln=dict(component='StringEditQuantity', label='Substance ID'),
+    )
 
     cas_uri = Quantity(
         type=str,
         description='CAS uri',
-        a_eln=dict(component='StringEditQuantity', label='CAS uri'))
+        a_eln=dict(component='StringEditQuantity', label='CAS uri'),
+    )
 
     cas_number = Quantity(
         type=str,
         description='CAS number.',
-        a_eln=dict(component='StringEditQuantity', label='CAS number'))
+        a_eln=dict(component='StringEditQuantity', label='CAS number'),
+    )
 
     cas_name = Quantity(
         type=str,
         description='CAS name.',
-        a_eln=dict(component='StringEditQuantity', label='CAS name'))
+        a_eln=dict(component='StringEditQuantity', label='CAS name'),
+    )
 
     image = Quantity(
         type=str,
         description='CAS image.',
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'))
+        a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'),
+    )
 
     inchi = Quantity(
-        type=str,
-        description='CAS inchi.',
-        a_eln=dict(component='StringEditQuantity'))
+        type=str, description='CAS inchi.', a_eln=dict(component='StringEditQuantity')
+    )
 
     inchi_key = Quantity(
         type=str,
         description='CAS inchi key.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
     smile = Quantity(
-        type=str,
-        description='CAS smile.',
-        a_eln=dict(component='StringEditQuantity'))
+        type=str, description='CAS smile.', a_eln=dict(component='StringEditQuantity')
+    )
 
     canonical_smile = Quantity(
         type=str,
         description='CAS canonical smile.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
     molecular_formula = Quantity(
         type=str,
         description='CAS molecular formula.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
     molecular_mass = Quantity(
         type=np.dtype(np.float64),
         unit='Da',
         description='CAS molecular mass.',
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     cas_experimental_properties = SubSection(
-        section_def=CASExperimentalProperty,
-        repeats=True)
-
-    cas_property_citations = SubSection(
-        section_def=CASPropertyCitation,
-        repeats=True)
-
-    cas_synonyms = Quantity(
-        type=str,
-        shape=['*'],
-        description='CAS synonyms.'
+        section_def=CASExperimentalProperty, repeats=True
     )
+
+    cas_property_citations = SubSection(section_def=CASPropertyCitation, repeats=True)
+
+    cas_synonyms = Quantity(type=str, shape=['*'], description='CAS synonyms.')
 
     description = Quantity(
         type=str,
-        description='''
+        description="""
         A field for adding additional information about the substance that is not captured
         by the other quantities and subsections.
-        ''',
+        """,
         a_eln=dict(
-            component='RichTextEditQuantity', label='Detailed substance description'))
+            component='RichTextEditQuantity', label='Detailed substance description'
+        ),
+    )
 
     def _populate_from_cas(self, archive, logger: Any) -> None:
-        '''Private method for populating the attributes from a call to the CAS API using
+        """Private method for populating the attributes from a call to the CAS API using
         the `cas_number`.
         Will overwrite exisiting CAS attributes if the query provides a value for them.
         I.e. all attributes that begin with `cas_`.
@@ -693,80 +722,85 @@ class Substance(System):
         Args:
             archive (EntryArchive): The archive that is being normalized.
             logger (Any): A structlog logger.
-        '''
+        """
         import httpx
+
         response = httpx.get(
             f'https://commonchemistry.cas.org/api/detail?cas_rn={self.cas_number}',
-            timeout=2)
+            timeout=2,
+        )
         if response.status_code == 200:
             response_dict = response.json()
 
-            self.cas_uri = response_dict.get("uri", None)
+            self.cas_uri = response_dict.get('uri', None)
 
-            cas_name = response_dict.get("name", None)
+            cas_name = response_dict.get('name', None)
             if cas_name:
                 self.cas_name = re.sub(r'<.*?>', '', cas_name)
                 if not self.name:
                     self.name = self.cas_name
 
             if not self.image:
-                image = response_dict.get("image", None)
+                image = response_dict.get('image', None)
                 if image:
-                    self.image = f"cas_{self.cas_number}_image.svg"
+                    self.image = f'cas_{self.cas_number}_image.svg'
                     with archive.m_context.raw_file(self.image, 'w') as fh:
                         fh.write(image)
 
             if not self.inchi:
-                self.inchi = response_dict.get("inchi", None)
+                self.inchi = response_dict.get('inchi', None)
 
             if not self.inchi_key:
-                self.inchi_key = response_dict.get("inchiKey", None)
+                self.inchi_key = response_dict.get('inchiKey', None)
 
             if not self.smile:
-                self.smile = response_dict.get("smile", None)
+                self.smile = response_dict.get('smile', None)
 
             if not self.canonical_smile:
-                self.canonical_smile = response_dict.get("canonicalSmile", None)
+                self.canonical_smile = response_dict.get('canonicalSmile', None)
 
             if not self.molecular_formula:
-                molecular_formula = response_dict.get("molecularFormula", None)
+                molecular_formula = response_dict.get('molecularFormula', None)
                 if molecular_formula:
                     self.molecular_formula = re.sub(r'<.*?>', '', molecular_formula)
 
             if not self.molecular_mass:
-                molecular_mass = response_dict.get("molecularMass", None)
+                molecular_mass = response_dict.get('molecularMass', None)
                 if molecular_mass:
                     try:
                         self.molecular_mass = float(molecular_mass)
                     except ValueError as e:
                         logger.warn(
                             f"Could not convert molecular mass results'{molecular_mass}'"
-                            + "returned from CAS api request.",
-                            exc_info=e)
+                            + 'returned from CAS api request.',
+                            exc_info=e,
+                        )
 
-            experimental_properties = response_dict.get("experimentalProperties", [])
+            experimental_properties = response_dict.get('experimentalProperties', [])
             props = [
-                CASExperimentalProperty.m_from_dict(p) for p in experimental_properties]
+                CASExperimentalProperty.m_from_dict(p) for p in experimental_properties
+            ]
             if len(props) > 0:
                 self.cas_experimental_properties = props
 
-            property_citations = response_dict.get("propertyCitations", [])
+            property_citations = response_dict.get('propertyCitations', [])
             citations = [CASPropertyCitation.m_from_dict(c) for c in property_citations]
             if len(citations) > 0:
                 self.cas_property_citations = citations
 
-            self.cas_synonyms = response_dict.get("synonyms", [])
+            self.cas_synonyms = response_dict.get('synonyms', [])
 
         elif response.status_code == 404:
-            logger.warn(f"No CAS entry found with CAS number: {self.cas_number}")
+            logger.warn(f'No CAS entry found with CAS number: {self.cas_number}')
         elif response.status_code >= 500:
-            logger.warn(f"Remote server error on CAS API call.")
+            logger.warn(f'Remote server error on CAS API call.')
         else:
             logger.warn(
-                f"Unexpected response code: {response.status_code} from CAS API call.")
+                f'Unexpected response code: {response.status_code} from CAS API call.'
+            )
 
     def _cas_search_unique(self, search: str, archive, logger: Any) -> bool:
-        '''Private method for performing a search of the CAS API and populating the
+        """Private method for performing a search of the CAS API and populating the
         attributes with the CAS number of any unique search result.
 
         Args:
@@ -776,32 +810,35 @@ class Substance(System):
 
         Returns:
             bool: Whether the search found a unique result.
-        '''
+        """
         import httpx
+
         response = httpx.get(
-            f'https://commonchemistry.cas.org/api/search?q={search}', timeout=2)
+            f'https://commonchemistry.cas.org/api/search?q={search}', timeout=2
+        )
         if response.status_code == 200:
             response_dict = response.json()
-            n_hits = response_dict.get("count", 0)
+            n_hits = response_dict.get('count', 0)
             if n_hits == 0:
                 logger.info(f"Queried the CAS API for '{search}' without result.")
                 return False
             elif n_hits == 1:
                 try:
-                    self.cas_number = response_dict["results"][0]["rn"]
+                    self.cas_number = response_dict['results'][0]['rn']
                     self._populate_from_cas(archive, logger)
                     return True
                 except KeyError as e:
-                    logger.warn("Unknown response format from CAS API.", exc_info=e)
+                    logger.warn('Unknown response format from CAS API.', exc_info=e)
             else:
                 logger.warn(
                     f"Query to CAS API for '{search}' returned {n_hits} hits, please "
-                    + "specify further.")
+                    + 'specify further.'
+                )
                 return False
         return False
 
     def _find_cas(self, archive, logger: Any) -> None:
-        '''Private method for finding the CAS number using the filled attributes in the
+        """Private method for finding the CAS number using the filled attributes in the
         following order:
         1. `cas_name`
         2. `inchi`
@@ -814,19 +851,20 @@ class Substance(System):
         Args:
             archive (EntryArchive): The archive that is being normalized.
             logger (Any): A structlog logger.
-        '''
+        """
         for key in (
-                self.cas_name,
-                self.inchi,
-                self.inchi_key,
-                self.smile,
-                self.canonical_smile,
-                self.name):
+            self.cas_name,
+            self.inchi,
+            self.inchi_key,
+            self.smile,
+            self.canonical_smile,
+            self.name,
+        ):
             if key and self._cas_search_unique(key, archive, logger):
                 return
 
     def normalize(self, archive, logger: Any) -> None:
-        '''The normalizer method for the `Substance` class.
+        """The normalizer method for the `Substance` class.
         This method will attempt to get data on the substance instance from the CAS API:
         https://commonchemistry.cas.org/api-overview
         If a CAS number is specified the details are retrieved directly.
@@ -841,7 +879,7 @@ class Substance(System):
         Args:
             archive (EntryArchive): The archive that is being normalized.
             logger (Any): A structlog logger.
-        '''
+        """
         super(Substance, self).normalize(archive, logger)
         if logger is None:
             logger = utils.get_logger(__name__)
@@ -885,17 +923,20 @@ class Substance(System):
 
 
 class ElnWithFormulaBaseSection(ElnBaseSection):
-    '''
+    """
     A generic abstract base section for ELNs that provides a few commonly used for
     items with a chemical formula, e.g. chemicals or samples.
-    '''
+    """
+
     chemical_formula = Quantity(
         type=str,
         description=(
             'The chemical formula. This will be used directly and '
             'indirectly in the search. The formula will be used itself as well as '
-            'the extracted chemical elements.'),
-        a_eln=dict(component='StringEditQuantity'))
+            'the extracted chemical elements.'
+        ),
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
     def normalize(self, archive, logger):
         super(ElnWithFormulaBaseSection, self).normalize(archive, logger)
@@ -903,6 +944,7 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
         if logger is None:
             logger = utils.get_logger(__name__)
         from nomad.atomutils import Formula
+
         if self.chemical_formula:
             if not archive.results:
                 archive.results = Results()
@@ -916,29 +958,35 @@ class ElnWithFormulaBaseSection(ElnBaseSection):
                 try:
                     formula.populate(archive.results.material)
                 except ValueError as e:
-                    logger.info('composition information already defined, skipping populating it based on formula', exc_info=e)
+                    logger.info(
+                        'composition information already defined, skipping populating it based on formula',
+                        exc_info=e,
+                    )
 
 
 class Chemical(ElnWithFormulaBaseSection):
-    ''' A ELN base section that can be used for chemicals.'''
+    """A ELN base section that can be used for chemicals."""
+
     pass
 
 
 class Sample(ElnWithFormulaBaseSection):
-    ''' A ELN base section that can be used for samples.'''
+    """A ELN base section that can be used for samples."""
+
     pass
 
 
 class ElnWithStructureFile(ArchiveSection):
-    '''
+    """
     A base section for for parsing crystal structure files, e.g. `.cif`, and
     populating the Material section in Results.
-    '''
+    """
 
     structure_file = Quantity(
         type=str,
         description='The structure file.',
-        a_eln=dict(component='FileEditQuantity'))
+        a_eln=dict(component='FileEditQuantity'),
+    )
 
     def normalize(self, archive, logger):
         super(ElnWithStructureFile, self).normalize(archive, logger)
@@ -963,13 +1011,18 @@ class ElnWithStructureFile(ArchiveSection):
                 try:
                     system.atoms.lattice_vectors = structure.get_cell() * ureg.angstrom
                 except Exception as e:
-                    logger.warn('Could not parse lattice vectors from structure file.', exc_info=e)
+                    logger.warn(
+                        'Could not parse lattice vectors from structure file.',
+                        exc_info=e,
+                    )
                 system.atoms.labels = structure.get_chemical_symbols()
                 system.atoms.positions = structure.get_positions() * ureg.angstrom
                 try:
                     system.atoms.periodic = structure.get_pbc()
                 except Exception as e:
-                    logger.warn('Could not parse periodicity from structure file.', exc_info=e)
+                    logger.warn(
+                        'Could not parse periodicity from structure file.', exc_info=e
+                    )
                     system.atoms.periodic = [True, True, True]
                 system.atoms.species = structure.get_atomic_numbers()
                 archive.run[0].system = [system]
@@ -992,7 +1045,6 @@ class ElnWithStructureFile(ArchiveSection):
 
 # Solar cell sections:
 class SolarCellDefinition(ArchiveSection):
-
     stack_sequence = Quantity(
         type=str,
         shape=['*'],
@@ -1003,8 +1055,8 @@ class SolarCellDefinition(ArchiveSection):
             - The absorber layer in other databases is commonly stated with a generaic name as “Perovskite”, regardless of composition, mixtures, dimensionality etc.
                 There are other fields to describe in depth the absorber layer.
         """,
-        a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=sorted([]))))
+        a_eln=dict(component='EnumEditQuantity', props=dict(suggestions=sorted([]))),
+    )
 
     solar_cell_area = Quantity(
         type=np.dtype(np.float64),
@@ -1014,8 +1066,8 @@ class SolarCellDefinition(ArchiveSection):
             The total cell area in cm^2.
             The total area is defined as the area that would provide photovoltaic performance.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     architecture = Quantity(
         type=str,
@@ -1033,23 +1085,44 @@ class SolarCellDefinition(ArchiveSection):
         a_eln=dict(
             component='EnumEditQuantity',
             props=dict(
-                suggestions=['Unknown', 'Pn-Heterojunction', 'Front contacted', 'Back contacted', 'pin', 'nip', 'Schottky'])))
+                suggestions=[
+                    'Unknown',
+                    'Pn-Heterojunction',
+                    'Front contacted',
+                    'Back contacted',
+                    'pin',
+                    'nip',
+                    'Schottky',
+                ]
+            ),
+        ),
+    )
 
     def normalize(self, archive, logger):
         super(SolarCellDefinition, self).normalize(archive, logger)
         add_solar_cell(archive)
         if self.stack_sequence:
             if '/' in self.stack_sequence:
-                archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split('/')
+                archive.results.properties.optoelectronic.solar_cell.device_stack = (
+                    self.stack_sequence.split('/')
+                )
             elif '|' in self.stack_sequence:
-                archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence.split(' | ')
+                archive.results.properties.optoelectronic.solar_cell.device_stack = (
+                    self.stack_sequence.split(' | ')
+                )
             else:
-                archive.results.properties.optoelectronic.solar_cell.device_stack = self.stack_sequence
+                archive.results.properties.optoelectronic.solar_cell.device_stack = (
+                    self.stack_sequence
+                )
 
         if self.architecture:
-            archive.results.properties.optoelectronic.solar_cell.device_architecture = self.architecture
+            archive.results.properties.optoelectronic.solar_cell.device_architecture = (
+                self.architecture
+            )
         if self.solar_cell_area:
-            archive.results.properties.optoelectronic.solar_cell.device_area = self.solar_cell_area
+            archive.results.properties.optoelectronic.solar_cell.device_area = (
+                self.solar_cell_area
+            )
         if not archive.results.material:
             archive.results.material = Material()
         material = archive.results.material
@@ -1058,13 +1131,14 @@ class SolarCellDefinition(ArchiveSection):
 
 
 class SolarCellLayer(ArchiveSection):
-
     solar_cell_layer_type = Quantity(
         type=str,
         shape=[],
         description='type of the layer',
-        a_eln=dict(component='EnumEditQuantity',
-                   props=dict(suggestions=[
+        a_eln=dict(
+            component='EnumEditQuantity',
+            props=dict(
+                suggestions=[
                     'Substrate',
                     'Absorber',
                     'Hole Transport Layer',
@@ -1073,7 +1147,11 @@ class SolarCellLayer(ArchiveSection):
                     'Buffer',
                     'p-type contact',
                     'n-type contact',
-                    'other'])))
+                    'other',
+                ]
+            ),
+        ),
+    )
 
     layer_name = Quantity(
         type=str,
@@ -1081,9 +1159,8 @@ class SolarCellLayer(ArchiveSection):
         description="""
             The name of the layer.
         """,
-        a_eln=dict(
-            component='EnumEditQuantity',
-            props=dict(suggestions=[])))
+        a_eln=dict(component='EnumEditQuantity', props=dict(suggestions=[])),
+    )
 
     layer_thickness = Quantity(
         type=np.dtype(np.float64),
@@ -1092,27 +1169,36 @@ class SolarCellLayer(ArchiveSection):
         description="""
             The thickness of the layer in nm.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     def normalize(self, archive, logger):
         super(SolarCellLayer, self).normalize(archive, logger)
         add_solar_cell(archive)
         if self.layer_name:
             if self.solar_cell_layer_type == 'Absorber':
-                archive.results.properties.optoelectronic.solar_cell.absorber = [self.layer_name]
+                archive.results.properties.optoelectronic.solar_cell.absorber = [
+                    self.layer_name
+                ]
             elif self.solar_cell_layer_type == 'Substrate':
-                archive.results.properties.optoelectronic.solar_cell.substrate = [self.layer_name]
+                archive.results.properties.optoelectronic.solar_cell.substrate = [
+                    self.layer_name
+                ]
             elif self.solar_cell_layer_type == 'Hole Transport Layer':
-                archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = [self.layer_name]
+                archive.results.properties.optoelectronic.solar_cell.hole_transport_layer = [
+                    self.layer_name
+                ]
             elif self.solar_cell_layer_type == 'Electron Transport Layer':
-                archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = [self.layer_name]
+                archive.results.properties.optoelectronic.solar_cell.electron_transport_layer = [
+                    self.layer_name
+                ]
             elif self.solar_cell_layer_type == 'Contact':
-                archive.results.properties.optoelectronic.solar_cell.back_contact = [self.layer_name]
+                archive.results.properties.optoelectronic.solar_cell.back_contact = [
+                    self.layer_name
+                ]
 
 
 class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
-
     bandgap = Quantity(
         type=np.dtype(np.float64),
         unit=('eV'),
@@ -1120,32 +1206,31 @@ class SolarCellBaseSectionWithOptoelectronicProperties(ArchiveSection):
         description="""
             The bandgap of the solar cell.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     def normalize(self, archive, logger):
-        super(SolarCellBaseSectionWithOptoelectronicProperties, self).normalize(archive, logger)
+        super(SolarCellBaseSectionWithOptoelectronicProperties, self).normalize(
+            archive, logger
+        )
         add_solar_cell(archive)
         add_band_gap(archive, self.bandgap)
 
 
 class SolarCellJV(PlotSection):
-
     m_def = Section(
         label_quantity='cell_name',
         a_plotly_graph_object=[
-            {
-                'data': {'x': '#voltage', 'y': '#current_density'}
-            }, {
-                'data': {'x': '#voltage', 'y': '#current_density'}
-            }
-        ]
+            {'data': {'x': '#voltage', 'y': '#current_density'}},
+            {'data': {'x': '#voltage', 'y': '#current_density'}},
+        ],
     )
 
     data_file = Quantity(
         type=str,
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor'))
+        a_browser=dict(adaptor='RawFileAdaptor'),
+    )
 
     certified_values = Quantity(
         type=bool,
@@ -1155,8 +1240,8 @@ class SolarCellJV(PlotSection):
             If your solar simulator is calibrated by a calibrated reference diode,
             that does not count as a certified result.
         """,
-        a_eln=dict(
-            component='BoolEditQuantity'))
+        a_eln=dict(component='BoolEditQuantity'),
+    )
 
     certification_institute = Quantity(
         type=str,
@@ -1169,23 +1254,32 @@ class SolarCellJV(PlotSection):
             KIER, Korea Institute of Energy Research
         """,
         a_eln=dict(
-            component='EnumEditQuantity', props=dict(suggestions=sorted([
-                'National Institute ofMetrology, China',
-                'Quality supervision＆Testing Center of Chemical＆Physical Power Sources of Information Industry',
-                'CREST, Photovoltaic Meaasurement and calibration Laboratory at Universit of Loughborough',
-                'Photovoltaic and Wind Power Systems Quality Test Center, Chinese Academy of Sciences',
-                'NREL', 'Institute of Metrology (NIM) of China',
-                'PVEVL, National Central University, Taiwan',
-                'NIM, National Institute of Metrology of China',
-                'Fraunhofer ISE',
-                'SIMIT, Shanghai Institute of Microsystem and Information Technology',
-                'Newport',
-                'CSIRO, PV Performance Lab at Monash University',
-                'AIST, National Institute of Advanced Industrial Science and Technology',
-                'CPVT, National Center of Supervision and Inspection on Solar Photovoltaic Products Quality of China',
-                'KIER, Korea Institute of Energy Research',
-                'Newport Corporation',
-                'Solar Power Lab at Arizona State University']))))
+            component='EnumEditQuantity',
+            props=dict(
+                suggestions=sorted(
+                    [
+                        'National Institute ofMetrology, China',
+                        'Quality supervision＆Testing Center of Chemical＆Physical Power Sources of Information Industry',
+                        'CREST, Photovoltaic Meaasurement and calibration Laboratory at Universit of Loughborough',
+                        'Photovoltaic and Wind Power Systems Quality Test Center, Chinese Academy of Sciences',
+                        'NREL',
+                        'Institute of Metrology (NIM) of China',
+                        'PVEVL, National Central University, Taiwan',
+                        'NIM, National Institute of Metrology of China',
+                        'Fraunhofer ISE',
+                        'SIMIT, Shanghai Institute of Microsystem and Information Technology',
+                        'Newport',
+                        'CSIRO, PV Performance Lab at Monash University',
+                        'AIST, National Institute of Advanced Industrial Science and Technology',
+                        'CPVT, National Center of Supervision and Inspection on Solar Photovoltaic Products Quality of China',
+                        'KIER, Korea Institute of Energy Research',
+                        'Newport Corporation',
+                        'Solar Power Lab at Arizona State University',
+                    ]
+                )
+            ),
+        ),
+    )
 
     light_intensity = Quantity(
         type=np.dtype(np.float64),
@@ -1198,8 +1292,8 @@ class SolarCellJV(PlotSection):
             - Standard AM 1.5 illumination correspond to 100 mW/cm2
             - If you need to convert from illumination given in lux; at 550 nm, 1 mW/cm2 corresponds to 6830 lux. Be aware that the conversion change with the spectrum used. As a rule of thumb for general fluorescent/LED light sources, around 0.31mW corresponded to 1000 lux. If your light intensity is measured in lux, it probably means that your light spectra deviates quite a lot from AM 1.5, wherefore it is very important that you also specify the light spectra in the next column.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     open_circuit_voltage = Quantity(
         type=np.dtype(np.float64),
@@ -1208,8 +1302,8 @@ class SolarCellJV(PlotSection):
         description="""
             Open circuit voltage.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     short_circuit_current_density = Quantity(
         type=np.dtype(np.float64),
@@ -1218,8 +1312,8 @@ class SolarCellJV(PlotSection):
         description="""
             Short circuit current density.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     fill_factor = Quantity(
         type=np.dtype(np.float64),
@@ -1227,8 +1321,8 @@ class SolarCellJV(PlotSection):
         description="""
             Fill factor.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     efficiency = Quantity(
         type=np.dtype(np.float64),
@@ -1236,8 +1330,8 @@ class SolarCellJV(PlotSection):
         description="""
             Power conversion efficiency.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     potential_at_maximum_power_point = Quantity(
         type=np.dtype(np.float64),
@@ -1246,8 +1340,8 @@ class SolarCellJV(PlotSection):
         description="""
             The potential at the maximum power point, Vmp.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     current_density_at_maximun_power_point = Quantity(
         type=np.dtype(np.float64),
@@ -1256,8 +1350,8 @@ class SolarCellJV(PlotSection):
         description="""
             The current density at the maximum power point, *Jmp*.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     series_resistance = Quantity(
         type=np.dtype(np.float64),
@@ -1266,8 +1360,8 @@ class SolarCellJV(PlotSection):
         description="""
             The series resistance as extracted from the *J-V* curve.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     shunt_resistance = Quantity(
         type=np.dtype(np.float64),
@@ -1276,8 +1370,8 @@ class SolarCellJV(PlotSection):
         description="""
             The shunt resistance as extracted from the *J-V* curve.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     def derive_n_values(self):
         if self.current_density is not None:
@@ -1295,9 +1389,13 @@ class SolarCellJV(PlotSection):
         if self.short_circuit_current_density is not None:
             archive.results.properties.optoelectronic.solar_cell.short_circuit_current_density = self.short_circuit_current_density
         if self.fill_factor is not None:
-            archive.results.properties.optoelectronic.solar_cell.fill_factor = self.fill_factor
+            archive.results.properties.optoelectronic.solar_cell.fill_factor = (
+                self.fill_factor
+            )
         if self.efficiency is not None:
-            archive.results.properties.optoelectronic.solar_cell.efficiency = self.efficiency
+            archive.results.properties.optoelectronic.solar_cell.efficiency = (
+                self.efficiency
+            )
         if self.light_intensity is not None:
             archive.results.properties.optoelectronic.solar_cell.illumination_intensity = self.light_intensity
 
@@ -1309,7 +1407,6 @@ class SolarCellJV(PlotSection):
 
 
 class SolarCellJVCurve(SolarCellJV):
-
     def cell_params(self):
         """
         Calculates basic solar cell parametes form a current density (mA/cm**2)
@@ -1322,6 +1419,7 @@ class SolarCellJVCurve(SolarCellJV):
             efficiency power conversion efficiency in percentage (0-100)
         """
         from scipy import interpolate
+
         j_v_interpolated = interpolate.interp1d(self.current_density, self.voltage)
         Voc = j_v_interpolated(0)
         v_j_interpolated = interpolate.interp1d(self.voltage, self.current_density)
@@ -1341,47 +1439,47 @@ class SolarCellJVCurve(SolarCellJV):
         type=str,
         shape=[],
         description='Cell identification name.',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
     current_density = Quantity(
         type=np.dtype(np.float64),
         shape=['n_values'],
         unit='mA/cm^2',
-        description='Current density array of the *JV* curve.')
+        description='Current density array of the *JV* curve.',
+    )
 
     voltage = Quantity(
         type=np.dtype(np.float64),
         shape=['n_values'],
         unit='V',
-        description='Voltage array of the of the *JV* curve.')
+        description='Voltage array of the of the *JV* curve.',
+    )
 
     def normalize(self, archive, logger):
         super(SolarCellJVCurve, self).normalize(archive, logger)
         if self.current_density is not None:
             if self.voltage is not None:
-                self.open_circuit_voltage, self.short_circuit_current_density, self.fill_factor, self.efficiency = self.cell_params()
+                (
+                    self.open_circuit_voltage,
+                    self.short_circuit_current_density,
+                    self.fill_factor,
+                    self.efficiency,
+                ) = self.cell_params()
                 self.update_results(archive)
 
 
 class SolarCellEQE(PlotSection):
-
     m_def = Section(
         a_eln=dict(lane_width='600px'),
         a_plotly_graph_object=[
-            {
-                'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}
-            }, {
-                'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}
-            }, {
-                'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}
-            }, {
-                'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
-            }, {
-                'data': {'x': '#wavelength_array', 'y': '#eqe_array'}
-            }, {
-                'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}
-            }
-        ]
+            {'data': {'x': '#photon_energy_array', 'y': '#raw_eqe_array'}},
+            {'data': {'x': '#raw_photon_energy_array', 'y': '#raw_eqe_array'}},
+            {'data': {'x': '#raw_wavelength_array', 'y': '#raw_eqe_array'}},
+            {'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}},
+            {'data': {'x': '#wavelength_array', 'y': '#eqe_array'}},
+            {'data': {'x': '#photon_energy_array', 'y': '#eqe_array'}},
+        ],
     )
 
     eqe_data_file = Quantity(
@@ -1390,7 +1488,8 @@ class SolarCellEQE(PlotSection):
                     Drop here your eqe file and click save for processing.
                     """,
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor'))
+        a_browser=dict(adaptor='RawFileAdaptor'),
+    )
 
     header_lines = Quantity(
         type=np.dtype(np.int64),
@@ -1398,7 +1497,8 @@ class SolarCellEQE(PlotSection):
         description="""
         Number of header lines in the file. Edit in case your file has a header.
         """,
-        a_eln=dict(component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     light_bias = Quantity(
         type=np.dtype(np.float64),
@@ -1407,8 +1507,8 @@ class SolarCellEQE(PlotSection):
         description="""
         The light intensity of any bias light during the EQE measurement.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     bandgap_eqe = Quantity(
         type=np.dtype(np.float64),
@@ -1417,8 +1517,8 @@ class SolarCellEQE(PlotSection):
         description="""
         Bandgap derived from the EQE spectrum.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     integrated_jsc = Quantity(
         type=np.dtype(np.float64),
@@ -1428,8 +1528,8 @@ class SolarCellEQE(PlotSection):
         The integrated short circuit current density $J_{SC}$ from the product of the EQE spectrum
         with the *AM 1.5G* sun spectrum.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     integrated_j0rad = Quantity(
         type=np.dtype(np.float64),
@@ -1438,8 +1538,8 @@ class SolarCellEQE(PlotSection):
         description="""
         The integrated $J_{0, Rad}$ derived from the EQE data.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     voc_rad = Quantity(
         type=np.dtype(np.float64),
@@ -1448,8 +1548,8 @@ class SolarCellEQE(PlotSection):
         description="""
         Radiative $V_{OC}$ derived from the EQE data in V.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     urbach_energy = Quantity(
         type=np.dtype(np.float64),
@@ -1458,8 +1558,8 @@ class SolarCellEQE(PlotSection):
         description="""
         Urbach energy fitted from the eqe in eV.
         """,
-        a_eln=dict(
-            component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
 
     urbach_energy_fit_std_dev = Quantity(
         type=np.dtype(np.float64),
@@ -1467,7 +1567,8 @@ class SolarCellEQE(PlotSection):
         unit='eV',
         description="""
         Standard deviation of the fitted Urbach energy parameter from the eqe in eV.
-        """)
+        """,
+    )
 
     def derive_n_values(self):
         if self.eqe_array is not None:
@@ -1490,44 +1591,77 @@ class SolarCellEQE(PlotSection):
     n_raw_values = Quantity(type=int, derived=derive_n_raw_values)
 
     raw_eqe_array = Quantity(
-        type=np.dtype(np.float64), shape=['n_raw_values'],
-        description='EQE array of the spectrum')
+        type=np.dtype(np.float64),
+        shape=['n_raw_values'],
+        description='EQE array of the spectrum',
+    )
 
     raw_photon_energy_array = Quantity(
-        type=np.dtype(np.float64), shape=['n_raw_values'], unit='eV',
-        description='Raw Photon energy array of the eqe spectrum')
+        type=np.dtype(np.float64),
+        shape=['n_raw_values'],
+        unit='eV',
+        description='Raw Photon energy array of the eqe spectrum',
+    )
 
     raw_wavelength_array = Quantity(
-        type=np.dtype(np.float64), shape=['n_raw_values'], unit='nanometer',
-        description='Raw wavelength array of the eqe spectrum')
+        type=np.dtype(np.float64),
+        shape=['n_raw_values'],
+        unit='nanometer',
+        description='Raw wavelength array of the eqe spectrum',
+    )
 
     eqe_array = Quantity(
-        type=np.dtype(np.float64), shape=['n_values'],
-        description='EQE array of the spectrum')
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        description='EQE array of the spectrum',
+    )
 
     wavelength_array = Quantity(
-        type=np.dtype(np.float64), shape=['n_values'], unit='nanometer',
-        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ')
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='nanometer',
+        description='Interpolated/extrapolated wavelength array with *E<sub>u</sub>* of the eqe spectrum ',
+    )
 
     photon_energy_array = Quantity(
-        type=np.dtype(np.float64), shape=['n_values'], unit='eV',
-        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum')
+        type=np.dtype(np.float64),
+        shape=['n_values'],
+        unit='eV',
+        description='Interpolated/extrapolated photon energy array with a *E<sub>u</sub>*  of the eqe spectrum',
+    )
 
     def normalize(self, archive, logger):
         super(SolarCellEQE, self).normalize(archive, logger)
         from .perovskite_solar_cell_database.eqe_parser import EQEAnalyzer
-        if (self.eqe_data_file):
+
+        if self.eqe_data_file:
             with archive.m_context.raw_file(self.eqe_data_file) as f:
-                eqe_dict = EQEAnalyzer(f.name, header_lines=self.header_lines).eqe_dict()
+                eqe_dict = EQEAnalyzer(
+                    f.name, header_lines=self.header_lines
+                ).eqe_dict()
                 self.measured = True
                 self.bandgap_eqe = eqe_dict['bandgap']
                 self.integrated_jsc = eqe_dict['jsc'] * ureg('A/m**2')
-                self.integrated_j0rad = eqe_dict['j0rad'] * ureg('A/m**2') if 'j0rad' in eqe_dict else logger.warning('The j0rad could not be calculated.')
-                self.voc_rad = eqe_dict['voc_rad'] if 'voc_rad' in eqe_dict else logger.warning('The voc_rad could not be calculated.')
-                self.urbach_energy = eqe_dict['urbach_e'] if 'urbach_e' in eqe_dict else logger.warning('The urbach_energy could not be calculated.')
+                self.integrated_j0rad = (
+                    eqe_dict['j0rad'] * ureg('A/m**2')
+                    if 'j0rad' in eqe_dict
+                    else logger.warning('The j0rad could not be calculated.')
+                )
+                self.voc_rad = (
+                    eqe_dict['voc_rad']
+                    if 'voc_rad' in eqe_dict
+                    else logger.warning('The voc_rad could not be calculated.')
+                )
+                self.urbach_energy = (
+                    eqe_dict['urbach_e']
+                    if 'urbach_e' in eqe_dict
+                    else logger.warning('The urbach_energy could not be calculated.')
+                )
                 if 'error_urbach_std' in eqe_dict:
                     self.urbach_energy_fit_std_dev = eqe_dict['error_urbach_std']
-                self.photon_energy_array = np.array(eqe_dict['interpolated_photon_energy'])
+                self.photon_energy_array = np.array(
+                    eqe_dict['interpolated_photon_energy']
+                )
                 self.raw_photon_energy_array = np.array(eqe_dict['photon_energy_raw'])
                 self.eqe_array = np.array(eqe_dict['interpolated_eqe'])
                 self.raw_eqe_array = np.array(eqe_dict['eqe_raw'])

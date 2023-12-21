@@ -32,86 +32,88 @@ from nomad.utils.exampledata import ExampleData
 from .common import assert_response
 
 
-@pytest.fixture(scope="module")
-def example_data_suggestions(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
+@pytest.fixture(scope='module')
+def example_data_suggestions(
+    elastic_module,
+    raw_files_module,
+    mongo_module,
+    test_user,
+    other_test_user,
+    normalized,
+):
     data = ExampleData(main_author=test_user)
-    upload_id = "suggestions_upload"
+    upload_id = 'suggestions_upload'
 
-    data.create_upload(
-        upload_id=upload_id,
-        published=True
-    )
+    data.create_upload(upload_id=upload_id, published=True)
     data.create_entry(
         upload_id=upload_id,
-        entry_id="suggestions_entry_1",
-        mainfile="test_content/test_entry/main-file.json",
+        entry_id='suggestions_entry_1',
+        mainfile='test_content/test_entry/main-file.json',
         results={
-            "material": {
-                "material_name": "alpha/beta",
-                "elements": ["C", "H", "Br"],
-                "chemical_formula_hill": "C2H5Br",
-                "chemical_formula_anonymous": "A2B5C",
-                "chemical_formula_descriptive": "C2H5Br",
-                "chemical_formula_reduced": "C2H5Br",
+            'material': {
+                'material_name': 'alpha/beta',
+                'elements': ['C', 'H', 'Br'],
+                'chemical_formula_hill': 'C2H5Br',
+                'chemical_formula_anonymous': 'A2B5C',
+                'chemical_formula_descriptive': 'C2H5Br',
+                'chemical_formula_reduced': 'C2H5Br',
                 # A duplicate value is given to test that only unique values
                 # are suggested.
-                "functional_type": ["semimetal", "semiconductor", "semimetal"],
-                "symmetry": {
-                    "crystal_system": "cubic",
-                    "structure_name": "rock salt",
-                    "prototype_aflow_id": "AB_cF8_225_a_b",
+                'functional_type': ['semimetal', 'semiconductor', 'semimetal'],
+                'symmetry': {
+                    'crystal_system': 'cubic',
+                    'structure_name': 'rock salt',
+                    'prototype_aflow_id': 'AB_cF8_225_a_b',
+                },
+            },
+            'method': {
+                'simulation': {
+                    'program_name': 'test_name',
+                    'program_version': '10.12',
+                    'dft': {'xc_functional_names': ['GGA_X_PBE_SOL', 'GGA_C_PBE_SOL']},
                 }
             },
-            "method": {
-                "simulation": {
-                    "program_name": "test_name",
-                    "program_version": "10.12",
-                    "dft": {
-                        "xc_functional_names": ["GGA_X_PBE_SOL", "GGA_C_PBE_SOL"]
-                    }
-                }
-            },
-            "properties": {
-                "mechanical": {
-                    "bulk_modulus": [
+            'properties': {
+                'mechanical': {
+                    'bulk_modulus': [
                         {
-                            "type": "birch_euler",
-                            "value": 1,
+                            'type': 'birch_euler',
+                            'value': 1,
                         }
                     ]
                 }
-            }
-        }
+            },
+        },
     )
     data.create_entry(
         upload_id=upload_id,
-        entry_id="suggestions_entry_2",
-        mainfile="test_content/test_entry/main-file.json",
+        entry_id='suggestions_entry_2',
+        mainfile='test_content/test_entry/main-file.json',
         results={
-            "material": {
-                "chemical_formula_hill": "ClNa",
+            'material': {
+                'chemical_formula_hill': 'ClNa',
             },
-        }
+        },
     )
     data.create_entry(
         upload_id=upload_id,
-        entry_id="suggestions_entry_3",
-        mainfile="test_content/test_entry/main-file.json",
+        entry_id='suggestions_entry_3',
+        mainfile='test_content/test_entry/main-file.json',
         results={
-            "material": {
-                "chemical_formula_hill": "Ni2O2",
+            'material': {
+                'chemical_formula_hill': 'Ni2O2',
             },
-        }
+        },
     )
     data.create_entry(
         upload_id=upload_id,
-        entry_id="suggestions_entry_4",
-        mainfile="test_content/test_entry/main-file.json",
+        entry_id='suggestions_entry_4',
+        mainfile='test_content/test_entry/main-file.json',
         results={
-            "material": {
-                "chemical_formula_hill": "Mg2O2",
+            'material': {
+                'chemical_formula_hill': 'Mg2O2',
             },
-        }
+        },
     )
 
     data.save()
@@ -120,16 +122,14 @@ def example_data_suggestions(elastic_module, raw_files_module, mongo_module, tes
 
     data.delete()
     from nomad.search import search
+
     assert search(query=dict(upload_id=upload_id)).pagination.total == 0
 
 
 def run_query(quantities, input, client):
     quantities = [quantities] if isinstance(quantities, str) else quantities
-    body = {
-        "input": input,
-        "quantities": [{'name': x} for x in quantities]
-    }
-    response = client.post("suggestions", json=body, headers={})
+    body = {'input': input, 'quantities': [{'name': x} for x in quantities]}
+    response = client.post('suggestions', json=body, headers={})
     return response
 
 
@@ -142,7 +142,7 @@ def assert_suggestions(quantity, input, output, client):
 
         response = response.json()
         suggestions = response[quantity]
-        suggestion_values = set([suggestion["value"] for suggestion in suggestions])
+        suggestion_values = set([suggestion['value'] for suggestion in suggestions])
         if isinstance(output, str):
             output = [output]
         output = set(output)
@@ -154,7 +154,7 @@ def test_suggestions_unknown(client, example_data_suggestions):
     """Tests that trying to get suggestions for an unregistered quantity gives
     the correct status code.
     """
-    response = run_query("does.not.exist", "cu", client)
+    response = run_query('does.not.exist', 'cu', client)
     assert_response(response, 422)
 
 
@@ -162,40 +162,68 @@ def test_suggestions_all(client, example_data_suggestions):
     """Test that running the query against all defined suggestion values works
     correctly.
     """
-    response = run_query(list(entry_type.suggestions), "cu", client)
+    response = run_query(list(entry_type.suggestions), 'cu', client)
     assert_response(response, 200)
 
 
-@pytest.mark.parametrize("quantity, input, output", [
-    # "simple" tokenizer
-    ("results.material.symmetry.crystal_system", "cu", "cubic"),
-
-    # "default" tokenizer
-    ("results.material.symmetry.structure_name", ["sa", "ro"], "rock salt"),  # Whitespace tokenization
-    ("results.method.simulation.program_name", ["te", "na"], "test_name"),  # Underscore tokenization
-    ("results.material.material_name", ["al", "be"], "alpha/beta"),  # Slash tokenization
-    ("results.method.simulation.program_version", ["10", "12"], "10.12"),  # Dot tokenization and numbers
-    ("results.method.simulation.program_version", ["10", "12"], "10.12"),  # Dot tokenization and numbers
-    ("mainfile", ["main", "file"], "test_content/test_entry/main-file.json"),  # Dash tokenization
-    # Input that spans across several tokenized words and does not start from the beginning
-    ("results.method.simulation.dft.xc_functional_names", "PBE_SOL", ["GGA_C_PBE_SOL", "GGA_X_PBE_SOL"]),
-
-    # Only "formula" tokenizer
-    ("results.material.chemical_formula_anonymous", ["A2", "B5", "C"], "A2B5C"),
-    ("results.material.chemical_formula_descriptive", ["C2", "H5", "Br"], "C2H5Br"),
-    ("results.material.chemical_formula_reduced", ["C2", "H5", "Br"], "C2H5Br"),
-
-    # Tests that all matches are returned even if they share the same matched token
-    ("results.material.chemical_formula_hill", "O2", ["Ni2O2", "Mg2O2"]),
-
-    # Nested fields
-    ("results.properties.mechanical.bulk_modulus.type", "euler", "birch_euler"),
-
-    # Fields with multiple values
-    ("results.material.elements", "Br", "Br"),
-    ("results.material.functional_type", "semic", "semiconductor"),
-    ("results.material.functional_type", "semim", "semimetal"),
-    ("results.material.functional_type", "semi", ["semiconductor", "semimetal"]),
-])
-def test_suggestions_quantities(quantity, input, output, client, example_data_suggestions):
+@pytest.mark.parametrize(
+    'quantity, input, output',
+    [
+        # "simple" tokenizer
+        ('results.material.symmetry.crystal_system', 'cu', 'cubic'),
+        # "default" tokenizer
+        (
+            'results.material.symmetry.structure_name',
+            ['sa', 'ro'],
+            'rock salt',
+        ),  # Whitespace tokenization
+        (
+            'results.method.simulation.program_name',
+            ['te', 'na'],
+            'test_name',
+        ),  # Underscore tokenization
+        (
+            'results.material.material_name',
+            ['al', 'be'],
+            'alpha/beta',
+        ),  # Slash tokenization
+        (
+            'results.method.simulation.program_version',
+            ['10', '12'],
+            '10.12',
+        ),  # Dot tokenization and numbers
+        (
+            'results.method.simulation.program_version',
+            ['10', '12'],
+            '10.12',
+        ),  # Dot tokenization and numbers
+        (
+            'mainfile',
+            ['main', 'file'],
+            'test_content/test_entry/main-file.json',
+        ),  # Dash tokenization
+        # Input that spans across several tokenized words and does not start from the beginning
+        (
+            'results.method.simulation.dft.xc_functional_names',
+            'PBE_SOL',
+            ['GGA_C_PBE_SOL', 'GGA_X_PBE_SOL'],
+        ),
+        # Only "formula" tokenizer
+        ('results.material.chemical_formula_anonymous', ['A2', 'B5', 'C'], 'A2B5C'),
+        ('results.material.chemical_formula_descriptive', ['C2', 'H5', 'Br'], 'C2H5Br'),
+        ('results.material.chemical_formula_reduced', ['C2', 'H5', 'Br'], 'C2H5Br'),
+        # Tests that all matches are returned even if they share the same matched token
+        ('results.material.chemical_formula_hill', 'O2', ['Ni2O2', 'Mg2O2']),
+        # Nested fields
+        ('results.properties.mechanical.bulk_modulus.type', 'euler', 'birch_euler'),
+        # Fields with multiple values
+        ('results.material.elements', 'Br', 'Br'),
+        ('results.material.functional_type', 'semic', 'semiconductor'),
+        ('results.material.functional_type', 'semim', 'semimetal'),
+        ('results.material.functional_type', 'semi', ['semiconductor', 'semimetal']),
+    ],
+)
+def test_suggestions_quantities(
+    quantity, input, output, client, example_data_suggestions
+):
     assert_suggestions(quantity, input, output, client)

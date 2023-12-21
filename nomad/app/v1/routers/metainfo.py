@@ -39,38 +39,36 @@ class PackageDefinition(MSection):
     definition_id = Quantity(
         type=str,
         description='The sha1 based 40-digit long unique id for the package.',
-        a_mongo=Mongo(primary_key=True, regex=r'^\w{40}$')
+        a_mongo=Mongo(primary_key=True, regex=r'^\w{40}$'),
     )
     entry_id = Quantity(
         type=str,
         description='The entry id of the upload that contains the package.',
-        a_mongo=Mongo()
+        a_mongo=Mongo(),
     )
     upload_id = Quantity(
         type=str,
         description='The upload id of the upload that contains the package.',
-        a_mongo=Mongo()
+        a_mongo=Mongo(),
     )
     qualified_name = Quantity(
-        type=str,
-        description='The qualified name for the package.',
-        a_mongo=Mongo()
+        type=str, description='The qualified name for the package.', a_mongo=Mongo()
     )
     date_created = Quantity(
         type=Datetime,
         description='The date when the package is stored in the database.',
-        a_mongo=Mongo()
+        a_mongo=Mongo(),
     )
     package_definition = Quantity(
         type=JSON,
         description='Plain JSON representation (Python dict) of the package.',
-        a_mongo=Mongo()
+        a_mongo=Mongo(),
     )
     section_definition_ids = Quantity(
         type=str,
         shape=['*'],
         description='A list of section unique ids defined in this package.',
-        a_mongo=Mongo(index=True, regex=r'^\w{40}$')
+        a_mongo=Mongo(index=True, regex=r'^\w{40}$'),
     )
 
     def __init__(self, package: Package, **kwargs):
@@ -83,17 +81,28 @@ class PackageDefinition(MSection):
         self.qualified_name = package.qualified_name()
         self.date_created = datetime.datetime.utcnow()
         self.package_definition = package.m_to_dict(
-            with_def_id=config.process.write_definition_id_to_archive, **kwargs)
-        self.section_definition_ids = [section.definition_id for section in package.section_definitions]
+            with_def_id=config.process.write_definition_id_to_archive, **kwargs
+        )
+        self.section_definition_ids = [
+            section.definition_id for section in package.section_definitions
+        ]
         self.quantity_definition_ids = [
-            quantity.definition_id for section in package.section_definitions for quantity in section.quantities]
+            quantity.definition_id
+            for section in package.section_definitions
+            for quantity in section.quantities
+        ]
 
 
 def store_package_definition(package: Package, **kwargs):
     if package is None:
         return
 
-    if PackageDefinition.m_def.a_mongo.objects(definition_id=package.definition_id).count() > 0:
+    if (
+        PackageDefinition.m_def.a_mongo.objects(
+            definition_id=package.definition_id
+        ).count()
+        > 0
+    ):
         logger.info(f'Package {package.definition_id} already exists. Skipping.')
         return
 
@@ -110,15 +119,23 @@ router = APIRouter()
 
 metainfo_tag = 'metainfo'
 
-_bad_definition_response = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''Package not found. The given section definition is not contained in any packages.''')
-}
+_bad_definition_response = (
+    status.HTTP_404_NOT_FOUND,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """Package not found. The given section definition is not contained in any packages."""
+        ),
+    },
+)
 
-_not_authorized_to_upload = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''Unauthorized. No credentials provided.''')
-}
+_not_authorized_to_upload = (
+    status.HTTP_401_UNAUTHORIZED,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip("""Unauthorized. No credentials provided."""),
+    },
+)
 
 
 class PackageDefinitionResponse(BaseModel):
@@ -127,12 +144,14 @@ class PackageDefinitionResponse(BaseModel):
 
 
 def get_package_by_section_definition_id(section_definition_id: str) -> dict:
-    packages = PackageDefinition.m_def.a_mongo.objects(section_definition_ids=section_definition_id)
+    packages = PackageDefinition.m_def.a_mongo.objects(
+        section_definition_ids=section_definition_id
+    )
 
     if packages.count() == 0:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
-            detail='Package not found. The given section definition is not contained in any packages.'
+            detail='Package not found. The given section definition is not contained in any packages.',
         )
 
     result = packages.first()
@@ -149,20 +168,25 @@ def get_package_by_section_definition_id(section_definition_id: str) -> dict:
 
 
 @router.get(
-    '/{section_definition_id}', tags=[metainfo_tag],
+    '/{section_definition_id}',
+    tags=[metainfo_tag],
     summary='Get the definition of package that contains the target id based section definition.',
     response_model=PackageDefinitionResponse,
     responses=create_responses(_bad_definition_response),
     response_model_exclude_unset=True,
-    response_model_exclude_none=True)
+    response_model_exclude_none=True,
+)
 async def get_package_definition(
-        section_definition_id: str = Path(
-            ..., regex=r'^\w{40}$',
-            description='The section definition id to be used to retrieve package.')
+    section_definition_id: str = Path(
+        ...,
+        regex=r'^\w{40}$',
+        description='The section definition id to be used to retrieve package.',
+    ),
 ):
-    '''
+    """
     Retrieve the package that contains the target section.
-    '''
+    """
     return {
         'section_definition_id': section_definition_id,
-        'data': get_package_by_section_definition_id(section_definition_id)}
+        'data': get_package_by_section_definition_id(section_definition_id),
+    }

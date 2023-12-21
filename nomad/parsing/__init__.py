@@ -16,5 +16,16 @@
 # limitations under the License.
 #
 
-from nomad.parsing.parser import Parser, BrokenParser, MissingParser, MatchingParser, MatchingParserInterface
-from nomad.parsing.artificial import TemplateParser, GenerateRandomParser, ChaosParser, EmptyParser
+from nomad.parsing.parser import (
+    Parser,
+    BrokenParser,
+    MissingParser,
+    MatchingParser,
+    MatchingParserInterface,
+)
+from nomad.parsing.artificial import (
+    TemplateParser,
+    GenerateRandomParser,
+    ChaosParser,
+    EmptyParser,
+)

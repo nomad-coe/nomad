@@ -38,16 +38,16 @@ def test_schema_processing(raw_files, no_warn):
     mainfile = 'schema.archive.json'
 
     # create upload with example files
-    upload_files = create_test_upload_files('test_upload_id', published=False, raw_files=directory)
+    upload_files = create_test_upload_files(
+        'test_upload_id', published=False, raw_files=directory
+    )
     upload = Upload(upload_id='test_upload_id')
 
     # parse
     parser = ArchiveParser()
     context = ServerContext(upload=upload)
     test_archive = EntryArchive(m_context=context, metadata=EntryMetadata())
-    parser.parse(
-        upload_files.raw_file_object(mainfile).os_path,
-        test_archive)
+    parser.parse(upload_files.raw_file_object(mainfile).os_path, test_archive)
     run_normalize(test_archive)
 
     # assert archive
@@ -56,7 +56,9 @@ def test_schema_processing(raw_files, no_warn):
 
 
 def test_eln_annotation_validation_parsing(raw_files, caplog):
-    mainfile = os.path.join(os.path.dirname(__file__), '../data/datamodel/eln.archive.yaml')
+    mainfile = os.path.join(
+        os.path.dirname(__file__), '../data/datamodel/eln.archive.yaml'
+    )
 
     # parse
     parser = ArchiveParser()
@@ -72,10 +74,11 @@ def test_eln_annotation_validation_parsing(raw_files, caplog):
     assert has_error
 
 
-@pytest.mark.parametrize("eln_type", valid_eln_types.keys())
-@pytest.mark.parametrize("eln_component", sum(valid_eln_components.values(), []))
+@pytest.mark.parametrize('eln_type', valid_eln_types.keys())
+@pytest.mark.parametrize('eln_component', sum(valid_eln_components.values(), []))
 def test_eln_annotation_validation(eln_type, eln_component):
-    base_schema = strip('''
+    base_schema = strip(
+        """
         m_def: 'nomad.metainfo.metainfo.Package'
         sections:
             Sample:
@@ -94,13 +97,18 @@ def test_eln_annotation_validation(eln_type, eln_component):
                         m_annotations:
                             eln:
                                 component: eln_component
-    ''')
+    """
+    )
 
     for quantity_type in valid_eln_types[eln_type]:
         if eln_type == 'reference':
-            yaml_schema = base_schema.replace("quantity_type", "'#/Sample'").replace("eln_component", eln_component)
+            yaml_schema = base_schema.replace('quantity_type', "'#/Sample'").replace(
+                'eln_component', eln_component
+            )
         else:
-            yaml_schema = base_schema.replace("quantity_type", quantity_type).replace("eln_component", eln_component)
+            yaml_schema = base_schema.replace('quantity_type', quantity_type).replace(
+                'eln_component', eln_component
+            )
 
         if eln_component not in valid_eln_components[eln_type]:
             package = yaml_to_package(yaml_schema)
@@ -116,12 +124,15 @@ def test_eln_annotation_validation(eln_type, eln_component):
             error_str = (
                 f'The component {eln_component} '
                 f'is not compatible with the quantity quantity_name of the type {type_name}. '
-                f'Accepted components: {", ".join(valid_eln_components[eln_type])}')
+                f'Accepted components: {", ".join(valid_eln_components[eln_type])}'
+            )
             assert error_str in exception.value.args[0]
 
 
 def test_user_author_yaml_deserialization():
-    des_m_package = yaml_to_package(strip('''
+    des_m_package = yaml_to_package(
+        strip(
+            """
         m_def: 'nomad.metainfo.metainfo.Package'
         sections:
             Sample:
@@ -137,7 +148,9 @@ def test_user_author_yaml_deserialization():
                         m_annotations:
                             eln:
                                 component: AuthorEditQuantity
-    '''))
+    """
+        )
+    )
     des_sample = des_m_package['section_definitions'][0]
     des_my_user = des_sample.quantities[0]
     des_my_author = des_sample.quantities[1]

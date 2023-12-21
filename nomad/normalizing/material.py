@@ -20,7 +20,15 @@ from typing import Union, Dict, List
 from nptyping import NDArray
 
 import ase.data
-from matid.classifications import Class0D, Atom, Class1D, Class2D, Material2D, Surface, Class3D  # pylint: disable=import-error
+from matid.classifications import (
+    Class0D,
+    Atom,
+    Class1D,
+    Class2D,
+    Material2D,
+    Surface,
+    Class3D,
+)  # pylint: disable=import-error
 
 from nomad import atomutils
 from nomad.atomutils import Formula
@@ -29,18 +37,19 @@ from nomad.normalizing.topology import TopologyNormalizer
 from nomad.datamodel.results import Symmetry, Material, structure_name_map
 
 
-class MaterialNormalizer():
+class MaterialNormalizer:
     def __init__(
-            self,
-            entry_archive,
-            repr_system,
-            repr_symmetry,
-            spg_number,
-            conv_atoms,
-            wyckoff_sets,
-            properties,
-            optimade,
-            logger):
+        self,
+        entry_archive,
+        repr_system,
+        repr_symmetry,
+        spg_number,
+        conv_atoms,
+        wyckoff_sets,
+        properties,
+        optimade,
+        logger,
+    ):
         self.entry_archive = entry_archive
         self.repr_system = repr_system
         self.repr_method = None
@@ -55,7 +64,7 @@ class MaterialNormalizer():
         self.logger = logger
 
     def material(self) -> Material:
-        '''Returns a populated Material subsection.'''
+        """Returns a populated Material subsection."""
         material = self.entry_archive.m_setdefault('results.material')
 
         if self.repr_system:
@@ -81,9 +90,12 @@ class MaterialNormalizer():
                 }
                 material.building_block = building_block_map.get(classification)
                 labels = self.repr_system.atoms.labels
-                symbols, reduced_counts = atomutils.get_hill_decomposition(labels, reduced=True)
+                symbols, reduced_counts = atomutils.get_hill_decomposition(
+                    labels, reduced=True
+                )
                 material.chemical_formula_reduced_fragments = [
-                    '{}{}'.format(n, int(c) if c != 1 else '') for n, c in zip(symbols, reduced_counts)
+                    '{}{}'.format(n, int(c) if c != 1 else '')
+                    for n, c in zip(symbols, reduced_counts)
                 ]
             except Exception as e:
                 self.logger.error('issue in creating formula information', exc_info=e)
@@ -102,7 +114,13 @@ class MaterialNormalizer():
         elif self.structural_type == '1D':
             material.material_id = material_id_1d(self.conv_atoms)
 
-        topology = TopologyNormalizer(self.entry_archive, self.repr_system, self.repr_symmetry, self.conv_atoms, self.logger).topology(material)
+        topology = TopologyNormalizer(
+            self.entry_archive,
+            self.repr_system,
+            self.repr_symmetry,
+            self.conv_atoms,
+            self.logger,
+        ).topology(material)
         if topology:
             material.topology.extend(topology)
 
@@ -130,7 +148,8 @@ class MaterialNormalizer():
         return classes
 
     def material_name(
-            self, symbols: Union[List, NDArray], counts: Union[List, NDArray]) -> str:
+        self, symbols: Union[List, NDArray], counts: Union[List, NDArray]
+    ) -> str:
         if symbols is None or counts is None:
             return None
         name = None
@@ -150,29 +169,55 @@ class MaterialNormalizer():
                 names[1] = names[1][:-1] + 'de'
             if names[1] == 'Boron' or names[1] == 'Carbon':
                 names[1] = names[1][:-2] + 'ide'
-            if names[1] == 'Chlorine' or names[1] == 'Germanium' or names[1] == 'Selenium' or names[1] == 'Bromine' \
-               or names[1] == 'Tellurium' or names[1] == 'Iodine' or names[1] == 'Polonium' or names[1] == 'Astatine' or \
-               names[1] == 'Fluorine':
+            if (
+                names[1] == 'Chlorine'
+                or names[1] == 'Germanium'
+                or names[1] == 'Selenium'
+                or names[1] == 'Bromine'
+                or names[1] == 'Tellurium'
+                or names[1] == 'Iodine'
+                or names[1] == 'Polonium'
+                or names[1] == 'Astatine'
+                or names[1] == 'Fluorine'
+            ):
                 names[1] = names[1][:-2] + 'de'
             if names[1] == 'Silicon' or names[1] == 'Sulfur':
                 names[1] = names[1][:-2] + 'ide'
-            if names[1] == 'Nitrogen' or names[1] == 'Oxygen' or names[1] == 'Hydrogen' or names[1] == 'Phosphorus':
+            if (
+                names[1] == 'Nitrogen'
+                or names[1] == 'Oxygen'
+                or names[1] == 'Hydrogen'
+                or names[1] == 'Phosphorus'
+            ):
                 names[1] = names[1][:-4] + 'ide'
 
             name = names[0] + ' ' + names[1]
 
-            if names[1] == 'Fluoride' or names[1] == 'Chloride' or names[1] == 'Bromide' or \
-               names[1] == 'Iodide' or names[1] == 'Hydride':
-
+            if (
+                names[1] == 'Fluoride'
+                or names[1] == 'Chloride'
+                or names[1] == 'Bromide'
+                or names[1] == 'Iodide'
+                or names[1] == 'Hydride'
+            ):
                 # Non-metals with elements of variable valence, therefore we remove alkaline and
                 # alkaline-earth elements, which have fixed valence
                 # Only the most electronegative non-metals are supposed to make ionic compounds
-                if names[0] != 'Lithium' and names[0] != 'Sodium' and names[0] != 'Potassium' and \
-                   names[0] != 'Rubidium' and names[0] != 'Cesium' and names[0] != 'Francium' and \
-                   names[0] != 'Beryllium' and names[0] != 'Magnesium' and names[0] != 'Calcium' and \
-                   names[0] != 'Strontium' and names[0] != 'Barium' and names[0] != 'Radium' and \
-                   names[0] != 'Aluminum':
-
+                if (
+                    names[0] != 'Lithium'
+                    and names[0] != 'Sodium'
+                    and names[0] != 'Potassium'
+                    and names[0] != 'Rubidium'
+                    and names[0] != 'Cesium'
+                    and names[0] != 'Francium'
+                    and names[0] != 'Beryllium'
+                    and names[0] != 'Magnesium'
+                    and names[0] != 'Calcium'
+                    and names[0] != 'Strontium'
+                    and names[0] != 'Barium'
+                    and names[0] != 'Radium'
+                    and names[0] != 'Aluminum'
+                ):
                     if counts[1] == 2:
                         name = names[0] + '(II)' + ' ' + names[1]
                     elif counts[1] == 3:
@@ -187,12 +232,21 @@ class MaterialNormalizer():
                         name = names[0] + '(VII)' + ' ' + names[1]
 
             if names[1] == 'Oxide' or names[1] == 'Sulfide' or names[1] == 'Selenide':
-                if names[0] != 'Lithium' and names[0] != 'Sodium' and names[0] != 'Potassium' and \
-                   names[0] != 'Rubidium' and names[0] != 'Cesium' and names[0] != 'Francium' and \
-                   names[0] != 'Beryllium' and names[0] != 'Magnesium' and names[0] != 'Calcium' and \
-                   names[0] != 'Strontium' and names[0] != 'Barium' and names[0] != 'Radium' and \
-                   names[0] != 'Aluminum':
-
+                if (
+                    names[0] != 'Lithium'
+                    and names[0] != 'Sodium'
+                    and names[0] != 'Potassium'
+                    and names[0] != 'Rubidium'
+                    and names[0] != 'Cesium'
+                    and names[0] != 'Francium'
+                    and names[0] != 'Beryllium'
+                    and names[0] != 'Magnesium'
+                    and names[0] != 'Calcium'
+                    and names[0] != 'Strontium'
+                    and names[0] != 'Barium'
+                    and names[0] != 'Radium'
+                    and names[0] != 'Aluminum'
+                ):
                     if counts[0] == 1 and counts[1] == 1:
                         name = names[0] + '(II)' + ' ' + names[1]
                     elif counts[0] == 2 and counts[1] == 1:
@@ -209,12 +263,21 @@ class MaterialNormalizer():
                         name = names[0] + '(VII)' + ' ' + names[1]
 
             if names[1] == 'Nitride' or names[1] == 'Phosphide':
-                if names[0] != 'Lithium' and names[0] != 'Sodium' and names[0] != 'Potassium' and \
-                   names[0] != 'Rubidium' and names[0] != 'Cesium' and names[0] != 'Francium' and \
-                   names[0] != 'Beryllium' and names[0] != 'Magnesium' and names[0] != 'Calcium' and \
-                   names[0] != 'Strontium' and names[0] != 'Barium' and names[0] != 'Radium' and \
-                   names[0] != 'Aluminum':
-
+                if (
+                    names[0] != 'Lithium'
+                    and names[0] != 'Sodium'
+                    and names[0] != 'Potassium'
+                    and names[0] != 'Rubidium'
+                    and names[0] != 'Cesium'
+                    and names[0] != 'Francium'
+                    and names[0] != 'Beryllium'
+                    and names[0] != 'Magnesium'
+                    and names[0] != 'Calcium'
+                    and names[0] != 'Strontium'
+                    and names[0] != 'Barium'
+                    and names[0] != 'Radium'
+                    and names[0] != 'Aluminum'
+                ):
                     if counts[0] == 1 and counts[1] == 1:
                         name = names[0] + '(III)' + ' ' + names[1]
                     if counts[0] == 1 and counts[1] == 2:
@@ -229,12 +292,21 @@ class MaterialNormalizer():
                         name = names[0] + '(VII)' + ' ' + names[1]
 
             if names[1] == 'Carbide':
-                if names[0] != 'Lithium' and names[0] != 'Sodium' and names[0] != 'Potassium' and \
-                   names[0] != 'Rubidium' and names[0] != 'Cesium' and names[0] != 'Francium' and \
-                   names[0] != 'Beryllium' and names[0] != 'Magnesium' and names[0] != 'Calcium' and \
-                   names[0] != 'Strontium' and names[0] != 'Barium' and names[0] != 'Radium' and \
-                   names[0] != 'Aluminum':
-
+                if (
+                    names[0] != 'Lithium'
+                    and names[0] != 'Sodium'
+                    and names[0] != 'Potassium'
+                    and names[0] != 'Rubidium'
+                    and names[0] != 'Cesium'
+                    and names[0] != 'Francium'
+                    and names[0] != 'Beryllium'
+                    and names[0] != 'Magnesium'
+                    and names[0] != 'Calcium'
+                    and names[0] != 'Strontium'
+                    and names[0] != 'Barium'
+                    and names[0] != 'Radium'
+                    and names[0] != 'Aluminum'
+                ):
                     if counts[0] == 1 and counts[1] == 1:
                         name = names[0] + '(IV)' + ' ' + names[1]
                     if counts[0] == 2 and counts[1] == 1:
@@ -253,7 +325,7 @@ class MaterialNormalizer():
         return name
 
     def symmetry(self) -> Symmetry:
-        '''Returns a populated Symmetry subsection.'''
+        """Returns a populated Symmetry subsection."""
         result = Symmetry()
         filled = False
 

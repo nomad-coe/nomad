@@ -23,9 +23,13 @@ from .api import Auth
 
 
 def upload_file(
-        file_path: str, auth: Auth,
-        upload_name: str = None, local_path: bool = False, publish: bool = False):
-    '''
+    file_path: str,
+    auth: Auth,
+    upload_name: str = None,
+    local_path: bool = False,
+    publish: bool = False,
+):
+    """
     Upload a file to nomad. Will print status information to stdout.
 
     Arguments:
@@ -36,29 +40,36 @@ def upload_file(
         publish: automatically publish after successful processing
 
     Returns: The upload_id if successful or None if not.
-    '''
+    """
     from nomad.processing import ProcessStatus
     from nomad.client import api
+
     if local_path:
         response = api.post(
             'uploads',
             params=dict(local_path=os.path.abspath(file_path), upload_name=upload_name),
             headers={'Accept': 'application/json'},
-            auth=auth)
+            auth=auth,
+        )
         print('process offline: %s' % file_path)
     else:
         with open(file_path, 'rb') as f:
             response = api.post(
                 'uploads',
-                params=dict(upload_name=upload_name), data=f,
+                params=dict(upload_name=upload_name),
+                data=f,
                 headers={'Accept': 'application/json'},
-                auth=auth)
+                auth=auth,
+            )
     if response.status_code != 200:
         print('Could not create upload: %s' % response.text)
         return None
     upload = response.json()['data']
 
-    while upload['process_status'] not in [ProcessStatus.SUCCESS, ProcessStatus.FAILURE]:
+    while upload['process_status'] not in [
+        ProcessStatus.SUCCESS,
+        ProcessStatus.FAILURE,
+    ]:
         response = api.get(f'uploads/{upload["upload_id"]}/entries', auth=auth)
         response_json = response.json()
 
@@ -67,11 +78,25 @@ def upload_file(
         failures = response_json['processing_failed']
         successes = response_json['processing_successful']
 
-        ret = '\n' if upload['process_status'] in (ProcessStatus.SUCCESS, ProcessStatus.FAILURE) else '\r'
+        ret = (
+            '\n'
+            if upload['process_status']
+            in (ProcessStatus.SUCCESS, ProcessStatus.FAILURE)
+            else '\r'
+        )
 
         print(
-            'status: %s; process: %s; parsing: %d/%d/%d                %s' %
-            (upload['process_status'], upload['current_process'], successes, failures, total, ret), end='')
+            'status: %s; process: %s; parsing: %d/%d/%d                %s'
+            % (
+                upload['process_status'],
+                upload['current_process'],
+                successes,
+                failures,
+                total,
+                ret,
+            ),
+            end='',
+        )
 
         time.sleep(1)
 

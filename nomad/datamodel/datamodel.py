@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-''' All generic entry metadata and related classes. '''
+""" All generic entry metadata and related classes. """
 
 from typing import List, Any
 from enum import Enum
@@ -33,12 +33,24 @@ from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
     material_entry_type,
     entry_type as es_entry_type,
-    create_searchable_quantity
+    create_searchable_quantity,
 )
 from .util import parse_path
 from ..metainfo import (
-    Bytes, Package, Definition, MProxy, MSection, MCategory, Section, SubSection, Quantity, Reference,
-    MEnum, Datetime, JSON)
+    Bytes,
+    Package,
+    Definition,
+    MProxy,
+    MSection,
+    MCategory,
+    Section,
+    SubSection,
+    Quantity,
+    Reference,
+    MEnum,
+    Datetime,
+    JSON,
+)
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requiring the m_package already, this would be too late.
@@ -55,13 +67,14 @@ from .metainfo.tabulartree import TabularTree  # noqa
 
 
 class AuthLevel(int, Enum):
-    '''
+    """
     Used to decorate fields with the authorization level required to edit them (using `a_auth_level`).
     * `none`: No authorization required
     * `coauthor`: You must be at least a coauthor of the upload to edit the field.
     * `main_author`: You must be the main author of the upload to edit the field.
     * `admin`: You must be admin to edit the field.
-    '''
+    """
+
     none = 0
     coauthor = 1
     main_author = 2
@@ -69,8 +82,8 @@ class AuthLevel(int, Enum):
 
 
 path_analyzer = analyzer(
-    'path_analyzer',
-    tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/'))
+    'path_analyzer', tokenizer=tokenizer('path_tokenizer', 'pattern', pattern='/')
+)
 
 
 def PathSearch():
@@ -78,12 +91,16 @@ def PathSearch():
         Elasticsearch(_es_field='keyword'),
         Elasticsearch(
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
-            field='path', _es_field='')]
+            field='path',
+            _es_field='',
+        ),
+    ]
 
 
 quantity_analyzer = analyzer(
     'quantity_analyzer',
-    tokenizer=tokenizer('quantity_tokenizer', 'pattern', pattern='.'))
+    tokenizer=tokenizer('quantity_tokenizer', 'pattern', pattern='.'),
+)
 
 
 def QuantitySearch():
@@ -92,11 +109,14 @@ def QuantitySearch():
         Elasticsearch(
             material_entry_type,
             mapping=dict(type='text', analyzer=path_analyzer.to_dict()),
-            field='path', _es_field='')]
+            field='path',
+            _es_field='',
+        ),
+    ]
 
 
 class Dataset(MSection):
-    ''' A Dataset is attached to one or many entries to form a set of data.
+    """A Dataset is attached to one or many entries to form a set of data.
 
     Args:
         dataset_id: The unique identifier for this dataset as a string. It should be
@@ -119,53 +139,50 @@ class Dataset(MSection):
         dataset_type: The type determined if a dataset is owned, i.e. was created by
             the authors of the contained entries; or if a dataset is foreign,
             i.e. it was created by someone not necessarily related to the entries.
-    '''
+    """
+
     m_def = Section(a_mongo=MongoDocument(), a_pydantic=PydanticModel())
 
     dataset_id = Quantity(
         type=str,
         a_mongo=Mongo(primary_key=True),
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
     dataset_name = Quantity(
         type=str,
         a_mongo=Mongo(index=True),
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion="default"),
-        ])
-    user_id = Quantity(
-        type=str,
-        a_mongo=Mongo(index=True))
+            Elasticsearch(suggestion='default'),
+        ],
+    )
+    user_id = Quantity(type=str, a_mongo=Mongo(index=True))
     doi = Quantity(
         type=str,
         a_mongo=Mongo(index=True),
-        a_elasticsearch=Elasticsearch(material_entry_type))
-    pid = Quantity(
-        type=str,
-        a_mongo=Mongo(index=True))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+    pid = Quantity(type=str, a_mongo=Mongo(index=True))
     dataset_create_time = Quantity(
-        type=Datetime,
-        a_mongo=Mongo(index=True),
-        a_elasticsearch=Elasticsearch())
+        type=Datetime, a_mongo=Mongo(index=True), a_elasticsearch=Elasticsearch()
+    )
     dataset_modified_time = Quantity(
-        type=Datetime,
-        a_mongo=Mongo(index=True),
-        a_elasticsearch=Elasticsearch())
+        type=Datetime, a_mongo=Mongo(index=True), a_elasticsearch=Elasticsearch()
+    )
     dataset_type = Quantity(
         type=MEnum('owned', 'foreign'),
         a_mongo=Mongo(index=True),
-        a_elasticsearch=Elasticsearch())
-    query = Quantity(
-        type=JSON, a_mongo=Mongo())
-    entries = Quantity(
-        type=str, shape=['*'], a_mongo=Mongo())
+        a_elasticsearch=Elasticsearch(),
+    )
+    query = Quantity(type=JSON, a_mongo=Mongo())
+    entries = Quantity(type=str, shape=['*'], a_mongo=Mongo())
 
 
 class DatasetReference(Reference):
-    '''
+    """
     Special metainfo reference type that allows to use dataset_ids as values. It automatically
     resolves dataset_ids to Dataset objects. This is done lazily on getting the value.
-    '''
+    """
 
     def __init__(self):
         super().__init__(Dataset.m_def)
@@ -184,30 +201,35 @@ dataset_reference = DatasetReference()
 
 
 class EditableUserMetadata(MCategory):
-    ''' NOMAD entry metadata quantities that can be edited by the user before or after publish. '''
+    """NOMAD entry metadata quantities that can be edited by the user before or after publish."""
+
     pass
 
 
 class MongoUploadMetadata(MCategory):
-    ''' The field is defined on the Upload mongo document. '''
+    """The field is defined on the Upload mongo document."""
+
     pass
 
 
 class MongoEntryMetadata(MCategory):
-    ''' The field is defined on the Entry mongo document. '''
+    """The field is defined on the Entry mongo document."""
+
     pass
 
 
 class MongoSystemMetadata(MCategory):
-    '''
+    """
     The field is managed directly by the system/process (or derived from data managed by the
     system/process), and should never be updated from an :class:`EntryMetadata` object.
-    '''
+    """
+
     pass
 
 
 class DomainMetadata(MCategory):
-    ''' NOMAD entry quantities that are determined by the uploaded data. '''
+    """NOMAD entry quantities that are determined by the uploaded data."""
+
     pass
 
 
@@ -237,15 +259,18 @@ class CompatibleSectionDef(MSection):
     definition_qualified_name = Quantity(
         type=str,
         description='The qualified name of the compatible section.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
     definition_id = Quantity(
         type=str,
         description='The definition id of the compatible section.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
     used_directly = Quantity(
         type=bool,
         description='If the compatible section is directly used as base section.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
 
 class EntryArchiveReference(MSection):
@@ -254,103 +279,119 @@ class EntryArchiveReference(MSection):
     target_reference = Quantity(
         type=str,
         description='The full url like reference of the the target.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     target_entry_id = Quantity(
         type=str,
         description='The id of the entry containing the target.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     target_mainfile = Quantity(
         type=str,
         description='The mainfile of the entry containing the target.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     target_upload_id = Quantity(
         type=str,
         description='The id of the upload containing the target.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     target_name = Quantity(
         type=str,
         description='The name of the target quantity/section.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     target_path = Quantity(
         type=str,
         description='The path of the target quantity/section in its archive.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     source_name = Quantity(
         type=str,
         description='The name of the source (self) quantity/section in its archive.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     source_path = Quantity(
         type=str,
         description='The path of the source (self) quantity/section in its archive.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     source_quantity = Quantity(
         type=str,
         description='A reference to the quantity definition that defines the reference',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
 
 class SearchableQuantity(MSection):
     id = Quantity(
         type=str,
-        description='''
+        description="""
             The full identifier for this quantity that contains the path in the schema +
             schema name.
-        ''',
-        a_elasticsearch=[Elasticsearch()])
+        """,
+        a_elasticsearch=[Elasticsearch()],
+    )
     definition = Quantity(
         type=str,
         description='A reference to the quantity definition.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
     path_archive = Quantity(
-        type=str, description='Path of the value within the archive.',
-        a_elasticsearch=Elasticsearch())
+        type=str,
+        description='Path of the value within the archive.',
+        a_elasticsearch=Elasticsearch(),
+    )
     bool_value = Quantity(
-        type=bool, description='The value mapped as an ES boolean field.',
-        a_elasticsearch=Elasticsearch(mapping='boolean'))
+        type=bool,
+        description='The value mapped as an ES boolean field.',
+        a_elasticsearch=Elasticsearch(mapping='boolean'),
+    )
     str_value = Quantity(
         type=str,
-        description='''
+        description="""
         The value mapped as an ES text and keyword field.
-        ''',
+        """,
         a_elasticsearch=[
             Elasticsearch(mapping='text'),
             Elasticsearch(mapping='keyword', field='keyword'),
-        ])
+        ],
+    )
     int_value = Quantity(
-        type=int, description='The value mapped as an ES long number field.',
-        a_elasticsearch=Elasticsearch(mapping='long'))
+        type=int,
+        description='The value mapped as an ES long number field.',
+        a_elasticsearch=Elasticsearch(mapping='long'),
+    )
     float_value = Quantity(
-        type=float, description='The value mapped as an ES double number field.',
-        a_elasticsearch=Elasticsearch(mapping='double'))
+        type=float,
+        description='The value mapped as an ES double number field.',
+        a_elasticsearch=Elasticsearch(mapping='double'),
+    )
     datetime_value = Quantity(
-        type=Datetime, description='The value mapped as an ES date field.',
-        a_elasticsearch=Elasticsearch(mapping='date'))
+        type=Datetime,
+        description='The value mapped as an ES date field.',
+        a_elasticsearch=Elasticsearch(mapping='date'),
+    )
 
 
 class RFC3161Timestamp(MSection):
     token_seed = Quantity(
-        type=str,
-        description='The entry hash used to get timestamp token.')
-    token = Quantity(
-        type=Bytes,
-        description='The token returned by RFC3161 server.')
-    tsa_server = Quantity(
-        type=str,
-        description='The address of RFC3161 server.')
-    timestamp = Quantity(
-        type=Datetime,
-        description='The RFC3161 timestamp.')
+        type=str, description='The entry hash used to get timestamp token.'
+    )
+    token = Quantity(type=Bytes, description='The token returned by RFC3161 server.')
+    tsa_server = Quantity(type=str, description='The address of RFC3161 server.')
+    timestamp = Quantity(type=Datetime, description='The RFC3161 timestamp.')
 
     @property
     def verify_timestamp(self):
-        '''
+        """
         Verify token by converting it to a timestamp ad-hoc.
-        '''
+        """
         return rfc3161ng.get_timestamp(self.token)
 
 
 class EntryMetadata(MSection):
-    '''
+    """
     Attributes:
         upload_id: The id of the upload (random UUID).
         upload_name: The user provided upload name.
@@ -400,33 +441,45 @@ class EntryMetadata(MSection):
             all data from the upload and all its entries, even if it is in staging or has
             an embargo.
         datasets: Ids of all datasets that this entry appears in
-    '''
+    """
+
     m_def = Section(label='Metadata')
 
     upload_id = Quantity(
-        type=str, categories=[MongoUploadMetadata],
+        type=str,
+        categories=[MongoUploadMetadata],
         description='The persistent and globally unique identifier for the upload of the entry',
-        a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_uploads='cardinality')))
+        a_elasticsearch=Elasticsearch(
+            material_entry_type, metrics=dict(n_uploads='cardinality')
+        ),
+    )
 
     upload_name = Quantity(
-        type=str, categories=[MongoUploadMetadata, EditableUserMetadata],
+        type=str,
+        categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The user provided upload name',
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion="default"),
-        ])
+            Elasticsearch(suggestion='default'),
+        ],
+    )
 
     upload_create_time = Quantity(
-        type=Datetime, categories=[MongoUploadMetadata, EditableUserMetadata],
+        type=Datetime,
+        categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The date and time when the upload was created in nomad',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     entry_id = Quantity(
         type=str,
         description='A persistent and globally unique identifier for the entry',
         categories=[MongoEntryMetadata, MongoSystemMetadata],
-        a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_entries='cardinality')))
+        a_elasticsearch=Elasticsearch(
+            material_entry_type, metrics=dict(n_entries='cardinality')
+        ),
+    )
 
     entry_name = Quantity(
         type=str,
@@ -435,273 +488,374 @@ class EntryMetadata(MSection):
             Elasticsearch(material_entry_type, _es_field='keyword'),
             Elasticsearch(suggestion='default'),
             Elasticsearch(
-                material_entry_type, field='prefix',
-                es_query='match_phrase_prefix', mapping='text', _es_field='')
-        ])
+                material_entry_type,
+                field='prefix',
+                es_query='match_phrase_prefix',
+                mapping='text',
+                _es_field='',
+            ),
+        ],
+    )
 
     entry_type = Quantity(
         type=str,
         description='The main schema definition. This is the name of the section used for data.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     calc_id = Quantity(
-        type=str, description='Legacy field name, use `entry_id` instead.',
+        type=str,
+        description='Legacy field name, use `entry_id` instead.',
         derived=lambda entry: entry.entry_id,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     entry_hash = Quantity(
         # Note: This attribute is not stored in ES
         type=str,
         description='A raw file content based checksum/hash',
-        categories=[MongoEntryMetadata])
+        categories=[MongoEntryMetadata],
+    )
 
     entry_timestamp = SubSection(
-        sub_section=RFC3161Timestamp,
-        description='A timestamp based on RFC3161.')
+        sub_section=RFC3161Timestamp, description='A timestamp based on RFC3161.'
+    )
 
     entry_create_time = Quantity(
-        type=Datetime, categories=[MongoEntryMetadata, MongoSystemMetadata, EditableUserMetadata],
+        type=Datetime,
+        categories=[MongoEntryMetadata, MongoSystemMetadata, EditableUserMetadata],
         description='The date and time when the entry was created in nomad',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     last_edit_time = Quantity(
         # Note: This attribute is not stored in ES
-        type=Datetime, categories=[MongoEntryMetadata],
-        description='The date and time the user metadata was last edited.')
+        type=Datetime,
+        categories=[MongoEntryMetadata],
+        description='The date and time the user metadata was last edited.',
+    )
 
     parser_name = Quantity(
-        type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        type=str,
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The NOMAD parser used for the last processing',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
     mainfile = Quantity(
-        type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        type=str,
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='The path to the mainfile from the root directory of the uploaded files',
-        a_elasticsearch=PathSearch() + [Elasticsearch(suggestion='default')])
+        a_elasticsearch=PathSearch() + [Elasticsearch(suggestion='default')],
+    )
 
     mainfile_key = Quantity(
-        type=str, categories=[MongoEntryMetadata, MongoSystemMetadata],
-        description='''
+        type=str,
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
+        description="""
             Key used to differentiate between different *child entries* of an entry.
             For parent entries and entries that do not have any children, the value should
             be empty.
-        ''',
-        a_elasticsearch=PathSearch())
+        """,
+        a_elasticsearch=PathSearch(),
+    )
 
     files = Quantity(
-        type=str, shape=['0..*'],
-        description='''
+        type=str,
+        shape=['0..*'],
+        description="""
             The paths to the files within the upload that belong to this entry.
             All files within the same directory as the entry's mainfile are considered the
             auxiliary files that belong to the entry.
-        ''',
-        a_elasticsearch=PathSearch())
+        """,
+        a_elasticsearch=PathSearch(),
+    )
 
     pid = Quantity(
         type=str,
-        description='''
+        description="""
             The unique, sequentially enumerated, integer PID that was used in the legacy
             NOMAD CoE. It allows to resolve URLs of the old NOMAD CoE Repository.
-        ''',
+        """,
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch(es_entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type),
+    )
 
     raw_id = Quantity(
         type=str,
-        description='''
+        description="""
             The code specific identifier extracted from the entry's raw files by the parser,
             if supported.
-        ''',
-        a_elasticsearch=Elasticsearch(es_entry_type))
+        """,
+        a_elasticsearch=Elasticsearch(es_entry_type),
+    )
 
     external_id = Quantity(
-        type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
-        description='''
+        type=str,
+        categories=[MongoEntryMetadata, EditableUserMetadata],
+        description="""
             A user provided external id. Usually the id for an entry in an external database
             where the data was imported from.
-        ''',
-        a_elasticsearch=Elasticsearch())
+        """,
+        a_elasticsearch=Elasticsearch(),
+    )
 
     published = Quantity(
-        type=bool, default=False,
+        type=bool,
+        default=False,
         description='Indicates if the entry is published',
         categories=[MongoUploadMetadata],
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     publish_time = Quantity(
-        type=Datetime, categories=[MongoUploadMetadata, EditableUserMetadata],
+        type=Datetime,
+        categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The date and time when the upload was published in nomad',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     with_embargo = Quantity(
-        type=bool, default=False,
+        type=bool,
+        default=False,
         categories=[MongoUploadMetadata, MongoSystemMetadata],
         description='Indicated if this entry is under an embargo',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     embargo_length = Quantity(
         # Note: This attribute is not stored in ES
-        type=int, categories=[MongoUploadMetadata, EditableUserMetadata],
-        description='The length of the requested embargo period, in months')
+        type=int,
+        categories=[MongoUploadMetadata, EditableUserMetadata],
+        description='The length of the requested embargo period, in months',
+    )
 
     license = Quantity(
         # Note: This attribute is not stored in ES
         type=str,
-        description='''
+        description="""
             A short license description (e.g. CC BY 4.0), that refers to the
             license of this entry.
-        ''',
+        """,
         default='CC BY 4.0',
         categories=[MongoUploadMetadata, EditableUserMetadata],
-        a_auth_level=AuthLevel.admin)
+        a_auth_level=AuthLevel.admin,
+    )
 
     processed = Quantity(
-        type=bool, default=False, categories=[MongoEntryMetadata, MongoSystemMetadata],
+        type=bool,
+        default=False,
+        categories=[MongoEntryMetadata, MongoSystemMetadata],
         description='Indicates that the entry is successfully processed.',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
     last_processing_time = Quantity(
         type=Datetime,
         description='The date and time of the last processing.',
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
     processing_errors = Quantity(
-        type=str, shape=['*'], description='Errors that occurred during processing',
-        a_elasticsearch=Elasticsearch())
+        type=str,
+        shape=['*'],
+        description='Errors that occurred during processing',
+        a_elasticsearch=Elasticsearch(),
+    )
 
     nomad_version = Quantity(
         type=str,
         description='The NOMAD version used for the last processing',
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
     nomad_commit = Quantity(
         type=str,
         description='The NOMAD commit used for the last processing',
         categories=[MongoEntryMetadata],
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
     comment = Quantity(
-        type=str, categories=[MongoEntryMetadata, EditableUserMetadata],
+        type=str,
+        categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A user provided comment for this entry',
-        a_elasticsearch=Elasticsearch(mapping='text'))
+        a_elasticsearch=Elasticsearch(mapping='text'),
+    )
 
     references = Quantity(
-        type=str, shape=['0..*'], categories=[MongoEntryMetadata, EditableUserMetadata],
+        type=str,
+        shape=['0..*'],
+        categories=[MongoEntryMetadata, EditableUserMetadata],
         description='User provided references (URLs) for this entry',
-        a_elasticsearch=Elasticsearch())
+        a_elasticsearch=Elasticsearch(),
+    )
 
     external_db = Quantity(
-        type=MEnum('The Perovskite Database Project', 'EELS Data Base', 'Materials Project', 'AFLOW', 'OQMD', 'Kyoto Phonopy Database'),
+        type=MEnum(
+            'The Perovskite Database Project',
+            'EELS Data Base',
+            'Materials Project',
+            'AFLOW',
+            'OQMD',
+            'Kyoto Phonopy Database',
+        ),
         categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The repository or external database where the original data resides',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     origin = Quantity(
         type=str,
-        description='''
+        description="""
             A short human readable description of the entries origin. Usually it is the
             handle of an external database/repository or the name of the main author.
-        ''',
+        """,
         derived=derive_origin,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     main_author = Quantity(
-        type=user_reference, categories=[MongoUploadMetadata, EditableUserMetadata],
+        type=user_reference,
+        categories=[MongoUploadMetadata, EditableUserMetadata],
         description='The main author of the entry',
         a_auth_level=AuthLevel.admin,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     coauthors = Quantity(
         # Note: This attribute is not stored in ES
-        type=author_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
-        description='''
+        type=author_reference,
+        shape=['0..*'],
+        default=[],
+        categories=[MongoUploadMetadata, EditableUserMetadata],
+        description="""
             A user provided list of co-authors for the whole upload. These can view and edit the
             upload when in staging, and view it also if it is embargoed.
-        ''')
+        """,
+    )
 
     entry_coauthors = Quantity(
         # Note: This attribute is not stored in ES
-        type=author_reference, shape=['0..*'], default=[], categories=[MongoEntryMetadata],
-        description='''
+        type=author_reference,
+        shape=['0..*'],
+        default=[],
+        categories=[MongoEntryMetadata],
+        description="""
             A user provided list of co-authors specific for this entry. This is a legacy field,
             for new uploads, coauthors should be specified on the upload level only.
-        ''')
+        """,
+    )
 
     reviewers = Quantity(
         # Note: This attribute is not stored in ES
-        type=user_reference, shape=['0..*'], default=[], categories=[MongoUploadMetadata, EditableUserMetadata],
-        description='''
+        type=user_reference,
+        shape=['0..*'],
+        default=[],
+        categories=[MongoUploadMetadata, EditableUserMetadata],
+        description="""
             A user provided list of reviewers. Reviewers can see the whole upload, also if
             it is unpublished or embargoed
-        ''')
+        """,
+    )
 
     authors = Quantity(
-        type=author_reference, shape=['0..*'],
+        type=author_reference,
+        shape=['0..*'],
         description='All authors (main author and co-authors)',
         derived=derive_authors,
-        a_elasticsearch=Elasticsearch(material_entry_type, metrics=dict(n_authors='cardinality')))
+        a_elasticsearch=Elasticsearch(
+            material_entry_type, metrics=dict(n_authors='cardinality')
+        ),
+    )
 
     writers = Quantity(
-        type=user_reference, shape=['0..*'],
+        type=user_reference,
+        shape=['0..*'],
         description='All writers (main author, upload coauthors)',
-        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        derived=lambda entry: (
+            [entry.main_author] if entry.main_author is not None else []
+        )
+        + entry.coauthors,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     viewers = Quantity(
-        type=user_reference, shape=['0..*'],
+        type=user_reference,
+        shape=['0..*'],
         description='All viewers (main author, upload coauthors, and reviewers)',
-        derived=lambda entry: ([entry.main_author] if entry.main_author is not None else []) + entry.coauthors + entry.reviewers,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        derived=lambda entry: (
+            [entry.main_author] if entry.main_author is not None else []
+        )
+        + entry.coauthors
+        + entry.reviewers,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     datasets = Quantity(
-        type=dataset_reference, shape=['0..*'], default=[],
+        type=dataset_reference,
+        shape=['0..*'],
+        default=[],
         categories=[MongoEntryMetadata, EditableUserMetadata],
         description='A list of user curated datasets this entry belongs to.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     optimade = SubSection(
         sub_section=OptimadeEntry,
         description='Metadata used for the optimade API.',
-        a_elasticsearch=Elasticsearch(es_entry_type))
+        a_elasticsearch=Elasticsearch(es_entry_type),
+    )
 
     domain = Quantity(
         type=MEnum('dft', 'ems'),
         description='The material science domain',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     n_quantities = Quantity(
-        type=int, default=0, description='Number of metainfo quantities parsed from the entry.',
-        a_elasticsearch=Elasticsearch(metrics=dict(n_quantities='sum')))
+        type=int,
+        default=0,
+        description='Number of metainfo quantities parsed from the entry.',
+        a_elasticsearch=Elasticsearch(metrics=dict(n_quantities='sum')),
+    )
 
     quantities = Quantity(
-        type=str, shape=['0..*'],
+        type=str,
+        shape=['0..*'],
         description='All quantities that are used by this entry.',
-        a_elasticsearch=QuantitySearch())
+        a_elasticsearch=QuantitySearch(),
+    )
 
     sections = Quantity(
-        type=str, shape=['*'],
+        type=str,
+        shape=['*'],
         description='All sections that are present in this entry. This field is deprecated and will be removed.',
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     section_defs = SubSection(
         sub_section=CompatibleSectionDef,
         repeats=True,
         description='All sections that are compatible with the present sections in this entry.',
-        a_elasticsearch=Elasticsearch(material_entry_type, nested=True))
+        a_elasticsearch=Elasticsearch(material_entry_type, nested=True),
+    )
 
     entry_references = SubSection(
         sub_section=EntryArchiveReference,
         repeats=True,
-        a_elasticsearch=Elasticsearch(nested=True))
+        a_elasticsearch=Elasticsearch(nested=True),
+    )
 
     search_quantities = SubSection(
         sub_section=SearchableQuantity,
         repeats=True,
-        a_elasticsearch=Elasticsearch(nested=True))
+        a_elasticsearch=Elasticsearch(nested=True),
+    )
 
     def apply_archive_metadata(self, archive):
         quantities = set()
@@ -721,7 +875,9 @@ class EntryMetadata(MSection):
                     if parent_path == '':
                         section_path = section.m_parent_sub_section.name
                     else:
-                        section_path = f'{parent_path}.{section.m_parent_sub_section.name}'
+                        section_path = (
+                            f'{parent_path}.{section.m_parent_sub_section.name}'
+                        )
                 else:
                     section_path = ''
                 section_paths[section] = section_path
@@ -729,7 +885,9 @@ class EntryMetadata(MSection):
 
             return section_path
 
-        def create_reference_section(url_reference: str, current_def: Definition, quantity_path: str):
+        def create_reference_section(
+            url_reference: str, current_def: Definition, quantity_path: str
+        ):
             try:
                 parse_result = parse_path(url_reference, self.upload_id)
             except Exception:  # type: ignore
@@ -767,19 +925,26 @@ class EntryMetadata(MSection):
             ref_item.target_path = path
             ref_item.source_name = current_def.name
             ref_item.source_path = quantity_path
-            ref_item.source_quantity = current_def.definition_reference(archive, global_reference=True)
+            ref_item.source_quantity = current_def.definition_reference(
+                archive, global_reference=True
+            )
 
             from ..processing import Entry
+
             entry_objects = Entry.objects(entry_id=entry_id)
-            ref_item.target_mainfile = entry_objects.first().mainfile if entry_objects.count() == 1 else None
+            ref_item.target_mainfile = (
+                entry_objects.first().mainfile if entry_objects.count() == 1 else None
+            )
 
             return ref_item
 
-        def collect_references(current_section: MSection, current_def: Definition, quantity_path: str):
-            '''
+        def collect_references(
+            current_section: MSection, current_def: Definition, quantity_path: str
+        ):
+            """
             Receives a definition of a quantity 'current_def' and checks if it is a reference to another entry.
             If yes, add the value to 'ref_pool'.
-            '''
+            """
             if isinstance(current_def, Quantity):
                 # for quantities
                 if not isinstance(current_def.type, Reference):
@@ -804,7 +969,9 @@ class EntryMetadata(MSection):
                 ref_list = [v for v in current_value if hasattr(v, 'm_proxy_value')]
 
             for ref in ref_list:
-                reference_section = create_reference_section(ref.m_proxy_value, current_def, quantity_path)
+                reference_section = create_reference_section(
+                    ref.m_proxy_value, current_def, quantity_path
+                )
                 if reference_section:
                     entry_references.append(reference_section)
 
@@ -814,21 +981,25 @@ class EntryMetadata(MSection):
             schema_name = archive.data.m_def.qualified_name()
 
         for section, property_def, _, location in archive.m_traverse():
-
             sections.add(section.m_def)
 
             if property_def is None:
                 continue
 
             section_path = get_section_path(section)
-            quantity_path = f'{section_path}.{property_def.name}' if section_path else property_def.name
+            quantity_path = (
+                f'{section_path}.{property_def.name}'
+                if section_path
+                else property_def.name
+            )
             quantities.add(quantity_path)
             n_quantities += 1
 
             collect_references(section, property_def, quantity_path)
 
-            if section_path.startswith(('data', 'nexus')) and \
-                    isinstance(property_def, Quantity):
+            if section_path.startswith(('data', 'nexus')) and isinstance(
+                property_def, Quantity
+            ):
                 searchable_quantity = create_searchable_quantity(
                     property_def,
                     quantity_path,
@@ -843,7 +1014,9 @@ class EntryMetadata(MSection):
         # data to the archive itself. We manually add them here.
         if len(entry_references) > 0:
             for archive_reference_quantity in EntryArchiveReference.m_def.quantities:  # pylint: disable=not-an-iterable
-                quantities.add(f'metadata.entry_references.{archive_reference_quantity.name}')
+                quantities.add(
+                    f'metadata.entry_references.{archive_reference_quantity.name}'
+                )
             quantities.add('metadata.entry_references')
             sections.add(EntryArchiveReference.m_def)
 
@@ -868,56 +1041,76 @@ class EntryMetadata(MSection):
             return CompatibleSectionDef(
                 definition_qualified_name=_s.qualified_name(),
                 definition_id=_s.definition_id,
-                used_directly=used_directly)
+                used_directly=used_directly,
+            )
 
         def collect_base_sections(_section, used_directly: bool = False):
             for _b in _section.base_sections:
                 if used_directly:
                     # always overrides the directly used section definitions
-                    section_defs[_b.qualified_name()] = generate_compatible(_b, used_directly=used_directly)
+                    section_defs[_b.qualified_name()] = generate_compatible(
+                        _b, used_directly=used_directly
+                    )
                 elif _b.qualified_name() not in section_defs:
                     # indirect usage may be directly used elsewhere, do not overwrite
-                    section_defs[_b.qualified_name()] = generate_compatible(_b, used_directly=used_directly)
+                    section_defs[_b.qualified_name()] = generate_compatible(
+                        _b, used_directly=used_directly
+                    )
                 # all the base sections of the base sections are indirectly used
                 collect_base_sections(_b, used_directly=False)
 
         section_defs = {}
         for section in sections:
-            section_defs[section.qualified_name()] = generate_compatible(section, used_directly=True)
+            section_defs[section.qualified_name()] = generate_compatible(
+                section, used_directly=True
+            )
             for extending in section.extending_sections:
-                section_defs[extending.qualified_name()] = generate_compatible(extending, used_directly=True)
+                section_defs[extending.qualified_name()] = generate_compatible(
+                    extending, used_directly=True
+                )
             collect_base_sections(section, used_directly=True)
 
-        self.section_defs = sorted(list(section_defs.values()), key=lambda x: x.definition_qualified_name)
+        self.section_defs = sorted(
+            list(section_defs.values()), key=lambda x: x.definition_qualified_name
+        )
 
 
 class EntryArchive(ArchiveSection):
     m_def = Section(label='Entry')
 
     entry_id = Quantity(
-        type=str, description='The unique primary id for this entry.',
-        derived=lambda entry: entry.metadata.entry_id)
+        type=str,
+        description='The unique primary id for this entry.',
+        derived=lambda entry: entry.metadata.entry_id,
+    )
 
     run = SubSection(sub_section=Run, repeats=True)
     measurement = SubSection(sub_section=Measurement, repeats=True)
 
     data = SubSection(sub_section=EntryData)
 
-    workflow = SubSection(sub_section=LegacySimulationWorkflow, repeats=True, categories=[FastAccess])
+    workflow = SubSection(
+        sub_section=LegacySimulationWorkflow, repeats=True, categories=[FastAccess]
+    )
     workflow2 = SubSection(sub_section=Workflow, categories=[FastAccess])
 
     metadata = SubSection(
-        sub_section=EntryMetadata, categories=[FastAccess],
-        a_elasticsearch=Elasticsearch())
+        sub_section=EntryMetadata,
+        categories=[FastAccess],
+        a_elasticsearch=Elasticsearch(),
+    )
 
     processing_logs = Quantity(
-        type=Any, shape=['0..*'],
-        description='The processing logs for this entry as a list of structlog entries.')
+        type=Any,
+        shape=['0..*'],
+        description='The processing logs for this entry as a list of structlog entries.',
+    )
 
     results = SubSection(
         sub_section=Results,
         categories=[FastAccess],
-        a_elasticsearch=Elasticsearch(auto_include_subsections=True))
+        a_elasticsearch=Elasticsearch(auto_include_subsections=True),
+    )
 
     tabular_tree = SubSection(sub_section=TabularTree, repeats=False)
     definitions = SubSection(sub_section=Package)
@@ -931,7 +1124,7 @@ class EntryArchive(ArchiveSection):
 
         if not archive.metadata.entry_name:
             if archive.definitions is not None:
-               archive.metadata.entry_name = archive.definitions.name
+                archive.metadata.entry_name = archive.definitions.name
 
         if not archive.metadata.entry_name and archive.metadata.mainfile:
             archive.metadata.entry_name = os.path.basename(archive.metadata.mainfile)

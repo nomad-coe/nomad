@@ -36,26 +36,60 @@ from nomad.datamodel.results import (
     SymmetryNew as Symmetry,
     Cell,
     WyckoffSet,
-    System as ResultSystem
+    System as ResultSystem,
 )
 from nomad.datamodel.optimade import Species
 from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_atoms
 from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import (
-    CoreHole, Method, BasisSetContainer, BasisSet, Electronic, DFT, XCFunctional, Functional,
-    Electronic, Smearing, Scf, GW, Photon, BSE, DMFT, AtomParameters, TB, Wannier,
-    LatticeModelHamiltonian, HubbardKanamoriModel)
-from nomad.datamodel.metainfo.simulation.system import (
-    AtomsGroup, System, Atoms as NOMADAtoms)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Dos, DosValues, BandStructure, BandEnergies,
-    RadiusOfGyration, RadiusOfGyrationValues, GreensFunctions, Spectra, ElectronicStructureProvenance)
-from nomad.datamodel.metainfo.workflow import Workflow
-from nomad.datamodel.metainfo.workflow import (
-    Link, TaskReference
+    CoreHole,
+    Method,
+    BasisSetContainer,
+    BasisSet,
+    Electronic,
+    DFT,
+    XCFunctional,
+    Functional,
+    Electronic,
+    Smearing,
+    Scf,
+    GW,
+    Photon,
+    BSE,
+    DMFT,
+    AtomParameters,
+    TB,
+    Wannier,
+    LatticeModelHamiltonian,
+    HubbardKanamoriModel,
 )
+from nomad.datamodel.metainfo.simulation.system import (
+    AtomsGroup,
+    System,
+    Atoms as NOMADAtoms,
+)
+from nomad.datamodel.metainfo.simulation.calculation import (
+    Calculation,
+    Energy,
+    EnergyEntry,
+    Dos,
+    DosValues,
+    BandStructure,
+    BandEnergies,
+    RadiusOfGyration,
+    RadiusOfGyrationValues,
+    GreensFunctions,
+    Spectra,
+    ElectronicStructureProvenance,
+)
+from nomad.datamodel.metainfo.workflow import Workflow
+from nomad.datamodel.metainfo.workflow import Link, TaskReference
 from nomad.datamodel.metainfo.measurements import (
-    Measurement, Sample, EELSMeasurement, Spectrum, Instrument
+    Measurement,
+    Sample,
+    EELSMeasurement,
+    Spectrum,
+    Instrument,
 )
 from nomad.datamodel.results import EELSInstrument
 
@@ -88,16 +122,16 @@ def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
 
 def run_processing(directory, mainfile):
     # create upload with example files
-    upload_files = create_test_upload_files('test_upload_id', published=False, raw_files=directory)
+    upload_files = create_test_upload_files(
+        'test_upload_id', published=False, raw_files=directory
+    )
     upload = Upload(upload_id='test_upload_id')
 
     # parse
     parser = ArchiveParser()
     context = ServerContext(upload=upload)
     test_archive = EntryArchive(m_context=context, metadata=EntryMetadata())
-    parser.parse(
-        upload_files.raw_file_object(mainfile).os_path,
-        test_archive)
+    parser.parse(upload_files.raw_file_object(mainfile).os_path, test_archive)
     run_normalize(test_archive)
     return test_archive
 
@@ -118,8 +152,7 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
 
 
 def get_template_computation() -> EntryArchive:
-    '''Returns a basic archive template for a computational calculation
-    '''
+    """Returns a basic archive template for a computational calculation"""
     template = EntryArchive()
     run = template.m_create(Run)
     run.program = Program(name='VASP', version='4.6.35')
@@ -128,7 +161,7 @@ def get_template_computation() -> EntryArchive:
         lattice_vectors=[
             [5.76372622e-10, 0.0, 0.0],
             [0.0, 5.76372622e-10, 0.0],
-            [0.0, 0.0, 4.0755698899999997e-10]
+            [0.0, 0.0, 4.0755698899999997e-10],
         ],
         positions=[
             [2.88186311e-10, 0.0, 2.0377849449999999e-10],
@@ -137,30 +170,35 @@ def get_template_computation() -> EntryArchive:
             [2.88186311e-10, 2.88186311e-10, 0.0],
         ],
         labels=['Br', 'K', 'Si', 'Si'],
-        periodic=[True, True, True])
+        periodic=[True, True, True],
+    )
     scc = run.m_create(Calculation)
     scc.system_ref = system
     scc.energy = Energy(
         free=EnergyEntry(value=-1.5936767191492225e-18),
         total=EnergyEntry(value=-1.5935696296699573e-18),
-        total_t0=EnergyEntry(value=-3.2126683561907e-22))
+        total_t0=EnergyEntry(value=-3.2126683561907e-22),
+    )
     return template
 
 
 def get_template_dft() -> EntryArchive:
-    '''Returns a basic archive template for a DFT calculation.
-    '''
+    """Returns a basic archive template for a DFT calculation."""
     template = get_template_computation()
     run = template.run[-1]
     method = run.m_create(Method)
-    method.electrons_representation = [BasisSetContainer(
-        type='plane waves',
-        scope=['wavefunction'],
-        basis_set=[BasisSet(
+    method.electrons_representation = [
+        BasisSetContainer(
             type='plane waves',
-            scope=['valence'],
-        )]
-    )]
+            scope=['wavefunction'],
+            basis_set=[
+                BasisSet(
+                    type='plane waves',
+                    scope=['valence'],
+                )
+            ],
+        )
+    ]
     method.electronic = Electronic(method='DFT')
     xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
     method.dft = DFT(xc_functional=xc_functional)
@@ -172,8 +210,7 @@ def get_template_dft() -> EntryArchive:
 
 
 def get_template_excited(type: str) -> EntryArchive:
-    '''Returns a basic archive template for a ExcitedState calculation.
-    '''
+    """Returns a basic archive template for a ExcitedState calculation."""
     template = get_template_computation()
     run = template.run[-1]
     method = run.m_create(Method)
@@ -192,8 +229,7 @@ def get_template_excited(type: str) -> EntryArchive:
 
 
 def get_template_tb_wannier() -> EntryArchive:
-    '''Returns a basic archive template for a TB calculation.
-    '''
+    """Returns a basic archive template for a TB calculation."""
     template = get_template_computation()
     run = template.run[-1]
     run.program = Program(name='Wannier90', version='3.1.0')
@@ -202,14 +238,17 @@ def get_template_tb_wannier() -> EntryArchive:
     method_tb.name = 'Wannier'
     method_tb.wannier = Wannier(is_maximally_localized=False)
     system = run.system[-1]
-    system.m_add_sub_section(System.atoms_group, AtomsGroup(
-        label='projection',
-        type='active_orbitals',
-        index=0,
-        is_molecule=False,
-        n_atoms=1,
-        atom_indices=np.array([0])
-    ))
+    system.m_add_sub_section(
+        System.atoms_group,
+        AtomsGroup(
+            label='projection',
+            type='active_orbitals',
+            index=0,
+            is_molecule=False,
+            n_atoms=1,
+            atom_indices=np.array([0]),
+        ),
+    )
     scc = run.calculation[-1]
     scc.method_ref = method
     if simulationworkflowschema:
@@ -218,7 +257,7 @@ def get_template_tb_wannier() -> EntryArchive:
 
 
 def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArchive:
-    '''Procedurally generate a CoreHole in a BrKSi2 according to the specifications given.
+    """Procedurally generate a CoreHole in a BrKSi2 according to the specifications given.
     For setting the core hole, only term names that are defined in the NOMAD metainfo are allowed.
     The minimally necessary terms are active by default, though they can be deactivated by setting `None` to mock an incorrect parsed entry.
 
@@ -226,7 +265,7 @@ def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArch
 
     Multiple core holes can be set by passing a `list` of terms. Terms which where already of a list type now become nested.
     For multiple core holes, the lists still have to contain `None` in all relevant positions.
-    '''
+    """
     # instantiate skeleton
     template = get_template_computation()  # assumes BrKSi2
     template.run[-1].method.append(Method())
@@ -240,7 +279,9 @@ def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArch
         core_hole = CoreHole()
         for k, v in kwargs.items():
             try:
-                if k not in list_terms and isinstance(v, list):  # this supports lists of several quantities for multiple core-holes
+                if k not in list_terms and isinstance(
+                    v, list
+                ):  # this supports lists of several quantities for multiple core-holes
                     if len(v):
                         setattr(core_hole, k, v[active_index])
                     else:
@@ -250,10 +291,14 @@ def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArch
             except AttributeError:
                 pass
         method.atom_parameters[-1].core_hole = core_hole
-        system.atoms_group.append(AtomsGroup(
-            label='core-hole', type='active_orbitals',
-            n_atoms=1, atom_indices = [atom_index],
-        ))
+        system.atoms_group.append(
+            AtomsGroup(
+                label='core-hole',
+                type='active_orbitals',
+                n_atoms=1,
+                atom_indices=[atom_index],
+            )
+        )
     return template
 
 
@@ -264,24 +309,28 @@ def robust_compare(a: Any, b: Any) -> bool:
     elif isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
         return np.array_equal(a, b)
     # Check if both are non-iterables (e.g., int, float)
-    elif not isinstance(a, (np.ndarray, list, tuple)) and not isinstance(b, (np.ndarray, list, tuple)):
+    elif not isinstance(a, (np.ndarray, list, tuple)) and not isinstance(
+        b, (np.ndarray, list, tuple)
+    ):
         return a == b
     # Fallback case if one is an iterable and the other is not
     return False
 
 
 def check_template_active_orbitals(template: EntryArchive, **kwargs) -> dict[str, bool]:
-    '''Evaluate a normalized results section for a CoreHole calculation,
+    """Evaluate a normalized results section for a CoreHole calculation,
     when the model parameters are known a priori.
 
     The number of core holes is controlled by `indices`.
     Use `None` to signal that a quantity should not be checked. Just leaving it out also works.
-    '''
+    """
     # setup
     try:
         topology = template.results.material.topology
     except AttributeError:
-        raise ValueError('No topology found in template. Please run normalization first.')
+        raise ValueError(
+            'No topology found in template. Please run normalization first.'
+        )
     # gather test data
     evaluation: dict[str, list[bool]] = defaultdict(list)
     for top in topology:
@@ -290,7 +339,9 @@ def check_template_active_orbitals(template: EntryArchive, **kwargs) -> dict[str
                 if quantity_value is None:
                     continue  # skip quantities that were unasked for
                 # Assuming quantity_value is either a list or a single data object
-                if not isinstance(quantity_value, (list, np.ndarray)):  # for multiple core holes
+                if not isinstance(
+                    quantity_value, (list, np.ndarray)
+                ):  # for multiple core holes
                     quantity_value = [quantity_value]
                 extracted_values = getattr(top.active_orbitals, quantity_name, [])
                 if not isinstance(extracted_values, (list, np.ndarray)):
@@ -300,9 +351,13 @@ def check_template_active_orbitals(template: EntryArchive, **kwargs) -> dict[str
                     evaluation[quantity_name].append(False)
                     continue
                 reference_value: Any
-                for extracted_value, reference_value in zip(extracted_values, quantity_value):
+                for extracted_value, reference_value in zip(
+                    extracted_values, quantity_value
+                ):
                     try:
-                        comparison: bool = robust_compare(extracted_value, reference_value)
+                        comparison: bool = robust_compare(
+                            extracted_value, reference_value
+                        )
                     except AttributeError:
                         comparison = True
                     evaluation[quantity_name].append(comparison)
@@ -311,18 +366,24 @@ def check_template_active_orbitals(template: EntryArchive, **kwargs) -> dict[str
 
 
 def get_template_dmft() -> EntryArchive:
-    '''Returns a basic archive template for a DMFT calculation.
-    '''
+    """Returns a basic archive template for a DMFT calculation."""
     template = get_template_computation()
     run = template.run[-1]
     run.program = Program(name='w2dynamics')
     input_method = run.m_create(Method)
     input_model = input_method.m_create(LatticeModelHamiltonian)
-    input_model.hubbard_kanamori_model.append(HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19))
+    input_model.hubbard_kanamori_model.append(
+        HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19)
+    )
     method_dmft = run.m_create(Method)
     method_dmft.dmft = DMFT(
-        impurity_solver='CT-HYB', n_impurities=1, n_electrons=[1.0], n_correlated_orbitals=[3.0],
-        inverse_temperature=60.0, magnetic_state='paramagnetic')
+        impurity_solver='CT-HYB',
+        n_impurities=1,
+        n_electrons=[1.0],
+        n_correlated_orbitals=[3.0],
+        inverse_temperature=60.0,
+        magnetic_state='paramagnetic',
+    )
     method_dmft.starting_method_ref = input_method
     scc = run.calculation[-1]
     scc.method_ref = method_dmft
@@ -332,8 +393,7 @@ def get_template_dmft() -> EntryArchive:
 
 
 def get_template_maxent() -> EntryArchive:
-    '''Returns a basic archive template for a MaxEnt analytical continuation calculation.
-    '''
+    """Returns a basic archive template for a MaxEnt analytical continuation calculation."""
     # TODO update when MaxEnt methodology is defined
     template = get_template_computation()
     run = template.run[-1]
@@ -347,17 +407,13 @@ def get_template_maxent() -> EntryArchive:
 
 
 def get_template_eels() -> EntryArchive:
-    '''Returns a basic archive template for an EELS experiment.
-    '''
+    """Returns a basic archive template for an EELS experiment."""
     template = EntryArchive()
     measurement = template.m_create(Measurement)
     measurement.method_name = 'electron energy loss spectroscopy'
     measurement.method_abbreviation = 'EELS'
     # Sample
-    sample = Sample(
-        elements=['Si', 'O'],
-        chemical_formula='SiO'
-    )
+    sample = Sample(elements=['Si', 'O'], chemical_formula='SiO')
     measurement.m_add_sub_section(Measurement.sample, sample)
     # Instrument
     instrument = measurement.m_create(Instrument)
@@ -367,16 +423,13 @@ def get_template_eels() -> EntryArchive:
         min_energy=min_energy,
         max_energy=max_energy,
         detector_type='Quantum GIF',
-        resolution=1.0 * ureg.eV
+        resolution=1.0 * ureg.eV,
     )
     # Spectrum
     eels_measurement = EELSMeasurement()
     counts = np.linspace(0, 100, 101)
     energies = np.linspace(100, 200, 101) * ureg.eV
-    spectrum = Spectrum(
-        count=counts,
-        energy=energies
-    )
+    spectrum = Spectrum(count=counts, energy=energies)
     eels_measurement.m_add_sub_section(EELSMeasurement.spectrum, spectrum)
     measurement.eels = eels_measurement
     return template
@@ -404,22 +457,24 @@ def get_template_for_structure(atoms: Atoms) -> EntryArchive:
 def get_section_system(atoms: Atoms):
     system = System()
     system.atoms = NOMADAtoms(
-        positions=atoms.get_positions() * 1E-10,
+        positions=atoms.get_positions() * 1e-10,
         labels=atoms.get_chemical_symbols(),
-        lattice_vectors=atoms.get_cell() * 1E-10,
-        periodic=atoms.get_pbc())
+        lattice_vectors=atoms.get_cell() * 1e-10,
+        periodic=atoms.get_pbc(),
+    )
     return system
 
 
 def add_template_dos(
-        template: EntryArchive,
-        fill: List = [[[0, 1], [2, 3]]],
-        energy_reference_fermi: Union[float, None] = None,
-        energy_reference_highest_occupied: Union[float, None] = None,
-        energy_reference_lowest_unoccupied: Union[float, None] = None,
-        n_values: int = 101,
-        type: str = 'electronic') -> EntryArchive:
-    '''Used to create a test data for DOS.
+    template: EntryArchive,
+    fill: List = [[[0, 1], [2, 3]]],
+    energy_reference_fermi: Union[float, None] = None,
+    energy_reference_highest_occupied: Union[float, None] = None,
+    energy_reference_lowest_unoccupied: Union[float, None] = None,
+    n_values: int = 101,
+    type: str = 'electronic',
+) -> EntryArchive:
+    """Used to create a test data for DOS.
 
     Args:
         fill: List containing the energy ranges (eV) that should be filled with
@@ -430,11 +485,13 @@ def add_template_dos(
         energy_reference_lowest_unoccupied: Lowest unoccupied energy (eV) as given by a parser.
         type: 'electronic' or 'vibrational'
         has_references: Whether the DOS has energy references or not.
-    '''
+    """
     if len(fill) > 1 and type != 'electronic':
         raise ValueError('Cannot create spin polarized DOS for non-electronic data.')
     scc = template.run[0].calculation[0]
-    dos_type = Calculation.dos_electronic if type == 'electronic' else Calculation.dos_phonon
+    dos_type = (
+        Calculation.dos_electronic if type == 'electronic' else Calculation.dos_phonon
+    )
     energies = np.linspace(-5, 5, n_values)
     for i, range_list in enumerate(fill):
         dos = scc.m_create(Dos, dos_type)
@@ -457,36 +514,43 @@ def add_template_dos(
     scc.energy = Energy(
         fermi=energy_reference_fermi,
         highest_occupied=energy_reference_highest_occupied,
-        lowest_unoccupied=energy_reference_lowest_unoccupied)
+        lowest_unoccupied=energy_reference_lowest_unoccupied,
+    )
     return template
 
 
 def get_template_dos(
-        fill: List = [[[0, 1], [2, 3]]],
-        energy_reference_fermi: Union[float, None] = None,
-        energy_reference_highest_occupied: Union[float, None] = None,
-        energy_reference_lowest_unoccupied: Union[float, None] = None,
-        n_values: int = 101,
-        type: str = 'electronic',
-        normalize: bool = True) -> EntryArchive:
-
+    fill: List = [[[0, 1], [2, 3]]],
+    energy_reference_fermi: Union[float, None] = None,
+    energy_reference_highest_occupied: Union[float, None] = None,
+    energy_reference_lowest_unoccupied: Union[float, None] = None,
+    n_values: int = 101,
+    type: str = 'electronic',
+    normalize: bool = True,
+) -> EntryArchive:
     archive = get_template_dft()
-    archive = add_template_dos(archive, fill, energy_reference_fermi,
-                               energy_reference_highest_occupied,
-                               energy_reference_lowest_unoccupied,
-                               n_values, type)
+    archive = add_template_dos(
+        archive,
+        fill,
+        energy_reference_fermi,
+        energy_reference_highest_occupied,
+        energy_reference_lowest_unoccupied,
+        n_values,
+        type,
+    )
     if normalize:
         archive = run_normalize(archive)
     return archive
 
 
 def add_template_band_structure(
-        template: EntryArchive,
-        band_gaps: List = None,
-        type: str = 'electronic',
-        has_references: bool = True,
-        has_reciprocal_cell: bool = True) -> EntryArchive:
-    '''Used to create a test data for band structures.
+    template: EntryArchive,
+    band_gaps: List = None,
+    type: str = 'electronic',
+    has_references: bool = True,
+    has_reciprocal_cell: bool = True,
+) -> EntryArchive:
+    """Used to create a test data for band structures.
 
     Args:
         band_gaps: List containing the band gap value and band gap type as a
@@ -496,7 +560,7 @@ def add_template_band_structure(
         type: 'electronic' or 'vibrational'
         has_references: Whether the band structure has energy references or not.
         has_reciprocal_cell: Whether the reciprocal cell is available or not.
-    '''
+    """
     if band_gaps is None:
         band_gaps = [None]
     if not has_reciprocal_cell:
@@ -528,7 +592,12 @@ def add_template_band_structure(
     n_segments = 2
     full_space = np.linspace(0, 2 * np.pi, 200)
     k, m = divmod(len(full_space), n_segments)
-    space = list((full_space[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n_segments)))
+    space = list(
+        (
+            full_space[i * k + min(i, m) : (i + 1) * k + min(i + 1, m)]
+            for i in range(n_segments)
+        )
+    )
     for i_seg in range(n_segments):
         krange = space[i_seg]
         n_points = len(krange)
@@ -560,23 +629,23 @@ def add_template_band_structure(
 
 
 def get_template_band_structure(
-        band_gaps: List = None,
-        type: str = 'electronic',
-        has_references: bool = True,
-        has_reciprocal_cell: bool = True,
-        normalize: bool = True) -> EntryArchive:
-
+    band_gaps: List = None,
+    type: str = 'electronic',
+    has_references: bool = True,
+    has_reciprocal_cell: bool = True,
+    normalize: bool = True,
+) -> EntryArchive:
     archive = get_template_dft()
-    archive = add_template_band_structure(archive, band_gaps, type,
-                                          has_references, has_reciprocal_cell)
+    archive = add_template_band_structure(
+        archive, band_gaps, type, has_references, has_reciprocal_cell
+    )
     if normalize:
         archive = run_normalize(archive)
     return archive
 
 
 def add_template_greens_functions(template: EntryArchive) -> EntryArchive:
-    '''Used to create a test data for Greens functions.
-    '''
+    """Used to create a test data for Greens functions."""
     scc = template.run[0].calculation[0]
     sec_gfs = scc.m_create(GreensFunctions)
     sec_gfs.matsubara_freq = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
@@ -585,15 +654,21 @@ def add_template_greens_functions(template: EntryArchive) -> EntryArchive:
     n_spin = 2
     n_orbitals = 3
     n_iw = len(sec_gfs.matsubara_freq)
-    self_energy_iw = [[[[w * 1j + o + s + a for w in range(n_iw)] for o in range(n_orbitals)] for s in range(n_spin)] for a in range(n_atoms)]
+    self_energy_iw = [
+        [
+            [[w * 1j + o + s + a for w in range(n_iw)] for o in range(n_orbitals)]
+            for s in range(n_spin)
+        ]
+        for a in range(n_atoms)
+    ]
     sec_gfs.self_energy_iw = self_energy_iw
     sec_gfs.greens_function_tau = self_energy_iw
     return template
 
 
 def get_template_gw_workflow() -> EntryArchive:
-    '''Returns a basic archive template for a GW workflow entry, composed of two main tasks:
-    DFT GeometryOptimization and GW SinglePoint.'''
+    """Returns a basic archive template for a GW workflow entry, composed of two main tasks:
+    DFT GeometryOptimization and GW SinglePoint."""
     # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
     archive_dft = get_template_dft()
     archive_gw = get_template_excited(type='GW')
@@ -607,12 +682,20 @@ def get_template_gw_workflow() -> EntryArchive:
     # Defining DFT and GW tasks for later the GW workflow
     task_dft = TaskReference(task=archive_dft.workflow2)
     task_dft.name = 'DFT'
-    task_dft.inputs = [Link(name='Input structure', section=archive_dft.run[-1].system[-1])]
-    task_dft.outputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
+    task_dft.inputs = [
+        Link(name='Input structure', section=archive_dft.run[-1].system[-1])
+    ]
+    task_dft.outputs = [
+        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
+    ]
     task_gw = TaskReference(task=archive_gw.workflow2)
     task_gw.name = 'GW'
-    task_gw.inputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
-    task_gw.outputs = [Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1])]
+    task_gw.inputs = [
+        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
+    ]
+    task_gw.outputs = [
+        Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1])
+    ]
     # GW workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
     run = template.m_create(Run)
@@ -624,10 +707,21 @@ def get_template_gw_workflow() -> EntryArchive:
         workflow_method = simulationworkflowschema.GWMethod(
             gw_method_ref=archive_gw.run[-1].method[-1].gw,
             starting_point=archive_dft.run[-1].method[-1].dft.xc_functional,
-            electrons_representation=archive_dft.run[-1].method[-1].electrons_representation[-1])
+            electrons_representation=archive_dft.run[-1]
+            .method[-1]
+            .electrons_representation[-1],
+        )
         workflow.m_add_sub_section(simulationworkflowschema.GW.method, workflow_method)
-        workflow.m_add_sub_section(simulationworkflowschema.GW.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.GW.outputs, Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]))
+        workflow.m_add_sub_section(
+            simulationworkflowschema.GW.inputs,
+            Link(name='Input structure', section=archive_dft.run[-1].system[-1]),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.GW.outputs,
+            Link(
+                name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]
+            ),
+        )
         workflow.m_add_sub_section(simulationworkflowschema.GW.tasks, task_dft)
         workflow.m_add_sub_section(simulationworkflowschema.GW.tasks, task_gw)
         template.workflow2 = workflow
@@ -646,12 +740,22 @@ def get_template_dmft_workflow() -> EntryArchive:
     # Defining Projection and DMFT tasks for later the DMFT workflow
     task_proj = TaskReference(task=archive_tb.workflow2)
     task_proj.name = 'Projection'
-    task_proj.inputs = [Link(name='Input structure', section=archive_tb.run[-1].system[-1])]
-    task_proj.outputs = [Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])]
+    task_proj.inputs = [
+        Link(name='Input structure', section=archive_tb.run[-1].system[-1])
+    ]
+    task_proj.outputs = [
+        Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])
+    ]
     task_dmft = TaskReference(task=archive_dmft.workflow2)
     task_dmft.name = 'DMFT'
-    task_dmft.inputs = [Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])]
-    task_dmft.outputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
+    task_dmft.inputs = [
+        Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])
+    ]
+    task_dmft.outputs = [
+        Link(
+            name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]
+        )
+    ]
     # DMFT workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
     run = template.m_create(Run)
@@ -662,10 +766,22 @@ def get_template_dmft_workflow() -> EntryArchive:
         workflow.name = 'DMFT'
         workflow_method = simulationworkflowschema.DMFTMethod(
             tb_method_ref=archive_tb.run[-1].method[-1].tb,
-            dmft_method_ref=archive_dmft.run[-1].method[-1].dmft)
-        workflow.m_add_sub_section(simulationworkflowschema.DMFT.method, workflow_method)
-        workflow.m_add_sub_section(simulationworkflowschema.DMFT.inputs, Link(name='Input structure', section=archive_tb.run[-1].system[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.DMFT.outputs, Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]))
+            dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.DMFT.method, workflow_method
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.DMFT.inputs,
+            Link(name='Input structure', section=archive_tb.run[-1].system[-1]),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.DMFT.outputs,
+            Link(
+                name='Output DMFT calculation',
+                section=archive_dmft.run[-1].calculation[-1],
+            ),
+        )
         workflow.m_add_sub_section(simulationworkflowschema.DMFT.tasks, task_proj)
         workflow.m_add_sub_section(simulationworkflowschema.DMFT.tasks, task_dmft)
         template.workflow2 = workflow
@@ -684,12 +800,27 @@ def get_template_maxent_workflow() -> EntryArchive:
     # Defining Projection and DMFT tasks for later the DMFT workflow
     task_dmft = TaskReference(task=archive_dmft.workflow2)
     task_dmft.name = 'DMFT'
-    task_dmft.inputs = [Link(name='Input structure', section=archive_dmft.run[-1].system[-1])]
-    task_dmft.outputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
+    task_dmft.inputs = [
+        Link(name='Input structure', section=archive_dmft.run[-1].system[-1])
+    ]
+    task_dmft.outputs = [
+        Link(
+            name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]
+        )
+    ]
     task_maxent = TaskReference(task=archive_dmft.workflow2)
     task_maxent.name = 'MaxEnt Sigma'
-    task_maxent.inputs = [Link(name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1])]
-    task_maxent.outputs = [Link(name='Output MaxEnt Sigma calculation', section=archive_maxent.run[-1].calculation[-1])]
+    task_maxent.inputs = [
+        Link(
+            name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]
+        )
+    ]
+    task_maxent.outputs = [
+        Link(
+            name='Output MaxEnt Sigma calculation',
+            section=archive_maxent.run[-1].calculation[-1],
+        )
+    ]
     # DMFT workflow entry (no need of creating Method)
     template = EntryArchive()
     run = template.m_create(Run)
@@ -703,12 +834,25 @@ def get_template_maxent_workflow() -> EntryArchive:
         workflow.name = 'MaxEnt'
         workflow_method = simulationworkflowschema.MaxEntMethod(
             dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
-            maxent_method_ref=archive_maxent.run[-1].method[-1])
-        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.method, workflow_method)
-        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.inputs, Link(name='Input structure', section=archive_dmft.run[-1].system[-1]))
+            maxent_method_ref=archive_maxent.run[-1].method[-1],
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.MaxEnt.method, workflow_method
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.MaxEnt.inputs,
+            Link(name='Input structure', section=archive_dmft.run[-1].system[-1]),
+        )
         outputs = [
-            Link(name='Output MaxEnt Sigma calculation', section=archive_dmft.run[-1].calculation[-1]),
-            Link(name='Output MaxEnt calculation', section=template.run[-1].calculation[-1])]
+            Link(
+                name='Output MaxEnt Sigma calculation',
+                section=archive_dmft.run[-1].calculation[-1],
+            ),
+            Link(
+                name='Output MaxEnt calculation',
+                section=template.run[-1].calculation[-1],
+            ),
+        ]
         workflow.outputs = outputs
         workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.tasks, task_dmft)
         workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.tasks, task_maxent)
@@ -717,8 +861,8 @@ def get_template_maxent_workflow() -> EntryArchive:
 
 
 def get_template_bse_workflow() -> EntryArchive:
-    '''Returns a basic archive template for a BSE workflow entry, composed of two tasks:
-    PhotonPolarization SinglePoint number 1 and PhotonPolarization SinglePoint number 2.'''
+    """Returns a basic archive template for a BSE workflow entry, composed of two tasks:
+    PhotonPolarization SinglePoint number 1 and PhotonPolarization SinglePoint number 2."""
     # Adding two spectras for both photon polarizations
     archive_photon_1 = get_template_excited(type='Photon')
     archive_photon_2 = get_template_excited(type='Photon')
@@ -728,39 +872,55 @@ def get_template_bse_workflow() -> EntryArchive:
         n_energies=n_energies,
         excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
         intensities=np.linspace(100, 200, n_energies),
-        intensities_units='F/m'
+        intensities_units='F/m',
     )
     provenance_1 = ElectronicStructureProvenance(
-        label='photon',
-        methodology=archive_photon_1.run[-1].method[-1]
+        label='photon', methodology=archive_photon_1.run[-1].method[-1]
     )
     spectra_1.m_add_sub_section(Spectra.provenance, provenance_1)
-    archive_photon_1.run[-1].calculation[-1].m_add_sub_section(Calculation.spectra, spectra_1)
+    archive_photon_1.run[-1].calculation[-1].m_add_sub_section(
+        Calculation.spectra, spectra_1
+    )
     spectra_2 = Spectra(
         type='XAS',
         n_energies=n_energies,
         excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
         intensities=np.linspace(200, 300, n_energies),
-        intensities_units='F/m'
+        intensities_units='F/m',
     )
     provenance_2 = ElectronicStructureProvenance(
-        label='photon',
-        methodology=archive_photon_2.run[-1].method[-1]
+        label='photon', methodology=archive_photon_2.run[-1].method[-1]
     )
     spectra_2.m_add_sub_section(Spectra.provenance, provenance_2)
-    archive_photon_2.run[-1].calculation[-1].m_add_sub_section(Calculation.spectra, spectra_2)
+    archive_photon_2.run[-1].calculation[-1].m_add_sub_section(
+        Calculation.spectra, spectra_2
+    )
     # Normalizing SinglePoint archives BEFORE defining the BSE workflow entry
     run_normalize(archive_photon_1)
     run_normalize(archive_photon_2)
     # Defining Photon1 and Photon2 tasks for later the BSE workflow
     task_photon_1 = TaskReference(task=archive_photon_1.workflow2)
     task_photon_1.name = 'Photon 1'
-    task_photon_1.inputs = [Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])]
-    task_photon_1.outputs = [Link(name='Output polarization 1', section=archive_photon_1.run[-1].calculation[-1])]
+    task_photon_1.inputs = [
+        Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])
+    ]
+    task_photon_1.outputs = [
+        Link(
+            name='Output polarization 1',
+            section=archive_photon_1.run[-1].calculation[-1],
+        )
+    ]
     task_photon_2 = TaskReference(task=archive_photon_2.workflow2)
     task_photon_2.name = 'Photon 2'
-    task_photon_2.inputs = [Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])]
-    task_photon_2.outputs = [Link(name='Output polarization 2', section=archive_photon_2.run[-1].calculation[-1])]
+    task_photon_2.inputs = [
+        Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])
+    ]
+    task_photon_2.outputs = [
+        Link(
+            name='Output polarization 2',
+            section=archive_photon_2.run[-1].calculation[-1],
+        )
+    ]
     # BSE workflow entry (no need of creating Calculation). We need to define BSE method.
     template = EntryArchive()
     run = template.m_create(Run)
@@ -771,28 +931,55 @@ def get_template_bse_workflow() -> EntryArchive:
     if simulationworkflowschema:
         workflow = simulationworkflowschema.PhotonPolarization()
         workflow.name = 'BSE'
-        workflow_method = simulationworkflowschema.PhotonPolarizationMethod(bse_method_ref=template.run[-1].method[-1].bse)
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.method, workflow_method)
+        workflow_method = simulationworkflowschema.PhotonPolarizationMethod(
+            bse_method_ref=template.run[-1].method[-1].bse
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.method, workflow_method
+        )
         spectras = [spectra_1, spectra_2]
         workflow_results = simulationworkflowschema.PhotonPolarizationResults(
-            n_polarizations=2,
-            spectrum_polarization=spectras
+            n_polarizations=2, spectrum_polarization=spectras
         )
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.results, workflow_results)
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.inputs, Link(name='Input structure', section=archive_photon_1.run[-1].system[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.inputs, Link(name='Input BSE methodology', section=template.run[-1].method[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.outputs, Link(name='Output polarization 1', section=archive_photon_1.run[-1].calculation[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.outputs, Link(name='Output polarization 2', section=archive_photon_2.run[-1].calculation[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.tasks, task_photon_1)
-        workflow.m_add_sub_section(simulationworkflowschema.PhotonPolarization.tasks, task_photon_2)
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.results, workflow_results
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.inputs,
+            Link(name='Input structure', section=archive_photon_1.run[-1].system[-1]),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.inputs,
+            Link(name='Input BSE methodology', section=template.run[-1].method[-1]),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.outputs,
+            Link(
+                name='Output polarization 1',
+                section=archive_photon_1.run[-1].calculation[-1],
+            ),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.outputs,
+            Link(
+                name='Output polarization 2',
+                section=archive_photon_2.run[-1].calculation[-1],
+            ),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.tasks, task_photon_1
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.PhotonPolarization.tasks, task_photon_2
+        )
         template.workflow2 = workflow
     return template
 
 
 def get_template_xs_workflow() -> EntryArchive:
-    '''Returns a basic archive template for a XS workflow entry, composed of two main tasks:
+    """Returns a basic archive template for a XS workflow entry, composed of two main tasks:
     DFT GeometryOptimization and BSE workflow. The BSE workflow archive contains one
-    PhotonPolarization SinglePoint task.'''
+    PhotonPolarization SinglePoint task."""
     # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
     archive_dft = get_template_dft()
     archive_dft = add_template_band_structure(archive_dft)
@@ -804,14 +991,21 @@ def get_template_xs_workflow() -> EntryArchive:
     # Defining DFT and BSE tasks for later the BS workflow
     task_dft = TaskReference(task=archive_dft.workflow2)
     task_dft.name = 'DFT'
-    task_dft.inputs = [Link(name='Input structure', section=archive_dft.run[-1].system[-1])]
-    task_dft.outputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
+    task_dft.inputs = [
+        Link(name='Input structure', section=archive_dft.run[-1].system[-1])
+    ]
+    task_dft.outputs = [
+        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
+    ]
     task_bse = TaskReference(task=archive_bse.workflow2)
     task_bse.name = 'BSE 1'
-    task_bse.inputs = [Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])]
+    task_bse.inputs = [
+        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
+    ]
     task_bse.outputs = [
         Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section),
-        Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section)]
+        Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section),
+    ]
     # XS (BSE) workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
     run = template.m_create(Run)
@@ -820,9 +1014,22 @@ def get_template_xs_workflow() -> EntryArchive:
     if simulationworkflowschema:
         workflow = simulationworkflowschema.XS()
         workflow.name = 'XS'
-        workflow.m_add_sub_section(simulationworkflowschema.XS.inputs, Link(name='Input structure', section=archive_dft.run[-1].system[-1]))
-        workflow.m_add_sub_section(simulationworkflowschema.XS.outputs, Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section))
-        workflow.m_add_sub_section(simulationworkflowschema.XS.outputs, Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section))
+        workflow.m_add_sub_section(
+            simulationworkflowschema.XS.inputs,
+            Link(name='Input structure', section=archive_dft.run[-1].system[-1]),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.XS.outputs,
+            Link(
+                name='Polarization 1', section=archive_bse.workflow2.outputs[0].section
+            ),
+        )
+        workflow.m_add_sub_section(
+            simulationworkflowschema.XS.outputs,
+            Link(
+                name='Polarization 2', section=archive_bse.workflow2.outputs[1].section
+            ),
+        )
         workflow.m_add_sub_section(simulationworkflowschema.XS.tasks, task_dft)
         workflow.m_add_sub_section(simulationworkflowschema.XS.tasks, task_bse)
         template.workflow2 = workflow
@@ -830,27 +1037,32 @@ def get_template_xs_workflow() -> EntryArchive:
 
 
 def set_dft_values(xc_functional_names: list) -> EntryArchive:
-    ''''''
+    """"""
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.electrons_representation = [BasisSetContainer(
-        type='plane waves',
-        scope=['wavefunction'],
-        basis_set=[BasisSet(
+    method_dft.electrons_representation = [
+        BasisSetContainer(
             type='plane waves',
-            scope=['valence'],
-            cutoff=500,
-        )]
-    )]
+            scope=['wavefunction'],
+            basis_set=[
+                BasisSet(
+                    type='plane waves',
+                    scope=['valence'],
+                    cutoff=500,
+                )
+            ],
+        )
+    ]
     method_dft.dft = DFT()
     method_dft.electronic = Electronic(
         method='DFT',
         smearing=Smearing(kind='gaussian', width=1e-20),
         n_spin_channels=2,
         van_der_waals_method='G06',
-        relativity_method='scalar_relativistic')
+        relativity_method='scalar_relativistic',
+    )
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft.xc_functional = XCFunctional()
     xc = method_dft.dft.xc_functional
@@ -868,43 +1080,57 @@ def set_dft_values(xc_functional_names: list) -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft() -> EntryArchive:
-    '''DFT calculation.'''
+    """DFT calculation."""
     template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dft_method_referenced() -> EntryArchive:
-    '''DFT calculation with two methods: one referencing the other.'''
+    """DFT calculation with two methods: one referencing the other."""
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.electrons_representation = [BasisSetContainer(
-        type='plane waves',
-        scope=['wavefunction'],
-        basis_set=[BasisSet(
+    method_dft.electrons_representation = [
+        BasisSetContainer(
             type='plane waves',
-            scope=['valence'],
-        )]
-    )]
+            scope=['wavefunction'],
+            basis_set=[
+                BasisSet(
+                    type='plane waves',
+                    scope=['valence'],
+                )
+            ],
+        )
+    ]
     method_dft.electronic = Electronic(
         smearing=Smearing(kind='gaussian', width=1e-20),
-        n_spin_channels=2, van_der_waals_method='G06',
-        relativity_method='scalar_relativistic')
+        n_spin_channels=2,
+        van_der_waals_method='G06',
+        relativity_method='scalar_relativistic',
+    )
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
+    method_dft.dft.xc_functional.correlation.append(
+        Functional(name='GGA_C_PBE', weight=1.0)
+    )
+    method_dft.dft.xc_functional.exchange.append(
+        Functional(name='GGA_X_PBE', weight=1.0)
+    )
     method_ref = run.m_create(Method)
-    method_ref.electrons_representation = [BasisSetContainer(
-        type='plane waves',
-        scope=['wavefunction'],
-        basis_set=[BasisSet(
+    method_ref.electrons_representation = [
+        BasisSetContainer(
             type='plane waves',
-            scope=['valence'],
-        )]
-    )]
+            scope=['wavefunction'],
+            basis_set=[
+                BasisSet(
+                    type='plane waves',
+                    scope=['valence'],
+                )
+            ],
+        )
+    ]
     method_ref.electronic = Electronic(method='DFT')
     method_ref.core_method_ref = method_dft
     run.calculation[0].method_ref = method_ref
@@ -913,10 +1139,12 @@ def dft_method_referenced() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft_exact_exchange() -> EntryArchive:
-    '''Add exact exchange explicitely to a PBE calculation.'''
+    """Add exact exchange explicitely to a PBE calculation."""
     template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
     template.run[0].method[0].dft.xc_functional.hybrid.append(Functional())
-    template.run[0].method[0].dft.xc_functional.hybrid[0].parameters = {'exact_exchange_mixing_factor': .25}
+    template.run[0].method[0].dft.xc_functional.hybrid[0].parameters = {
+        'exact_exchange_mixing_factor': 0.25
+    }
     template.run[0].method[0].dft.xc_functional.hybrid[0].name = '+alpha'
     return run_normalize(template)
 
@@ -995,72 +1223,83 @@ def dft_m05_2x() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def dft_plus_u() -> EntryArchive:
-    '''DFT+U calculation with a Hubbard model.'''
+    """DFT+U calculation with a Hubbard model."""
     template = get_template_dft()
     template.run[0].method = None
     run = template.run[0]
     method_dft = run.m_create(Method)
-    method_dft.electrons_representation = [BasisSetContainer(
-        type='plane waves',
-        scope=['wavefunction'],
-        basis_set=[BasisSet(
+    method_dft.electrons_representation = [
+        BasisSetContainer(
             type='plane waves',
-            scope=['valence'],
-        )]
-    )]
+            scope=['wavefunction'],
+            basis_set=[
+                BasisSet(
+                    type='plane waves',
+                    scope=['valence'],
+                )
+            ],
+        )
+    ]
     method_dft.electronic = Electronic(
         method='DFT+U',
         smearing=Smearing(kind='gaussian', width=1e-20),
-        n_spin_channels=2, van_der_waals_method='G06',
-        relativity_method='scalar_relativistic')
+        n_spin_channels=2,
+        van_der_waals_method='G06',
+        relativity_method='scalar_relativistic',
+    )
     method_dft.scf = Scf(threshold_energy_change=1e-24)
     method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(Functional(name='GGA_C_PBE', weight=1.0))
-    method_dft.dft.xc_functional.exchange.append(Functional(name='GGA_X_PBE', weight=1.0))
+    method_dft.dft.xc_functional.correlation.append(
+        Functional(name='GGA_C_PBE', weight=1.0)
+    )
+    method_dft.dft.xc_functional.exchange.append(
+        Functional(name='GGA_X_PBE', weight=1.0)
+    )
     method_dft.atom_parameters.append(AtomParameters(label='Ti'))
     method_dft.atom_parameters[0].hubbard_kanamori_model = HubbardKanamoriModel(
-        orbital='3d', u=4.5e-19, j=1.0e-19, double_counting_correction='Dudarev')
+        orbital='3d', u=4.5e-19, j=1.0e-19, double_counting_correction='Dudarev'
+    )
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def tb_wannier() -> EntryArchive:
-    '''Wannier TB calculation.'''
+    """Wannier TB calculation."""
     template = get_template_tb_wannier()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def gw() -> EntryArchive:
-    '''GW calculation.'''
+    """GW calculation."""
     template = get_template_excited(type='GW')
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def bse() -> EntryArchive:
-    '''BSE calculation.'''
+    """BSE calculation."""
     template = get_template_excited(type='BSE')
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dmft() -> EntryArchive:
-    '''DMFT calculation.'''
+    """DMFT calculation."""
     template = get_template_dmft()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def eels() -> EntryArchive:
-    '''EELS experiment.'''
+    """EELS experiment."""
     template = get_template_eels()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def mechanical_elastic() -> EntryArchive:
-    '''Entry with mechanical properties.'''
+    """Entry with mechanical properties."""
     template = get_template_dft()
 
     # Elastic workflow
@@ -1077,17 +1316,19 @@ def mechanical_elastic() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def mechanical_eos() -> EntryArchive:
-    '''Entry with mechanical properties.'''
+    """Entry with mechanical properties."""
     template = get_template_dft()
 
     # EOS workflow
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.EquationOfState()
         template.workflow2.results = simulationworkflowschema.EquationOfStateResults(
-            volumes=np.linspace(0, 10, 10) * ureg.angstrom ** 3,
+            volumes=np.linspace(0, 10, 10) * ureg.angstrom**3,
             energies=np.linspace(0, 10, 10) * ureg.electron_volt,
         )
-        eos_fit = template.workflow2.results.m_create(simulationworkflowschema.equation_of_state.EOSFit)
+        eos_fit = template.workflow2.results.m_create(
+            simulationworkflowschema.equation_of_state.EOSFit
+        )
         eos_fit.function_name = 'murnaghan'
         eos_fit.fitted_energies = np.linspace(0, 10, 10) * ureg.electron_volt
         eos_fit.bulk_modulus = 10000
@@ -1112,9 +1353,9 @@ def two_d() -> EntryArchive:
         cell=[
             [2.461, 0, 0],
             [np.cos(np.pi / 3) * 2.461, np.sin(np.pi / 3) * 2.461, 0],
-            [0, 0, 20]
+            [0, 0, 20],
         ],
-        pbc=True
+        pbc=True,
     )
     return get_template_for_structure(atoms)
 
@@ -1144,7 +1385,9 @@ def atom() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def one_d() -> EntryArchive:
-    atoms = ase.build.graphene_nanoribbon(1, 1, type='zigzag', vacuum=10, saturated=True)
+    atoms = ase.build.graphene_nanoribbon(
+        1, 1, type='zigzag', vacuum=10, saturated=True
+    )
     return get_template_for_structure(atoms)
 
 
@@ -1176,7 +1419,9 @@ def inorganic_carbonyl_formula() -> EntryArchive:
     run = template.m_create(Run)
     run.program = Program(name='VASP', version='4.6.35')
     system = run.m_create(System)
-    system.atoms = NOMADAtoms(labels=['Fe', 'C', 'C', 'C', 'C', 'C', 'O', 'O', 'O', 'O', 'O'])
+    system.atoms = NOMADAtoms(
+        labels=['Fe', 'C', 'C', 'C', 'C', 'C', 'O', 'O', 'O', 'O', 'O']
+    )
     run.calculation.extend([Calculation(), Calculation()])
     return run_normalize(template)
 
@@ -1216,42 +1461,42 @@ def unknown_program() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def single_point() -> EntryArchive:
-    '''Single point calculation.'''
+    """Single point calculation."""
     template = get_template_dft()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def gw_workflow() -> EntryArchive:
-    '''GW workflow (DFT+GW) EntryArchive.'''
+    """GW workflow (DFT+GW) EntryArchive."""
     template = get_template_gw_workflow()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def dmft_workflow() -> EntryArchive:
-    '''DMFT workflow (Projection+DMFT) EntryArchive.'''
+    """DMFT workflow (Projection+DMFT) EntryArchive."""
     template = get_template_dmft_workflow()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def maxent_workflow() -> EntryArchive:
-    '''MaxEnt workflow (DMFT+MaxEnt Sigma) EntryArchive.'''
+    """MaxEnt workflow (DMFT+MaxEnt Sigma) EntryArchive."""
     template = get_template_maxent_workflow()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def bse_workflow() -> EntryArchive:
-    '''BSE workflow (Photon1+Photon2) EntryArchive'''
+    """BSE workflow (Photon1+Photon2) EntryArchive"""
     template = get_template_bse_workflow()
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def xs_workflow() -> EntryArchive:
-    '''XS workflow (DFT+BSEworkflow) EntryArchive.'''
+    """XS workflow (DFT+BSEworkflow) EntryArchive."""
     template = get_template_xs_workflow()
     return run_normalize(template)
 
@@ -1269,8 +1514,12 @@ def geometry_optimization() -> EntryArchive:
     sys2 = get_section_system(atoms2)
     scc1 = run.m_create(Calculation)
     scc2 = run.m_create(Calculation)
-    scc1.energy = Energy(total=EnergyEntry(value=1e-19), total_t0=EnergyEntry(value=1e-19))
-    scc2.energy = Energy(total=EnergyEntry(value=0.5e-19), total_t0=EnergyEntry(value=0.5e-19))
+    scc1.energy = Energy(
+        total=EnergyEntry(value=1e-19), total_t0=EnergyEntry(value=1e-19)
+    )
+    scc2.energy = Energy(
+        total=EnergyEntry(value=0.5e-19), total_t0=EnergyEntry(value=0.5e-19)
+    )
     scc1.system_ref = sys1
     scc2.system_ref = sys2
     scc1.method_ref = run.method[0]
@@ -1285,7 +1534,9 @@ def geometry_optimization() -> EntryArchive:
                 convergence_tolerance_force_maximum=1e-11 * ureg.newton,
                 convergence_tolerance_displacement_maximum=1e-3 * ureg.angstrom,
                 method='bfgs',
-                type='atomic'))
+                type='atomic',
+            )
+        )
         template.workflow2.normalize(template, get_logger(__name__))
     run_normalize(template)
     return template
@@ -1293,7 +1544,7 @@ def geometry_optimization() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def molecular_dynamics() -> EntryArchive:
-    '''Molecular dynamics calculation.'''
+    """Molecular dynamics calculation."""
     template = get_template_dft()
     run = template.run[0]
 
@@ -1314,14 +1565,14 @@ def molecular_dynamics() -> EntryArchive:
             potential=EnergyEntry(value=step),
         )
         rg_values = RadiusOfGyrationValues(
-            value=step,
-            label='MOL',
-            atomsgroup_ref=system
+            value=step, label='MOL', atomsgroup_ref=system
         )
-        calc.radius_of_gyration = [RadiusOfGyration(
-            kind='molecular',
-            radius_of_gyration_values=[rg_values],
-        )]
+        calc.radius_of_gyration = [
+            RadiusOfGyration(
+                kind='molecular',
+                radius_of_gyration_values=[rg_values],
+            )
+        ]
         calcs.append(calc)
         run.m_add_sub_section(Run.calculation, calc)
 
@@ -1336,7 +1587,8 @@ def molecular_dynamics() -> EntryArchive:
     class RadialDistributionFunction(ArchiveSection):
         type = Quantity(type=str)
         radial_distribution_function_values = SubSection(
-            sub_section=RadialDistributionFunctionValues, repeats=True)
+            sub_section=RadialDistributionFunctionValues, repeats=True
+        )
 
     class DiffusionConstantValues(ArchiveSection):
         value = Quantity(type=np.float64)
@@ -1355,11 +1607,17 @@ def molecular_dynamics() -> EntryArchive:
         type = Quantity(type=str)
         direction = Quantity(type=str)
         error_type = Quantity(type=str)
-        mean_squared_displacement_values = SubSection(sub_section=MeanSquaredDisplacementValues, repeats=True)
+        mean_squared_displacement_values = SubSection(
+            sub_section=MeanSquaredDisplacementValues, repeats=True
+        )
 
     class MolecularDynamicsResults(ArchiveSection):
-        radial_distribution_functions = SubSection(sub_section=RadialDistributionFunction, repeats=True)
-        mean_squared_displacements = SubSection(sub_section=MeanSquaredDisplacement, repeats=True)
+        radial_distribution_functions = SubSection(
+            sub_section=RadialDistributionFunction, repeats=True
+        )
+        mean_squared_displacements = SubSection(
+            sub_section=MeanSquaredDisplacement, repeats=True
+        )
 
     class MolecularDynamicsMethod(ArchiveSection):
         thermodynamic_ensemble = Quantity(type=str)
@@ -1409,9 +1667,7 @@ def molecular_dynamics() -> EntryArchive:
         thermodynamic_ensemble='NVT',
         integration_timestep=0.5 * ureg('fs'),
     )
-    md = MolecularDynamics(
-        results=results, method=method
-    )
+    md = MolecularDynamics(results=results, method=method)
     results.calculation_result_ref = calcs[-1]
     results.calculations_ref = calcs
     template.workflow2 = md
@@ -1441,7 +1697,7 @@ def get_template_topology(pbc=False) -> EntryArchive:
         index=0,
         composition_formula='H(4)O(2)',
         n_atoms=6,
-        atom_indices=[0, 1, 2, 3, 4, 5]
+        atom_indices=[0, 1, 2, 3, 4, 5],
     )
     system.m_add_sub_section(System.atoms_group, molecule_group)
     molecule1 = AtomsGroup(
@@ -1450,7 +1706,7 @@ def get_template_topology(pbc=False) -> EntryArchive:
         index=0,
         composition_formula='H(2)O(1)',
         n_atoms=3,
-        atom_indices=[0, 1, 2]
+        atom_indices=[0, 1, 2],
     )
     molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule1)
     molecule2 = AtomsGroup(
@@ -1459,7 +1715,7 @@ def get_template_topology(pbc=False) -> EntryArchive:
         index=0,
         composition_formula='H(2)O(1)',
         n_atoms=3,
-        atom_indices=[3, 4, 5]
+        atom_indices=[3, 4, 5],
     )
     molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule2)
     monomer_group = AtomsGroup(
@@ -1468,7 +1724,7 @@ def get_template_topology(pbc=False) -> EntryArchive:
         index=0,
         composition_formula='H(2)',
         n_atoms=2,
-        atom_indices=[1, 2]
+        atom_indices=[1, 2],
     )
     molecule1.m_add_sub_section(AtomsGroup.atoms_group, monomer_group)
     monomer = AtomsGroup(
@@ -1477,7 +1733,7 @@ def get_template_topology(pbc=False) -> EntryArchive:
         index=0,
         composition_formula='H(2)',
         n_atoms=2,
-        atom_indices=[1, 2]
+        atom_indices=[1, 2],
     )
     monomer_group.m_add_sub_section(AtomsGroup.atoms_group, monomer)
 
@@ -1566,8 +1822,7 @@ def hash_vasp() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_cP() -> EntryArchive:
-    '''Band structure calculation for a cP Bravais lattice.
-    '''
+    """Band structure calculation for a cP Bravais lattice."""
     parser_name = 'parsers/fhi-aims'
     filepath = 'tests/data/normalizers/band_structure/cP/aims.out'
     archive = parse_file((parser_name, filepath))
@@ -1576,8 +1831,7 @@ def band_path_cP() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_cF() -> EntryArchive:
-    '''Band structure calculation for a cF Bravais lattice.
-    '''
+    """Band structure calculation for a cF Bravais lattice."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/cF/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
@@ -1586,8 +1840,7 @@ def band_path_cF() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_tP() -> EntryArchive:
-    '''Band structure calculation for a tP Bravais lattice.
-    '''
+    """Band structure calculation for a tP Bravais lattice."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/tP/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
@@ -1596,8 +1849,7 @@ def band_path_tP() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_oP() -> EntryArchive:
-    '''Band structure calculation for a oP Bravais lattice.
-    '''
+    """Band structure calculation for a oP Bravais lattice."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/oP/vasprun.xml'
     archive = parse_file((parser_name, filepath))
@@ -1606,8 +1858,7 @@ def band_path_oP() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_oF() -> EntryArchive:
-    '''Band structure calculation for a oF Bravais lattice.
-    '''
+    """Band structure calculation for a oF Bravais lattice."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/oF/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
@@ -1616,8 +1867,7 @@ def band_path_oF() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_oI() -> EntryArchive:
-    '''Band structure calculation for a oI Bravais lattice.
-    '''
+    """Band structure calculation for a oI Bravais lattice."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/oI/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
@@ -1626,8 +1876,7 @@ def band_path_oI() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_hP() -> EntryArchive:
-    '''Band structure calculation for a hP Bravais lattice.
-    '''
+    """Band structure calculation for a hP Bravais lattice."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/hP/vasprun.xml.bands.xz'
     archive = parse_file((parser_name, filepath))
@@ -1636,8 +1885,7 @@ def band_path_hP() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_mP() -> EntryArchive:
-    '''Band structure calculation for a mP Bravais lattice.
-    '''
+    """Band structure calculation for a mP Bravais lattice."""
     parser_name = 'parsers/fhi-aims'
     filepath = 'tests/data/normalizers/band_structure/mP/aims.out'
     archive = parse_file((parser_name, filepath))
@@ -1646,8 +1894,7 @@ def band_path_mP() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_aP() -> EntryArchive:
-    '''Band structure calculation for a aP Bravais lattice.
-    '''
+    """Band structure calculation for a aP Bravais lattice."""
     parser_name = 'parsers/fhi-aims'
     filepath = 'tests/data/normalizers/band_structure/aP/aims.out'
     archive = parse_file((parser_name, filepath))
@@ -1656,8 +1903,7 @@ def band_path_aP() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_cF_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a cF Bravais lattice with non-standard k points.
-    '''
+    """Band structure calculation for a cF Bravais lattice with non-standard k points."""
     parser_name = 'parsers/exciting'
     filepath = 'tests/data/normalizers/band_structure/cF_nonstandard/INFO.OUT'
     archive = parse_file((parser_name, filepath))
@@ -1666,8 +1912,7 @@ def band_path_cF_nonstandard() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_cI_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a cI Bravais lattice with non-standard k points.
-    '''
+    """Band structure calculation for a cI Bravais lattice with non-standard k points."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/cI_nonstandard/vasprun.xml'
     archive = parse_file((parser_name, filepath))
@@ -1676,8 +1921,7 @@ def band_path_cI_nonstandard() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_tI_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a tI Bravais lattice with non-standard k points.
-    '''
+    """Band structure calculation for a tI Bravais lattice with non-standard k points."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/tI_nonstandard/vasprun.xml'
     archive = parse_file((parser_name, filepath))
@@ -1686,8 +1930,7 @@ def band_path_tI_nonstandard() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_oS_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a oS Bravais lattice with non-standard k points.
-    '''
+    """Band structure calculation for a oS Bravais lattice with non-standard k points."""
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/oS_nonstandard/vasprun.xml'
     archive = parse_file((parser_name, filepath))
@@ -1696,8 +1939,7 @@ def band_path_oS_nonstandard() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_hR_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a hR Bravais lattice with non-standard k points.
-    '''
+    """Band structure calculation for a hR Bravais lattice with non-standard k points."""
     parser_name = 'parsers/fhi-aims'
     filepath = 'tests/data/normalizers/band_structure/hR_nonstandard/aims.out'
     archive = parse_file((parser_name, filepath))
@@ -1706,20 +1948,22 @@ def band_path_hR_nonstandard() -> EntryArchive:
 
 @pytest.fixture(scope='session')
 def band_path_mP_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a mP Bravais lattice with a non-standard
+    """Band structure calculation for a mP Bravais lattice with a non-standard
     lattice ordering.
-    '''
+    """
     parser_name = 'parsers/vasp'
-    filepath = 'tests/data/normalizers/band_structure/mP_nonstandard/vasprun.xml.bands.xz'
+    filepath = (
+        'tests/data/normalizers/band_structure/mP_nonstandard/vasprun.xml.bands.xz'
+    )
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
 @pytest.fixture(scope='session')
 def band_path_mS_nonstandard() -> EntryArchive:
-    '''Band structure calculation for a mS Bravais lattice with non-standard k points.
+    """Band structure calculation for a mS Bravais lattice with non-standard k points.
     lattice ordering.
-    '''
+    """
     parser_name = 'parsers/vasp'
     filepath = 'tests/data/normalizers/band_structure/mS_nonstandard/vasprun.xml'
     archive = parse_file((parser_name, filepath))
@@ -1729,26 +1973,29 @@ def band_path_mS_nonstandard() -> EntryArchive:
 @pytest.fixture(scope='session')
 def fhiaims_surface_singlepoint() -> EntryArchive:
     parser_name = 'parsers/fhi-aims'
-    filepath = 'tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out'
+    filepath = (
+        'tests/data/normalizers/fhiaims_surface_singlepoint/PBE-light+tight-rho2.out'
+    )
     archive = parse_file((parser_name, filepath))
     return run_normalize(archive)
 
 
-def create_system(label: str,
-                  structural_type: str,
-                  dimensionality: str,
-                  building_block: str,
-                  elements: List[str],
-                  formula_hill: str,
-                  formula_reduced: str,
-                  formula_anonymous: str,
-                  system_relation: Relation,
-                  indices: List[int] = None,
-                  material_id: str = None,
-                  atoms: NOMADAtoms = None,
-                  cell: Cell = None,
-                  symmetry: Symmetry = None
-                  ) -> ResultSystem:
+def create_system(
+    label: str,
+    structural_type: str,
+    dimensionality: str,
+    building_block: str,
+    elements: List[str],
+    formula_hill: str,
+    formula_reduced: str,
+    formula_anonymous: str,
+    system_relation: Relation,
+    indices: List[int] = None,
+    material_id: str = None,
+    atoms: NOMADAtoms = None,
+    cell: Cell = None,
+    symmetry: Symmetry = None,
+) -> ResultSystem:
     system = ResultSystem()
     system.label = label
     system.structural_type = structural_type
@@ -1774,27 +2021,27 @@ def create_system(label: str,
 def create_symmetry(prototype):
     if prototype == 'fcc':
         symmetry = Symmetry(
-            bravais_lattice="cF",
-            crystal_system="cubic",
+            bravais_lattice='cF',
+            crystal_system='cubic',
             hall_number=523,
-            hall_symbol="-F 4 2 3",
-            point_group="m-3m",
+            hall_symbol='-F 4 2 3',
+            point_group='m-3m',
             space_group_number=225,
-            space_group_symbol="Fm-3m",
-            prototype_label_aflow="A_cF4_225_a",
-            prototype_name="fcc",
+            space_group_symbol='Fm-3m',
+            prototype_label_aflow='A_cF4_225_a',
+            prototype_name='fcc',
         )
     elif prototype == 'bcc':
         symmetry = Symmetry(
-            bravais_lattice="cI",
-            crystal_system="cubic",
+            bravais_lattice='cI',
+            crystal_system='cubic',
             hall_number=529,
-            hall_symbol="-I 4 2 3",
-            point_group="m-3m",
+            hall_symbol='-I 4 2 3',
+            point_group='m-3m',
             space_group_number=229,
-            space_group_symbol="Im-3m",
-            prototype_label_aflow="A_cI2_229_a",
-            prototype_name="bcc",
+            space_group_symbol='Im-3m',
+            prototype_label_aflow='A_cI2_229_a',
+            prototype_name='bcc',
         )
     else:
         raise ValueError(f'No symmetry information for {prototype}')
@@ -1810,7 +2057,9 @@ def conv_bcc(symbols):
 
 
 def surf(conv_cell, indices, layers=[3, 3, 2], vacuum=10):
-    surface = ase.build.surface(conv_cell, indices, layers[2], vacuum=vacuum, periodic=True)
+    surface = ase.build.surface(
+        conv_cell, indices, layers[2], vacuum=vacuum, periodic=True
+    )
     surface *= [layers[0], layers[1], 1]
     return surface
 
@@ -1828,7 +2077,7 @@ def rattle(atoms):
 
 
 def single_cu_surface_topology() -> List[ResultSystem]:
-    '''Copper surface topology'''
+    """Copper surface topology"""
     conv_cell = conv_fcc('Cu')
     surface = surf(conv_cell, (1, 0, 0))
 
@@ -1843,17 +2092,17 @@ def single_cu_surface_topology() -> List[ResultSystem]:
         formula_reduced=f'Cu{n_atoms}',
         formula_anonymous=f'A{n_atoms}',
         system_relation=Relation(type='subsystem'),
-        indices=list(range(n_atoms))
+        indices=list(range(n_atoms)),
     )
 
     species = Species()
-    species.name = "Cu"
-    species.chemical_symbols = ["Cu"]
+    species.name = 'Cu'
+    species.chemical_symbols = ['Cu']
     species.concentration = [1.0]
     wyckoff_sets = WyckoffSet()
-    wyckoff_sets.wyckoff_letter = "a"
+    wyckoff_sets.wyckoff_letter = 'a'
     wyckoff_sets.indices = [0, 1, 2, 3]
-    wyckoff_sets.element = "Cu"
+    wyckoff_sets.element = 'Cu'
 
     cell = cell_from_ase_atoms(conv_cell)
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
@@ -1868,7 +2117,7 @@ def single_cu_surface_topology() -> List[ResultSystem]:
         formula_reduced='Cu4',
         formula_anonymous='A4',
         system_relation=Relation(type='conventional_cell'),
-        material_id="3M6onRRrQbutydx916-Y15I79Z_X",
+        material_id='3M6onRRrQbutydx916-Y15I79Z_X',
         atoms=atoms,
         cell=cell,
         symmetry=symmetry_fcc,
@@ -1877,7 +2126,7 @@ def single_cu_surface_topology() -> List[ResultSystem]:
 
 
 def single_cr_surface_topology() -> List[ResultSystem]:
-    '''Cr surface topology'''
+    """Cr surface topology"""
     conv_cell = conv_bcc('Cr')
     surface = surf(conv_cell, (1, 0, 0))
     n_atoms = len(surface)
@@ -1891,17 +2140,17 @@ def single_cr_surface_topology() -> List[ResultSystem]:
         formula_reduced=f'Cr{n_atoms}',
         formula_anonymous=f'A{n_atoms}',
         system_relation=Relation(type='subsystem'),
-        indices=list(range(n_atoms))
+        indices=list(range(n_atoms)),
     )
 
     species = Species()
-    species.name = "Cr"
-    species.chemical_symbols = ["Cr"]
+    species.name = 'Cr'
+    species.chemical_symbols = ['Cr']
     species.concentration = [1.0]
     wyckoff_sets = WyckoffSet()
-    wyckoff_sets.wyckoff_letter = "a"
+    wyckoff_sets.wyckoff_letter = 'a'
     wyckoff_sets.indices = [0, 1]
-    wyckoff_sets.element = "Cr"
+    wyckoff_sets.element = 'Cr'
 
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
     cell = cell_from_ase_atoms(conv_cell)
@@ -1925,7 +2174,7 @@ def single_cr_surface_topology() -> List[ResultSystem]:
 
 
 def single_ni_surface_topology() -> List[ResultSystem]:
-    '''Ni surface topology'''
+    """Ni surface topology"""
     conv_cell = conv_fcc('Ni')
     surface = surf(conv_cell, (1, 0, 0))
     n_atoms = len(surface)
@@ -1940,17 +2189,17 @@ def single_ni_surface_topology() -> List[ResultSystem]:
         formula_reduced=f'Ni{n_atoms}',
         formula_anonymous=f'A{n_atoms}',
         system_relation=Relation(type='subsystem'),
-        indices=list(range(n_atoms))
+        indices=list(range(n_atoms)),
     )
 
     species = Species()
-    species.name = "Ni"
-    species.chemical_symbols = ["Ni"]
+    species.name = 'Ni'
+    species.chemical_symbols = ['Ni']
     species.concentration = [1.0]
     wyckoff_sets = WyckoffSet()
-    wyckoff_sets.wyckoff_letter = "a"
+    wyckoff_sets.wyckoff_letter = 'a'
     wyckoff_sets.indices = [0, 1, 2, 3]
-    wyckoff_sets.element = "Ni"
+    wyckoff_sets.element = 'Ni'
     cell = cell_from_ase_atoms(conv_cell)
     atoms = nomad_atoms_from_ase_atoms(conv_cell)
     symmetry_fcc = create_symmetry('fcc')
@@ -1986,28 +2235,25 @@ def stacked_cu_ni_surface_topology() -> List[ResultSystem]:
 
 
 def graphene() -> Atoms:
-    '''Graphene system'''
+    """Graphene system"""
     symbols_c = ['C', 'C']
     positions_c = [
         [0.0, 0.0, 2.1712595],
-        [1.2338620706831436, -0.712370598651782, 2.1712595]
+        [1.2338620706831436, -0.712370598651782, 2.1712595],
     ] * ureg.angstrom
     cell_c = [
         [1.2338620706831436, -2.137111795955346, 0.0],
         [1.2338620706831436, 2.137111795955346, 0.0],
-        [0.0, 0.0, 8.685038]
+        [0.0, 0.0, 8.685038],
     ] * ureg.angstrom
     system_c = Atoms(
-        symbols=symbols_c,
-        positions=positions_c,
-        cell=cell_c,
-        pbc=True
+        symbols=symbols_c, positions=positions_c, cell=cell_c, pbc=True
     ) * [4, 4, 1]
     return system_c
 
 
 def graphene_topology() -> List[ResultSystem]:
-    '''Graphene topology'''
+    """Graphene topology"""
     subsystem = create_system(
         label='subsystem',
         structural_type='2D',
@@ -2018,7 +2264,7 @@ def graphene_topology() -> List[ResultSystem]:
         formula_reduced='C32',
         formula_anonymous='A32',
         system_relation=Relation(type='subsystem'),
-        indices=[i for i in range(32)]
+        indices=[i for i in range(32)],
     )
 
     atoms_c_conv = NOMADAtoms()
@@ -2026,16 +2272,16 @@ def graphene_topology() -> List[ResultSystem]:
     atoms_c_conv.lattice_vectors = [
         [2.4677241413662866, 0.0, 0.0],
         [-1.2338620706831433, 2.1371117959553457, 0.0],
-        [0.0, 0.0, 1]
+        [0.0, 0.0, 1],
     ] * ureg.angstrom
     atoms_c_conv.positions = [
         [1.2338620706831433, 0.712370598651782, 0.5],
-        [-2.7636130944313266e-16, 1.4247411973035641, 0.5]
+        [-2.7636130944313266e-16, 1.4247411973035641, 0.5],
     ] * ureg.angstrom
-    atoms_c_conv.labels = ["C", "C"]
+    atoms_c_conv.labels = ['C', 'C']
     species = Species()
-    species.name = "C"
-    species.chemical_symbols = ["C"]
+    species.name = 'C'
+    species.chemical_symbols = ['C']
     species.concentration = [1.0]
     cell = Cell(
         a=2.470 * ureg.angstrom,
@@ -2061,22 +2307,19 @@ def graphene_topology() -> List[ResultSystem]:
 
 
 def boron_nitride() -> Atoms:
-    '''Boron nitride system'''
+    """Boron nitride system"""
     symbols_bn = ['B', 'N']
     positions_bn = [
         [1.2557999125000436, -0.7250364175302085, 6.200847],
-        [0.0, 0.0, 6.200847]
+        [0.0, 0.0, 6.200847],
     ] * ureg.angstrom
     cell_bn = [
         [1.2557999125000436, -2.1751092525906257, 0.0],
         [1.2557999125000436, 2.1751092525906257, 0.0],
-        [0.0, 0.0, 8.267796]
+        [0.0, 0.0, 8.267796],
     ] * ureg.angstrom
     system_bn = Atoms(
-        symbols=symbols_bn,
-        positions=positions_bn,
-        cell=cell_bn,
-        pbc=True
+        symbols=symbols_bn, positions=positions_bn, cell=cell_bn, pbc=True
     )
     bn_2d = ase.build.surface(system_bn, (0, 0, 1), layers=1, periodic=True)
     bn_2 = ase.build.stack(bn_2d, bn_2d, axis=0)
@@ -2087,7 +2330,7 @@ def boron_nitride() -> Atoms:
 
 
 def boron_nitride_topology() -> List[ResultSystem]:
-    '''Boron nitride topology'''
+    """Boron nitride topology"""
     subsystem = create_system(
         label='subsystem',
         structural_type='2D',
@@ -2097,8 +2340,8 @@ def boron_nitride_topology() -> List[ResultSystem]:
         formula_hill='B16N16',
         formula_reduced='B16N16',
         formula_anonymous='A16B16',
-        system_relation=Relation(type="subsystem"),
-        indices=[i for i in range(32)]
+        system_relation=Relation(type='subsystem'),
+        indices=[i for i in range(32)],
     )
 
     atoms = NOMADAtoms()
@@ -2106,17 +2349,17 @@ def boron_nitride_topology() -> List[ResultSystem]:
     atoms.lattice_vectors = [
         [2.510266994011973, 0.0, 0.0],
         [-1.2551334970059864, 2.1739549870959678, 0.0],
-        [0.0, 0.0, 1]
+        [0.0, 0.0, 1],
     ] * ureg.angstrom
-    atoms.labels = ["B", "N"]
+    atoms.labels = ['B', 'N']
     atoms.species = [5, 7]
     species_B = Species()
-    species_B.name = "B"
-    species_B.chemical_symbols = ["B"]
+    species_B.name = 'B'
+    species_B.chemical_symbols = ['B']
     species_B.concentration = [1.0]
     species_N = Species()
-    species_N.name = "N"
-    species_N.chemical_symbols = ["N"]
+    species_N.name = 'N'
+    species_N.chemical_symbols = ['N']
     species_N.concentration = [1.0]
     cell = Cell(
         a=2.513 * ureg.angstrom,
@@ -2132,8 +2375,8 @@ def boron_nitride_topology() -> List[ResultSystem]:
         formula_hill='BN',
         formula_reduced='BN',
         formula_anonymous='AB',
-        system_relation=Relation(type="conventional_cell"),
-        material_id="RxRsol0dp1vDkU7-pE3v2exglkpM",
+        system_relation=Relation(type='conventional_cell'),
+        material_id='RxRsol0dp1vDkU7-pE3v2exglkpM',
         atoms=atoms,
         cell=cell,
         symmetry=None,
@@ -2146,20 +2389,19 @@ def mos2() -> Atoms:
     positions_mos2 = [
         [0.0, 0.0, 9.063556323175761],
         [1.5920332323422965, 0.9191608152516547, 10.62711264635152],
-        [1.5920332323422965, 0.9191608152516547, 7.5]
+        [1.5920332323422965, 0.9191608152516547, 7.5],
     ] * ureg.angstrom
     cell_mos2 = [
         [3.184066464684593, 0.0, 0.0],
         [-1.5920332323422965, 2.7574824457549643, 0.0],
-        [0.0, 0.0, 18.127112646351521]
+        [0.0, 0.0, 18.127112646351521],
     ] * ureg.angstrom
     system_mos2 = Atoms(
-        symbols=symbols_mos2,
-        positions=positions_mos2,
-        cell=cell_mos2,
-        pbc=True
+        symbols=symbols_mos2, positions=positions_mos2, cell=cell_mos2, pbc=True
     )
-    mos2_2d = ase.build.surface(system_mos2, (1, 1, 0), layers=4, vacuum=None, periodic=True)
+    mos2_2d = ase.build.surface(
+        system_mos2, (1, 1, 0), layers=4, vacuum=None, periodic=True
+    )
     stacked_2d_mos2 = ase.build.stack(mos2_2d, mos2_2d, axis=2, distance=2.5)
     stacked_2d_mos2_2 = ase.build.stack(stacked_2d_mos2, stacked_2d_mos2, axis=2)
     return stacked_2d_mos2_2
@@ -2175,8 +2417,8 @@ def mos2_topology() -> List[ResultSystem]:
         formula_hill='Mo16S32',
         formula_reduced='Mo16S32',
         formula_anonymous='A32B16',
-        system_relation=Relation(type="subsystem"),
-        indices=[i for i in range(48)]
+        system_relation=Relation(type='subsystem'),
+        indices=[i for i in range(48)],
     )
 
     atoms = NOMADAtoms()
@@ -2184,22 +2426,22 @@ def mos2_topology() -> List[ResultSystem]:
     atoms.lattice_vectors = [
         [3.253646631826119, 0.0, 0.0],
         [-1.6268233159130596, 2.8177406380990937, 0.0],
-        [0.0, 0.0, 3.124912396241947]
+        [0.0, 0.0, 3.124912396241947],
     ] * ureg.angstrom
     atoms.positions = [
         [0.0, 0.0, 1.562456198120974],
         [1.626823332181293, 0.9392468699738958, 3.124912396241947],
-        [1.626823332181293, 0.9392468699738958, 0.0]
+        [1.626823332181293, 0.9392468699738958, 0.0],
     ] * ureg.angstrom
-    atoms.labels = ["Mo", "S", "S"]
+    atoms.labels = ['Mo', 'S', 'S']
     atoms.species = [42, 16, 16]
     species_Mo = Species()
-    species_Mo.name = "Mo"
-    species_Mo.chemical_symbols = ["Mo"]
+    species_Mo.name = 'Mo'
+    species_Mo.chemical_symbols = ['Mo']
     species_Mo.concentration = [1.0]
     species_S = Species()
-    species_S.name = "S"
-    species_S.chemical_symbols = ["S"]
+    species_S.name = 'S'
+    species_S.chemical_symbols = ['S']
     species_S.concentration = [1.0]
     cell = Cell(
         a=3.22 * ureg.angstrom,
@@ -2215,8 +2457,8 @@ def mos2_topology() -> List[ResultSystem]:
         formula_hill='MoS2',
         formula_reduced='MoS2',
         formula_anonymous='A2B',
-        system_relation=Relation(type="conventional_cell"),
-        material_id="KV4aYm-S1VJOH-SKeXXuG8JkTiGF",
+        system_relation=Relation(type='conventional_cell'),
+        material_id='KV4aYm-S1VJOH-SKeXXuG8JkTiGF',
         atoms=atoms,
         cell=cell,
         symmetry=None,

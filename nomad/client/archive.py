@@ -58,10 +58,12 @@ def run_async(func, *args, **kwargs):
         return asyncio.run(func(*args, **kwargs))
 
 
-def _collect(required, parent_section: mi.Section = None, parent_path: str = None) -> set:
-    '''
+def _collect(
+    required, parent_section: mi.Section = None, parent_path: str = None
+) -> set:
+    """
     Flatten required quantities for uncoupled query
-    '''
+    """
 
     quantities: set = set()
 
@@ -90,7 +92,9 @@ def _collect(required, parent_section: mi.Section = None, parent_path: str = Non
 
         if isinstance(definition, mi.SubSection):
             quantities.update(_collect(value, definition.section_def, definition_name))
-        elif isinstance(definition, mi.Quantity) and isinstance(definition.type, mi.Reference):
+        elif isinstance(definition, mi.Quantity) and isinstance(
+            definition.type, mi.Reference
+        ):
             next_parent_section = definition.type.target_section_def.m_resolved()
             parent_path = next_parent_section.path
             if parent_path in ['__ambiguous__', '__no_archive_path__']:
@@ -101,7 +105,7 @@ def _collect(required, parent_section: mi.Section = None, parent_path: str = Non
 
 
 class ArchiveQuery:
-    '''
+    """
     The async implementation works well with a large number of uploads, each has a small number of
     entries.
 
@@ -124,16 +128,29 @@ class ArchiveQuery:
         retry (int): number of retry when fetching uploads, default: 4
         sleep_time (float): sleep time for retry, default: 4.
         semaphore (int): number of concurrent downloads, this depends on server settings, default: 4
-    '''
+    """
 
     def __init__(
-            self, owner: str = 'visible', query: dict = None, required: dict = None,
-            url: str = None, after: str = None, results_max: int = 1000, page_size: int = 100,
-            username: str = None, password: str = None, retry: int = 4, sleep_time: float = 4.,
-            from_api: bool = False, semaphore: int = 4):
+        self,
+        owner: str = 'visible',
+        query: dict = None,
+        required: dict = None,
+        url: str = None,
+        after: str = None,
+        results_max: int = 1000,
+        page_size: int = 100,
+        username: str = None,
+        password: str = None,
+        retry: int = 4,
+        sleep_time: float = 4.0,
+        from_api: bool = False,
+        semaphore: int = 4,
+    ):
         self._owner: str = owner
         self._required = required if required else dict(run='*')
-        self._query_list: list[dict] = [{'quantities': list(_collect(self._required, EntryArchive.m_def))}]
+        self._query_list: list[dict] = [
+            {'quantities': list(_collect(self._required, EntryArchive.m_def))}
+        ]
         if query:
             self._query_list.append(query)
         self._url: str = url if url else config.client.url + '/v1'
@@ -143,15 +160,18 @@ class ArchiveQuery:
         if self._page_size > self._results_max:
             self._page_size = self._results_max
         self._retry: int = retry if retry >= 0 else 4
-        self._sleep_time: float = sleep_time if sleep_time > 0. else 4.
+        self._sleep_time: float = sleep_time if sleep_time > 0.0 else 4.0
         self._semaphore = semaphore
 
         from nomad.client import Auth
+
         self._auth = Auth(user=username, password=password, from_api=from_api)
 
         self._oidc = KeycloakOpenID(
-            server_url=config.keycloak.public_server_url, realm_name=config.keycloak.realm_name,
-            client_id=config.keycloak.client_id)
+            server_url=config.keycloak.public_server_url,
+            realm_name=config.keycloak.realm_name,
+            client_id=config.keycloak.client_id,
+        )
 
         # local data storage
         self._entries: list[tuple[str, str]] = []
@@ -179,15 +199,15 @@ class ArchiveQuery:
 
     @property
     def _fetch_request(self) -> dict:
-        '''
+        """
         Generate fetch request.
-        '''
+        """
 
         request: dict = {
             'owner': self._owner,
             'query': self._query,
             'pagination': {'page_size': self._page_size},
-            "required": {"include": ["entry_id", "upload_id"]}
+            'required': {'include': ['entry_id', 'upload_id']},
         }
 
         if self._current_after:
@@ -198,9 +218,9 @@ class ArchiveQuery:
         return request
 
     def _download_request(self, entry_id: str) -> dict:
-        '''
+        """
         Generate download request.
-        '''
+        """
 
         request: Dict[str, Any] = dict(owner=self._owner, required=self._required)
         request['query'] = {'and': []}
@@ -214,16 +234,16 @@ class ArchiveQuery:
         return request
 
     def clear(self):
-        '''
+        """
         Clear all fetched and downloaded data. Users can then call .fetch() and .download() again.
-        '''
+        """
 
         self._entries = []
         self._current_after = self._after
         self._current_results = 0
 
     async def _fetch_async(self, number: int) -> int:
-        '''
+        """
         There is no need to perform fetching asynchronously as the required number of uploads
         depends on previous queries.
 
@@ -234,7 +254,7 @@ class ArchiveQuery:
 
         Returns:
             The number of entries fetched
-        '''
+        """
 
         # if the maximum number of entries has been previously fetched
         # not going to fetch more entries
@@ -251,14 +271,22 @@ class ArchiveQuery:
         async with AsyncClient(timeout=Timeout(timeout=300)) as session:
             while True:
                 response = await session.post(
-                    self._fetch_url, json=self._fetch_request, headers=self._auth.headers())
+                    self._fetch_url,
+                    json=self._fetch_request,
+                    headers=self._auth.headers(),
+                )
 
                 if response.status_code >= 400:
                     if response.status_code < 500:
                         response_json = response.json()
-                        reason = response_json.get("description") or response_json.get(
-                            "detail") or "unknown reason"
-                        raise ValueError(f'Server returns {response.status_code}: {reason}')
+                        reason = (
+                            response_json.get('description')
+                            or response_json.get('detail')
+                            or 'unknown reason'
+                        )
+                        raise ValueError(
+                            f'Server returns {response.status_code}: {reason}'
+                        )
                     if response.status_code in (500, 502, 504):
                         if num_retry > self._retry:
                             print('Maximum retry reached.')
@@ -271,9 +299,14 @@ class ArchiveQuery:
 
                 response_json = response.json()
 
-                self._current_after = response_json['pagination'].get('next_page_after_value', None)
+                self._current_after = response_json['pagination'].get(
+                    'next_page_after_value', None
+                )
 
-                data = [(entry['entry_id'], entry['upload_id']) for entry in response_json['data']]
+                data = [
+                    (entry['entry_id'], entry['upload_id'])
+                    for entry in response_json['data']
+                ]
                 current_size: int = len(data)
 
                 # no more entries
@@ -282,7 +315,7 @@ class ArchiveQuery:
 
                 if self._current_results + current_size > self._results_max:
                     # current query has sufficient entries to exceed the limit
-                    data = data[:self._results_max - self._current_results]
+                    data = data[: self._results_max - self._current_results]
                     self._current_results += len(data)
                     self._entries.extend(data)
                     break
@@ -305,7 +338,7 @@ class ArchiveQuery:
         return num_entry
 
     async def _download_async(self, number: int) -> List[EntryArchive]:
-        '''
+        """
         Download required entries asynchronously.
 
         Params:
@@ -313,25 +346,25 @@ class ArchiveQuery:
 
         Returns:
             A list of EntryArchive
-        '''
+        """
         semaphore = Semaphore(self._semaphore)
 
-        with progressbar(length=number, label=f'Downloading {number} entries...') as bar:
+        with progressbar(
+            length=number, label=f'Downloading {number} entries...'
+        ) as bar:
             async with AsyncClient(timeout=Timeout(timeout=300)) as session:
-                tasks = [asyncio.create_task(
-                    self._acquire(
-                        ids, session, semaphore, bar)) for ids in self._entries[:number]]
+                tasks = [
+                    asyncio.create_task(self._acquire(ids, session, semaphore, bar))
+                    for ids in self._entries[:number]
+                ]
                 results = await asyncio.gather(*tasks)
 
         return [result for result in results if result]
 
     async def _acquire(
-            self, ids: tuple[str, str],
-            session: AsyncClient,
-            semaphore: Semaphore,
-            bar
+        self, ids: tuple[str, str], session: AsyncClient, semaphore: Semaphore, bar
     ) -> EntryArchive | None:
-        '''
+        """
         Perform the download task.
 
         Params:
@@ -343,27 +376,32 @@ class ArchiveQuery:
 
         Returns:
             A list of EntryArchive
-        '''
+        """
 
         entry_id, upload_id = ids
 
         request = self._download_request(entry_id)
 
         async with semaphore:
-            response = await session.post(self._download_url, json=request, headers=self._auth.headers())
+            response = await session.post(
+                self._download_url, json=request, headers=self._auth.headers()
+            )
             bar.update(1)
             self._entries.remove(ids)
 
             if response.status_code >= 400:
                 print(
                     f'Request with entry id {entry_id} returns {response.status_code},'
-                    f' will retry in the next download call...')
+                    f' will retry in the next download call...'
+                )
                 self._entries.append(ids)
                 return None
 
             # successfully downloaded data
             context = ClientContext(self._url, upload_id=upload_id, auth=self._auth)
-            result = EntryArchive.m_from_dict(response.json()['data'][0]['archive'], m_context=context)
+            result = EntryArchive.m_from_dict(
+                response.json()['data'][0]['archive'], m_context=context
+            )
 
             if not result:
                 print(f'No result returned for id {entry_id}, is the query proper?')
@@ -371,7 +409,7 @@ class ArchiveQuery:
             return result
 
     def fetch(self, number: int = 0) -> int:
-        '''
+        """
         Fetch uploads from remote.
 
         Params:
@@ -379,14 +417,14 @@ class ArchiveQuery:
 
         Returns:
             The number of entries fetched
-        '''
+        """
 
         print('Fetching remote uploads...')
 
         return run_async(self._fetch_async, number)
 
     def download(self, number: int = 0) -> List[EntryArchive]:
-        '''
+        """
         Download fetched entries from remote.
         Automatically call .fetch() if not fetched.
 
@@ -395,7 +433,7 @@ class ArchiveQuery:
 
         Returns:
             A list of downloaded EntryArchive
-        '''
+        """
 
         pending_size: int = len(self._entries)
 
@@ -413,18 +451,18 @@ class ArchiveQuery:
         return run_async(self._download_async, number)
 
     async def async_fetch(self, number: int = 0) -> int:
-        '''
+        """
         Asynchronous interface for use in a running event loop.
-        '''
+        """
 
         print('Fetching remote uploads...')
 
         return await self._fetch_async(number)
 
     async def async_download(self, number: int = 0) -> List[EntryArchive]:
-        '''
+        """
         Asynchronous interface for use in a running event loop.
-        '''
+        """
 
         pending_size: int = len(self._entries)
 

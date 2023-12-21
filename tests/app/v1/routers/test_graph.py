@@ -45,37 +45,66 @@ def test_graph_query_random(client, test_auth_dict, example_data):
     user_auth, _ = test_auth_dict['test_user']
     response = client.post(
         'graph/raw_query',
-        json={Token.UPLOADS: {
-            'id_embargo': {
-                Token.RAW: {'test_content': {'id_embargo_1': {'m_request': {'directive': 'plain'}}}},
-                Token.ENTRIES: {'id_embargo_1': {
-                    'mainfile': {'m_request': {'directive': 'plain'}}}},
-            },
-        }},
-        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+        json={
+            Token.UPLOADS: {
+                'id_embargo': {
+                    Token.RAW: {
+                        'test_content': {
+                            'id_embargo_1': {'m_request': {'directive': 'plain'}}
+                        }
+                    },
+                    Token.ENTRIES: {
+                        'id_embargo_1': {
+                            'mainfile': {'m_request': {'directive': 'plain'}}
+                        }
+                    },
+                },
+            }
+        },
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}),
+    )
 
     print(response.json())
 
 
-@pytest.mark.parametrize('upload_id,entry_id,user,status_code', [
-    pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
-    pytest.param('id_child_entries', 'id_child_entries_child1', 'test_user', 200, id='child-entry'),
-    pytest.param('id_embargo', 'id_embargo_1', 'admin_user', 200, id='admin-access'),
-    pytest.param('id_embargo', 'id_embargo_1', None, 401, id='no-credentials'),
-    pytest.param('id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'),
-    pytest.param('id_embargo', 'id_embargo_1', 'other_test_user', 404, id='no-access'),
-    pytest.param('silly_value', 'id_embargo_1', 'test_user', 404, id='invalid-upload_id'),
-    pytest.param('id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id')
-])
+@pytest.mark.parametrize(
+    'upload_id,entry_id,user,status_code',
+    [
+        pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
+        pytest.param(
+            'id_child_entries',
+            'id_child_entries_child1',
+            'test_user',
+            200,
+            id='child-entry',
+        ),
+        pytest.param(
+            'id_embargo', 'id_embargo_1', 'admin_user', 200, id='admin-access'
+        ),
+        pytest.param('id_embargo', 'id_embargo_1', None, 401, id='no-credentials'),
+        pytest.param(
+            'id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'
+        ),
+        pytest.param(
+            'id_embargo', 'id_embargo_1', 'other_test_user', 404, id='no-access'
+        ),
+        pytest.param(
+            'silly_value', 'id_embargo_1', 'test_user', 404, id='invalid-upload_id'
+        ),
+        pytest.param(
+            'id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id'
+        ),
+    ],
+)
 def test_graph_query(
-        client, test_auth_dict, example_data,
-        upload_id, entry_id, user, status_code
+    client, test_auth_dict, example_data, upload_id, entry_id, user, status_code
 ):
     user_auth, _ = test_auth_dict[user]
     response = client.post(
         'graph/query',
         json={Token.UPLOADS: {upload_id: {Token.ENTRIES: {entry_id: '*'}}}},
-        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}),
+    )
     target_path = (Token.UPLOADS, upload_id, Token.ENTRIES, entry_id)
     if 200 == status_code:
         assert_path_exists(target_path, response.json())
@@ -86,16 +115,26 @@ def test_graph_query(
             assert_path_exists(target_path, response.json())
 
 
-@pytest.mark.parametrize('required,status_code', [
-    pytest.param('*', 200, id='full'),
-    pytest.param({'metadata': '*'}, 200, id='partial'),
-    pytest.param({'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
-    pytest.param({'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'),
-    pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3')
-])
-def test_graph_archive_query(client, example_data, required, status_code, test_user_auth):
-    response = client.post('graph/archive/query', headers=test_user_auth, json={
-        'owner': 'user', 'required': required})
+@pytest.mark.parametrize(
+    'required,status_code',
+    [
+        pytest.param('*', 200, id='full'),
+        pytest.param({'metadata': '*'}, 200, id='partial'),
+        pytest.param({'run': {'system[NOTANINT]': '*'}}, 422, id='bad-required-1'),
+        pytest.param(
+            {'metadata': {'viewers[NOTANINT]': '*'}}, 422, id='bad-required-2'
+        ),
+        pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
+    ],
+)
+def test_graph_archive_query(
+    client, example_data, required, status_code, test_user_auth
+):
+    response = client.post(
+        'graph/archive/query',
+        headers=test_user_auth,
+        json={'owner': 'user', 'required': required},
+    )
 
     json_response = response.json()
 
@@ -124,89 +163,51 @@ def test_graph_archive_query(client, example_data, required, status_code, test_u
 @pytest.fixture(scope='function')
 def example_archive():
     json_dict = {
-        "metadata": {
-            "entry_id": "test_id",
-            "upload_id": "test_id"
-        },
-        "results": {
-            "material": {"material_id": "random_id"},
-            "properties": {
-                "electronic": {
-                    "dos_electronic": [{
-                        "energies": "/run/0/calculation/1/dos_electronic/0/energies"
-                    }]
+        'metadata': {'entry_id': 'test_id', 'upload_id': 'test_id'},
+        'results': {
+            'material': {'material_id': 'random_id'},
+            'properties': {
+                'electronic': {
+                    'dos_electronic': [
+                        {'energies': '/run/0/calculation/1/dos_electronic/0/energies'}
+                    ]
                 }
-            }
+            },
         },
-        "run": [
+        'run': [
             {
-                "system": [
+                'system': [
                     {
-                        "atoms": {
-                            "labels": [
-                                "He"
-                            ]
-                        },
-                        "symmetry": [
-                            {
-                                "space_group_number": 221
-                            }
-                        ]
+                        'atoms': {'labels': ['He']},
+                        'symmetry': [{'space_group_number': 221}],
                     },
                     {
-                        "atoms": {
-                            "labels": [
-                                "H"
-                            ]
-                        },
-                        "symmetry": [
-                            {
-                                "space_group_number": 221
-                            }
-                        ]
-                    }
+                        'atoms': {'labels': ['H']},
+                        'symmetry': [{'space_group_number': 221}],
+                    },
                 ],
-                "calculation": [
+                'calculation': [
                     {
-                        "system_ref": "/run/0/system/1",
-                        "energy": {
-                            "total": {
-                                "value": 0.1
-                            }
-                        }
+                        'system_ref': '/run/0/system/1',
+                        'energy': {'total': {'value': 0.1}},
                     },
                     {
-                        "system_ref": "/run/0/system/1",
-                        "energy": {
-                            "total": {
-                                "value": 0.2
-                            }
-                        },
-                        "dos_electronic": [
-                            {
-                                "energies": [0.0, 0.1]
-                            }
-                        ],
-                        "eigenvalues": [
-                        ]
+                        'system_ref': '/run/0/system/1',
+                        'energy': {'total': {'value': 0.2}},
+                        'dos_electronic': [{'energies': [0.0, 0.1]}],
+                        'eigenvalues': [],
                     },
                     {
-                        "system_ref": "/run/0/system/1",
-                        "energy": {
-                            "total": {
-                                "value": 0.1
-                            }
-                        }
-                    }
-                ]
+                        'system_ref': '/run/0/system/1',
+                        'energy': {'total': {'value': 0.1}},
+                    },
+                ],
             }
         ],
-        "workflow2": {
-            "m_def": "simulationworkflowschema.SimulationWorkflow",
-            "results": {
-                "calculation_result_ref": "/run/0/calculation/1"
-            }
-        }
+        'workflow2': {
+            'm_def': 'simulationworkflowschema.SimulationWorkflow',
+            'results': {'calculation_result_ref': '/run/0/calculation/1'},
+        },
     }
     archive = EntryArchive.m_from_dict(json_dict)
     assert archive.run is not None
@@ -217,8 +218,12 @@ def example_archive():
 @pytest.fixture(scope='function')
 def example_upload(example_archive, test_user, mongo_function, elastic_function):
     data = ExampleData(main_author=test_user)
-    data.create_upload(upload_id='test_id', upload_name='name_published', published=True)
-    data.create_entry(upload_id='test_id', entry_id='test_id', entry_archive=example_archive)
+    data.create_upload(
+        upload_id='test_id', upload_name='name_published', published=True
+    )
+    data.create_entry(
+        upload_id='test_id', entry_id='test_id', entry_archive=example_archive
+    )
     data.save(with_files=True, with_es=True, with_mongo=True)
 
     yield data
@@ -226,107 +231,161 @@ def example_upload(example_archive, test_user, mongo_function, elastic_function)
     data.delete()
 
 
-@pytest.mark.parametrize('kwargs', [
-    pytest.param(
-        dict(
-            expected_upload_ids=[
-                'id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer',
-                'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_published', 'id_child_entries', 'id_processing', 'id_empty'],
-        ), id='no-args'),
-    pytest.param(
-        dict(
-            user='other_test_user',
-            expected_upload_ids=[
-                'id_embargo_w_coauthor', 'id_embargo_w_reviewer', 'id_unpublished_w_coauthor',
-                'id_unpublished_w_reviewer']
-        ), id='other_test_user'),
-    pytest.param(
-        dict(
-            user=None,
-            expected_status_code=401
-        ), id='no-credentials'),
-    pytest.param(
-        dict(
-            user='invalid',
-            expected_status_code=401
-        ), id='invalid-credentials'),
-    pytest.param(
-        dict(
-            query_params={'is_processing': True},
-            expected_upload_ids=['id_processing'],
-        ), id='filter-is_processing-True'),
-    pytest.param(
-        dict(
-            query_params={'is_processing': False},
-            expected_upload_ids=[
-                'id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer',
-                'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_published', 'id_child_entries', 'id_empty'],
-        ), id='filter-is_processing-False'),
-    pytest.param(
-        dict(
-            query_params={'is_published': True},
-            expected_upload_ids=['id_embargo', 'id_embargo_w_coauthor', 'id_embargo_w_reviewer', 'id_published'],
-        ), id='filter-is_published-True'),
-    pytest.param(
-        dict(
-            query_params={'is_published': False},
-            expected_upload_ids=[
-                'id_unpublished', 'id_unpublished_w_coauthor', 'id_unpublished_w_reviewer',
-                'id_child_entries', 'id_processing', 'id_empty'],
-        ), id='filter-is_published-False'),
-    pytest.param(
-        dict(
-            query_params={'upload_id': ['id_published']},
-            expected_upload_ids=['id_published'],
-        ), id='filter-upload_id-single'),
-    pytest.param(
-        dict(
-            query_params={'upload_id': ['id_published', 'id_embargo']},
-            expected_upload_ids=['id_embargo', 'id_published'],
-        ), id='filter-upload_id-multiple'),
-    pytest.param(
-        dict(
-            query_params={'upload_name': ['name_published']},
-            expected_upload_ids=['id_published'],
-        ), id='filter-upload_name-single'),
-    pytest.param(
-        dict(
-            query_params={'upload_name': ['name_published', 'name_embargo']},
-            expected_upload_ids=['id_embargo', 'id_published'],
-        ), id='filter-upload_name-multiple'),
-    pytest.param(
-        dict(
-            pagination={'page_size': 2},
-            expected_upload_ids=['id_embargo', 'id_embargo_w_coauthor'],
-        ), id='pag-page-1'),
-    pytest.param(
-        dict(
-            pagination={'page_size': 2, 'page': 2},
-            expected_upload_ids=['id_embargo_w_reviewer', 'id_unpublished'],
-        ), id='pag-page-2'),
-    pytest.param(
-        dict(
-            pagination={'page_size': 4, 'page': 3},
-            expected_upload_ids=['id_processing', 'id_empty'],
-        ), id='pag-page-3'),
-    pytest.param(
-        dict(
-            pagination={'page_size': 5, 'page': 3},
-            expected_upload_ids=[],
-        ), id='pag-page-out-of-range'),
-    pytest.param(
-        dict(
-            pagination={'page_size': 2, 'order': 'desc'},
-            expected_upload_ids=['id_empty', 'id_processing'],
-        ), id='pag-page-order-desc'),
-    pytest.param(
-        dict(
-            pagination={'order_by': 'upload_id'},
-            expected_status_code=422
-        ), id='pag-invalid-order_by')
-])
+@pytest.mark.parametrize(
+    'kwargs',
+    [
+        pytest.param(
+            dict(
+                expected_upload_ids=[
+                    'id_embargo',
+                    'id_embargo_w_coauthor',
+                    'id_embargo_w_reviewer',
+                    'id_unpublished',
+                    'id_unpublished_w_coauthor',
+                    'id_unpublished_w_reviewer',
+                    'id_published',
+                    'id_child_entries',
+                    'id_processing',
+                    'id_empty',
+                ],
+            ),
+            id='no-args',
+        ),
+        pytest.param(
+            dict(
+                user='other_test_user',
+                expected_upload_ids=[
+                    'id_embargo_w_coauthor',
+                    'id_embargo_w_reviewer',
+                    'id_unpublished_w_coauthor',
+                    'id_unpublished_w_reviewer',
+                ],
+            ),
+            id='other_test_user',
+        ),
+        pytest.param(dict(user=None, expected_status_code=401), id='no-credentials'),
+        pytest.param(
+            dict(user='invalid', expected_status_code=401), id='invalid-credentials'
+        ),
+        pytest.param(
+            dict(
+                query_params={'is_processing': True},
+                expected_upload_ids=['id_processing'],
+            ),
+            id='filter-is_processing-True',
+        ),
+        pytest.param(
+            dict(
+                query_params={'is_processing': False},
+                expected_upload_ids=[
+                    'id_embargo',
+                    'id_embargo_w_coauthor',
+                    'id_embargo_w_reviewer',
+                    'id_unpublished',
+                    'id_unpublished_w_coauthor',
+                    'id_unpublished_w_reviewer',
+                    'id_published',
+                    'id_child_entries',
+                    'id_empty',
+                ],
+            ),
+            id='filter-is_processing-False',
+        ),
+        pytest.param(
+            dict(
+                query_params={'is_published': True},
+                expected_upload_ids=[
+                    'id_embargo',
+                    'id_embargo_w_coauthor',
+                    'id_embargo_w_reviewer',
+                    'id_published',
+                ],
+            ),
+            id='filter-is_published-True',
+        ),
+        pytest.param(
+            dict(
+                query_params={'is_published': False},
+                expected_upload_ids=[
+                    'id_unpublished',
+                    'id_unpublished_w_coauthor',
+                    'id_unpublished_w_reviewer',
+                    'id_child_entries',
+                    'id_processing',
+                    'id_empty',
+                ],
+            ),
+            id='filter-is_published-False',
+        ),
+        pytest.param(
+            dict(
+                query_params={'upload_id': ['id_published']},
+                expected_upload_ids=['id_published'],
+            ),
+            id='filter-upload_id-single',
+        ),
+        pytest.param(
+            dict(
+                query_params={'upload_id': ['id_published', 'id_embargo']},
+                expected_upload_ids=['id_embargo', 'id_published'],
+            ),
+            id='filter-upload_id-multiple',
+        ),
+        pytest.param(
+            dict(
+                query_params={'upload_name': ['name_published']},
+                expected_upload_ids=['id_published'],
+            ),
+            id='filter-upload_name-single',
+        ),
+        pytest.param(
+            dict(
+                query_params={'upload_name': ['name_published', 'name_embargo']},
+                expected_upload_ids=['id_embargo', 'id_published'],
+            ),
+            id='filter-upload_name-multiple',
+        ),
+        pytest.param(
+            dict(
+                pagination={'page_size': 2},
+                expected_upload_ids=['id_embargo', 'id_embargo_w_coauthor'],
+            ),
+            id='pag-page-1',
+        ),
+        pytest.param(
+            dict(
+                pagination={'page_size': 2, 'page': 2},
+                expected_upload_ids=['id_embargo_w_reviewer', 'id_unpublished'],
+            ),
+            id='pag-page-2',
+        ),
+        pytest.param(
+            dict(
+                pagination={'page_size': 4, 'page': 3},
+                expected_upload_ids=['id_processing', 'id_empty'],
+            ),
+            id='pag-page-3',
+        ),
+        pytest.param(
+            dict(
+                pagination={'page_size': 5, 'page': 3},
+                expected_upload_ids=[],
+            ),
+            id='pag-page-out-of-range',
+        ),
+        pytest.param(
+            dict(
+                pagination={'page_size': 2, 'order': 'desc'},
+                expected_upload_ids=['id_empty', 'id_processing'],
+            ),
+            id='pag-page-order-desc',
+        ),
+        pytest.param(
+            dict(pagination={'order_by': 'upload_id'}, expected_status_code=422),
+            id='pag-invalid-order_by',
+        ),
+    ],
+)
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
     user = kwargs.get('user', 'test_user')
@@ -350,7 +409,8 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
     response = client.post(
         'graph/query',
         json=query_body,
-        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}),
+    )
     result = response.json()
 
     def assert_upload_ids(a, b):
@@ -366,59 +426,171 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
         assert response.status_code == expected_status_code
 
 
-@pytest.mark.parametrize('depth,result', [
-    pytest.param(1, {'uploads': {'id_unpublished': {'files': {'m_is': 'Directory', 'test_content': {
-        'm_is': 'Directory', 'path': 'test_content', 'size': 0}}}}}, id='depth-1'),
-    pytest.param(2, {'uploads': {'id_unpublished': {'files': {'m_is': 'Directory', 'test_content': {
-        'id_unpublished_1': {'m_is': 'Directory', 'path': 'test_content/id_unpublished_1', 'size': 0},
-        'm_is': 'Directory', 'path': 'test_content', 'size': 0}}}}}, id='depth-2'),
-    pytest.param(3, {'uploads': {'id_unpublished': {'files': {'m_is': 'Directory', 'test_content': {
-        'id_unpublished_1': {'1.aux': {
-            'm_is': 'File', 'path': 'test_content/id_unpublished_1/1.aux', 'size': 8}, '2.aux': {
-            'm_is': 'File', 'path': 'test_content/id_unpublished_1/2.aux', 'size': 8}, '3.aux': {
-            'm_is': 'File', 'path': 'test_content/id_unpublished_1/3.aux', 'size': 8}, '4.aux': {
-            'm_is': 'File', 'path': 'test_content/id_unpublished_1/4.aux', 'size': 8}, 'm_is': 'Directory',
-            'mainfile.json': {'m_is': 'File', 'path': 'test_content/id_unpublished_1/mainfile.json', 'size': 3233},
-            'path': 'test_content/id_unpublished_1', 'size': 3265}, 'm_is': 'Directory', 'path': 'test_content',
-        'size': 3265}}}}}, id='depth-3'),
-])
+@pytest.mark.parametrize(
+    'depth,result',
+    [
+        pytest.param(
+            1,
+            {
+                'uploads': {
+                    'id_unpublished': {
+                        'files': {
+                            'm_is': 'Directory',
+                            'test_content': {
+                                'm_is': 'Directory',
+                                'path': 'test_content',
+                                'size': 0,
+                            },
+                        }
+                    }
+                }
+            },
+            id='depth-1',
+        ),
+        pytest.param(
+            2,
+            {
+                'uploads': {
+                    'id_unpublished': {
+                        'files': {
+                            'm_is': 'Directory',
+                            'test_content': {
+                                'id_unpublished_1': {
+                                    'm_is': 'Directory',
+                                    'path': 'test_content/id_unpublished_1',
+                                    'size': 0,
+                                },
+                                'm_is': 'Directory',
+                                'path': 'test_content',
+                                'size': 0,
+                            },
+                        }
+                    }
+                }
+            },
+            id='depth-2',
+        ),
+        pytest.param(
+            3,
+            {
+                'uploads': {
+                    'id_unpublished': {
+                        'files': {
+                            'm_is': 'Directory',
+                            'test_content': {
+                                'id_unpublished_1': {
+                                    '1.aux': {
+                                        'm_is': 'File',
+                                        'path': 'test_content/id_unpublished_1/1.aux',
+                                        'size': 8,
+                                    },
+                                    '2.aux': {
+                                        'm_is': 'File',
+                                        'path': 'test_content/id_unpublished_1/2.aux',
+                                        'size': 8,
+                                    },
+                                    '3.aux': {
+                                        'm_is': 'File',
+                                        'path': 'test_content/id_unpublished_1/3.aux',
+                                        'size': 8,
+                                    },
+                                    '4.aux': {
+                                        'm_is': 'File',
+                                        'path': 'test_content/id_unpublished_1/4.aux',
+                                        'size': 8,
+                                    },
+                                    'm_is': 'Directory',
+                                    'mainfile.json': {
+                                        'm_is': 'File',
+                                        'path': 'test_content/id_unpublished_1/mainfile.json',
+                                        'size': 3233,
+                                    },
+                                    'path': 'test_content/id_unpublished_1',
+                                    'size': 3265,
+                                },
+                                'm_is': 'Directory',
+                                'path': 'test_content',
+                                'size': 3265,
+                            },
+                        }
+                    }
+                }
+            },
+            id='depth-3',
+        ),
+    ],
+)
 def test_fs_graph(client, test_auth_dict, example_data, depth, result):
     user_auth, _ = test_auth_dict['test_user']
 
     response = client.post(
         'graph/query',
-        json={Token.UPLOADS: {'id_unpublished': {Token.RAW: {
-            'm_request': {'directive': 'plain', 'depth': depth, }}}}},
-        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+        json={
+            Token.UPLOADS: {
+                'id_unpublished': {
+                    Token.RAW: {
+                        'm_request': {
+                            'directive': 'plain',
+                            'depth': depth,
+                        }
+                    }
+                }
+            }
+        },
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}),
+    )
 
     assert response.json() == result
 
 
-@pytest.mark.parametrize('required,error', [
-    pytest.param('include', False, id='include-all'),
-    pytest.param('*', False, id='include-all-alias'),
-    # pytest.param({'metadata': '*'}, False, id='include-sub-section'),
-    # pytest.param({'metadata': {'entry_id': '*'}}, False, id='include-quantity'),
-    pytest.param({'workflow2': {'results': {'calculation_result_ref': {'energy': {'total': '*'}}}}}, None, id='resolve-with-required'),
-    pytest.param({'workflow2': {'results': {'calculation_result_ref': 'include-resolved'}}}, False, id='resolve-with-directive'),
-    pytest.param({'workflow2': 'include-resolved', 'results': 'include-resolved'}, False, id='include-resolved'),
-    pytest.param({
-        'results': {
-            'properties': {
-                'electronic': {
-                    'dos_electronic': {
-                        'energies': 'include-resolved'
+@pytest.mark.parametrize(
+    'required,error',
+    [
+        pytest.param('include', False, id='include-all'),
+        pytest.param('*', False, id='include-all-alias'),
+        # pytest.param({'metadata': '*'}, False, id='include-sub-section'),
+        # pytest.param({'metadata': {'entry_id': '*'}}, False, id='include-quantity'),
+        pytest.param(
+            {
+                'workflow2': {
+                    'results': {'calculation_result_ref': {'energy': {'total': '*'}}}
+                }
+            },
+            None,
+            id='resolve-with-required',
+        ),
+        pytest.param(
+            {'workflow2': {'results': {'calculation_result_ref': 'include-resolved'}}},
+            False,
+            id='resolve-with-directive',
+        ),
+        pytest.param(
+            {'workflow2': 'include-resolved', 'results': 'include-resolved'},
+            False,
+            id='include-resolved',
+        ),
+        pytest.param(
+            {
+                'results': {
+                    'properties': {
+                        'electronic': {
+                            'dos_electronic': {'energies': 'include-resolved'}
+                        }
                     }
                 }
-            }
-        }
-    }, False, id='resolve-quantity-ref'),
-    pytest.param({
-        'metadata': {'entry_id': {'doesnotexist': '*'}}
-    }, True, id='not-a-section'),
-])
+            },
+            False,
+            id='resolve-quantity-ref',
+        ),
+        pytest.param(
+            {'metadata': {'entry_id': {'doesnotexist': '*'}}}, True, id='not-a-section'
+        ),
+    ],
+)
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
-def test_entry_reader_with_reference(example_archive, required, error, test_user, example_upload):
+def test_entry_reader_with_reference(
+    example_archive, required, error, test_user, example_upload
+):
     with EntryReader({Token.ARCHIVE: required}, user=test_user) as reader:
         results = reader.read('test_id')
 
@@ -455,7 +627,9 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
             for key, value in root.items():
                 key = int(key) if key.isdigit() else key
                 # simplified, just consider workflow[0]
-                a_child = _goto(a[key] if isinstance(a, dict) else a[0][key], full_archive)
+                a_child = _goto(
+                    a[key] if isinstance(a, dict) else a[0][key], full_archive
+                )
                 b_child = _goto(b[key] if isinstance(b, dict) else b[0][key], results)
 
                 if not isinstance(value, str):
@@ -466,35 +640,46 @@ def test_entry_reader_with_reference(example_archive, required, error, test_user
         _walk(full_archive, results[Token.ARCHIVE], required)
 
 
-@pytest.mark.parametrize('required,result', [
-    pytest.param({
-        "run[0]": {
-            "m_request": {
-                "directive": "plain",
-                "include": ['c*']
-            }
-        }
-    }, {'run': [{'calculation': [{
-        'energy': {'total': {'value': 0.1}}, 'system_ref': '/run/0/system/1'}, {
-        'dos_electronic': [{'energies': [0.0, 0.1]}], 'energy': {'total': {'value': 0.2}},
-        'system_ref': '/run/0/system/1'}, {
-        'energy': {'total': {'value': 0.1}}, 'system_ref': '/run/0/system/1'}]}]}, id='include-pattern'),
-])
-def test_graph_query_archive_functionality(client, test_auth_dict, example_upload, required, result):
+@pytest.mark.parametrize(
+    'required,result',
+    [
+        pytest.param(
+            {'run[0]': {'m_request': {'directive': 'plain', 'include': ['c*']}}},
+            {
+                'run': [
+                    {
+                        'calculation': [
+                            {
+                                'energy': {'total': {'value': 0.1}},
+                                'system_ref': '/run/0/system/1',
+                            },
+                            {
+                                'dos_electronic': [{'energies': [0.0, 0.1]}],
+                                'energy': {'total': {'value': 0.2}},
+                                'system_ref': '/run/0/system/1',
+                            },
+                            {
+                                'energy': {'total': {'value': 0.1}},
+                                'system_ref': '/run/0/system/1',
+                            },
+                        ]
+                    }
+                ]
+            },
+            id='include-pattern',
+        ),
+    ],
+)
+def test_graph_query_archive_functionality(
+    client, test_auth_dict, example_upload, required, result
+):
     user_auth, _ = test_auth_dict['test_user']
     response = client.post(
         'graph/query',
-        json={
-            "uploads": {
-                "test_id": {
-                    "entries": {
-                        "test_id": {
-                            "archive": required
-                        }
-                    }
-                }
-            }
-        },
-        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}))
+        json={'uploads': {'test_id': {'entries': {'test_id': {'archive': required}}}}},
+        headers={'Accept': 'application/json'} | (user_auth if user_auth else {}),
+    )
 
-    assert response.json()['uploads']['test_id']['entries']['test_id']['archive'] == result
+    assert (
+        response.json()['uploads']['test_id']['entries']['test_id']['archive'] == result
+    )

@@ -54,17 +54,33 @@ def assert_symmetry(symmetry):
     assert symmetry.prototype_aflow_id
 
 
-@pytest.mark.parametrize('fixture, formula_descriptive', [
-    pytest.param('dft', 'KSi2Br', id='Inorganic with IUPAC formula'),
-    pytest.param('organic_formula', 'CHCl3', id='Organic with Hill formula'),
-    pytest.param('organic_carbonyl_formula', 'CAgO', id='Organic carbonyl with Hill formula'),
-    pytest.param('inorganic_carbonyl_formula', 'FeC5O5', id='Inorganic carbonyl with IUPAC formula'),
-    pytest.param('inorganic_special_formula', 'KHCO3', id='Inorganic carbonyl with specially-ordered IUPAC formula'),
-    pytest.param('predefined_formula_descriptive', 'BaFe2As2', id='Pre-defined chemical_formula in measurement.sample.chemical_formula'),
-])
+@pytest.mark.parametrize(
+    'fixture, formula_descriptive',
+    [
+        pytest.param('dft', 'KSi2Br', id='Inorganic with IUPAC formula'),
+        pytest.param('organic_formula', 'CHCl3', id='Organic with Hill formula'),
+        pytest.param(
+            'organic_carbonyl_formula', 'CAgO', id='Organic carbonyl with Hill formula'
+        ),
+        pytest.param(
+            'inorganic_carbonyl_formula',
+            'FeC5O5',
+            id='Inorganic carbonyl with IUPAC formula',
+        ),
+        pytest.param(
+            'inorganic_special_formula',
+            'KHCO3',
+            id='Inorganic carbonyl with specially-ordered IUPAC formula',
+        ),
+        pytest.param(
+            'predefined_formula_descriptive',
+            'BaFe2As2',
+            id='Pre-defined chemical_formula in measurement.sample.chemical_formula',
+        ),
+    ],
+)
 def test_chemical_formula_descriptive(fixture, formula_descriptive, request):
-    """Tests if chemical_formula is properly defined.
-    """
+    """Tests if chemical_formula is properly defined."""
     archive = request.getfixturevalue(fixture)
     assert archive.results.material.chemical_formula_descriptive == formula_descriptive
 
@@ -149,8 +165,10 @@ def test_material_surface(surface):
     assert material.material_name is None
     assert material.symmetry is None
 
-@pytest.mark.skipif(config.normalize.springer_db_path is None,
-                    reason='Springer DB path missing')
+
+@pytest.mark.skipif(
+    config.normalize.springer_db_path is None, reason='Springer DB path missing'
+)
 def test_material_bulk(bulk):
     # Material
     material = bulk.results.material
@@ -222,13 +240,11 @@ def test_1d_material_identification():
 def test_2d_material_identification():
     # Expected information for graphene. Graphene is an example of completely
     # flat 2D material.
-    wyckoff_sets = [WyckoffSet(
-        wyckoff_letter='c',
-        element='C',
-        indices=[0, 1]
-    )]
+    wyckoff_sets = [WyckoffSet(wyckoff_letter='c', element='C', indices=[0, 1])]
     space_group_number = 191
-    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets, is_2d=True)
+    norm_hash_string = atomutils.get_symmetry_string(
+        space_group_number, wyckoff_sets, is_2d=True
+    )
     graphene_material_id = hash(norm_hash_string)
 
     # Graphene orthogonal cell
@@ -238,14 +254,10 @@ def test_2d_material_identification():
             [2.84, 7.5, 6.148780366869514e-1],
             [3.55, 7.5, 1.8446341100608543],
             [7.1e-1, 7.5, 1.8446341100608543],
-            [1.42, 7.5, 6.148780366869514e-1]
+            [1.42, 7.5, 6.148780366869514e-1],
         ],
-        cell=[
-            [4.26, 0.0, 0.0],
-            [0.0, 15, 0.0],
-            [0.0, 0.0, 2.4595121467478055]
-        ],
-        pbc=True
+        cell=[[4.26, 0.0, 0.0], [0.0, 15, 0.0], [0.0, 0.0, 2.4595121467478055]],
+        pbc=True,
     )
     material_id = get_template_for_structure(graphene).results.material.material_id
     assert material_id == graphene_material_id
@@ -259,16 +271,13 @@ def test_2d_material_identification():
     # Graphene primitive cell
     graphene3 = Atoms(
         symbols=['C', 'C'],
-        positions=[
-            [0, 1.42, 6],
-            [1.2297560733739028, 7.100000000000001e-1, 6]
-        ],
+        positions=[[0, 1.42, 6], [1.2297560733739028, 7.100000000000001e-1, 6]],
         cell=[
             [2.4595121467478055, 0.0, 0.0],
             [-1.2297560733739028, 2.13, 0.0],
-            [0.0, 0.0, 12]
+            [0.0, 0.0, 12],
         ],
-        pbc=True
+        pbc=True,
     )
     material_id = get_template_for_structure(graphene3).results.material.material_id
     assert material_id == graphene_material_id
@@ -296,24 +305,14 @@ def test_2d_material_identification():
     # graphene. The structure is thus treated differently and tested
     # separately.
     wyckoff_sets = [
-        WyckoffSet(
-            wyckoff_letter='e',
-            element='S',
-            indices=[2, 5]
-        ),
-        WyckoffSet(
-            wyckoff_letter='e',
-            element='S',
-            indices=[3, 4]
-        ),
-        WyckoffSet(
-            wyckoff_letter='e',
-            element='Mo',
-            indices=[0, 1]
-        )
+        WyckoffSet(wyckoff_letter='e', element='S', indices=[2, 5]),
+        WyckoffSet(wyckoff_letter='e', element='S', indices=[3, 4]),
+        WyckoffSet(wyckoff_letter='e', element='Mo', indices=[0, 1]),
     ]
     space_group_number = 11
-    norm_hash_string = atomutils.get_symmetry_string(space_group_number, wyckoff_sets, is_2d=True)
+    norm_hash_string = atomutils.get_symmetry_string(
+        space_group_number, wyckoff_sets, is_2d=True
+    )
     mos2_material_id = hash(norm_hash_string)
 
     # MoS2 orthogonal cell
@@ -332,7 +331,7 @@ def test_2d_material_identification():
             [0.000000, 5.738503, 0.110928],
             [0.000000, 0.021363, 24.194079],
         ],
-        pbc=True
+        pbc=True,
     )
     material_id = get_template_for_structure(atoms).results.material.material_id
     assert material_id == mos2_material_id
@@ -346,7 +345,9 @@ def test_2d_material_identification():
 def test_bulk_material_identification():
     # Original system
     wurtzite = ase.build.bulk('SiC', crystalstructure='wurtzite', a=3.086, c=10.053)
-    material_id_wurtzite = get_template_for_structure(wurtzite).results.material.material_id
+    material_id_wurtzite = get_template_for_structure(
+        wurtzite
+    ).results.material.material_id
 
     # Rotated
     wurtzite2 = wurtzite.copy()
@@ -382,16 +383,9 @@ def test_bulk_material_identification():
 
 one_d_split = Atoms(
     symbols=['H', 'C'],
-    positions=[
-        [0.0, 0.0, 0],
-        [1.0, 0.0, 10.0]
-    ],
-    cell=[
-        [0.0, 10, 0.0],
-        [2, 0.0, 0.0],
-        [0.0, 0.0, 10]
-    ],
-    pbc=True
+    positions=[[0.0, 0.0, 0], [1.0, 0.0, 10.0]],
+    cell=[[0.0, 10, 0.0], [2, 0.0, 0.0], [0.0, 0.0, 10]],
+    pbc=True,
 )
 one_d_split_expected = Atoms(
     symbols=['H', 'C'],
@@ -404,20 +398,17 @@ one_d_split_expected = Atoms(
         [0, 0, 0],
         [0, 0, 0],
     ],
-    pbc=[True, False, False]
+    pbc=[True, False, False],
 )
 two_d_split = Atoms(
     symbols=['H', 'C'],
-    positions=[
-        [0.0, 0.0, 0],
-        [0.0, 0.0, 13.800000000000002]
-    ],
+    positions=[[0.0, 0.0, 0], [0.0, 0.0, 13.800000000000002]],
     cell=[
         [2, 0.0, 0.0],
         [0.0, 0.0, 15],
         [0.0, 2, 0.0],
     ],
-    pbc=True
+    pbc=True,
 )
 two_d_split_expected = Atoms(
     symbols=['H', 'C'],
@@ -425,12 +416,8 @@ two_d_split_expected = Atoms(
         [0, 0, 1.2],
         [0, 0, 0],
     ],
-    cell=[
-        [2, 0, 0],
-        [0, 2, 0],
-        [0, 0, 1.2]
-    ],
-    pbc=[True, True, False]
+    cell=[[2, 0, 0], [0, 2, 0], [0, 0, 1.2]],
+    pbc=[True, True, False],
 )
 two_d_swap = Atoms(
     symbols=['B', 'N'],
@@ -438,12 +425,8 @@ two_d_swap = Atoms(
         [0, 0, 0],
         [-0.6, 0.3, 0],
     ],
-    cell=[
-        [1, 2, 0],
-        [-2, 1, 0],
-        [0, 0, 20]
-    ],
-    pbc=True
+    cell=[[1, 2, 0], [-2, 1, 0], [0, 0, 20]],
+    pbc=True,
 )
 two_d_swap_expected = Atoms(
     symbols=['B', 'N'],
@@ -451,29 +434,36 @@ two_d_swap_expected = Atoms(
         [0, 0, 0.67082039],
         [0, 0, 0],
     ],
-    cell=[
-        [2.23607, 0, 0],
-        [0, 0, 2.23607],
-        [0, 0, 0]
-    ],
-    pbc=[True, True, False]
+    cell=[[2.23607, 0, 0], [0, 0, 2.23607], [0, 0, 0]],
+    pbc=[True, True, False],
 )
 
 
 @pytest.mark.parametrize(
     'atoms, expected',
     [
-        pytest.param(one_d_split, one_d_split_expected, id='1D with cell boundary in the middle of the structure'),
-        pytest.param(two_d_split, two_d_split_expected, id='2D with cell boundary in the middle of the structure'),
-        pytest.param(two_d_swap, two_d_swap_expected, id='2D cell where the nonperiodic axis is not last by default in the conventional cell.'),
-    ]
+        pytest.param(
+            one_d_split,
+            one_d_split_expected,
+            id='1D with cell boundary in the middle of the structure',
+        ),
+        pytest.param(
+            two_d_split,
+            two_d_split_expected,
+            id='2D with cell boundary in the middle of the structure',
+        ),
+        pytest.param(
+            two_d_swap,
+            two_d_swap_expected,
+            id='2D cell where the nonperiodic axis is not last by default in the conventional cell.',
+        ),
+    ],
 )
 def test_conventional_structure(atoms, expected, monkeypatch):
-    '''Tests that the conventional structure has the correct form.
-    '''
+    """Tests that the conventional structure has the correct form."""
     monkeypatch.setattr(
         'nomad.normalizing.topology.top_50k_material_ids',
-        {'upphbIG7rwgpi5sAvc9-z3GT1MCO': 1, 'nikqWRhuLtW8p8rPILRL60yQlf1C': 1}
+        {'upphbIG7rwgpi5sAvc9-z3GT1MCO': 1, 'nikqWRhuLtW8p8rPILRL60yQlf1C': 1},
     )
     entry = get_template_for_structure(atoms)
     topology = entry.results.material.topology
@@ -492,14 +482,24 @@ def test_conventional_structure(atoms, expected, monkeypatch):
     'archive, expected',
     [
         pytest.param(
-            get_template_for_structure(ase.build.molecule("H2O")),
+            get_template_for_structure(ase.build.molecule('H2O')),
             [
-                ElementalComposition(element='H', atomic_fraction=2 / 3, mass_fraction=0.111898, mass=1.00794 * ureg.amu),
-                ElementalComposition(element='O', atomic_fraction=1 / 3, mass_fraction=0.888101, mass=15.9994 * ureg.amu),
+                ElementalComposition(
+                    element='H',
+                    atomic_fraction=2 / 3,
+                    mass_fraction=0.111898,
+                    mass=1.00794 * ureg.amu,
+                ),
+                ElementalComposition(
+                    element='O',
+                    atomic_fraction=1 / 3,
+                    mass_fraction=0.888101,
+                    mass=15.9994 * ureg.amu,
+                ),
             ],
-            id='simulation, molecule'
+            id='simulation, molecule',
         ),
-    ]
+    ],
 )
 def test_elemental_composition(archive, expected):
     result = archive.results.material.elemental_composition
@@ -508,6 +508,12 @@ def test_elemental_composition(archive, expected):
     for comp_expected in expected:
         comp_result = composition_map[comp_expected.element]
         assert comp_result.element == comp_expected.element
-        assert comp_result.mass.magnitude == pytest.approx(comp_expected.mass.magnitude, abs=0, rel=1e-5)
-        assert comp_result.mass_fraction == pytest.approx(comp_expected.mass_fraction, abs=0, rel=1e-5)
-        assert comp_result.atomic_fraction == pytest.approx(comp_expected.atomic_fraction, abs=0, rel=1e-5)
+        assert comp_result.mass.magnitude == pytest.approx(
+            comp_expected.mass.magnitude, abs=0, rel=1e-5
+        )
+        assert comp_result.mass_fraction == pytest.approx(
+            comp_expected.mass_fraction, abs=0, rel=1e-5
+        )
+        assert comp_result.atomic_fraction == pytest.approx(
+            comp_expected.atomic_fraction, abs=0, rel=1e-5
+        )

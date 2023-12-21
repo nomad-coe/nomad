@@ -17,7 +17,17 @@
 #
 import os
 
-from nomad.metainfo import MSection, Section, Quantity, SubSection, Package, Datetime, MEnum, JSON, Reference
+from nomad.metainfo import (
+    MSection,
+    Section,
+    Quantity,
+    SubSection,
+    Package,
+    Datetime,
+    MEnum,
+    JSON,
+    Reference,
+)
 from nomad.datamodel.data import EntryData, ElnIntegrationCategory
 
 m_package = Package(name='openbis')
@@ -54,27 +64,44 @@ class OpenbisExperiment(OpenbisBaseSection):
         try:
             datasets = experiment.get_datasets()
             for ds in datasets:
-                filepath = os.path.join(archive.m_context.upload_files.external_os_path, 'raw',
-                                        experiment.identifier[1:].lower())
-                ds.download(destination=filepath, create_default_folders=False, wait_until_finished=False)
+                filepath = os.path.join(
+                    archive.m_context.upload_files.external_os_path,
+                    'raw',
+                    experiment.identifier[1:].lower(),
+                )
+                ds.download(
+                    destination=filepath,
+                    create_default_folders=False,
+                    wait_until_finished=False,
+                )
                 new_attachment = OpenbisAttachment()
-                file_name = '/'.join([experiment.identifier[1:].lower(), ds.file_list[0].split('/')[1]])
+                file_name = '/'.join(
+                    [experiment.identifier[1:].lower(), ds.file_list[0].split('/')[1]]
+                )
                 new_attachment.file = file_name
                 self.attachments.append(new_attachment)
         except Exception as e:
-            logger.error(f'Could not download the file {filepath}.', exc_info=e, data=dict(filepath=filepath))
+            logger.error(
+                f'Could not download the file {filepath}.',
+                exc_info=e,
+                data=dict(filepath=filepath),
+            )
 
 
 class OpenbisProject(OpenbisBaseSection):
     m_def = Section(label_quantity='code')
 
-    identifier = Quantity(type=str, description='Path of the current item in the Openbis file system.')
+    identifier = Quantity(
+        type=str, description='Path of the current item in the Openbis file system.'
+    )
 
     experiments = SubSection(sub_section=OpenbisExperiment, repeats=True)
 
 
 class OpenbisSpace(OpenbisBaseSection):
-    m_def = Section(label_quantity='code', description='Name of the current Openbis Space.')
+    m_def = Section(
+        label_quantity='code', description='Name of the current Openbis Space.'
+    )
     projects = SubSection(sub_section=OpenbisProject, repeats=True)
 
 
@@ -85,15 +112,12 @@ class OpenbisEntry(EntryData):
         super(OpenbisEntry, self).__init__(*args, **kwargs)
         self.logger = None
 
-    project_url = Quantity(
-        type=str,
-        a_eln=dict(component='StringEditQuantity'))
-    username = Quantity(
-        type=str,
-        a_eln=dict(component='StringEditQuantity'))
+    project_url = Quantity(type=str, a_eln=dict(component='StringEditQuantity'))
+    username = Quantity(type=str, a_eln=dict(component='StringEditQuantity'))
     password = Quantity(
         type=str,
-        a_eln=dict(component='StringEditQuantity', props=dict(type='password')))
+        a_eln=dict(component='StringEditQuantity', props=dict(type='password')),
+    )
 
     spaces = SubSection(sub_section=OpenbisSpace, repeats=True)
 
@@ -108,23 +132,28 @@ class OpenbisEntry(EntryData):
         self.logger = logger
 
         if not self.project_url or not self.username or not self.password:
-            logger.warning('Please make sure all fields of `project_url`, `username` and `password` are filled.')
+            logger.warning(
+                'Please make sure all fields of `project_url`, `username` and `password` are filled.'
+            )
         else:
             # Initializing pybis object
             try:
                 from pybis import Openbis
+
                 openbis = Openbis(self.project_url, verify_certificates=False)
             except Exception:
                 self._clear_login_info(archive)
                 raise OpenbisImportError(
-                    'Failed to connect to the openbis server. Check the project url to be correct.')
+                    'Failed to connect to the openbis server. Check the project url to be correct.'
+                )
 
             try:
                 openbis.login(self.username, self.password, save_token=True)
             except Exception:
                 self._clear_login_info(archive)
                 raise OpenbisImportError(
-                    'Failed to login to the openbis server. Check the username and password to be correct.')
+                    'Failed to login to the openbis server. Check the username and password to be correct.'
+                )
 
             # remove potential old content
             self.spaces.clear()
@@ -133,7 +162,9 @@ class OpenbisEntry(EntryData):
                 spaces = openbis.get_spaces()
             except Exception:
                 self._clear_login_info(archive)
-                raise OpenbisImportError('Failed to fetch spaces. The pybis package might have been changed.')
+                raise OpenbisImportError(
+                    'Failed to fetch spaces. The pybis package might have been changed.'
+                )
 
             # parsing the content in the spaces
             for space in spaces:
@@ -144,7 +175,9 @@ class OpenbisEntry(EntryData):
                     projects = space.get_projects()
                 except Exception:
                     self._clear_login_info(archive)
-                    raise OpenbisImportError('Failed to fetch projects. The pybis package might have been changed.')
+                    raise OpenbisImportError(
+                        'Failed to fetch projects. The pybis package might have been changed.'
+                    )
                 for project in projects:
                     project_element = OpenbisProject()
                     project_element.m_update_from_dict(project.attrs.all())
@@ -155,12 +188,15 @@ class OpenbisEntry(EntryData):
                     except Exception:
                         self._clear_login_info(archive)
                         raise OpenbisImportError(
-                            'Failed to fetch experiments. The pybis package might have been changed.')
+                            'Failed to fetch experiments. The pybis package might have been changed.'
+                        )
                     for experiment in experiments:
                         experiment_element = OpenbisExperiment()
                         experiment_element.m_update_from_dict(experiment.attrs.all())
                         try:
-                            experiment_element.download_files(experiment, archive, logger)
+                            experiment_element.download_files(
+                                experiment, archive, logger
+                            )
                         except Exception as e:
                             logger.error('Failed to download attachments.', exec_info=e)
 

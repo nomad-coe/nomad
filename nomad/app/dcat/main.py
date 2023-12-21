@@ -38,14 +38,15 @@ app = FastAPI(
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
     title='DCAT API',
     version=f'v1, NOMAD {config.meta.version}',
-    description='NOMAD\'s API for serving dcat resources')
+    description="NOMAD's API for serving dcat resources",
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 
@@ -67,9 +68,10 @@ async def unicorn_exception_handler(request: Request, e: Exception):
                 'reason': 'Unexpected exception while handling your request',
                 'exception': str(e),
                 'exception_class': e.__class__.__name__,
-                'exception_traceback': traceback.format_exc()
+                'exception_traceback': traceback.format_exc(),
             }
-        }
+        },
     )
+
 
 app.include_router(dcat.router)

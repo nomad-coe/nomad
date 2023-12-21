@@ -6,12 +6,13 @@ def simple_quantity():
         name='test',
         type=str,
         shape=[],
-        description='''Sample description''',
-        aliases=['alias1', 'alias2'])
+        description="""Sample description""",
+        aliases=['alias1', 'alias2'],
+    )
 
 
 def test_quantity():
-    '''
+    """
     The following properties affect the hash of a Quantity:
         name
         aliases
@@ -21,7 +22,7 @@ def test_quantity():
         default
         virtual
 
-    '''
+    """
     q1 = simple_quantity()
     q2 = simple_quantity()
 

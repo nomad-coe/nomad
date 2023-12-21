@@ -49,16 +49,16 @@ from pydantic.config import inherit_config
 import sys
 
 
-ref_prefix = "#/components/schemas"
-request_suffix = "Request"
-response_suffix = "Response"
+ref_prefix = '#/components/schemas'
+request_suffix = 'Request'
+response_suffix = 'Response'
 
 
 class _DictModel(BaseModel):
     @classmethod
     def process_extra(cls, values):
-        m_children = values.setdefault("m_children", {})
-        type_ = cls.__fields__["m_children"].type_
+        m_children = values.setdefault('m_children', {})
+        type_ = cls.__fields__['m_children'].type_
         for name in list(values):
             if name not in cls.__fields__:
                 value = values[name]
@@ -81,11 +81,11 @@ class _DictModel(BaseModel):
 
         @staticmethod
         def schema_extra(schema: dict[str, Any], model: Type[_DictModel]) -> None:
-            if "m_children" not in model.__annotations__:
+            if 'm_children' not in model.__annotations__:
                 raise TypeError(
-                    f"No m_children field defined for dict model {model.__name__}. "
+                    f'No m_children field defined for dict model {model.__name__}. '
                 )
-            children_annotation = model.__annotations__["m_children"]
+            children_annotation = model.__annotations__['m_children']
             value_type = get_args(get_args(children_annotation)[0])[1]
             if value_type is None:
                 raise TypeError(
@@ -102,26 +102,26 @@ class _DictModel(BaseModel):
                 if isinstance(value_type, ForwardRef):
                     value_type = value_type.__forward_value__
 
-                if value_type == Literal["*"]:
-                    types.append({"enum": ["*"], "type": "string"})
+                if value_type == Literal['*']:
+                    types.append({'enum': ['*'], 'type': 'string'})
                 else:
-                    types.append({"$ref": f"{ref_prefix}/{value_type.__name__}"})
+                    types.append({'$ref': f'{ref_prefix}/{value_type.__name__}'})
 
-            if "properties" in schema:
-                for property in schema["properties"].values():
-                    if "$ref" in property:
+            if 'properties' in schema:
+                for property in schema['properties'].values():
+                    if '$ref' in property:
                         types.append(property)
 
-                schema["properties"].pop("m_children")
+                schema['properties'].pop('m_children')
 
-            schema["additionalProperties"] = {"anyOf": types}
+            schema['additionalProperties'] = {'anyOf': types}
 
 
 def _get_request_type(type_hint: Any, ns: ModelNamespace) -> Any:
     origin, args = get_origin(type_hint), get_args(type_hint)
 
     if origin is list or type_hint in [str, int, bool, datetime, Any]:
-        return Literal["*"]
+        return Literal['*']
 
     if origin is None and issubclass(type_hint, BaseModel):
         return _generate_model(type_hint, request_suffix, _get_request_type, ns)
@@ -184,7 +184,7 @@ def _generate_model(
     **kwargs,
 ):
     # We need to populate a forward ref for the model in the ns use it in recursion cases.
-    result_model_name = f"{source_model.__name__}{suffix}"
+    result_model_name = f'{source_model.__name__}{suffix}'
     is_ns_origin = len(ns) == 0
     if result_model_name not in ns:
         ns[result_model_name] = ForwardRef(result_model_name)
@@ -195,33 +195,37 @@ def _generate_model(
     fields = dict(**kwargs)
 
     for field_name, type_hint in type_hints.items():
-
-        if field_name.startswith("__"):
+        if field_name.startswith('__'):
             continue
 
-        if field_name == "m_children":
+        if field_name == 'm_children':
             origin, args = get_origin(type_hint), get_args(type_hint)
             if origin is Union:
                 types = args
             else:
                 types = (type_hint,)
-            if not all(isinstance(type_, type) and issubclass(type_, BaseModel) for type_ in types):
+            if not all(
+                isinstance(type_, type) and issubclass(type_, BaseModel)
+                for type_ in types
+            ):
                 raise TypeError(
-                    "Only Pydantic model classes (or Unions thereof) are supported as m_children types."
+                    'Only Pydantic model classes (or Unions thereof) are supported as m_children types.'
                 )
-            value_types = tuple(_generate_model(type_, suffix, generate_type, ns) for type_ in types)
+            value_types = tuple(
+                _generate_model(type_, suffix, generate_type, ns) for type_ in types
+            )
             # TODO we always add Literal['*'] at the end. Maybe it should be configurable
             # which models want to support '*' values for their children?
             value_type = Union[value_types + (Literal['*'],)]  # type: ignore
-            fields["m_children"] = (Optional[Dict[str, cast(Type, value_type)]], None)  # type: ignore
+            fields['m_children'] = (Optional[Dict[str, cast(Type, value_type)]], None)  # type: ignore
             continue
 
-        if field_name == "m_request":
+        if field_name == 'm_request':
             if suffix == request_suffix:
                 fields[field_name] = (Optional[type_hint], None)
             continue
 
-        if field_name == "m_response":
+        if field_name == 'm_response':
             if suffix == response_suffix:
                 fields[field_name] = (Optional[type_hint], None)
             continue
@@ -236,7 +240,9 @@ def _generate_model(
             continue
 
         if field_name.startswith('m_') and field_name not in ['m_def']:
-            raise NotImplementedError(f'The internal field {field_name} is not implemented.')
+            raise NotImplementedError(
+                f'The internal field {field_name} is not implemented.'
+            )
 
         fields[field_name] = (Optional[generate_type(type_hint, ns)], None)
 
@@ -252,7 +258,7 @@ def _generate_model(
         if suffix == request_suffix:
             validators = {
                 'process_extra': root_validator(  # type: ignore
-                    _DictModel.process_extra.__func__, # type: ignore
+                    _DictModel.process_extra.__func__,  # type: ignore
                     pre=True,
                     allow_reuse=True,
                 )
@@ -279,21 +285,23 @@ def _generate_model(
                 for field in model.__fields__.values():
                     if get_origin(field.type_) is Union:
                         union_types = tuple(
-                            evaluate_forwardref(type_, {}, ns) if type_.__class__ == ForwardRef else type_
+                            evaluate_forwardref(type_, {}, ns)
+                            if type_.__class__ == ForwardRef
+                            else type_
                             for type_ in get_args(field.type_)
                         )
                         field.type_ = Union[union_types]  # type: ignore
 
-    assert getattr(sys.modules[source_model.__module__], result_model_name, result_model) == result_model, \
-        f'Model class with name {result_model_name} already exists.'
+    assert (
+        getattr(sys.modules[source_model.__module__], result_model_name, result_model)
+        == result_model
+    ), f'Model class with name {result_model_name} already exists.'
     setattr(sys.modules[source_model.__module__], result_model_name, result_model)
 
     return result_model
 
 
-def mapped(
-        model: Type[BaseModel], **mapping: Union[str, type]
-) -> Type[BaseModel]:
+def mapped(model: Type[BaseModel], **mapping: Union[str, type]) -> Type[BaseModel]:
     """
     Creates a new pydantic model based on the given model. The mapping argument allows
     to either change the name of a field in the input model or change the type of a field

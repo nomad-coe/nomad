@@ -29,7 +29,7 @@ from .conftest import (
     get_template_band_structure,
     run_normalize,
     simulationworkflowschema,
-    SCHEMA_IMPORT_ERROR
+    SCHEMA_IMPORT_ERROR,
 )
 
 
@@ -93,14 +93,16 @@ def test_energy_volume_curve(mechanical_eos):
 
 def test_band_gap():
     archive = get_template_dft()
-    archive = add_template_dos(archive, fill=[[[0., 1.], [2., 3.]], [[0., 1.], [1.5, 3.]]])  # Keep the Fermi level at 1.
+    archive = add_template_dos(
+        archive, fill=[[[0.0, 1.0], [2.0, 3.0]], [[0.0, 1.0], [1.5, 3.0]]]
+    )  # Keep the Fermi level at 1.
     archive = add_template_band_structure(archive, band_gaps=[(1.7, 'direct')])
     archive = run_normalize(archive)
 
     band_gaps = archive.results.properties.electronic.band_gap
-    assert band_gaps[0].value.to('eV').magnitude == pytest.approx(1., abs=.1)
-    assert band_gaps[1].value.to('eV').magnitude == pytest.approx(.5, abs=.1)
-    assert band_gaps[2].value.to('eV').magnitude == pytest.approx(1.7, abs=.1)
+    assert band_gaps[0].value.to('eV').magnitude == pytest.approx(1.0, abs=0.1)
+    assert band_gaps[1].value.to('eV').magnitude == pytest.approx(0.5, abs=0.1)
+    assert band_gaps[2].value.to('eV').magnitude == pytest.approx(1.7, abs=0.1)
 
 
 def test_dos_electronic():
@@ -119,9 +121,13 @@ def test_dos_electronic():
     assert dos.spin_polarized is False and len(dos.data) == 1
     assert len(dos.data[0].band_gap) == 1
     assert dos.data[0].band_gap[0].energy_highest_occupied is not None
-    assert dos.data[0].band_gap[0].energy_highest_occupied.to('eV').magnitude == pytest.approx(1.0)
+    assert dos.data[0].band_gap[0].energy_highest_occupied.to(
+        'eV'
+    ).magnitude == pytest.approx(1.0)
     assert dos.data[0].band_gap[0].energy_lowest_unoccupied is not None
-    assert dos.data[0].band_gap[0].energy_lowest_unoccupied.to('eV').magnitude == pytest.approx(1.9)
+    assert dos.data[0].band_gap[0].energy_lowest_unoccupied.to(
+        'eV'
+    ).magnitude == pytest.approx(1.9)
     assert dos.data[0].band_gap[0].value.to('eV').magnitude == pytest.approx(0.9)
     assert dos.data[0].total.value.shape == dos.data[0].energies.shape == (101,)
 
@@ -132,7 +138,11 @@ def test_dos_electronic():
     assert dos.spin_polarized is True and len(dos.data) == 2
     assert dos.data[0].spin_channel == 0 and dos.data[1].spin_channel == 1
     for nspin in range(len(dos.data)):
-        assert dos.data[nspin].total.value.shape == dos.data[nspin].energies.shape == (101,)
+        assert (
+            dos.data[nspin].total.value.shape
+            == dos.data[nspin].energies.shape
+            == (101,)
+        )
     assert dos.data[0].band_gap[0].value == dos.data[1].band_gap[0].value
     assert dos.data[0].band_gap[0].value.to('eV').magnitude == pytest.approx(0.9)
 
@@ -213,13 +223,15 @@ def test_band_structure_electronic():
     assert len(band_gaps) == 1
     assert band_gaps[0].energy_highest_occupied is not None
     assert band_gaps[0].energy_lowest_unoccupied is not None
-    assert band_gaps[0].value == pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert band_gaps[0].value == pytest.approx(
+        (gap * ureg.electron_volt).to(ureg.joule).magnitude
+    )
     assert band_gaps[0].type == gap_type
     assert bs.segment[0].energies.shape == (1, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
 
     # Unpolarized band structure with indirect gap
-    gap = 1   # eV
+    gap = 1  # eV
     gap_type = 'indirect'
     archive = get_template_band_structure([(gap, gap_type)])
     bs = archive.results.properties.electronic.band_structure_electronic[0]
@@ -230,7 +242,9 @@ def test_band_structure_electronic():
     assert len(band_gaps) == 1
     assert band_gaps[0].energy_highest_occupied is not None
     assert band_gaps[0].energy_lowest_unoccupied is not None
-    assert band_gaps[0].value == pytest.approx((gap * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert band_gaps[0].value == pytest.approx(
+        (gap * ureg.electron_volt).to(ureg.joule).magnitude
+    )
     assert band_gaps[0].type == gap_type
     assert bs.segment[0].energies.shape == (1, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
@@ -248,11 +262,15 @@ def test_band_structure_electronic():
     assert len(band_gaps) == 2
     assert band_gaps[0].energy_highest_occupied is not None
     assert band_gaps[0].energy_lowest_unoccupied is not None
-    assert band_gaps[0].value == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert band_gaps[0].value == pytest.approx(
+        (gap1 * ureg.electron_volt).to(ureg.joule).magnitude
+    )
     assert band_gaps[0].type == gap_type
     assert band_gaps[1].energy_highest_occupied is not None
     assert band_gaps[1].energy_lowest_unoccupied is not None
-    assert band_gaps[1].value == pytest.approx((gap2 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert band_gaps[1].value == pytest.approx(
+        (gap2 * ureg.electron_volt).to(ureg.joule).magnitude
+    )
     assert band_gaps[1].type == gap_type
     assert bs.segment[0].energies.shape == (2, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
@@ -270,11 +288,15 @@ def test_band_structure_electronic():
     assert len(band_gaps) == 2
     assert band_gaps[0].energy_highest_occupied is not None
     assert band_gaps[0].energy_lowest_unoccupied is not None
-    assert band_gaps[0].value == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert band_gaps[0].value == pytest.approx(
+        (gap1 * ureg.electron_volt).to(ureg.joule).magnitude
+    )
     assert band_gaps[0].type == gap_type
     assert band_gaps[1].energy_highest_occupied is not None
     assert band_gaps[1].energy_lowest_unoccupied is not None
-    assert band_gaps[1].value == pytest.approx((gap1 * ureg.electron_volt).to(ureg.joule).magnitude)
+    assert band_gaps[1].value == pytest.approx(
+        (gap1 * ureg.electron_volt).to(ureg.joule).magnitude
+    )
     assert band_gaps[1].type == gap_type
     assert bs.segment[0].energies.shape == (2, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
@@ -320,15 +342,15 @@ def test_band_structure_phonon():
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_energy_free_helmholtz(phonon):
     energy_free = phonon.results.properties.vibrational.energy_free_helmholtz
-    assert energy_free.temperatures.shape == (11, )
-    assert energy_free.energies.shape == (11, )
+    assert energy_free.temperatures.shape == (11,)
+    assert energy_free.energies.shape == (11,)
 
 
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_heat_capacity_constant_volume(phonon):
     heat_cap = phonon.results.properties.vibrational.heat_capacity_constant_volume
-    assert heat_cap.temperatures.shape == (11, )
-    assert heat_cap.heat_capacities.shape == (11, )
+    assert heat_cap.temperatures.shape == (11,)
+    assert heat_cap.heat_capacities.shape == (11,)
 
 
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
@@ -354,11 +376,19 @@ def test_trajectory(molecular_dynamics):
     assert 'trajectory' in molecular_dynamics.results.properties.available_properties
     assert trajectory.pressure.value.size == trajectory.pressure.time.size == n_steps
     assert trajectory.volume.value.size == trajectory.volume.time.size == n_steps
-    assert trajectory.temperature.value.size == trajectory.temperature.time.size == n_steps
-    assert trajectory.energy_potential.value.size == trajectory.energy_potential.time.size == n_steps
+    assert (
+        trajectory.temperature.value.size == trajectory.temperature.time.size == n_steps
+    )
+    assert (
+        trajectory.energy_potential.value.size
+        == trajectory.energy_potential.time.size
+        == n_steps
+    )
     assert trajectory.provenance.molecular_dynamics.time_step == 0.5 * ureg('fs')
     assert trajectory.provenance.molecular_dynamics.ensemble_type == 'NVT'
-    assert set(trajectory.available_properties) == set(['pressure', 'volume', 'temperature', 'energy_potential'])
+    assert set(trajectory.available_properties) == set(
+        ['pressure', 'volume', 'temperature', 'energy_potential']
+    )
 
 
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
@@ -369,7 +399,10 @@ def test_rgs(molecular_dynamics):
     n_steps = 10
     rg = rgs[0]
 
-    assert 'radius_of_gyration' in molecular_dynamics.results.properties.available_properties
+    assert (
+        'radius_of_gyration'
+        in molecular_dynamics.results.properties.available_properties
+    )
     assert rg.kind == 'molecular'
     assert rg.value.size == rg.time.size == n_steps
     assert rg.label == 'MOL'
@@ -382,7 +415,10 @@ def test_rdfs(molecular_dynamics):
     assert n_rdfs == 1
     rdf = rdfs[0]
 
-    assert 'radial_distribution_function' in molecular_dynamics.results.properties.available_properties
+    assert (
+        'radial_distribution_function'
+        in molecular_dynamics.results.properties.available_properties
+    )
     assert rdf.type == 'molecular'
     assert rdf.label == 'MOL-MOL'
     assert np.array_equal(rdf.bins.to(ureg.meter).magnitude, [0, 1, 2])
@@ -399,7 +435,10 @@ def test_msds(molecular_dynamics):
     assert n_msds == 1
     msd = msds[0]
 
-    assert 'mean_squared_displacement' in molecular_dynamics.results.properties.available_properties
+    assert (
+        'mean_squared_displacement'
+        in molecular_dynamics.results.properties.available_properties
+    )
     assert msd.type == 'molecular'
     assert msd.direction == 'xyz'
     assert msd.error_type == 'bootstrapping'
@@ -408,7 +447,12 @@ def test_msds(molecular_dynamics):
     assert np.array_equal(msd.value.to(ureg.meter * ureg.meter).magnitude, [0, 1, 2])
     assert msd.n_times == len(msd.times)
     assert np.array_equal(msd.errors, [0, 1, 2])
-    assert np.array_equal(msd.diffusion_constant_value.to(ureg.meter * ureg.meter / ureg.second).magnitude, 2.1)
+    assert np.array_equal(
+        msd.diffusion_constant_value.to(
+            ureg.meter * ureg.meter / ureg.second
+        ).magnitude,
+        2.1,
+    )
     assert msd.diffusion_constant_error_type == 'Pearson correlation coefficient'
     assert np.array_equal(msd.diffusion_constant_errors, 0.98)
 

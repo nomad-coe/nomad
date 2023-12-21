@@ -64,7 +64,10 @@ def test_quantity_overwrite():
     assert 'test_quantity' in Section.m_def.all_properties
     assert Section.m_def.all_properties['test_quantity'] == Section.test_quantity
     assert BaseSection.test_quantity != Section.test_quantity
-    assert BaseSection.m_def.all_properties['test_quantity'] != Section.m_def.all_properties['test_quantity']
+    assert (
+        BaseSection.m_def.all_properties['test_quantity']
+        != Section.m_def.all_properties['test_quantity']
+    )
 
     with pytest.raises(TypeError):
         Section(test_quantity='test_value')
@@ -116,7 +119,10 @@ def test_sub_section_overwrite():
     assert 'test_sub_section' in Section.m_def.all_properties
     assert Section.m_def.all_properties['test_sub_section'] == Section.test_sub_section
     assert BaseSection.test_sub_section != Section.test_sub_section
-    assert BaseSection.m_def.all_properties['test_sub_section'] != Section.m_def.all_properties['test_sub_section']
+    assert (
+        BaseSection.m_def.all_properties['test_sub_section']
+        != Section.m_def.all_properties['test_sub_section']
+    )
 
     with pytest.raises(TypeError):
         Section(test_sub_section=OtherSection())
@@ -131,7 +137,9 @@ def test_sub_section_partial_overwrite():
         pass
 
     class BaseSection(MSection):
-        test_sub_section = SubSection(sub_section=OtherSection, description='test_description')
+        test_sub_section = SubSection(
+            sub_section=OtherSection, description='test_description'
+        )
 
     class Section(BaseSection):
         test_sub_section = SubSection(repeats=True)
@@ -146,9 +154,7 @@ def test_overwrite_programmatic():
         test_quantity = Quantity(type=str, description='test_description')
 
     section_def = Section(name='Section', base_sections=[BaseSection.m_def])
-    section_def.m_add_sub_section(
-        Section.quantities,
-        Quantity(name='test_quantity'))
+    section_def.m_add_sub_section(Section.quantities, Quantity(name='test_quantity'))
 
     # This happens automatically in Python class based section defintions, but
     # has to be called manually in programatic section definitions.
@@ -165,10 +171,18 @@ def test_inner_sections():
         class InnerSection(MSection):
             pass
 
-    assert OuterSection.m_def.qualified_name() + '.InnerSection' == OuterSection.InnerSection.m_def.qualified_name()
-    assert OuterSection.m_def.inner_section_definitions == [OuterSection.InnerSection.m_def]
+    assert (
+        OuterSection.m_def.qualified_name() + '.InnerSection'
+        == OuterSection.InnerSection.m_def.qualified_name()
+    )
+    assert OuterSection.m_def.inner_section_definitions == [
+        OuterSection.InnerSection.m_def
+    ]
     assert OuterSection.InnerSection.m_def.m_parent == OuterSection.m_def
-    assert OuterSection.InnerSection.m_def.m_parent_sub_section == Section.inner_section_definitions
+    assert (
+        OuterSection.InnerSection.m_def.m_parent_sub_section
+        == Section.inner_section_definitions
+    )
 
 
 def test_inner_sections_inheritance():
@@ -176,7 +190,9 @@ def test_inner_sections_inheritance():
         class InnerSection(MSection):
             test_quantity = Quantity(type=int, description='test_description')
 
-        test_sub_section = SubSection(sub_section=InnerSection, description='test_description')
+        test_sub_section = SubSection(
+            sub_section=InnerSection, description='test_description'
+        )
 
     class OuterSection(BaseSection):
         class InnerSection(BaseSection.InnerSection):
@@ -186,12 +202,21 @@ def test_inner_sections_inheritance():
 
     assert OuterSection.test_sub_section.description == 'test_description'
     assert OuterSection.InnerSection.test_quantity.type == str
-    assert OuterSection.InnerSection.test_quantity.description == 'overwritten_description'
-    assert OuterSection.m_def.qualified_name() + '.InnerSection' == OuterSection.InnerSection.m_def.qualified_name()  # pylint: disable=no-member
-    assert BaseSection.m_def.qualified_name() + '.InnerSection' == BaseSection.InnerSection.m_def.qualified_name()
+    assert (
+        OuterSection.InnerSection.test_quantity.description == 'overwritten_description'
+    )
+    assert (
+        OuterSection.m_def.qualified_name() + '.InnerSection'
+        == OuterSection.InnerSection.m_def.qualified_name()
+    )  # pylint: disable=no-member
+    assert (
+        BaseSection.m_def.qualified_name() + '.InnerSection'
+        == BaseSection.InnerSection.m_def.qualified_name()
+    )
 
     section = OuterSection(
-        test_sub_section=OuterSection.InnerSection(test_quantity='test_value'))
+        test_sub_section=OuterSection.InnerSection(test_quantity='test_value')
+    )
     assert section.test_sub_section.test_quantity == 'test_value'
 
 
@@ -213,6 +238,7 @@ def test_path():
     from nomad.datamodel.metainfo.simulation.calculation import Calculation, Energy
     from nomad.datamodel.metainfo.simulation.system import System
     from nomad.datamodel import EntryArchive  # pylint: disable=unused-import
+
     assert Calculation.m_def.path == 'run.calculation'
     assert System.m_def.path == 'run.system'
     assert Energy.m_def.path == '__no_archive_path__'

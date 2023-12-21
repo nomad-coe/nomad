@@ -36,32 +36,43 @@ default_tag = 'dcat'
 logger = utils.get_logger(__name__)
 
 
-_bad_id_response = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Dataset not found. The given id does not match any dataset.''')}
+_bad_id_response = (
+    status.HTTP_404_NOT_FOUND,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        Dataset not found. The given id does not match any dataset."""
+        ),
+    },
+)
 
-_raw_response = 200, {
-    'content': {'application/octet': {}},
-    'description': 'The response. The returned content type depends on the format parameter.'}
+_raw_response = (
+    200,
+    {
+        'content': {'application/octet': {}},
+        'description': 'The response. The returned content type depends on the format parameter.',
+    },
+)
 
 
 @router.get(
-    '/datasets/{entry_id}', tags=[default_tag],
+    '/datasets/{entry_id}',
+    tags=[default_tag],
     summary='Returns a DCAT dataset for a given NOMAD entry id.',
-    responses=create_responses(_bad_id_response, _raw_response)
+    responses=create_responses(_bad_id_response, _raw_response),
 )
 async def get_dataset(
     entry_id: str = Path(..., description='The unique NOMAD entry id.'),
-    rdf_respose=Depends(rdf_response)
+    rdf_respose=Depends(rdf_response),
 ):
-    ''' Returns a DCAT dataset for a given NOMAD entry id. '''
+    """Returns a DCAT dataset for a given NOMAD entry id."""
 
     results = search(owner='public', query=dict(entry_id=entry_id))
     if results.pagination.total == 0:
         raise HTTPException(
-            status_code=_bad_id_response[0],
-            detail=_bad_id_response[1]['description'])
+            status_code=_bad_id_response[0], detail=_bad_id_response[1]['description']
+        )
 
     entry = results.data[0]
 
@@ -71,16 +82,19 @@ async def get_dataset(
 
 
 @router.get(
-    '/catalog/', tags=[default_tag],
+    '/catalog/',
+    tags=[default_tag],
     summary='Returns a DCAT dataset for a given NOMAD entry id.',
-    responses=create_responses(_raw_response)
+    responses=create_responses(_raw_response),
 )
 async def get_catalog(
     after: str = Query(None, description='return entries after the given entry_id'),
-    modified_since: Union[datetime, date] = Query(None, description='maximum entry time (e.g. upload time)'),
-    rdf_respose=Depends(rdf_response)
+    modified_since: Union[datetime, date] = Query(
+        None, description='maximum entry time (e.g. upload time)'
+    ),
+    rdf_respose=Depends(rdf_response),
 ):
-    ''' Returns a DCAT dataset for a given NOMAD entry id. '''
+    """Returns a DCAT dataset for a given NOMAD entry id."""
 
     search_query = Q()
     if modified_since is not None:
@@ -98,5 +112,7 @@ async def get_catalog(
         search_response.data,
         total=search_response.pagination.total,
         after=after,
-        modified_since=modified_since, slim=False)
+        modified_since=modified_since,
+        slim=False,
+    )
     return rdf_respose(mapping.g)

@@ -24,9 +24,10 @@ from nomad import config, utils
 
 
 class POPO(dict):
-    '''
+    """
     A dict subclass that uses attributes as key/value pairs.
-    '''
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -34,7 +35,7 @@ class POPO(dict):
         if name in self:
             return self[name]
         else:
-            raise AttributeError("No such attribute: " + name)
+            raise AttributeError('No such attribute: ' + name)
 
     def __setattr__(self, name, value):
         self[name] = value
@@ -43,12 +44,15 @@ class POPO(dict):
         if name in self:
             del self[name]
         else:
-            raise AttributeError("No such attribute: " + name)
+            raise AttributeError('No such attribute: ' + name)
 
 
-@click.group(help=(
-    'This is the entry point to nomad\'s command line interface CLI. '
-    'It uses a sub-command structure similar to the git command.'))
+@click.group(
+    help=(
+        "This is the entry point to nomad's command line interface CLI. "
+        'It uses a sub-command structure similar to the git command.'
+    )
+)
 @click.option('-v', '--verbose', help='sets log level to info', is_flag=True)
 @click.option('--debug', help='sets log level to debug', is_flag=True)
 @click.option('--log-label', type=str, help='Label applied to logg entries.')
@@ -74,11 +78,14 @@ def run_cli():
 
         if next(arg for arg in sys.argv if arg == '-v') is not None:
             import traceback
+
             traceback.print_exc()
 
         print(
             'You are accessing functionality that requires extra dependencies.\n'
             'Check the NOMAD documentation or install all extra dependencies:\n'
-            '  pip install nomad-lab[infrastructure,dev]', file=sys.stderr)
+            '  pip install nomad-lab[infrastructure,dev]',
+            file=sys.stderr,
+        )
 
         sys.exit(1)

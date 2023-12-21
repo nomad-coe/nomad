@@ -30,10 +30,18 @@ from nomad.metainfo.elasticsearch_extension import material_type, material_index
 from .auth import create_user_dependency
 from ..utils import create_responses
 from ..models import (
-    User, Owner, WithQuery,
-    MetadataResponse, Metadata, MetadataPagination, MetadataRequired,
-    metadata_pagination_parameters, metadata_required_parameters, QueryParameters,
-    HTTPExceptionModel)
+    User,
+    Owner,
+    WithQuery,
+    MetadataResponse,
+    Metadata,
+    MetadataPagination,
+    MetadataRequired,
+    metadata_pagination_parameters,
+    metadata_required_parameters,
+    QueryParameters,
+    HTTPExceptionModel,
+)
 
 
 router = APIRouter()
@@ -42,23 +50,36 @@ logger = utils.get_logger(__name__)
 
 query_parameters = QueryParameters(doc_type=material_type)
 
-_bad_owner_response = status.HTTP_401_UNAUTHORIZED, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
+_bad_owner_response = (
+    status.HTTP_401_UNAUTHORIZED,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
         Unauthorized. The given owner requires authorization,
-        but no or bad authentication credentials are given.''')}
+        but no or bad authentication credentials are given."""
+        ),
+    },
+)
 
-_bad_id_response = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        Material not found. The given id does not match any material.''')}
+_bad_id_response = (
+    status.HTTP_404_NOT_FOUND,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        Material not found. The given id does not match any material."""
+        ),
+    },
+)
 
 
 class MaterialMetadataResponse(BaseModel):
     material_id: str = Field(None)
     required: MetadataRequired = Field(None)
     data: Any = Field(
-        None, description=strip('''The material metadata as dictionary.'''))
+        None, description=strip("""The material metadata as dictionary.""")
+    )
 
 
 def perform_search(*args, **kwargs) -> MetadataResponse:
@@ -74,22 +95,23 @@ def perform_search(*args, **kwargs) -> MetadataResponse:
     except SearchError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Elasticsearch could not process your query: %s' % str(e))
+            detail='Elasticsearch could not process your query: %s' % str(e),
+        )
 
 
 @router.post(
-    '/query', tags=['materials'],
+    '/query',
+    tags=['materials'],
     summary='Search materials and retrieve their metadata',
     response_model=MetadataResponse,
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
-    response_model_exclude_none=True)
+    response_model_exclude_none=True,
+)
 async def post_entries_metadata_query(
-        request: Request,
-        data: Metadata,
-        user: User = Depends(create_user_dependency())):
-
-    '''
+    request: Request, data: Metadata, user: User = Depends(create_user_dependency())
+):
+    """
     Executes a *query* and returns a *page* of the results with *required* result data
     as well as *statistics* and *aggregated* data.
 
@@ -104,7 +126,7 @@ async def post_entries_metadata_query(
 
     The `statistics` and `aggregations` keys will further allow to return statistics
     and aggregated data over all search results.
-    '''
+    """
 
     return perform_search(
         owner=data.owner,
@@ -112,23 +134,27 @@ async def post_entries_metadata_query(
         pagination=data.pagination,
         required=data.required,
         aggregations=data.aggregations,
-        user_id=user.user_id if user is not None else None)
+        user_id=user.user_id if user is not None else None,
+    )
 
 
 @router.get(
-    '', tags=['materials'],
+    '',
+    tags=['materials'],
     summary='Search materials and retrieve their metadata',
     response_model=MetadataResponse,
     responses=create_responses(_bad_owner_response),
     response_model_exclude_unset=True,
-    response_model_exclude_none=True)
+    response_model_exclude_none=True,
+)
 async def get_entries_metadata(
-        request: Request,
-        with_query: WithQuery = Depends(query_parameters),
-        pagination: MetadataPagination = Depends(metadata_pagination_parameters),
-        required: MetadataRequired = Depends(metadata_required_parameters),
-        user: User = Depends(create_user_dependency())):
-    '''
+    request: Request,
+    with_query: WithQuery = Depends(query_parameters),
+    pagination: MetadataPagination = Depends(metadata_pagination_parameters),
+    required: MetadataRequired = Depends(metadata_required_parameters),
+    user: User = Depends(create_user_dependency()),
+):
+    """
     Executes a *query* and returns a *page* of the results with *required* result data.
     This is a version of `/entries/query`. Queries work a little different, because
     we cannot put complex queries into URL parameters.
@@ -138,43 +164,52 @@ async def get_entries_metadata(
     used with additional operators attached to their names, e.g. `?n_atoms__gte=3` for
     all entries with more than 3 atoms. Operators are `all`, `any`, `none`, `gte`,
     `gt`, `lt`, `lte`.
-    '''
+    """
 
     res = perform_search(
-        owner=with_query.owner, query=with_query.query,
-        pagination=pagination, required=required,
-        user_id=user.user_id if user is not None else None)
+        owner=with_query.owner,
+        query=with_query.query,
+        pagination=pagination,
+        required=required,
+        user_id=user.user_id if user is not None else None,
+    )
     res.pagination.populate_urls(request)
     return res
 
 
 @router.get(
-    '/{material_id}', tags=['materials'],
+    '/{material_id}',
+    tags=['materials'],
     summary='Get the metadata of a material by its id',
     response_model=MaterialMetadataResponse,
     responses=create_responses(_bad_id_response),
     response_model_exclude_unset=True,
-    response_model_exclude_none=True)
+    response_model_exclude_none=True,
+)
 async def get_material_metadata(
-        material_id: str = Path(..., description='The unique material id of the material to retrieve metadata from.'),
-        required: MetadataRequired = Depends(metadata_required_parameters),
-        user: User = Depends(create_user_dependency())):
-    '''
+    material_id: str = Path(
+        ...,
+        description='The unique material id of the material to retrieve metadata from.',
+    ),
+    required: MetadataRequired = Depends(metadata_required_parameters),
+    user: User = Depends(create_user_dependency()),
+):
+    """
     Retrives the material metadata for the given id.
-    '''
+    """
 
     query = {'material_id': material_id}
     response = perform_search(
-        owner=Owner.all_, query=query, required=required,
-        user_id=user.user_id if user is not None else None)
+        owner=Owner.all_,
+        query=query,
+        required=required,
+        user_id=user.user_id if user is not None else None,
+    )
 
     if response.pagination.total == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='The entry with the given id does not exist or is not visible to you.')
+            detail='The entry with the given id does not exist or is not visible to you.',
+        )
 
-    return {
-        'material_id': material_id,
-        'required': required,
-        'data': response.data[0]
-    }
+    return {'material_id': material_id, 'required': required, 'data': response.data[0]}

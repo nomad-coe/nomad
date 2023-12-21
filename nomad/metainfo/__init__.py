@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 The NOMAD meta-info allows to define schemas for physics data independent of the used
 storage format. It allows to define physics quantities with types, complex shapes
 (vetors, matrices, etc.), units, links, and descriptions. It allows to organize large
@@ -27,7 +27,7 @@ NOMAD uses the meta-info to define all archive data, repository meta-data, (and 
 data). The meta-info provides a convenient Python interface to create,
 manipulate, and access data. We also use it to map data to various storage formats,
 including JSON, (HDF5), mongodb, and elastic search.
-'''
+"""
 
 
 from .metainfo import (
@@ -72,4 +72,5 @@ from .metainfo import (
     SectionProxy,
     derived,
     constraint,
-    units)
+    units,
+)

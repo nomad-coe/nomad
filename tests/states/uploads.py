@@ -23,9 +23,9 @@ from .archives.create_archives import archive_dft_bulk
 
 
 def empty():
-    '''
+    """
     State published upload containing one entry
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -34,14 +34,16 @@ def empty():
 
 
 def published():
-    '''
+    """
     State published upload containing one entry
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
     reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
+    data = ExampleData(
+        main_author=main_author, coauthors=coauthors, reviewers=reviewers
+    )
 
     upload_id = 'dft_upload'
     data.create_upload(upload_id=upload_id, published=True, embargo_length=0)
@@ -50,21 +52,23 @@ def published():
         upload_id=upload_id,
         entry_id=entry_id,
         mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk()
+        entry_archive=archive_dft_bulk(),
     )
 
     data.save()
 
 
 def published_with_embargo():
-    '''
+    """
     State published upload but under 3 months embargo
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
     reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
+    data = ExampleData(
+        main_author=main_author, coauthors=coauthors, reviewers=reviewers
+    )
 
     upload_id = 'dft_upload'
     data.create_upload(upload_id=upload_id, published=True, embargo_length=3)
@@ -73,21 +77,23 @@ def published_with_embargo():
         upload_id=upload_id,
         entry_id=entry_id,
         mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk()
+        entry_archive=archive_dft_bulk(),
     )
 
     data.save()
 
 
 def unpublished():
-    '''
+    """
     State unpublished upload containing one entry
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
     reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
+    data = ExampleData(
+        main_author=main_author, coauthors=coauthors, reviewers=reviewers
+    )
 
     upload_id = 'dft_upload'
     data.create_upload(upload_id=upload_id, published=False, embargo_length=0)
@@ -96,16 +102,16 @@ def unpublished():
         upload_id=upload_id,
         entry_id=entry_id,
         mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk()
+        entry_archive=archive_dft_bulk(),
     )
 
     data.save()
 
 
 def multiple_entries():
-    '''
+    """
     State published upload containing multiple entries
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -119,38 +125,40 @@ def multiple_entries():
             upload_id=upload_id,
             entry_id=entry_id,
             mainfile=f'vasp_{i}.xml',
-            entry_archive=archive_dft_bulk()
+            entry_archive=archive_dft_bulk(),
         )
 
     data.save()
 
 
 def multiple_uploads():
-    '''
+    """
     State published upload containing multiple entries
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
 
     for i in range(1, 12):
         upload_id = f'dft_upload_{i}'
-        data.create_upload(upload_id=upload_id, published=(i % 2 == 0), embargo_length=0)
+        data.create_upload(
+            upload_id=upload_id, published=(i % 2 == 0), embargo_length=0
+        )
         entry_id = f'dft_bulk_{i}'
         data.create_entry(
             upload_id=upload_id,
             entry_id=entry_id,
             mainfile=f'vasp.xml',
-            entry_archive=archive_dft_bulk()
+            entry_archive=archive_dft_bulk(),
         )
 
     data.save()
 
 
 def maximum_unpublished():
-    '''
+    """
     State published upload containing multiple entries
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -163,7 +171,7 @@ def maximum_unpublished():
             upload_id=upload_id,
             entry_id=entry_id,
             mainfile=f'vasp.xml',
-            entry_archive=archive_dft_bulk()
+            entry_archive=archive_dft_bulk(),
         )
 
     data.save()
@@ -174,16 +182,20 @@ def _browser_test(published: bool):
     main_author = infrastructure.user_management.get_user(username='test')
     coauthors = [infrastructure.user_management.get_user(username='scooper').user_id]
     reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
-    data = ExampleData(main_author=main_author, coauthors=coauthors, reviewers=reviewers)
+    data = ExampleData(
+        main_author=main_author, coauthors=coauthors, reviewers=reviewers
+    )
 
     upload_id = 'browser_test'
-    data.create_upload(upload_id=upload_id, published=published, embargo_length=12 if published else 0)
+    data.create_upload(
+        upload_id=upload_id, published=published, embargo_length=12 if published else 0
+    )
     entry_id = 'dft_bulk'
     data.create_entry(
         upload_id=upload_id,
         entry_id=entry_id,
         mainfile='test_entry/vasp.xml',
-        entry_archive=archive_dft_bulk()
+        entry_archive=archive_dft_bulk(),
     )
     data.save(additional_files_path='tests/data/gui/browser_test.zip')
 
@@ -205,11 +217,14 @@ def archive_browser_test():
         upload_id='archive_browser_test',
         main_author=main_author,
         coauthors=coauthors,
-        reviewers=reviewers)
+        reviewers=reviewers,
+    )
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('tests/data/proc/examples_vasp.zip')
     upload.staging_upload_files.add_rawfiles('examples/data/custom-schema')
-    upload.staging_upload_files.add_rawfiles('tests/data/datamodel/metainfo/eln/material_library')
+    upload.staging_upload_files.add_rawfiles(
+        'tests/data/datamodel/metainfo/eln/material_library'
+    )
     upload.process_upload()
     upload.block_until_complete()

@@ -26,13 +26,28 @@ from ase.data import chemical_symbols
 import numpy as np
 from matid.clustering import Clusterer, Cluster, Classification  # pylint: disable=import-error
 from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer  # pylint: disable=import-error
-from matid.classifications import Class0D, Atom, Class1D, Class2D, Material2D, Surface, Class3D  # pylint: disable=import-error
+from matid.classifications import (
+    Class0D,
+    Atom,
+    Class1D,
+    Class2D,
+    Material2D,
+    Surface,
+    Class3D,
+)  # pylint: disable=import-error
 
 from nomad import utils
 from nomad import config
 from nomad import atomutils
 from nomad.atomutils import Formula
-from nomad.datamodel.results import CoreHole, SymmetryNew as Symmetry, Material, System, Relation, structure_name_map
+from nomad.datamodel.results import (
+    CoreHole,
+    SymmetryNew as Symmetry,
+    Material,
+    System,
+    Relation,
+    structure_name_map,
+)
 from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.normalizing.common import (
@@ -49,28 +64,30 @@ from nomad.normalizing.common import (
 conventional_description = 'The conventional cell of the material from which the subsystem is constructed from.'
 subsystem_description = 'Automatically detected subsystem.'
 chemical_symbols = np.array(chemical_symbols)
-with open(pathlib.Path(__file__).parent / 'data/top_50k_material_ids.json', "r") as fin:
+with open(pathlib.Path(__file__).parent / 'data/top_50k_material_ids.json', 'r') as fin:
     top_50k_material_ids = json.load(fin)
 
 
 def get_topology_id(index: int) -> str:
-    '''Retuns a valid topology identifier with the given index.
+    """Retuns a valid topology identifier with the given index.
     Args:
         index: The index of the topology. Must be unique.
 
     Returns:
         An identifier string that can be stored in topology.system_id.
-    '''
+    """
     return f'results/material/topology/{index}'
 
 
-def get_topology_original(atoms: NOMADAtoms = None, archive: EntryArchive = None) -> System:
-    '''
+def get_topology_original(
+    atoms: NOMADAtoms = None, archive: EntryArchive = None
+) -> System:
+    """
     Creates a new topology item for the original structure.
-    '''
+    """
     dimensionality = None
     try:
-        classification = archive.run[0].m_cache["classification"]
+        classification = archive.run[0].m_cache['classification']
     except Exception:
         pass
     else:
@@ -93,18 +110,19 @@ def get_topology_original(atoms: NOMADAtoms = None, archive: EntryArchive = None
         description='A representative system chosen from the original simulation.',
         dimensionality=dimensionality,
         system_relation=Relation(type='root'),
-        atoms_ref=atoms
+        atoms_ref=atoms,
     )
 
     return original
 
 
 def add_system_info(system: System, topologies: Dict[str, System]) -> None:
-    '''Given a system with minimal information, attempts to add all values than
+    """Given a system with minimal information, attempts to add all values than
     can be derived.
-    '''
+    """
+
     def get_atoms(system):
-        '''Resolves the atoms that the system is constructed from.'''
+        """Resolves the atoms that the system is constructed from."""
         if system.atoms:
             return system.atoms
         if system.atoms_ref:
@@ -118,7 +136,9 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
             if system.atoms or system.atoms_ref:
                 ase_atoms = ase_atoms_from_nomad_atoms(atoms)
                 system.cell = cell_from_ase_atoms(ase_atoms)
-        atomic_numbers = atoms.species if atoms.species is not None else atoms.atomic_numbers
+        atomic_numbers = (
+            atoms.species if atoms.species is not None else atoms.atomic_numbers
+        )
         symbols = chemical_symbols[atomic_numbers]
 
         if system.indices is not None:
@@ -127,7 +147,9 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
             total_atoms = len(atomic_numbers)
             symbols = symbols[system.indices[0]]
             system.atomic_fraction = len(symbols) / total_atoms
-            sub_mass = atomutils.get_summed_atomic_mass(atomic_numbers[system.indices[0]])
+            sub_mass = atomutils.get_summed_atomic_mass(
+                atomic_numbers[system.indices[0]]
+            )
             system.mass_fraction = sub_mass / total_mass
         n_atoms = len(symbols)
         if system.n_atoms is None:
@@ -140,9 +162,10 @@ def add_system_info(system: System, topologies: Dict[str, System]) -> None:
             formula.populate(system, descriptive_format='descriptive')
 
 
-def add_system(system: System, topologies: Dict[str, System], parent: Optional[System] = None) -> None:
-    '''Adds the given system to the topology.
-    '''
+def add_system(
+    system: System, topologies: Dict[str, System], parent: Optional[System] = None
+) -> None:
+    """Adds the given system to the topology."""
     index = len(topologies)
     system.system_id = get_topology_id(index)
     if parent:
@@ -154,9 +177,9 @@ def add_system(system: System, topologies: Dict[str, System], parent: Optional[S
     topologies[system.system_id] = system
 
 
-class TopologyNormalizer():
-    '''Handles the creation of topology information.
-    '''
+class TopologyNormalizer:
+    """Handles the creation of topology information."""
+
     def __init__(self, entry_archive, repr_system, repr_symmetry, conv_atoms, logger):
         self.entry_archive = entry_archive
         self.repr_system = repr_system
@@ -166,8 +189,7 @@ class TopologyNormalizer():
         self.logger = logger
 
     def topology(self, material) -> Optional[List[System]]:
-        '''Returns a dictionary that contains all of the topologies mapped by id.
-        '''
+        """Returns a dictionary that contains all of the topologies mapped by id."""
         # If topology already exists (e.g. written by another normalizer), do
         # not overwrite it.
         topology = self.entry_archive.m_xpath('results.material.topology')
@@ -186,10 +208,10 @@ class TopologyNormalizer():
         return None
 
     def topology_calculation(self) -> Optional[List[System]]:
-        '''Extracts the system topology as defined in the original calculation.
+        """Extracts the system topology as defined in the original calculation.
         This topology typically comes from e.g. classical force fields that
         define a topology for the system.
-        '''
+        """
         try:
             groups = self.entry_archive.run[0].system[0].atoms_group
             if len(groups) == 0:
@@ -204,7 +226,9 @@ class TopologyNormalizer():
             return None
         elif atoms.positions is None or len(atoms.positions) == 0:
             return None
-        elif (atoms.species is None or len(atoms.species) == 0) and (atoms.atomic_numbers is None or len(atoms.atomic_numbers) == 0):
+        elif (atoms.species is None or len(atoms.species) == 0) and (
+            atoms.atomic_numbers is None or len(atoms.atomic_numbers) == 0
+        ):
             return None
 
         topology: Dict[str, System] = {}
@@ -213,7 +237,8 @@ class TopologyNormalizer():
         label_to_indices: Dict[str, list] = defaultdict(list)
 
         def add_group(groups, parent=None):
-            if not groups: return
+            if not groups:
+                return
             for group in groups:
                 label = group.label
                 # Groups with the same label are mapped to the same system.  # TODO: change this logic for active orbitals
@@ -260,10 +285,12 @@ class TopologyNormalizer():
                     if len(old_labels[0]) == len(instance_indices):
                         old_labels.append(instance_indices)
                     else:
-                        self.logger.warn((
-                            'the topology contains entries with the same label but with '
-                            'different number of atoms'
-                        ))
+                        self.logger.warn(
+                            (
+                                'the topology contains entries with the same label but with '
+                                'different number of atoms'
+                            )
+                        )
 
         add_group(groups, original)
         active_orbital_states = self._extract_orbital()
@@ -272,19 +299,23 @@ class TopologyNormalizer():
         for top in topology.values():
             top.indices = label_to_indices.get(top.label)
             add_system_info(top, topology)
-            if top.structural_type  == 'active orbitals':
+            if top.structural_type == 'active orbitals':
                 try:
                     top.active_orbitals = active_orbital_states[0]
                     active_orbital_states.pop(0)
-                except IndexError:  # FIXME temporary fix to prevent output from projection parsers
-                    self.logger.warn('Cannot assign all active orbital states to the topology.')
+                except (
+                    IndexError
+                ):  # FIXME temporary fix to prevent output from projection parsers
+                    self.logger.warn(
+                        'Cannot assign all active orbital states to the topology.'
+                    )
 
         return list(topology.values())
 
     def topology_matid(self, material: Material) -> Optional[List[System]]:
-        '''
+        """
         Returns a list of systems that have been identified with MatID.
-        '''
+        """
         # See if a system is available
         try:
             nomad_atoms = self.repr_system.atoms
@@ -330,15 +361,17 @@ class TopologyNormalizer():
                 # calculation.
                 cell = cluster.cell()
                 if len(cell) > 6:
-                    self.logger.info(f"cell with many atoms ({len(cell)}) was ignored")
+                    self.logger.info(f'cell with many atoms ({len(cell)}) was ignored')
                     continue
                 try:
-                    conventional_cell = self._create_conv_cell_system(cluster, structural_type)
+                    conventional_cell = self._create_conv_cell_system(
+                        cluster, structural_type
+                    )
                 except Exception as e:
                     self.logger.error(
-                        "conventional cell information could not be created",
+                        'conventional cell information could not be created',
                         exc_info=e,
-                        error=str(e)
+                        error=str(e),
                     )
                     continue
                 # We only accept the subsystem if the material id exists in the top
@@ -353,13 +386,15 @@ class TopologyNormalizer():
                     add_system(conventional_cell, topology, subsystem)
                     add_system_info(conventional_cell, topology)
                 else:
-                    self.logger.info(f"material_id {conventional_cell.material_id} could not be verified")
+                    self.logger.info(
+                        f'material_id {conventional_cell.material_id} could not be verified'
+                    )
 
         return list(topology.values())
 
     def _topology_bulk(self, original, topology) -> None:
-        '''Creates a topology for bulk structures as detected by the old matid
-        classification.'''
+        """Creates a topology for bulk structures as detected by the old matid
+        classification."""
         if self.conv_atoms is None:
             return None
 
@@ -371,7 +406,7 @@ class TopologyNormalizer():
             structural_type='bulk',
             description=subsystem_description,
             system_relation=Relation(type='subsystem'),
-            indices=[list(range(original.n_atoms))]
+            indices=[list(range(original.n_atoms))],
         )
         add_system(subsystem, topology, original)
         add_system_info(subsystem, topology)
@@ -383,22 +418,22 @@ class TopologyNormalizer():
             system_relation=Relation(type='conventional_cell'),
             dimensionality='3D',
             structural_type='bulk',
-            description=conventional_description
+            description=conventional_description,
         )
         conv_system.atoms = nomad_atoms_from_ase_atoms(self.conv_atoms)
-        symmetry_analyzer = self.repr_symmetry.m_cache.get("symmetry_analyzer")
+        symmetry_analyzer = self.repr_symmetry.m_cache.get('symmetry_analyzer')
         conv_system.symmetry = self._create_symmetry(symmetry_analyzer)
         conv_system.cell = cell_from_ase_atoms(self.conv_atoms)
         conv_system.material_id = material_id_bulk(
             symmetry_analyzer.get_space_group_number(),
-            symmetry_analyzer.get_wyckoff_sets_conventional()
+            symmetry_analyzer.get_wyckoff_sets_conventional(),
         )
         add_system(conv_system, topology, subsystem)
         add_system_info(conv_system, topology)
 
     def _topology_1d(self, original, topology):
-        '''Creates a topology for 1D structures as detected by the old matid
-        classification.'''
+        """Creates a topology for 1D structures as detected by the old matid
+        classification."""
         if self.conv_atoms is None:
             return None
 
@@ -410,7 +445,7 @@ class TopologyNormalizer():
             structural_type='1D',
             description=subsystem_description,
             system_relation=Relation(type='subsystem'),
-            indices=[list(range(original.n_atoms))]
+            indices=[list(range(original.n_atoms))],
         )
         add_system(subsystem, topology, original)
         add_system_info(subsystem, topology)
@@ -441,9 +476,9 @@ class TopologyNormalizer():
         add_system_info(conv_system, topology)
 
     def _create_subsystem(self, cluster: Cluster) -> Optional[System]:
-        '''
+        """
         Creates a new subsystem as detected by MatID.
-        '''
+        """
         try:
             dimensionality = cluster.dimensionality()
             classification = cluster.classification()
@@ -469,7 +504,7 @@ class TopologyNormalizer():
             label='subsystem',
             description=subsystem_description,
             system_relation=Relation(type='subsystem'),
-            indices=[list(cluster.indices)]
+            indices=[list(cluster.indices)],
         )
         subsystem.structural_type = structural_type
         subsystem.dimensionality = f'{dimensionality}D'
@@ -478,9 +513,9 @@ class TopologyNormalizer():
         return subsystem
 
     def _create_conv_cell_system(self, cluster: Cluster, structural_type: str):
-        '''
+        """
         Creates a new topology item for a conventional cell.
-        '''
+        """
         symmsystem = System(
             method='matid',
             label='conventional cell',
@@ -495,9 +530,9 @@ class TopologyNormalizer():
         return symmsystem
 
     def _add_conventional_bulk(self, cluster: Cluster, subsystem: System) -> None:
-        '''
+        """
         Creates the subsystem with the symmetry information of the conventional cell
-        '''
+        """
         cell = cluster.cell()
         symm = SymmetryAnalyzer(cell)
         conv_system = symm.get_conventional_system()
@@ -513,9 +548,9 @@ class TopologyNormalizer():
         subsystem.symmetry = symmetry
 
     def _add_conventional_2d(self, cluster: Cluster, subsystem: System) -> None:
-        '''
+        """
         Creates the subsystem with the symmetry information of the conventional cell.
-        '''
+        """
         cell = cluster.cell()
         conv_atoms, _, wyckoff_sets, spg_number = structures_2d(cell)
         subsystem.cell = cell_from_ase_atoms(conv_atoms)
@@ -550,7 +585,9 @@ class TopologyNormalizer():
         sec_symmetry.bravais_lattice = symm.get_bravais_lattice()
         sec_symmetry.origin_shift = symm._get_spglib_origin_shift()
         sec_symmetry.transformation_matrix = symm._get_spglib_transformation_matrix()
-        sec_symmetry.wyckoff_sets = wyckoff_sets_from_matid(symm.get_wyckoff_sets_conventional())
+        sec_symmetry.wyckoff_sets = wyckoff_sets_from_matid(
+            symm.get_wyckoff_sets_conventional()
+        )
 
         spg_number = symm.get_space_group_number()
         atom_species = conv_system.get_atomic_numbers()
@@ -568,20 +605,24 @@ class TopologyNormalizer():
         return sec_symmetry
 
     def _extract_orbital(self) -> list[CoreHole]:
-        '''
+        """
         Gather atomic orbitals from `run.method.atom_parameters.core_hole`.
         Also apply normalization in the process.
-        '''
+        """
         # Collect the active orbitals from method
         methods = self.entry_archive.run[-1].method
         if not methods:
             return []
         atom_params = getattr(methods[-1], 'atom_parameters', [])
-        active_orbitals_run = [param.core_hole for param in atom_params if getattr(param, 'core_hole')]
-        if len(active_orbitals_run) > 1:  # FIXME: currently only one set of active orbitals is supported, remove for multiple
+        active_orbitals_run = [
+            param.core_hole for param in atom_params if getattr(param, 'core_hole')
+        ]
+        if (
+            len(active_orbitals_run) > 1
+        ):  # FIXME: currently only one set of active orbitals is supported, remove for multiple
             self.logger.warn(
-                '''Multiple sets of active orbitals found.
-                Currently, the topology only supports 1, so only the first set is used.'''
+                """Multiple sets of active orbitals found.
+                Currently, the topology only supports 1, so only the first set is used."""
             )
         # Map the active orbitals to the topology
         active_orbitals_results: list[CoreHole] = []
@@ -589,7 +630,11 @@ class TopologyNormalizer():
             active_orbitals.normalize(None, None)
             active_orbitals_new = CoreHole()
             for quantity_name in active_orbitals.quantities:
-                setattr(active_orbitals_new, quantity_name, getattr(active_orbitals, quantity_name))
+                setattr(
+                    active_orbitals_new,
+                    quantity_name,
+                    getattr(active_orbitals, quantity_name),
+                )
             active_orbitals_new.normalize(None, None)
             active_orbitals_results.append(active_orbitals_new)
             break  # FIXME: currently only one set of active orbitals is supported, remove for multiple

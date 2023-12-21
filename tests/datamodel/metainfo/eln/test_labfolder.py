@@ -25,7 +25,10 @@ import requests
 from tests.normalizing.conftest import run_processing
 from nomad.processing.data import Upload
 from nomad.datamodel.context import ServerContext
-from nomad.datamodel.metainfo.eln.labfolder import LabfolderProject, LabfolderImportError
+from nomad.datamodel.metainfo.eln.labfolder import (
+    LabfolderProject,
+    LabfolderImportError,
+)
 from nomad.utils.exampledata import ExampleData
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
@@ -42,107 +45,158 @@ def test_labfolder_integration(mongo, monkeypatch, test_user):
     assert len(test_archive.data.entries) == 6
 
 
-@pytest.mark.parametrize('status_code,project_url,labfolder_email,password,element_data,response_data', [
-    pytest.param(
-        200,
-        'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
-        'test_email',
-        'test_password',
-        [
+@pytest.mark.parametrize(
+    'status_code,project_url,labfolder_email,password,element_data,response_data',
+    [
+        pytest.param(
+            200,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            'test_email',
+            'test_password',
+            [{'elements': [{'id': '1', 'version_id': '1', 'type': 'TEXT'}]}],
             {
-                'elements': [{'id': '1', 'version_id': '1', 'type': 'TEXT'}]
-            }
-        ],
-        {
-            'entry_id': '1', 'id': '1', 'version_id': '1',
-            'creation_date': '2022-08-29T09:22:30+00:00',
-            'version_date': '2022-08-29T09:22:30+00:00',
-            'owner_id': '1',
-            'element_type': 'TEXT',
-            'content': '<p>test content</p>'
-        }, id='TEXT_element'),
-    pytest.param(
-        200,
-        'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
-        'test_email',
-        'test_password',
-        [
+                'entry_id': '1',
+                'id': '1',
+                'version_id': '1',
+                'creation_date': '2022-08-29T09:22:30+00:00',
+                'version_date': '2022-08-29T09:22:30+00:00',
+                'owner_id': '1',
+                'element_type': 'TEXT',
+                'content': '<p>test content</p>',
+            },
+            id='TEXT_element',
+        ),
+        pytest.param(
+            200,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            'test_email',
+            'test_password',
+            [{'elements': [{'id': '1', 'version_id': '1', 'type': 'TABLE'}]}],
             {
-                'elements': [{'id': '1', 'version_id': '1', 'type': 'TABLE'}]
-            }
-        ],
-        {
-            'entry_id': '1', 'id': '1', 'version_id': '1',
-            'creation_date': '2022-08-29T09:22:33+00:00',
-            'version_date': '2022-08-29T09:22:33+00:00',
-            'owner_id': '1', 'element_type': 'TABLE',
-            'title': 'Table Title',
-            'content': {'version': '14.1.3', 'nested_content': 'more content'}
-        }, id='TABLE_element'),
-    pytest.param(
-        200,
-        'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
-        'test_email',
-        'test_password',
-        [
+                'entry_id': '1',
+                'id': '1',
+                'version_id': '1',
+                'creation_date': '2022-08-29T09:22:33+00:00',
+                'version_date': '2022-08-29T09:22:33+00:00',
+                'owner_id': '1',
+                'element_type': 'TABLE',
+                'title': 'Table Title',
+                'content': {'version': '14.1.3', 'nested_content': 'more content'},
+            },
+            id='TABLE_element',
+        ),
+        pytest.param(
+            200,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            'test_email',
+            'test_password',
+            [{'elements': [{'id': '1', 'version_id': '1', 'type': 'WELL_PLATE'}]}],
             {
-                'elements': [{'id': '1', 'version_id': '1', 'type': 'WELL_PLATE'}]
-            }
-        ],
-        {
-            'entry_id': '1', 'id': '1', 'version_id': '1',
-            'creation_date': '2022-08-29T09:22:33+00:00', 'version_date': '2022-08-29T09:22:33+00:00',
-            'owner_id': '1', 'element_type': 'WELL_PLATE',
-            'title': 'Wellplate title',
-            'content': {'version': '14.1.3', 'nested_content': 'more _content'},
-            'meta_data': {'plate': {'size': '24'}, 'activeLayer': {'name': 'Composite', 'type': 'COMPOSITE'}}
-        }, id='WELL_PLATE_element'),
-    pytest.param(
-        200,
-        'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
-        'test_email',
-        'test_password',
-        [
+                'entry_id': '1',
+                'id': '1',
+                'version_id': '1',
+                'creation_date': '2022-08-29T09:22:33+00:00',
+                'version_date': '2022-08-29T09:22:33+00:00',
+                'owner_id': '1',
+                'element_type': 'WELL_PLATE',
+                'title': 'Wellplate title',
+                'content': {'version': '14.1.3', 'nested_content': 'more _content'},
+                'meta_data': {
+                    'plate': {'size': '24'},
+                    'activeLayer': {'name': 'Composite', 'type': 'COMPOSITE'},
+                },
+            },
+            id='WELL_PLATE_element',
+        ),
+        pytest.param(
+            200,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            'test_email',
+            'test_password',
+            [{'elements': [{'id': '1', 'version_id': '1', 'type': 'DATA'}]}],
             {
-                'elements': [{'id': '1', 'version_id': '1', 'type': 'DATA'}]
-            }
-        ],
-        {
-            'entry_id': '1', 'id': '1', 'version_id': '1',
-            'creation_date': '2022-08-29T09:22:33+00:00', 'version_date': '2022-08-29T09:22:34+00:00',
-            'owner_id': '1', 'element_type': 'DATA',
-            'data_elements': [
-                {'type': 'DATA_ELEMENT_GROUP', 'title': 'first title',
-                 'children': [
-                     {
-                         'type': 'SINGLE_DATA_ELEMENT',
-                         'title': 'child title',
-                         'value': '1',
-                         'unit': 'mL',
-                         'physical_quantity_id': '6'
-                     },
-                     {
-                         'type': 'DESCRIPTIVE_DATA_ELEMENT',
-                         'title': 'Water',
-                         'description': 'add up to 1 liter'
-                     }
-                 ]}
-            ]
-        }, id='DATA_element'),
-    pytest.param(400, 'https://labfolder.labforward.app/eln/notebook#?projectIds=1', None, 'test_password',
-                 None, None, id='missing_email'),
-    pytest.param(400, 'https://labfolder.labforward.app/eln/notebook#?projectIds=1', 'test_email', None,
-                 None, None, id='missing_password'),
-    pytest.param(400, None, 'test_email', 'test_password',
-                 None, None, id='missing_project_url'),
-    pytest.param(400, 'wrong_url', 'test_email', 'test_password',
-                 None, None, id='wrong_url'),
-    pytest.param(400, 'https://labfolder.labforward.app/eln/notebook#?projectIds=1', 'test_email', 'test_password',
-                 None, None, id='wrong_element_data')
-])
-def test_labfolder_detailed(mongo, monkeypatch, test_user, status_code, project_url,
-                            labfolder_email, password, element_data, response_data):
-
+                'entry_id': '1',
+                'id': '1',
+                'version_id': '1',
+                'creation_date': '2022-08-29T09:22:33+00:00',
+                'version_date': '2022-08-29T09:22:34+00:00',
+                'owner_id': '1',
+                'element_type': 'DATA',
+                'data_elements': [
+                    {
+                        'type': 'DATA_ELEMENT_GROUP',
+                        'title': 'first title',
+                        'children': [
+                            {
+                                'type': 'SINGLE_DATA_ELEMENT',
+                                'title': 'child title',
+                                'value': '1',
+                                'unit': 'mL',
+                                'physical_quantity_id': '6',
+                            },
+                            {
+                                'type': 'DESCRIPTIVE_DATA_ELEMENT',
+                                'title': 'Water',
+                                'description': 'add up to 1 liter',
+                            },
+                        ],
+                    }
+                ],
+            },
+            id='DATA_element',
+        ),
+        pytest.param(
+            400,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            None,
+            'test_password',
+            None,
+            None,
+            id='missing_email',
+        ),
+        pytest.param(
+            400,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            'test_email',
+            None,
+            None,
+            None,
+            id='missing_password',
+        ),
+        pytest.param(
+            400,
+            None,
+            'test_email',
+            'test_password',
+            None,
+            None,
+            id='missing_project_url',
+        ),
+        pytest.param(
+            400, 'wrong_url', 'test_email', 'test_password', None, None, id='wrong_url'
+        ),
+        pytest.param(
+            400,
+            'https://labfolder.labforward.app/eln/notebook#?projectIds=1',
+            'test_email',
+            'test_password',
+            None,
+            None,
+            id='wrong_element_data',
+        ),
+    ],
+)
+def test_labfolder_detailed(
+    mongo,
+    monkeypatch,
+    test_user,
+    status_code,
+    project_url,
+    labfolder_email,
+    password,
+    element_data,
+    response_data,
+):
     logger = utils.get_logger(__name__)
     base_api_url = 'https://labfolder.labforward.app/api/v2'
 
@@ -210,10 +264,14 @@ def test_labfolder_detailed(mongo, monkeypatch, test_user, status_code, project_
         parsed_data = labfolder_instance.entries[0].elements[0].m_to_dict()
         del parsed_data['m_def']
         if parsed_data['element_type'] is not 'DATA':
-            assert json.dumps(parsed_data, sort_keys=True) == json.dumps(response_data, sort_keys=True)
+            assert json.dumps(parsed_data, sort_keys=True) == json.dumps(
+                response_data, sort_keys=True
+            )
         else:
             del parsed_data['labfolder_data']
-            assert json.dumps(parsed_data, sort_keys=True) == json.dumps(response_data, sort_keys=True)
+            assert json.dumps(parsed_data, sort_keys=True) == json.dumps(
+                response_data, sort_keys=True
+            )
     else:
         with pytest.raises(LabfolderImportError):
             labfolder_instance.normalize(test_archive, logger=logger)

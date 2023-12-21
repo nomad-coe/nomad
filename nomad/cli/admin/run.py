@@ -39,7 +39,11 @@ def worker():
 
 
 @run.command(help='Run the nomad development app with all apis.')
-@click.option('--with-gui', help='The app will configure the gui for production and service it.', is_flag=True)
+@click.option(
+    '--with-gui',
+    help='The app will configure the gui for production and service it.',
+    is_flag=True,
+)
 @click.option('--host', type=str, help='Passed to uvicorn host parameter.')
 @click.option('--port', type=int, help='Passed to uvicorn host parameter.')
 @click.option('--log-config', type=str, help='Passed to uvicorn log-config parameter.')
@@ -49,15 +53,24 @@ def app(with_gui: bool, **kwargs):
     run_app(with_gui=with_gui, **kwargs)
 
 
-@run.command(help='Run server that collects and submits logs to the central Nomad instance.')
+@run.command(
+    help='Run server that collects and submits logs to the central Nomad instance.'
+)
 def logtransfer():
     config.meta.service = 'logtransfer'
 
     from nomad.logtransfer import start_logtransfer_service
+
     start_logtransfer_service()
 
 
-def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, log_config: str = None, **kwargs):
+def run_app(
+    with_gui: bool = False,
+    gunicorn: bool = False,
+    host: str = None,
+    log_config: str = None,
+    **kwargs,
+):
     config.meta.service = 'app'
 
     if with_gui:
@@ -66,7 +79,8 @@ def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, lo
         import shutil
 
         gui_folder = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), '../../app/static/gui'))
+            os.path.join(os.path.dirname(__file__), '../../app/static/gui')
+        )
         run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
 
         # copy
@@ -79,13 +93,18 @@ def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, lo
             '**/*.html',
             '**/*.js',
             '**/*.js.map',
-            '**/*.css']
+            '**/*.css',
+        ]
         for source_file_glob in source_file_globs:
-            source_files = glob.glob(os.path.join(run_gui_folder, source_file_glob), recursive=True)
+            source_files = glob.glob(
+                os.path.join(run_gui_folder, source_file_glob), recursive=True
+            )
             for source_file in source_files:
                 with open(source_file, 'rt') as f:
                     file_data = f.read()
-                file_data = file_data.replace('/fairdi/nomad/latest', config.services.api_base_path)
+                file_data = file_data.replace(
+                    '/fairdi/nomad/latest', config.services.api_base_path
+                )
                 with open(source_file, 'wt') as f:
                     f.write(file_data)
 
@@ -125,13 +144,15 @@ def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, lo
         gunicorn_app.run()
     else:
         from uvicorn import Server, Config
+
         kwargs['log_config'] = log_config
 
         uv_config = Config(
             'nomad.app.main:app',
             log_level='info',
             host=host,
-            **{k: v for k, v in kwargs.items() if v is not None})
+            **{k: v for k, v in kwargs.items() if v is not None},
+        )
 
         server = Server(config=uv_config)
         get_logger(__name__).info('created uvicorn server', data=uv_config.__dict__)
@@ -141,6 +162,7 @@ def run_app(with_gui: bool = False, gunicorn: bool = False, host: str = None, lo
 def run_worker():
     config.meta.service = 'worker'
     from nomad import processing
+
     processing.app.worker_main(['worker', '--loglevel=INFO', '-Q', 'celery'])
 
 
@@ -153,11 +175,17 @@ def run_hub():
     if 'JUPYTERHUB_CRYPT_KEY' not in os.environ:
         crypt_key = config.north.jupyterhub_crypt_key
         if crypt_key is None:
-            crypt_key = subprocess.check_output('openssl rand -hex 32'.split(' ')).decode().strip('\n')
+            crypt_key = (
+                subprocess.check_output('openssl rand -hex 32'.split(' '))
+                .decode()
+                .strip('\n')
+            )
         os.environ['JUPYTERHUB_CRYPT_KEY'] = crypt_key
 
     config.meta.service = 'hub'
-    sys.exit(main(argv=['-f', 'nomad/jupyterhub_config.py', '--Application.log_level=INFO']))
+    sys.exit(
+        main(argv=['-f', 'nomad/jupyterhub_config.py', '--Application.log_level=INFO'])
+    )
 
 
 def task_app():

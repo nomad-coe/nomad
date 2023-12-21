@@ -36,6 +36,7 @@ import socketserver
 
 from nomad import config
 from nomad.config.plugins import Schema, add_plugin, remove_plugin
+
 # make sure to disable logstash (the logs can interfere with the testing, especially for logtransfer)
 config.logstash.enabled = False  # noqa: E402  # this must be set *before* the other modules are imported
 
@@ -43,7 +44,12 @@ from nomad import infrastructure, processing, utils, datamodel, bundles
 from nomad.datamodel import User, EntryArchive, OptimadeEntry
 from nomad.datamodel.datamodel import SearchableQuantity
 from nomad.utils import structlogging
-from nomad.archive import write_archive, read_archive, write_partial_archive_to_mongo, to_json
+from nomad.archive import (
+    write_archive,
+    read_archive,
+    write_partial_archive_to_mongo,
+    to_json,
+)
 from nomad.processing import ProcessStatus
 from nomad.app.main import app
 from nomad.utils.exampledata import ExampleData
@@ -53,12 +59,16 @@ from tests.parsing import test_parsing
 from tests.normalizing.conftest import run_normalize
 from tests.processing import test_data as test_processing
 from tests.test_files import empty_file, example_file_vasp_with_binary
-from tests.utils import create_template_upload_file, set_upload_entry_metadata, build_url
+from tests.utils import (
+    create_template_upload_file,
+    set_upload_entry_metadata,
+    build_url,
+)
 from tests.config import yaml_schema_name, yaml_schema_root, python_schema_name
 
 
 # Set up pytest to pass control to the debugger on an exception.
-if os.getenv('_PYTEST_RAISE', "0") != "0":
+if os.getenv('_PYTEST_RAISE', '0') != '0':
 
     @pytest.hookimpl(tryfirst=True)
     def pytest_exception_interact(call):
@@ -68,6 +78,7 @@ if os.getenv('_PYTEST_RAISE', "0") != "0":
     def pytest_internalerror(excinfo):
         raise excinfo.value
 
+
 test_log_level = logging.CRITICAL
 
 elastic_test_entries_index = 'nomad_entries_v1_test'
@@ -75,12 +86,12 @@ elastic_test_materials_index = 'nomad_materials_v1_test'
 
 indices = [elastic_test_entries_index, elastic_test_materials_index]
 
-warnings.simplefilter("ignore")
+warnings.simplefilter('ignore')
 
 structlogging.ConsoleFormatter.short_format = True
 setattr(logging, 'Formatter', structlogging.ConsoleFormatter)
 
-pytest_plugins = ("celery.contrib.pytest", )
+pytest_plugins = ('celery.contrib.pytest',)
 
 
 @pytest.fixture(scope='function')
@@ -93,9 +104,10 @@ def tmp():
     directory.cleanup()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='session')
 def monkeysession(request):
     from _pytest.monkeypatch import MonkeyPatch
+
     mpatch = MonkeyPatch()
     yield mpatch
     mpatch.undo()
@@ -115,8 +127,12 @@ def raw_files_infra():
         os.makedirs(parent_directory, exist_ok=True)
     directory = tempfile.TemporaryDirectory(dir=parent_directory, prefix='test_fs')
     config.fs.tmp = tempfile.TemporaryDirectory(dir=directory.name, prefix='tmp').name
-    config.fs.staging = tempfile.TemporaryDirectory(dir=directory.name, prefix='staging').name
-    config.fs.public = tempfile.TemporaryDirectory(dir=directory.name, prefix='public').name
+    config.fs.staging = tempfile.TemporaryDirectory(
+        dir=directory.name, prefix='staging'
+    ).name
+    config.fs.public = tempfile.TemporaryDirectory(
+        dir=directory.name, prefix='public'
+    ).name
     config.fs.staging_external = os.path.abspath(config.fs.staging)
     config.fs.public_external = os.path.abspath(config.fs.public)
     config.fs.prefix_size = 2
@@ -127,19 +143,19 @@ def raw_files_infra():
 
 @pytest.fixture(scope='module')
 def raw_files_module(raw_files_infra):
-    ''' Provides cleaned out files directory structure per module. Clears files before test. '''
+    """Provides cleaned out files directory structure per module. Clears files before test."""
     clear_raw_files()
 
 
 @pytest.fixture(scope='function')
 def raw_files_function(raw_files_infra):
-    ''' Provides cleaned out files directory structure per function. Clears files before test. '''
+    """Provides cleaned out files directory structure per function. Clears files before test."""
     clear_raw_files()
 
 
 @pytest.fixture(scope='function')
 def raw_files(raw_files_infra):
-    ''' Provides cleaned out files directory structure per function. Clears files before test. '''
+    """Provides cleaned out files directory structure per function. Clears files before test."""
     clear_raw_files()
 
 
@@ -161,18 +177,15 @@ def celery_includes():
 
 @pytest.fixture(scope='session')
 def celery_config():
-    return {
-        'broker_url': config.rabbitmq_url(),
-        'task_queue_max_priority': 10
-    }
+    return {'broker_url': config.rabbitmq_url(), 'task_queue_max_priority': 10}
 
 
 @pytest.fixture(scope='session')
 def purged_app(celery_session_app):
-    '''
+    """
     Purges all pending tasks of the celery app before test. This is necessary to
     remove tasks from the queue that might be 'left over' from prior tests.
-    '''
+    """
     celery_session_app.control.purge()
     yield celery_session_app
     celery_session_app.control.purge()
@@ -187,7 +200,7 @@ def celery_inspect(purged_app):
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
 def worker(mongo, celery_session_worker, celery_inspect):
-    ''' Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed. '''
+    """Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed."""
     yield
 
     # wait until there no more active tasks, to leave clean worker and queues for the next
@@ -205,6 +218,7 @@ def worker(mongo, celery_session_worker, celery_inspect):
     except Exception:
         print('Exception during worker tear down.')
         import traceback
+
         traceback.print_exc()
 
 
@@ -224,39 +238,45 @@ def clear_mongo(mongo_infra):
 
 @pytest.fixture(scope='module')
 def mongo_module(mongo_infra):
-    ''' Provides a cleaned mocked mongo per module. '''
+    """Provides a cleaned mocked mongo per module."""
     return clear_mongo(mongo_infra)
 
 
 @pytest.fixture(scope='function')
 def mongo_function(mongo_infra):
-    ''' Provides a cleaned mocked mongo per function. '''
+    """Provides a cleaned mocked mongo per function."""
     return clear_mongo(mongo_infra)
 
 
 @pytest.fixture(scope='function')
 def mongo(mongo_infra):
-    ''' Provides a cleaned mocked mongo per function. '''
+    """Provides a cleaned mocked mongo per function."""
     return clear_mongo(mongo_infra)
 
 
 @pytest.fixture(scope='session')
 def elastic_infra(monkeysession):
-    ''' Provides elastic infrastructure to the session '''
-    monkeysession.setattr('nomad.config.elastic.entries_index', elastic_test_entries_index)
-    monkeysession.setattr('nomad.config.elastic.materials_index', elastic_test_materials_index)
+    """Provides elastic infrastructure to the session"""
+    monkeysession.setattr(
+        'nomad.config.elastic.entries_index', elastic_test_entries_index
+    )
+    monkeysession.setattr(
+        'nomad.config.elastic.materials_index', elastic_test_materials_index
+    )
 
     # attempt to remove and recreate all indices
     return clear_elastic_infra()
 
 
 def clear_elastic_infra():
-    '''
+    """
     Removes and re-creates all indices and mappings.
-    '''
+    """
     from elasticsearch_dsl import connections
+
     connection = connections.create_connection(
-        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)])
+        hosts=['%s:%d' % (config.elastic.host, config.elastic.port)]
+    )
 
     for index in indices:
         try:
@@ -268,17 +288,20 @@ def clear_elastic_infra():
 
 
 def clear_elastic(elastic_infra):
-    '''
+    """
     Removes all contents from the existing indices.
-    '''
+    """
     try:
         for index in indices:
             retry_count = 10
             while True:
                 try:
                     elastic_infra.delete_by_query(
-                        index=index, body=dict(query=dict(match_all={})),
-                        wait_for_completion=True, refresh=True)
+                        index=index,
+                        body=dict(query=dict(match_all={})),
+                        wait_for_completion=True,
+                        refresh=True,
+                    )
                     break  # Success! Break the retry loop
                 except elasticsearch.exceptions.ConflictError:
                     if retry_count:
@@ -298,19 +321,19 @@ def clear_elastic(elastic_infra):
 
 @pytest.fixture(scope='module')
 def elastic_module(elastic_infra):
-    ''' Provides a clean elastic per module. Clears elastic before test. '''
+    """Provides a clean elastic per module. Clears elastic before test."""
     return clear_elastic(elastic_infra)
 
 
 @pytest.fixture(scope='function')
 def elastic_function(elastic_infra):
-    ''' Provides a clean elastic per function. Clears elastic before test. '''
+    """Provides a clean elastic per function. Clears elastic before test."""
     return clear_elastic(elastic_infra)
 
 
 @pytest.fixture(scope='function')
 def elastic(elastic_infra):
-    ''' Provides a clean elastic per function. Clears elastic before test. '''
+    """Provides a clean elastic per function. Clears elastic before test."""
     return clear_elastic(elastic_infra)
 
 
@@ -322,8 +345,21 @@ admin_user_id = test_user_uuid(0)
 
 test_users = {
     test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
-    test_user_uuid(1): dict(username='scooper', email='sheldon.cooper@nomad-coe.eu', first_name='Sheldon', last_name='Cooper', user_id=test_user_uuid(1), is_oasis_admin=True),
-    test_user_uuid(2): dict(username='lhofstadter', email='leonard.hofstadter@nomad-fairdi.tests.de', first_name='Leonard', last_name='Hofstadter', user_id=test_user_uuid(2))
+    test_user_uuid(1): dict(
+        username='scooper',
+        email='sheldon.cooper@nomad-coe.eu',
+        first_name='Sheldon',
+        last_name='Cooper',
+        user_id=test_user_uuid(1),
+        is_oasis_admin=True,
+    ),
+    test_user_uuid(2): dict(
+        username='lhofstadter',
+        email='leonard.hofstadter@nomad-fairdi.tests.de',
+        first_name='Leonard',
+        last_name='Hofstadter',
+        user_id=test_user_uuid(2),
+    ),
 }
 
 
@@ -348,8 +384,12 @@ class KeycloakMock:
         user.user_id = test_user_uuid(self.id_counter)
         user.username = (user.first_name[0] + user.last_name).lower()
         self.users[user.user_id] = dict(
-            email=user.email, username=user.username, first_name=user.first_name,
-            last_name=user.last_name, user_id=user.user_id)
+            email=user.email,
+            username=user.username,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            user_id=user.user_id,
+        )
 
     def get_user(self, user_id=None, username=None, email=None):
         if user_id is not None:
@@ -369,8 +409,10 @@ class KeycloakMock:
 
     def search_user(self, query):
         return [
-            User(**test_user) for test_user in self.users.values()
-            if query in ' '.join([str(value) for value in test_user.values()])]
+            User(**test_user)
+            for test_user in self.users.values()
+            if query in ' '.join([str(value) for value in test_user.values()])
+        ]
 
     def basicauth(self, username: str, password: str) -> str:
         for user in self.users.values():
@@ -409,13 +451,14 @@ def keycloak(monkeypatch):
 
 @pytest.fixture(scope='function')
 def proc_infra(worker, elastic, mongo, raw_files):
-    ''' Combines all fixtures necessary for processing (elastic, worker, files, mongo) '''
+    """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
     return dict(elastic=elastic)
 
 
 @pytest.fixture(scope='function')
 def with_oasis_user_management(monkeypatch):
     from nomad.infrastructure import OasisUserManagement
+
     monkeypatch.setattr('nomad.infrastructure.user_management', OasisUserManagement())
     yield
     monkeypatch.setattr('nomad.infrastructure.user_management', _user_management)
@@ -441,7 +484,8 @@ def test_users_dict(test_user, other_test_user, admin_user):
     return {
         'test_user': test_user,
         'other_test_user': other_test_user,
-        'admin_user': admin_user}
+        'admin_user': admin_user,
+    }
 
 
 @pytest.fixture(scope='function')
@@ -509,7 +553,9 @@ class SMTPServer:
 
     def run(self):
         self.handler = Handler()
-        self.smtp = Controller(self.handler, hostname='127.0.0.1', port=config.mail.port)
+        self.smtp = Controller(
+            self.handler, hostname='127.0.0.1', port=config.mail.port
+        )
         self.smtp.start()
         self.host_port = self.smtp.hostname, self.smtp.port
 
@@ -526,7 +572,7 @@ class SMTPServerFixture:
 
     @property
     def host_port(self):
-        '''SMTP server's listening address as a (host, port) tuple'''
+        """SMTP server's listening address as a (host, port) tuple"""
         while self.server.host_port is None:
             time.sleep(0.1)
         return self.server.host_port
@@ -541,7 +587,7 @@ class SMTPServerFixture:
 
     @property
     def messages(self):
-        '''A list of RecordedMessage objects'''
+        """A list of RecordedMessage objects"""
         return self.server.handler.messages[:]
 
     def clear(self):
@@ -580,13 +626,15 @@ def example_upload(request, tmp) -> str:
         return create_template_upload_file(tmp, mainfiles=[], auxfiles=0)
 
     return create_template_upload_file(
-        tmp, mainfiles=['tests/data/proc/templates/template.json'])
+        tmp, mainfiles=['tests/data/proc/templates/template.json']
+    )
 
 
 @pytest.fixture(scope='function')
 def non_empty_example_upload(tmp):
     return create_template_upload_file(
-        tmp, mainfiles=['tests/data/proc/templates/template.json'])
+        tmp, mainfiles=['tests/data/proc/templates/template.json']
+    )
 
 
 @pytest.fixture(scope='session')
@@ -606,7 +654,7 @@ def example_user_metadata(other_test_user, test_user) -> dict:
         'references': ['http://external.ref/one', 'http://external.ref/two'],
         'entry_coauthors': [other_test_user.user_id],
         '_pid': '256',
-        'external_id': 'external_test_id'
+        'external_id': 'external_test_id',
     }
 
 
@@ -614,34 +662,37 @@ def example_user_metadata(other_test_user, test_user) -> dict:
 def internal_example_user_metadata(example_user_metadata) -> dict:
     return {
         key[1:] if key[0] == '_' else key: value
-        for key, value in example_user_metadata.items()}
+        for key, value in example_user_metadata.items()
+    }
 
 
 @pytest.fixture(scope='session')
 def parsed(example_mainfile: Tuple[str, str]) -> EntryArchive:
-    ''' Provides a parsed entry in the form of an EntryArchive. '''
+    """Provides a parsed entry in the form of an EntryArchive."""
     parser, mainfile = example_mainfile
     return test_parsing.run_singular_parser(parser, mainfile)
 
 
 @pytest.fixture(scope='session')
 def parsed_ems() -> EntryArchive:
-    ''' Provides a parsed experiment in the form of a EntryArchive. '''
-    return test_parsing.run_singular_parser('parsers/eels', 'tests/data/parsers/eels.json')
+    """Provides a parsed experiment in the form of a EntryArchive."""
+    return test_parsing.run_singular_parser(
+        'parsers/eels', 'tests/data/parsers/eels.json'
+    )
 
 
 @pytest.fixture(scope='session')
 def normalized(parsed: EntryArchive) -> EntryArchive:
-    ''' Provides a normalized entry in the form of a EntryArchive. '''
+    """Provides a normalized entry in the form of a EntryArchive."""
     return run_normalize(parsed)
 
 
 @pytest.fixture(scope='function')
 def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
-    '''
+    """
     Provides a uploaded with uploaded example file and gives the upload_id.
     Clears files after test.
-    '''
+    """
     example_upload_id = os.path.basename(example_upload).replace('.zip', '')
     return example_upload_id, example_upload
 
@@ -654,16 +705,21 @@ def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, s
 
 @pytest.fixture(scope='function')
 def oasis_publishable_upload(
-        api_v1, proc_infra, non_empty_processed: processing.Upload, internal_example_user_metadata,
-        monkeypatch, test_user):
-    '''
+    api_v1,
+    proc_infra,
+    non_empty_processed: processing.Upload,
+    internal_example_user_metadata,
+    monkeypatch,
+    test_user,
+):
+    """
     Creates a published upload which can be used with Upload.publish_externally. Some monkeypatching
     is done which replaces IDs when importing.
-    '''
+    """
     # Create a published upload
     set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
     non_empty_processed.publish_upload()
-    non_empty_processed.block_until_complete(interval=.01)
+    non_empty_processed.block_until_complete(interval=0.01)
 
     suffix = '_2'  # Will be added to all IDs in the mirrored upload
     upload_id = non_empty_processed.upload_id
@@ -679,7 +735,10 @@ def oasis_publishable_upload(
         bundle_info['upload']['_id'] += suffix
         for entry_dict in bundle_info['entries']:
             entry_dict['_id'] = utils.generate_entry_id(
-                upload_id + suffix, entry_dict['mainfile'], entry_dict.get('mainfile_key'))
+                upload_id + suffix,
+                entry_dict['mainfile'],
+                entry_dict.get('mainfile_key'),
+            )
             entry_dict['upload_id'] += suffix
 
     old_bundle_import_files = bundles.BundleImporter._import_files
@@ -700,19 +759,22 @@ def oasis_publishable_upload(
                         new_entry_id = utils.generate_entry_id(
                             section_metadata['upload_id'],
                             section_metadata['mainfile'],
-                            section_metadata.get('mainfile_key'))
+                            section_metadata.get('mainfile_key'),
+                        )
                         section_metadata['entry_id'] = new_entry_id
                         new_data.append((new_entry_id, archive_dict))
                 write_archive(full_path, len(new_data), new_data)
 
     monkeypatch.setattr('nomad.bundles.BundleImporter.open', new_bundle_importer_open)
-    monkeypatch.setattr('nomad.bundles.BundleImporter._import_files', new_bundle_import_files)
+    monkeypatch.setattr(
+        'nomad.bundles.BundleImporter._import_files', new_bundle_import_files
+    )
 
     # Further monkey patching
     def new_post(url, data, params={}, **kwargs):
         return api_v1.post(
-            build_url(url.lstrip('/api/v1/'), params),
-            data=data.read(), **kwargs)
+            build_url(url.lstrip('/api/v1/'), params), data=data.read(), **kwargs
+        )
 
     monkeypatch.setattr('requests.post', new_post)
     monkeypatch.setattr('nomad.config.oasis.is_oasis', True)
@@ -723,8 +785,8 @@ def oasis_publishable_upload(
     # create a dataset to also test this aspect of oasis uploads
     entry = non_empty_processed.successful_entries[0]
     datamodel.Dataset(
-        dataset_id='dataset_id', dataset_name='dataset_name',
-        user_id=test_user.user_id).a_mongo.save()
+        dataset_id='dataset_id', dataset_name='dataset_name', user_id=test_user.user_id
+    ).a_mongo.save()
     entry.datasets = ['dataset_id']
     entry.save()
     return non_empty_processed.upload_id, suffix
@@ -732,44 +794,58 @@ def oasis_publishable_upload(
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def processed(uploaded: Tuple[str, str], test_user: User, proc_infra, mails) -> processing.Upload:
-    '''
+def processed(
+    uploaded: Tuple[str, str], test_user: User, proc_infra, mails
+) -> processing.Upload:
+    """
     Provides a processed upload. Upload was uploaded with test_user.
-    '''
+    """
     return test_processing.run_processing(uploaded, test_user)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def processeds(non_empty_example_upload: str, test_user: User, proc_infra) -> List[processing.Upload]:
+def processeds(
+    non_empty_example_upload: str, test_user: User, proc_infra
+) -> List[processing.Upload]:
     result: List[processing.Upload] = []
     for i in range(2):
-        upload_id = '%s_%d' % (os.path.basename(non_empty_example_upload).replace('.zip', ''), i)
+        upload_id = '%s_%d' % (
+            os.path.basename(non_empty_example_upload).replace('.zip', ''),
+            i,
+        )
         result.append(
-            test_processing.run_processing((upload_id, non_empty_example_upload), test_user))
+            test_processing.run_processing(
+                (upload_id, non_empty_example_upload), test_user
+            )
+        )
 
     return result
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def non_empty_processed(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra) -> processing.Upload:
-    '''
+def non_empty_processed(
+    non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra
+) -> processing.Upload:
+    """
     Provides a processed upload. Upload was uploaded with test_user.
-    '''
+    """
     return test_processing.run_processing(non_empty_uploaded, test_user)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def published(non_empty_processed: processing.Upload, internal_example_user_metadata) -> processing.Upload:
-    '''
+def published(
+    non_empty_processed: processing.Upload, internal_example_user_metadata
+) -> processing.Upload:
+    """
     Provides a processed published upload. Upload was uploaded with test_user and is embargoed.
-    '''
+    """
     set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
     non_empty_processed.publish_upload(embargo_length=12)
     try:
-        non_empty_processed.block_until_complete(interval=.01)
+        non_empty_processed.block_until_complete(interval=0.01)
     except Exception:
         pass
 
@@ -778,13 +854,15 @@ def published(non_empty_processed: processing.Upload, internal_example_user_meta
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
-def published_wo_user_metadata(non_empty_processed: processing.Upload) -> processing.Upload:
-    '''
+def published_wo_user_metadata(
+    non_empty_processed: processing.Upload,
+) -> processing.Upload:
+    """
     Provides a processed upload. Upload was uploaded with test_user.
-    '''
+    """
     non_empty_processed.publish_upload()
     try:
-        non_empty_processed.block_until_complete(interval=.01)
+        non_empty_processed.block_until_complete(interval=0.01)
     except Exception:
         pass
 
@@ -792,8 +870,15 @@ def published_wo_user_metadata(non_empty_processed: processing.Upload) -> proces
 
 
 @pytest.fixture(scope='module')
-def example_data(elastic_module, raw_files_module, mongo_module, test_user, other_test_user, normalized):
-    '''
+def example_data(
+    elastic_module,
+    raw_files_module,
+    mongo_module,
+    test_user,
+    other_test_user,
+    normalized,
+):
+    """
     Provides a couple of uploads and entries including metadata, raw-data, and
     archive files.
 
@@ -820,7 +905,7 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
         unpublished upload without any entries, in status processing
     id_empty:
         unpublished upload without any entries
-    '''
+    """
     data = ExampleData(main_author=test_user)
 
     # 6 uploads with different combinations of main_type and sub_type
@@ -844,18 +929,19 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
                 coauthors=coauthors,
                 reviewers=reviewers,
                 published=published,
-                embargo_length=embargo_length)
+                embargo_length=embargo_length,
+            )
             data.create_entry(
                 upload_id=upload_id,
                 entry_id=entry_id,
                 material_id=upload_id,
-                mainfile=f'test_content/{entry_id}/mainfile.json')
+                mainfile=f'test_content/{entry_id}/mainfile.json',
+            )
 
     # one upload with 23 entries, published, no embargo
     data.create_upload(
-        upload_id='id_published',
-        upload_name='name_published',
-        published=True)
+        upload_id='id_published', upload_name='name_published', published=True
+    )
     for i in range(1, 24):
         entry_id = 'id_%02d' % i
         material_id = 'id_%02d' % (int(math.floor(i / 4)) + 1)
@@ -872,7 +958,8 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
             entry_id=entry_id,
             material_id=material_id,
             mainfile=mainfile,
-            **kwargs)
+            **kwargs,
+        )
 
         if i == 1:
             archive = data.archives[entry_id]
@@ -881,30 +968,27 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
     # 3 entries from one mainfile, 1 material, unpublished
     upload_id = 'id_child_entries'
     data.create_upload(
-        upload_id=upload_id,
-        upload_name='name_child_entries',
-        published=False)
+        upload_id=upload_id, upload_name='name_child_entries', published=False
+    )
     for mainfile_key in (None, 'child1', 'child2'):
         data.create_entry(
             upload_id=upload_id,
             entry_id=upload_id + '_' + (mainfile_key or 'main'),
             material_id=upload_id,
             mainfile=f'test_content/mainfile_w_children.json',
-            mainfile_key=mainfile_key)
+            mainfile_key=mainfile_key,
+        )
 
     # one upload, no entries, still processing
     data.create_upload(
-        upload_id='id_processing',
-        published=False,
-        process_status=ProcessStatus.RUNNING)
+        upload_id='id_processing', published=False, process_status=ProcessStatus.RUNNING
+    )
 
     # one upload, no entries, unpublished
-    data.create_upload(
-        upload_id='id_empty',
-        published=False)
+    data.create_upload(upload_id='id_empty', published=False)
 
     data.save(with_files=False)
-    del(data.archives['id_02'])
+    del data.archives['id_02']
     data.save(with_files=True, with_es=False, with_mongo=False)
 
     # yield
@@ -914,18 +998,17 @@ def example_data(elastic_module, raw_files_module, mongo_module, test_user, othe
 
 
 @pytest.fixture(scope='function')
-def example_data_schema_python(elastic_module, raw_files_module, mongo_module, test_user, normalized):
-    '''
+def example_data_schema_python(
+    elastic_module, raw_files_module, mongo_module, test_user, normalized
+):
+    """
     Contains entries that store data using a python schema.
-    '''
+    """
     data = ExampleData(main_author=test_user)
     upload_id = 'id_plugin_schema_published'
     date_value = datetime.now(timezone.utc)
 
-    data.create_upload(
-        upload_id=upload_id,
-        upload_name=upload_id,
-        published=True)
+    data.create_upload(upload_id=upload_id, upload_name=upload_id, published=True)
     for i in range(0, 15):
         data.create_entry(
             upload_id=upload_id,
@@ -936,51 +1019,51 @@ def example_data_schema_python(elastic_module, raw_files_module, mongo_module, t
                     id=f'data.name{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySchema.name',
                     path_archive='data.name',
-                    str_value=f'test{i}'
+                    str_value=f'test{i}',
                 ),
                 SearchableQuantity(
                     id=f'data.valid{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySchema.valid',
                     path_archive='data.valid',
-                    bool_value=i % 2 == 0
+                    bool_value=i % 2 == 0,
                 ),
                 SearchableQuantity(
                     id=f'data.message{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySchema.message',
                     path_archive='data.message',
-                    str_value='A' if i % 2 == 0 else 'B'
+                    str_value='A' if i % 2 == 0 else 'B',
                 ),
                 SearchableQuantity(
                     id=f'data.frequency{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySchema.frequency',
                     path_archive='data.frequency',
-                    float_value=i + 0.5
+                    float_value=i + 0.5,
                 ),
                 SearchableQuantity(
                     id=f'data.count{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySchema.count',
                     path_archive='data.count',
-                    int_value=i
+                    int_value=i,
                 ),
                 SearchableQuantity(
                     id=f'data.timestamp{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySchema.timestamp',
                     path_archive='data.timestamp',
-                    datetime_value=date_value
+                    datetime_value=date_value,
                 ),
                 SearchableQuantity(
                     id=f'data.child.name{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySection.name',
                     path_archive='data.child.name',
-                    str_value=f'test_child{i}'
+                    str_value=f'test_child{i}',
                 ),
                 SearchableQuantity(
                     id=f'data.child_repeating.name{schema_separator}{python_schema_name}',
                     definition='nomadschemaexample.schema.MySection.name',
                     path_archive='data.child_repeating.0.name',
-                    str_value=f'test_child_repeating{i}'
+                    str_value=f'test_child_repeating{i}',
                 ),
-            ]
+            ],
         )
     data.save(with_files=False)
 
@@ -991,17 +1074,16 @@ def example_data_schema_python(elastic_module, raw_files_module, mongo_module, t
 
 
 @pytest.fixture(scope='function')
-def example_data_nexus(elastic_module, raw_files_module, mongo_module, test_user, normalized):
-    '''
+def example_data_nexus(
+    elastic_module, raw_files_module, mongo_module, test_user, normalized
+):
+    """
     Contains entries that store data using a python schema.
-    '''
+    """
     data = ExampleData(main_author=test_user)
     upload_id = 'id_nexus_published'
 
-    data.create_upload(
-        upload_id=upload_id,
-        upload_name=upload_id,
-        published=True)
+    data.create_upload(upload_id=upload_id, upload_name=upload_id, published=True)
     data.create_entry(
         upload_id=upload_id,
         entry_id=f'test_entry_nexus',
@@ -1011,15 +1093,15 @@ def example_data_nexus(elastic_module, raw_files_module, mongo_module, test_user
                 id=f'nexus.NXiv_temp.ENTRY.DATA.temperature__field',
                 definition='nexus.NXiv_temp.ENTRY.DATA.temperature__field',
                 path_archive='nexus.NXiv_temp.ENTRY.0.DATA.0.temperature__field',
-                float_value=273.15
+                float_value=273.15,
             ),
             SearchableQuantity(
                 id=f'nexus.NXiv_temp.ENTRY.definition__field',
                 definition='nexus.NXiv_temp.NXentry.definition__field',
                 path_archive='nexus.NXiv_temp.ENTRY.0.definition__field',
-                str_value='NXiv_temp'
+                str_value='NXiv_temp',
             ),
-        ]
+        ],
     )
     data.save(with_files=False)
 
@@ -1030,18 +1112,23 @@ def example_data_nexus(elastic_module, raw_files_module, mongo_module, test_user
 
 
 @pytest.fixture(scope='function')
-def example_data_schema_yaml(elastic_module, raw_files, no_warn, raw_files_module, mongo_module, test_user, normalized):
-    '''
+def example_data_schema_yaml(
+    elastic_module,
+    raw_files,
+    no_warn,
+    raw_files_module,
+    mongo_module,
+    test_user,
+    normalized,
+):
+    """
     Contains entries that store data using a python schema.
-    '''
+    """
     data = ExampleData(main_author=test_user)
     upload_id = 'id_plugin_schema_published'
     date_value = datetime.now(timezone.utc)
 
-    data.create_upload(
-        upload_id=upload_id,
-        upload_name=upload_id,
-        published=True)
+    data.create_upload(upload_id=upload_id, upload_name=upload_id, published=True)
     for i in range(0, 15):
         data.create_entry(
             upload_id=upload_id,
@@ -1052,51 +1139,51 @@ def example_data_schema_yaml(elastic_module, raw_files, no_warn, raw_files_modul
                     id=f'data.name{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/quantities/0',
                     path_archive='data.name',
-                    str_value=f'test{i}'
+                    str_value=f'test{i}',
                 ),
                 SearchableQuantity(
                     id=f'data.valid{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/quantities/1',
                     path_archive='data.valid',
-                    bool_value=i % 2 == 0
+                    bool_value=i % 2 == 0,
                 ),
                 SearchableQuantity(
                     id=f'data.message{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/quantities/1',
                     path_archive='data.message',
-                    str_value='A' if i % 2 == 0 else 'B'
+                    str_value='A' if i % 2 == 0 else 'B',
                 ),
                 SearchableQuantity(
                     id=f'data.frequency{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/quantities/5',
                     path_archive='data.frequency',
-                    float_value=i + 0.5
+                    float_value=i + 0.5,
                 ),
                 SearchableQuantity(
                     id=f'data.count{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/quantities/4',
                     path_archive='data.count',
-                    int_value=i
+                    int_value=i,
                 ),
                 SearchableQuantity(
                     id=f'data.timestamp{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/quantities/1',
                     path_archive='data.timestamp',
-                    datetime_value=date_value
+                    datetime_value=date_value,
                 ),
                 SearchableQuantity(
                     id=f'data.child.name{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/section_definitions/0/quantities/0',
                     path_archive='data.child.name',
-                    str_value=f'test_child{i}'
+                    str_value=f'test_child{i}',
                 ),
                 SearchableQuantity(
                     id=f'data.child_repeating.name{schema_separator}{yaml_schema_name}',
                     definition=f'{yaml_schema_root}/section_definitions/0/quantities/0',
                     path_archive='data.child_repeating.0.name',
-                    str_value=f'test_child_repeating{i}'
+                    str_value=f'test_child_repeating{i}',
                 ),
-            ]
+            ],
         )
     data.save(with_files=False)
 
@@ -1108,15 +1195,14 @@ def example_data_schema_yaml(elastic_module, raw_files, no_warn, raw_files_modul
 
 @pytest.fixture(scope='function')
 def plugin_schema():
-    '''Fixture for loading a schema plugin into the config.
-    '''
+    """Fixture for loading a schema plugin into the config."""
     plugin_path = str(Path(__file__, '../data/schemas').resolve())
     plugin_name = 'nomadschemaexample'
     plugin = Schema(
         name=plugin_name,
         key=plugin_name,
         package_path=plugin_path,
-        python_package=plugin_name
+        python_package=plugin_name,
     )
     add_plugin(plugin)
 
@@ -1130,36 +1216,31 @@ def example_data_writeable(mongo, test_user, normalized):
     data = ExampleData(main_author=test_user)
 
     # one upload with one entry, published
-    data.create_upload(
-        upload_id='id_published_w',
-        published=True,
-        embargo_length=12)
+    data.create_upload(upload_id='id_published_w', published=True, embargo_length=12)
     data.create_entry(
         upload_id='id_published_w',
         entry_id='id_published_w_entry',
-        mainfile='test_content/test_embargo_entry/mainfile.json')
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+    )
 
     # one upload with one entry, unpublished
-    data.create_upload(
-        upload_id='id_unpublished_w',
-        published=False,
-        embargo_length=12)
+    data.create_upload(upload_id='id_unpublished_w', published=False, embargo_length=12)
     data.create_entry(
         upload_id='id_unpublished_w',
         entry_id='id_unpublished_w_entry',
-        mainfile='test_content/test_embargo_entry/mainfile.json')
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+    )
 
     # one upload, no entries, running a blocking processing
     data.create_upload(
         upload_id='id_processing_w',
         published=False,
         process_status=ProcessStatus.RUNNING,
-        current_process='publish_upload')
+        current_process='publish_upload',
+    )
 
     # one upload, no entries, unpublished
-    data.create_upload(
-        upload_id='id_empty_w',
-        published=False)
+    data.create_upload(upload_id='id_empty_w', published=False)
 
     data.save()
 
@@ -1173,7 +1254,7 @@ def example_datasets(mongo, test_user, other_test_user):
     dataset_specs = (
         ('test_dataset_1', test_user, None),
         ('test_dataset_2', test_user, 'test_doi_2'),
-        ('test_dataset_3', other_test_user, None)
+        ('test_dataset_3', other_test_user, None),
     )
     datasets = []
     for dataset_name, user, doi in dataset_specs:
@@ -1185,7 +1266,8 @@ def example_datasets(mongo, test_user, other_test_user):
             user_id=user.user_id,
             dataset_create_time=now,
             dataset_modified_time=now,
-            dataset_type='owned')
+            dataset_type='owned',
+        )
         dataset.a_mongo.create()
         datasets.append(dataset)
 
@@ -1197,7 +1279,7 @@ def example_datasets(mongo, test_user, other_test_user):
 
 @pytest.fixture
 def reset_config():
-    ''' Fixture that resets configuration. '''
+    """Fixture that resets configuration."""
     service = config.meta.service
     yield None
     config.meta.service = service
@@ -1206,29 +1288,39 @@ def reset_config():
 
 @pytest.fixture
 def reset_infra(mongo, elastic):
-    ''' Fixture that resets infrastructure after deleting db or search index. '''
+    """Fixture that resets infrastructure after deleting db or search index."""
     yield None
 
 
 @pytest.fixture(scope='session')
 def api_v1(monkeysession):
-    '''
+    """
     This fixture provides an HTTP client with Python requests interface that accesses
     the fast api. The have to provide URLs that start with out leading '/' after '.../api/v1.
     This fixture also patches the actual requests. If some code is using requests to
     connect to the NOMAD v1 at ``nomad.config.client.url``, the patch will redirect to the
     fast api under test.
-    '''
+    """
     test_client = TestClient(app, base_url='http://testserver/api/v1/')
 
     def call_test_client(method, url, *args, **kwargs):
         url = url.replace(f'{config.client.url}/v1/', '')
         return getattr(test_client, method)(url, *args, **kwargs)
 
-    monkeysession.setattr('requests.get', lambda *args, **kwargs: call_test_client('get', *args, **kwargs))
-    monkeysession.setattr('requests.put', lambda *args, **kwargs: call_test_client('put', *args, **kwargs))
-    monkeysession.setattr('requests.post', lambda *args, **kwargs: call_test_client('post', *args, **kwargs))
-    monkeysession.setattr('requests.delete', lambda *args, **kwargs: call_test_client('delete', *args, **kwargs))
+    monkeysession.setattr(
+        'requests.get', lambda *args, **kwargs: call_test_client('get', *args, **kwargs)
+    )
+    monkeysession.setattr(
+        'requests.put', lambda *args, **kwargs: call_test_client('put', *args, **kwargs)
+    )
+    monkeysession.setattr(
+        'requests.post',
+        lambda *args, **kwargs: call_test_client('post', *args, **kwargs),
+    )
+    monkeysession.setattr(
+        'requests.delete',
+        lambda *args, **kwargs: call_test_client('delete', *args, **kwargs),
+    )
 
     def __call__(self, request):
         for user in test_users.values():
@@ -1249,9 +1341,8 @@ def client_with_api_v1(api_v1, monkeysession):
     monkeysession.setattr('nomad.client.api._call_requests', call_requests)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope='function')
 def central_logstash_mock():
-
     class TCPServerStore(socketserver.TCPServer):
         received_content = []
 
@@ -1272,7 +1363,9 @@ def central_logstash_mock():
     host, port = config.logstash.host, int(config.logstash.tcp_port)
 
     # print(f"set up mock on host={host} and port={port}")
-    logstash_mock_central = TCPServerStore((host, port), LogstashCentralHandler, bind_and_activate=False)
+    logstash_mock_central = TCPServerStore(
+        (host, port), LogstashCentralHandler, bind_and_activate=False
+    )
     logstash_mock_central.allow_reuse_address = True
     logstash_mock_central.allow_reuse_port = True
     # logstash_mock_central.timeout = 0.3

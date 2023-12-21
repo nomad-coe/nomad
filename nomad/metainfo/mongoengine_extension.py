@@ -28,30 +28,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 Adds mongoengine supports to the metainfo. Allows to create, save, and get metainfo
 sections from mongoengine. The annotation key is 'mongo'.
-'''
+"""
 
 from typing import Any, Dict, List
 
 from .metainfo import (
-    DefinitionAnnotation, SectionAnnotation, Annotation, MSection, Datetime, Quantity,
-    MEnum, JSON)
+    DefinitionAnnotation,
+    SectionAnnotation,
+    Annotation,
+    MSection,
+    Datetime,
+    Quantity,
+    MEnum,
+    JSON,
+)
 
 
 class Mongo(DefinitionAnnotation):
-    '''
+    """
     This annotation class can be used to extend metainfo quantities. It enables and
     details the mapping of quantities to fields in mongoengine documents.
 
     Attributes:
         index: A boolean indicating that this quantity should be indexed.
         primary_key: A boolean indicating that this quantity is the primary key.
-    '''
-    def __init__(
-            self, index: bool = False, primary_key: bool = False,
-            **kwargs):
+    """
+
+    def __init__(self, index: bool = False, primary_key: bool = False, **kwargs):
         self.primary_key = primary_key
         self.index = index
         self.kwargs = kwargs
@@ -64,11 +70,12 @@ class Mongo(DefinitionAnnotation):
 
 
 class MongoDocument(SectionAnnotation):
-    '''
+    """
     This annotation class can be used to extend metainfo section. It allows to get
     the mongoengine document class to store instances of this section in mongodb. It
     also provides access to the respective mongodb collection.
-    '''
+    """
+
     def __init__(self):
         self._mongoengine_cls = None
 
@@ -80,10 +87,10 @@ class MongoDocument(SectionAnnotation):
 
     @property
     def mongo_cls(self):
-        '''
+        """
         The mongoengine document class for this section. Only quantities with :class:`Mongo`
         annotation are mapped to fields.
-        '''
+        """
         if self._mongoengine_cls is not None:
             return self._mongoengine_cls
 
@@ -140,12 +147,13 @@ class MongoDocument(SectionAnnotation):
 
             # Add subsections to the model
             for subsection in section.all_sub_sections.values():
-
                 annotation = subsection.sub_section.m_get_annotations(MongoDocument)
                 if annotation is None:
                     continue
 
-                embedded_doc_field = type(subsection.sub_section.name, (me.EmbeddedDocumentField,), {})
+                embedded_doc_field = type(
+                    subsection.sub_section.name, (me.EmbeddedDocumentField,), {}
+                )
                 model = create_model_recursive(subsection.sub_section, level + 1)
                 if subsection.repeats:
                     dct[subsection.name] = me.ListField(embedded_doc_field(model))
@@ -155,11 +163,9 @@ class MongoDocument(SectionAnnotation):
             # Add meta dictionary. The strict mode is set to false in order to
             # not raise an exception when reading data that is not specified in
             # the model.
-            meta = {
-                "strict": False
-            }
+            meta = {'strict': False}
             if len(indexes) > 0:
-                meta["indexes"] = indexes
+                meta['indexes'] = indexes
             dct['meta'] = meta
 
             # Return final model
@@ -174,27 +180,27 @@ class MongoDocument(SectionAnnotation):
         return self._mongoengine_cls
 
     def objects(self, *args, **kwargs):
-        '''
+        """
         Allows access to the underlying collection objects function.
         Returns mongoengine document instances, not metainfo section instances.
-        '''
+        """
         return self.mongo_cls.objects(*args, **kwargs)
 
     def get(self, **kwargs):
-        '''
+        """
         Returns the first entry that matches the given objects query as metainfo
         section instance. Raises KeyError.
-        '''
+        """
         mongo_instance = self.objects(**kwargs).first()
         if mongo_instance is None:
             raise KeyError(str(kwargs))
         return self.to_metainfo(mongo_instance)
 
     def to_metainfo(self, mongo_instance):
-        '''
+        """
         Turns the given mongoengine document instance into its metainfo section instance
         counterpart.
-        '''
+        """
         section_cls = self.definition.section_cls
 
         # Get the mongo instance data as dict. This is easy to de-serialize
@@ -202,8 +208,8 @@ class MongoDocument(SectionAnnotation):
         # the _id field.
         mongo_dict = mongo_instance.to_mongo().to_dict()
         if self.primary_key_name is not None:
-            mongo_dict[self.primary_key_name] = mongo_dict["_id"]
-        del mongo_dict["_id"]
+            mongo_dict[self.primary_key_name] = mongo_dict['_id']
+        del mongo_dict['_id']
 
         section = section_cls.m_from_dict(mongo_dict)
         section.a_mongo.mongo_instance = mongo_instance
@@ -212,17 +218,18 @@ class MongoDocument(SectionAnnotation):
 
 
 class MongoInstance(Annotation):
-    '''
+    """
     The annotation that is automatically added to all instances of sections that
     feature the :class:`MongoDocument` annotation.
-    '''
+    """
+
     def __init__(self, section: MSection):
         self.section = section
         self.mongo_instance = None
         self._id = None
 
     def save(self):
-        ''' Saves the section as mongo entry. Does an upsert. '''
+        """Saves the section as mongo entry. Does an upsert."""
 
         # The best way to update a complex entry with mongoengine is to create
         # a new Document instance and specify the target ID which should be
@@ -232,18 +239,18 @@ class MongoInstance(Annotation):
         # https://stackoverflow.com/questions/19002469/update-a-mongoengine-document-using-a-python-dict
         data = self.section.m_to_dict()
         if self.mongo_instance is not None:
-            data["id"] = self.mongo_instance.id
+            data['id'] = self.mongo_instance.id
         mongo_instance = self.section.m_def.a_mongo.mongo_cls(**data, _created=False)
         self.mongo_instance = mongo_instance.save()
 
         return self.section
 
     def create(self):
-        ''' Creates a new mongo entry and saves it. '''
+        """Creates a new mongo entry and saves it."""
         return self.save()
 
     def delete(self):
-        ''' Deletes the respective entry from mongodb. '''
+        """Deletes the respective entry from mongodb."""
         self.mongo_instance.delete()
         self.mongo_instance = None
         return self.section

@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-'''
+"""
 A command that runs a series of data compatibility tests against this version
 and another nomad@FAIRDI installation.
-'''
+"""
 from nomad.client import api
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.metainfo import MEnum
@@ -32,7 +32,7 @@ def datatests(auth: api.Auth):
 
 
 def get_enums(root, path='', es=True, results=None):
-    '''Recursively navigates down the metainfo hierarchy to extract paths
+    """Recursively navigates down the metainfo hierarchy to extract paths
     and possible values for enum quantities.
 
     Args:
@@ -40,7 +40,7 @@ def get_enums(root, path='', es=True, results=None):
         path: Path prefix.
         es: Collect only if stored in ElasticSearch
         results: A dictionary where the results are stored.
-    '''
+    """
     if results is None:
         results = {}
 
@@ -62,24 +62,21 @@ def get_enums(root, path='', es=True, results=None):
 
 
 def test_results_enums(name, enum_values, auth=None):
-    '''Tests that the enum values defined in archive.results cover all of the
+    """Tests that the enum values defined in archive.results cover all of the
     available values in the public part of the data.
-    '''
+    """
     max_size = 10000
     query = {
-        "owner": "public",
-        "query": {},
-        "aggregations": {
+        'owner': 'public',
+        'query': {},
+        'aggregations': {
             name: {
-                "terms": {
-                    "quantity": name,
-                    "size": max_size
-                },
+                'terms': {'quantity': name, 'size': max_size},
             },
         },
-        "pagination": {
-            "page_size": 0,
-        }
+        'pagination': {
+            'page_size': 0,
+        },
     }
 
     response = api.post('entries/query', json=query, auth=auth)
@@ -95,7 +92,9 @@ def test_results_enums(name, enum_values, auth=None):
     # If this field is available, test that we are really getting all of the
     # unique values and that the unique terms are a subset of the Enum values
     elif status_code == 200:
-        agg_values = {x["value"] for x in response.json()['aggregations'][name]['terms']['data']}
+        agg_values = {
+            x['value'] for x in response.json()['aggregations'][name]['terms']['data']
+        }
         assert len(agg_values) < max_size
         assert agg_values.issubset(enum_values)
     else:

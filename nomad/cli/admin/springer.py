@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-'''
+"""
 Generates a msgpack database of springer-related quantities downloaded from
 http://materials.springer.com. The database is stuctured as
 
 space_group_number : normalized_formula : springer_id : entry
-'''
+"""
 
 from typing import Dict, List, Any
 import requests
@@ -39,11 +39,11 @@ required_items = {
     'Compound Class(es):': 'compound_classes',
     'Dataset ID': 'id',
     'Space Group:': 'space_group_number',
-    'Phase Label(s):': 'phase_labels'
+    'Phase Label(s):': 'phase_labels',
 }
 
 spaces_re = re.compile(r'\s+')
-search_re = re.compile(" href=\"(/isp/[^\"]+)")
+search_re = re.compile(' href="(/isp/[^"]+)')
 formula_re = re.compile(r'([A-Z][a-z]?)([0-9.]*)|\[(.*?)\]([0-9]+)')
 
 
@@ -70,7 +70,9 @@ def _components(formula_str: str, multiplier: float = 1.0) -> Dict[str, float]:
         elif molecule:
             if not amount_m:
                 amount_m = 1.0
-            _update_dict(symbol_amount, _components(molecule, float(amount_m) * multiplier))
+            _update_dict(
+                symbol_amount, _components(molecule, float(amount_m) * multiplier)
+            )
 
     return symbol_amount
 
@@ -79,22 +81,24 @@ def normalize_formula(formula_str: str) -> str:
     symbol_amount = _components(formula_str)
 
     total = sum(symbol_amount.values())
-    symbol_normamount = {e: round(a / total * 100.) for e, a in symbol_amount.items()}
+    symbol_normamount = {e: round(a / total * 100.0) for e, a in symbol_amount.items()}
 
     formula_sorted = [
-        '%s%d' % (s, symbol_normamount[s]) for s in sorted(list(symbol_normamount.keys()))]
+        '%s%d' % (s, symbol_normamount[s])
+        for s in sorted(list(symbol_normamount.keys()))
+    ]
 
     return ''.join(formula_sorted)
 
 
 def parse(htmltext: str) -> Dict[str, str]:
-    '''
+    """
     Parser the quantities in required_items from an html text.
-    '''
-    soup = bs4.BeautifulSoup(htmltext, "html.parser")
+    """
+    soup = bs4.BeautifulSoup(htmltext, 'html.parser')
     results = {}
-    for item in soup.find_all(attrs={"class": "data-list__item"}):
-        key = item.find(attrs={"class": "data-list__item-key"})
+    for item in soup.find_all(attrs={'class': 'data-list__item'}):
+        key = item.find(attrs={'class': 'data-list__item-key'})
         if not key:
             continue
 
@@ -102,7 +106,7 @@ def parse(htmltext: str) -> Dict[str, str]:
         if key_str not in required_items:
             continue
 
-        value = item.find(attrs={"class": "data-list__item-value"})
+        value = item.find(attrs={'class': 'data-list__item-value'})
         value = spaces_re.sub(' ', value.get_text()).strip()
         results[required_items[key_str]] = value
 
@@ -110,11 +114,17 @@ def parse(htmltext: str) -> Dict[str, str]:
             break
 
     if 'classification' in results:
-        results['classification'] = [x.strip() for x in results['classification'].split(",")]
+        results['classification'] = [
+            x.strip() for x in results['classification'].split(',')
+        ]
         results['classification'] = [x for x in results['classification'] if x != '–']
     if 'compound_classes' in results:
-        results['compound_classes'] = [x.strip() for x in results['compound_classes'].split(",")]
-        results['compound_classes'] = [x for x in results['compound_classes'] if x != '–']
+        results['compound_classes'] = [
+            x.strip() for x in results['compound_classes'].split(',')
+        ]
+        results['compound_classes'] = [
+            x for x in results['compound_classes'] if x != '–'
+        ]
 
     normalized_formula = None
     for formula_type in ['alphabetic_formula', 'phase_labels']:
@@ -161,10 +171,10 @@ def _download(path: str, max_n_query: int = 10, retry_time: int = 120) -> str:
 
 
 def update_springer(max_n_query: int = 10, retry_time: int = 120):
-    '''
+    """
     Downloads the springer quantities related to a structure from springer and updates
     database.
-    '''
+    """
     # load database
     # querying database with unvailable dataset leads to error,
     # get toc keys first by making an empty query
@@ -172,7 +182,9 @@ def update_springer(max_n_query: int = 10, retry_time: int = 120):
         _ = springer_archive._load_toc_block(0)
         archive_keys = springer_archive._toc.keys()
 
-    sp_data = archive.query_archive(config.normalize.springer_db_path, {spg: '*' for spg in archive_keys})
+    sp_data = archive.query_archive(
+        config.normalize.springer_db_path, {spg: '*' for spg in archive_keys}
+    )
 
     sp_ids: List[str] = []
     for spg in sp_data:
@@ -184,7 +196,10 @@ def update_springer(max_n_query: int = 10, retry_time: int = 120):
     page = 1
     while True:
         # check springer database for new entries by comparing with local database
-        root = 'http://materials.springer.com/search?searchTerm=&pageNumber=%d&datasourceFacet=sm_isp&substanceId=' % page
+        root = (
+            'http://materials.springer.com/search?searchTerm=&pageNumber=%d&datasourceFacet=sm_isp&substanceId='
+            % page
+        )
         req_text = _download(root, max_n_query, retry_time)
         if 'Sorry,' in req_text:
             break
@@ -217,13 +232,20 @@ def update_springer(max_n_query: int = 10, retry_time: int = 120):
             classification = data.get('classification', None)
 
             entry = dict(
-                aformula=aformula, url=path, compound=compound,
-                classification=classification)
+                aformula=aformula,
+                url=path,
+                compound=compound,
+                classification=classification,
+            )
             sp_data = _merge_dict(
-                sp_data, {str(space_group_number): {normalized_formula: {sp_id: entry}}})
+                sp_data, {str(space_group_number): {normalized_formula: {sp_id: entry}}}
+            )
 
         page += 1
 
     archive.write_archive(
-        config.normalize.springer_db_path, len(sp_data), sp_data.items(),
-        entry_toc_depth=1)
+        config.normalize.springer_db_path,
+        len(sp_data),
+        sp_data.items(),
+        entry_toc_depth=1,
+    )

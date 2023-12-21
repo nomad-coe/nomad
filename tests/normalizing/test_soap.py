@@ -22,6 +22,7 @@ from tests.parsing.test_parsing import parse_file
 def test_soap():
     archive = parse_file(('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml'))
     from nomad.normalizing.soap import SoapNormalizer
+
     SoapNormalizer(archive, only_representatives=True).normalize()
 
     assert archive.run[-1].system[-1].descriptors.soap is not None

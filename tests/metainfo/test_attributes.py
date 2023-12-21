@@ -28,20 +28,20 @@ from nomad.metainfo.util import validate_allowable_unit
 from nomad.units import ureg
 
 
-@pytest.mark.parametrize('type,errors,value', [
-    pytest.param(str, 0, 'test_value', id='str'),
-    pytest.param(np.float64, 0, 1.1, id='numpy'),
-    pytest.param(MEnum('value1'), 0, 'value1', id='enum'),
-    pytest.param(Datetime, 0, datetime.datetime.now(tz=pytz.utc), id='datetime'),
-    pytest.param(Reference(Quantity.m_def), 1, None, id='reference')
-])
+@pytest.mark.parametrize(
+    'type,errors,value',
+    [
+        pytest.param(str, 0, 'test_value', id='str'),
+        pytest.param(np.float64, 0, 1.1, id='numpy'),
+        pytest.param(MEnum('value1'), 0, 'value1', id='enum'),
+        pytest.param(Datetime, 0, datetime.datetime.now(tz=pytz.utc), id='datetime'),
+        pytest.param(Reference(Quantity.m_def), 1, None, id='reference'),
+    ],
+)
 def test_attributes(type, errors, value):
     class MySection(MSection):
         my_quantity = Quantity(
-            type=str,
-            attributes=[
-                Attribute(name='my_quantity_attribute', type=type)
-            ]
+            type=str, attributes=[Attribute(name='my_quantity_attribute', type=type)]
         )
 
     assert Definition.all_attributes.derived is not None
@@ -55,29 +55,38 @@ def test_attributes(type, errors, value):
 
     section = MySection()
 
-    assert section.m_get_quantity_attribute('my_quantity', 'my_quantity_attribute') is None
+    assert (
+        section.m_get_quantity_attribute('my_quantity', 'my_quantity_attribute') is None
+    )
     section.m_set_quantity_attribute('my_quantity', 'my_quantity_attribute', value)
-    assert section.m_get_quantity_attribute('my_quantity', 'my_quantity_attribute') == value
+    assert (
+        section.m_get_quantity_attribute('my_quantity', 'my_quantity_attribute')
+        == value
+    )
 
     section.my_quantity = 'test'
 
     json_data = section.m_to_dict()
     section = MySection.m_from_dict(json_data)
 
-    assert section.m_get_quantity_attribute('my_quantity', 'my_quantity_attribute') == value
+    assert (
+        section.m_get_quantity_attribute('my_quantity', 'my_quantity_attribute')
+        == value
+    )
 
 
-@pytest.mark.parametrize('name,value', [
-    pytest.param(None, None, id='none'),
-    pytest.param('m_source_unit', ureg('m').units, id='source-unit')
-])
+@pytest.mark.parametrize(
+    'name,value',
+    [
+        pytest.param(None, None, id='none'),
+        pytest.param('m_source_unit', ureg('m').units, id='source-unit'),
+    ],
+)
 def test_m_attributes(name, value):
     class MySection(MSection):
         my_quantity = Quantity(
-            type=float,
-            attributes=[
-                Attribute(name='m_source_unit', type=str)
-            ])
+            type=float, attributes=[Attribute(name='m_source_unit', type=str)]
+        )
 
     section = MySection(my_quantity=1)
     if name:
@@ -93,10 +102,9 @@ def test_m_attributes(name, value):
 def test_variable_name():
     class MySection(MSection):
         MY_quantity = Quantity(
-            type=str, variable=True,
-            attributes=[
-                Attribute(name='MY_attribute', type=str, variable=True)
-            ]
+            type=str,
+            variable=True,
+            attributes=[Attribute(name='MY_attribute', type=str, variable=True)],
         )
 
     section = MySection()
@@ -115,15 +123,24 @@ def test_variable_name():
         section.completely_off = 'v1'
 
 
-@pytest.mark.parametrize('token,units,result', [
-    pytest.param('[length]', ['m', 'cm', 'm^2/m'], True, id='length_true'),
-    pytest.param('[length]', ['m/m/m', '1/m'], False, id='length_false'),
-    pytest.param('dimensionless', ['1', 'm/m', 'kg*m/s/s/m^2/MPa'], True, id='dimensionless_true')
-])
+@pytest.mark.parametrize(
+    'token,units,result',
+    [
+        pytest.param('[length]', ['m', 'cm', 'm^2/m'], True, id='length_true'),
+        pytest.param('[length]', ['m/m/m', '1/m'], False, id='length_false'),
+        pytest.param(
+            'dimensionless',
+            ['1', 'm/m', 'kg*m/s/s/m^2/MPa'],
+            True,
+            id='dimensionless_true',
+        ),
+    ],
+)
 def test_unit_compatibility(token, units, result):
     assert validate_allowable_unit(token, units) == result
 
     if result:
+
         class MySection(MSection):
             numerical = Quantity(
                 type=np.dtype(np.float64), dimensionality=token, unit=units[0]
@@ -134,6 +151,7 @@ def test_unit_compatibility(token, units, result):
             section.numerical = 1 * ureg.parse_units(u)
     else:
         with pytest.raises(TypeError):
+
             class MySection(MSection):
                 numerical = Quantity(
                     type=np.dtype(np.float64), dimensionality=token, unit=units[0]
@@ -151,7 +169,7 @@ def test_repeating_quantity():
 
     my_section = MySection()
 
-    my_section.TEST_repeat = MQuantity.wrap(ureg.Quantity(1., 'cm'))
+    my_section.TEST_repeat = MQuantity.wrap(ureg.Quantity(1.0, 'cm'))
 
     assert my_section.TEST_repeat.m == 0.01  # pylint: disable=E1101
 

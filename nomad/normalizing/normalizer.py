@@ -25,16 +25,16 @@ from nomad.datamodel import EntryArchive
 
 
 class Normalizer(metaclass=ABCMeta):
-    '''
+    """
     A base class for normalizers. Normalizers work on a :class:`EntryArchive` section
     for read and write. Normalizer instances are reused.
 
     Arguments:
         entry_archive: The entry_archive root section of the archive to normalize.
-    '''
+    """
 
     domain = 'dft'
-    ''' The domain this normalizer should be used in. Default for all normalizer is 'DFT'. '''
+    """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
 
     def __init__(self, entry_archive: EntryArchive) -> None:
         self.entry_archive = entry_archive
@@ -51,7 +51,7 @@ class Normalizer(metaclass=ABCMeta):
 
 
 class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
-    '''
+    """
     A normalizer base class for normalizers that only touch a section_system.
 
     The normalizer is run on all section systems in a run. However, some systems,
@@ -60,7 +60,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     Args:
         only_representatives: Will only normalize the `representative` systems.
-    '''
+    """
+
     def __init__(self, entry_archive: EntryArchive, only_representatives: bool = False):
         super().__init__(entry_archive)
         self.only_representatives = only_representatives
@@ -73,7 +74,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             'atom_atom_numbers',
             'lattice_vectors',
             'simulation_cell',
-            'configuration_periodic_dimensions'
+            'configuration_periodic_dimensions',
         ]
 
     def _normalize_system(self, system, is_representative):
@@ -81,15 +82,15 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
     @abstractmethod
     def normalize_system(self, system: MSection, is_representative: bool) -> bool:
-        ''' Normalize the given section and returns True, iff successful'''
+        """Normalize the given section and returns True, iff successful"""
         pass
 
     def __representative_system(self):
-        '''Used to select a representative system for this entry.
+        """Used to select a representative system for this entry.
 
         Attempt to find a single section_system that is representative for the
         entry. The selection depends on the type of calculation.
-        '''
+        """
         system = None
         scc = None
 
@@ -142,9 +143,11 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 pass
 
         if scc is not None:
-            self.section_run.m_cache["representative_scc_idx"] = scc.m_parent_index
+            self.section_run.m_cache['representative_scc_idx'] = scc.m_parent_index
         if system is not None:
-            self.section_run.m_cache["representative_system_idx"] = system.m_parent_index
+            self.section_run.m_cache[
+                'representative_system_idx'
+            ] = system.m_parent_index
 
         return system.m_resolved() if system is not None else None
 
@@ -154,14 +157,24 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         except KeyError as e:
             self.logger.error(
-                'could not read a system property', normalizer=self.__class__.__name__,
-                section='system', g_index=system.m_parent_index, key_error=str(e), exc_info=e)
+                'could not read a system property',
+                normalizer=self.__class__.__name__,
+                section='system',
+                g_index=system.m_parent_index,
+                key_error=str(e),
+                exc_info=e,
+            )
             return False
 
         except Exception as e:
             self.logger.error(
-                'Unexpected error during normalizing', normalizer=self.__class__.__name__,
-                section='system', g_index=system.m_parent_index, exc_info=e, error=str(e))
+                'Unexpected error during normalizing',
+                normalizer=self.__class__.__name__,
+                section='system',
+                g_index=system.m_parent_index,
+                exc_info=e,
+                error=str(e),
+            )
             raise e
 
     def normalize(self, logger=None) -> None:

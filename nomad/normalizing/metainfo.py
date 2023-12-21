@@ -37,11 +37,13 @@ class MetainfoNormalizer(Normalizer):
                 logger.error(
                     'could not normalize section',
                     section=section.m_def.name,
-                    exc_info=e)
+                    exc_info=e,
+                )
 
     def normalize(self, logger=None) -> None:
         if logger is None:
             from nomad import utils
+
             logger = utils.get_logger(__name__)
 
         logger = logger.bind(normalizer=self.__class__.__name__)
@@ -50,7 +52,9 @@ class MetainfoNormalizer(Normalizer):
         def _normalize(section):
             sub_sections = [sub_section for sub_section in section.m_contents()]
             # TODO eln test failing because non-ArchiveSection may be normalization
-            sub_sections.sort(key=lambda x: x.normalizer_level if isinstance(x, ArchiveSection) else 0)
+            sub_sections.sort(
+                key=lambda x: x.normalizer_level if isinstance(x, ArchiveSection) else 0
+            )
             for sub_section in sub_sections:
                 _normalize(sub_section)
             self.normalize_section(section, logger)

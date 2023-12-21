@@ -16,32 +16,40 @@
 # limitations under the License.
 #
 
-''' An example metainfo package. '''
+""" An example metainfo package. """
 
 import numpy as np
 from datetime import datetime
 
 from nomad.units import ureg
 from nomad.metainfo import (
-    MSection, MCategory, Section, Quantity, Package, SubSection, MEnum,
-    Datetime, constraint)
+    MSection,
+    MCategory,
+    Section,
+    Quantity,
+    Package,
+    SubSection,
+    MEnum,
+    Datetime,
+    constraint,
+)
 
 m_package = Package(links=['https://nomad-lab.eu/prod/rae/docs/metainfo.html'])
 
 
 class SystemHash(MCategory):
-    ''' All quantities that contribute to what makes a system unique. '''
+    """All quantities that contribute to what makes a system unique."""
 
 
 class Parsing(MSection):
-    ''' All data that describes the NOMAD parsing of this run.
+    """All data that describes the NOMAD parsing of this run.
 
     Quantities can also be documented like this:
 
     Args:
         parser_name: 'Name of the used parser'
         parser_version: 'Version of the used parser'
-    '''
+    """
 
     parser_name = Quantity(type=str)
     parser_version = Quantity(type=str)
@@ -51,46 +59,66 @@ class Parsing(MSection):
 
 
 class System(MSection):
-    ''' All data that describes a simulated system. '''
+    """All data that describes a simulated system."""
 
     n_atoms = Quantity(
-        type=int, derived=lambda system: len(system.atom_labels),
-        description='Number of atoms in the simulated system.')
+        type=int,
+        derived=lambda system: len(system.atom_labels),
+        description='Number of atoms in the simulated system.',
+    )
 
     atom_labels = Quantity(
-        type=str, shape=['n_atoms'], categories=[SystemHash],
-        description='The atoms in the simulated systems.')
+        type=str,
+        shape=['n_atoms'],
+        categories=[SystemHash],
+        description='The atoms in the simulated systems.',
+    )
 
     atom_positions = Quantity(
-        type=np.dtype('f'), shape=['n_atoms', 3], unit=ureg.m, categories=[SystemHash],
-        description='The atom positions in the simulated system.')
+        type=np.dtype('f'),
+        shape=['n_atoms', 3],
+        unit=ureg.m,
+        categories=[SystemHash],
+        description='The atom positions in the simulated system.',
+    )
 
     lattice_vectors = Quantity(
-        type=np.dtype('f'), shape=[3, 3], unit=ureg.m, categories=[SystemHash],
+        type=np.dtype('f'),
+        shape=[3, 3],
+        unit=ureg.m,
+        categories=[SystemHash],
         aliases=['unit_cell'],
-        description='The lattice vectors of the simulated unit cell.')
+        description='The lattice vectors of the simulated unit cell.',
+    )
 
     periodic_dimensions = Quantity(
-        type=bool, shape=[3], default=[False, False, False], categories=[SystemHash],
-        description='A vector of booleans indicating in which dimensions the unit cell is repeated.')
+        type=bool,
+        shape=[3],
+        default=[False, False, False],
+        categories=[SystemHash],
+        description='A vector of booleans indicating in which dimensions the unit cell is repeated.',
+    )
 
     system_type = Quantity(type=str)
 
 
 class SCC(MSection):
-
     energy_total = Quantity(type=float, default=0.0, unit=ureg.J)
     energy_total_0 = Quantity(type=np.dtype(np.float32), default=0.0, unit=ureg.J)
     an_int = Quantity(type=np.dtype(np.int32))
 
-    system = Quantity(type=System, description='The system that this calculation is based on.')
+    system = Quantity(
+        type=System, description='The system that this calculation is based on.'
+    )
 
 
 class Run(MSection):
-    ''' All data that belongs to a single code run. '''
+    """All data that belongs to a single code run."""
 
     code_name = Quantity(type=str, description='The name of the code that was run.')
-    code_version = Quantity(type=str, description='The version of the code that was run.')
+    code_version = Quantity(
+        type=str, description='The version of the code that was run.'
+    )
 
     parsing = SubSection(sub_section=Parsing)
     systems = SubSection(sub_section=System, repeats=True)
@@ -98,17 +126,20 @@ class Run(MSection):
 
     @constraint
     def one_scc_per_system(self):
-        assert self.m_sub_section_count(Run.systems) == self.m_sub_section_count(Run.sccs),\
-            'Numbers of system does not match numbers of calculations.'
+        assert self.m_sub_section_count(Run.systems) == self.m_sub_section_count(
+            Run.sccs
+        ), 'Numbers of system does not match numbers of calculations.'
 
 
 class VaspRun(Run):
-    ''' All VASP specific quantities for section Run. '''
+    """All VASP specific quantities for section Run."""
+
     m_def = Section(extends_base_section=True)
 
     x_vasp_raw_format = Quantity(
         type=MEnum(['xml', 'outcar']),
-        description='The file format of the parsed VASP mainfile.')
+        description='The file format of the parsed VASP mainfile.',
+    )
 
 
 if __name__ == '__main__':

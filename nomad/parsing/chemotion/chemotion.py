@@ -22,7 +22,15 @@ import json
 import numpy as np
 from nomad.datamodel import EntryArchive, EntryData
 from nomad.datamodel.data import ElnIntegrationCategory
-from nomad.metainfo import Package, Quantity, JSON, MSection, Datetime, Section, SubSection
+from nomad.metainfo import (
+    Package,
+    Quantity,
+    JSON,
+    MSection,
+    Datetime,
+    Section,
+    SubSection,
+)
 from nomad import utils
 from nomad.parsing.parser import MatchingParser
 
@@ -192,7 +200,6 @@ class ChemotionReaction(ChemotionGeneralMetainfo):
 
 
 class ChemotionCollectionsReaction(ChemotionGeneralMetainfo):
-
     reaction_id = Quantity(type=str)
 
 
@@ -318,23 +325,40 @@ class ChemotionLiterature(ChemotionGeneralMetainfo):
 
 
 class Chemotion(EntryData):
-    '''
+    """
     Each exported .eln formatted file contains ro-crate-metadata.json file which is parsed into this class.
     Important Quantities are:
         id: id of the file which holds metadata info
         date_created: date of when the file is exported
 
     title is used as an identifier for the GUI to differentiate between the parsed entries and the original file.
-    '''
-    m_def = Section(label='Chemotion Project Import', categories=[ElnIntegrationCategory])
+    """
 
-    name = Quantity(type=str, description='Name of the project', a_eln=dict(component='StringEditQuantity'))
-    title = Quantity(type=str, description='Title of the entry', a_eln=dict(component='StringEditQuantity'))
+    m_def = Section(
+        label='Chemotion Project Import', categories=[ElnIntegrationCategory]
+    )
 
-    date_created = Quantity(type=Datetime, description='Creation date of the .eln',
-                            a_eln=dict(component='DateTimeEditQuantity'))
-    author = Quantity(type=str, description='Full name of the experiment\'s author',
-                      a_eln=dict(component='StringEditQuantity'))
+    name = Quantity(
+        type=str,
+        description='Name of the project',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+    title = Quantity(
+        type=str,
+        description='Title of the entry',
+        a_eln=dict(component='StringEditQuantity'),
+    )
+
+    date_created = Quantity(
+        type=Datetime,
+        description='Creation date of the .eln',
+        a_eln=dict(component='DateTimeEditQuantity'),
+    )
+    author = Quantity(
+        type=str,
+        description="Full name of the experiment's author",
+        a_eln=dict(component='StringEditQuantity'),
+    )
 
     Collection = SubSection(sub_section=ChemotionCollection, repeats=True)
     Sample = SubSection(sub_section=ChemotionSample, repeats=True)
@@ -345,12 +369,22 @@ class Chemotion(EntryData):
     Container = SubSection(sub_section=ChemotionContainer, repeats=True)
     Attachment = SubSection(sub_section=ChemotionAttachment, repeats=True)
     Reactions = SubSection(sub_section=ChemotionReaction, repeats=True)
-    CollectionsReaction = SubSection(sub_section=ChemotionCollectionsReaction, repeats=True)
-    ReactionsStartingMaterialSample = SubSection(sub_section=ChemotionReactionsStartingMaterialSample, repeats=True)
-    ReactionsSolventSample = SubSection(sub_section=ChemotionReactionsSolventSample, repeats=True)
-    ReactionsProductSample = SubSection(sub_section=ChemotionReactionsProductSample, repeats=True)
+    CollectionsReaction = SubSection(
+        sub_section=ChemotionCollectionsReaction, repeats=True
+    )
+    ReactionsStartingMaterialSample = SubSection(
+        sub_section=ChemotionReactionsStartingMaterialSample, repeats=True
+    )
+    ReactionsSolventSample = SubSection(
+        sub_section=ChemotionReactionsSolventSample, repeats=True
+    )
+    ReactionsProductSample = SubSection(
+        sub_section=ChemotionReactionsProductSample, repeats=True
+    )
     ResearchPlan = SubSection(sub_section=ChemotionResearchPlan, repeats=True)
-    CollectionsResearchPlan = SubSection(sub_section=ChemotionCollectionsResearchPlan, repeats=True)
+    CollectionsResearchPlan = SubSection(
+        sub_section=ChemotionCollectionsResearchPlan, repeats=True
+    )
 
 
 _element_type_section_mapping = {
@@ -368,7 +402,7 @@ _element_type_section_mapping = {
     'ReactionsSolventSample': ChemotionReactionsSolventSample,
     'ReactionsProductSample': ChemotionReactionsProductSample,
     'ResearchPlan': ChemotionResearchPlan,
-    'CollectionsResearchPlan': ChemotionCollectionsResearchPlan
+    'CollectionsResearchPlan': ChemotionCollectionsResearchPlan,
 }
 
 
@@ -382,23 +416,32 @@ class ChemotionParser(MatchingParser):
 
     def __init__(self) -> None:
         super().__init__(
-            name='parsers/chemotion', code_name='Chemotion',
+            name='parsers/chemotion',
+            code_name='Chemotion',
             domain=None,
             mainfile_mime_re=r'application/json|text/plain',
-            mainfile_name_re=r'^.*export.json$')
+            mainfile_name_re=r'^.*export.json$',
+        )
 
     def is_mainfile(
-        self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-        compression: str = None
+        self,
+        filename: str,
+        mime: str,
+        buffer: bytes,
+        decoded_buffer: str,
+        compression: str = None,
     ) -> Union[bool, Iterable[str]]:
-        is_export_json = super().is_mainfile(filename, mime, buffer, decoded_buffer, compression)
+        is_export_json = super().is_mainfile(
+            filename, mime, buffer, decoded_buffer, compression
+        )
         if not is_export_json:
             return False
 
         return [str(0)]
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
-
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ):
         if logger is None:
             logger = utils.get_logger(__name__)
 
@@ -420,9 +463,15 @@ class ChemotionParser(MatchingParser):
                         chemotion_subsection.post_process()
                     item_name = 'Reactions' if item_name == 'Reaction' else item_name
                     sub_section_def = getattr(chemotion.m_def.section_cls, item_name)
-                    chemotion.m_add_sub_section(sub_section_def, chemotion_subsection, -1)
+                    chemotion.m_add_sub_section(
+                        sub_section_def, chemotion_subsection, -1
+                    )
                 except Exception as e:
-                    logger.error('No dot (.) is allowed in the column name.', details=dict(column=item_name), exc_info=e)
+                    logger.error(
+                        'No dot (.) is allowed in the column name.',
+                        details=dict(column=item_name),
+                        exc_info=e,
+                    )
         for child_archive in child_archives.values():
             child_archive.data = chemotion
         logger.info('eln parsed successfully')

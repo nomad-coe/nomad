@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 This elasticsearch extension for the Metainfo allows to define how quantities are
 added to Elasticsearch indices.
 
@@ -154,10 +154,21 @@ sub-sections as if they were direct sub-sections.
 .. autoclass:: Elasticsearch
 .. autoclass:: DocumentType
 .. autoclass:: Index
-'''
+"""
 
 import math
-from typing import Union, Any, Dict, cast, Set, List, Callable, Tuple, Optional, DefaultDict
+from typing import (
+    Union,
+    Any,
+    Dict,
+    cast,
+    Set,
+    List,
+    Callable,
+    Tuple,
+    Optional,
+    DefaultDict,
+)
 from collections import defaultdict
 import numpy as np
 from pint import Quantity as PintQuantity
@@ -168,10 +179,22 @@ from nomad import config, utils
 from nomad.metainfo.util import MTypes
 
 from .metainfo import (
-    MSectionBound, Section, Quantity, MSection, MEnum, Datetime, Reference, DefinitionAnnotation,
-    Definition, QuantityReference, Unit, Package)
+    MSectionBound,
+    Section,
+    Quantity,
+    MSection,
+    MEnum,
+    Datetime,
+    Reference,
+    DefinitionAnnotation,
+    Definition,
+    QuantityReference,
+    Unit,
+    Package,
+)
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from nomad.datamodel.datamodel import SearchableQuantity, EntryArchive
 
@@ -181,8 +204,8 @@ yaml_prefix = 'entry_id:'
 nexus_prefix = 'nexus.'
 
 
-class DocumentType():
-    '''
+class DocumentType:
+    """
     DocumentType allows to create Elasticsearch index mappings and documents based on
     Metainfo definitions and instances. Genrally this class should not be used outside
     the elasticsearch_extension module.
@@ -200,7 +223,8 @@ class DocumentType():
             :class:`Elasticsearch` metainfo annotation as values.
         id_field: The quantity (and elasticsearch field) name that is used as unique
             identifier for this type of documents.
-    '''
+    """
+
     def __init__(self, name: str, id_field: str):
         self.name = name
         self.id_field = id_field
@@ -221,23 +245,28 @@ class DocumentType():
         self.metrics.clear()
 
     def create_index_doc(self, root: MSection):
-        '''
+        """
         Creates an indexable document from the given archive.
-        '''
+        """
         suggestions: DefaultDict = defaultdict(list)
 
         def transform(quantity, section, value, path):
-            '''
+            """
             Custom transform function that possibly transforms the indexed
             values and also gathers the suggestion values for later storage.
-            '''
-            elasticsearch_annotations = quantity.m_get_annotations(Elasticsearch, as_list=True)
+            """
+            elasticsearch_annotations = quantity.m_get_annotations(
+                Elasticsearch, as_list=True
+            )
             for elasticsearch_annotation in elasticsearch_annotations:
                 if elasticsearch_annotation.field is None:
                     if elasticsearch_annotation.suggestion:
                         # The suggestions may have a different doc_type: we
                         # don't serialize them if the doc types don't match.
-                        if self != entry_type and elasticsearch_annotation.doc_type != self:
+                        if (
+                            self != entry_type
+                            and elasticsearch_annotation.doc_type != self
+                        ):
                             continue
 
                         # The suggestion values are saved into a temporary
@@ -256,12 +285,12 @@ class DocumentType():
                                 suggestion_value = transform_function(value)
                         else:
                             suggestion_value = value
-                        section_path = section.m_path()[len(root.m_path()):]
+                        section_path = section.m_path()[len(root.m_path()) :]
                         name = elasticsearch_annotation.property_name
                         if path:
-                            suggestion_path = f"{section_path}/{path}/{name}"
+                            suggestion_path = f'{section_path}/{path}/{name}'
                         else:
-                            suggestion_path = f"{section_path}/{name}"
+                            suggestion_path = f'{section_path}/{name}'
                         suggestions[suggestion_path].extend(suggestion_value)
                     else:
                         transform_function = elasticsearch_annotation.value
@@ -282,7 +311,7 @@ class DocumentType():
             include_derived=True,
             resolve_references=True,
             exclude=exclude,
-            transform=transform
+            transform=transform,
         )
 
         result = root.m_to_dict(**kwargs)
@@ -290,10 +319,10 @@ class DocumentType():
         # Add the collected suggestion values
         for path, value in suggestions.items():
             try:
-                parts = path.split("/")
+                parts = path.split('/')
                 section = result
                 for part in parts[:-1]:
-                    if part == "":
+                    if part == '':
                         continue
                     try:
                         part = int(part)
@@ -307,20 +336,23 @@ class DocumentType():
                 # e.g. referenced authored that are stored in EELS DB
                 # measurements
                 logger = utils.get_logger(__name__, doc_type=self.name)
-                logger.warn("could not add suggestion to es", path=path)
+                logger.warn('could not add suggestion to es', path=path)
 
         # TODO deal with metadata
         metadata = result.get('metadata')
         if metadata is not None:
-            del(result['metadata'])
+            del result['metadata']
             result.update(**metadata)
 
         return result
 
     def create_mapping(
-            self, section_def: Section, prefix: str = None,
-            auto_include_subsections: bool = False):
-        '''
+        self,
+        section_def: Section,
+        prefix: str = None,
+        auto_include_subsections: bool = False,
+    ):
+        """
         Creates an Elasticsearch mapping for the given root section. It traverses all
         sub-sections to create the mapping. It will not create the mapping for nested
         documents. These have to be created manually (e.g. by :func:`create_indices`).
@@ -333,9 +365,11 @@ class DocumentType():
             auto_include_subsections: Considers all sub and sub sub sections regardless
                 of any annotation in the sub section definitions. By default only
                 sub sections with elasticsearch annotation are traversed.
-        '''
+        """
 
-        mapping = self._create_mapping_recursive(section_def, prefix, auto_include_subsections)
+        mapping = self._create_mapping_recursive(
+            section_def, prefix, auto_include_subsections
+        )
 
         # Register all dynamic quantities
         self.reload_quantities_dynamic()
@@ -343,15 +377,20 @@ class DocumentType():
         return mapping
 
     def _create_mapping_recursive(
-            self, section_def: Section, prefix: str = None,
-            auto_include_subsections: bool = False):
+        self,
+        section_def: Section,
+        prefix: str = None,
+        auto_include_subsections: bool = False,
+    ):
         mappings: Dict[str, Any] = {}
 
         if self == material_type and prefix is None:
             mappings['n_entries'] = {'type': 'integer'}
 
         for quantity_def in section_def.all_quantities.values():
-            elasticsearch_annotations = quantity_def.m_get_annotations(Elasticsearch, as_list=True)
+            elasticsearch_annotations = quantity_def.m_get_annotations(
+                Elasticsearch, as_list=True
+            )
             for elasticsearch_annotation in elasticsearch_annotations:
                 if self != entry_type and elasticsearch_annotation.doc_type != self:
                     continue
@@ -364,7 +403,9 @@ class DocumentType():
                 if elasticsearch_annotation.suggestion:
                     self.suggestions[qualified_name] = elasticsearch_annotation
                 is_section_reference = isinstance(quantity_def.type, Reference)
-                is_section_reference &= not isinstance(quantity_def.type, QuantityReference)
+                is_section_reference &= not isinstance(
+                    quantity_def.type, QuantityReference
+                )
                 if is_section_reference:
                     # Treat referenced sections as sub-sections
                     assert quantity_def.type.target_section_def is not None
@@ -373,11 +414,14 @@ class DocumentType():
 
                     reference_mapping = self._create_mapping_recursive(
                         cast(Section, quantity_def.type.target_section_def),
-                        prefix=qualified_name)
+                        prefix=qualified_name,
+                    )
                     if len(reference_mapping['properties']) > 0:
                         mappings[quantity_def.name] = reference_mapping
                 else:
-                    mapping = mappings.setdefault(elasticsearch_annotation.property_name, {})
+                    mapping = mappings.setdefault(
+                        elasticsearch_annotation.property_name, {}
+                    )
                     fields = elasticsearch_annotation.fields
                     if len(fields) > 0:
                         mapping.setdefault('fields', {}).update(**fields)
@@ -392,10 +436,12 @@ class DocumentType():
             if annotation is None and not auto_include_subsections:
                 continue
 
-            assert not isinstance(annotation, list), \
-                'sub sections can only have one elasticsearch annotation'
+            assert not isinstance(
+                annotation, list
+            ), 'sub sections can only have one elasticsearch annotation'
             continue_with_auto_include_subsections = auto_include_subsections or (
-                False if annotation is None else annotation.auto_include_subsections)
+                False if annotation is None else annotation.auto_include_subsections
+            )
 
             if prefix is None:
                 qualified_name = sub_section_def.name
@@ -407,8 +453,10 @@ class DocumentType():
             qualified_name = None if qualified_name == '' else qualified_name
 
             sub_section_mapping = self._create_mapping_recursive(
-                sub_section_def.sub_section, prefix=qualified_name,
-                auto_include_subsections=continue_with_auto_include_subsections)
+                sub_section_def.sub_section,
+                prefix=qualified_name,
+                auto_include_subsections=continue_with_auto_include_subsections,
+            )
 
             nested = annotation is not None and annotation.nested
             if nested:
@@ -423,7 +471,9 @@ class DocumentType():
                 if nested and qualified_name not in self.nested_object_keys:
                     self.nested_object_keys.append(qualified_name)
 
-                    search_quantity = SearchQuantity(annotation=annotation, prefix=prefix)
+                    search_quantity = SearchQuantity(
+                        annotation=annotation, prefix=prefix
+                    )
                     self.nested_sections.append(search_quantity)
                     self.nested_object_keys.sort(key=lambda item: len(item))
 
@@ -432,8 +482,7 @@ class DocumentType():
         return self.mapping
 
     def reload_quantities_dynamic(self) -> None:
-        '''Reloads the dynamically mapped quantities from the plugin schemas.
-        '''
+        """Reloads the dynamically mapped quantities from the plugin schemas."""
         from nomad.datamodel.data import EntryData
 
         if self != entry_type:
@@ -476,25 +525,35 @@ class DocumentType():
                 new_branch.add(sub_section_def)
                 name = sub_section_def.name
                 full_name = f'{prefix}.{name}' if prefix else name
-                for item in get_all_quantities(sub_section_def.sub_section, full_name, new_branch):
+                for item in get_all_quantities(
+                    sub_section_def.sub_section, full_name, new_branch
+                ):
                     yield item
 
         quantities_dynamic = {}
         for name, package in Package.registry.items():
             if not name:
-                logger.warning(f'no name defined for package {package}, could not load dynamic quantities')
+                logger.warning(
+                    f'no name defined for package {package}, could not load dynamic quantities'
+                )
                 continue
             package_name = name.split('.')[0]
             if package_name in packages:
                 for section in package.section_definitions:
-                    if isinstance(section, Section) and issubclass(section.section_cls, EntryData):
+                    if isinstance(section, Section) and issubclass(
+                        section.section_cls, EntryData
+                    ):
                         schema_name = section.qualified_name()
                         for quantity_def, path in get_all_quantities(section):
-                            annotation = create_dynamic_quantity_annotation(quantity_def)
+                            annotation = create_dynamic_quantity_annotation(
+                                quantity_def
+                            )
                             if not annotation:
                                 continue
                             full_name = f'data.{path}{schema_separator}{schema_name}'
-                            search_quantity = SearchQuantity(annotation, qualified_name=full_name)
+                            search_quantity = SearchQuantity(
+                                annotation, qualified_name=full_name
+                            )
                             quantities_dynamic[full_name] = search_quantity
         self.quantities.update(quantities_dynamic)
 
@@ -502,14 +561,17 @@ class DocumentType():
         search_quantity = SearchQuantity(annotation=annotation, prefix=prefix)
         name = search_quantity.qualified_name
 
-        assert name not in self.quantities or self.quantities[name] == search_quantity, \
-            'Search quantity names must be unique: %s' % name
+        assert (
+            name not in self.quantities or self.quantities[name] == search_quantity
+        ), 'Search quantity names must be unique: %s' % name
 
         self.quantities[name] = search_quantity
 
         if annotation.metrics is not None:
             for name, metric in annotation.metrics.items():
-                assert name not in self.metrics, 'Metric names must be unique: %s' % name
+                assert name not in self.metrics, (
+                    'Metric names must be unique: %s' % name
+                )
                 self.metrics[name] = (metric, search_quantity)
 
         if self == entry_type:
@@ -519,8 +581,8 @@ class DocumentType():
         return self.name
 
 
-class Index():
-    '''
+class Index:
+    """
     Allows to access an Elasticsearch index. It forwards method calls to Python's
     Elasticsearch package for Elasticsearch document APIs like search, index, get, mget,
     bulk, etc. It adds the necessary doc_type and index parameters for you.
@@ -534,7 +596,8 @@ class Index():
     Attributes:
         elastic_client: The used Elasticsearch Python package client.
         index_name: The name of the index in Elasticsearch.
-    '''
+    """
+
     def __init__(self, doc_type: DocumentType, index_config_key: str):
         self.doc_type = doc_type
         self.index_config_key = index_config_key
@@ -553,6 +616,7 @@ class Index():
     @property
     def elastic_client(self):
         from nomad.infrastructure import elastic_client
+
         return elastic_client
 
     def __getattr__(self, name):
@@ -565,30 +629,36 @@ class Index():
         return wrapper
 
     def create_index(self, upsert: bool = False):
-        ''' Initially creates the index with the mapping of its document type. '''
+        """Initially creates the index with the mapping of its document type."""
         assert self.doc_type.mapping is not None, 'The mapping has to be created first.'
         logger = utils.get_logger(__name__, index=self.index_name)
         if not self.elastic_client.indices.exists(index=self.index_name):
             # TODO the settings emulate the path_analyzer used in the v0 elasticsearch_dsl
             # based index, configured by nomad.datamodel.datamodel::path_analyzer
-            self.elastic_client.indices.create(index=self.index_name, body={
-                'settings': {
-                    'analysis': {
-                        'analyzer': {
-                            'path_analyzer': {'tokenizer': 'path_tokenizer', 'type': 'custom'}
-                        },
-                        'tokenizer': {
-                            'path_tokenizer': {'pattern': '/', 'type': 'pattern'}
+            self.elastic_client.indices.create(
+                index=self.index_name,
+                body={
+                    'settings': {
+                        'analysis': {
+                            'analyzer': {
+                                'path_analyzer': {
+                                    'tokenizer': 'path_tokenizer',
+                                    'type': 'custom',
+                                }
+                            },
+                            'tokenizer': {
+                                'path_tokenizer': {'pattern': '/', 'type': 'pattern'}
+                            },
                         }
-                    }
+                    },
+                    'mappings': self.doc_type.mapping,
                 },
-                'mappings': self.doc_type.mapping
-            })
+            )
             logger.info('elasticsearch index created')
         elif upsert:
             self.elastic_client.indices.put_mapping(
-                index=self.index_name,
-                body=self.doc_type.mapping)
+                index=self.index_name, body=self.doc_type.mapping
+            )
             logger.info('elasticsearch index updated')
         else:
             logger.info('elasticsearch index exists')
@@ -612,16 +682,17 @@ material_index = Index(material_type, index_config_key='materials_index')
 
 
 def get_tokenizer(regex):
-    '''Returns a function that tokenizes a given string using the provided
+    """Returns a function that tokenizes a given string using the provided
     regular epression.
-    '''
+    """
+
     def tokenizer(value):
         tokens = []
         if value:
             tokens.append(value)
             for match in re.finditer(regex, value):
-                if (match):
-                    token = value[match.end():]
+                if match:
+                    token = value[match.end() :]
                     if token != '':
                         # Notice how we artificially extend the token by taking the
                         # prefix and adding it at the end. This way the token
@@ -638,7 +709,7 @@ tokenizer_default = get_tokenizer(r'[_\s\.\/-]+')
 
 
 class Elasticsearch(DefinitionAnnotation):
-    '''
+    """
     A metainfo annotation for quantity definitions. This annotation can be used multiple
     times on the same quantity (e.g. to define Elasticsearch fields with differrent mapping
     types). Each annotation will create a field in the respective elasticsearch document type.
@@ -722,37 +793,42 @@ class Elasticsearch(DefinitionAnnotation):
             The name of the quantity (plus additional field if set).
         definition: The metainfo definition associated with this annotation.
         search_quantity: The entry type SearchQuantity associated with this annotation.
-    '''
-    def __init__(
-            self,
-            doc_type: DocumentType = entry_type,
-            mapping: Union[str, Dict[str, Any]] = None,
-            field: str = None,
-            es_field: str = None,
-            value: Callable[[MSectionBound], Any] = None,
-            index: bool = True,
-            values: List[str] = None,
-            default_aggregation_size: int = None,
-            metrics: Dict[str, str] = None,
-            many_all: bool = False,
-            auto_include_subsections: bool = False,
-            nested: bool = False,
-            suggestion: Union[str, Callable[[MSectionBound], Any]] = None,
-            variants: Optional[Callable[[str], List[str]]] = None,
-            normalizer: Callable[[Any], Any] = None,
-            es_query: str = 'match',
-            _es_field: str = None,
-            definition: Definition = None,
-            dynamic: bool = False):
+    """
 
+    def __init__(
+        self,
+        doc_type: DocumentType = entry_type,
+        mapping: Union[str, Dict[str, Any]] = None,
+        field: str = None,
+        es_field: str = None,
+        value: Callable[[MSectionBound], Any] = None,
+        index: bool = True,
+        values: List[str] = None,
+        default_aggregation_size: int = None,
+        metrics: Dict[str, str] = None,
+        many_all: bool = False,
+        auto_include_subsections: bool = False,
+        nested: bool = False,
+        suggestion: Union[str, Callable[[MSectionBound], Any]] = None,
+        variants: Optional[Callable[[str], List[str]]] = None,
+        normalizer: Callable[[Any], Any] = None,
+        es_query: str = 'match',
+        _es_field: str = None,
+        definition: Definition = None,
+        dynamic: bool = False,
+    ):
         # TODO remove _es_field if it is not necessary anymore to enforce a specific mapping
         # for v0 compatibility
         if suggestion:
             if doc_type != entry_type:
-                raise ValueError('Suggestions should only be stored in the entry index.')
+                raise ValueError(
+                    'Suggestions should only be stored in the entry index.'
+                )
             for arg in [field, mapping, es_field, _es_field]:
                 if arg is not None:
-                    raise ValueError(f'You cannot modify the way suggestions are mapped or named.')
+                    raise ValueError(
+                        f'You cannot modify the way suggestions are mapped or named.'
+                    )
             # If no tokenizer is specified, the suggestion is stored as a field
             # that holds only the original value.
             if suggestion == 'simple':
@@ -810,9 +886,9 @@ class Elasticsearch(DefinitionAnnotation):
             return self._mapping
 
         def compute_mapping(quantity: Quantity) -> Dict[str, Any]:
-            '''Used to generate an ES mapping based on the quantity definition if
+            """Used to generate an ES mapping based on the quantity definition if
             no custom mapping is provided.
-            '''
+            """
             if self.dynamic:
                 if quantity.type in MTypes.bool:
                     return dict(type='boolean')
@@ -825,7 +901,9 @@ class Elasticsearch(DefinitionAnnotation):
                 elif quantity.type in MTypes.float:
                     return dict(type='double')
                 raise NotImplementedError(
-                    'Quantity type %s for dynamic quantity %s is not supported.' % (quantity.type, quantity))
+                    'Quantity type %s for dynamic quantity %s is not supported.'
+                    % (quantity.type, quantity)
+                )
             if quantity.type == str:
                 return dict(type='keyword')
             elif quantity.type in [float, np.float64]:
@@ -845,15 +923,20 @@ class Elasticsearch(DefinitionAnnotation):
             elif isinstance(quantity.type, QuantityReference):
                 return compute_mapping(quantity.type.target_quantity_def)
             elif isinstance(quantity.type, Reference):
-                raise NotImplementedError('Resolving section references is not supported.')
+                raise NotImplementedError(
+                    'Resolving section references is not supported.'
+                )
             elif isinstance(quantity.type, MEnum):
                 return dict(type='keyword')
             else:
                 raise NotImplementedError(
-                    'Quantity type %s for quantity %s is not supported.' % (quantity.type, quantity))
+                    'Quantity type %s for quantity %s is not supported.'
+                    % (quantity.type, quantity)
+                )
 
         if self.suggestion:
             from elasticsearch_dsl import Completion
+
             # The standard analyzer will retain numbers unlike the simple
             # analyzer which is the default.
             self._mapping = Completion(analyzer='standard').to_dict()
@@ -875,7 +958,7 @@ class Elasticsearch(DefinitionAnnotation):
         # For all keyword mappings, we ignore text that is bigger than the limit
         # set by lucene, see more in the ES docs:
         # https://www.elastic.co/guide/en/elasticsearch/reference/7.17/ignore-above.html
-        if self._mapping['type'] == "keyword":
+        if self._mapping['type'] == 'keyword':
             self._mapping['ignore_above'] = 8191
 
         return self._mapping
@@ -885,9 +968,7 @@ class Elasticsearch(DefinitionAnnotation):
         if self._es_field == '' or self._es_field is None:
             return {}
 
-        return {
-            self._es_field: self.mapping
-        }
+        return {self._es_field: self.mapping}
 
     @property
     def property_name(self) -> str:
@@ -927,8 +1008,8 @@ class Elasticsearch(DefinitionAnnotation):
             return self.name
 
 
-class SearchQuantity():
-    '''
+class SearchQuantity:
+    """
     This is used to represent search quantities. It is different from a metainfo quantity
     because the same metainfo quantity can appear multiple times at different places in
     an archive (an search index document). A search quantity is uniquely identified by
@@ -946,14 +1027,17 @@ class SearchQuantity():
             Same name as qualified_field. This will be used to address the search
             property in our APIs.
         definition: The metainfo quantity definition that this search quantity is based on
-    '''
-    def __init__(self, annotation: Elasticsearch, prefix: str = None, qualified_name: str = None):
-        '''
+    """
+
+    def __init__(
+        self, annotation: Elasticsearch, prefix: str = None, qualified_name: str = None
+    ):
+        """
         Args:
             annotation: The elasticsearch annotation that this search quantity is based on.
             doc_type: The elasticsearch document type that this search quantity appears in.
             prefix: The prefix to build the full qualified name for this search quantity.
-        '''
+        """
         self.annotation = annotation
 
         qualified_field = self.annotation.definition.name
@@ -964,7 +1048,7 @@ class SearchQuantity():
             qualified_field = f'{qualified_field}__suggestion'
 
         self.search_field = qualified_field
-        if not(annotation._es_field == '' or annotation._es_field is None):
+        if not (annotation._es_field == '' or annotation._es_field is None):
             self.search_field = f'{qualified_field}.{annotation._es_field}'
 
         if annotation.field is not None:
@@ -979,31 +1063,33 @@ class SearchQuantity():
             self.dynamic_filter = self.get_dynamic_filter()
 
     def get_dynamic_path(self):
-        '''Returns the dynamic field name for this quantity.
-        '''
+        """Returns the dynamic field name for this quantity."""
         mapping = self.annotation.mapping['type']
-        field_name = get_searchable_quantity_value_field(self.annotation, aggregation=True)
+        field_name = get_searchable_quantity_value_field(
+            self.annotation, aggregation=True
+        )
         if field_name is None:
             raise ValueError(
                 f'quantity "{self.annotation.qualified_name}" has unsupported search index mapping "{mapping}".',
-                loc=['aggregation', 'quantity']
+                loc=['aggregation', 'quantity'],
             )
         return f'search_quantities.{field_name}'
 
     def get_dynamic_filter(self):
-        '''Returns a filter for this quantity.
-        '''
+        """Returns a filter for this quantity."""
         if self.dynamic:
             path, schema, _ = parse_quantity_name(self.qualified_name)
-            searchable_quantity = create_searchable_quantity(self.definition, path, schema_name=schema)
+            searchable_quantity = create_searchable_quantity(
+                self.definition, path, schema_name=schema
+            )
             filter_path = Q('term', search_quantities__id=searchable_quantity.id)
 
             return filter_path
 
     def get_query(self, value: Any):
-        '''Returns an ES query for this quantity, the query type depends on the
+        """Returns an ES query for this quantity, the query type depends on the
         annotation. Also normalizes the value.
-        '''
+        """
         normalizer = self.annotation.normalizer
         if normalizer:
             value = normalizer(value)
@@ -1012,17 +1098,20 @@ class SearchQuantity():
         return self.wrap_dynamic(sub_query)
 
     def get_range_query(self, value: Any):
-        '''Returns an ES range query for this quantity.
-        '''
+        """Returns an ES range query for this quantity."""
         sub_query = Q('range', **{self.search_field: value.dict(exclude_unset=True)})
         return self.wrap_dynamic(sub_query)
 
     def wrap_dynamic(self, sub_query: Q):
-        '''For dynamic quantities, wraps the given query in a nested query to
+        """For dynamic quantities, wraps the given query in a nested query to
         target them correctly.
-        '''
+        """
         if self.dynamic:
-            return Q('nested', path='search_quantities', query=self.dynamic_filter & sub_query)
+            return Q(
+                'nested',
+                path='search_quantities',
+                query=self.dynamic_filter & sub_query,
+            )
         return sub_query
 
     @property
@@ -1039,17 +1128,21 @@ class SearchQuantity():
         return getattr(self.annotation, name)
 
 
-def create_indices(entry_section_def: Section = None, material_section_def: Section = None):
-    '''
+def create_indices(
+    entry_section_def: Section = None, material_section_def: Section = None
+):
+    """
     Creates the mapping for all document types and creates the indices in Elasticsearch.
     The indices must not exist already. Prior created mappings will be replaced.
-    '''
+    """
     if entry_section_def is None:
         from nomad.datamodel import EntryArchive
+
         entry_section_def = EntryArchive.m_def
 
     if material_section_def is None:
         from nomad.datamodel.results import Material
+
         material_section_def = Material.m_def
 
     entry_type._reset()
@@ -1068,7 +1161,9 @@ def create_indices(entry_section_def: Section = None, material_section_def: Sect
     # order.
     material_entry_type.mapping['type'] = 'nested'
     material_type.mapping['properties']['entries'] = material_entry_type.mapping
-    material_type.nested_object_keys += ['entries'] + material_entry_type.nested_object_keys
+    material_type.nested_object_keys += [
+        'entries'
+    ] + material_entry_type.nested_object_keys
     material_type.nested_object_keys.sort(key=lambda item: len(item))
 
     entry_index.create_index(upsert=True)  # TODO update the existing v0 index
@@ -1081,10 +1176,10 @@ def delete_indices():
 
 
 def index_entry(entry: MSection, **kwargs):
-    '''
+    """
     Upserts the given entry in the entry index. Optionally updates the materials index
     as well.
-    '''
+    """
     index_entries([entry], **kwargs)
 
 
@@ -1094,15 +1189,18 @@ def index_entries_with_materials(entries: List, refresh: bool = False):
 
 
 def index_entries(entries: List, refresh: bool = False) -> Dict[str, str]:
-    '''
+    """
     Upserts the given entries in the entry index. Optionally updates the materials index
     as well. Returns a dictionary of the format {entry_id: error_message} for all entries
     that failed to index.
-    '''
+    """
     rv = {}
     # split into reasonably sized problems
     if len(entries) > config.elastic.bulk_size:
-        for entries_part in [entries[i:i + config.elastic.bulk_size] for i in range(0, len(entries), config.elastic.bulk_size)]:
+        for entries_part in [
+            entries[i : i + config.elastic.bulk_size]
+            for i in range(0, len(entries), config.elastic.bulk_size)
+        ]:
             errors = index_entries(entries_part, refresh=refresh)
             rv.update(errors)
         return rv
@@ -1121,25 +1219,33 @@ def index_entries(entries: List, refresh: bool = False) -> Dict[str, str]:
                 actions_and_docs.append(dict(index=dict(_id=entry['entry_id'])))
                 actions_and_docs.append(entry_index_doc)
             except Exception as e:
-                logger.error('could not create entry index doc', entry_id=entry['entry_id'], exc_info=e)
+                logger.error(
+                    'could not create entry index doc',
+                    entry_id=entry['entry_id'],
+                    exc_info=e,
+                )
 
         timer_kwargs: Dict[str, Any] = {}
         try:
             import json
+
             timer_kwargs['size'] = len(json.dumps(actions_and_docs))
             timer_kwargs['n_actions'] = len(actions_and_docs)
         except Exception:
             pass
 
     with utils.timer(
-        logger, 'perform bulk index of entries',
+        logger,
+        'perform bulk index of entries',
         lnr_event='failed to bulk index entries',
-        **timer_kwargs
+        **timer_kwargs,
     ):
         indexing_result = entry_index.bulk(
-            body=actions_and_docs, refresh=refresh,
+            body=actions_and_docs,
+            refresh=refresh,
             timeout=f'{config.elastic.bulk_timeout}s',
-            request_timeout=config.elastic.bulk_timeout)
+            request_timeout=config.elastic.bulk_timeout,
+        )
         # Extract only the errors from the indexing_result
         if indexing_result['errors']:
             for item in indexing_result['items']:
@@ -1151,7 +1257,10 @@ def index_entries(entries: List, refresh: bool = False) -> Dict[str, str]:
 def update_materials(entries: List, refresh: bool = False):
     # split into reasonably sized problems
     if len(entries) > config.elastic.bulk_size:
-        for entries_part in [entries[i:i + config.elastic.bulk_size] for i in range(0, len(entries), config.elastic.bulk_size)]:
+        for entries_part in [
+            entries[i : i + config.elastic.bulk_size]
+            for i in range(0, len(entries), config.elastic.bulk_size)
+        ]:
             update_materials(entries_part, refresh=refresh)
         return
 
@@ -1182,45 +1291,49 @@ def update_materials(entries: List, refresh: bool = False):
 
     # Get existing materials for entries' material ids (i.e. the entry needs to be added
     # or updated).
-    with utils.timer(logger, 'get existing materials', lnr_event='failed to get existing materials'):
+    with utils.timer(
+        logger, 'get existing materials', lnr_event='failed to get existing materials'
+    ):
         if material_ids:
             elasticsearch_results = material_index.mget(
-                body={
-                    'docs': [dict(_id=material_id) for material_id in material_ids]
-                },
-                request_timeout=config.elastic.bulk_timeout)
+                body={'docs': [dict(_id=material_id) for material_id in material_ids]},
+                request_timeout=config.elastic.bulk_timeout,
+            )
             existing_material_docs = [
-                doc['_source'] for doc in elasticsearch_results['docs'] if '_source' in doc]
+                doc['_source']
+                for doc in elasticsearch_results['docs']
+                if '_source' in doc
+            ]
         else:
             existing_material_docs = []
 
     # Get old materials that still have one of the entries, but the material id has changed
     # (i.e. the materials where entries need to be removed due entries having different
     # materials now).
-    with utils.timer(logger, 'get old materials', lnr_event='failed to get old materials'):
-        elasticsearch_results = material_index.search(body={
-            'size': len(entry_ids),
-            'query': {
-                'bool': {
-                    'must': {
-                        'nested': {
-                            'path': 'entries',
-                            'query': {
-                                'terms': {
-                                    'entries.entry_id': list(entry_ids)
-                                }
+    with utils.timer(
+        logger, 'get old materials', lnr_event='failed to get old materials'
+    ):
+        elasticsearch_results = material_index.search(
+            body={
+                'size': len(entry_ids),
+                'query': {
+                    'bool': {
+                        'must': {
+                            'nested': {
+                                'path': 'entries',
+                                'query': {
+                                    'terms': {'entries.entry_id': list(entry_ids)}
+                                },
                             }
-                        }
-                    },
-                    'must_not': {
-                        'terms': {
-                            'material_id': list(material_ids)
-                        }
+                        },
+                        'must_not': {'terms': {'material_id': list(material_ids)}},
                     }
-                }
+                },
             }
-        })
-        old_material_docs = [hit['_source'] for hit in elasticsearch_results['hits']['hits']]
+        )
+        old_material_docs = [
+            hit['_source'] for hit in elasticsearch_results['hits']['hits']
+        ]
 
     # Compare and create the appropriate materials index actions
     # First, we go through the existing materials. The following cases need to be covered:
@@ -1239,12 +1352,17 @@ def update_materials(entries: List, refresh: bool = False):
     _n_entries_in_bulk = [0]
 
     def add_action_or_doc(action_or_doc):
-        if len(_actions_and_docs_bulks) == 0 or _n_entries_in_bulk[0] > config.elastic.bulk_size:
+        if (
+            len(_actions_and_docs_bulks) == 0
+            or _n_entries_in_bulk[0] > config.elastic.bulk_size
+        ):
             _n_entries_in_bulk[0] = 0
             _actions_and_docs_bulks.append([])
         _actions_and_docs_bulks[-1].append(action_or_doc)
         if 'entries' in action_or_doc:
-            _n_entries_in_bulk[0] = _n_entries_in_bulk[0] + len(action_or_doc['entries'])
+            _n_entries_in_bulk[0] = _n_entries_in_bulk[0] + len(
+                action_or_doc['entries']
+            )
 
     material_docs = []
     material_docs_dict = {}
@@ -1265,7 +1383,9 @@ def update_materials(entries: List, refresh: bool = False):
                 # from entry properties that are "material defining", e.g. changed external
                 # material quantities like new AFLOW prototypes
                 try:
-                    material_doc.update(**material_type.create_index_doc(entry.results.material))
+                    material_doc.update(
+                        **material_type.create_index_doc(entry.results.material)
+                    )
                 except Exception as e:
                     logger.error('could not create material index doc', exc_info=e)
 
@@ -1277,12 +1397,14 @@ def update_materials(entries: List, refresh: bool = False):
             else:
                 # Update the entry.
                 try:
-                    material_entries[index] = material_entry_type.create_index_doc(entry)
+                    material_entries[index] = material_entry_type.create_index_doc(
+                        entry
+                    )
                 except Exception as e:
                     logger.error('could not create material index doc', exc_info=e)
                 remaining_entry_ids.remove(entry_id)
         for index in reversed(material_entries_to_remove):
-            del(material_entries[index])
+            del material_entries[index]
 
         add_action_or_doc(dict(index=dict(_id=material_id)))
         add_action_or_doc(material_doc)
@@ -1296,7 +1418,9 @@ def update_materials(entries: List, refresh: bool = False):
             if material_doc is None:
                 # The material does not yet exist. Create it.
                 try:
-                    material_doc = material_type.create_index_doc(entry.results.material)
+                    material_doc = material_type.create_index_doc(
+                        entry.results.material
+                    )
                 except Exception as e:
                     logger.error('could not create material index doc', exc_info=e)
                 material_docs_dict[material_id] = material_doc
@@ -1305,7 +1429,9 @@ def update_materials(entries: List, refresh: bool = False):
                 material_docs.append(material_doc)
             # The material does exist (now), but the entry is new.
             try:
-                material_doc.setdefault('entries', []).append(material_entry_type.create_index_doc(entry))
+                material_doc.setdefault('entries', []).append(
+                    material_entry_type.create_index_doc(entry)
+                )
             except Exception as e:
                 logger.error('could not create material entry index doc', exc_info=e)
 
@@ -1323,7 +1449,7 @@ def update_materials(entries: List, refresh: bool = False):
                 # The entry does not belong to this material anymore and needs to be removed.
                 material_entries_to_remove.append(index)
         for index in reversed(material_entries_to_remove):
-            del(material_entries[index])
+            del material_entries[index]
         if len(material_entries) == 0:
             # The material is empty now and needs to be removed.
             add_action_or_doc(dict(delete=dict(_id=material_id)))
@@ -1342,7 +1468,9 @@ def update_materials(entries: List, refresh: bool = False):
         material_entries = material_doc.get('entries', [])
         material_doc['n_entries'] = len(material_entries)
         if len(material_entries) > config.elastic.entries_per_material_cap:
-            material_doc['entries'] = material_entries[0:config.elastic.entries_per_material_cap]
+            material_doc['entries'] = material_entries[
+                0 : config.elastic.entries_per_material_cap
+            ]
 
         all_n_entries_capped += len(material_entries)
         all_n_entries += material_doc['n_entries']
@@ -1351,6 +1479,7 @@ def update_materials(entries: List, refresh: bool = False):
     timer_kwargs: Dict[str, Any] = {}
     try:
         import json
+
         timer_kwargs['size'] = len(json.dumps(_actions_and_docs_bulks))
         timer_kwargs['n_actions'] = sum([len(bulk) for bulk in _actions_and_docs_bulks])
         timer_kwargs['n_entries'] = all_n_entries
@@ -1359,29 +1488,34 @@ def update_materials(entries: List, refresh: bool = False):
         pass
 
     with utils.timer(
-        logger, 'perform bulk index of materials',
+        logger,
+        'perform bulk index of materials',
         lnr_event='failed to bulk index materials',
-        **timer_kwargs
+        **timer_kwargs,
     ):
         for bulk in _actions_and_docs_bulks:
             material_index.bulk(
-                body=bulk, refresh=False,
+                body=bulk,
+                refresh=False,
                 timeout=f'{config.elastic.bulk_timeout}s',
-                request_timeout=config.elastic.bulk_timeout)
+                request_timeout=config.elastic.bulk_timeout,
+            )
 
     if refresh:
         entry_index.refresh()
         material_index.refresh()
 
 
-def get_searchable_quantity_value_field(annotation: Elasticsearch, aggregation: bool = False):
-    '''Get the target field for based on the annotation and whether the field
+def get_searchable_quantity_value_field(
+    annotation: Elasticsearch, aggregation: bool = False
+):
+    """Get the target field for based on the annotation and whether the field
     should be used in aggregation or not.
 
     Args:
         annotation: Annotation of the targeted field.
         aggregation: Whether the field is used for aggregation or not.
-    '''
+    """
     mapping = annotation.mapping['type']
     if mapping == 'boolean':
         return 'bool_value'
@@ -1401,14 +1535,18 @@ def get_searchable_quantity_value_field(annotation: Elasticsearch, aggregation: 
     return None
 
 
-def create_dynamic_quantity_annotation(quantity_def: Quantity, doc_type: DocumentType = None) -> Optional[Elasticsearch]:
-    '''Given a quantity definition, this function will return the corresponding
+def create_dynamic_quantity_annotation(
+    quantity_def: Quantity, doc_type: DocumentType = None
+) -> Optional[Elasticsearch]:
+    """Given a quantity definition, this function will return the corresponding
     ES annotation if one can be built.
-    '''
+    """
     if quantity_def.shape != []:
         return None
     try:
-        annotation = Elasticsearch(definition=quantity_def, dynamic=True, doc_type=doc_type)
+        annotation = Elasticsearch(
+            definition=quantity_def, dynamic=True, doc_type=doc_type
+        )
         annotation.mapping['type']
     except NotImplementedError:
         return None
@@ -1423,8 +1561,7 @@ def create_searchable_quantity(
     path_archive: str = None,
     schema_name: str = None,
 ) -> Optional['SearchableQuantity']:
-    '''Transforms a quantity definition into a SearchQuantity.
-    '''
+    """Transforms a quantity definition into a SearchQuantity."""
     from nomad.datamodel.datamodel import SearchableQuantity
 
     annotation = create_dynamic_quantity_annotation(quantity_def)
@@ -1433,9 +1570,11 @@ def create_searchable_quantity(
     mapping = annotation.mapping['type']
 
     searchable_quantity = SearchableQuantity(
-        id=f'{quantity_path}{schema_separator}{schema_name}' if schema_name else quantity_path,
+        id=f'{quantity_path}{schema_separator}{schema_name}'
+        if schema_name
+        else quantity_path,
         path_archive=path_archive,
-        definition=quantity_def.qualified_name()
+        definition=quantity_def.qualified_name(),
     )
 
     # If a section is given, also store the value
@@ -1466,18 +1605,22 @@ def create_searchable_quantity(
                     return None
             setattr(searchable_quantity, value_field_name, value)
         except Exception as e:
-            logger.error('error in indexing dynamic quantity', path_archive=path_archive, exc_info=e)
+            logger.error(
+                'error in indexing dynamic quantity',
+                path_archive=path_archive,
+                exc_info=e,
+            )
             return None
 
     return searchable_quantity
 
 
 def parse_quantity_name(name: str) -> Tuple[str, Optional[str], Optional[str]]:
-    '''Used to parse a quantity name into three parts:
-      - path: Path in the schema
-      - schema (optional): Schema identifider
-      - dtype (optional): Data type contained in the name
-    '''
+    """Used to parse a quantity name into three parts:
+    - path: Path in the schema
+    - schema (optional): Schema identifider
+    - dtype (optional): Data type contained in the name
+    """
     dtype = None
     schema = None
     parts = name.split(schema_separator, 1)

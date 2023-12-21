@@ -38,14 +38,15 @@ app = FastAPI(
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
     title='Resources API',
     version='v1, NOMAD %s@%s' % (config.meta.version, config.meta.commit),
-    description='NOMAD\'s API for serving related external resources')
+    description="NOMAD's API for serving related external resources",
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 
@@ -59,15 +60,14 @@ async def unicorn_exception_handler(request: Request, e: Exception):
                 'reason': 'Unexpected exception while handling your request',
                 'exception': str(e),
                 'exception_class': e.__class__.__name__,
-                'exception_traceback': traceback.format_exc()
+                'exception_traceback': traceback.format_exc(),
             }
-        }
+        },
     )
 
 
 @app.middleware('http')
 async def setup_fastapi(request: Request, callback):
-
     setup_mongo()
 
     response = await callback(request)
@@ -84,8 +84,13 @@ def setup_mongo():
 
     if mongo_client_resources is None:
         from mongoengine import connect
+
         mongo_client_resources = connect(
-            db=config.resources.db_name, alias='resources', host=config.mongo.host, port=config.mongo.port)
+            db=config.resources.db_name,
+            alias='resources',
+            host=config.mongo.host,
+            port=config.mongo.port,
+        )
 
 
 def remove_mongo():

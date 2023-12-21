@@ -27,7 +27,7 @@ from nomad.mkdocs import (
     get_field_description,
     get_field_default,
     get_field_options,
-    get_field_deprecated
+    get_field_deprecated,
 )
 
 
@@ -49,26 +49,51 @@ class MyIntEnum(int, Enum):
         pytest.param(dict, 'dict', {dict}, id='dict'),
         pytest.param(set, 'set', {set}, id='set'),
         pytest.param(tuple, 'tuple', {tuple}, id='tuple'),
-        pytest.param(WidgetHistogram, 'WidgetHistogram', {WidgetHistogram}, id='basemodel'),
+        pytest.param(
+            WidgetHistogram, 'WidgetHistogram', {WidgetHistogram}, id='basemodel'
+        ),
         pytest.param(Enum, 'Enum', {Enum}, id='class'),
-        pytest.param(Optional[WidgetHistogram], 'WidgetHistogram', {WidgetHistogram}, id='optional-ignored'),
-        pytest.param(Union[str, WidgetHistogram], 'Union[str, WidgetHistogram]', {Union, str, WidgetHistogram}, id='union'),
-        pytest.param(List[Union[str, WidgetHistogram]], 'List[Union[str, WidgetHistogram]]', {list, Union, str, WidgetHistogram}, id='list-with-union'),
-        pytest.param(Dict[str, WidgetHistogram], 'Dict[str, WidgetHistogram]', {dict, str, WidgetHistogram}, id='dict'),
-        pytest.param(Literal["test"], 'str', {Literal}, id='literal-not-shown-str'),
+        pytest.param(
+            Optional[WidgetHistogram],
+            'WidgetHistogram',
+            {WidgetHistogram},
+            id='optional-ignored',
+        ),
+        pytest.param(
+            Union[str, WidgetHistogram],
+            'Union[str, WidgetHistogram]',
+            {Union, str, WidgetHistogram},
+            id='union',
+        ),
+        pytest.param(
+            List[Union[str, WidgetHistogram]],
+            'List[Union[str, WidgetHistogram]]',
+            {list, Union, str, WidgetHistogram},
+            id='list-with-union',
+        ),
+        pytest.param(
+            Dict[str, WidgetHistogram],
+            'Dict[str, WidgetHistogram]',
+            {dict, str, WidgetHistogram},
+            id='dict',
+        ),
+        pytest.param(Literal['test'], 'str', {Literal}, id='literal-not-shown-str'),
         pytest.param(Literal[1], 'int', {Literal}, id='literal-not-shown-int'),
         pytest.param(MyStrEnum, 'str', {MyStrEnum}, id='enum-string'),
         pytest.param(MyIntEnum, 'int', {MyIntEnum}, id='enum-int'),
         pytest.param(
-            List[Annotated[Union[WidgetTerms, WidgetHistogram], Field(discriminator="type")]],  # type: ignore
+            List[
+                Annotated[
+                    Union[WidgetTerms, WidgetHistogram], Field(discriminator='type')
+                ]
+            ],  # type: ignore
             'List[Union[WidgetTerms, WidgetHistogram]]',
             {list, Union, WidgetTerms, WidgetHistogram},
-            id='annotated-ignored'
+            id='annotated-ignored',
         ),
-    ]
+    ],
 )
 def test_field_type_info(type_, name, classes):
-
     class Test(BaseModel):
         a: type_ = Field()
 
@@ -82,10 +107,9 @@ def test_field_type_info(type_, name, classes):
     [
         pytest.param(None, id='no-description'),
         pytest.param('This is a test description.', id='string-description'),
-    ]
+    ],
 )
 def test_field_description(description):
-
     class Test(BaseModel):
         a: str = Field(description=description)
 
@@ -99,11 +123,14 @@ def test_field_description(description):
         pytest.param(None, None, id='no-default'),
         pytest.param('test', '`test`', id='str-default'),
         pytest.param(1, '`1`', id='int-default'),
-        pytest.param({'test': 'test'}, 'Complex object, default value not displayed.', id='complex-default'),
-    ]
+        pytest.param(
+            {'test': 'test'},
+            'Complex object, default value not displayed.',
+            id='complex-default',
+        ),
+    ],
 )
 def test_field_default(default, default_str):
-
     class Test(BaseModel):
         a: str = Field(default)
 
@@ -117,10 +144,9 @@ def test_field_default(default, default_str):
         pytest.param(str, {}, id='no-options'),
         pytest.param(MyStrEnum, {'test': None}, id='str-options'),
         pytest.param(MyIntEnum, {'1': None}, id='int-options'),
-    ]
+    ],
 )
 def test_field_options(type_, options):
-
     class Test(BaseModel):
         a: type_ = Field()
 
@@ -132,7 +158,6 @@ def test_field_options(type_, options):
 
 @pytest.mark.parametrize('deprecated', [True, False])
 def test_field_deprecated(deprecated):
-
     class Test(BaseModel):
         a: str = Field(deprecated=deprecated)
 

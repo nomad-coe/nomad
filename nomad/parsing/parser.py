@@ -35,17 +35,18 @@ from nomad.metainfo import Package
 
 
 class Parser(metaclass=ABCMeta):
-    '''
+    """
     Instances specify a parser. It allows to find *main files* from  given uploaded
     and extracted files. Further, allows to run the parser on those 'main files'.
-    '''
-    name = "parsers/parser"
+    """
+
+    name = 'parsers/parser'
     level = 0
     creates_children = False
-    '''
+    """
     Level 0 parsers are run first, then level 1, and so on. Normally the value should be 0,
     use higher values only when a parser depends on other parsers.
-    '''
+    """
 
     def __init__(self):
         self.domain = 'dft'
@@ -53,9 +54,14 @@ class Parser(metaclass=ABCMeta):
 
     @abstractmethod
     def is_mainfile(
-            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> Union[bool, Iterable[str]]:
-        '''
+        self,
+        filename: str,
+        mime: str,
+        buffer: bytes,
+        decoded_buffer: str,
+        compression: str = None,
+    ) -> Union[bool, Iterable[str]]:
+        """
         Checks if a file is a mainfile for the parser. Should return True or a set of
         *keys* (non-empty strings) if it is a mainfile, otherwise a falsey value.
 
@@ -78,17 +84,18 @@ class Parser(metaclass=ABCMeta):
             mime: The mimetype of the mainfile guessed with libmagic
             buffer: The first 2k of the mainfile contents
             compression: The compression of the mainfile ``[None, 'gz', 'bz2']``
-        '''
+        """
         pass
 
     @abstractmethod
     def parse(
-            self,
-            mainfile: str,
-            archive: EntryArchive,
-            logger=None,
-            child_archives: Dict[str, EntryArchive] = None) -> None:
-        '''
+        self,
+        mainfile: str,
+        archive: EntryArchive,
+        logger=None,
+        child_archives: Dict[str, EntryArchive] = None,
+    ) -> None:
+        """
         Runs the parser on the given mainfile and populates the result in the given
         archive root_section. It allows to be run repeatedly for different mainfiles.
 
@@ -99,11 +106,11 @@ class Parser(metaclass=ABCMeta):
             logger: A optional logger
             child_archives: a dictionary with {mainfile_key : EntryArchive} for each child,
                 for the parse function to populate with data.
-        '''
+        """
         pass
 
     def after_normalization(self, archive: EntryArchive, logger=None) -> None:
-        '''
+        """
         This is called after the archive produced by `parsed` has been normalized. This
         allows to apply additional code-specific processing steps based on the normalized data.
 
@@ -111,7 +118,7 @@ class Parser(metaclass=ABCMeta):
             archive: An instance of the section :class:`EntryArchive`. It might contain
                 a section ``metadata`` with information about the entry.
             logger: A optional logger
-        '''
+        """
         pass
 
     @classmethod
@@ -133,24 +140,31 @@ class Parser(metaclass=ABCMeta):
 
 
 class BrokenParser(Parser):
-    '''
+    """
     A parser implementation that just fails and is used to match mainfiles with known
     patterns of corruption.
-    '''
+    """
+
     name = 'parsers/broken'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.code_name = 'currupted mainfile'
         self._patterns = [
-            re.compile(r'^pid=[0-9]+'),  # some 'mainfile' contain list of log-kinda information with pids
-            re.compile(r'^Can\'t open .* library:.*')  # probably bad code runs
+            re.compile(
+                r'^pid=[0-9]+'
+            ),  # some 'mainfile' contain list of log-kinda information with pids
+            re.compile(r'^Can\'t open .* library:.*'),  # probably bad code runs
         ]
 
     def is_mainfile(
-            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> bool:
-
+        self,
+        filename: str,
+        mime: str,
+        buffer: bytes,
+        decoded_buffer: str,
+        compression: str = None,
+    ) -> bool:
         if decoded_buffer is not None:
             for pattern in self._patterns:
                 if pattern.search(decoded_buffer) is not None:
@@ -163,7 +177,7 @@ class BrokenParser(Parser):
 
 
 class MatchingParser(Parser):
-    '''
+    """
     A parser implementation that uses regular expressions to match mainfiles.
 
     Arguments:
@@ -182,25 +196,26 @@ class MatchingParser(Parser):
             is present in the same directory.
         domain: The domain that this parser should be used for. Default is 'dft'.
         supported_compressions: A list of [gz, bz2], if the parser supports compressed files
-    '''
-    def __init__(
-            self,
-            name: str = None,
-            code_name: str = None,
-            code_homepage: str = None,
-            code_category: str = None,
-            mainfile_contents_re: str = None,
-            mainfile_binary_header: bytes = None,
-            mainfile_binary_header_re: bytes = None,
-            mainfile_mime_re: str = r'text/.*',
-            mainfile_name_re: str = r'.*',
-            mainfile_alternative: bool = False,
-            mainfile_contents_dict: dict = None,
-            level: int = 0,
-            domain='dft',
-            metadata: dict = None,
-            supported_compressions: List[str] = []) -> None:
+    """
 
+    def __init__(
+        self,
+        name: str = None,
+        code_name: str = None,
+        code_homepage: str = None,
+        code_category: str = None,
+        mainfile_contents_re: str = None,
+        mainfile_binary_header: bytes = None,
+        mainfile_binary_header_re: bytes = None,
+        mainfile_mime_re: str = r'text/.*',
+        mainfile_name_re: str = r'.*',
+        mainfile_alternative: bool = False,
+        mainfile_contents_dict: dict = None,
+        level: int = 0,
+        domain='dft',
+        metadata: dict = None,
+        supported_compressions: List[str] = [],
+    ) -> None:
         super().__init__()
 
         self.name = name
@@ -231,9 +246,9 @@ class MatchingParser(Parser):
         self._ls = lru_cache(maxsize=16)(lambda directory: os.listdir(directory))
 
     def read_metadata_file(self, metadata_file: str) -> Dict[str, Any]:
-        '''
+        """
         Read parser metadata from a yaml file.
-        '''
+        """
         logger = utils.get_logger(__name__)
         try:
             with open(metadata_file, 'r', encoding='UTF-8') as f:
@@ -245,9 +260,13 @@ class MatchingParser(Parser):
         return parser_metadata
 
     def is_mainfile(
-            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> Union[bool, Iterable[str]]:
-
+        self,
+        filename: str,
+        mime: str,
+        buffer: bytes,
+        decoded_buffer: str,
+        compression: str = None,
+    ) -> Union[bool, Iterable[str]]:
         if self._mainfile_binary_header is not None:
             if self._mainfile_binary_header not in buffer:
                 return False
@@ -279,15 +298,19 @@ class MatchingParser(Parser):
             directory = os.path.dirname(filename)
             for sibling in self._ls(directory):
                 sibling = os.path.join(directory, sibling)
-                sibling_is_mainfile = sibling != filename and \
-                    self._mainfile_name_re.fullmatch(sibling) is not None and \
-                    os.path.isfile(sibling)
+                sibling_is_mainfile = (
+                    sibling != filename
+                    and self._mainfile_name_re.fullmatch(sibling) is not None
+                    and os.path.isfile(sibling)
+                )
                 if sibling_is_mainfile:
                     return False
 
         def match(value, reference):
             if not isinstance(value, dict):
-                equal = value == (reference[()] if isinstance(reference, h5py.Dataset) else reference)
+                equal = value == (
+                    reference[()] if isinstance(reference, h5py.Dataset) else reference
+                )
                 return equal.all() if isinstance(equal, np.ndarray) else equal
 
             if not hasattr(reference, 'keys'):
@@ -316,7 +339,9 @@ class MatchingParser(Parser):
             is_match = False
             if mime.startswith('application/json') or mime.startswith('text/plain'):
                 try:
-                    is_match = match(self._mainfile_contents_dict, json.load(open(filename)))
+                    is_match = match(
+                        self._mainfile_contents_dict, json.load(open(filename))
+                    )
                 except Exception:
                     pass
             elif mime.startswith('application/x-hdf'):
@@ -327,6 +352,7 @@ class MatchingParser(Parser):
                     pass
             elif re.match(r'.+\.(?:csv|xlsx?)$', filename):
                 from nomad.parsing.tabular import read_table_data
+
                 try:
                     data: Dict[str, Any] = {}
                     table_data = read_table_data(filename)
@@ -334,14 +360,18 @@ class MatchingParser(Parser):
                         data.setdefault(sheet_name, {})
                         nrow = 0
                         for column_name in table_data[sheet_name][0].keys():
-                            column_values = list(table_data[sheet_name][0][column_name].values())
+                            column_values = list(
+                                table_data[sheet_name][0][column_name].values()
+                            )
                             if not nrow:
                                 for n, row in enumerate(column_values):
                                     if not str(row).strip().startswith('#'):
                                         nrow = n
                                         break
                             if nrow:
-                                data[sheet_name][column_values[nrow]] = column_values[nrow + 1:]
+                                data[sheet_name][column_values[nrow]] = column_values[
+                                    nrow + 1 :
+                                ]
                             else:
                                 data[column_name] = column_values
 
@@ -353,7 +383,9 @@ class MatchingParser(Parser):
 
         return True
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ) -> None:
         raise NotImplementedError()
 
     def __repr__(self):
@@ -365,8 +397,10 @@ def to_hdf5(value: Any, f: Union[str, IO], path: str):
         segments = path.rsplit('/', 1)
         group = root.require_group(segments[0]) if len(segments) == 2 else root
         dataset = group.require_dataset(
-            segments[-1], shape=value.shape if hasattr(value, 'shape') else (),
-            dtype=value.dtype if hasattr(value, 'dtype') else None)
+            segments[-1],
+            shape=value.shape if hasattr(value, 'shape') else (),
+            dtype=value.dtype if hasattr(value, 'dtype') else None,
+        )
         dataset[...] = value.magnitude if hasattr(value, 'magnitude') else value
     return f'{f if isinstance(f, str) else os.path.basename(f.name)}#{path}'
 
@@ -388,19 +422,20 @@ def import_class(class_name, class_description: str = None):
 
 
 class MatchingParserInterface(MatchingParser):
-    '''
+    """
     An interface to the NOMAD parsers.
 
     Arguments:
         parser_class_name: concatenation of module path and parser class name
-    '''
+    """
+
     def __init__(self, parser_class_name: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._parser_class_name = parser_class_name
         self._mainfile_parser = None
 
     def new_parser_instance(self):
-        ''' Forgets the existing parser instance and forces the creation of a new one. '''
+        """Forgets the existing parser instance and forces the creation of a new one."""
         self._mainfile_parser = None
         return self._mainfile_parser
 
@@ -416,7 +451,9 @@ class MatchingParserInterface(MatchingParser):
                 raise e
         return self._mainfile_parser
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ):
         # TODO include child_archives in parse
         if child_archives:
             self.mainfile_parser._child_archives = child_archives
@@ -426,16 +463,26 @@ class MatchingParserInterface(MatchingParser):
         return import_class(self._parser_class_name, 'parser')
 
     def is_mainfile(
-            self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-            compression: str = None) -> Union[bool, Iterable[str]]:
+        self,
+        filename: str,
+        mime: str,
+        buffer: bytes,
+        decoded_buffer: str,
+        compression: str = None,
+    ) -> Union[bool, Iterable[str]]:
         is_mainfile = super().is_mainfile(
-            filename=filename, mime=mime, buffer=buffer,
-            decoded_buffer=decoded_buffer, compression=compression)
+            filename=filename,
+            mime=mime,
+            buffer=buffer,
+            decoded_buffer=decoded_buffer,
+            compression=compression,
+        )
         if is_mainfile:
             try:
                 # try to resolve mainfile keys from parser
                 mainfile_keys = self.mainfile_parser.get_mainfile_keys(
-                    filename=filename, decoded_buffer=decoded_buffer)
+                    filename=filename, decoded_buffer=decoded_buffer
+                )
                 self.creates_children = True
                 return mainfile_keys
             except Exception:
@@ -450,7 +497,8 @@ class ArchiveParser(MatchingParser):
             code_name=config.services.unavailable_value,
             domain=None,
             mainfile_mime_re='.*',
-            mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$')
+            mainfile_name_re=r'.*(archive|metainfo)\.(json|yaml|yml)$',
+        )
 
     def validate_defintions(self, archive, logger=None):
         if not archive or not archive.definitions:
@@ -470,9 +518,11 @@ class ArchiveParser(MatchingParser):
         try:
             if mainfile.endswith('.json'):
                 import json
+
                 archive_data = json.load(f)
             else:
                 import yaml
+
                 archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
         except Exception as e:
             if logger:
@@ -486,13 +536,14 @@ class ArchiveParser(MatchingParser):
             # Setting metadata in this way is not supported (any more)
             if entry_name := metadata_data.get('entry_name', None):
                 archive.metadata.entry_name = entry_name
-            del(archive_data[EntryArchive.metadata.name])
+            del archive_data[EntryArchive.metadata.name]
 
         # ensure that definitions are parsed first to make them available for the
         # parsing itself.
         if 'definitions' in archive_data:
             archive.definitions = Package.m_from_dict(
-                archive_data['definitions'], m_context=archive.m_context)
+                archive_data['definitions'], m_context=archive.m_context
+            )
 
             archive.definitions.archive = archive
 
@@ -500,7 +551,9 @@ class ArchiveParser(MatchingParser):
 
         archive.m_update_from_dict(archive_data)
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ):
         with open(mainfile, 'rt') as f:
             self.parse_file(mainfile, f, archive, logger)
 
@@ -508,14 +561,17 @@ class ArchiveParser(MatchingParser):
 
 
 class MissingParser(MatchingParser):
-    '''
+    """
     A parser implementation that just fails and is used to match mainfiles with known
     patterns of corruption.
-    '''
-    name = "parsers/missing"
+    """
+
+    name = 'parsers/missing'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None):
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ):
         raise Exception('The code %s is not yet supported.' % self.code_name)

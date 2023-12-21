@@ -34,27 +34,34 @@ logger = utils.get_logger(__name__)
 h5grove_router.settings.base_dir = config.fs.staging
 
 
-async def check_user_access(upload_id: str, user: User = Depends(create_user_dependency(required=True))):
+async def check_user_access(
+    upload_id: str, user: User = Depends(create_user_dependency(required=True))
+):
     get_upload_with_read_access(upload_id, user)
+
 
 app = FastAPI(dependencies=[Depends(check_user_access)])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 
-@app.middleware("http")
+@app.middleware('http')
 async def add_upload_folder_path(request: Request, call_next):
     upload_path = f"{request.query_params['upload_id'][0:config.fs.prefix_size]}/{request.query_params['upload_id']}/raw/"
     scope = request.scope
-    file = "file=" + upload_path + request.query_params["file"]
-    extension = re.search(".(nxs|h5|hdf5|hd5|hdf)", scope["query_string"].decode("utf-8"))
-    scope["query_string"] = file.encode("utf-8") + scope["query_string"][extension.span()[1]:]
+    file = 'file=' + upload_path + request.query_params['file']
+    extension = re.search(
+        '.(nxs|h5|hdf5|hd5|hdf)', scope['query_string'].decode('utf-8')
+    )
+    scope['query_string'] = (
+        file.encode('utf-8') + scope['query_string'][extension.span()[1] :]
+    )
     response = await call_next(Request(scope))
     return response
 
@@ -69,9 +76,10 @@ async def unicorn_exception_handler(request: Request, e: Exception):
                 'reason': 'Unexpected exception while handling your request',
                 'exception': str(e),
                 'exception_class': e.__class__.__name__,
-                'exception_traceback': traceback.format_exc()
+                'exception_traceback': traceback.format_exc(),
             }
-        }
+        },
     )
+
 
 app.include_router(h5grove_router.router)

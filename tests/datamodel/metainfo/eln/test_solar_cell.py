@@ -36,6 +36,13 @@ def test_processing(raw_files, no_warn):
     assert test_archive.metadata.entry_type == 'SolarCell'
     assert test_archive.results.properties.optoelectronic.solar_cell.efficiency >= 0
     assert len(test_archive.results.material.chemical_formula_reduced) > 0
-    assert len(test_archive.results.properties.optoelectronic.solar_cell.device_stack) > 0
+    assert (
+        len(test_archive.results.properties.optoelectronic.solar_cell.device_stack) > 0
+    )
     assert len(test_archive.results.properties.optoelectronic.solar_cell.absorber) > 0
-    assert test_archive.results.properties.electronic.band_structure_electronic[0].band_gap[0].value.magnitude >= 0
+    assert (
+        test_archive.results.properties.electronic.band_structure_electronic[0]
+        .band_gap[0]
+        .value.magnitude
+        >= 0
+    )

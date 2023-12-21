@@ -30,7 +30,7 @@ from nomad.normalizing import normalizers
 
 
 class ExampleData:
-    '''
+    """
     Allows to define, create, and manage a set of example data. Will create respective
     data via raw files, archives, in mongodb, and in both elasticsearch indices.
 
@@ -40,7 +40,7 @@ class ExampleData:
         uploads: A dictionary with with upload_ids as keys and lists of entry_ids as values.
         entries: A dictionary with entry_ids as keys and their ``EntryMetadata`` as values.
         archives: A dictionary with entry_ids as keys and their ``EntryArchives`` as values.
-    '''
+    """
 
     def __init__(self, **kwargs):
         self.upload_entries: Dict[str, List[str]] = dict()
@@ -54,10 +54,15 @@ class ExampleData:
         self._time_stamp = datetime.utcnow()
 
     def save(
-            self, with_files: bool = True, with_mongo: bool = True, with_es: bool = True,
-            additional_files_path: str = None):
+        self,
+        with_files: bool = True,
+        with_mongo: bool = True,
+        with_es: bool = True,
+        additional_files_path: str = None,
+    ):
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
+
         errors = None
 
         # Save
@@ -69,21 +74,27 @@ class ExampleData:
 
             for entry_metadata in self.entries.values():
                 process_status = (
-                    proc.ProcessStatus.SUCCESS if entry_metadata.processed else proc.ProcessStatus.FAILURE)
+                    proc.ProcessStatus.SUCCESS
+                    if entry_metadata.processed
+                    else proc.ProcessStatus.FAILURE
+                )
                 mongo_entry = proc.Entry(
                     entry_create_time=entry_metadata.entry_create_time,
                     entry_id=entry_metadata.entry_id,
                     upload_id=entry_metadata.upload_id,
                     mainfile=entry_metadata.mainfile,
                     parser_name='parsers/vasp',
-                    process_status=process_status)
+                    process_status=process_status,
+                )
                 mongo_entry.set_mongo_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
         if with_es:
             archives = list(self.archives.values())
             errors = search.index(archives, update_materials=True, refresh=True)
-            assert not errors, f'The following errors encountered during indexing: {errors}'
+            assert (
+                not errors
+            ), f'The following errors encountered during indexing: {errors}'
 
         if with_files:
             for upload_id, upload_dict in self.uploads.items():
@@ -94,10 +105,14 @@ class ExampleData:
                         archives.append(self.archives[entry_id])
 
                 create_test_upload_files(
-                    upload_id, archives, published=upload_dict.get('publish_time') is not None,
+                    upload_id,
+                    archives,
+                    published=upload_dict.get('publish_time') is not None,
                     embargo_length=upload_dict['embargo_length'],
-                    additional_files_path=additional_files_path)
+                    additional_files_path=additional_files_path,
+                )
                 from nomad import files
+
                 assert files.UploadFiles.get(upload_id) is not None
 
     def delete(self):
@@ -113,10 +128,14 @@ class ExampleData:
                 upload_files.delete()
 
     def create_entry_from_file(
-            self, mainfile: str, entry_archive: Optional[EntryArchive] = None,
-            entry_id: Optional[str] = None, upload_id: Optional[str] = None,
-            parser_name: Optional[str] = None):
-        '''Creates an entry from a mainfile which then gets parsed and normalized.'''
+        self,
+        mainfile: str,
+        entry_archive: Optional[EntryArchive] = None,
+        entry_id: Optional[str] = None,
+        upload_id: Optional[str] = None,
+        parser_name: Optional[str] = None,
+    ):
+        """Creates an entry from a mainfile which then gets parsed and normalized."""
         from nomad.parsing import parsers
         from nomad import parsing
 
@@ -130,7 +149,9 @@ class ExampleData:
             entry_archive = EntryArchive()
 
         mainfile_path = os.path.abspath(mainfile)
-        parser, _ = parsers.match_parser(mainfile_path, strict=True, parser_name=parser_name)
+        parser, _ = parsers.match_parser(
+            mainfile_path, strict=True, parser_name=parser_name
+        )
         if isinstance(parser, parsing.MatchingParser):
             parser_name = parser.name
         else:
@@ -151,7 +172,8 @@ class ExampleData:
             domain='dft',
             entry_create_time=self._next_time_stamp(),
             processed=True,
-            parser_name=parser_name)
+            parser_name=parser_name,
+        )
         entry_metadata.m_update(**self.entry_defaults)
 
         for normalizer_class in normalizers:
@@ -164,10 +186,10 @@ class ExampleData:
         return entry_archive
 
     def create_upload(self, upload_id, published=None, **kwargs):
-        '''
+        """
         Creates a dictionary holding all the upload information.
         Default values are used/generated, and can be set via kwargs.
-        '''
+        """
         upload_dict = {
             'upload_id': upload_id,
             'current_process': 'process_upload',
@@ -180,7 +202,8 @@ class ExampleData:
             'embargo_length': 0,
             'publish_time': None,
             'license': 'CC BY 4.0',
-            'published_to': []}
+            'published_to': [],
+        }
         upload_dict.update(kwargs)
         if published is not None:
             if published and not upload_dict['publish_time']:
@@ -196,14 +219,16 @@ class ExampleData:
         self.uploads[upload_id] = upload_dict
 
     def create_entry(
-            self,
-            entry_archive: EntryArchive = None,
-            entry_id: str = None, upload_id: str = None,
-            material_id: str = None,
-            mainfile: str = None,
-            results: Union[Results, dict] = None,
-            archive: dict = None, **kwargs) -> EntryArchive:
-
+        self,
+        entry_archive: EntryArchive = None,
+        entry_id: str = None,
+        upload_id: str = None,
+        material_id: str = None,
+        mainfile: str = None,
+        results: Union[Results, dict] = None,
+        archive: dict = None,
+        **kwargs,
+    ) -> EntryArchive:
         assert upload_id in self.uploads, 'Must create the upload first'
         upload_dict = self.uploads[upload_id]
 
@@ -232,14 +257,19 @@ class ExampleData:
             domain='dft',
             entry_create_time=self._next_time_stamp(),
             processed=True,
-            parser_name='parsers/vasp')
+            parser_name='parsers/vasp',
+        )
         entry_metadata.m_update(**self.entry_defaults)
         # Fetch data from Upload
-        upload_values = {k: upload_dict[k] for k in mongo_upload_metadata if k in upload_dict}
+        upload_values = {
+            k: upload_dict[k] for k in mongo_upload_metadata if k in upload_dict
+        }
         upload_values['with_embargo'] = upload_dict['embargo_length'] > 0
         upload_values['published'] = upload_dict.get('publish_time') is not None
         for k in list(mongo_upload_metadata) + ['with_embargo', 'published']:
-            assert k not in kwargs, f'Upload level metadata specified on entry level: {k}'
+            assert (
+                k not in kwargs
+            ), f'Upload level metadata specified on entry level: {k}'
         entry_metadata.m_update(**upload_values)
         entry_metadata.m_update(**kwargs)
 
@@ -252,31 +282,31 @@ class ExampleData:
                         'dimensionality': '3D',
                         'elements': ['H', 'O'],
                         'nelements': 2,
-                        'symmetry': {
-                            'crystal_system': 'cubic'
-                        }
+                        'symmetry': {'crystal_system': 'cubic'},
                     },
                     'method': {
                         'simulation': {
                             'program_name': 'VASP',
-                            'dft': {
-                                'xc_functional_type': 'GGA'
-                            }
+                            'dft': {'xc_functional_type': 'GGA'},
                         }
                     },
                     'properties': {
                         'n_calculations': 1,
                         'electronic': {
-                            'dos_electronic': [{
-                                'spin_polarized': entry_id.endswith('04'),
-                                'band_gap': [
-                                    {
-                                        'type': 'direct' if entry_id.endswith('04') else 'indirect'
-                                    }
-                                ]
-                            }]
-                        }
-                    }
+                            'dos_electronic': [
+                                {
+                                    'spin_polarized': entry_id.endswith('04'),
+                                    'band_gap': [
+                                        {
+                                            'type': 'direct'
+                                            if entry_id.endswith('04')
+                                            else 'indirect'
+                                        }
+                                    ],
+                                }
+                            ]
+                        },
+                    },
                 }
             if isinstance(results, dict):
                 section_results = Results.m_from_dict(results)
@@ -301,19 +331,25 @@ class ExampleData:
         return entry_archive
 
     def _next_time_stamp(self):
-        '''
+        """
         Returns self._time_stamp and ticks up the time stamp with 1 millisecond. This
         utility guarantees that we get unique and increasing time stamps for each entity.
-        '''
+        """
         self._time_stamp += timedelta(milliseconds=1)
         return self._time_stamp
 
     def create_structure(
-            self,
-            upload_id: str, id: int, h: int, o: int, extra: List[str], periodicity: int,
-            optimade: bool = True, metadata: dict = None):
-
-        ''' Creates an entry in Elastic and Mongodb with the given properties.
+        self,
+        upload_id: str,
+        id: int,
+        h: int,
+        o: int,
+        extra: List[str],
+        periodicity: int,
+        optimade: bool = True,
+        metadata: dict = None,
+    ):
+        """Creates an entry in Elastic and Mongodb with the given properties.
 
         Does require initialized :func:`elastic_infra` and :func:`mongo_infra`.
 
@@ -326,7 +362,7 @@ class ExampleData:
             periodicity: The number of dimensions to repeat the structure in
             optimade: A boolean. If true the entry will have optimade metadata. Default is True.
             metadata: Additional (user) metadata.
-        '''
+        """
         test_vector = [0, 0, 0]
         atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
 
@@ -338,7 +374,9 @@ class ExampleData:
             labels=atom_labels,
             positions=[test_vector for i in range(0, len(atom_labels))],
             lattice_vectors=[test_vector, test_vector, test_vector],
-            periodic=[True for _ in range(0, periodicity)] + [False for _ in range(periodicity, 3)])
+            periodic=[True for _ in range(0, periodicity)]
+            + [False for _ in range(periodicity, 3)],
+        )
 
         for normalizer_class in normalizers:
             normalizer = normalizer_class(archive)
@@ -359,18 +397,24 @@ class ExampleData:
 
         self.create_entry(
             entry_archive=archive,
-            upload_id=upload_id, entry_id='test_entry_id_%d' % id, domain='dft', **kwargs)
+            upload_id=upload_id,
+            entry_id='test_entry_id_%d' % id,
+            domain='dft',
+            **kwargs,
+        )
 
 
-def create_entry_archive(metadata: dict = None, results: dict = None, run: dict = None, workflow: dict = None):
-    '''Creates an entry archive out of python objects.
+def create_entry_archive(
+    metadata: dict = None, results: dict = None, run: dict = None, workflow: dict = None
+):
+    """Creates an entry archive out of python objects.
 
     Args:
         metadata: The archive metadata
         results: The archive results
         run: The archive run
         workflow: The archive workflow
-    '''
+    """
     entry = EntryArchive()
     if metadata:
         entry_metadata = entry.m_create(EntryMetadata)

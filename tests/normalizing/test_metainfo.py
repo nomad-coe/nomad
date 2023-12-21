@@ -45,9 +45,15 @@ def test_normalizer_level():
 
     archive = EntryArchive(data=Root(numbers=[]))
     archive.data.sub_section_0 = SubSection0(number=5)
-    archive.data.sub_section_1 = SubSection1(sub_section=SubSection0(number=1), number=2)
-    archive.data.sub_section_2.append(SubSection2(sub_section=SubSection0(number=3), number=4))
-    archive.data.sub_section_2.append(SubSection2(sub_section=SubSection0(number=6), number=7))
+    archive.data.sub_section_1 = SubSection1(
+        sub_section=SubSection0(number=1), number=2
+    )
+    archive.data.sub_section_2.append(
+        SubSection2(sub_section=SubSection0(number=3), number=4)
+    )
+    archive.data.sub_section_2.append(
+        SubSection2(sub_section=SubSection0(number=6), number=7)
+    )
 
     normalize_all(archive)
     assert (archive.data.numbers == [5, 3, 4, 6, 7, 1, 2]).all()

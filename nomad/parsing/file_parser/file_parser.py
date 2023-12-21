@@ -26,7 +26,7 @@ from nomad.utils import get_logger
 
 
 class FileParser(ABC):
-    '''
+    """
     Base class for file parsers. The parse method specific to a file type
     should be implemented in the corresponding child class. The parsed quantities are
     stored in results. One can access a quantity by using the get method or as attribute.
@@ -35,8 +35,11 @@ class FileParser(ABC):
         mainfile: the path to the file to be parsed
         logger: optional logger
         open: function to open file
-    '''
-    def __init__(self, mainfile: Union[str, IO] = None, logger=None, open: Callable = None):
+    """
+
+    def __init__(
+        self, mainfile: Union[str, IO] = None, logger=None, open: Callable = None
+    ):
         self._mainfile: str = None
         self._mainfile_obj: IO = None
         if isinstance(mainfile, str):
@@ -54,17 +57,17 @@ class FileParser(ABC):
         self._file_handler: Any = None
 
     def reset(self):
-        '''
+        """
         Nullifies the parsed results.
-        '''
+        """
         self._results = None
         self._file_handler = None
 
     @property
     def results(self):
-        '''
+        """
         Returns the parsed results.
-        '''
+        """
         if self._results is None:
             self._results = dict()
         if self._key not in self._results:
@@ -74,16 +77,16 @@ class FileParser(ABC):
 
     @property
     def maindir(self):
-        '''
+        """
         Returns the directory where the mainfile is located.
-        '''
+        """
         return os.path.dirname(self._mainfile)
 
     @property
     def mainfile_obj(self):
-        '''
+        """
         Returns the mainfile object.
-        '''
+        """
         if self._mainfile_obj is None:
             try:
                 self._mainfile_obj = self.open(self._mainfile)
@@ -94,9 +97,9 @@ class FileParser(ABC):
 
     @property
     def mainfile(self):
-        '''
+        """
         Returns the path to the mainfile.
-        '''
+        """
         if self._mainfile is None:
             return
 
@@ -106,9 +109,9 @@ class FileParser(ABC):
 
     @mainfile.setter
     def mainfile(self, val):
-        '''
+        """
         Assigns the mainfile to be parsed.
-        '''
+        """
         self.reset()
         self._mainfile = None
         if isinstance(val, str):
@@ -119,9 +122,9 @@ class FileParser(ABC):
             self._mainfile_obj = val
 
     def open(self, mainfile: str):
-        '''
+        """
         Opens the file with the provided open function or based on the file type.
-        '''
+        """
         open_file = self._open
         if open_file is None:
             if mainfile.endswith('.gz'):
@@ -136,12 +139,18 @@ class FileParser(ABC):
                 open_file = open
         return open_file(mainfile)
 
-    def get(self, key: str, default: Any = None, unit: Union[pint.Unit, pint.Quantity] = None, **kwargs):
-        '''
+    def get(
+        self,
+        key: str,
+        default: Any = None,
+        unit: Union[pint.Unit, pint.Quantity] = None,
+        **kwargs,
+    ):
+        """
         Returns the parsed result for quantity with name key. If quantity is not in
         results default will be returned. A pint unit can be provided which is attached
         to the returned value.
-        '''
+        """
         if self.mainfile is None:
             return default
 
@@ -180,9 +189,9 @@ class FileParser(ABC):
         return self._results.get(key, None)
 
     def to_dict(self):
-        '''
+        """
         Recursively converts the the parser results into a dictionary.
-        '''
+        """
         results = {}
         for key, val in self.results.items():
             if isinstance(val, FileParser):
@@ -195,10 +204,10 @@ class FileParser(ABC):
         return results
 
     def write_to_archive(self, section: MSection):
-        '''
+        """
         Wrapper for the m_from_dict functionality of msection to write the parser
         results to an archive section.
-        '''
+        """
         return section.m_from_dict(self.to_dict())
 
     @abstractmethod

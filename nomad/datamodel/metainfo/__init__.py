@@ -22,7 +22,9 @@ from pydantic import parse_obj_as
 from nomad import config
 from nomad.config import Schema, Plugin
 
-from . import annotations  # Should be imported first to register the annotations before they are used
+from . import (
+    annotations,
+)  # Should be imported first to register the annotations before they are used
 from .simulation import m_env
 from .downloads import m_package
 from .eln.labfolder import m_package

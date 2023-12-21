@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-'''
+"""
 API endpoint to receive telemetry data (in logstash format) from local installations.
-'''
+"""
 import gzip
 import io
 import socket
@@ -35,25 +35,32 @@ default_tag = 'federation'
 
 
 @router.post(
-    '/logs/', tags=[default_tag],
+    '/logs/',
+    tags=[default_tag],
     summary='Receive logs in logstash format from other Nomad installations and store into central logstash '
-            'for further analysis.')
+    'for further analysis.',
+)
 async def logs(request: Request):
     content_encoding = request.headers.get('Content-Encoding')
 
     if content_encoding is not None:
         # TODO: need to protect from too large files? Or gzip bombs?
-        if "gzip" in request.headers.getlist("Content-Encoding"):
+        if 'gzip' in request.headers.getlist('Content-Encoding'):
             gzip_content = await request.body()
 
             try:
                 with gzip.GzipFile(mode='rb', fileobj=io.BytesIO(gzip_content)) as f:
                     logs = f.read()
             except OSError:  # OSError is raised if the content is not a valid gzip
-                raise HTTPException(status_code=422, detail='decompressing gzip request failed')
+                raise HTTPException(
+                    status_code=422, detail='decompressing gzip request failed'
+                )
 
         else:
-            raise HTTPException(status_code=422, detail=f'"\'Content-Encoding\': \'{content_encoding}\'" not supported')
+            raise HTTPException(
+                status_code=422,
+                detail=f"\"'Content-Encoding': '{content_encoding}'\" not supported",
+            )
     else:
         logs = await request.body()
 
@@ -73,7 +80,7 @@ async def logs(request: Request):
         if header is not None:
             ip_address = header.split(',')[0].strip()  # TODO: validate IP address?
         else:
-            raise KeyError('No header \"X-forwarded-For\" found.')
+            raise KeyError('No header "X-forwarded-For" found.')
     except KeyError:
         # read IP from request directly (note that this is not necessarily an IP address,
         # e.g. can also be string 'localhost'.
@@ -89,14 +96,18 @@ async def logs(request: Request):
             # sanity checks whether 'log' has a valid logstash format - final validation is performed by logstash itself
             if len(log) > 2 and log.endswith(b'}'):
                 # augment IP address to end of log
-                log = log[:-1] + f', \"ip_address\": \"{ip_address}\"}}\n'.encode()
+                log = log[:-1] + f', "ip_address": "{ip_address}"}}\n'.encode()
                 # print(f'forward log to central logstash={log}')
-                logstash_socket.send(log)  # TODO: should check return whether it was successful?
+                logstash_socket.send(
+                    log
+                )  # TODO: should check return whether it was successful?
             else:
                 pass  # drop log
     except Exception as e:
         logger.error('Error when submitting logs to logstash.', exc_info=e)
-        raise HTTPException(status_code=500, detail='Could not process logs internally.')
+        raise HTTPException(
+            status_code=500, detail='Could not process logs internally.'
+        )
     finally:
         logstash_socket.close()
 

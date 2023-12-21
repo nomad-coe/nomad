@@ -51,10 +51,14 @@ def get_energy_index(dos_object, energy_level):
         - the minimum of energies if energy_level < min(dos_energies)
     """
     if hasattr(energy_level, 'magnitude'):
-        dos_energies = dos_object.energies.to(energy_level.units).magnitude  # ensure that the units are correct
+        dos_energies = dos_object.energies.to(
+            energy_level.units
+        ).magnitude  # ensure that the units are correct
         energy_level = energy_level.magnitude  # convert to float if necessary
     else:
-        dos_energies = dos_object.energies.magnitude  # now it's up to the user to ensure correct units
+        dos_energies = (
+            dos_object.energies.magnitude
+        )  # now it's up to the user to ensure correct units
 
     closest_index = np.where(dos_energies >= energy_level)
     if len(closest_index[0]) > 0:
@@ -68,10 +72,11 @@ def get_energy_index(dos_object, energy_level):
 
 
 def integrate_dos(
-        dos_object: Union[List[Dos], None],
-        spin_channels: List[int] = [0, 1],
-        limits: List[str] = ['min', 'fermi'],
-        efermi: Union[float, None] = None):
+    dos_object: Union[List[Dos], None],
+    spin_channels: List[int] = [0, 1],
+    limits: List[str] = ['min', 'fermi'],
+    efermi: Union[float, None] = None,
+):
     """
     Integrate a NOMAD run `dos_object` over the stated `spin_channels`. In non-normalized cases, this simply yields the number of band electrons.
     - `limits`: 2-object array determining the integration range in energy units. Outside of explicit values, one can also choose `min`, `max` and `fermi`.
@@ -81,7 +86,7 @@ def integrate_dos(
         logger.warning(f'Expected a list of length 2, but got {len(limits)}')
         return
 
-    dos_integrated = 0.
+    dos_integrated = 0.0
     for spin_channel in spin_channels:
         try:
             dos_spin = dos_object[spin_channel]
@@ -91,16 +96,19 @@ def integrate_dos(
         limit_keywords_map = {
             'min': 0,
             'max': -1,
-            'fermi': get_energy_index(dos_spin, get_fermi_energy(dos_spin, efermi))}
+            'fermi': get_energy_index(dos_spin, get_fermi_energy(dos_spin, efermi)),
+        }
         try:
             mapped_limits = [limit_keywords_map[limit] for limit in limits]
         except KeyError:
             mapped_limits = [get_energy_index(dos_spin, limit) for limit in limits]
 
         # Extract energies and DOS values to perform the integration
-        sel_energies = dos_spin.energies.magnitude[mapped_limits[0]:mapped_limits[1]]
+        sel_energies = dos_spin.energies.magnitude[mapped_limits[0] : mapped_limits[1]]
         try:
-            dos_values = dos_spin.total[0].value.magnitude[mapped_limits[0]:mapped_limits[1]]
+            dos_values = dos_spin.total[0].value.magnitude[
+                mapped_limits[0] : mapped_limits[1]
+            ]
             dos_integrated += np.trapz(x=sel_energies, y=dos_values)
         except IndexError:
             continue

@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-'''
+"""
 A command that runs some example operations on a working nomad@FAIRDI installation
 as a final integration test.
-'''
+"""
 
 import time
 import os
@@ -28,7 +28,9 @@ import json
 from nomad.client import api
 
 
-def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, skip_doi: bool):
+def integrationtests(
+    auth: api.Auth, skip_parsers: bool, skip_publish: bool, skip_doi: bool
+):
     multi_code_example_file = 'tests/data/integration/multi_code_data.zip'
     simple_example_file = 'tests/data/integration/examples_vasp.zip'
     has_doi = False
@@ -52,7 +54,9 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
 
         return upload
 
-    response = api.get('uploads', params=dict(upload_name='integration_test_upload'), auth=auth)
+    response = api.get(
+        'uploads', params=dict(upload_name='integration_test_upload'), auth=auth
+    )
     assert response.status_code == 200, response.text
     uploads = response.json()['data']
     assert len(uploads) == 0, 'the test upload must not exist before'
@@ -64,10 +68,14 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
         command += ' -k'
         code = os.system(command)
         assert code == 0, 'curl command must be successful'
-        response = api.get('uploads', params=dict(upload_name='integration_test_upload'), auth=auth)
+        response = api.get(
+            'uploads', params=dict(upload_name='integration_test_upload'), auth=auth
+        )
         assert response.status_code == 200, response.text
         response_json = response.json()
-        assert len(response_json['data']) == 1, 'exactly one test upload must be on the server'
+        assert (
+            len(response_json['data']) == 1
+        ), 'exactly one test upload must be on the server'
         upload = response_json['data'][0]
 
         print('observe the upload process to be finished')
@@ -82,8 +90,12 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
     print('upload simple data with API')
     with open(simple_example_file, 'rb') as f:
         response = api.post(
-            'uploads', files=dict(file=f), params=dict(upload_name='integration_test_upload'),
-            auth=auth, headers={'Accept': 'application/json'})
+            'uploads',
+            files=dict(file=f),
+            params=dict(upload_name='integration_test_upload'),
+            auth=auth,
+            headers={'Accept': 'application/json'},
+        )
         assert response.status_code == 200, response.text
         upload = response.json()['data']
 
@@ -111,48 +123,69 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
         for entry in entries:
             response = api.post(
                 f'entries/{entry["entry_id"]}/archive/query',
-                data=json.dumps({
-                    'required': {
-                        'processing_logs': '*'
-                    }
-                }), auth=auth)
+                data=json.dumps({'required': {'processing_logs': '*'}}),
+                auth=auth,
+            )
             assert response.status_code == 200, response.text
             response_archive_keys = [
-                key for key in response.json()['data']['archive'].keys()
-                if not key.startswith('m_')]
-            assert response_archive_keys == ['processing_logs'], \
-                f'Archive keys {response_archive_keys} should only contain processing_logs'
+                key
+                for key in response.json()['data']['archive'].keys()
+                if not key.startswith('m_')
+            ]
+            assert (
+                response_archive_keys == ['processing_logs']
+            ), f'Archive keys {response_archive_keys} should only contain processing_logs'
 
         query_request_params = dict(
-            owner='staging',
-            query={
-                'upload_id': upload['upload_id']
-            })
+            owner='staging', query={'upload_id': upload['upload_id']}
+        )
 
         print('perform repo search on data')
-        response = api.post('entries/query', data=json.dumps(query_request_params), auth=auth)
+        response = api.post(
+            'entries/query', data=json.dumps(query_request_params), auth=auth
+        )
         assert response.status_code == 200, response.text
         response_json = response.json()
         assert response_json['pagination']['total'] == 2
         assert response_json['pagination']['total'] == len(response_json['data'])
 
         print('performing archive paginated search')
-        response = api.post('entries/archive/query', data=json.dumps(dict(
-            pagination=dict(page_size=1, page_offset=1),
-            **query_request_params)), auth=auth)
+        response = api.post(
+            'entries/archive/query',
+            data=json.dumps(
+                dict(
+                    pagination=dict(page_size=1, page_offset=1), **query_request_params
+                )
+            ),
+            auth=auth,
+        )
         assert response.status_code == 200, response.text
         response_json = response.json()
         assert response_json['pagination']['total'] == 2
         assert len(response_json['data']) == 1
 
         print('performing archive scrolled search')
-        response = api.post('entries/archive/query', data=json.dumps(dict(
-            pagination=dict(page_size=1),
-            **query_request_params)), auth=auth)
+        response = api.post(
+            'entries/archive/query',
+            data=json.dumps(dict(pagination=dict(page_size=1), **query_request_params)),
+            auth=auth,
+        )
         response_json = response.json()
-        response = api.post('entries/archive/query', data=json.dumps(dict(
-            pagination=dict(page_size=1, page_after_value=response_json['pagination']['next_page_after_value']),
-            **query_request_params)), auth=auth)
+        response = api.post(
+            'entries/archive/query',
+            data=json.dumps(
+                dict(
+                    pagination=dict(
+                        page_size=1,
+                        page_after_value=response_json['pagination'][
+                            'next_page_after_value'
+                        ],
+                    ),
+                    **query_request_params,
+                )
+            ),
+            auth=auth,
+        )
         assert response.status_code == 200, response.text
         response_json = response.json()
         assert response_json['pagination']['total'] == 2
@@ -161,7 +194,9 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
         print('performing download')
         response = api.get(
             'entries/raw',
-            params=dict(upload_id=upload['upload_id'], owner='visible'), auth=auth)
+            params=dict(upload_id=upload['upload_id'], owner='visible'),
+            auth=auth,
+        )
         assert response.status_code == 200, response.text
 
         if not skip_publish:
@@ -181,12 +216,14 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
             'comment': {'value': 'Test comment'},
             'references': [{'value': 'http;//test_reference.com'}],
             'entry_coauthors': [{'value': user['user_id']}],
-            'datasets': [{'value': dataset}]}
+            'datasets': [{'value': dataset}],
+        }
 
         response = api.post(
             'entries/edit_v0',
             data=json.dumps(dict(actions=actions, **query_request_params)),
-            auth=auth)
+            auth=auth,
+        )
         assert response.status_code == 200, response.text
 
         print('list datasets')
@@ -210,5 +247,7 @@ def integrationtests(auth: api.Auth, skip_parsers: bool, skip_publish: bool, ski
     finally:
         if not published or auth.user == 'admin':
             print('delete the upload again')
-            upload = api.delete(f'uploads/{upload["upload_id"]}', auth=auth).json()['data']
+            upload = api.delete(f'uploads/{upload["upload_id"]}', auth=auth).json()[
+                'data'
+            ]
             assert get_upload(upload) is None

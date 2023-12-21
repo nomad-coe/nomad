@@ -26,11 +26,17 @@ from nomad.datamodel.metainfo.simulation.run import Run, Program
 from nomad.datamodel.metainfo.simulation.method import Method
 from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation, Energy, EnergyEntry, Forces, ForcesEntry, Thermodynamics)
+    Calculation,
+    Energy,
+    EnergyEntry,
+    Forces,
+    ForcesEntry,
+    Thermodynamics,
+)
 
 
 class BasicParser:
-    '''
+    """
     Defines a fairdi parser that parse basic quantities for sections method, system and
     single_configuration_calculation.
 
@@ -40,7 +46,8 @@ class BasicParser:
         auxiliary_files: re pattern to match auxilliary files from mainfile. If no files
             are found will match files in working directory.
         kwargs: metainfo_key: re pattern pairs used to parse quantity
-    '''
+    """
+
     def __init__(self, code_name: str, **kwargs):
         self.code_name = code_name
         self.units_mapping = kwargs.get('units_mapping', {})
@@ -49,28 +56,36 @@ class BasicParser:
         for key, pattern in kwargs.items():
             if isinstance(pattern, str):
                 self.mainfile_parser._quantities.append(
-                    Quantity(key, pattern, repeats=True, flatten=False))
+                    Quantity(key, pattern, repeats=True, flatten=False)
+                )
             elif isinstance(pattern, tuple) and isinstance(pattern[0], str):
                 self.mainfile_parser._quantities.append(
-                    Quantity(key, pattern[0], str_operation=pattern[1], repeats=True))
+                    Quantity(key, pattern[0], str_operation=pattern[1], repeats=True)
+                )
         self._re_float = r'\-*\d+\.\d+E*e*\-*\+*\d*'
         self.auxilliary_parsers: List[TextParser] = []
 
     def init_parser(self):
-        '''
+        """
         Initializes the mainfile and auxiliary parsers.
-        '''
+        """
         self.mainfile_parser.mainfile = self.mainfile
         self.mainfile_parser.logger = self.logger
 
-        auxilliary_files = self.mainfile_parser.get('auxilliary_files', os.listdir(self.maindir))
+        auxilliary_files = self.mainfile_parser.get(
+            'auxilliary_files', os.listdir(self.maindir)
+        )
         # remove duplicates, maintain order
-        auxilliary_files = [f for n, f in enumerate(auxilliary_files) if f not in auxilliary_files[:n]]
+        auxilliary_files = [
+            f for n, f in enumerate(auxilliary_files) if f not in auxilliary_files[:n]
+        ]
         self.auxilliary_parsers = []
         for filename in auxilliary_files:
             filename = os.path.basename(filename)
             if self.mainfile_parser.get('auxilliary_files') is None:
-                if not self.auxilliary_files or not re.match(self.auxilliary_files, filename):
+                if not self.auxilliary_files or not re.match(
+                    self.auxilliary_files, filename
+                ):
                     continue
             filename = os.path.join(self.maindir, filename)
             if not os.path.isfile(filename):
@@ -80,10 +95,12 @@ class BasicParser:
             parser.logger = self.logger
             self.auxilliary_parsers.append(parser)
 
-    def parse(self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None) -> None:
-        '''
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ) -> None:
+        """
         Triggers parsing of mainfile and writing parsed quantities to archive.
-        '''
+        """
         self.mainfile = os.path.abspath(mainfile)
         self.maindir = os.path.dirname(self.mainfile)
         self.archive = archive
@@ -99,8 +116,11 @@ class BasicParser:
                 if hasattr(value, 'm_def'):
                     pass
                 elif not hasattr(value, 'units'):
-                    value = np.reshape(np.array(
-                        value, dtype=np.dtype(dtype)), shape) if shape is not None else dtype(value)
+                    value = (
+                        np.reshape(np.array(value, dtype=np.dtype(dtype)), shape)
+                        if shape is not None
+                        else dtype(value)
+                    )
                     value = value * unit if unit is not None else value
                 setattr(section, key, value)
             except Exception:
@@ -186,51 +206,118 @@ class BasicParser:
 
                 if 'energy' in key:
                     shape = None
-                    val = value[-1] if 'fermi' in key else EnergyEntry(value=value * energy_unit)
-                    sub_key = 'fermi' if 'fermi' in key else key.replace('energy_', '').lower()
-                    set_value(sec_scc.energy, sub_key, val, energy_unit, shape, np.float64)
+                    val = (
+                        value[-1]
+                        if 'fermi' in key
+                        else EnergyEntry(value=value * energy_unit)
+                    )
+                    sub_key = (
+                        'fermi'
+                        if 'fermi' in key
+                        else key.replace('energy_', '').lower()
+                    )
+                    set_value(
+                        sec_scc.energy, sub_key, val, energy_unit, shape, np.float64
+                    )
 
                 if 'atom_forces' in key:
-                    val = get_value(value, rf'.*({re_f}) +({re_f}) +({re_f}).*', 'atom_forces')
+                    val = get_value(
+                        value, rf'.*({re_f}) +({re_f}) +({re_f}).*', 'atom_forces'
+                    )
                     if mass_unit is not None and time_unit is not None:
-                        unit = mass_unit * length_unit / time_unit ** 2
+                        unit = mass_unit * length_unit / time_unit**2
                     else:
                         unit = energy_unit / length_unit
                     sec_scc.forces.total = ForcesEntry()
-                    set_value(sec_scc.forces.total, 'value', val, unit, (np.size(val) // 3, 3), np.float64)
+                    set_value(
+                        sec_scc.forces.total,
+                        'value',
+                        val,
+                        unit,
+                        (np.size(val) // 3, 3),
+                        np.float64,
+                    )
 
                 if 'lattice_vectors' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'lattice_vectors')
-                    set_value(sec_system.atoms, 'lattice_vectors', val, length_unit, (3, 3), np.float64)
+                    val = get_value(
+                        value, rf'({re_f}) +({re_f}) +({re_f}).*', 'lattice_vectors'
+                    )
+                    set_value(
+                        sec_system.atoms,
+                        'lattice_vectors',
+                        val,
+                        length_unit,
+                        (3, 3),
+                        np.float64,
+                    )
                     if val is not None:
                         sec_system.atoms.periodic = [True, True, True]
 
                 if 'atom_positions' in key:
-                    sub_key = 'atom_positions_scaled' if 'atom_positions_scaled' in key else 'atom_positions'
+                    sub_key = (
+                        'atom_positions_scaled'
+                        if 'atom_positions_scaled' in key
+                        else 'atom_positions'
+                    )
                     val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', sub_key)
                     unit = length_unit
                     if sub_key == 'atom_positions_scaled':
                         try:
-                            val = np.dot(np.array(val, dtype=np.dtype(np.float64)), sec_system.atoms.lattice_vectors.magnitude)
+                            val = np.dot(
+                                np.array(val, dtype=np.dtype(np.float64)),
+                                sec_system.atoms.lattice_vectors.magnitude,
+                            )
                             unit = 1.0
                         except Exception:
                             pass
-                    set_value(sec_system.atoms, 'positions', val, unit, (np.size(val) // 3, 3), np.float64)
+                    set_value(
+                        sec_system.atoms,
+                        'positions',
+                        val,
+                        unit,
+                        (np.size(val) // 3, 3),
+                        np.float64,
+                    )
 
                 if 'atom_velocities' in key:
-                    val = get_value(value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_velocities')
-                    set_value(sec_system.atoms, 'velocities', val, length_unit / time_unit, (np.size(val) // 3, 3), np.float64)
+                    val = get_value(
+                        value, rf'({re_f}) +({re_f}) +({re_f}).*', 'atom_velocities'
+                    )
+                    set_value(
+                        sec_system.atoms,
+                        'velocities',
+                        val,
+                        length_unit / time_unit,
+                        (np.size(val) // 3, 3),
+                        np.float64,
+                    )
 
                 if 'atom_labels' in key:
                     val = get_value(value, r'([A-Z][a-z]*)\s', 'atom_labels')
                     val = [val] if isinstance(val, str) else val
-                    set_value(sec_system.atoms, 'labels', val, shape=(len(val)), dtype=str)
+                    set_value(
+                        sec_system.atoms, 'labels', val, shape=(len(val)), dtype=str
+                    )
 
                 if 'atom_atom_number' in key:
                     val = get_value(value, r'(\d+)\s', 'atom_atom_number')
                     val = [val] if isinstance(val, str) else val
-                    set_value(sec_system.atoms, 'atomic_numbers', val, shape=(len(val)), dtype=np.int32)
-                    set_value(sec_system.atoms, 'labels', [chemical_symbols[int(n)] for n in sec_system.atoms.atomic_numbers], shape=(len(val)))
+                    set_value(
+                        sec_system.atoms,
+                        'atomic_numbers',
+                        val,
+                        shape=(len(val)),
+                        dtype=np.int32,
+                    )
+                    set_value(
+                        sec_system.atoms,
+                        'labels',
+                        [
+                            chemical_symbols[int(n)]
+                            for n in sec_system.atoms.atomic_numbers
+                        ],
+                        shape=(len(val)),
+                    )
 
         # remove unfilled sections
         for system in sec_run.system:
@@ -241,7 +328,10 @@ class BasicParser:
                 calculation.m_remove_sub_section(Calculation.energy, 0)
             if len(calculation.forces.values()) == 0:
                 calculation.m_remove_sub_section(Calculation.forces, 0)
-            if len(calculation.thermodynamics) > 0 and len(calculation.thermodynamics[0].values()) == 0:
+            if (
+                len(calculation.thermodynamics) > 0
+                and len(calculation.thermodynamics[0].values()) == 0
+            ):
                 calculation.m_remove_sub_section(Calculation.thermodynamics, 0)
         remove_empty_section(sec_run.method, Run.method)
         remove_empty_section(sec_run.system, Run.system)

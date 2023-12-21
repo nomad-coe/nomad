@@ -19,16 +19,26 @@
 import sys
 
 from nomad.metainfo import Environment
-from .data import (User, Author, user_reference, author_reference)
+from .data import User, Author, user_reference, author_reference
 from .datamodel import (
-    Dataset, EditableUserMetadata, AuthLevel,
-    MongoUploadMetadata, MongoEntryMetadata, MongoSystemMetadata,
-    EntryMetadata, EntryArchive)
+    Dataset,
+    EditableUserMetadata,
+    AuthLevel,
+    MongoUploadMetadata,
+    MongoEntryMetadata,
+    MongoSystemMetadata,
+    EntryMetadata,
+    EntryArchive,
+)
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 from .results import Results
 from .data import EntryData, ArchiveSection
 from .context import Context, ClientContext, ServerContext
 
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package)  # type: ignore
-m_env.m_add_sub_section(Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package)  # type: ignore
+m_env.m_add_sub_section(
+    Environment.packages, sys.modules['nomad.datamodel.datamodel'].m_package
+)  # type: ignore
+m_env.m_add_sub_section(
+    Environment.packages, sys.modules['nomad.datamodel.optimade'].m_package
+)  # type: ignore

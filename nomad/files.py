@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 Contains classes and functions to create and maintain file structures
 for uploads, and some generic file utilities.
 
@@ -41,10 +41,21 @@ respective files actually contributes data or not. An entry directory might
 contain multiple mainfiles. E.g., user simulated multiple states of the same system, have
 one entry based on the other, etc. In this case the other mainfile is an *aux file* to the
 original mainfile, and vice versa.
-'''
+"""
 
 from abc import ABCMeta
-from typing import IO, Set, Dict, Iterable, Iterator, List, Tuple, Any, NamedTuple, Callable
+from typing import (
+    IO,
+    Set,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Tuple,
+    Any,
+    NamedTuple,
+    Callable,
+)
 from functools import lru_cache
 from pydantic import BaseModel
 from datetime import datetime
@@ -64,7 +75,15 @@ from nomad import config, utils, datamodel
 from nomad.config.models import BundleImportSettings, BundleExportSettings
 from nomad.archive import write_archive, read_archive, ArchiveReader, to_json
 
-decompress_file_extensions = ('.zip', '.tgz', '.gz', '.tar.gz', '.tar.bz2', '.tar', '.eln')
+decompress_file_extensions = (
+    '.zip',
+    '.tgz',
+    '.gz',
+    '.tar.gz',
+    '.tar.bz2',
+    '.tar',
+    '.eln',
+)
 bundle_info_filename = 'bundle_info.json'
 
 # Used to check if zip-files/archive files are empty
@@ -74,7 +93,7 @@ empty_archive_file_size = 32
 
 
 def auto_decompress(path: str):
-    '''
+    """
     Returns the decompression format ('zip', 'tar' or 'error') if `path` specifies a file
     which should be automatically decompressed before adding it to an upload. If `path`
     does *not* specify a file which we think should be decompressed, or if it specifies a
@@ -87,7 +106,7 @@ def auto_decompress(path: str):
     Note, some files, like for example excel files, are actually zip files, and we don't want
     to extract such files. Therefore, we only auto decompress if the file has an extension
     we recognize as decompressable, like ".zip", ".tar" etc.
-    '''
+    """
     if os.path.isdir(path):
         return None
     basename_lower = os.path.basename(path).lower()
@@ -102,11 +121,11 @@ def auto_decompress(path: str):
 
 
 def copytree(src, dst):
-    '''
+    """
     A close on ``shutils.copytree`` that does not try to copy the stats on all files.
     This is unecessary for our usecase and also causes permission denies for unknown
     reasons.
-    '''
+    """
     os.makedirs(dst, exist_ok=False)
 
     for item in os.listdir(src):
@@ -119,13 +138,13 @@ def copytree(src, dst):
 
 
 def create_tmp_dir(prefix: str) -> str:
-    '''
+    """
     Creates a temporary directory in the directory specified by `config.fs.tmp`. The name
     of the directory will first be set to `prefix`, but if that name is already taken, a
     suffix will be added to ensure a completely clean, new directory is created. If prefix
     contains a '/', it will be replaced with '_', to ensure the validity of the path.
     The full path to the created directory is returned.
-    '''
+    """
     assert prefix
     prefix = prefix.replace(os.path.sep, '_')
     assert is_safe_basename(prefix)
@@ -137,26 +156,28 @@ def create_tmp_dir(prefix: str) -> str:
             return path
         except FileExistsError:
             pass  # Try again with different suffix
-    raise RuntimeError('Could not create temporary directory - too many directories with same prefix?')
+    raise RuntimeError(
+        'Could not create temporary directory - too many directories with same prefix?'
+    )
 
 
 def is_safe_basename(basename: str) -> bool:
-    '''
+    """
     Checks if `basename` is a *safe* base name (file/folder name). We consider it safe if
     it is not empty, does not contain any '/', and is not equal to '.' or '..'
-    '''
+    """
     if not basename or '/' in basename or basename == '.' or basename == '..':
         return False
     return True
 
 
 def is_safe_relative_path(path: str) -> bool:
-    '''
+    """
     Checks if path is a *safe* relative path. We consider it safe if it does not start with
     '/' or use '.' or '..' elements (which could be open for security leaks if allowed).
     It may end with a single '/', indicating that a folder is referred. For referring to
     the base folder, the empty string should be used (not '.' etc).
-    '''
+    """
     if not isinstance(path, str):
         return False
     if path == '':
@@ -179,11 +200,12 @@ def is_safe_relative_path(path: str) -> bool:
 
 
 class PathObject:
-    '''
+    """
     Object storage-like abstraction for paths in general.
     Attributes:
         os_path: The full os path of the object.
-    '''
+    """
+
     def __init__(self, os_path: str):
         self.os_path = os_path
 
@@ -198,7 +220,7 @@ class PathObject:
 
     @property
     def size(self) -> int:
-        ''' The os determined file size. '''
+        """The os determined file size."""
         return os.stat(self.os_path).st_size
 
     def __repr__(self) -> str:
@@ -206,9 +228,10 @@ class PathObject:
 
 
 class DirectoryObject(PathObject):
-    '''
+    """
     Object storage-like abstraction for directories.
-    '''
+    """
+
     def __init__(self, os_path: str, create: bool = False):
         self.os_path = os_path
         if create and not os.path.isdir(self.os_path):
@@ -231,9 +254,10 @@ class DirectoryObject(PathObject):
 
 
 class RawPathInfo(NamedTuple):
-    '''
+    """
     Stores basic info about a file or folder located at a specific raw path.
-    '''
+    """
+
     path: str
     is_file: bool
     size: int
@@ -241,55 +265,65 @@ class RawPathInfo(NamedTuple):
 
 
 class StreamedFile(BaseModel):
-    '''
+    """
     Convenience class for representing a streamed file, together with information about
     file size and an associated path.
-    '''
+    """
+
     f: Any
     path: str
     size: int
 
 
 class FileSource(metaclass=ABCMeta):
-    '''
+    """
     An abstract class which represents a generic "file source", from which some number of files
     can be retrieved. There are several different ways to create a file source, see subclasses.
     The files in the source are associated with paths and have known sizes.
-    '''
+    """
+
     def to_streamed_files(self) -> Iterable[StreamedFile]:
-        '''
+        """
         Retrieves the files in the source as :class:`StreamedFile` objects.
         The caller should close the streams when consumed.
-        '''
+        """
         raise NotImplementedError()
 
     def to_zipstream(self) -> Iterator[bytes]:
-        ''' Returns a zip stream with the files from this FileSource. '''
+        """Returns a zip stream with the files from this FileSource."""
         return create_zipstream(self.to_streamed_files())
 
     def to_zipfile(self, path, overwrite: bool = False):
-        '''
+        """
         Generates a zip file from the files in this FileSource and stores it to disk. The
         zipfile content is created by calling :func:`to_zipstream`.
-        '''
-        assert not os.path.isdir(path), 'Exporting to zip file requires a file path, not directory.'
-        assert overwrite or not os.path.exists(path), '`path` already exists. Use `overwrite` to overwrite.'
+        """
+        assert not os.path.isdir(
+            path
+        ), 'Exporting to zip file requires a file path, not directory.'
+        assert overwrite or not os.path.exists(
+            path
+        ), '`path` already exists. Use `overwrite` to overwrite.'
         with open(path, 'wb') as f:
             for chunk in self.to_zipstream():
                 f.write(chunk)
 
-    def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
-        '''
+    def to_disk(
+        self, destination_dir: str, move_files: bool = False, overwrite: bool = False
+    ):
+        """
         Writes the files from this FileSource to disk, uncompressed. The default implementation
         makes use of :func:`to_streamed_files`. The `destination_dir` should be a directory
         (it will be created if it does not exist). The `move_files` argument instructs
         the method to move the source files if possible.
-        '''
+        """
         if not os.path.exists(destination_dir):
             os.makedirs(destination_dir)
         assert os.path.isdir(destination_dir), '`destination_dir` is not a directory'
         for streamed_file in self.to_streamed_files():
-            assert is_safe_relative_path(streamed_file.path), 'Unsafe relative path encountered'
+            assert is_safe_relative_path(
+                streamed_file.path
+            ), 'Unsafe relative path encountered'
             os_path = os.path.join(destination_dir, streamed_file.path)
             dir_path = os.path.dirname(os_path)
             if os.path.exists(os_path):
@@ -302,37 +336,39 @@ class FileSource(metaclass=ABCMeta):
                         output_file.write(chunk)
 
     def close(self):
-        ''' Perform "closing" of the source, if applicable. '''
+        """Perform "closing" of the source, if applicable."""
         pass
 
 
 class BrowsableFileSource(FileSource, metaclass=ABCMeta):
-    '''
+    """
     A :class:`FileSource` which can be "browsed", like a folder on disk or a zip archive.
-    '''
+    """
+
     def open(self, path, mode='rb') -> IO:
-        ''' Opens a file by the specified path. '''
+        """Opens a file by the specified path."""
         raise NotImplementedError()
 
     def directory_list(self, path: str) -> List[str]:
-        '''
+        """
         Returns a list of directory contents, located in the directory denoted by `path`
         in this file source.
-        '''
+        """
         raise NotImplementedError()
 
     def sub_source(self, path: str) -> 'BrowsableFileSource':
-        '''
+        """
         Creates a new instance of :class:`BrowsableFileSource` which just contains the
         files located under the specified path.
-        '''
+        """
         raise NotImplementedError()
 
 
 class StreamedFileSource(FileSource):
-    '''
+    """
     A :class:`FileSource` created from a single :class:`StreamedFile`.
-    '''
+    """
+
     def __init__(self, streamed_file: StreamedFile):
         self.streamed_file = streamed_file
 
@@ -341,13 +377,14 @@ class StreamedFileSource(FileSource):
 
 
 class DiskFileSource(BrowsableFileSource):
-    '''
+    """
     A :class:`FileSource` corresponding to a single file or a folder on disk. The object
     is identified by a `base_path` and a `relative path`. The `base_path` should be a folder,
     the `relative_path` is optional, and used for selecting only a specific file or folder
     located under `base_folder`. The paths of the files retrieved from this source are given
     relative to the `base_path`.
-    '''
+    """
+
     def __init__(self, base_path: str, relative_path: str = None):
         assert os.path.isdir(base_path)
         if relative_path:
@@ -365,7 +402,8 @@ class DiskFileSource(BrowsableFileSource):
             yield StreamedFile(
                 path=self.relative_path,
                 f=open(self.full_path, 'rb'),
-                size=os.stat(self.full_path).st_size)
+                size=os.stat(self.full_path).st_size,
+            )
         else:
             # Directory - crawl it and its subfolders for files
             for dirpath, __, filenames in os.walk(self.full_path):
@@ -375,9 +413,12 @@ class DiskFileSource(BrowsableFileSource):
                     yield StreamedFile(
                         path=sub_relative_path,
                         f=open(sub_full_path, 'rb'),
-                        size=os.stat(sub_full_path).st_size)
+                        size=os.stat(sub_full_path).st_size,
+                    )
 
-    def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
+    def to_disk(
+        self, destination_dir: str, move_files: bool = False, overwrite: bool = False
+    ):
         if self.relative_path:
             destination_path = os.path.join(destination_dir, self.relative_path)
         else:
@@ -385,7 +426,9 @@ class DiskFileSource(BrowsableFileSource):
         destination_parent = os.path.dirname(destination_path)
         os.makedirs(destination_parent, exist_ok=True)
         if os.path.exists(destination_path):
-            assert overwrite, f'Target {destination_path} already exists and `overwrite` is False'
+            assert (
+                overwrite
+            ), f'Target {destination_path} already exists and `overwrite` is False'
             PathObject(destination_path).delete()
         # All looks good. Copy or move the source to the destination
         if move_files:
@@ -411,10 +454,11 @@ class DiskFileSource(BrowsableFileSource):
 
 
 class ZipFileSource(BrowsableFileSource):
-    '''
+    """
     Allows us to "wrap" a :class:`zipfile.ZipFile` object and use it as a :class:`BrowsableFileSource`,
     i.e. it denotes a resource (single file or folder) stored in a ZipFile.
-    '''
+    """
+
     def __init__(self, zip_file: zipfile.ZipFile, sub_path: str = ''):
         assert is_safe_relative_path(sub_path)
         self.zip_file = zip_file
@@ -424,11 +468,14 @@ class ZipFileSource(BrowsableFileSource):
     def to_streamed_files(self) -> Iterable[StreamedFile]:
         path_prefix = '' if not self.sub_path else self.sub_path + os.path.sep
         for path in self._namelist:
-            if path == self.sub_path or (path.startswith(path_prefix) and not path.endswith(os.path.sep)):
+            if path == self.sub_path or (
+                path.startswith(path_prefix) and not path.endswith(os.path.sep)
+            ):
                 yield StreamedFile(
                     path=path,
                     f=self.zip_file.open(path, 'r'),
-                    size=self.zip_file.getinfo(path).file_size)
+                    size=self.zip_file.getinfo(path).file_size,
+                )
 
     def open(self, path, mode='rb') -> IO:
         assert 'r' in mode, 'Mode must be a read mode'
@@ -450,7 +497,9 @@ class ZipFileSource(BrowsableFileSource):
     def sub_source(self, path: str) -> 'ZipFileSource':
         assert is_safe_relative_path(path), 'Unsafe path provided'
         if self.sub_path:
-            assert path.startswith(self.sub_path + os.path.sep), 'Provided `path` is not a sub path.'
+            assert path.startswith(
+                self.sub_path + os.path.sep
+            ), 'Provided `path` is not a sub path.'
         return ZipFileSource(self.zip_file, path)
 
     def close(self):
@@ -458,11 +507,12 @@ class ZipFileSource(BrowsableFileSource):
 
 
 class CombinedFileSource(FileSource):
-    '''
+    """
     Class for defining a :class:`FileSource` by combining multiple "subsources" into one.
-    '''
+    """
+
     def __init__(self, file_sources=Iterable[FileSource]):
-        ''' file_sources: an Iterable for getting FileSources. '''
+        """file_sources: an Iterable for getting FileSources."""
         self.file_sources = file_sources
 
     def to_streamed_files(self) -> Iterable[StreamedFile]:
@@ -470,13 +520,16 @@ class CombinedFileSource(FileSource):
             for streamed_file in file_source.to_streamed_files():
                 yield streamed_file
 
-    def to_disk(self, destination_dir: str, move_files: bool = False, overwrite: bool = False):
+    def to_disk(
+        self, destination_dir: str, move_files: bool = False, overwrite: bool = False
+    ):
         for file_source in self.file_sources:
             file_source.to_disk(destination_dir, move_files, overwrite)
 
 
 class StandardJSONEncoder(json.JSONEncoder):
-    """ Our standard JSONEncoder with support for marshalling of datetime objects """
+    """Our standard JSONEncoder with support for marshalling of datetime objects"""
+
     def default(self, obj):  # pylint: disable=E0202
         if isinstance(obj, datetime):
             return {'$datetime': obj.isoformat()}
@@ -484,7 +537,8 @@ class StandardJSONEncoder(json.JSONEncoder):
 
 
 class StandardJSONDecoder(json.JSONDecoder):
-    """ Our standard JSONDecoder, with support for marshalling of datetime objects """
+    """Our standard JSONDecoder, with support for marshalling of datetime objects"""
+
     def __init__(self, *args, **kargs):
         json.JSONDecoder.__init__(self, object_hook=self.dict_to_object, *args, **kargs)
 
@@ -496,20 +550,17 @@ class StandardJSONDecoder(json.JSONDecoder):
 
 
 def json_to_streamed_file(json_dict: Dict[str, Any], path: str) -> StreamedFile:
-    ''' Converts a json dictionary structure to a :class:`StreamedFile`. '''
+    """Converts a json dictionary structure to a :class:`StreamedFile`."""
     json_bytes = json.dumps(json_dict, indent=2, cls=StandardJSONEncoder).encode()
-    return StreamedFile(
-        path=path,
-        f=io.BytesIO(json_bytes),
-        size=len(json_bytes))
+    return StreamedFile(path=path, f=io.BytesIO(json_bytes), size=len(json_bytes))
 
 
 def create_zipstream_content(streamed_files: Iterable[StreamedFile]) -> Iterable[Dict]:
-    '''
+    """
     Generator which "casts" a sequence of StreamedFiles to a sequence of dictionaries, of
     the form which is required by the `zipstream` library, i.e. dictionaries with keys
     `arcname`, `iterable` and `buffer_size`. Useful for generating zipstreams.
-    '''
+    """
     for streamed_file in streamed_files:
 
         def content_generator():
@@ -523,15 +574,16 @@ def create_zipstream_content(streamed_files: Iterable[StreamedFile]) -> Iterable
         yield dict(
             arcname=streamed_file.path,
             iterable=content_generator(),
-            buffer_size=streamed_file.size)
+            buffer_size=streamed_file.size,
+        )
 
 
 def create_zipstream(
-        streamed_files: Iterable[StreamedFile],
-        compress: bool = False) -> Iterator[bytes]:
-    '''
+    streamed_files: Iterable[StreamedFile], compress: bool = False
+) -> Iterator[bytes]:
+    """
     Creates a zip stream, i.e. a streamed zip file.
-    '''
+    """
     compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
     zip_stream = zipstream.ZipFile(mode='w', compression=compression, allowZip64=True)
     zip_stream.paths_to_write = create_zipstream_content(streamed_files)
@@ -542,11 +594,11 @@ def create_zipstream(
 def _versioned_archive_file_object(
     target_dir: DirectoryObject, file_name: Callable[[str], str], fallback: bool
 ) -> PathObject:
-    '''
+    """
     Creates a file object for an archive file depending on the directory it is or
     will be created in, the recipe to construct the name from a version suffix, and
     a bool that denotes if alternative version suffixes should be considered.
-    '''
+    """
     version_suffixes = config.fs.archive_version_suffix
 
     if not isinstance(version_suffixes, list):
@@ -571,7 +623,8 @@ def _versioned_archive_file_object(
 
 
 class UploadFiles(DirectoryObject, metaclass=ABCMeta):
-    ''' Abstract base class for upload files. '''
+    """Abstract base class for upload files."""
+
     def __init__(self, upload_id: str, create: bool = False):
         self.logger = utils.get_logger(__name__, upload_id=upload_id)
 
@@ -584,44 +637,46 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
 
     @classmethod
     def file_area(cls):
-        '''
+        """
         Full path to where the upload files of this class are stored (i.e. either
         staging or public file area).
-        '''
+        """
         raise NotImplementedError()
 
     @property
     def external_os_path(self):
-        '''
+        """
         Full path to where the upload files of this class are stored on the server.
         This is equal to `self.os_path` if no external path substitutes for staging
         and public area are configured. This is helpful, when nomad is run in a container
         and the mounted path used by nomad are different from the actual paths on the
         host server.
-        '''
+        """
         raise NotImplementedError()
 
     @classmethod
     def base_folder_for(cls, upload_id: str) -> str:
-        '''
+        """
         Full path to the base folder for the upload files (of this class) for the
         specified upload_id.
-        '''
+        """
         os_path = cls.file_area()
         if config.fs.prefix_size:
-            os_path = os.path.join(os_path, upload_id[:config.fs.prefix_size])
+            os_path = os.path.join(os_path, upload_id[: config.fs.prefix_size])
         os_path = os.path.join(os_path, upload_id)
         return os_path
 
     @classmethod
     def exists_for(cls, upload_id: str) -> bool:
-        '''
+        """
         If an UploadFiles object (of this class) has been created for this upload_id.
-        '''
+        """
         return os.path.exists(cls.base_folder_for(upload_id))
 
-    def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
-        ''' Casts to or creates corresponding staging upload files or returns None. '''
+    def to_staging_upload_files(
+        self, create: bool = False, include_archive: bool = False
+    ) -> 'StagingUploadFiles':
+        """Casts to or creates corresponding staging upload files or returns None."""
         raise NotImplementedError()
 
     @staticmethod
@@ -634,25 +689,30 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
             return None
 
     def is_empty(self) -> bool:
-        ''' If this upload has no content yet. '''
+        """If this upload has no content yet."""
         raise NotImplementedError()
 
     def raw_path_exists(self, path: str) -> bool:
-        '''
+        """
         Returns True if the specified path is a valid raw path (either file or directory)
-        '''
+        """
         raise NotImplementedError()
 
     def raw_path_is_file(self, path: str) -> bool:
-        '''
+        """
         Returns True if the specified path points to a file (rather than a directory).
-        '''
+        """
         raise NotImplementedError()
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
+        self,
+        path: str = '',
+        recursive=False,
+        files_only=False,
+        path_prefix=None,
+        depth: int = -1,
     ) -> Iterable[RawPathInfo]:
-        '''
+        """
         Returns an iterable of RawPathInfo, one for each element (file or folder) in
         the directory specified by `path`. If `recursive` is set to True, subdirectories are
         also crawled. If `files_only` is set, only the file objects found are returned.
@@ -662,29 +722,31 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         with a specific prefix.
 
         The `depth` argument can be used to limit the depth of the recursion.
-        '''
+        """
         raise NotImplementedError()
 
     def raw_file(self, file_path: str, *args, **kwargs) -> IO:
-        '''
+        """
         Opens a raw file and returns a file-like object. Additional args, kwargs are
         delegated to the respective `open` call.
         Arguments:
             file_path: The path to the file relative to the upload.
         Raises:
             KeyError: If the file does not exist.
-        '''
+        """
         raise NotImplementedError()
 
     def raw_file_size(self, file_path: str) -> int:
-        '''
+        """
         Returns:
             The size of the given raw file.
-        '''
+        """
         raise NotImplementedError()
 
     def raw_file_mime_type(self, file_path: str) -> str:
-        assert self.raw_path_is_file(file_path), 'Provided path does not specify a file, or is invalid.'
+        assert self.raw_path_is_file(
+            file_path
+        ), 'Provided path does not specify a file, or is invalid.'
         raw_file = self.raw_file(file_path, 'br')
         buffer = raw_file.read(2048)
         mime_type = magic.from_buffer(buffer, mime=True)
@@ -696,15 +758,17 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
     def scandir(self, path: str = '', depth: int = -1):
         raise NotImplementedError()
 
-    def read_archive(self, entry_id: str, use_blocked_toc: bool = True) -> ArchiveReader:
-        '''
+    def read_archive(
+        self, entry_id: str, use_blocked_toc: bool = True
+    ) -> ArchiveReader:
+        """
         Returns an :class:`nomad.archive.ArchiveReader` that contains the
         given entry_id.
-        '''
+        """
         raise NotImplementedError()
 
     def close(self):
-        ''' Release possibly held system resources (e.g. file handles). '''
+        """Release possibly held system resources (e.g. file handles)."""
         pass
 
     def delete(self) -> None:
@@ -717,25 +781,33 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
                     os.rmdir(parent_directory)
                 except Exception as e:
                     utils.get_logger(__name__).error(
-                        'could not remove empty prefix dir', directory=parent_directory, exc_info=e)
+                        'could not remove empty prefix dir',
+                        directory=parent_directory,
+                        exc_info=e,
+                    )
 
-    def files_to_bundle(self, export_settings: BundleExportSettings) -> Iterable[FileSource]:
-        '''
+    def files_to_bundle(
+        self, export_settings: BundleExportSettings
+    ) -> Iterable[FileSource]:
+        """
         A generator of :class:`FileSource` objects, defining the files/folders to be included in an
         upload bundle when *exporting*. The arguments allows for further filtering of what to include.
 
         Note, this only yields files to copy from the regular upload directory, not "special" files,
         like the bundle_info.json file, which is created by the :class:`BundleExporter`.
-        '''
+        """
         raise NotImplementedError()
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource, import_settings: BundleImportSettings) -> Iterable[FileSource]:
-        '''
+        cls,
+        bundle_file_source: BrowsableFileSource,
+        import_settings: BundleImportSettings,
+    ) -> Iterable[FileSource]:
+        """
         Returns an Iterable of :class:`FileSource`, defining the files/folders to be included in an
         upload bundle when *importing*. Only the files specified by the import_settings are included.
-        '''
+        """
         raise NotImplementedError()
 
 
@@ -760,7 +832,9 @@ class StagingUploadFiles(UploadFiles):
 
         return self.os_path.replace(config.fs.staging, config.fs.staging_external)
 
-    def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
+    def to_staging_upload_files(
+        self, create: bool = False, include_archive: bool = False
+    ) -> 'StagingUploadFiles':
         return self
 
     @property
@@ -776,12 +850,16 @@ class StagingUploadFiles(UploadFiles):
             raise KeyError(path_object.os_path)
 
     def is_empty(self) -> bool:
-        return not os.path.exists(self._raw_dir.os_path) or not os.listdir(self._raw_dir.os_path)
+        return not os.path.exists(self._raw_dir.os_path) or not os.listdir(
+            self._raw_dir.os_path
+        )
 
     def raw_path_exists(self, path: str) -> bool:
         if not is_safe_relative_path(path):
             return False
-        return os.path.exists(os.path.abspath(os.path.join(self._raw_dir.os_path, path)))
+        return os.path.exists(
+            os.path.abspath(os.path.join(self._raw_dir.os_path, path))
+        )
 
     def raw_path_is_file(self, path: str) -> bool:
         if not is_safe_relative_path(path):
@@ -793,7 +871,12 @@ class StagingUploadFiles(UploadFiles):
         os.makedirs(os.path.join(self._raw_dir.os_path, path))
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
+        self,
+        path: str = '',
+        recursive=False,
+        files_only=False,
+        path_prefix=None,
+        depth: int = -1,
     ) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path) or depth == 0:
             return
@@ -801,7 +884,12 @@ class StagingUploadFiles(UploadFiles):
         if not os.path.isdir(os_path):
             is_file = os.path.isfile(os_path)
             if is_file:
-                yield RawPathInfo(path=path, is_file=True, size=os.stat(os_path).st_size, access='unpublished')
+                yield RawPathInfo(
+                    path=path,
+                    is_file=True,
+                    size=os.stat(os_path).st_size,
+                    access='unpublished',
+                )
             return
         for element_name in sorted(os.listdir(os_path)):
             element_raw_path = os.path.join(path, element_name)
@@ -811,10 +899,13 @@ class StagingUploadFiles(UploadFiles):
             if not is_file:
                 # Crawl sub directory.
                 for sub_path_info in self.raw_directory_list(
-                        element_raw_path, True, files_only, depth=depth - 1):
+                    element_raw_path, True, files_only, depth=depth - 1
+                ):
                     if sub_path_info.is_file:
                         dir_size += sub_path_info.size
-                    if recursive and (not path_prefix or sub_path_info.path.startswith(path_prefix)):
+                    if recursive and (
+                        not path_prefix or sub_path_info.path.startswith(path_prefix)
+                    ):
                         yield sub_path_info
 
             if not files_only or is_file:
@@ -824,7 +915,8 @@ class StagingUploadFiles(UploadFiles):
                         path=element_raw_path,
                         is_file=is_file,
                         size=size,
-                        access='unpublished')
+                        access='unpublished',
+                    )
 
     def scandir(self, path: str = '', depth: int = -1):
         raise NotImplementedError()
@@ -842,7 +934,7 @@ class StagingUploadFiles(UploadFiles):
         return self._raw_dir.join_file(file_path)
 
     def write_archive(self, entry_id: str, data: Any) -> int:
-        ''' Writes the data as archive file and returns the archive file size. '''
+        """Writes the data as archive file and returns the archive file size."""
         archive_file_object = self._archive_file_object(entry_id)
         try:
             write_archive(archive_file_object.os_path, 1, data=[(entry_id, data)])
@@ -855,9 +947,14 @@ class StagingUploadFiles(UploadFiles):
 
         return archive_file_object.size
 
-    def read_archive(self, entry_id: str, use_blocked_toc: bool = True) -> ArchiveReader:
+    def read_archive(
+        self, entry_id: str, use_blocked_toc: bool = True
+    ) -> ArchiveReader:
         try:
-            return read_archive(self._archive_file_object(entry_id, True).os_path, use_blocked_toc=use_blocked_toc)
+            return read_archive(
+                self._archive_file_object(entry_id, True).os_path,
+                use_blocked_toc=use_blocked_toc,
+            )
 
         except FileNotFoundError:
             raise KeyError(entry_id)
@@ -866,12 +963,18 @@ class StagingUploadFiles(UploadFiles):
         def versioned_file_name(version_suffix):
             return f'{entry_id}{version_suffix}.msg'
 
-        return _versioned_archive_file_object(self._archive_dir, versioned_file_name, fallback=fallback)
+        return _versioned_archive_file_object(
+            self._archive_dir, versioned_file_name, fallback=fallback
+        )
 
     def add_rawfiles(
-            self, path: str, target_dir: str = '', cleanup_source_file_and_dir: bool = False,
-            updated_files: Set[str] = None) -> None:
-        '''
+        self,
+        path: str,
+        target_dir: str = '',
+        cleanup_source_file_and_dir: bool = False,
+        updated_files: Set[str] = None,
+    ) -> None:
+        """
         Adds the file or folder specified by `path` to this upload, in the raw directory
         specified by `target_dir`. If `path` denotes a zip or tar archive file, it will
         first be extracted to a temporary directory. The file(s) are *merged* with the
@@ -896,7 +999,7 @@ class StagingUploadFiles(UploadFiles):
                 to add is stored in a temporary directory.
             updated_files: An optional set of paths. If provided with the call, the raw
                 path of all files added or updated by the operation will be added to this set.
-        '''
+        """
         tmp_dir = None
         try:
             assert not self.is_frozen
@@ -916,7 +1019,9 @@ class StagingUploadFiles(UploadFiles):
                         tf.extractall(tmp_dir)
                 elif decompress == 'error':
                     # Unknown / bad file format
-                    assert False, 'Cannot extract file. Bad file format or file extension?'
+                    assert (
+                        False
+                    ), 'Cannot extract file. Bad file format or file extension?'
 
             # Determine what to merge
             elements_to_merge: Iterable[Tuple[str, List[str], List[str]]] = []
@@ -941,12 +1046,18 @@ class StagingUploadFiles(UploadFiles):
                 elements = dirs + files
                 for element in elements:
                     element_source_path = os.path.join(source_root, element)
-                    element_relative_path = os.path.relpath(element_source_path, source_dir)
-                    element_target_path = os.path.join(os_target_dir, element_relative_path)
+                    element_relative_path = os.path.relpath(
+                        element_source_path, source_dir
+                    )
+                    element_target_path = os.path.join(
+                        os_target_dir, element_relative_path
+                    )
                     if os.path.islink(element_source_path):
                         continue  # Skip links, could pose security risk
                     if os.path.exists(element_target_path):
-                        if os.path.isfile(element_target_path) != os.path.isfile(element_source_path):
+                        if os.path.isfile(element_target_path) != os.path.isfile(
+                            element_source_path
+                        ):
                             assert False, f'Cannot merge a file with a directory or vice versa: {element_relative_path}'
 
                     # Copy or move the element
@@ -963,7 +1074,9 @@ class StagingUploadFiles(UploadFiles):
                             # Copy the file
                             shutil.copyfile(element_source_path, element_target_path)
                         if updated_files is not None:
-                            updated_files.add(os.path.join(target_dir, element_relative_path))
+                            updated_files.add(
+                                os.path.join(target_dir, element_relative_path)
+                            )
         except Exception:
             if cleanup_source_file_and_dir:
                 parent_dir = os.path.dirname(path)
@@ -1008,7 +1121,13 @@ class StagingUploadFiles(UploadFiles):
             # Special case - deleting everything, i.e. the entire raw folder. Need to recreate.
             os.makedirs(os_path)
 
-    def copy_or_move_rawfile(self, path_to_existing_file, path_to_target_file, copy_or_move, updated_files: Set[str] = None):
+    def copy_or_move_rawfile(
+        self,
+        path_to_existing_file,
+        path_to_target_file,
+        copy_or_move,
+        updated_files: Set[str] = None,
+    ):
         assert is_safe_relative_path(path_to_existing_file)
         assert is_safe_relative_path(path_to_target_file)
         os_path_exisitng = os.path.join(self._raw_dir.os_path, path_to_existing_file)
@@ -1037,10 +1156,10 @@ class StagingUploadFiles(UploadFiles):
 
     @lru_cache()
     def metadata_file_cached(self, path_dir: str = ''):
-        '''
+        """
         Gets the content of the metadata file located in the directory defined by `path_dir`.
         The `path_dir` should be relative to the `raw` folder.
-        '''
+        """
         path_incl_filename = os.path.join(path_dir, config.process.metadata_file_name)
         for ext in config.process.metadata_file_extensions:
             path_incl_filename_ext = path_incl_filename + '.' + ext
@@ -1057,18 +1176,26 @@ class StagingUploadFiles(UploadFiles):
                 except Exception as e:
                     # ignore the file contents if the file is not parsable, just warn.
                     self.logger.warn(
-                        'could not parse nomad.yaml/json', path=path_incl_filename_ext, exc_info=e)
+                        'could not parse nomad.yaml/json',
+                        path=path_incl_filename_ext,
+                        exc_info=e,
+                    )
         return {}
 
     @property
     def is_frozen(self) -> bool:
-        ''' Returns True if this upload is already *bagged*. '''
+        """Returns True if this upload is already *bagged*."""
         return self._frozen_file.exists()
 
     def pack(
-            self, entries: List[datamodel.EntryMetadata], with_embargo: bool, create: bool = True,
-            include_raw: bool = True, include_archive: bool = True) -> None:
-        '''
+        self,
+        entries: List[datamodel.EntryMetadata],
+        with_embargo: bool,
+        create: bool = True,
+        include_raw: bool = True,
+        include_archive: bool = True,
+    ) -> None:
+        """
         Packs raw and/or archive files, to create the contents in the public file area.
         This method should be called when an upload is published, or when a
         published upload has been reprocessed.
@@ -1085,11 +1212,11 @@ class StagingUploadFiles(UploadFiles):
             create: if the public upload files directory should be created. True by default.
             include_raw: determines if the raw data should be packed. True by default.
             include_archive: determines of the archive data should be packed. True by default.
-        '''
+        """
         self.logger.info('started to pack upload')
 
         # freeze the upload
-        assert not self.is_frozen, "Cannot pack an upload that is packed, or packing."
+        assert not self.is_frozen, 'Cannot pack an upload that is packed, or packing.'
         with open(self._frozen_file.os_path, 'wt') as f:
             f.write('frozen')
 
@@ -1098,18 +1225,26 @@ class StagingUploadFiles(UploadFiles):
             assert entry.with_embargo == with_embargo
 
         access = 'restricted' if with_embargo else 'public'
-        other_access = 'public' if with_embargo else 'restricted'  # The "inverted" access
+        other_access = (
+            'public' if with_embargo else 'restricted'
+        )  # The "inverted" access
 
         # Get or create a target dir in the public area
-        target_dir = DirectoryObject(PublicUploadFiles.base_folder_for(self.upload_id), create=create)
+        target_dir = DirectoryObject(
+            PublicUploadFiles.base_folder_for(self.upload_id), create=create
+        )
         if os.listdir(target_dir.os_path):
             # Target dir contains files. Check that the target access is identical
-            assert PublicUploadFiles(self.upload_id).access == access, 'Inconsistent access'
+            assert (
+                PublicUploadFiles(self.upload_id).access == access
+            ), 'Inconsistent access'
 
         # zip archives
         if include_archive:
             with utils.timer(self.logger, 'packed msgpack archive') as log_data:
-                number_of_entries = self._pack_archive_files(target_dir, entries, access, other_access)
+                number_of_entries = self._pack_archive_files(
+                    target_dir, entries, access, other_access
+                )
                 log_data.update(number_of_entries=number_of_entries)
 
         # zip raw files
@@ -1118,7 +1253,12 @@ class StagingUploadFiles(UploadFiles):
                 self._pack_raw_files(target_dir, access, other_access)
 
     def _pack_archive_files(
-            self, target_dir: DirectoryObject, entries: List[datamodel.EntryMetadata], access: str, other_access: str):
+        self,
+        target_dir: DirectoryObject,
+        entries: List[datamodel.EntryMetadata],
+        access: str,
+        other_access: str,
+    ):
         number_of_entries = len(entries)
 
         def create_iterator():
@@ -1135,7 +1275,9 @@ class StagingUploadFiles(UploadFiles):
             file_object = PublicUploadFiles._create_msg_file_object(target_dir, access)
             write_archive(file_object.os_path, number_of_entries, create_iterator())
             # Remove the file with the opposite access, if it exists
-            other_file_object = PublicUploadFiles._create_msg_file_object(target_dir, other_access)
+            other_file_object = PublicUploadFiles._create_msg_file_object(
+                target_dir, other_access
+            )
             if other_file_object.exists():
                 other_file_object.delete()  # This file should be empty, if it exists
         except Exception as e:
@@ -1144,9 +1286,13 @@ class StagingUploadFiles(UploadFiles):
 
         return number_of_entries
 
-    def _pack_raw_files(self, target_dir: DirectoryObject, access: str, other_access: str):
+    def _pack_raw_files(
+        self, target_dir: DirectoryObject, access: str, other_access: str
+    ):
         try:
-            raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(target_dir, access)
+            raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(
+                target_dir, access
+            )
             with zipfile.ZipFile(raw_zip_file_object.os_path, mode='w') as raw_zip:
                 for path_info in self.raw_directory_list(recursive=True):
                     basename = os.path.basename(path_info.path)
@@ -1155,38 +1301,46 @@ class StagingUploadFiles(UploadFiles):
                             continue  # Skip the unstripped POTCAR files when publishing
                         if basename.endswith('.stripped.stripped'):
                             continue  # Skip redundantly stripped POTCAR files (created due to bug #979) when publishing
-                    raw_zip.write(self._raw_dir.join_file(path_info.path).os_path, path_info.path)
+                    raw_zip.write(
+                        self._raw_dir.join_file(path_info.path).os_path, path_info.path
+                    )
             # Remove the zip file with the opposite access, if it exists
-            other_raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(target_dir, other_access)
+            other_raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(
+                target_dir, other_access
+            )
             if other_raw_zip_file_object.exists():
                 other_raw_zip_file_object.delete()  # This file should be empty, if it exists
         except Exception as e:
             self.logger.error('exception during packing raw files', exc_info=e)
             raise
 
-    def entry_files(self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True) -> Iterable[str]:
-        '''
+    def entry_files(
+        self, mainfile: str, with_mainfile: bool = True, with_cutoff: bool = True
+    ) -> Iterable[str]:
+        """
         Returns all the auxfiles and mainfile for a given mainfile. This implements
         nomad's logic about what is part of an entry and what not. The mainfile
         is the first element, the rest is sorted.
         Arguments:
             mainfile: The mainfile path relative to upload
             with_mainfile: Do include the mainfile, default is True
-        '''
+        """
         mainfile_object = self._raw_dir.join_file(mainfile)
         if not mainfile_object.exists():
             raise KeyError(mainfile)
 
         mainfile_basename = os.path.basename(mainfile)
         entry_dir = os.path.dirname(mainfile_object.os_path)
-        entry_relative_dir = entry_dir[len(self._raw_dir.os_path) + 1:]
+        entry_relative_dir = entry_dir[len(self._raw_dir.os_path) + 1 :]
 
         file_count = 0
         aux_files: List[str] = []
         dir_elements = os.listdir(entry_dir)
         dir_elements.sort()
         for dir_element in dir_elements:
-            if dir_element != mainfile_basename and os.path.isfile(os.path.join(entry_dir, dir_element)):
+            if dir_element != mainfile_basename and os.path.isfile(
+                os.path.join(entry_dir, dir_element)
+            ):
                 aux_files.append(os.path.join(entry_relative_dir, dir_element))
                 file_count += 1
 
@@ -1204,7 +1358,7 @@ class StagingUploadFiles(UploadFiles):
             return aux_files
 
     def entry_hash(self, mainfile: str, mainfile_key: str) -> str:
-        '''
+        """
         Calculates a hash for the given entry based on file contents and aux file contents.
         Arguments:
             mainfile: The mainfile path relative to the upload that identifies the entry in
@@ -1214,7 +1368,7 @@ class StagingUploadFiles(UploadFiles):
             The calculated hash
         Raises:
             KeyError: If the mainfile does not exist.
-        '''
+        """
         hash = hashlib.sha512()
         for filepath in self.entry_files(mainfile):
             with open(self._raw_dir.join_file(filepath).os_path, 'rb') as f:
@@ -1224,7 +1378,9 @@ class StagingUploadFiles(UploadFiles):
             hash.update(mainfile_key.encode('utf8'))
         return utils.make_websave(hash)
 
-    def files_to_bundle(self, export_settings: BundleExportSettings) -> Iterable[FileSource]:
+    def files_to_bundle(
+        self, export_settings: BundleExportSettings
+    ) -> Iterable[FileSource]:
         # Defines files for upload bundles of staging uploads.
         if export_settings.include_raw_files:
             yield DiskFileSource(self.os_path, 'raw')
@@ -1233,7 +1389,10 @@ class StagingUploadFiles(UploadFiles):
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource, import_settings: BundleImportSettings) -> Iterable[FileSource]:
+        cls,
+        bundle_file_source: BrowsableFileSource,
+        import_settings: BundleImportSettings,
+    ) -> Iterable[FileSource]:
         # Files to import for a staging upload
         if import_settings.include_raw_files:
             yield bundle_file_source.sub_source('raw')
@@ -1244,7 +1403,6 @@ class StagingUploadFiles(UploadFiles):
 
 
 class PublicUploadFiles(UploadFiles):
-
     def __init__(self, upload_id: str, create: bool = False):
         super().__init__(upload_id, create)
         self._directories: Dict[str, Dict[str, RawPathInfo]] = None
@@ -1275,7 +1433,7 @@ class PublicUploadFiles(UploadFiles):
 
     @property
     def access(self):
-        '''
+        """
         Which "access" is used, either 'public' (uploads without embargo) or 'restricted'
         (uploads with embargo). This is reflected in the names of the files holding the
         raw data and the archive data. The reason for this is so that it should be easy to
@@ -1286,20 +1444,33 @@ class PublicUploadFiles(UploadFiles):
         a KeyError will be thrown (this should not happen if the upload is correctly packed).
         The inspection of the files is only done on the first call, and the cached result
         is used in subsequent calls. The only way to change the access is to call :func:`re_pack`.
-        '''
+        """
         if self._access:
             return self._access
         # Determine access by inspecting the files
         files_found = False
         for access in ('public', 'restricted'):
-            raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(self, access)
-            archive_msg_file_object = PublicUploadFiles._create_msg_file_object(self, access)
-            found = (raw_zip_file_object.exists() and raw_zip_file_object.size > empty_zip_file_size) or (
-                archive_msg_file_object.exists() and archive_msg_file_object.size > empty_archive_file_size)
+            raw_zip_file_object = PublicUploadFiles._create_raw_zip_file_object(
+                self, access
+            )
+            archive_msg_file_object = PublicUploadFiles._create_msg_file_object(
+                self, access
+            )
+            found = (
+                raw_zip_file_object.exists()
+                and raw_zip_file_object.size > empty_zip_file_size
+            ) or (
+                archive_msg_file_object.exists()
+                and archive_msg_file_object.size > empty_archive_file_size
+            )
             if found:
                 if files_found:
-                    self._access = self._raw_zip_file_object = self._archive_msg_file_object = None
-                    raise KeyError('Inconsistency: both public and restricted files found')
+                    self._access = (
+                        self._raw_zip_file_object
+                    ) = self._archive_msg_file_object = None
+                    raise KeyError(
+                        'Inconsistency: both public and restricted files found'
+                    )
                 files_found = True
                 self._raw_zip_file_object = raw_zip_file_object
                 self._archive_msg_file_object = archive_msg_file_object
@@ -1309,15 +1480,17 @@ class PublicUploadFiles(UploadFiles):
         return self._access
 
     @staticmethod
-    def _create_raw_zip_file_object(target_dir: DirectoryObject, access: str) -> PathObject:
+    def _create_raw_zip_file_object(
+        target_dir: DirectoryObject, access: str
+    ) -> PathObject:
         return target_dir.join_file(f'raw-{access}.plain.zip')
 
     def raw_zip_file_object(self) -> PathObject:
-        '''
+        """
         Gets the raw zip file, either public or restricted, depending on which one is used.
         If both public and restricted files exist, or if none of them exist, a KeyError will
         be thrown.
-        '''
+        """
         self.access  # Invoke to initialize
         return self._raw_zip_file_object
 
@@ -1333,11 +1506,15 @@ class PublicUploadFiles(UploadFiles):
     @property
     def missing_raw_files(self):
         if self._missing_raw_files is None:
-            self._missing_raw_files = not os.path.exists(self.raw_zip_file_object().os_path)
+            self._missing_raw_files = not os.path.exists(
+                self.raw_zip_file_object().os_path
+            )
         return self._missing_raw_files
 
     @staticmethod
-    def _create_msg_file_object(target_dir: DirectoryObject, access: str, fallback: bool = False) -> PathObject:
+    def _create_msg_file_object(
+        target_dir: DirectoryObject, access: str, fallback: bool = False
+    ) -> PathObject:
         def versioned_file_name(version_suffix):
             return f'archive-{access}{version_suffix}.msg.msg'
 
@@ -1348,7 +1525,9 @@ class PublicUploadFiles(UploadFiles):
             if not self._archive_msg_file.is_closed():
                 return self._archive_msg_file
 
-        msg_file_object = PublicUploadFiles._create_msg_file_object(self, self.access, fallback=True)
+        msg_file_object = PublicUploadFiles._create_msg_file_object(
+            self, self.access, fallback=True
+        )
 
         if not msg_file_object.exists():
             raise FileNotFoundError()
@@ -1359,7 +1538,9 @@ class PublicUploadFiles(UploadFiles):
 
         return archive
 
-    def to_staging_upload_files(self, create: bool = False, include_archive: bool = False) -> 'StagingUploadFiles':
+    def to_staging_upload_files(
+        self, create: bool = False, include_archive: bool = False
+    ) -> 'StagingUploadFiles':
         exists = StagingUploadFiles.exists_for(self.upload_id)
         if exists:
             if create:
@@ -1386,10 +1567,10 @@ class PublicUploadFiles(UploadFiles):
         return staging_upload_files
 
     def _parse_content(self):
-        '''
+        """
         Parses the content of files and folders and caches it in self._directories for
         faster future access.
-        '''
+        """
         if self._directories is None:
             self._directories = dict()
             self._directories[''] = {}  # Root folder
@@ -1416,10 +1597,8 @@ class PublicUploadFiles(UploadFiles):
                     if file_name:
                         directory_content = self._directories[directory_path]
                         directory_content[file_name] = RawPathInfo(
-                            path=path,
-                            is_file=True,
-                            size=size,
-                            access=self.access)
+                            path=path, is_file=True, size=size, access=self.access
+                        )
                         self._directories[path] = directory_content[file_name]
             except FileNotFoundError:
                 pass
@@ -1428,7 +1607,8 @@ class PublicUploadFiles(UploadFiles):
                 basename = os.path.basename(path)
                 directory_path = os.path.dirname(path)
                 self._directories[directory_path][basename] = RawPathInfo(
-                    path=path, is_file=False, size=size, access=self.access)
+                    path=path, is_file=False, size=size, access=self.access
+                )
 
     def is_empty(self) -> bool:
         self._parse_content()
@@ -1438,7 +1618,9 @@ class PublicUploadFiles(UploadFiles):
         if not is_safe_relative_path(path):
             return False
         if self.missing_raw_files:
-            return not path  # We consider the empty path (i.e. root) to always "exists".
+            return (
+                not path
+            )  # We consider the empty path (i.e. root) to always "exists".
         self._parse_content()
         explicit_directory_path = path.endswith(os.path.sep)
         path = path.rstrip(os.path.sep)
@@ -1470,7 +1652,12 @@ class PublicUploadFiles(UploadFiles):
         return False
 
     def raw_directory_list(
-            self, path: str = '', recursive=False, files_only=False, path_prefix=None, depth: int = -1
+        self,
+        path: str = '',
+        recursive=False,
+        files_only=False,
+        path_prefix=None,
+        depth: int = -1,
     ) -> Iterable[RawPathInfo]:
         if not is_safe_relative_path(path) or depth == 0:
             return
@@ -1488,8 +1675,11 @@ class PublicUploadFiles(UploadFiles):
                         yield path_info
                 if recursive and not path_info.is_file:
                     for sub_path_info in self.raw_directory_list(
-                            path_info.path, recursive, files_only, depth=depth - 1):
-                        if not path_prefix or sub_path_info.path.startswith(path_prefix):
+                        path_info.path, recursive, files_only, depth=depth - 1
+                    ):
+                        if not path_prefix or sub_path_info.path.startswith(
+                            path_prefix
+                        ):
                             yield sub_path_info
 
     def scandir(self, path: str = '', depth: int = -1):
@@ -1499,7 +1689,7 @@ class PublicUploadFiles(UploadFiles):
         assert is_safe_relative_path(file_path)
         mode = kwargs.get('mode') if len(args) == 0 else args[0]
         if 'mode' in kwargs:
-            del(kwargs['mode'])
+            del kwargs['mode']
         mode = mode if mode else 'rb'
 
         try:
@@ -1542,7 +1732,7 @@ class PublicUploadFiles(UploadFiles):
         raise KeyError(entry_id)
 
     def re_pack(self, with_embargo: bool) -> None:
-        '''
+        """
         Repacks the files when changing the embargo flag on the upload. That is: when lifting the
         embargo the file names of the raw zip file and the archive file change from containing
         the keyword "restricted" to "public". Adding embargo to a non-embargoed published
@@ -1550,19 +1740,25 @@ class PublicUploadFiles(UploadFiles):
         files are just renamed, so this should be a rather quick operation. The upload must
         be correctly packed (i.e. there cannot be non-empty public and restricted files
         at the same time).
-        '''
-        if (self.access == 'restricted' and with_embargo) or (self.access == 'public' and not with_embargo):
+        """
+        if (self.access == 'restricted' and with_embargo) or (
+            self.access == 'public' and not with_embargo
+        ):
             return  # Nothing to do
         self.close()
         new_access = 'restricted' if with_embargo else 'public'
         msg_file_object = PublicUploadFiles._create_msg_file_object(self, self.access)
-        msg_file_object_new = PublicUploadFiles._create_msg_file_object(self, new_access)
+        msg_file_object_new = PublicUploadFiles._create_msg_file_object(
+            self, new_access
+        )
         if msg_file_object.exists():
             if msg_file_object_new.exists():
                 msg_file_object_new.delete()  # We have checked that the file is empty anyway
             os.rename(msg_file_object.os_path, msg_file_object_new.os_path)
         raw_zip_file_object = self.raw_zip_file_object()
-        raw_zip_file_object_new = PublicUploadFiles._create_raw_zip_file_object(self, new_access)
+        raw_zip_file_object_new = PublicUploadFiles._create_raw_zip_file_object(
+            self, new_access
+        )
         if raw_zip_file_object.exists():
             if raw_zip_file_object_new.exists():
                 raw_zip_file_object_new.delete()  # We have checked that the file is empty anyway
@@ -1573,21 +1769,32 @@ class PublicUploadFiles(UploadFiles):
         self._raw_zip_file = self._raw_zip_file_object = None
         self._archive_msg_file = self._archive_msg_file_object = None
 
-    def files_to_bundle(self, export_settings: BundleExportSettings) -> Iterable[FileSource]:
+    def files_to_bundle(
+        self, export_settings: BundleExportSettings
+    ) -> Iterable[FileSource]:
         # Defines files for upload bundles of published uploads.
         for filename in sorted(os.listdir(self.os_path)):
             if filename.startswith('raw-') and export_settings.include_raw_files:
                 yield DiskFileSource(self.os_path, filename)
-            if filename.startswith('archive-') and export_settings.include_archive_files:
+            if (
+                filename.startswith('archive-')
+                and export_settings.include_archive_files
+            ):
                 yield DiskFileSource(self.os_path, filename)
 
     @classmethod
     def files_from_bundle(
-            cls, bundle_file_source: BrowsableFileSource, import_settings: BundleImportSettings) -> Iterable[FileSource]:
+        cls,
+        bundle_file_source: BrowsableFileSource,
+        import_settings: BundleImportSettings,
+    ) -> Iterable[FileSource]:
         for filename in bundle_file_source.directory_list(''):
             if filename.startswith('raw-') and import_settings.include_raw_files:
                 yield bundle_file_source.sub_source(filename)
-            if filename.startswith('archive-') and import_settings.include_archive_files:
+            if (
+                filename.startswith('archive-')
+                and import_settings.include_archive_files
+            ):
                 yield bundle_file_source.sub_source(filename)
             if filename == bundle_info_filename and import_settings.include_bundle_info:
                 yield bundle_file_source.sub_source(filename)

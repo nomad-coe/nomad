@@ -28,15 +28,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-'''
+"""
 Allows to create pydantic models from section definitions.
-'''
+"""
 
 from typing import cast, Type
 from pydantic import create_model, Field, BaseConfig, BaseModel
 from datetime import datetime
 
-from .metainfo import DefinitionAnnotation, Definition, Section, Quantity, Datetime, MEnum, Capitalized, JSON
+from .metainfo import (
+    DefinitionAnnotation,
+    Definition,
+    Section,
+    Quantity,
+    Datetime,
+    MEnum,
+    Capitalized,
+    JSON,
+)
 
 
 class _OrmConfig(BaseConfig):
@@ -44,19 +53,20 @@ class _OrmConfig(BaseConfig):
 
 
 class PydanticModel(DefinitionAnnotation):
-    '''
+    """
     This annotation class can be used to extend metainfo sections. It will create a
     pydantic model from the section definition. Its a SectionAnnotation and allows
     to create pydantic model instances from section instances.
 
     Attributes:
         model: The pydantic model that represents the section definition.
-    '''
+    """
+
     def __init__(self):
         self.model: Type[BaseModel] = None
 
     def to_pydantic(self, section):
-        ''' Returns the pydantic model instance for the given section. '''
+        """Returns the pydantic model instance for the given section."""
         return self.model.from_orm(section)
 
     def init_annotation(self, definition: Definition):
@@ -76,7 +86,9 @@ class PydanticModel(DefinitionAnnotation):
             else:
                 pydantic_type = quantity.type
 
-            return pydantic_type, Field(quantity.default, description=quantity.description)
+            return pydantic_type, Field(
+                quantity.default, description=quantity.description
+            )
 
         fields = {
             name: create_field(quantity)

@@ -28,22 +28,32 @@ from nomad.datamodel.datamodel import RFC3161Timestamp
 from nomad.processing.data import get_rfc3161_token, Entry
 
 
-@pytest.mark.parametrize('server,cert,result', [
-    pytest.param('http://zeitstempel.dfn.de', None, True, id='zeitstempel.dfn.de'),
-    pytest.param('http://timestamp.sectigo.com', None, True, id='timestamp.sectigo.com'),
-    pytest.param('https://freetsa.org/tsr', 'https://freetsa.org/files/tsa.crt', True, id='freetsa.org/tsr'),
-    # The digicert server cannot be reached: the affected tests are skipped temporarily
-    # pytest.param(
-    #     'http://timestamp.digicert.com/',
-    #     'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',
-    #     True,
-    #     id='timestamp.digicert.com-correct-cert'),
-    # pytest.param(
-    #     'http://timestamp.digicert.com/',
-    #     'https://freetsa.org/files/tsa.crt',
-    #     False,
-    #     id='timestamp.digicert.com-wrong-cert'),
-])
+@pytest.mark.parametrize(
+    'server,cert,result',
+    [
+        pytest.param('http://zeitstempel.dfn.de', None, True, id='zeitstempel.dfn.de'),
+        pytest.param(
+            'http://timestamp.sectigo.com', None, True, id='timestamp.sectigo.com'
+        ),
+        pytest.param(
+            'https://freetsa.org/tsr',
+            'https://freetsa.org/files/tsa.crt',
+            True,
+            id='freetsa.org/tsr',
+        ),
+        # The digicert server cannot be reached: the affected tests are skipped temporarily
+        # pytest.param(
+        #     'http://timestamp.digicert.com/',
+        #     'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',
+        #     True,
+        #     id='timestamp.digicert.com-correct-cert'),
+        # pytest.param(
+        #     'http://timestamp.digicert.com/',
+        #     'https://freetsa.org/files/tsa.crt',
+        #     False,
+        #     id='timestamp.digicert.com-wrong-cert'),
+    ],
+)
 def test_rfc3161ng_timestamp(server, cert, result, monkeysession):
     # this is due to requests being used by rfc3161ng
     # requests methods are modified in conftest.py which prohibits calling external servers
@@ -65,7 +75,8 @@ def test_rfc3161ng_timestamp(server, cert, result, monkeysession):
 def test_rfc3161ng_processing(published, monkeypatch):
     entry_id = Entry.objects(upload_id=published.upload_id).first().entry_id
     file_path = published.upload_files._create_msg_file_object(
-        published.upload_files, published.upload_files.access, fallback=True).os_path
+        published.upload_files, published.upload_files.access, fallback=True
+    ).os_path
 
     with read_archive(file_path) as reader:
         archive = to_json(reader[entry_id])
@@ -77,7 +88,7 @@ def test_rfc3161ng_processing(published, monkeypatch):
         published.process_upload()
         published.publish_upload(embargo_length=12)
         try:
-            published.block_until_complete(interval=.01)
+            published.block_until_complete(interval=0.01)
         except Exception:
             pass
         with read_archive(file_path) as _reader:

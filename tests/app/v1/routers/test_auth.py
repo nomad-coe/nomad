@@ -23,11 +23,12 @@ from urllib.parse import urlencode
 def perform_get_token_test(client, http_method, status_code, username, password):
     if http_method == 'post':
         response = client.post(
-            'auth/token',
-            data=dict(username=username, password=password))
+            'auth/token', data=dict(username=username, password=password)
+        )
     else:
-        response = client.get('auth/token?%s' % urlencode(
-            dict(username=username, password=password)))
+        response = client.get(
+            'auth/token?%s' % urlencode(dict(username=username, password=password))
+        )
 
     assert response.status_code == status_code
 
@@ -57,19 +58,27 @@ def test_get_signature_token_unauthorized(client, invalid_user_auth):
 
 @pytest.mark.parametrize(
     'expires_in, status_code',
-    [(0, 422), (30 * 60, 200), (2 * 60 * 60, 200), (31 * 24 * 60 * 60, 422), (None, 422)])
+    [
+        (0, 422),
+        (30 * 60, 200),
+        (2 * 60 * 60, 200),
+        (31 * 24 * 60 * 60, 422),
+        (None, 422),
+    ],
+)
 def test_get_app_token(client, test_user_auth, expires_in, status_code):
     response = client.get(
-        'auth/app_token', headers=test_user_auth, params={'expires_in': expires_in})
+        'auth/app_token', headers=test_user_auth, params={'expires_in': expires_in}
+    )
     assert response.status_code == status_code
     if status_code == 200:
         assert response.json().get('app_token') is not None
 
 
 def test_get_app_token_unauthorized(client, invalid_user_auth):
-    response = client.get('auth/app_token', headers=None,
-                          params={'expires_in': 60})
+    response = client.get('auth/app_token', headers=None, params={'expires_in': 60})
     assert response.status_code == 401
-    response = client.get('auth/app_token', headers=invalid_user_auth,
-                          params={'expires_in': 60})
+    response = client.get(
+        'auth/app_token', headers=invalid_user_auth, params={'expires_in': 60}
+    )
     assert response.status_code == 401

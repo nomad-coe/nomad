@@ -27,11 +27,13 @@ _regex_form_a = re.compile(r'^(?:\.\.)?/entries/([^?]+)/(archive|raw)#([^?]+?)$'
 # ../upload/<upload_id>/archive/<entry_id>#<path>
 # /uploads/<upload_id>/archive/<entry_id>#<path>
 # <installation>/uploads/<upload_id>/archive/<entry_id>#<path>
-_regex_form_b = re.compile(r'^([^?]+?)?/uploads?/([\w=-]*)/?(archive|raw)/([^?]+?)#([^?]+?)$')
+_regex_form_b = re.compile(
+    r'^([^?]+?)?/uploads?/([\w=-]*)/?(archive|raw)/([^?]+?)#([^?]+?)$'
+)
 
 
 def parse_path(url: str, upload_id: str = None):
-    '''
+    """
     Parse a reference path.
 
     The upload_id of current upload is taken as the input to account for that the relative reference has no
@@ -41,7 +43,7 @@ def parse_path(url: str, upload_id: str = None):
     Returns:
         (installation, upload_id, entry_id_or_mainfile, kind, path): successfully parsed path
         None: fail to parse path
-    '''
+    """
 
     url_match = _regex_form_b.match(url)
     if not url_match:
@@ -77,7 +79,8 @@ def parse_path(url: str, upload_id: str = None):
     if kind == 'archive':
         if entry_id_or_mainfile.startswith('mainfile/'):
             entry_id_or_mainfile = utils.generate_entry_id(
-                other_upload_id, entry_id_or_mainfile.replace('mainfile/', ''))
+                other_upload_id, entry_id_or_mainfile.replace('mainfile/', '')
+            )
         elif '/' in entry_id_or_mainfile:  # should not contain '/' in entry_id
             return None
 

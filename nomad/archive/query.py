@@ -62,6 +62,7 @@ def _extract_key_and_index(match) -> Tuple[str, Union[Tuple[int, int], int]]:
 def _extract_child(archive_item, prop, index) -> Union[dict, list]:
     archive_child = archive_item[prop]
     from .storage_v2 import ArchiveList as ArchiveListNew
+
     is_list = isinstance(archive_child, (ArchiveListNew, ArchiveList, list))
 
     if index is None and is_list:
@@ -76,7 +77,7 @@ def _extract_child(archive_item, prop, index) -> Union[dict, list]:
             if index[0] == index[1]:
                 archive_child = [archive_child[index[0]]]
             else:
-                archive_child = archive_child[index[0]: index[1]]
+                archive_child = archive_child[index[0] : index[1]]
         else:
             archive_child = [archive_child[_fix_index(index, length)]]
 
@@ -84,17 +85,18 @@ def _extract_child(archive_item, prop, index) -> Union[dict, list]:
 
 
 class ArchiveQueryError(Exception):
-    '''
+    """
     An error that indicates that an archive query is either not valid or does not fit to
     the queried archive.
-    '''
+    """
+
     pass
 
 
 def query_archive(
-        f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict,
-        **kwargs) -> Dict:
-    '''
+    f_or_archive_reader: Union[str, ArchiveReader, BytesIO], query_dict: dict, **kwargs
+) -> Dict:
+    """
     Takes an open msg-pack based archive (either as str, reader, or BytesIO) and returns
     the archive as JSON serializable dictionary filtered based on the given required
     (query_dict) specification.
@@ -125,7 +127,7 @@ def query_archive(
         * recursive-resolve-inplace, includes whole subtree, resolves all refs recursively
             and replaces the ref with the resolved data
         * exclude (in combination with wildcard keys), replaces the value with null
-    '''
+    """
 
     if isinstance(f_or_archive_reader, ArchiveReader):
         return _load_data(query_dict, f_or_archive_reader)
@@ -134,18 +136,25 @@ def query_archive(
             return _load_data(query_dict, archive)
 
     else:
-        raise TypeError(f'{f_or_archive_reader} is neither a file-like nor ArchiveReader')
+        raise TypeError(
+            f'{f_or_archive_reader} is neither a file-like nor ArchiveReader'
+        )
 
 
 def _load_data(query_dict: Dict[str, Any], archive_item: ArchiveDict) -> Dict:
-    query_dict_with_fixed_ids = {utils.adjust_uuid_size(
-        key): value for key, value in query_dict.items()}
+    query_dict_with_fixed_ids = {
+        utils.adjust_uuid_size(key): value for key, value in query_dict.items()
+    }
     return filter_archive(query_dict_with_fixed_ids, archive_item, transform=to_json)
 
 
 def filter_archive(
-        required: Union[str, Dict[str, Any]], archive_item: Union[Dict, ArchiveDict, str],
-        transform: Callable, result_root: Dict = None, resolve_inplace: bool = False) -> Dict:
+    required: Union[str, Dict[str, Any]],
+    archive_item: Union[Dict, ArchiveDict, str],
+    transform: Callable,
+    result_root: Dict = None,
+    resolve_inplace: bool = False,
+) -> Dict:
     if archive_item is None:
         return None
 
@@ -164,14 +173,17 @@ def filter_archive(
         return transform(archive_item)
 
     if not isinstance(required, dict):
-        raise ArchiveQueryError('a value in required is neither dict not string directive')
+        raise ArchiveQueryError(
+            'a value in required is neither dict not string directive'
+        )
 
     if isinstance(archive_item, str):
         # The archive item is a reference, the required is still a dict, the references
         # needs to be resolved
         # TODO
         raise ArchiveQueryError(
-            f'resolving references in non partial archives is not yet implemented')
+            f'resolving references in non partial archives is not yet implemented'
+        )
 
     result: Dict[str, Any] = {}
     for key, val in required.items():
@@ -191,9 +203,12 @@ def filter_archive(
             archive_child = _extract_child(archive_item, key, index)
 
             from .storage_v2 import ArchiveList as ArchiveListNew
+
             if isinstance(archive_child, (ArchiveListNew, ArchiveList, list)):
-                result[key] = [filter_archive(
-                    val, item, transform=transform) for item in archive_child]
+                result[key] = [
+                    filter_archive(val, item, transform=transform)
+                    for item in archive_child
+                ]
             else:
                 result[key] = filter_archive(val, archive_child, transform=transform)
 

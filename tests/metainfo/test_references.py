@@ -22,8 +22,19 @@ import os.path
 
 from nomad.datamodel import user_reference, author_reference
 from nomad.metainfo import (
-    MSection, Quantity, Section, SubSection, MProxy, Reference, QuantityReference, File,
-    MetainfoReferenceError, Package as MetainfoPackage, Context, Package)
+    MSection,
+    Quantity,
+    Section,
+    SubSection,
+    MProxy,
+    Reference,
+    QuantityReference,
+    File,
+    MetainfoReferenceError,
+    Package as MetainfoPackage,
+    Context,
+    Package,
+)
 
 
 class Referenced(MSection):
@@ -46,7 +57,7 @@ class Root(MSection):
 
 @pytest.fixture(scope='function', params=['reference', 'proxy'])
 def definitions(request):
-    ''' Alters the type of the references used in the reference properties definitions. '''
+    """Alters the type of the references used in the reference properties definitions."""
     reference_type = request.param
     if reference_type == 'reference':
         Referencing.section_reference.type = Reference(Referenced.m_def)
@@ -89,12 +100,26 @@ def example_data(definitions):
 
 def assert_data(example_data):
     def assert_properties(example_data):
-        assert example_data.referencing.section_reference.m_resolved() == example_data.referenced
-        assert example_data.referencing.m_to_dict()['section_reference'] == '/referenced'
-        assert example_data.referencing.section_reference_list[1].m_resolved() == example_data.referenceds[1]
-        assert example_data.referencing.m_to_dict()['section_reference_list'] == ['/referenceds/0', '/referenceds/1']
+        assert (
+            example_data.referencing.section_reference.m_resolved()
+            == example_data.referenced
+        )
+        assert (
+            example_data.referencing.m_to_dict()['section_reference'] == '/referenced'
+        )
+        assert (
+            example_data.referencing.section_reference_list[1].m_resolved()
+            == example_data.referenceds[1]
+        )
+        assert example_data.referencing.m_to_dict()['section_reference_list'] == [
+            '/referenceds/0',
+            '/referenceds/1',
+        ]
         assert example_data.referencing.quantity_reference == 'test_value'
-        assert example_data.referencing.m_to_dict()['quantity_reference'] == '/referenced/str_quantity'
+        assert (
+            example_data.referencing.m_to_dict()['quantity_reference']
+            == '/referenced/str_quantity'
+        )
 
         assert example_data.referencing.m_is_set(Referencing.section_reference)
         assert example_data.referencing.m_is_set(Referencing.section_reference_list)
@@ -115,14 +140,16 @@ def test_section_proxy(example_data):
     example_data.referencing.section_reference = MProxy(
         'doesnotexist',
         m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type)
+        m_proxy_type=Referencing.section_reference.type,
+    )
     with pytest.raises(MetainfoReferenceError):
         example_data.referencing.section_reference.str_quantity
 
     example_data.referencing.section_reference = MProxy(
         '/referenced',
         m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type)
+        m_proxy_type=Referencing.section_reference.type,
+    )
 
     assert_data(example_data)
 
@@ -132,12 +159,14 @@ def test_quantity_proxy(example_data):
         example_data.referencing.quantity_reference = MProxy(
             'doesnotexist',
             m_proxy_section=example_data.referencing,
-            m_proxy_type=Referencing.section_reference.type)
+            m_proxy_type=Referencing.section_reference.type,
+        )
 
     example_data.referencing.quantity_reference = MProxy(
         '/referenced',
         m_proxy_section=example_data.referencing,
-        m_proxy_type=Referencing.section_reference.type)
+        m_proxy_type=Referencing.section_reference.type,
+    )
     assert example_data.referencing.quantity_reference == 'test_value'
 
     assert_data(example_data)
@@ -145,42 +174,23 @@ def test_quantity_proxy(example_data):
 
 def test_resolve_references(example_data):
     assert example_data.m_to_dict(resolve_references=True) == {
-        'referenced': {
-            'str_quantity': 'test_value'
-        },
-        'referenceds': [
-            {
-                'str_quantity': 'test_value'
-            },
-            {
-                'str_quantity': 'test_value'
-            }
-        ],
+        'referenced': {'str_quantity': 'test_value'},
+        'referenceds': [{'str_quantity': 'test_value'}, {'str_quantity': 'test_value'}],
         'referencing': {
-            'section_reference': {
-                'str_quantity': 'test_value'
-            },
+            'section_reference': {'str_quantity': 'test_value'},
             'section_reference_list': [
-                {
-                    'str_quantity': 'test_value'
-                },
-                {
-                    'str_quantity': 'test_value'
-                }
+                {'str_quantity': 'test_value'},
+                {'str_quantity': 'test_value'},
             ],
-            'quantity_reference': 'test_value'
-        }
+            'quantity_reference': 'test_value',
+        },
     }
 
 
 def test_quantity_references_serialize():
     source = {
-        'referenced': {
-            'str_quantity': 'test_value'
-        },
-        'referencing': {
-            'quantity_reference': '/referenced/str_quantity'
-        }
+        'referenced': {'str_quantity': 'test_value'},
+        'referencing': {'quantity_reference': '/referenced/str_quantity'},
     }
     root = Root.m_from_dict(source)
     assert source == root.m_to_dict()
@@ -202,7 +212,9 @@ def test_section_reference_serialize():
         section_ref = Quantity(type=Reference(TargetSection.m_def))
         quantity_ref = Quantity(type=QuantityReference(TargetSection.test_quantity))
 
-    pkg = MetainfoPackage(section_definitions=[TargetSection.m_def, SourceSection.m_def])
+    pkg = MetainfoPackage(
+        section_definitions=[TargetSection.m_def, SourceSection.m_def]
+    )
 
     json_data = pkg.m_to_dict()
     assert 'base_sections' not in json_data['section_definitions'][0]
@@ -210,11 +222,14 @@ def test_section_reference_serialize():
     assert MetainfoPackage.m_from_dict(json_data).m_to_dict() == json_data
 
 
-@pytest.mark.parametrize('ref', [
-    pytest.param('/section_definitions/0/inner_section_definitions/0', id='base'),
-    pytest.param('tests.metainfo.test_references.Referenced', id='python'),
-    pytest.param('/TestSection/Referenced', id='metainfo')
-])
+@pytest.mark.parametrize(
+    'ref',
+    [
+        pytest.param('/section_definitions/0/inner_section_definitions/0', id='base'),
+        pytest.param('tests.metainfo.test_references.Referenced', id='python'),
+        pytest.param('/TestSection/Referenced', id='metainfo'),
+    ],
+)
 def test_section_reference_deserialize(ref):
     json_data = {
         'm_def': 'nomad.metainfo.metainfo.Package',
@@ -222,28 +237,16 @@ def test_section_reference_deserialize(ref):
             {
                 'base_sections': [ref],
                 'name': 'TestSection',
-                'inner_section_definitions': [
-                    {
-                        'name': 'Referenced'
-                    }
-                ],
+                'inner_section_definitions': [{'name': 'Referenced'}],
                 'quantities': [
                     {
                         'name': 'test_quantity',
-                        'type': {
-                            'type_kind': 'reference',
-                            'type_data': ref
-                        }
+                        'type': {'type_kind': 'reference', 'type_data': ref},
                     }
                 ],
-                'sub_sections': [
-                    {
-                        'name': 'test_sub_section',
-                        'section_def': ref
-                    }
-                ]
+                'sub_sections': [{'name': 'test_sub_section', 'section_def': ref}],
             }
-        ]
+        ],
     }
 
     pkg = cast(Package, MSection.from_dict(json_data))
@@ -260,14 +263,29 @@ def test_section_reference_deserialize(ref):
     assert_section(section_def.sub_sections[0].section_def)
 
 
-@pytest.mark.parametrize('url,value', [
-    pytest.param('/referenced', '/referenced', id='archive-plain'),
-    pytest.param('#/referenced', '/referenced', id='archive-anchor'),
-    pytest.param('/api#/referenced', None, id='api-no-support'),
-    pytest.param('../upload/archive/my_entry_id#/referenced', '/referenced', id='upload-entry-id'),
-    pytest.param('../upload/archive/mainfile/my/main/file#/referenced', '/referenced', id='upload-mainfile'),
-    pytest.param('../uploads/my_upload_id/archive/my_entry_id#/referenced', '/referenced', id='api'),
-])
+@pytest.mark.parametrize(
+    'url,value',
+    [
+        pytest.param('/referenced', '/referenced', id='archive-plain'),
+        pytest.param('#/referenced', '/referenced', id='archive-anchor'),
+        pytest.param('/api#/referenced', None, id='api-no-support'),
+        pytest.param(
+            '../upload/archive/my_entry_id#/referenced',
+            '/referenced',
+            id='upload-entry-id',
+        ),
+        pytest.param(
+            '../upload/archive/mainfile/my/main/file#/referenced',
+            '/referenced',
+            id='upload-mainfile',
+        ),
+        pytest.param(
+            '../uploads/my_upload_id/archive/my_entry_id#/referenced',
+            '/referenced',
+            id='api',
+        ),
+    ],
+)
 def test_reference_urls(example_data, url, value):
     class MyContext(Context):
         def resolve_archive_url(self, url):
@@ -302,98 +320,98 @@ def test_file_references(example_data):
 
 
 def test_def_reference():
-    definitions = MetainfoPackage.m_from_dict({
-        'section_definitions': [
-            {
-                'name': 'TestSection',
-                'quantities': [
-                    {
-                        'name': 'test_quantity',
-                        'type': 'str'
-                    }
-                ]
-            }
-        ]
-    })
+    definitions = MetainfoPackage.m_from_dict(
+        {
+            'section_definitions': [
+                {
+                    'name': 'TestSection',
+                    'quantities': [{'name': 'test_quantity', 'type': 'str'}],
+                }
+            ]
+        }
+    )
 
-    multiple_definitions = MetainfoPackage.m_from_dict({
-        'section_definitions': [
-            {
-                'name': 'TestSection',
-                'quantities': [
-                    {
-                        'name': 'test_quantity',
-                        'type': 'str'
-                    }
-                ]
-            },
-            {
-                'name': 'TestSection',
-                'quantities': [
-                    {
-                        'name': 'test_quantity',
-                        'type': 'str'
-                    }
-                ]
-            }
-        ]
-    })
+    multiple_definitions = MetainfoPackage.m_from_dict(
+        {
+            'section_definitions': [
+                {
+                    'name': 'TestSection',
+                    'quantities': [{'name': 'test_quantity', 'type': 'str'}],
+                },
+                {
+                    'name': 'TestSection',
+                    'quantities': [{'name': 'test_quantity', 'type': 'str'}],
+                },
+            ]
+        }
+    )
 
     class TestContext(Context):
-
         def resolve_archive_url(self, url):
             assert url == 'definitions'
             return definitions
 
     class TestContextMulti(Context):
-
         def resolve_archive_url(self, url):
             assert url == 'definitions'
             return multiple_definitions
 
     data_with_section_index = {
         'm_def': 'definitions#section_definitions/0',
-        'test_quantity': 'TestValue'
+        'test_quantity': 'TestValue',
     }
 
     data_with_section_name = {
         'm_def': 'definitions#section_definitions/TestSection',
-        'test_quantity': 'TestValue'
+        'test_quantity': 'TestValue',
     }
 
-    result_with_section_index = MSection.from_dict(data_with_section_index, m_context=TestContext())
-    result_with_section_name = MSection.from_dict(data_with_section_name, m_context=TestContext())
+    result_with_section_index = MSection.from_dict(
+        data_with_section_index, m_context=TestContext()
+    )
+    result_with_section_name = MSection.from_dict(
+        data_with_section_name, m_context=TestContext()
+    )
 
-    assert result_with_section_index.m_to_dict() == {
-        'test_quantity': 'TestValue'
-    }
+    assert result_with_section_index.m_to_dict() == {'test_quantity': 'TestValue'}
 
-    assert result_with_section_name.m_to_dict() == {
-        'test_quantity': 'TestValue'
-    }
+    assert result_with_section_name.m_to_dict() == {'test_quantity': 'TestValue'}
 
     with pytest.raises(MetainfoReferenceError):
         MSection.from_dict(data_with_section_name, m_context=TestContextMulti())
 
 
-@pytest.mark.parametrize('mainfile', [
-    'intra-entry', 'inter-entry'
-])
+@pytest.mark.parametrize('mainfile', ['intra-entry', 'inter-entry'])
 def test_parse_with_references(mainfile):
     from nomad.client import parse, normalize_all
+
     entry_archive = parse(
-        os.path.join(os.path.dirname(__file__), f'../data/metainfo/{mainfile}.archive.json'))[0]
+        os.path.join(
+            os.path.dirname(__file__), f'../data/metainfo/{mainfile}.archive.json'
+        )
+    )[0]
     normalize_all(entry_archive)
 
     m_def = entry_archive.m_to_dict()['data']['m_def']
     assert '#/definitions/' in m_def
 
 
-@pytest.mark.parametrize('def_type, value, expected_name', [
-    pytest.param(user_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'),
-    pytest.param(author_reference, {'first_name': 'Mohammad', 'last_name': 'Nakhaee'}, 'Mohammad Nakhaee'),
-    pytest.param(author_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper')
-])
+@pytest.mark.parametrize(
+    'def_type, value, expected_name',
+    [
+        pytest.param(
+            user_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'
+        ),
+        pytest.param(
+            author_reference,
+            {'first_name': 'Mohammad', 'last_name': 'Nakhaee'},
+            'Mohammad Nakhaee',
+        ),
+        pytest.param(
+            author_reference, '00000000-0000-0000-0000-000000000001', 'Sheldon Cooper'
+        ),
+    ],
+)
 def test_user_author(def_type, value, expected_name):
     class UserAuthorSection(MSection):
         quantity = Quantity(type=def_type)
@@ -406,7 +424,10 @@ def test_user_author(def_type, value, expected_name):
     resolved_quantity = quantity.m_resolved()
 
     assert quantity.m_proxy_value == value
-    assert quantity.m_proxy_type.target_section_def.name == def_type.target_section_def.name
+    assert (
+        quantity.m_proxy_type.target_section_def.name
+        == def_type.target_section_def.name
+    )
     assert quantity.m_proxy_section == section
     assert resolved_quantity.name == expected_name
 
@@ -420,5 +441,8 @@ def test_user_author(def_type, value, expected_name):
     resolved_deserialized_quantity = deserialized_quantity.m_resolved()
 
     assert deserialized_quantity.m_proxy_value == value
-    assert deserialized_quantity.m_proxy_type.target_section_def.name == def_type.target_section_def.name
+    assert (
+        deserialized_quantity.m_proxy_type.target_section_def.name
+        == def_type.target_section_def.name
+    )
     assert resolved_deserialized_quantity.name == expected_name

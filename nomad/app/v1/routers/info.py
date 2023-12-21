@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-'''
+"""
 API endpoint that deliver backend configuration details.
-'''
+"""
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -40,27 +40,47 @@ default_tag = 'info'
 
 
 class MetainfoModel(BaseModel):
-    all_package: str = Field(None, description=strip('''
+    all_package: str = Field(
+        None,
+        description=strip(
+            """
         Name of the metainfo package that references all available packages, i.e.
-        the complete metainfo.'''))
+        the complete metainfo."""
+        ),
+    )
 
-    root_section: str = Field(None, description=strip('''
+    root_section: str = Field(
+        None,
+        description=strip(
+            """
         Name of the topmost section, e.g. section run for computational material science
-        data.'''))
+        data."""
+        ),
+    )
 
 
 class StatisticsModel(BaseModel):
     n_entries: int = Field(None, description='Number of entries in NOMAD')
     n_uploads: int = Field(None, description='Number of uploads in NOMAD')
-    n_quantities: int = Field(None, description='Accumulated number of quantities over all entries in the Archive')
-    n_calculations: int = Field(None, description='Accumulated number of calculations, e.g. total energy calculations in the Archive')
+    n_quantities: int = Field(
+        None,
+        description='Accumulated number of quantities over all entries in the Archive',
+    )
+    n_calculations: int = Field(
+        None,
+        description='Accumulated number of calculations, e.g. total energy calculations in the Archive',
+    )
     n_materials: int = Field(None, description='Number of materials in NOMAD')
     # TODO raw_file_size, archive_file_size
 
 
 class CodeInfoModel(BaseModel):
-    code_name: Optional[str] = Field(None, description='Name of the code or input format')
-    code_homepage: Optional[str] = Field(None, description='Homepage of the code or input format')
+    code_name: Optional[str] = Field(
+        None, description='Name of the code or input format'
+    )
+    code_homepage: Optional[str] = Field(
+        None, description='Homepage of the code or input format'
+    )
 
 
 class InfoModel(BaseModel):
@@ -75,10 +95,15 @@ class InfoModel(BaseModel):
     oasis: bool
     # TODO this should be removed in later releases, once most regular NOMAD users
     # should have switched to a new GUI version.
-    git: dict = Field(None, description=strip('''
+    git: dict = Field(
+        None,
+        description=strip(
+            """
         A deprecated field that always contains an empty value to retain some compatibility
         with older GUIs.
-    '''))
+    """
+        ),
+    )
 
 
 _statistics: Dict[str, Any] = None
@@ -86,10 +111,26 @@ _statistics: Dict[str, Any] = None
 
 def statistics():
     global _statistics
-    if _statistics is None or datetime.now().timestamp() - _statistics.get('timestamp', 0) > 3600 * 24:
+    if (
+        _statistics is None
+        or datetime.now().timestamp() - _statistics.get('timestamp', 0) > 3600 * 24
+    ):
         _statistics = dict(timestamp=datetime.now().timestamp())
-        search_response = search(aggregations=dict(statistics=Aggregation(statistics=StatisticsAggregation(
-            metrics=['n_entries', 'n_materials', 'n_uploads', 'n_quantities', 'n_calculations']))))
+        search_response = search(
+            aggregations=dict(
+                statistics=Aggregation(
+                    statistics=StatisticsAggregation(
+                        metrics=[
+                            'n_entries',
+                            'n_materials',
+                            'n_uploads',
+                            'n_quantities',
+                            'n_calculations',
+                        ]
+                    )
+                )
+            )
+        )
         _statistics.update(**search_response.aggregations['statistics'].statistics.data)  # pylint: disable=no-member
 
     return _statistics
@@ -101,33 +142,43 @@ def statistics():
     summary='Get information about the nomad backend and its configuration',
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
-    response_model=InfoModel)
+    response_model=InfoModel,
+)
 async def get_info():
-    ''' Return information about the nomad backend and its configuration. '''
-    return InfoModel(**{
-        'parsers': [
-            key[key.index('/') + 1:]
-            for key in parsers.parser_dict.keys()],
-        'metainfo_packages': ['general', 'general.experimental', 'common', 'public'] + sorted([
-            key[key.index('/') + 1:]
-            for key in parsers.parser_dict.keys()]),
-        'codes': [
-            {'code_name': x.get('codeLabel', 'unknown code'), 'code_homepage': x.get('codeUrl')}
-            for x in sorted(code_metadata.values(), key=lambda info: info.get('codeLabel', 'unknown code').lower())
-        ],
-        'normalizers': [normalizer.__name__ for normalizer in normalizing.normalizers],
-        'statistics': statistics(),
-        'search_quantities': {
-            s.qualified_name: {
-                'name': s.qualified_name,
-                'description': s.definition.description,
-                'many': not s.definition.is_scalar
-            }
-            for s in entry_type.quantities.values()
-            if 'optimade' not in s.qualified_name
-        },
-        'version': config.meta.version,
-        'deployment': config.meta.deployment,
-        'oasis': config.oasis.is_oasis,
-        'git': {}
-    })
+    """Return information about the nomad backend and its configuration."""
+    return InfoModel(
+        **{
+            'parsers': [
+                key[key.index('/') + 1 :] for key in parsers.parser_dict.keys()
+            ],
+            'metainfo_packages': ['general', 'general.experimental', 'common', 'public']
+            + sorted([key[key.index('/') + 1 :] for key in parsers.parser_dict.keys()]),
+            'codes': [
+                {
+                    'code_name': x.get('codeLabel', 'unknown code'),
+                    'code_homepage': x.get('codeUrl'),
+                }
+                for x in sorted(
+                    code_metadata.values(),
+                    key=lambda info: info.get('codeLabel', 'unknown code').lower(),
+                )
+            ],
+            'normalizers': [
+                normalizer.__name__ for normalizer in normalizing.normalizers
+            ],
+            'statistics': statistics(),
+            'search_quantities': {
+                s.qualified_name: {
+                    'name': s.qualified_name,
+                    'description': s.definition.description,
+                    'many': not s.definition.is_scalar,
+                }
+                for s in entry_type.quantities.values()
+                if 'optimade' not in s.qualified_name
+            },
+            'version': config.meta.version,
+            'deployment': config.meta.deployment,
+            'oasis': config.oasis.is_oasis,
+            'git': {},
+        }
+    )

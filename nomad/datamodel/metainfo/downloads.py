@@ -27,25 +27,35 @@ m_package = Package(name='downloads')
 
 
 class Download(MSection):
-    url = Quantity(type=str, description='''
+    url = Quantity(
+        type=str,
+        description="""
         A valid and downloadable URL. Will be downloaded on the servers that
         run this entries processing (e.g. NOMAD servers). The files will be
-        added to the given output directory.''')
+        added to the given output directory.""",
+    )
 
-    output = Quantity(type=str, default='./', description='''
+    output = Quantity(
+        type=str,
+        default='./',
+        description="""
         A relative path that denotes the file to download the given URL to.
         Any parent directories will be created if they do not exist.
         Files that are marked to be extracted will be downloaded and extracted into
-        the parent directory of the given file path.''')
+        the parent directory of the given file path.""",
+    )
 
-    extract = Quantity(type=bool, description='''
+    extract = Quantity(
+        type=bool,
+        description="""
         If the given URL denotes a compressed file and this flag is set to true,
         the downloaded file will be extracted and removed. Supported file formats
-        are `.zip`, `.tgz`, `.tar.gz`.''')
+        are `.zip`, `.tgz`, `.tar.gz`.""",
+    )
 
 
 class Downloads(ArchiveSection):
-    '''
+    """
     Allows you to upload a very small file that will add very large files to your upload.
     Imagine there are large file resources in the internet (e.g. on a data sharing service)
     that you need to add to your upload. This way you do not need to download those large
@@ -53,23 +63,36 @@ class Downloads(ArchiveSection):
 
     When this section is processed, it will download files from given URLs, add
     them to the upload, and trigger processing for given mainfiles.
-    '''
+    """
 
     description = Quantity(
-        type=str, description='''Provides some additional description for these downloads.''')
+        type=str,
+        description="""Provides some additional description for these downloads.""",
+    )
 
-    mainfiles = Quantity(type=str, shape=['*'], description='''
+    mainfiles = Quantity(
+        type=str,
+        shape=['*'],
+        description="""
         A list of relative paths that denote mainfiles. These files are subjected
         to NOMAD processing after all files have been downloaded and potentially
-        extracted.''')
+        extracted.""",
+    )
 
-    skip_download = Quantity(type=bool, description='''
+    skip_download = Quantity(
+        type=bool,
+        description="""
         If true, the downloads will not be performed and no processing is triggered.
         If false, this will be changed to true by the processing after performing
-        the downloads.''')
+        the downloads.""",
+    )
 
-    downloads = SubSection(section=Download, repeats=True, description='''
-        Defines URLs and how to download them.''')
+    downloads = SubSection(
+        section=Download,
+        repeats=True,
+        description="""
+        Defines URLs and how to download them.""",
+    )
 
     def normalize(self, archive, logger):
         super(Downloads, self).normalize(archive, logger)
@@ -86,10 +109,14 @@ class Downloads(ArchiveSection):
             # Read the old existing archive, find the same downloads section, and compare
             # for `skip_download`
             try:
-                with archive.m_context.upload_files.read_archive(archive.metadata.entry_id) as archive_reader:
+                with archive.m_context.upload_files.read_archive(
+                    archive.metadata.entry_id
+                ) as archive_reader:
                     from nomad.archive import to_json
+
                     old_archive = EntryArchive.m_from_dict(
-                        to_json(archive_reader[archive.metadata.entry_id]))
+                        to_json(archive_reader[archive.metadata.entry_id])
+                    )
 
                 path = []
                 current = self
@@ -119,8 +146,9 @@ class Downloads(ArchiveSection):
         raw_path = archive.m_context.raw_path()
         for download in self.downloads:
             output = os.path.join(raw_path, download.output)
-            download_logger = logger.bind(data=dict(
-                path=output, abs_path=os.path.abspath(output)))
+            download_logger = logger.bind(
+                data=dict(path=output, abs_path=os.path.abspath(output))
+            )
 
             if not os.path.abspath(output).startswith(os.path.abspath(raw_path)):
                 download_logger.error('output path is not within the upload')
@@ -168,7 +196,9 @@ class Downloads(ArchiveSection):
             try:
                 archive.m_context.process_updated_raw_file(mainfile, allow_modify=True)
             except Exception as e:
-                logger.error('could not trigger processing', mainfile=mainfile, exc_info=e)
+                logger.error(
+                    'could not trigger processing', mainfile=mainfile, exc_info=e
+                )
                 skip_download = False
             else:
                 logger.info('triggered processing', mainfile=mainfile)

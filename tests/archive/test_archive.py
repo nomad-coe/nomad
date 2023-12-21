@@ -26,13 +26,29 @@ import json
 import yaml
 
 from nomad import utils, config
-from nomad.metainfo import MSection, Quantity, Reference, SubSection, QuantityReference, MetainfoError, Context, MProxy
+from nomad.metainfo import (
+    MSection,
+    Quantity,
+    Reference,
+    SubSection,
+    QuantityReference,
+    MetainfoError,
+    Context,
+    MProxy,
+)
 from nomad.datamodel import EntryArchive, ClientContext
 from nomad.archive.storage import TOCPacker, _decode, _entries_per_block, to_json
 from nomad.archive import (
-    write_archive, read_archive, ArchiveQueryError, query_archive,
-    write_partial_archive_to_mongo, read_partial_archive_from_mongo, read_partial_archives_from_mongo,
-    create_partial_archive, compute_required_with_referenced, RequiredReader,
+    write_archive,
+    read_archive,
+    ArchiveQueryError,
+    query_archive,
+    write_partial_archive_to_mongo,
+    read_partial_archive_from_mongo,
+    read_partial_archives_from_mongo,
+    create_partial_archive,
+    compute_required_with_referenced,
+    RequiredReader,
 )
 from nomad.utils.exampledata import ExampleData
 from tests.normalizing.conftest import simulationworkflowschema, SCHEMA_IMPORT_ERROR
@@ -52,24 +68,15 @@ def example_entry():
     return {
         'run': {
             'program_name': 'VASP',
-            'method': {
-                'basis_sets': 'plane waves'
-            },
+            'method': {'basis_sets': 'plane waves'},
             'system': [
                 {
                     'atom_labels': ['H', 'H'],
                 },
-                {
-                    'atom_labels': ['H', 'H'],
-                    'symmetry': {
-                        'space_group': 4
-                    }
-                },
-            ]
+                {'atom_labels': ['H', 'H'], 'symmetry': {'space_group': 4}},
+            ],
         },
-        'repo_entry': {
-            'chemical_formula': 'H2'
-        }
+        'repo_entry': {'chemical_formula': 'H2'},
     }
 
 
@@ -77,6 +84,7 @@ def _unpack(data, pos=None):
     f = BytesIO(data)
     if config.archive.use_new_writer:
         from nomad.archive.storage_v2 import ArchiveWriter
+
         offset = ArchiveWriter.magic_len
     else:
         offset = 0
@@ -153,6 +161,7 @@ def test_write_archive_single(example_uuid, example_entry):
 
     if config.archive.use_new_writer:
         from nomad.archive.storage_v2 import TOCPacker as TOCPackerNew
+
         toc_packer = TOCPackerNew(toc_depth=2)
         _, global_toc = toc_packer.pack(example_entry)
     else:
@@ -171,9 +180,9 @@ def test_write_archive_single(example_uuid, example_entry):
 def test_write_archive_multi(example_uuid, example_entry):
     f = BytesIO()
     example_uuids = create_example_uuid(0), create_example_uuid(1)
-    write_archive(f, 2, [
-        (example_uuids[0], example_entry),
-        (example_uuids[1], example_entry)])
+    write_archive(
+        f, 2, [(example_uuids[0], example_entry), (example_uuids[1], example_entry)]
+    )
     packed_archive = f.getbuffer()
     archive = _unpack(packed_archive)
 
@@ -219,8 +228,10 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
     archive_size = _entries_per_block * 2 + 23
     f = BytesIO()
     write_archive(
-        f, archive_size,
-        [(create_example_uuid(i), example_entry) for i in range(0, archive_size)])
+        f,
+        archive_size,
+        [(create_example_uuid(i), example_entry) for i in range(0, archive_size)],
+    )
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
@@ -239,39 +250,73 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
 
 test_query_example: Dict[Any, Any] = {
     'c1': {
-        's1': {
-            'ss1': [{'p1': 1.0, 'p2': 'x'}, {'p1': 1.5, 'p2': 'y'}]
-        },
-        's2': [{'p1': ['a', 'b'], 'p2': True}]
+        's1': {'ss1': [{'p1': 1.0, 'p2': 'x'}, {'p1': 1.5, 'p2': 'y'}]},
+        's2': [{'p1': ['a', 'b'], 'p2': True}],
     },
-    'c2': {
-        's1': {
-            'ss1': [{'p1': 2.0}]
-        },
-        's2': [{'p1': ['c', 'd']}]
-    }
+    'c2': {'s1': {'ss1': [{'p1': 2.0}]}, 's2': [{'p1': ['c', 'd']}]},
 }
 
 
-@pytest.mark.parametrize('query,ref', [
-    ({'c1': '*'}, {'c1': test_query_example['c1']}),
-    ({'c1': '*', 'c2': {'s1': '*'}}, {'c1': test_query_example['c1'], 'c2': {'s1': test_query_example['c2']['s1']}}),
-    ({'c2': {'s1': {'ss1[0]': '*'}}}, {'c2': {'s1': {'ss1': test_query_example['c2']['s1']['ss1'][0:1]}}}),
-    ({'c1': {'s1': {'ss1[1:]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][1:]}}}),
-    ({'c1': {'s1': {'ss1[:2]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][:2]}}}),
-    ({'c1': {'s1': {'ss1[0:2]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][0:2]}}}),
-    ({'c1': {'s1': {'ss1[-2]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][-2:-1]}}}),
-    ({'c1': {'s1': {'ss1[-10]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][-2:-1]}}}),
-    ({'c1': {'s1': {'ss1[:-1]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][:-1]}}}),
-    ({'c1': {'s1': {'ss1[1:-1]': '*'}}}, {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][1:-1]}}}),
-    ({'c2': {'s1': {'ss1[-3:-1]': '*'}}}, {'c2': {'s1': {'ss1': [test_query_example['c2']['s1']['ss1'][-1]]}}}),
-    ({'c1': {'s2[0]': {'p1': '*'}}}, {'c1': {'s2': [{'p1': test_query_example['c1']['s2'][0]['p1']}]}}),
-    ({'c1': {'s3': '*'}}, {'c1': {}}),
-    ({'c1': {'s1[0]': '*'}}, ArchiveQueryError())
-])
+@pytest.mark.parametrize(
+    'query,ref',
+    [
+        ({'c1': '*'}, {'c1': test_query_example['c1']}),
+        (
+            {'c1': '*', 'c2': {'s1': '*'}},
+            {
+                'c1': test_query_example['c1'],
+                'c2': {'s1': test_query_example['c2']['s1']},
+            },
+        ),
+        (
+            {'c2': {'s1': {'ss1[0]': '*'}}},
+            {'c2': {'s1': {'ss1': test_query_example['c2']['s1']['ss1'][0:1]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[1:]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][1:]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[:2]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][:2]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[0:2]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][0:2]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[-2]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][-2:-1]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[-10]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][-2:-1]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[:-1]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][:-1]}}},
+        ),
+        (
+            {'c1': {'s1': {'ss1[1:-1]': '*'}}},
+            {'c1': {'s1': {'ss1': test_query_example['c1']['s1']['ss1'][1:-1]}}},
+        ),
+        (
+            {'c2': {'s1': {'ss1[-3:-1]': '*'}}},
+            {'c2': {'s1': {'ss1': [test_query_example['c2']['s1']['ss1'][-1]]}}},
+        ),
+        (
+            {'c1': {'s2[0]': {'p1': '*'}}},
+            {'c1': {'s2': [{'p1': test_query_example['c1']['s2'][0]['p1']}]}},
+        ),
+        ({'c1': {'s3': '*'}}, {'c1': {}}),
+        ({'c1': {'s1[0]': '*'}}, ArchiveQueryError()),
+    ],
+)
 def test_query(query, ref):
     f = BytesIO()
-    write_archive(f, 2, [(k, v) for k, v in test_query_example.items()], entry_toc_depth=1)
+    write_archive(
+        f, 2, [(k, v) for k, v in test_query_example.items()], entry_toc_depth=1
+    )
     packed_archive = f.getbuffer()
 
     f = BytesIO(packed_archive)
@@ -283,7 +328,9 @@ def test_query(query, ref):
         assert query_archive(f, query) == ref
 
 
-@pytest.mark.parametrize('key', ['simple', '  fixedsize', 'z6qp-VxV5uacug_1xTBhm5xxU2yZ'])
+@pytest.mark.parametrize(
+    'key', ['simple', '  fixedsize', 'z6qp-VxV5uacug_1xTBhm5xxU2yZ']
+)
 def test_keys(key):
     f = BytesIO()
     write_archive(f, 1, [(key, dict(example='content'))])
@@ -292,8 +339,9 @@ def test_keys(key):
     assert key.strip() in query_archive(f, {key: '*'})
 
 
-@pytest.mark.skipif(config.normalize.springer_db_path is None,
-                    reason='Springer DB path missing')
+@pytest.mark.skipif(
+    config.normalize.springer_db_path is None, reason='Springer DB path missing'
+)
 def test_read_springer():
     springer = read_archive(config.normalize.springer_db_path)
     with pytest.raises(KeyError):
@@ -303,7 +351,7 @@ def test_read_springer():
 @pytest.fixture(scope='function')
 def json_dict():
     return json.loads(
-        '''
+        """
 {
     "metadata": {
         "entry_id": "test_id"
@@ -387,7 +435,8 @@ def json_dict():
         }
     }
 }
-''')
+"""
+    )
 
 
 @pytest.fixture(scope='function')
@@ -398,13 +447,27 @@ def archive(json_dict):
     return archive
 
 
-@pytest.mark.parametrize('definition_id,context,exception_type', [
-    pytest.param(EntryArchive.m_def.definition_id + 'a', None, MetainfoError, id='wrong_id_no_context'),
-    pytest.param(EntryArchive.m_def.definition_id[::-1], Context(), NotImplementedError, id='wrong_id_with_context'), ])
+@pytest.mark.parametrize(
+    'definition_id,context,exception_type',
+    [
+        pytest.param(
+            EntryArchive.m_def.definition_id + 'a',
+            None,
+            MetainfoError,
+            id='wrong_id_no_context',
+        ),
+        pytest.param(
+            EntryArchive.m_def.definition_id[::-1],
+            Context(),
+            NotImplementedError,
+            id='wrong_id_with_context',
+        ),
+    ],
+)
 def test_archive_with_wrong_id(json_dict, definition_id, context, exception_type):
-    '''
+    """
     Test that the archive with wrong id raises the expected exception.
-    '''
+    """
     json_dict['m_def_id'] = definition_id
     with pytest.raises(exception_type):
         EntryArchive.m_from_dict(json_dict, m_context=context)
@@ -412,28 +475,41 @@ def test_archive_with_wrong_id(json_dict, definition_id, context, exception_type
     del json_dict['m_def_id']
 
 
-@pytest.mark.parametrize('m_def,m_def_id', [
-    pytest.param(None, EntryArchive.m_def.definition_id, id='plain-definition-id'),
-    pytest.param('nomad.datamodel.EntryArchive', None, id='plain-definition-python-style'),
-    pytest.param(
-        'nomad.datamodel.EntryArchive@' + EntryArchive.m_def.definition_id, None,
-        id='plain-definition-with-correct-id'),
-    pytest.param(
-        'nomad.datamodel.EntryArchive@' + EntryArchive.m_def.definition_id[::-1], None,
-        id='plain-definition-with-wrong-id'),
-    pytest.param(
-        'http://my.domain#/placeholder@' + EntryArchive.m_def.definition_id, None,
-        id='url-definition'),
-])
+@pytest.mark.parametrize(
+    'm_def,m_def_id',
+    [
+        pytest.param(None, EntryArchive.m_def.definition_id, id='plain-definition-id'),
+        pytest.param(
+            'nomad.datamodel.EntryArchive', None, id='plain-definition-python-style'
+        ),
+        pytest.param(
+            'nomad.datamodel.EntryArchive@' + EntryArchive.m_def.definition_id,
+            None,
+            id='plain-definition-with-correct-id',
+        ),
+        pytest.param(
+            'nomad.datamodel.EntryArchive@' + EntryArchive.m_def.definition_id[::-1],
+            None,
+            id='plain-definition-with-wrong-id',
+        ),
+        pytest.param(
+            'http://my.domain#/placeholder@' + EntryArchive.m_def.definition_id,
+            None,
+            id='url-definition',
+        ),
+    ],
+)
 def test_archive_with_id_in_reference(json_dict, m_def, m_def_id, monkeypatch):
-    '''
+    """
     Patch Context to return proper section definition to test if the archive is correctly created.
-    '''
+    """
 
     def resolve_section_definition(self, definition: str, definition_id: str):  # pylint: disable=unused-argument
         return EntryArchive
 
-    monkeypatch.setattr('nomad.metainfo.Context.resolve_section_definition', resolve_section_definition)
+    monkeypatch.setattr(
+        'nomad.metainfo.Context.resolve_section_definition', resolve_section_definition
+    )
 
     if m_def is not None:
         json_dict['m_def'] = m_def
@@ -484,102 +560,261 @@ def assert_dict(d1: dict, d2):
 
 
 def all_archive():
-    return {'run': [{'system': [{'atoms': {'labels': ['He']}, 'symmetry': [{'space_group_number': 221}]}, {
-        'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]}], 'calculation': [
-        {'system_ref': '/run/0/system/1', 'energy': {'total': {'value': 0.1}}},
-        {'system_ref': '/run/0/system/1', 'energy': {'total': {'value': 0.2}}, 'dos_electronic': [
-            {'energies': [0.0, 0.1]}]},
-        {'system_ref': '/run/0/system/1', 'energy': {'total': {'value': 0.1}}}]}], 'workflow2': {
-        'results': {'calculation_result_ref': '/run/0/calculation/1'}},
-        'metadata': {'entry_id': 'test_id'}, 'results': {
-        'properties': {'electronic': {'dos_electronic': [
-            {'energies': '/run/0/calculation/1/dos_electronic/0/energies'}]}}}, 'm_ref_archives': {}}
+    return {
+        'run': [
+            {
+                'system': [
+                    {
+                        'atoms': {'labels': ['He']},
+                        'symmetry': [{'space_group_number': 221}],
+                    },
+                    {
+                        'atoms': {'labels': ['H']},
+                        'symmetry': [{'space_group_number': 221}],
+                    },
+                ],
+                'calculation': [
+                    {
+                        'system_ref': '/run/0/system/1',
+                        'energy': {'total': {'value': 0.1}},
+                    },
+                    {
+                        'system_ref': '/run/0/system/1',
+                        'energy': {'total': {'value': 0.2}},
+                        'dos_electronic': [{'energies': [0.0, 0.1]}],
+                    },
+                    {
+                        'system_ref': '/run/0/system/1',
+                        'energy': {'total': {'value': 0.1}},
+                    },
+                ],
+            }
+        ],
+        'workflow2': {'results': {'calculation_result_ref': '/run/0/calculation/1'}},
+        'metadata': {'entry_id': 'test_id'},
+        'results': {
+            'properties': {
+                'electronic': {
+                    'dos_electronic': [
+                        {'energies': '/run/0/calculation/1/dos_electronic/0/energies'}
+                    ]
+                }
+            }
+        },
+        'm_ref_archives': {},
+    }
 
 
-@pytest.mark.parametrize('required,inplace_result,root_result', [
-    pytest.param(
-        'include',
-        all_archive(),
-        all_archive(),
-        id='include-all'),
-    pytest.param(
-        '*',
-        all_archive(),
-        all_archive(),
-        id='include-all-alias'),
-    pytest.param(
-        {'metadata': '*'},
-        {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
-        {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
-        id='include-sub-section'),
-    pytest.param(
-        {'metadata': {'entry_id': '*'}},
-        {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
-        {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
-        id='include-quantity'),
-    pytest.param(
-        {'workflow2': {'results': {'calculation_result_ref': {'energy': {'total': '*'}}}}},
-        {'workflow2': {
-            'results': {'calculation_result_ref': {'energy': {'total': {'value': 0.2}}}}}, 'm_ref_archives': {}},
-        {
-            'run': [{'calculation': [None, {'energy': {'total': {'value': 0.2}}}]}],
-            'workflow2': {
-                'results': {'calculation_result_ref': '/run/0/calculation/1'}}, 'm_ref_archives': {}},
-        id='resolve-with-required'),
-    pytest.param(
-        {'workflow2': {'results': {'calculation_result_ref': 'include-resolved'}}},
-        {'workflow2': {
-            'results': {'calculation_result_ref': {
-                'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}}}, 'm_ref_archives': {}},
-        {
-            'run': [{
-                'system': [None, {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]}],
-                'calculation': [None, {
-                    'system_ref': '/run/0/system/1', 'energy': {'total': {'value': 0.2}},
-                    'dos_electronic': [{'energies': [0.0, 0.1]}]}]}],
-            'workflow2': {
-                'results': {'calculation_result_ref': '/run/0/calculation/1'}}, 'm_ref_archives': {}},
-        id='resolve-with-directive'),
-    pytest.param(
-        {'workflow2': 'include-resolved', 'results': 'include-resolved'},
-        {
-            'workflow2': {
-                'results': {'calculation_result_ref': {
-                    'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                    'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}}},
-            'results': {'properties': {'electronic': {'dos_electronic': [{'energies': [0.0, 0.1]}]}}},
-            'm_ref_archives': {}},
-        {
-            'run': [{
-                'system': [None, {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]}],
-                'calculation': [None, {'system_ref': '/run/0/system/1', 'energy': {'total': {
-                    'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}]}],
-            'workflow2': {
-                'results': {'calculation_result_ref': '/run/0/calculation/1'}},
-            'results': {'properties': {'electronic': {'dos_electronic': [
-                {'energies': '/run/0/calculation/1/dos_electronic/0/energies'}]}}}, 'm_ref_archives': {}},
-        id='include-resolved'),
-    pytest.param(
-        {'results': {'properties': {'electronic': {'dos_electronic': {'energies': 'include-resolved'}}}}},
-        {'results': {'properties': {'electronic': {'dos_electronic': [{
-            'energies': [0.0, 0.1]}]}}}, 'm_ref_archives': {}},
-        {
-            'run': [{'calculation': [None, {'dos_electronic': [{'energies': [0.0, 0.1]}]}]}],
-            'results': {'properties': {'electronic': {'dos_electronic': [{
-                'energies': '/run/0/calculation/1/dos_electronic/0/energies'}]}}},
-            'm_ref_archives': {}},
-        id='resolve-quantity-ref'),
-    pytest.param(
-        {'metadata': {'entry_id': {'doesnotexist': '*'}}}, None, None, id='not-a-section'),
-    pytest.param(
-        {'metadata': 'bad-directive'}, ArchiveQueryError, ArchiveQueryError, id='bad-directive')
-])
-@pytest.mark.parametrize('resolve_inplace', [
-    pytest.param(True, id='inplace'),
-    pytest.param(False, id='root'),
-])
-def test_required_reader(archive, required, inplace_result, root_result, resolve_inplace, mongo):
+@pytest.mark.parametrize(
+    'required,inplace_result,root_result',
+    [
+        pytest.param('include', all_archive(), all_archive(), id='include-all'),
+        pytest.param('*', all_archive(), all_archive(), id='include-all-alias'),
+        pytest.param(
+            {'metadata': '*'},
+            {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
+            {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
+            id='include-sub-section',
+        ),
+        pytest.param(
+            {'metadata': {'entry_id': '*'}},
+            {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
+            {'metadata': {'entry_id': 'test_id'}, 'm_ref_archives': {}},
+            id='include-quantity',
+        ),
+        pytest.param(
+            {
+                'workflow2': {
+                    'results': {'calculation_result_ref': {'energy': {'total': '*'}}}
+                }
+            },
+            {
+                'workflow2': {
+                    'results': {
+                        'calculation_result_ref': {'energy': {'total': {'value': 0.2}}}
+                    }
+                },
+                'm_ref_archives': {},
+            },
+            {
+                'run': [{'calculation': [None, {'energy': {'total': {'value': 0.2}}}]}],
+                'workflow2': {
+                    'results': {'calculation_result_ref': '/run/0/calculation/1'}
+                },
+                'm_ref_archives': {},
+            },
+            id='resolve-with-required',
+        ),
+        pytest.param(
+            {'workflow2': {'results': {'calculation_result_ref': 'include-resolved'}}},
+            {
+                'workflow2': {
+                    'results': {
+                        'calculation_result_ref': {
+                            'system_ref': {
+                                'atoms': {'labels': ['H']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                            'energy': {'total': {'value': 0.2}},
+                            'dos_electronic': [{'energies': [0.0, 0.1]}],
+                        }
+                    }
+                },
+                'm_ref_archives': {},
+            },
+            {
+                'run': [
+                    {
+                        'system': [
+                            None,
+                            {
+                                'atoms': {'labels': ['H']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                        ],
+                        'calculation': [
+                            None,
+                            {
+                                'system_ref': '/run/0/system/1',
+                                'energy': {'total': {'value': 0.2}},
+                                'dos_electronic': [{'energies': [0.0, 0.1]}],
+                            },
+                        ],
+                    }
+                ],
+                'workflow2': {
+                    'results': {'calculation_result_ref': '/run/0/calculation/1'}
+                },
+                'm_ref_archives': {},
+            },
+            id='resolve-with-directive',
+        ),
+        pytest.param(
+            {'workflow2': 'include-resolved', 'results': 'include-resolved'},
+            {
+                'workflow2': {
+                    'results': {
+                        'calculation_result_ref': {
+                            'system_ref': {
+                                'atoms': {'labels': ['H']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                            'energy': {'total': {'value': 0.2}},
+                            'dos_electronic': [{'energies': [0.0, 0.1]}],
+                        }
+                    }
+                },
+                'results': {
+                    'properties': {
+                        'electronic': {'dos_electronic': [{'energies': [0.0, 0.1]}]}
+                    }
+                },
+                'm_ref_archives': {},
+            },
+            {
+                'run': [
+                    {
+                        'system': [
+                            None,
+                            {
+                                'atoms': {'labels': ['H']},
+                                'symmetry': [{'space_group_number': 221}],
+                            },
+                        ],
+                        'calculation': [
+                            None,
+                            {
+                                'system_ref': '/run/0/system/1',
+                                'energy': {'total': {'value': 0.2}},
+                                'dos_electronic': [{'energies': [0.0, 0.1]}],
+                            },
+                        ],
+                    }
+                ],
+                'workflow2': {
+                    'results': {'calculation_result_ref': '/run/0/calculation/1'}
+                },
+                'results': {
+                    'properties': {
+                        'electronic': {
+                            'dos_electronic': [
+                                {
+                                    'energies': '/run/0/calculation/1/dos_electronic/0/energies'
+                                }
+                            ]
+                        }
+                    }
+                },
+                'm_ref_archives': {},
+            },
+            id='include-resolved',
+        ),
+        pytest.param(
+            {
+                'results': {
+                    'properties': {
+                        'electronic': {
+                            'dos_electronic': {'energies': 'include-resolved'}
+                        }
+                    }
+                }
+            },
+            {
+                'results': {
+                    'properties': {
+                        'electronic': {'dos_electronic': [{'energies': [0.0, 0.1]}]}
+                    }
+                },
+                'm_ref_archives': {},
+            },
+            {
+                'run': [
+                    {
+                        'calculation': [
+                            None,
+                            {'dos_electronic': [{'energies': [0.0, 0.1]}]},
+                        ]
+                    }
+                ],
+                'results': {
+                    'properties': {
+                        'electronic': {
+                            'dos_electronic': [
+                                {
+                                    'energies': '/run/0/calculation/1/dos_electronic/0/energies'
+                                }
+                            ]
+                        }
+                    }
+                },
+                'm_ref_archives': {},
+            },
+            id='resolve-quantity-ref',
+        ),
+        pytest.param(
+            {'metadata': {'entry_id': {'doesnotexist': '*'}}},
+            None,
+            None,
+            id='not-a-section',
+        ),
+        pytest.param(
+            {'metadata': 'bad-directive'},
+            ArchiveQueryError,
+            ArchiveQueryError,
+            id='bad-directive',
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    'resolve_inplace',
+    [
+        pytest.param(True, id='inplace'),
+        pytest.param(False, id='root'),
+    ],
+)
+def test_required_reader(
+    archive, required, inplace_result, root_result, resolve_inplace, mongo
+):
     f = BytesIO()
     write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=2)
     packed_archive = f.getbuffer()
@@ -604,22 +839,56 @@ def test_required_reader(archive, required, inplace_result, root_result, resolve
 
 @pytest.fixture(scope='function')
 def example_data_with_reference(proc_infra, test_user, json_dict):
-    '''
+    """
     Provides a couple of entries with references.
 
     Only used in test_required_reader_with_remote_reference.
-    '''
+    """
     data = ExampleData(main_author=test_user)
 
-    data.create_upload(upload_id='id_published_with_ref', upload_name='name_published', published=True)
+    data.create_upload(
+        upload_id='id_published_with_ref', upload_name='name_published', published=True
+    )
 
     ref_list = [
-        {'results': {'calculation_result_ref': '/run/0/calculation/1'}},  # plain direct reference
-        {'results': {'calculation_result_ref': '#/run/0/calculation/1'}},  # new-style reference
-        {'tasks': [{'m_def': 'nomad.datamodel.metainfo.workflow.TaskReference', 'task': '../entries/id_01/archive#/workflow2'}]},  # reference to another archive
-        {'tasks': [{'m_def': 'nomad.datamodel.metainfo.workflow.TaskReference', 'task': '../entries/id_05/archive#/workflow2'}]},  # circular reference
-        {'tasks': [{'m_def': 'nomad.datamodel.metainfo.workflow.TaskReference', 'task': '../entries/id_04/archive#/workflow2'}]},  # circular reference
-        {'tasks': [{'m_def': 'nomad.datamodel.metainfo.workflow.TaskReference', 'task': 'https://another.domain/entries/id_03/archive#/workflow2'}]}  # remote reference
+        {
+            'results': {'calculation_result_ref': '/run/0/calculation/1'}
+        },  # plain direct reference
+        {
+            'results': {'calculation_result_ref': '#/run/0/calculation/1'}
+        },  # new-style reference
+        {
+            'tasks': [
+                {
+                    'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+                    'task': '../entries/id_01/archive#/workflow2',
+                }
+            ]
+        },  # reference to another archive
+        {
+            'tasks': [
+                {
+                    'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+                    'task': '../entries/id_05/archive#/workflow2',
+                }
+            ]
+        },  # circular reference
+        {
+            'tasks': [
+                {
+                    'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+                    'task': '../entries/id_04/archive#/workflow2',
+                }
+            ]
+        },  # circular reference
+        {
+            'tasks': [
+                {
+                    'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+                    'task': 'https://another.domain/entries/id_03/archive#/workflow2',
+                }
+            ]
+        },  # remote reference
     ]
 
     del json_dict['results']
@@ -630,7 +899,8 @@ def example_data_with_reference(proc_infra, test_user, json_dict):
         data.create_entry(
             upload_id='id_published_with_ref',
             entry_id=f'id_{index + 1:02d}',
-            entry_archive=EntryArchive.m_from_dict(json_dict))
+            entry_archive=EntryArchive.m_from_dict(json_dict),
+        )
 
     for archive in data.archives.values():
         archive.metadata.apply_archive_metadata(archive)
@@ -638,6 +908,7 @@ def example_data_with_reference(proc_infra, test_user, json_dict):
     data.save(with_files=True, with_es=True, with_mongo=True)
 
     from nomad.search import search
+
     results = search().data
     assert len(results) == 6
     for i in (0, 1, 5):
@@ -651,59 +922,110 @@ def example_data_with_reference(proc_infra, test_user, json_dict):
 
 @pytest.fixture(scope='function')
 def remote_reference_required():
-    '''
+    """
     Only used in test_required_reader_with_remote_reference.
-    '''
+    """
     return {'workflow2': 'include-resolved'}
 
 
 @pytest.mark.parametrize(
-    'resolve_inplace', [
+    'resolve_inplace',
+    [
         pytest.param(True, id='inplace'),
         pytest.param(False, id='root'),
-    ])
+    ],
+)
 @pytest.mark.parametrize(
-    'entry_id, inplace_result', [
+    'entry_id, inplace_result',
+    [
         pytest.param(
-            'id_01', {
-                'results': {'calculation_result_ref': {
-                    'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                    'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}}},
-            id='plain-direct-reference'),
+            'id_01',
+            {
+                'results': {
+                    'calculation_result_ref': {
+                        'system_ref': {
+                            'atoms': {'labels': ['H']},
+                            'symmetry': [{'space_group_number': 221}],
+                        },
+                        'energy': {'total': {'value': 0.2}},
+                        'dos_electronic': [{'energies': [0.0, 0.1]}],
+                    }
+                }
+            },
+            id='plain-direct-reference',
+        ),
         pytest.param(
-            'id_02', {'results': {'calculation_result_ref': {
-                'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}}},
-            id='new-style-reference'),
+            'id_02',
+            {
+                'results': {
+                    'calculation_result_ref': {
+                        'system_ref': {
+                            'atoms': {'labels': ['H']},
+                            'symmetry': [{'space_group_number': 221}],
+                        },
+                        'energy': {'total': {'value': 0.2}},
+                        'dos_electronic': [{'energies': [0.0, 0.1]}],
+                    }
+                }
+            },
+            id='new-style-reference',
+        ),
         pytest.param(
-            'id_03', {'results': {'calculation_result_ref': {
-                'system_ref': {'atoms': {'labels': ['H']}, 'symmetry': [{'space_group_number': 221}]},
-                'energy': {'total': {'value': 0.2}}, 'dos_electronic': [{'energies': [0.0, 0.1]}]}}},
-            id='reference-to-another-archive'),
+            'id_03',
+            {
+                'results': {
+                    'calculation_result_ref': {
+                        'system_ref': {
+                            'atoms': {'labels': ['H']},
+                            'symmetry': [{'space_group_number': 221}],
+                        },
+                        'energy': {'total': {'value': 0.2}},
+                        'dos_electronic': [{'energies': [0.0, 0.1]}],
+                    }
+                }
+            },
+            id='reference-to-another-archive',
+        ),
         pytest.param(
             # circular reference detected thus untouched
-            'id_04', '../entries/id_04/archive#/workflow2',
-            id='circular-reference-1'),
+            'id_04',
+            '../entries/id_04/archive#/workflow2',
+            id='circular-reference-1',
+        ),
         pytest.param(
             # circular reference detected thus untouched
-            'id_05', '../entries/id_05/archive#/workflow2',
-            id='circular-reference-2'),
+            'id_05',
+            '../entries/id_05/archive#/workflow2',
+            id='circular-reference-2',
+        ),
         pytest.param(
             # remote reference detected thus untouched
-            'id_06', 'https://another.domain/entries/id_03/archive#/workflow2',
-            id='remote-reference'),
+            'id_06',
+            'https://another.domain/entries/id_03/archive#/workflow2',
+            id='remote-reference',
+        ),
         pytest.param(
-            'id_07', '../entries/id_07/archive#/workflow2',
-            id='does-not-exist'),
-    ])
+            'id_07', '../entries/id_07/archive#/workflow2', id='does-not-exist'
+        ),
+    ],
+)
 def test_required_reader_with_remote_reference(
-        json_dict, remote_reference_required, resolve_inplace,
-        example_data_with_reference, test_user, entry_id, inplace_result):
+    json_dict,
+    remote_reference_required,
+    resolve_inplace,
+    example_data_with_reference,
+    test_user,
+    entry_id,
+    inplace_result,
+):
     archive = {'workflow2': json_dict['workflow2']}
     archive['workflow2']['m_def'] = 'simulationworkflowschema.SimulationWorkflow'
-    archive['workflow2']['tasks'] = [{
-        'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
-        'task': f'../entries/{entry_id}/archive#/workflow2'}]
+    archive['workflow2']['tasks'] = [
+        {
+            'm_def': 'nomad.datamodel.metainfo.workflow.TaskReference',
+            'task': f'../entries/{entry_id}/archive#/workflow2',
+        }
+    ]
 
     f = BytesIO()
     write_archive(f, 1, [('entry_id', archive)], entry_toc_depth=2)
@@ -711,8 +1033,11 @@ def test_required_reader_with_remote_reference(
 
     with read_archive(BytesIO(packed_archive)) as archive_reader:
         required_reader = RequiredReader(
-            remote_reference_required, resolve_inplace=resolve_inplace, user=test_user)
-        results = required_reader.read(archive_reader, 'entry_id', 'id_published_with_ref')
+            remote_reference_required, resolve_inplace=resolve_inplace, user=test_user
+        )
+        results = required_reader.read(
+            archive_reader, 'entry_id', 'id_published_with_ref'
+        )
         ref_result = results['workflow2']
 
     while 'tasks' in ref_result:
@@ -730,13 +1055,16 @@ def test_required_reader_with_remote_reference(
         assert isinstance(archive_obj.workflow2.tasks[0].task, MProxy)
 
         if entry_id in ['id_01', 'id_02']:
-            calculation = archive_obj.workflow2.tasks[0].task.results.calculation_result_ref
+            calculation = archive_obj.workflow2.tasks[
+                0
+            ].task.results.calculation_result_ref
             assert calculation.energy.total.value.magnitude == 0.2
             assert calculation.system_ref.symmetry[0].space_group_number == 221
 
 
 def test_custom_schema(test_user, proc_infra):
-    yaml_archive = yaml.safe_load('''
+    yaml_archive = yaml.safe_load(
+        """
 ---
 definitions:
   name: test_package_name
@@ -761,15 +1089,17 @@ data:
   datetime_list:
   - '2022-04-01'
   - '2022-04-02'
-''')
+"""
+    )
     archive = EntryArchive.m_from_dict(yaml_archive)
     data = ExampleData(main_author=test_user)
 
-    data.create_upload(upload_id='id_custom', upload_name='name_published', published=True)
+    data.create_upload(
+        upload_id='id_custom', upload_name='name_published', published=True
+    )
     data.create_entry(
-        upload_id='id_custom',
-        entry_id='id_example',
-        entry_archive=archive)
+        upload_id='id_custom', entry_id='id_example', entry_archive=archive
+    )
     data.save(with_files=True, with_es=True, with_mongo=True)
 
     f = BytesIO()
@@ -778,19 +1108,24 @@ data:
         required_reader = RequiredReader({'data': {'my_quantity': '*'}}, user=test_user)
         results = required_reader.read(archive_reader, 'id_example', 'id_custom')
 
-        assert_dict(results, {'data': {'my_quantity': 'test_value'}, 'm_ref_archives': {}})
+        assert_dict(
+            results, {'data': {'my_quantity': 'test_value'}, 'm_ref_archives': {}}
+        )
 
         data.delete()
 
 
 def assert_required_results(
-        results: dict, required: dict, archive: MSection,
-        current_results: Union[dict, str] = None,
-        current_archive_serialized: Union[str, dict] = None):
-    '''
+    results: dict,
+    required: dict,
+    archive: MSection,
+    current_results: Union[dict, str] = None,
+    current_archive_serialized: Union[str, dict] = None,
+):
+    """
     Asserts if the resulting dict from a :class:`RequiredReader` contains everything that
     was requested and if this is consistent with the archive that was read from.
-    '''
+    """
     # initialize recursion
     if current_archive_serialized is None:
         current_archive_serialized = archive.m_to_dict()
@@ -823,7 +1158,9 @@ def assert_required_results(
             # results based archive. We should continue the assert from the resolved
             # results and resolved section in the archive.
             assert current_results == current_archive_serialized
-            resolved: Any = archive.m_def.section_cls.m_from_dict(results).m_resolve(current_results)
+            resolved: Any = archive.m_def.section_cls.m_from_dict(results).m_resolve(
+                current_results
+            )
 
             if isinstance(resolved, MSection):
                 current_results = resolved.m_to_dict()
@@ -859,11 +1196,13 @@ def assert_required_results(
         # we use a made up required that applies the directive to all values
         required = {
             key: dict(_directive=directive, _prop=key, _def=prop_def(key, definition))
-            for key in current_archive_serialized}
+            for key in current_archive_serialized
+        }
 
     # decend into references and subsections
     for key, value in required.items():
-        if key.startswith('_'): continue
+        if key.startswith('_'):
+            continue
         prop = value['_prop']
         assert prop in current_results
         assert prop in current_archive_serialized
@@ -872,10 +1211,16 @@ def assert_required_results(
         if isinstance(prop_value, list) and not isinstance(prop_definition, Quantity):
             for i, _ in enumerate(prop_value):
                 assert_required_results(
-                    results, value, archive, prop_value[i], current_archive_serialized[prop][i])
+                    results,
+                    value,
+                    archive,
+                    prop_value[i],
+                    current_archive_serialized[prop][i],
+                )
         else:
             assert_required_results(
-                results, value, archive, prop_value, current_archive_serialized[prop])
+                results, value, archive, prop_value, current_archive_serialized[prop]
+            )
 
 
 def assert_partial_archive(archive: EntryArchive) -> EntryArchive:
@@ -918,70 +1263,59 @@ def test_read_partial_archives(archive, mongo):
 
 @pytest.mark.skip()
 def test_compute_required_with_referenced(archive):
-    required = compute_required_with_referenced({
-        'workflow2': {
-            'm_def': 'simulationworkflowschema',
-            'results': {
-                'calculation_result_ref': {
-                    'energy': {
-                        'total': '*'
-                    },
-                    'system_ref': '*'
-                }
+    required = compute_required_with_referenced(
+        {
+            'workflow2': {
+                'm_def': 'simulationworkflowschema',
+                'results': {
+                    'calculation_result_ref': {
+                        'energy': {'total': '*'},
+                        'system_ref': '*',
+                    }
+                },
             }
         }
-    })
+    )
 
     assert required == {
-        'workflow2': {
-            'results': {
-                'calculation_result_ref': '*'
-            }
-        },
+        'workflow2': {'results': {'calculation_result_ref': '*'}},
         'run': {
-            'calculation': {
-                'energy': {
-                    'total': '*'
-                },
-                'system_ref': '*'
-            },
-            'system': '*'
-        }
+            'calculation': {'energy': {'total': '*'}, 'system_ref': '*'},
+            'system': '*',
+        },
     }
 
 
 @pytest.mark.skip()
 def test_compute_required_incomplete(archive):
-    required = compute_required_with_referenced({
-        'workflow2': {
-            'm_def': 'simulationworkflowschema.SimulationWorkflow',
-            'results': {
-                'calculation_result_ref': {
-                    'energy': {
-                        'total': '*'
-                    },
-                    'dos_electronic': '*'
-                }
+    required = compute_required_with_referenced(
+        {
+            'workflow2': {
+                'm_def': 'simulationworkflowschema.SimulationWorkflow',
+                'results': {
+                    'calculation_result_ref': {
+                        'energy': {'total': '*'},
+                        'dos_electronic': '*',
+                    }
+                },
             }
         }
-    })
+    )
 
     assert required is None
 
-    required = compute_required_with_referenced({
-        'workflow2': {
-            'results': {
-                'calculation_result_ref': {
-                    'energy': {
-                        'total': '*'
-                    },
-                    'system_ref': {
-                        'symmetry': '*'
+    required = compute_required_with_referenced(
+        {
+            'workflow2': {
+                'results': {
+                    'calculation_result_ref': {
+                        'energy': {'total': '*'},
+                        'system_ref': {'symmetry': '*'},
                     }
                 }
             }
         }
-    })
+    )
 
     assert required is not None
 

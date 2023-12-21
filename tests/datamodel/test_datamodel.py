@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-'''
+"""
 A generator for random test calculations.
-'''
+"""
 import random
 from essential_generators import DocumentGenerator
 
@@ -31,16 +31,34 @@ number_of = 20
 random.seed(0)
 gen = DocumentGenerator()
 
-users = ['20bb9766-d338-4314-be43-7906042a5086', 'a03af8b6-3aa7-428a-b3b1-4a6317e576b6',
-         '54cb1f64-f84e-4815-9ade-440ce0b5430f']
+users = [
+    '20bb9766-d338-4314-be43-7906042a5086',
+    'a03af8b6-3aa7-428a-b3b1-4a6317e576b6',
+    '54cb1f64-f84e-4815-9ade-440ce0b5430f',
+]
 basis_sets = ['Numeric AOs', 'Gaussians', '(L)APW+lo', 'Plane waves']
 xc_functionals = ['LDA', 'GGA', 'hybrid', 'meta-GGA', 'GW', 'unknown']
-crystal_systems = ['triclinic', 'monoclinic', 'orthorombic', 'tetragonal', 'hexagonal', 'cubic']
+crystal_systems = [
+    'triclinic',
+    'monoclinic',
+    'orthorombic',
+    'tetragonal',
+    'hexagonal',
+    'cubic',
+]
 systems = ['atom', 'molecule/cluster', '2D/surface', 'bulk']
 comments = [gen.sentence() for _ in range(0, number_of)]
 references = [(i + 1, gen.url()) for i in range(0, number_of)]
 datasets = [(i + 1, gen.slug()) for i in range(0, number_of)]
-codes = list(set([parser.code_name for parser in parser_dict.values() if hasattr(parser, 'code_name')]))  # type: ignore
+codes = list(
+    set(
+        [
+            parser.code_name
+            for parser in parser_dict.values()
+            if hasattr(parser, 'code_name')
+        ]
+    )
+)  # type: ignore
 filepaths = ['/'.join(gen.url().split('/')[3:]) for _ in range(0, number_of)]
 
 low_numbers_for_atoms = [1, 1, 2, 2, 2, 2, 2, 3, 3, 4]
@@ -64,5 +82,6 @@ def test_common_metainfo():
 def test_vasp_metainfo():
     from nomad.datamodel.metainfo.simulation.run import Run
     from electronicparsers.vasp.metainfo import m_env  # pylint: disable=unused-import
+
     run = Run()
     assert 'vasp_src_date' in run.m_def.all_quantities

@@ -45,7 +45,7 @@ def admin_user_auth(admin_user: User):
 
 @pytest.fixture(scope='module')
 def invalid_user_auth():
-    return create_auth_headers("invalid.bearer.token")
+    return create_auth_headers('invalid.bearer.token')
 
 
 @pytest.fixture(scope='module')
@@ -56,18 +56,28 @@ def app_token_auth(test_user: User):
 
 @pytest.fixture(scope='module')
 def test_auth_dict(
-        test_user, other_test_user, admin_user,
-        test_user_auth, other_test_user_auth, admin_user_auth, invalid_user_auth):
-    '''
+    test_user,
+    other_test_user,
+    admin_user,
+    test_user_auth,
+    other_test_user_auth,
+    admin_user_auth,
+    invalid_user_auth,
+):
+    """
     Returns a dictionary of the form {user_name: (auth_headers, token)}. The key 'invalid'
     contains an example of invalid credentials, and the key None contains (None, None).
-    '''
+    """
     return {
         'test_user': (test_user_auth, generate_upload_token(test_user)),
-        'other_test_user': (other_test_user_auth, generate_upload_token(other_test_user)),
+        'other_test_user': (
+            other_test_user_auth,
+            generate_upload_token(other_test_user),
+        ),
         'admin_user': (admin_user_auth, generate_upload_token(admin_user)),
         'invalid': (invalid_user_auth, 'invalid.upload.token'),
-        None: (None, None)}
+        None: (None, None),
+    }
 
 
 @pytest.fixture(scope='session')

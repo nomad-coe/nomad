@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 After parsing entries have to be normalized with a set of *normalizers*.
 In NOMAD-coe those were programmed in python (we'll reuse) and scala (we'll rewrite).
 
@@ -34,7 +34,7 @@ There is one ABC for all normalizer:
 
 .. autoclass::nomad.normalizing.normalizer.Normalizer
     :members:
-'''
+"""
 
 from typing import List, Type
 import importlib
@@ -45,6 +45,7 @@ from .normalizer import Normalizer
 
 
 normalizers: List[Type[Normalizer]] = []
+
 
 def add_normalizer(class_name: str):
     try:

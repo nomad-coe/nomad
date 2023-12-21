@@ -25,7 +25,11 @@ import dateutil.parser
 
 from nomad import config
 from nomad.app.resources.main import app, remove_mongo
-from nomad.app.resources.routers.resources import aflow_prototypes_db, springer_materials_db, optimade_providers
+from nomad.app.resources.routers.resources import (
+    aflow_prototypes_db,
+    springer_materials_db,
+    optimade_providers,
+)
 
 
 def _to_datetime(datetime_str):
@@ -75,8 +79,10 @@ def patched_download(monkeypatch):
                 return httpx.Response(status_code=404)
             json_data = response_dict.get('json')
             response = httpx.Response(
-                text=response_dict.get('text'), status_code=response_dict.get('status_code'),
-                json=json_data if json_data else {})
+                text=response_dict.get('text'),
+                status_code=response_dict.get('status_code'),
+                json=json_data if json_data else {},
+            )
             return response
 
         response = await get(path)
@@ -102,7 +108,12 @@ def _perform_initial_get_resources(api, params, data_length):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_initial_get_resources(api, resources, patched_download, worker):
-    params = dict(chemical_formula_reduced='AcAg', wyckoff_letters=['a', 'b'], space_group_number=225, n_sites=2)
+    params = dict(
+        chemical_formula_reduced='AcAg',
+        wyckoff_letters=['a', 'b'],
+        space_group_number=225,
+        n_sites=2,
+    )
     data = _perform_initial_get_resources(api, params, data_length=7)
 
     aflow_data = [d for d in data if d['database_name'] == aflow_prototypes_db]
@@ -123,7 +134,12 @@ def test_initial_get_resources(api, resources, patched_download, worker):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_cached_get_resources(api, resources, patched_download, worker):
-    params = dict(chemical_formula_reduced='Mg', wyckoff_letters=['a'], space_group_number=229, n_sites=1)
+    params = dict(
+        chemical_formula_reduced='Mg',
+        wyckoff_letters=['a'],
+        space_group_number=229,
+        n_sites=1,
+    )
     # do initial request
     data_initial = _perform_initial_get_resources(api, params, data_length=88)
 
@@ -137,22 +153,36 @@ def test_cached_get_resources(api, resources, patched_download, worker):
         assert data_initial[i]['id'] == data_repeat[i]['id']
         # mongodb does not save datetime precisely
         # (https://www.mongodb.com/community/forums/t/for-date-field-dont-save-milliseconds-in-mongodb/110557)
-        assert _to_datetime(data_initial[i]['download_time']) == pytest.approx(_to_datetime(data_repeat[i]['download_time']), 0.001)
+        assert _to_datetime(data_initial[i]['download_time']) == pytest.approx(
+            _to_datetime(data_repeat[i]['download_time']), 0.001
+        )
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_cache_invalidation_get_resources(api, resources, patched_download, worker, monkeypatch):
-    params = dict(chemical_formula_reduced='Mg', wyckoff_letters=['a'], space_group_number=229, n_sites=1)
+def test_cache_invalidation_get_resources(
+    api, resources, patched_download, worker, monkeypatch
+):
+    params = dict(
+        chemical_formula_reduced='Mg',
+        wyckoff_letters=['a'],
+        space_group_number=229,
+        n_sites=1,
+    )
     # do initial request
     data_initial = _perform_initial_get_resources(api, params, data_length=88)
 
     # mimic mongo update by setting max_time_in_mongo to 0
-    monkeypatch.setattr('nomad.config.resources.max_time_in_mongo', 0.)
+    monkeypatch.setattr('nomad.config.resources.max_time_in_mongo', 0.0)
 
     # repeat request, expect that resources are downloaded again
     _get_resources(api, params, is_retrieving_more=True, repeat=False)
     monkeypatch.setattr('nomad.config.resources.max_time_in_mongo', 3600)
-    data_repeat = sorted(_get_resources(api, params, is_retrieving_more=True, repeat=True), key=lambda x: x['id'])
+    data_repeat = sorted(
+        _get_resources(api, params, is_retrieving_more=True, repeat=True),
+        key=lambda x: x['id'],
+    )
     for i in range(len(data_initial)):
         assert data_initial[i]['id'] == data_repeat[i]['id']
-        assert _to_datetime(data_initial[i]['download_time']) < _to_datetime(data_repeat[i]['download_time'])
+        assert _to_datetime(data_initial[i]['download_time']) < _to_datetime(
+            data_repeat[i]['download_time']
+        )

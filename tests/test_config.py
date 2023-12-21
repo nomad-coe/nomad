@@ -34,18 +34,21 @@ def with_config():
     config.fs.public, config.fs.archive_version_suffix = old_values
 
 
-@pytest.mark.parametrize('a, b, expected', [
-    pytest.param({}, {}, {}, id='empty'),
-    pytest.param({}, None, {}, id='merge None'),
-    pytest.param(None, {}, None, id='merge to None'),
-    pytest.param({'test': 1}, {'test': 2}, {'test': 2}, id='override scalar'),
-    pytest.param(
-        {'test': {'override': 1, 'keep': 3}},
-        {'test': {'override': 2}},
-        {'test': {'override': 2, 'keep': 3}},
-        id='override dict partial'
-    ),
-])
+@pytest.mark.parametrize(
+    'a, b, expected',
+    [
+        pytest.param({}, {}, {}, id='empty'),
+        pytest.param({}, None, {}, id='merge None'),
+        pytest.param(None, {}, None, id='merge to None'),
+        pytest.param({'test': 1}, {'test': 2}, {'test': 2}, id='override scalar'),
+        pytest.param(
+            {'test': {'override': 1, 'keep': 3}},
+            {'test': {'override': 2}},
+            {'test': {'override': 2, 'keep': 3}},
+            id='override dict partial',
+        ),
+    ],
+)
 def test_merge(a, b, expected):
     config._merge(a, b)
     assert a == expected
@@ -79,8 +82,7 @@ def test_env(with_config, monkeypatch):
 
 
 def load_config(config_dict, monkeypatch):
-    '''Loads the given dictionary into the current config.
-    '''
+    """Loads the given dictionary into the current config."""
     test_nomad_yaml = os.path.join(config.fs.tmp, 'nomad_test.yaml')
     monkeypatch.setattr('os.environ', dict(NOMAD_CONFIG=test_nomad_yaml))
     with open(test_nomad_yaml, 'w') as file:
@@ -89,44 +91,69 @@ def load_config(config_dict, monkeypatch):
     os.remove(test_nomad_yaml)
 
 
-@pytest.mark.parametrize('config_dict, include', [
-    pytest.param(
-        {'services': {'max_entry_download': 123}},
-        {'services.max_entry_download': 123},
-        id='set integer'
-    ),
-    pytest.param(
-        {'ui': {'theme': {'title': 'mytitle'}}},
-        {'ui.theme.title': 'mytitle'},
-        id='overwrite default value in nested object'
-    ),
-    pytest.param(
-        {'ui': {
-            'apps': {
-                'options': {
-                    'entries': {
-                        'label': 'TEST',
-                        'path': 'eln',
-                        'category': 'Experiments',
-                        'columns': {'selected': ['test']},
-                        'filter_menus': {},
-                        'dashboard': {
-                            'widgets': [{'type': 'terms', 'layout': {}, 'quantity': 'test', 'scale': 'linear', 'showinput': True}]
+@pytest.mark.parametrize(
+    'config_dict, include',
+    [
+        pytest.param(
+            {'services': {'max_entry_download': 123}},
+            {'services.max_entry_download': 123},
+            id='set integer',
+        ),
+        pytest.param(
+            {'ui': {'theme': {'title': 'mytitle'}}},
+            {'ui.theme.title': 'mytitle'},
+            id='overwrite default value in nested object',
+        ),
+        pytest.param(
+            {
+                'ui': {
+                    'apps': {
+                        'options': {
+                            'entries': {
+                                'label': 'TEST',
+                                'path': 'eln',
+                                'category': 'Experiments',
+                                'columns': {'selected': ['test']},
+                                'filter_menus': {},
+                                'dashboard': {
+                                    'widgets': [
+                                        {
+                                            'type': 'terms',
+                                            'layout': {},
+                                            'quantity': 'test',
+                                            'scale': 'linear',
+                                            'showinput': True,
+                                        }
+                                    ]
+                                },
+                            }
                         }
                     }
                 }
-            }
-        }},
-        {'ui.apps.options.entries.dashboard.widgets': [{'type': 'terms', 'layout': {}, 'quantity': 'test', 'scale': 'linear', 'showinput': True}]},
-        id='overwrite unset object value'
-    ),
-    pytest.param(
-        {'ui': {'unit_systems': {}}},
-        {'ui.unit_systems.selected': 'Custom'},
-        id='unset values do not override'
-    ),
-])
-def test_config_apply(raw_files, with_config, monkeypatch, caplog, config_dict, include):
+            },
+            {
+                'ui.apps.options.entries.dashboard.widgets': [
+                    {
+                        'type': 'terms',
+                        'layout': {},
+                        'quantity': 'test',
+                        'scale': 'linear',
+                        'showinput': True,
+                    }
+                ]
+            },
+            id='overwrite unset object value',
+        ),
+        pytest.param(
+            {'ui': {'unit_systems': {}}},
+            {'ui.unit_systems.selected': 'Custom'},
+            id='unset values do not override',
+        ),
+    ],
+)
+def test_config_apply(
+    raw_files, with_config, monkeypatch, caplog, config_dict, include
+):
     load_config(config_dict, monkeypatch)
     config_dict = {}
     for key, value in config.__dict__.items():
@@ -137,15 +164,26 @@ def test_config_apply(raw_files, with_config, monkeypatch, caplog, config_dict, 
         assert flat_real[key] == value
 
 
-@pytest.mark.parametrize('config_dict, error', [
-    pytest.param({'does_not_exist': 'test_value'}, 'config key does not exist: does_not_exist', id='undefined field root'),
-    pytest.param({'fs': {'does_not_exist': 'test_value'}}, 'config key does not exist: fs_does_not_exist', id='undefined field child'),
-    pytest.param(
-        {'services': {'max_entry_download': 'not_a_number'}},
-        "cannot set config setting services_max_entry_download=not_a_number: 1 validation error for ParsingModel[int]",
-        id='incompatible-value'
-    ),
-])
+@pytest.mark.parametrize(
+    'config_dict, error',
+    [
+        pytest.param(
+            {'does_not_exist': 'test_value'},
+            'config key does not exist: does_not_exist',
+            id='undefined field root',
+        ),
+        pytest.param(
+            {'fs': {'does_not_exist': 'test_value'}},
+            'config key does not exist: fs_does_not_exist',
+            id='undefined field child',
+        ),
+        pytest.param(
+            {'services': {'max_entry_download': 'not_a_number'}},
+            'cannot set config setting services_max_entry_download=not_a_number: 1 validation error for ParsingModel[int]',
+            id='incompatible-value',
+        ),
+    ],
+)
 def test_config_error(raw_files, with_config, monkeypatch, caplog, config_dict, error):
     load_config(config_dict, monkeypatch)
     assert_log(caplog, 'ERROR', error)
@@ -154,28 +192,41 @@ def test_config_error(raw_files, with_config, monkeypatch, caplog, config_dict, 
 def test_parser_plugins():
     from nomad import config
     from nomad.config import Parser
+
     parsers = [
-        plugin for plugin in config.plugins.options.values()
-        if isinstance(plugin, Parser)]
+        plugin
+        for plugin in config.plugins.options.values()
+        if isinstance(plugin, Parser)
+    ]
     assert len(parsers) == 69
 
 
 def test_plugin_polymorphism():
-    plugins_yaml = parse_obj_as(config.Plugins, yaml.safe_load('''
+    plugins_yaml = parse_obj_as(
+        config.Plugins,
+        yaml.safe_load(
+            """
         options:
             schema:
                 plugin_type: schema
                 name: test
                 python_package: nomad.datamodel.metainfo.simulation
-    '''))
+    """
+        ),
+    )
 
-    plugins_config = config.Plugins(options=dict(parser=config.Parser(
-        name='parsers/abinit',
-        python_package='electronicparsers.abinit',
-        parser_class_name='electronicparsers.abinit.parser.AbinitParser'
-    )))
+    plugins_config = config.Plugins(
+        options=dict(
+            parser=config.Parser(
+                name='parsers/abinit',
+                python_package='electronicparsers.abinit',
+                parser_class_name='electronicparsers.abinit.parser.AbinitParser',
+            )
+        )
+    )
 
     from nomad.config import _merge
+
     _merge(plugins_config.options, plugins_yaml.options)
     plugins = plugins_config
 

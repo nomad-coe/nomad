@@ -41,7 +41,7 @@ def get_optional_entry_prop(entry, name):
         return 'unavailable'
 
 
-class Mapping():
+class Mapping:
     def __init__(self):
         self.g = Graph()
         self.g.bind('rdf', RDF)
@@ -90,26 +90,66 @@ class Mapping():
         self.g.add((dataset, DCT.identifier, Literal(entry['entry_id'])))
         self.g.add((dataset, DCT.issued, Literal(entry['upload_create_time'])))
         self.g.add((dataset, DCT.modified, Literal(entry['last_processing_time'])))
-        self.g.add((dataset, DCT.title, Literal(get_optional_entry_prop(entry, 'results.material.chemical_formula_descriptive'))))
+        self.g.add(
+            (
+                dataset,
+                DCT.title,
+                Literal(
+                    get_optional_entry_prop(
+                        entry, 'results.material.chemical_formula_descriptive'
+                    )
+                ),
+            )
+        )
         if 'comment' in entry:
-            self.g.add((dataset, DCT.description, Literal(get_optional_entry_prop(entry, 'comment'))))
+            self.g.add(
+                (
+                    dataset,
+                    DCT.description,
+                    Literal(get_optional_entry_prop(entry, 'comment')),
+                )
+            )
 
         if slim:
             return dataset
 
-        self.g.add((dataset, DCAT.landingPage, URIRef('%s/entry/id/%s/%s' % (
-            config.gui_url(), entry['upload_id'], entry['entry_id']))))
+        self.g.add(
+            (
+                dataset,
+                DCAT.landingPage,
+                URIRef(
+                    '%s/entry/id/%s/%s'
+                    % (config.gui_url(), entry['upload_id'], entry['entry_id'])
+                ),
+            )
+        )
 
-        self.g.add((dataset, DCT.license, URIRef('https://creativecommons.org/licenses/by/4.0/legalcode')))
-        self.g.add((dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en')))
+        self.g.add(
+            (
+                dataset,
+                DCT.license,
+                URIRef('https://creativecommons.org/licenses/by/4.0/legalcode'),
+            )
+        )
+        self.g.add(
+            (dataset, DCT.language, URIRef('http://id.loc.gov/vocabulary/iso639-1/en'))
+        )
 
-        self.g.add((dataset, DCT.publisher, self.map_user(entry['main_author']['user_id'])))
+        self.g.add(
+            (dataset, DCT.publisher, self.map_user(entry['main_author']['user_id']))
+        )
         try:
             for author in entry['authors']:
                 self.g.add((dataset, DCT.creator, self.map_user(author['user_id'])))
         except (KeyError, AttributeError):
             pass
-        self.g.add((dataset, DCAT.contactPoint, self.map_contact(entry['main_author']['user_id'])))
+        self.g.add(
+            (
+                dataset,
+                DCAT.contactPoint,
+                self.map_contact(entry['main_author']['user_id']),
+            )
+        )
 
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'api')))
         self.g.add((dataset, DCAT.distribution, self.map_distribution(entry, 'json')))
@@ -117,7 +157,9 @@ class Mapping():
 
         if 'datasets' in entry:
             for nomad_dataset in entry['datasets']:
-                self.g.add((dataset, DCAT.distribution, self.map_nomad_dataset(nomad_dataset)))
+                self.g.add(
+                    (dataset, DCAT.distribution, self.map_nomad_dataset(nomad_dataset))
+                )
 
         return dataset
 
@@ -150,7 +192,13 @@ class Mapping():
         self.g.add((person, VCARD.familyName, Literal(user.last_name)))
         self.g.add((person, VCARD.nickName, Literal(user.username)))
         self.g.add((person, VCARD.hasEmail, Literal(user.email)))
-        self.g.add((person, VCARD.organization, Literal(get_optional_entry_prop(user, 'affiliation'))))
+        self.g.add(
+            (
+                person,
+                VCARD.organization,
+                Literal(get_optional_entry_prop(user, 'affiliation')),
+            )
+        )
 
         return person
 
@@ -160,22 +208,68 @@ class Mapping():
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCT.title, Literal(f'{entry["entry_id"]}_metadata')))
-            self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
-            self.g.add((dist, DCAT.accessURL, URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/archive/download')))
+            self.g.add(
+                (
+                    dist,
+                    DCAT.mediaType,
+                    URIRef(
+                        'https://www.iana.org/assignments/media-types/application/json'
+                    ),
+                )
+            )
+            self.g.add(
+                (
+                    dist,
+                    DCAT.accessURL,
+                    URIRef(
+                        f'${config.api_url()}/v1/entries/{entry["entry_id"]}/archive/download'
+                    ),
+                )
+            )
         elif dist_kind == 'json':
             # Distribution as JSON
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCT.title, Literal(f'{entry["entry_id"]}_archive')))
-            self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/json')))
-            self.g.add((dist, DCAT.accessURL, URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/archive/download')))
+            self.g.add(
+                (
+                    dist,
+                    DCAT.mediaType,
+                    URIRef(
+                        'https://www.iana.org/assignments/media-types/application/json'
+                    ),
+                )
+            )
+            self.g.add(
+                (
+                    dist,
+                    DCAT.accessURL,
+                    URIRef(
+                        f'${config.api_url()}/v1/entries/{entry["entry_id"]}/archive/download'
+                    ),
+                )
+            )
         elif dist_kind == 'raw':
             # Distribution of the raw data
             dist = BNode()
             self.g.add((dist, RDF.type, DCAT.Distribution))
             self.g.add((dist, DCT.title, Literal(f'{entry["entry_id"]}_raw_files')))
-            self.g.add((dist, DCAT.accessURL, URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/raw')))
-            self.g.add((dist, DCAT.mediaType, URIRef('https://www.iana.org/assignments/media-types/application/zip')))
+            self.g.add(
+                (
+                    dist,
+                    DCAT.accessURL,
+                    URIRef(f'${config.api_url()}/v1/entries/{entry["entry_id"]}/raw'),
+                )
+            )
+            self.g.add(
+                (
+                    dist,
+                    DCAT.mediaType,
+                    URIRef(
+                        'https://www.iana.org/assignments/media-types/application/zip'
+                    ),
+                )
+            )
 
         return dist
 
@@ -190,7 +284,12 @@ class Mapping():
             pass
         self.g.add((dist, DCT.identifier, Literal(id_literal)))
         self.g.add((dist, DCT.title, Literal(dataset['dataset_name'])))
-        self.g.add((dist, DCT.accessURL, URIRef(
-            f'{config.gui_url()}/dataset/id/{dataset["dataset_id"]}')))
+        self.g.add(
+            (
+                dist,
+                DCT.accessURL,
+                URIRef(f'{config.gui_url()}/dataset/id/{dataset["dataset_id"]}'),
+            )
+        )
 
         return dist

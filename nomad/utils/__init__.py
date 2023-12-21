@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 .. autofunc::nomad.utils.create_uuid
 .. autofunc::nomad.utils.hash
 .. autofunc::nomad.utils.timer
@@ -36,7 +36,7 @@ Depending on the configuration all logs will also be send to a central logstash.
 .. autofunc::nomad.utils.timer
 .. autofunc::nomad.utils.lnr
 .. autofunc::nomad.utils.strip
-'''
+"""
 
 from typing import List, Iterable, Union, Any, Dict
 from collections import OrderedDict
@@ -72,12 +72,12 @@ def dump_json(data):
         raise TypeError
 
     return orjson.dumps(
-        data, default=default,
-        option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)
+        data, default=default, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS
+    )
 
 
 default_hash_len = 28
-''' Length of hashes and hash-based ids (e.g. entry_id) in nomad. '''
+""" Length of hashes and hash-based ids (e.g. entry_id) in nomad. """
 
 try:
     from . import structlogging
@@ -85,26 +85,29 @@ try:
     from .structlogging import configure_logging
 
     def get_logger(name, **kwargs):
-        '''
+        """
         Returns a structlog logger that is already attached with a logstash handler.
         Use additional *kwargs* to pre-bind some values to all events.
-        '''
+        """
         return structlogging.get_logger(name, **kwargs)
 
 except ImportError:
+
     def get_logger(name, **kwargs):
         return ClassicLogger(name, **kwargs)
 
     def configure_logging(console_log_level=config.services.console_log_level):
         import logging
+
         logging.basicConfig(level=console_log_level)
 
 
 class ClassicLogger:
-    '''
+    """
     A logger class that emulates the structlog interface, but uses the classical
     build-in Python logging.
-    '''
+    """
+
     def __init__(self, name, **kwargs):
         self.kwargs = kwargs
         self.logger = logging.getLogger(name)
@@ -121,7 +124,9 @@ class ClassicLogger:
 
         message = '%s (%s)' % (
             event,
-            ', '.join(['%s=%s' % (str(key), str(value)) for key, value in all_kwargs.items()])
+            ', '.join(
+                ['%s=%s' % (str(key), str(value)) for key, value in all_kwargs.items()]
+            ),
         )
         method(message)
 
@@ -153,7 +158,7 @@ def decode_handle_id(handle_str: str):
 
 
 def generate_entry_id(upload_id: str, mainfile: str, mainfile_key: str = None) -> str:
-    '''
+    """
     Generates an id for an entry.
     Arguments:
         upload_id: The id of the upload
@@ -161,14 +166,14 @@ def generate_entry_id(upload_id: str, mainfile: str, mainfile_key: str = None) -
         mainfile_key: Optional additional key for mainfiles that represent many entries.
     Returns:
         The generated entry id
-    '''
+    """
     if mainfile_key:
         return hash(upload_id, mainfile, mainfile_key)
     return hash(upload_id, mainfile)
 
 
 def hash(*args, length: int = default_hash_len) -> str:
-    ''' Creates a websafe hash of the given length based on the repr of the given arguments. '''
+    """Creates a websafe hash of the given length based on the repr of the given arguments."""
     hash = hashlib.sha512()
     for arg in args:
         hash.update(str(arg).encode('utf-8'))
@@ -177,7 +182,7 @@ def hash(*args, length: int = default_hash_len) -> str:
 
 
 def make_websave(hash, length: int = default_hash_len) -> str:
-    ''' Creates a websafe string for a hashlib hash object. '''
+    """Creates a websafe string for a hashlib hash object."""
     if length > 0:
         return base64.b64encode(hash.digest(), altchars=b'-_')[:length].decode('utf-8')
     else:
@@ -185,29 +190,29 @@ def make_websave(hash, length: int = default_hash_len) -> str:
 
 
 def base64_encode(string):
-    '''
+    """
     Removes any `=` used as padding from the encoded string.
-    '''
+    """
     encoded = base64.urlsafe_b64encode(string).decode('utf-8')
-    return encoded.rstrip("=")
+    return encoded.rstrip('=')
 
 
 def base64_decode(string):
-    '''
+    """
     Adds back in the required padding before decoding.
-    '''
+    """
     padding = 4 - (len(string) % 4)
-    bytes = (string + ("=" * padding)).encode('utf-8')
+    bytes = (string + ('=' * padding)).encode('utf-8')
     return base64.urlsafe_b64decode(bytes)
 
 
 def create_uuid() -> str:
-    ''' Returns a web-save base64 encoded random uuid (type 4). '''
+    """Returns a web-save base64 encoded random uuid (type 4)."""
     return base64.b64encode(uuid.uuid4().bytes, altchars=b'-_').decode('utf-8')[0:-2]
 
 
 def adjust_uuid_size(uuid, length: int = default_hash_len):
-    ''' Adds prefixing spaces to a uuid to ensure the default uuid length. '''
+    """Adds prefixing spaces to a uuid to ensure the default uuid length."""
     uuid = uuid.rjust(length, ' ')
     assert len(uuid) == length, 'uuids must have the right fixed size'
     return uuid
@@ -215,14 +220,14 @@ def adjust_uuid_size(uuid, length: int = default_hash_len):
 
 @contextmanager
 def lnr(logger, event, **kwargs):
-    '''
+    """
     A context manager that Logs aNd Raises all exceptions with the given logger.
 
     Arguments:
         logger: The logger that should be used for logging exceptions.
         event: the log message
         **kwargs: additional properties for the structured log
-    '''
+    """
     try:
         yield
 
@@ -234,8 +239,15 @@ def lnr(logger, event, **kwargs):
 
 
 @contextmanager
-def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool = False, **kwargs):
-    '''
+def timer(
+    logger,
+    event,
+    method='info',
+    lnr_event: str = None,
+    log_memory: bool = False,
+    **kwargs,
+):
+    """
     A context manager that takes execution time and produces a log entry with said time.
 
     Arguments:
@@ -248,10 +260,12 @@ def timer(logger, event, method='info', lnr_event: str = None, log_memory: bool 
 
     Returns:
         The method yields a dictionary that can be used to add further log data.
-    '''
+    """
+
     def get_rss():
         if os.name != 'nt':
             import resource
+
             return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         return 0
 
@@ -318,16 +332,16 @@ def to_tuple(self, *args):
 
 
 def chunks(list, n):
-    ''' Chunks up the given list into parts of size n. '''
+    """Chunks up the given list into parts of size n."""
     for i in range(0, len(list), n):
-        yield list[i:i + n]
+        yield list[i : i + n]
 
 
 class SleepTimeBackoff:
-    '''
+    """
     Provides increasingly larger sleeps. Useful when
     observing long running processes with unknown runtime.
-    '''
+    """
 
     def __init__(self, start_time: float = 0.1, max_time: float = 5):
         self.current_time = start_time
@@ -371,10 +385,10 @@ class ETA:
 
 
 def common_prefix(paths):
-    '''
+    """
     Computes the longest common file path prefix (with respect to '/' separated segments).
     Returns empty string is ne common prefix exists.
-    '''
+    """
     common_prefix = None
 
     for path in paths:
@@ -394,7 +408,7 @@ def common_prefix(paths):
             common_prefix = ''
             break
 
-        common_prefix = common_prefix[:index_last_slash + 1]
+        common_prefix = common_prefix[: index_last_slash + 1]
 
     if common_prefix is None:
         common_prefix = ''
@@ -406,7 +420,14 @@ class RestrictedDict(OrderedDict):
     """Dictionary-like container with predefined set of mandatory and optional
     keys and a set of forbidden values.
     """
-    def __init__(self, mandatory_keys: Iterable = None, optional_keys: Iterable = None, forbidden_values: Iterable = None, lazy: bool = True):
+
+    def __init__(
+        self,
+        mandatory_keys: Iterable = None,
+        optional_keys: Iterable = None,
+        forbidden_values: Iterable = None,
+        lazy: bool = True,
+    ):
         """
         Args:
             mandatory_keys: Keys that have to be present.
@@ -423,27 +444,32 @@ class RestrictedDict(OrderedDict):
         elif mandatory_keys is None:
             self._mandatory_keys = set()
         else:
-            raise ValueError("Please provide the mandatory_keys as a list, tuple or set.")
+            raise ValueError(
+                'Please provide the mandatory_keys as a list, tuple or set.'
+            )
 
         if isinstance(optional_keys, (list, tuple, set)):
             self._optional_keys = set(optional_keys)
         elif optional_keys is None:
             self._optional_keys = set()
         else:
-            raise ValueError("Please provide the optional_keys as a list, tuple or set.")
+            raise ValueError(
+                'Please provide the optional_keys as a list, tuple or set.'
+            )
 
         if isinstance(forbidden_values, (list, tuple, set)):
             self._forbidden_values = set(forbidden_values)
         elif forbidden_values is None:
             self._forbidden_values = set()
         else:
-            raise ValueError("Please provide the forbidden_values as a list or tuple of values.")
+            raise ValueError(
+                'Please provide the forbidden_values as a list or tuple of values.'
+            )
 
         self._lazy = lazy
 
     def __setitem__(self, key, value):
         if not self._lazy:
-
             # Check that only the defined keys are used
             if key not in self._mandatory_keys and key not in self._optional_keys:
                 raise KeyError("The key '{}' is not allowed.".format(key))
@@ -479,7 +505,11 @@ class RestrictedDict(OrderedDict):
                 pass  # Unhashable value will not match
             else:
                 if match:
-                    raise ValueError("The value '{}' is not allowed but was set for key '{}'.".format(value, key))
+                    raise ValueError(
+                        "The value '{}' is not allowed but was set for key '{}'.".format(
+                            value, key
+                        )
+                    )
 
         # Check recursively
         if recursive:
@@ -492,22 +522,21 @@ class RestrictedDict(OrderedDict):
             self.__setitem__(key, value)
 
     def hash(self) -> str:
-        """Creates a hash code from the contents. Ensures consistent ordering.
-        """
+        """Creates a hash code from the contents. Ensures consistent ordering."""
         hash_str = json.dumps(self, sort_keys=True)
 
         return hash(hash_str)
 
 
 def strip(docstring):
-    ''' Removes any unnecessary whitespaces from a multiline doc string or description. '''
+    """Removes any unnecessary whitespaces from a multiline doc string or description."""
     if docstring is None:
         return None
     return inspect.cleandoc(docstring)
 
 
 def flatten_dict(src: dict, separator: str = '.', flatten_list: bool = False):
-    '''
+    """
     Flattens nested dictionaries so that all information is stored
     with depth=1.
 
@@ -515,7 +544,8 @@ def flatten_dict(src: dict, separator: str = '.', flatten_list: bool = False):
         src: Dictionary to flatten
         separator: String to use as a separator
         flatten_list: Whether lists should be flattened as well.
-    '''
+    """
+
     def helper_list(src):
         ret = {}
         for i in range(len(src)):
@@ -556,13 +586,13 @@ def flatten_dict(src: dict, separator: str = '.', flatten_list: bool = False):
 
 
 def rebuild_dict(src: dict, separator: str = '.'):
-    '''
+    """
     Rebuilds nested dictionaries from flattened ones.
-    '''
+    """
     separator_len = len(separator)
 
     def get_indices(key, split_index):
-        next_key = key[split_index + separator_len:]
+        next_key = key[split_index + separator_len :]
         num_string = list(takewhile(str.isdigit, next_key))
         n_numbers = len(num_string)
         index = int(''.join(num_string)) if n_numbers else None
@@ -583,18 +613,33 @@ def rebuild_dict(src: dict, separator: str = '.'):
         if split_index == -1:
             result.update({key: value})
         else:
-            split_index_dict, split_index_list, next_index = get_indices(key, split_index)
+            split_index_dict, split_index_list, next_index = get_indices(
+                key, split_index
+            )
 
             # Handle next dictionary
-            if split_index_list == -1 or split_index_dict != -1 and split_index_dict < split_index_list:
+            if (
+                split_index_list == -1
+                or split_index_dict != -1
+                and split_index_dict < split_index_list
+            ):
                 if result.get(key[:split_index_dict]) is None:
                     result.update({key[:split_index_dict]: {}})
-                helper_dict(key[split_index_dict + separator_len:], value, result[key[:split_index_dict]])
+                helper_dict(
+                    key[split_index_dict + separator_len :],
+                    value,
+                    result[key[:split_index_dict]],
+                )
             # Handle next list
             else:
                 if result.get(key[:split_index_list]) is None:
                     result.update({key[:split_index_list]: []})
-                helper_list(key[split_index_list + separator_len:], value, next_index, result[key[:split_index_list]])
+                helper_list(
+                    key[split_index_list + separator_len :],
+                    value,
+                    next_index,
+                    result[key[:split_index_list]],
+                )
 
     def helper_list(key, value, index, result):
         split_index = key.find(separator)
@@ -603,25 +648,38 @@ def rebuild_dict(src: dict, separator: str = '.'):
         if split_index == -1:
             result.insert(index, value)
         else:
-            split_index_dict, split_index_list, next_index = get_indices(key, split_index)
+            split_index_dict, split_index_list, next_index = get_indices(
+                key, split_index
+            )
 
             # Grow list to size of this index
             if index > len(result):
                 result.extend([None] * (index - len(result)))
             # Handle next dictionary
-            if split_index_list == -1 or split_index_dict != -1 and split_index_dict < split_index_list:
+            if (
+                split_index_list == -1
+                or split_index_dict != -1
+                and split_index_dict < split_index_list
+            ):
                 try:
                     old_value = result[index]
                 except IndexError:
                     old_value = None
                 if old_value is None:
                     result.insert(index, {})
-                helper_dict(key[split_index_dict + separator_len:], value, result[index])
+                helper_dict(
+                    key[split_index_dict + separator_len :], value, result[index]
+                )
             # Handle next list
             else:
                 if result[index] is None:
                     result.insert(index, [])
-                helper_list(key[split_index_list + separator_len:], value, next_index, result[index])
+                helper_list(
+                    key[split_index_list + separator_len :],
+                    value,
+                    next_index,
+                    result[index],
+                )
 
     ret: Dict[str, Any] = {}
     for key, value in src.items():
@@ -631,13 +689,13 @@ def rebuild_dict(src: dict, separator: str = '.'):
 
 
 def deep_get(dictionary, *keys):
-    '''
+    """
     Helper that can be used to access nested dictionary-like containers using a
     series of paths given as arguments. The path can contain dictionary string
     keys or list indices as integer numbers.
 
     Raises: ValueError if value not found for path.
-    '''
+    """
     try:
         return reduce(lambda d, key: d[key], keys, dictionary)
     except (IndexError, TypeError, KeyError):
@@ -645,22 +703,24 @@ def deep_get(dictionary, *keys):
 
 
 def slugify(value):
-    '''
+    """
     Taken from https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
     dashes to single dashes. Remove characters that aren't alphanumerics,
     underscores, or hyphens. Convert to lowercase. Also strip leading and
     trailing whitespace, dashes, and underscores.
-    '''
+    """
 
     value = str(value)
-    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = (
+        unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    )
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 
 def query_list_to_dict(path_list: List[Union[str, int]], value: Any) -> Dict[str, Any]:
-    '''Transforms a list of path fragments into a dictionary query. E.g. the list
+    """Transforms a list of path fragments into a dictionary query. E.g. the list
 
     ['run', 0, 'system', 2, 'atoms']
 
@@ -681,7 +741,7 @@ def query_list_to_dict(path_list: List[Union[str, int]], value: Any) -> Dict[str
     Returns:
         A nested dictionary representing the query path.
 
-    '''
+    """
     returned: Dict[str, Any] = {}
     current = returned
     n_items = len(path_list)
@@ -701,7 +761,7 @@ def query_list_to_dict(path_list: List[Union[str, int]], value: Any) -> Dict[str
 
 
 def traverse_reversed(archive: Any, path: List[str]) -> Any:
-    '''Traverses the given metainfo path in reverse order. Useful in finding the
+    """Traverses the given metainfo path in reverse order. Useful in finding the
     latest reported section or value.
 
     Args:
@@ -711,7 +771,8 @@ def traverse_reversed(archive: Any, path: List[str]) -> Any:
     Returns:
         Returns the last metainfo section or quantity in the given path or None
         if not found.
-    '''
+    """
+
     def traverse(root, path, i):
         if not root:
             return
@@ -729,6 +790,7 @@ def traverse_reversed(archive: Any, path: List[str]) -> Any:
             else:
                 for s in traverse(sections, path, i + 1):
                     yield s
+
     for t in traverse(archive, path, 0):
         if t is not None:
             yield t

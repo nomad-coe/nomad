@@ -44,9 +44,9 @@ logger = get_logger(__name__)
 
 
 class ToolStateEnum(str, Enum):
-    running = 'running',
-    starting = 'starting',
-    stopping = 'stopping',
+    running = ('running',)
+    starting = ('starting',)
+    stopping = ('stopping',)
     stopped = 'stopped'
 
 
@@ -66,10 +66,16 @@ class ToolsResponseModel(BaseModel):
     data: List[ToolModel] = []
 
 
-_bad_tool_response = status.HTTP_404_NOT_FOUND, {
-    'model': HTTPExceptionModel,
-    'description': strip('''
-        The tool does not exist.''')}
+_bad_tool_response = (
+    status.HTTP_404_NOT_FOUND,
+    {
+        'model': HTTPExceptionModel,
+        'description': strip(
+            """
+        The tool does not exist."""
+        ),
+    },
+)
 
 
 def _get_status(tool: ToolModel, user: User) -> ToolModel:
@@ -89,24 +95,28 @@ def _get_status(tool: ToolModel, user: User) -> ToolModel:
             tool.state = ToolStateEnum.starting
     else:
         logger.error(
-            'unexpected jupyterhub response', data=dict(status_code=response.status_code),
-            text=response.text)
+            'unexpected jupyterhub response',
+            data=dict(status_code=response.status_code),
+            text=response.text,
+        )
         tool.state = ToolStateEnum.stopped
 
     return tool
 
 
 @router.get(
-    '/', tags=[default_tag],
+    '/',
+    tags=[default_tag],
     response_model=ToolsResponseModel,
     summary='Get a list of all configured tools and their current state.',
     response_model_exclude_unset=True,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
 )
 async def get_tools(user: User = Depends(create_user_dependency())):
     return ToolsResponseModel(
         data=[
-            _get_status(ToolModel(name=name, **tool.dict()), user) for name, tool in TOOLS.items()
+            _get_status(ToolModel(name=name, **tool.dict()), user)
+            for name, tool in TOOLS.items()
         ]
     )
 
@@ -114,43 +124,44 @@ async def get_tools(user: User = Depends(create_user_dependency())):
 async def tool(name: str) -> ToolModel:
     if name not in TOOLS:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='The tools does not exist.')
+            status_code=status.HTTP_404_NOT_FOUND, detail='The tools does not exist.'
+        )
 
     tool = TOOLS[name]
     return ToolModel(name=name, **tool.dict())
 
 
 @router.get(
-    '/{name}', tags=[default_tag],
+    '/{name}',
+    tags=[default_tag],
     summary='Get information for a specific tool.',
     response_model=ToolResponseModel,
     responses=create_responses(_bad_tool_response),
     response_model_exclude_unset=True,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
 )
 async def get_tool(
     tool: ToolModel = Depends(tool),
-    user: User = Depends(create_user_dependency(required=True))
+    user: User = Depends(create_user_dependency(required=True)),
 ):
     return ToolResponseModel(
-        tool=tool.name,
-        username=user.username,
-        data=_get_status(tool, user))
+        tool=tool.name, username=user.username, data=_get_status(tool, user)
+    )
 
 
 @router.post(
-    '/{name}', tags=[default_tag],
+    '/{name}',
+    tags=[default_tag],
     response_model=ToolResponseModel,
     summary='Start a tool.',
     response_model_exclude_unset=True,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
 )
 async def start_tool(
     tool: ToolModel = Depends(tool),
     access_token: str = Depends(oauth2_scheme),
     user: User = Depends(create_user_dependency(required=True)),
-    upload_id: Optional[str] = None
+    upload_id: Optional[str] = None,
 ):
     tool.state = ToolStateEnum.stopped
 
@@ -182,14 +193,17 @@ async def start_tool(
 
     uploads: List[Dict] = []
     for upload in Upload.objects.filter(upload_query):
-
         if not hasattr(upload.upload_files, 'external_os_path'):
             # In case the files are missing for one reason or another
-            logger.info('upload: the external path is missing for one reason or another')
+            logger.info(
+                'upload: the external path is missing for one reason or another'
+            )
             continue
 
         if upload.upload_name:
-            upload_dir = f'uploads/{truncate(slugify(upload.upload_name))}-{upload.upload_id}'
+            upload_dir = (
+                f'uploads/{truncate(slugify(upload.upload_name))}-{upload.upload_id}'
+            )
         else:
             upload_dir = f'uploads/{upload.upload_id}'
 
@@ -199,7 +213,7 @@ async def start_tool(
         uploads.append(
             {
                 'host_path': os.path.join(upload.upload_files.external_os_path, 'raw'),
-                'mount_path': os.path.join(tool.mount_path, upload_dir)
+                'mount_path': os.path.join(tool.mount_path, upload_dir),
             }
         )
 
@@ -220,25 +234,22 @@ async def start_tool(
             tool=tool.name,
             username=user.username,
             data=_get_status(tool, user),
-            upload_mount_dir=upload_mount_dir)
+            upload_mount_dir=upload_mount_dir,
+        )
 
     url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
     body = {
-        'tool': {
-            'image': tool.image,
-            'cmd': tool.cmd,
-            'privileged': tool.privileged
-        },
+        'tool': {'image': tool.image, 'cmd': tool.cmd, 'privileged': tool.privileged},
         'environment': {
             'SUBFOLDER': f'{config.services.api_base_path.rstrip("/")}/north/user/{user.username}/',
             'JUPYTERHUB_CLIENT_API_URL': f'{config.north_url()}/hub/api',
             'NOMAD_CLIENT_USER': user.username,
             'NOMAD_CLIENT_ACCESS_TOKEN': access_token,
-            'NOMAD_CLIENT_URL': config.api_url(ssl=config.services.https_upload)
+            'NOMAD_CLIENT_URL': config.api_url(ssl=config.services.https_upload),
         },
         'user_home': {
             'host_path': os.path.join(config.fs.north_home_external, user.user_id),
-            'mount_path': os.path.join(tool.mount_path, 'work')
+            'mount_path': os.path.join(tool.mount_path, 'work'),
         },
         'uploads': uploads,
         'external_mounts': external_mounts,
@@ -248,7 +259,10 @@ async def start_tool(
 
     response = requests.post(url, json=body, headers=hub_api_headers)
 
-    if response.status_code == 400 and 'is already running' in response.json()['message']:
+    if (
+        response.status_code == 400
+        and 'is already running' in response.json()['message']
+    ):
         tool.state = ToolStateEnum.running
     elif response.status_code == 201:
         tool.state = ToolStateEnum.running
@@ -256,27 +270,31 @@ async def start_tool(
         tool.state = ToolStateEnum.starting
     else:
         logger.error(
-            'unexpected jupyterhub response', data=dict(status_code=response.status_code),
-            text=response.text)
+            'unexpected jupyterhub response',
+            data=dict(status_code=response.status_code),
+            text=response.text,
+        )
         tool.state = ToolStateEnum.stopped
 
     return ToolResponseModel(
         tool=tool.name,
         username=user.username,
         data=_get_status(tool, user),
-        upload_mount_dir=upload_mount_dir)
+        upload_mount_dir=upload_mount_dir,
+    )
 
 
 @router.delete(
-    '/{name}', tags=[default_tag],
+    '/{name}',
+    tags=[default_tag],
     response_model=ToolResponseModel,
     summary='Stop a tool.',
     response_model_exclude_unset=True,
-    response_model_exclude_none=True
+    response_model_exclude_none=True,
 )
 async def stop_tool(
     tool: ToolModel = Depends(tool),
-    user: User = Depends(create_user_dependency(required=True))
+    user: User = Depends(create_user_dependency(required=True)),
 ):
     url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
     response = requests.delete(url, json={'remove': True}, headers=hub_api_headers)
@@ -289,11 +307,12 @@ async def stop_tool(
         tool.state = ToolStateEnum.stopping
     else:
         logger.error(
-            'unexpected jupyterhub response', data=dict(status_code=response.status_code),
-            text=response.text)
+            'unexpected jupyterhub response',
+            data=dict(status_code=response.status_code),
+            text=response.text,
+        )
         tool.state = ToolStateEnum.stopped
 
     return ToolResponseModel(
-        tool=tool.name,
-        username=user.username,
-        data=_get_status(tool, user))
+        tool=tool.name, username=user.username, data=_get_status(tool, user)
+    )

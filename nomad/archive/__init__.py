@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 The archive storage is made from two tiers. First the whole archive is stored in
 files, secondly parts of the archive are stored in mongodb documents.
 
@@ -31,14 +31,26 @@ The mongo storage uses mongodb's native bson to store JSON serialized metainfo a
 data. Each document in mongodb holds the partial archive of single entry. Which parts
 of an archive are stored in mongo is determined by the metainfo and
 section annotations/categories.
-'''
+"""
 
 from .storage import (
-    to_json, write_archive, read_archive, ArchiveError, ArchiveReader, ArchiveWriter,
-    ArchiveDict, ArchiveList, ArchiveItem)
+    to_json,
+    write_archive,
+    read_archive,
+    ArchiveError,
+    ArchiveReader,
+    ArchiveWriter,
+    ArchiveDict,
+    ArchiveList,
+    ArchiveItem,
+)
 from .query import query_archive, filter_archive, ArchiveQueryError
 from .partial import (
-    read_partial_archive_from_mongo, read_partial_archives_from_mongo,
-    write_partial_archive_to_mongo, delete_partial_archives_from_mongo,
-    create_partial_archive, compute_required_with_referenced)
+    read_partial_archive_from_mongo,
+    read_partial_archives_from_mongo,
+    write_partial_archive_to_mongo,
+    delete_partial_archives_from_mongo,
+    create_partial_archive,
+    compute_required_with_referenced,
+)
 from .required import RequiredReader, RequiredValidationError

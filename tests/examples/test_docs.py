@@ -10,9 +10,7 @@ from tests.normalizing.conftest import run_normalize
 
 
 def _file(path):
-    return os.path.join(
-        os.path.dirname(__file__),
-        f'../../examples/docs/{path}')
+    return os.path.join(os.path.dirname(__file__), f'../../examples/docs/{path}')
 
 
 def _load_yaml(path):
@@ -28,9 +26,10 @@ def _parse_archive(path):
 
 def test_python_schema():
     yaml_data = _load_yaml('basic_schema/data.archive.yaml')['data']
-    del(yaml_data['m_def'])
+    del yaml_data['m_def']
 
     from examples.docs.basic_schema.schema import Sample
+
     sample = Sample.m_from_dict(yaml_data)
     assert json.dumps(sample.m_to_dict()) == json.dumps(yaml_data)
 
@@ -38,7 +37,7 @@ def test_python_schema():
 def test_yaml_schema():
     yaml_package = _load_yaml('basic_schema/schema.archive.yaml')['definitions']
     yaml_data = _load_yaml('basic_schema/data.archive.yaml')['data']
-    del (yaml_data['m_def'])
+    del yaml_data['m_def']
 
     package = Package.m_from_dict(yaml_package)
     package.init_metainfo()

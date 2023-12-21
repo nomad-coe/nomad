@@ -23,13 +23,25 @@ import os
 from collections import defaultdict
 from celery import Celery, Task
 from celery.worker.request import Request
-from celery.signals import after_setup_task_logger, after_setup_logger, worker_process_init, \
-    celeryd_after_setup, worker_process_shutdown
+from celery.signals import (
+    after_setup_task_logger,
+    after_setup_logger,
+    worker_process_init,
+    celeryd_after_setup,
+    worker_process_shutdown,
+)
 from celery.utils import worker_direct
 from celery.exceptions import SoftTimeLimitExceeded
 import billiard
 from billiard.exceptions import WorkerLostError
-from mongoengine import Document, StringField, ListField, DateTimeField, IntField, ValidationError
+from mongoengine import (
+    Document,
+    StringField,
+    ListField,
+    DateTimeField,
+    IntField,
+    ValidationError,
+)
 from mongoengine.connection import ConnectionFailure
 from datetime import datetime
 import functools
@@ -55,13 +67,15 @@ def setup(**kwargs):
     # each subprocess is supposed disconnect connect again: https://jira.mongodb.org/browse/PYTHON-2090
     try:
         from mongoengine import disconnect
+
         disconnect()
     except Exception:
         pass
 
     infrastructure.setup()
     utils.get_logger(__name__).info(
-        'celery configured with acks_late=%s' % str(config.celery.acks_late))
+        'celery configured with acks_late=%s' % str(config.celery.acks_late)
+    )
 
 
 worker_hostname = None
@@ -77,6 +91,7 @@ def capture_worker_name(sender, instance, **kwargs):
 def on_worker_process_shutdown(*args, **kwargs):
     # We need to make sure not to leave open sessions: https://jira.mongodb.org/browse/PYTHON-2090
     from mongoengine.connection import disconnect
+
     disconnect()
 
 
@@ -88,11 +103,11 @@ if config.celery.routing == CELERY_WORKER_ROUTING:
 
 app.conf.task_queue_max_priority = 10
 app.conf.worker_redirect_stdouts = config.process.redirect_stdouts
-app.conf.worker_redirect_stdouts_level = "INFO"
+app.conf.worker_redirect_stdouts_level = 'INFO'
 
 
 class ProcessStatus:
-    '''
+    """
     Class holding constants related to the possible process statuses.
 
     Attributes:
@@ -108,7 +123,8 @@ class ProcessStatus:
             process can be started).
         STATUSES_NOT_PROCESSING: The opposite of the above - statuses from which a new
             process can be started.
-    '''
+    """
+
     READY = 'READY'
     PENDING = 'PENDING'
     RUNNING = 'RUNNING'
@@ -120,29 +136,37 @@ class ProcessStatus:
     STATUSES_PROCESSING = (PENDING, RUNNING, WAITING_FOR_RESULT)
     STATUSES_NOT_PROCESSING = (READY, SUCCESS, FAILURE)
     STATUSES_COMPLETED = (SUCCESS, FAILURE)
-    STATUSES_VALID_IN_DB = tuple(list(STATUSES_NOT_PROCESSING) + list(STATUSES_PROCESSING))
+    STATUSES_VALID_IN_DB = tuple(
+        list(STATUSES_NOT_PROCESSING) + list(STATUSES_PROCESSING)
+    )
 
 
-class InvalidId(Exception): pass
+class InvalidId(Exception):
+    pass
 
 
-class ProcNotRegistered(Exception): pass
+class ProcNotRegistered(Exception):
+    pass
 
 
-class ProcessAlreadyRunning(Exception): pass
+class ProcessAlreadyRunning(Exception):
+    pass
 
 
-class ProcessSyncFailure(Exception): pass
+class ProcessSyncFailure(Exception):
+    pass
 
 
-class ProcObjectDoesNotExist(Exception): pass
+class ProcObjectDoesNotExist(Exception):
+    pass
 
 
 class ProcessFailure(Exception):
-    '''
+    """
     Special exception class which allows the user to control how :func:`Proc.fail` should
     be called when the exception is caught from the process function.
-    '''
+    """
+
     def __init__(self, *errors, log_level=logging.ERROR, **kwargs):
         self._errors = errors
         self._log_level = log_level
@@ -150,7 +174,8 @@ class ProcessFailure(Exception):
 
 
 class ProcessFlags(NamedTuple):
-    ''' Flags defined by the @process and @process_local decorators. '''
+    """Flags defined by the @process and @process_local decorators."""
+
     is_blocking: bool
     clear_queue_on_failure: bool
     is_child: bool
@@ -158,7 +183,7 @@ class ProcessFlags(NamedTuple):
 
 
 class Proc(Document):
-    '''
+    """
     Base class for objects that are subject to processing and need persistent processing
     state. The processing state is persisted in mongo db. Possible processing statuses are
     defined by :class:`ProcessStatus`.
@@ -210,7 +235,7 @@ class Proc(Document):
             to ensure state consistency and atomicity. There are three types of sync operations:
             when scheduling a process, starting a process, and completing a process.
             NOTE: This value is managed by the framework, do not tamper with this value.
-    '''
+    """
 
     id_field: str = None
     meta: Any = {
@@ -234,16 +259,16 @@ class Proc(Document):
 
     @property
     def process_running(self) -> bool:
-        '''
+        """
         Returns True of an asynchrounous process is currently running (or waiting to run).
         NOTE, the return value will reflect the state when the object was last updated from
         mongo, not neccesarily the current state.
-        '''
+        """
         return self.process_status in ProcessStatus.STATUSES_PROCESSING
 
     @classmethod
     def process_running_mongoengine_query(cls):
-        ''' Returns a mongoengine query dict (to be used in objects) to find running processes. '''
+        """Returns a mongoengine query dict (to be used in objects) to find running processes."""
         return dict(process_status__in=ProcessStatus.STATUSES_PROCESSING)
 
     @property
@@ -254,11 +279,11 @@ class Proc(Document):
 
     @property
     def queue_blocked(self) -> bool:
-        '''
+        """
         If the queue is blocked (i.e. no new @process can be invoked on this object).
         NOTE, the return value will reflect the state when the object was last updated from
         mongo, not neccesarily the current state.
-        '''
+        """
         if self.process_status in ProcessStatus.STATUSES_PROCESSING:
             # Check current process
             if self.current_process_flags.is_blocking:
@@ -278,15 +303,19 @@ class Proc(Document):
             setattr(process, '_nomad_id', worker_id)
 
         return utils.get_logger(
-            'nomad.processing', proc=self.__class__.__name__,
-            process=self.current_process, process_status=self.process_status,
-            process_worker_id=worker_id)
+            'nomad.processing',
+            proc=self.__class__.__name__,
+            process=self.current_process,
+            process_status=self.process_status,
+            process_worker_id=worker_id,
+        )
 
     @classmethod
     def create(cls, **kwargs):
-        ''' Factory method that must be used instead of regular constructor. '''
-        assert 'process_status' not in kwargs, \
-            ''' do not set the status manually, its managed '''
+        """Factory method that must be used instead of regular constructor."""
+        assert (
+            'process_status' not in kwargs
+        ), """ do not set the status manually, its managed """
 
         self = cls(**kwargs)
         self.process_status = ProcessStatus.READY
@@ -295,14 +324,18 @@ class Proc(Document):
         return self
 
     def reset(
-            self, force: bool = False, worker_hostname: str = None,
-            process_status: str = ProcessStatus.READY,
-            errors: List[str] = [], clear_queue: bool = True):
-        '''
+        self,
+        force: bool = False,
+        worker_hostname: str = None,
+        process_status: str = ProcessStatus.READY,
+        errors: List[str] = [],
+        clear_queue: bool = True,
+    ):
+        """
         Resets the process status. If force is not set, there must be no currently running process.
         NOTE, use this with care! This should normally only be used manually, to fix processes
         that are "stuck" in status processing, for example if the worker has died etc.
-        '''
+        """
         assert not self.process_running or force
 
         self.current_process = None
@@ -315,17 +348,24 @@ class Proc(Document):
 
     @classmethod
     def reset_pymongo_update(
-            cls, worker_hostname: str = None,
-            process_status=ProcessStatus.READY,
-            errors: List[str] = [], clear_queue: bool = True):
-        '''
+        cls,
+        worker_hostname: str = None,
+        process_status=ProcessStatus.READY,
+        errors: List[str] = [],
+        clear_queue: bool = True,
+    ):
+        """
         Returns a pymongo update dict part to reset a Proc.
         NOTE, use this with care! This should normally only be used manually, to fix processes
         that are "stuck" in status processing, for example if the worker has died etc.
-        '''
+        """
         rv = dict(
-            current_process=None, process_status=process_status,
-            errors=errors, warnings=[], worker_hostname=worker_hostname)
+            current_process=None,
+            process_status=process_status,
+            errors=errors,
+            warnings=[],
+            worker_hostname=worker_hostname,
+        )
         if clear_queue:
             rv['queue'] = []
         return rv
@@ -363,7 +403,7 @@ class Proc(Document):
             logger.critical(msg, **kwargs)
 
     def fail(self, *errors, log_level=logging.ERROR, complete=True, **kwargs):
-        '''
+        """
         Used to handle when a process fails. Takes strings or exceptions as args.
         The method logs the error(s), updates `self.errors`, `self.last_status_message`,
         `self.process_status`, and calls :func:`on_fail`, and if `complete` == True (default)
@@ -373,7 +413,7 @@ class Proc(Document):
 
         NOTE, processes should NOT call this method directly, or tamper with self.errors etc.
         Rather, if something goes wrong in a process, it should raise an exception!
-        '''
+        """
         assert self.process_running, 'Cannot fail a completed process.'
 
         failed_with_exception = False
@@ -386,13 +426,17 @@ class Proc(Document):
                 failed_with_exception = True
                 self.errors.append('%s: %s' % (error.__class__.__name__, str(error)))
                 Proc.log(
-                    logger, log_level, 'process failed with exception',
-                    exc_info=error, error=str(error))
+                    logger,
+                    log_level,
+                    'process failed with exception',
+                    exc_info=error,
+                    error=str(error),
+                )
             else:
                 self.errors.append(str(error))
 
         if not failed_with_exception:
-            errors_str = "; ".join([str(error) for error in errors])
+            errors_str = '; '.join([str(error) for error in errors])
             Proc.log(logger, log_level, 'process failed', errors=errors_str)
 
         self.complete_time = datetime.utcnow()
@@ -405,14 +449,16 @@ class Proc(Document):
 
         logger.info('process failed')
         if len(self.errors) > 0:
-            self.last_status_message = f'Process {self.current_process} failed: {self.errors[-1]}'
+            self.last_status_message = (
+                f'Process {self.current_process} failed: {self.errors[-1]}'
+            )
 
         self.process_status = ProcessStatus.FAILURE
         if complete:
             self._sync_complete_process(force_clear_queue_on_failure=True)
 
     def warning(self, *warnings, log_level=logging.WARNING, **kwargs):
-        ''' Allows to save warnings. Takes strings or exceptions as args. '''
+        """Allows to save warnings. Takes strings or exceptions as args."""
         assert self.process_running
 
         logger = self.get_logger(**kwargs)
@@ -423,82 +469,95 @@ class Proc(Document):
             Proc.log(logger, log_level, 'task with warning', warning=warning)
 
     def set_last_status_message(self, last_status_message: str):
-        ''' Sets the `last_status_message` and saves. '''
+        """Sets the `last_status_message` and saves."""
         assert self.process_running
         self.last_status_message = last_status_message
         self.save()
 
     def on_success(self):
-        ''' To be called whenever a process is about to transition to status SUCCESS. '''
+        """To be called whenever a process is about to transition to status SUCCESS."""
         pass
 
     def on_fail(self):
-        ''' To be called whenever a process is about to transition to status FAILURE. '''
+        """To be called whenever a process is about to transition to status FAILURE."""
         pass
 
     def on_waiting_for_result(self):
-        ''' To be called whenever a process is about to transition to status WAITING_FOR_RESULT. '''
+        """To be called whenever a process is about to transition to status WAITING_FOR_RESULT."""
         pass
 
     def block_until_complete(self, interval=0.01):
-        '''
+        """
         Reloads the process constantly until it sees a completed process (FAILURE or SUCCESS).
         Should be used with care as it can block indefinitely. Just intended for testing
         purposes.
-        '''
+        """
         self.reload()
         while self.process_running:
             time.sleep(interval)
             self.reload()
 
     def block_until_complete_or_waiting_for_result(self, interval=0.01):
-        '''
+        """
         Reloads the process constantly until the process is either complete or in status WAITING_FOR_RESULT.
         Should be used with care as it can block indefinitely. Just intended for testing
         purposes.
-        '''
+        """
         while self.process_status in (ProcessStatus.PENDING, ProcessStatus.RUNNING):
             time.sleep(interval)
             self.reload()
 
     def _send_to_worker(self, func_name, *args, **kwargs):
-        ''' Invokes a celery task, which will prompt a worker to pick up this Proc object. '''
+        """Invokes a celery task, which will prompt a worker to pick up this Proc object."""
         self_id = self.id.__str__()
         cls_name = self.__class__.__name__
 
         queue = None
-        if config.celery.routing == CELERY_WORKER_ROUTING and self.worker_hostname is not None:
+        if (
+            config.celery.routing == CELERY_WORKER_ROUTING
+            and self.worker_hostname is not None
+        ):
             queue = worker_direct(self.worker_hostname).name
 
         priority = config.celery.priorities.get('%s.%s' % (cls_name, func_name), 1)
 
         logger = utils.get_logger(__name__, cls=cls_name, id=self_id, func=func_name)
-        logger.info('calling process function', queue=queue, priority=priority, worker_hostname=self.worker_hostname)
+        logger.info(
+            'calling process function',
+            queue=queue,
+            priority=priority,
+            worker_hostname=self.worker_hostname,
+        )
 
         return proc_task.apply_async(
             args=[cls_name, self_id, func_name, args, kwargs],
-            queue=queue, priority=priority)
+            queue=queue,
+            priority=priority,
+        )
 
     def __str__(self):
-        return 'proc celery_task_id=%s worker_hostname=%s' % (self.celery_task_id, self.worker_hostname)
+        return 'proc celery_task_id=%s worker_hostname=%s' % (
+            self.celery_task_id,
+            self.worker_hostname,
+        )
 
     def parent(self) -> 'Proc':
-        '''
+        """
         When running a process marked with `is_child`, and the process completes (i.e. succeeds or
         fails), this method will be invoked by the framework to determine the object's parent Proc.
-        '''
+        """
         raise NotImplementedError('`parent` not implemented')
 
     def child_cls(self) -> 'Proc':
-        '''
+        """
         When running a process which spawns child processes and transitions to WAITING_FOR_RESULT,
         this method will be invoked to determine the "child" class when it is time to try to
         join.
-        '''
+        """
         raise NotImplementedError('`child_cls` not implemented')
 
     def _try_to_join(self) -> bool:
-        '''
+        """
         Called on the parent Proc object to join (resume) the current process.
         For the join to succeed, the following must be fullfilled:
             *   This Proc must have status `WAITING_FOR_RESULT`
@@ -507,23 +566,36 @@ class Proc(Document):
         If the join succeeds, the `process_status` will be set to `RUNNING` and True
         will be returned. Otherwise, the method just returns False. The method is written so
         that the join should succeed once and only once.
-        '''
+        """
         self.reload()
         if self.process_status != ProcessStatus.WAITING_FOR_RESULT:
             self.get_logger().debug('trying to join: not waiting for result')
             return False
-        children_processing = self.child_cls().objects(**{
-            self.id_field: self.id,
-            'process_status__in': ProcessStatus.STATUSES_PROCESSING}).count()
-        self.get_logger().debug('trying to join', children_processing=children_processing)
+        children_processing = (
+            self.child_cls()
+            .objects(
+                **{
+                    self.id_field: self.id,
+                    'process_status__in': ProcessStatus.STATUSES_PROCESSING,
+                }
+            )
+            .count()
+        )
+        self.get_logger().debug(
+            'trying to join', children_processing=children_processing
+        )
 
         if not children_processing:
             # We may easily get here multiple times if multiple children finish at the same time
             # To join, we need to read and update the mongo record as a single atomic operation
             old_record = self._get_collection().find_one_and_update(
                 {'_id': self.id, 'process_status': ProcessStatus.WAITING_FOR_RESULT},
-                {'$set': {'process_status': ProcessStatus.RUNNING}})
-            if old_record and old_record['process_status'] == ProcessStatus.WAITING_FOR_RESULT:
+                {'$set': {'process_status': ProcessStatus.RUNNING}},
+            )
+            if (
+                old_record
+                and old_record['process_status'] == ProcessStatus.WAITING_FOR_RESULT
+            ):
                 # We managed to update the process_status from WAITING_FOR_RESULT to RUNNING
                 # I.e. we've joined!
                 self.reload()
@@ -531,15 +603,15 @@ class Proc(Document):
         return False
 
     def join(self):
-        '''
+        """
         Override, if applicable, to define what to do when joined, i.e. when the process is
         resumed after all child processes are done. Should return either None (if successful)
         or `ProcessStatus.WAITING_FOR_RESULT` if it again wants to wait for child processes.
-        '''
+        """
         raise NotImplementedError('`join` not implemented')
 
     def _sync_schedule_process(self, func_name: str, *args, **kwargs) -> bool:
-        '''
+        """
         Used to schedule a call to the @process function named `func_name` with the provided
         `args` and `kwargs`. The `args` and `kwargs` need to be json serializable. If this
         object was previously not processing, we set the state to PENDING. We return True
@@ -558,14 +630,15 @@ class Proc(Document):
         we reload self and try again, up to 3 times (which *should* be enough to guarantee
         success with virtually absolute certainty). Because we may need to reload, an object
         calling a sync operation should have no unsaved changes.
-        '''
+        """
         try_counter = 0
         while True:
             if self.queue_blocked:
-                raise ProcessAlreadyRunning('A blocking process is running or waiting to run')
+                raise ProcessAlreadyRunning(
+                    'A blocking process is running or waiting to run'
+                )
             prev_process_running = self.process_running
-            mongo_update = {
-                '$set': {'sync_counter': self.sync_counter + 1}}
+            mongo_update = {'$set': {'sync_counter': self.sync_counter + 1}}
             if prev_process_running:
                 # Something else is running, add to queue
                 if self.queue:
@@ -577,7 +650,8 @@ class Proc(Document):
                 mongo_update['$set'].update(
                     process_status=ProcessStatus.PENDING,
                     current_process=func_name,
-                    last_status_message='Pending: ' + func_name)
+                    last_status_message='Pending: ' + func_name,
+                )
             # Try to update self atomically. Will fail if someone else has managed to write
             # a sync op in between.
             old_record = self._get_collection().find_one_and_update(
@@ -587,11 +661,13 @@ class Proc(Document):
                         {
                             '$or': [
                                 {'sync_counter': self.sync_counter},
-                                {'sync_counter': {'$exists': False}}
+                                {'sync_counter': {'$exists': False}},
                             ]
-                        }
+                        },
                     ]
-                }, mongo_update)
+                },
+                mongo_update,
+            )
             try_counter += 1
             if old_record and old_record.get('sync_counter', 0) == self.sync_counter:
                 # We have successfully scheduled the process!
@@ -600,24 +676,28 @@ class Proc(Document):
             # Someone else must have written a sync op (ticked up the sync_counter) in between
             if try_counter >= 3:
                 # Three failed attempts - should be virtually impossible!
-                raise ProcessSyncFailure('Failed to schedule process too many times - should not happen')
+                raise ProcessSyncFailure(
+                    'Failed to schedule process too many times - should not happen'
+                )
             # Otherwise, sleep, reload, and try again
             time.sleep(0.1)
             self.reload()
 
     def _sync_start_local_process(self, func_name: str):
-        '''
+        """
         Used to start a *local* process. If successful, the status transitions to RUNNING
         atomically. The call will fail and raise a :class:`ProcessAlreadyRunning` if any
         other process is currently running.
 
         This is one of three *sync operations*. See :func:`_sync_schedule_process`
         for more info.
-        '''
+        """
         try_counter = 0
         while True:
             if self.process_running:
-                raise ProcessAlreadyRunning('Another process is running or waiting to run')
+                raise ProcessAlreadyRunning(
+                    'Another process is running or waiting to run'
+                )
             mongo_update = {
                 '$set': dict(
                     sync_counter=self.sync_counter + 1,
@@ -627,7 +707,9 @@ class Proc(Document):
                     worker_hostname=None,
                     celery_task_id=None,
                     errors=[],
-                    warnings=[])}
+                    warnings=[],
+                )
+            }
             # Try to update self atomically. Will fail if someone else has managed to write
             # a sync op in between.
             old_record = self._get_collection().find_one_and_update(
@@ -637,11 +719,13 @@ class Proc(Document):
                         {
                             '$or': [
                                 {'sync_counter': self.sync_counter},
-                                {'sync_counter': {'$exists': False}}
+                                {'sync_counter': {'$exists': False}},
                             ]
-                        }
+                        },
                     ]
-                }, mongo_update)
+                },
+                mongo_update,
+            )
             try_counter += 1
             if old_record and old_record.get('sync_counter') == self.sync_counter:
                 # We have successfully started the process!
@@ -650,13 +734,17 @@ class Proc(Document):
             # Someone else must have written a sync op (ticked up the sync_counter) in between
             if try_counter >= 3:
                 # Three failed attempts - should be virtually impossible!
-                raise ProcessSyncFailure('Failed to start local process too many times - should not happen')
+                raise ProcessSyncFailure(
+                    'Failed to start local process too many times - should not happen'
+                )
             # Otherwise, sleep, reload, and try again
             time.sleep(0.1)
             self.reload()
 
-    def _sync_complete_process(self, force_clear_queue_on_failure=False) -> Tuple[str, List[Any], Dict[str, Any]]:
-        '''
+    def _sync_complete_process(
+        self, force_clear_queue_on_failure=False
+    ) -> Tuple[str, List[Any], Dict[str, Any]]:
+        """
         Used to complete a process (when done, successful or not). Returns a triple
         containing information about the next process to run (if any), of the
         form (func_name, args, kwargs).
@@ -674,7 +762,7 @@ class Proc(Document):
 
         This is one of three *sync operations*. See :func:`_sync_schedule_process`
         for more info.
-        '''
+        """
         assert self.process_status in ProcessStatus.STATUSES_COMPLETED
         # As a safety precausion, save all updates made to the object except the status
         # (We want it to have status RUNNING until the atomic read/write finishes)
@@ -683,14 +771,19 @@ class Proc(Document):
         self.save()
         self.process_status = process_status
         clear_queue_on_failure = (
-            force_clear_queue_on_failure or self.current_process_flags.clear_queue_on_failure)
+            force_clear_queue_on_failure
+            or self.current_process_flags.clear_queue_on_failure
+        )
         try_counter = 0
         while True:
             next_process = None
             mongo_update = {'$set': {'sync_counter': self.sync_counter + 1}}
             if self.queue:
                 # Something in the queue
-                if not clear_queue_on_failure or process_status == ProcessStatus.SUCCESS:
+                if (
+                    not clear_queue_on_failure
+                    or process_status == ProcessStatus.SUCCESS
+                ):
                     # Move on to the next process
                     next_process = self.queue[0]
                     next_func_name = next_process[0]
@@ -698,7 +791,8 @@ class Proc(Document):
                     mongo_update['$set'].update(
                         process_status=ProcessStatus.PENDING,
                         last_status_message='Pending: ' + next_func_name,
-                        current_process=next_func_name)
+                        current_process=next_func_name,
+                    )
                 else:
                     # Failed and clear_queue_on_failure is set to True - clear the queue
                     mongo_update['$set'].update(process_status=process_status, queue=[])
@@ -707,7 +801,8 @@ class Proc(Document):
             # Try to update self atomically. Will fail if someone else has managed to write
             # a sync op in between.
             old_record = self._get_collection().find_one_and_update(
-                {'_id': self.id, 'sync_counter': self.sync_counter}, mongo_update)
+                {'_id': self.id, 'sync_counter': self.sync_counter}, mongo_update
+            )
             try_counter += 1
             if old_record and old_record.get('sync_counter') == self.sync_counter:
                 # We have successfully completed the process
@@ -715,30 +810,33 @@ class Proc(Document):
             # Someone else must have written a sync op (ticked up the sync_counter) in between
             if try_counter >= 3:
                 # Three failed attempts - should be virtually impossible!
-                raise ProcessSyncFailure('Failed to complete process too many times - should not happen')
+                raise ProcessSyncFailure(
+                    'Failed to complete process too many times - should not happen'
+                )
             # Make another attempt
             time.sleep(0.1)
             self.reload()
 
 
 def all_subclasses(cls):
-    ''' Helper method to calculate set of all subclasses of a given class. '''
+    """Helper method to calculate set of all subclasses of a given class."""
     return set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+        [s for c in cls.__subclasses__() for s in all_subclasses(c)]
+    )
 
 
 all_proc_cls = {cls.__name__: cls for cls in all_subclasses(Proc)}
-''' Name dictionary for all Proc classes. '''
+""" Name dictionary for all Proc classes. """
 
 process_flags: Dict[str, Dict[str, ProcessFlags]] = defaultdict(dict)
-''' { <Proc class name>: { <process func name>: ProcessFlags } } '''
+""" { <Proc class name>: { <process func name>: ProcessFlags } } """
 
 
 class NomadCeleryRequest(Request):
-    '''
+    """
     A custom celery request class that allows to catch error in the worker main
     thread, which cannot be caught on the worker threads themselves.
-    '''
+    """
 
     def _fail(self, event, **kwargs):
         args = self._payload[0]
@@ -760,15 +858,15 @@ class NomadCeleryRequest(Request):
         if isinstance(exc_info.exception, WorkerLostError):
             infrastructure.setup()
             utils.get_logger(__name__).error(
-                'detected WorkerLostError', exc_info=exc_info.exception)
+                'detected WorkerLostError', exc_info=exc_info.exception
+            )
             self._fail(
                 'process failed due to worker lost: %s' % str(exc_info.exception),
-                exc_info=exc_info)
+                exc_info=exc_info,
+            )
 
         super().on_failure(
-            exc_info,
-            send_failed_event=send_failed_event,
-            return_ok=return_ok
+            exc_info, send_failed_event=send_failed_event, return_ok=return_ok
         )
 
 
@@ -777,9 +875,9 @@ class NomadCeleryTask(Task):
 
 
 def unwarp_task(task, cls_name, self_id, *args, **kwargs):
-    '''
+    """
     Retrieves the proc object that the given task is executed on from the database.
-    '''
+    """
     logger = utils.get_logger(__name__, cls=cls_name, id=self_id)
 
     # get the process class
@@ -809,16 +907,21 @@ def unwarp_task(task, cls_name, self_id, *args, **kwargs):
 
 
 @app.task(
-    bind=True, base=NomadCeleryTask, ignore_results=True, max_retries=3,
-    acks_late=config.celery.acks_late, soft_time_limit=config.celery.timeout,
-    time_limit=config.celery.timeout * 2)
+    bind=True,
+    base=NomadCeleryTask,
+    ignore_results=True,
+    max_retries=3,
+    acks_late=config.celery.acks_late,
+    soft_time_limit=config.celery.timeout,
+    time_limit=config.celery.timeout * 2,
+)
 def proc_task(task, cls_name, self_id, func_name, args, kwargs):
-    '''
+    """
     The celery task that is used to execute async process functions.
     It retries for 3 times with a countdown of 3 in case of propagation problems, since this
     might happen in sharded, distributed mongo setups where the updates might not
     have yet propagated to everyone.
-    '''
+    """
     # Obtain the Proc object. Raises exception to make celery retry if object has not propagated.
     proc: Proc = unwarp_task(task, cls_name, self_id)
     logger = proc.get_logger()
@@ -826,7 +929,7 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
 
     if '_meta_label' in kwargs:
         config.meta.label = kwargs['_meta_label']
-        del(kwargs['_meta_label'])
+        del kwargs['_meta_label']
 
     try_to_join = False
     deleting = False
@@ -835,7 +938,10 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
     func = getattr(proc, func_name, None)
     if func is None:  # "Should not happen"
         logger.error('called function not a function of proc class')
-        proc.fail('called function %s is not a function of proc class %s' % (func_name, cls_name))
+        proc.fail(
+            'called function %s is not a function of proc class %s'
+            % (func_name, cls_name)
+        )
         return
 
     # unwrap the process decorator
@@ -863,16 +969,23 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
             if proc.errors:
                 # Should be impossible unless the process has tampered with self.errors, which
                 # it should not do. We will treat it essentially as if it had raised an exception
-                proc.fail('completed with errors but no exception, should not happen', complete=False)
+                proc.fail(
+                    'completed with errors but no exception, should not happen',
+                    complete=False,
+                )
             elif rv is None:
                 # All looks good
                 proc.on_success()
                 proc.process_status = ProcessStatus.SUCCESS
                 proc.complete_time = datetime.utcnow()
                 if proc.warnings:
-                    proc.last_status_message = f'Process {func_name} completed with warnings'
+                    proc.last_status_message = (
+                        f'Process {func_name} completed with warnings'
+                    )
                 else:
-                    proc.last_status_message = f'Process {func_name} completed successfully'
+                    proc.last_status_message = (
+                        f'Process {func_name} completed successfully'
+                    )
                 logger.info('completed process')
             elif rv == ProcessStatus.WAITING_FOR_RESULT:
                 # No errors, and the process requests to wait for other processes
@@ -931,9 +1044,13 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
                     proc.process_status = ProcessStatus.SUCCESS
                     proc.complete_time = datetime.utcnow()
                     if proc.warnings:
-                        proc.last_status_message = f'Process {proc.current_process} completed with warnings'
+                        proc.last_status_message = (
+                            f'Process {proc.current_process} completed with warnings'
+                        )
                     else:
-                        proc.last_status_message = f'Process {proc.current_process} completed successfully'
+                        proc.last_status_message = (
+                            f'Process {proc.current_process} completed successfully'
+                        )
                     logger.info('completed process')
                 elif rv == ProcessStatus.WAITING_FOR_RESULT:
                     # Waiting for result again
@@ -968,8 +1085,12 @@ def proc_task(task, cls_name, self_id, func_name, args, kwargs):
             proc.fail(e)
 
 
-def process(is_blocking: bool = False, clear_queue_on_failure: bool = True, is_child: bool = False):
-    '''
+def process(
+    is_blocking: bool = False,
+    clear_queue_on_failure: bool = True,
+    is_child: bool = False,
+):
+    """
     The decorator for process functions that will be queued up and executed async via celery.
     To transfer state, the instance will be saved to the database and loading on
     the celery task worker. Process methods can call other (process) functions/methods on
@@ -986,16 +1107,15 @@ def process(is_blocking: bool = False, clear_queue_on_failure: bool = True, is_c
         is_child:
             If this is a child process, which should try to join with the parent process when done
             (= when the queue is empty).
-    '''
+    """
+
     def process_decorator(func):
         # Determine canonical class name
         cls_name, func_name = func.__qualname__.split('.')
 
         process_flags[cls_name][func_name] = ProcessFlags(
-            is_blocking,
-            clear_queue_on_failure,
-            is_child,
-            is_local=False)
+            is_blocking, clear_queue_on_failure, is_child, is_local=False
+        )
 
         @functools.wraps(func)
         def wrapper(self: Proc, *args, **kwargs):
@@ -1010,11 +1130,12 @@ def process(is_blocking: bool = False, clear_queue_on_failure: bool = True, is_c
 
         setattr(wrapper, '__process_unwrapped', func)
         return wrapper
+
     return process_decorator
 
 
 def process_local(func):
-    '''
+    """
     The decorator for functions that process locally. These work similarly to functions
     marked with the `@process` decorator, but they are executed directly, in the current
     thread, not via celery. Consequently, they can only be started if no other process is
@@ -1027,7 +1148,7 @@ def process_local(func):
     If unsuccessful, an exception will be raised (note that the usual process handling is
     always applied, i.e. we set self.process_status, self.errors etc. accordingly). The Proc
     object should not have any unsaved changes when a local process is invoked.
-    '''
+    """
     # Determine canonical class name
     cls_name, func_name = func.__qualname__.split('.')
 
@@ -1035,7 +1156,8 @@ def process_local(func):
         is_blocking=True,
         clear_queue_on_failure=False,  # Not relevant, since local processes are always blocking
         is_child=False,
-        is_local=True)
+        is_local=True,
+    )
 
     def wrapper(self: Proc, *args, **kwargs):
         logger = self.get_logger()
@@ -1050,15 +1172,21 @@ def process_local(func):
                 if self.errors:
                     # Should be impossible unless the process has tampered with self.errors, which
                     # it should not do. We will treat it essentially as if it had raised an exception
-                    raise RuntimeError('completed with errors but no exception, should not happen')
+                    raise RuntimeError(
+                        'completed with errors but no exception, should not happen'
+                    )
                 # All looks good
                 self.on_success()
                 self.process_status = ProcessStatus.SUCCESS
                 self.complete_time = datetime.utcnow()
                 if self.warnings:
-                    self.last_status_message = f'Process {func_name} completed with warnings'
+                    self.last_status_message = (
+                        f'Process {func_name} completed with warnings'
+                    )
                 else:
-                    self.last_status_message = f'Process {func_name} completed successfully'
+                    self.last_status_message = (
+                        f'Process {func_name} completed successfully'
+                    )
                 logger.info('completed process')
                 return rv
         except SystemExit as e:

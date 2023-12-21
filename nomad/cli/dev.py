@@ -31,16 +31,22 @@ def dev():
     pass
 
 
-@dev.command(help='Runs tests and linting of the nomad python source code. Useful before committing code.')
+@dev.command(
+    help='Runs tests and linting of the nomad python source code. Useful before committing code.'
+)
 @click.option('--skip-tests', help='Do no tests, just do code checks.', is_flag=True)
-@click.option('-x', '--exitfirst', help='Stop testing after first failed test case.', is_flag=True)
+@click.option(
+    '-x', '--exitfirst', help='Stop testing after first failed test case.', is_flag=True
+)
 def qa(skip_tests: bool, exitfirst: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
     ret_code = 0
 
     if not skip_tests:
         click.echo('Run tests ...')
-        ret_code += os.system('python -m pytest -sv%s tests' % ('x' if exitfirst else ''))
+        ret_code += os.system(
+            'python -m pytest -sv%s tests' % ('x' if exitfirst else '')
+        )
     click.echo('Run code style and lint checks ...')
     ret_code += os.system('python -m ruff nomad tests')
     click.echo('Run static type checks ...')
@@ -49,7 +55,9 @@ def qa(skip_tests: bool, exitfirst: bool):
     sys.exit(ret_code)
 
 
-@dev.command(help='Runs tests and linting of the nomad gui source code. Useful before committing code.')
+@dev.command(
+    help='Runs tests and linting of the nomad gui source code. Useful before committing code.'
+)
 @click.option('--skip-tests', help='Do no tests, just do code checks.', is_flag=True)
 def gui_qa(skip_tests: bool):
     os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../gui')))
@@ -79,22 +87,20 @@ def get_gui_artifacts_js() -> str:
         'exampleUploads': _generate_example_upload_metadata(),
         'northTools': {k: v.dict() for k, v in config.north.tools.filtered_items()},
         'unitList': unit_list_json,
-        'unitPrefixes': prefixes_json
+        'unitPrefixes': prefixes_json,
     }
 
     return f'window.nomadArtifacts = {json.dumps(artifactsDict, indent=2)};\n'
 
 
-@dev.command(help=(
-    'Generates all python-based GUI artifacts into javascript code.'))
+@dev.command(help=('Generates all python-based GUI artifacts into javascript code.'))
 def gui_artifacts():
     print(get_gui_artifacts_js())
 
 
 def _generate_metainfo(all_metainfo_packages):
     return all_metainfo_packages.m_to_dict(
-        with_meta=True,
-        with_def_id=config.process.write_definition_id_to_archive
+        with_meta=True, with_def_id=config.process.write_definition_id_to_archive
     )
 
 
@@ -115,10 +121,12 @@ def _all_metainfo_packages():
     # parsers to actually import all parsers and indirectly all metainfo
     # packages
     from nomad.parsing.parsers import import_all_parsers
+
     import_all_parsers()
 
     # Create the ES mapping to populate ES annotations with search keys.
     from nomad.search import entry_type
+
     if not entry_type.mapping:
         entry_type.create_mapping(EntryArchive.m_def)
 
@@ -128,7 +136,7 @@ def _all_metainfo_packages():
     for module_key in sorted(list(sys.modules)):
         pkg: Package = getattr(sys.modules[module_key], 'm_package', None)
         if pkg is not None and isinstance(pkg, Package):
-            if (pkg.name not in Package.registry):
+            if pkg.name not in Package.registry:
                 pkg.__init_metainfo__()
 
     global _all_metainfo_environment
@@ -152,11 +160,22 @@ def _generate_search_quantities():
             instanceMeta = search_quantity.m_to_dict(with_meta=True)
             metadict['name'] = instanceMeta['name']
             metadict['repeats'] = repeats or instanceMeta.get('repeats')
-            es_annotations = search_quantity.m_get_annotations(Elasticsearch, as_list=True)
+            es_annotations = search_quantity.m_get_annotations(
+                Elasticsearch, as_list=True
+            )
             nested = any(x.nested for x in es_annotations)
             metadict['nested'] = nested
         else:
-            keys = ['name', 'description', 'type', 'unit', 'shape', 'aliases', 'aggregatable', 'dynamic']
+            keys = [
+                'name',
+                'description',
+                'type',
+                'unit',
+                'shape',
+                'aliases',
+                'aggregatable',
+                'dynamic',
+            ]
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
             # UI needs to know whether the quantity can be used in
             # aggregations or not.
@@ -196,6 +215,7 @@ def _generate_search_quantities():
             repeats_child = info.get('repeats', repeats)
             export[full_name] = info
             get_sections(sub_section_def.sub_section, full_name, repeats_child)
+
     get_sections(EntryArchive.results.sub_section, 'results')
 
     return export
@@ -207,7 +227,9 @@ def search_quantities():
     print(json.dumps(_generate_search_quantities(), indent=2))
 
 
-@dev.command(help='Generates a JSON file that compiles all the parser metadata from each parser project.')
+@dev.command(
+    help='Generates a JSON file that compiles all the parser metadata from each parser project.'
+)
 def parser_metadata():
     from nomad.parsing.parsers import code_metadata
 
@@ -215,14 +237,14 @@ def parser_metadata():
 
 
 def get_gui_config() -> str:
-    '''Create a simplified and stripped version of the nomad.yaml contents that
+    """Create a simplified and stripped version of the nomad.yaml contents that
     is used by the GUI.
 
     Args:
         proxy: Whether the build is using a proxy. Affects whether calls to different
           services use an explicit host+port+path as configured in the config, or whether
           they simply use a relative path that a proxy can resolve.
-    '''
+    """
     from nomad import config
 
     data = {
@@ -232,14 +254,16 @@ def get_gui_config() -> str:
         'keycloakRealm': config.keycloak.realm_name,
         'keycloakClientId': config.keycloak.client_id,
         'debug': False,
-        'encyclopediaBase': config.services.encyclopedia_base if config.services.encyclopedia_base else None,
+        'encyclopediaBase': config.services.encyclopedia_base
+        if config.services.encyclopedia_base
+        else None,
         'aitoolkitEnabled': config.services.aitoolkit_enabled,
         'oasis': config.oasis.is_oasis,
         'version': config.meta.beta if config.meta.beta else {},
         'globalLoginRequired': config.oasis.allowed_users is not None,
         'servicesUploadLimit': config.services.upload_limit,
         'appTokenMaxExpiresIn': config.services.app_token_max_expires_in,
-        'ui': config.ui.dict(exclude_none=True) if config.ui else {}
+        'ui': config.ui.dict(exclude_none=True) if config.ui else {},
     }
 
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'
@@ -248,6 +272,7 @@ def get_gui_config() -> str:
 @dev.command(help='Generates the GUI development .env file based on NOMAD config.')
 def gui_env():
     from nomad import config
+
     print(f'REACT_APP_BACKEND_URL={config.ui.app_base}')
 
 
@@ -258,11 +283,14 @@ def gui_config():
 
 def _generate_example_upload_metadata():
     import yaml
+
     with open('examples/data/uploads/example_uploads.yml') as infile:
         return yaml.load(infile, Loader=yaml.FullLoader)
 
 
-@dev.command(help='Generates a JSON file from example-uploads metadata in the YAML file.')
+@dev.command(
+    help='Generates a JSON file from example-uploads metadata in the YAML file.'
+)
 def example_upload_metadata():
     print(json.dumps(_generate_example_upload_metadata(), indent=2))
 
@@ -273,8 +301,10 @@ def _generate_toolkit_metadata() -> dict:
 
     import requests
     import re
+
     modules = requests.get(
-        'https://gitlab.mpcdf.mpg.de/api/v4/projects/3161/repository/files/.gitmodules/raw?ref=master').text
+        'https://gitlab.mpcdf.mpg.de/api/v4/projects/3161/repository/files/.gitmodules/raw?ref=master'
+    ).text
 
     tutorials = []
     lines = modules.split('\n')
@@ -289,7 +319,11 @@ def _generate_toolkit_metadata() -> dict:
             try:
                 tutorials.append(response.json())
             except Exception:
-                print('Could not get metadata for %s. Project is probably not public.' % match.group(1), file=sys.stderr)
+                print(
+                    'Could not get metadata for %s. Project is probably not public.'
+                    % match.group(1),
+                    file=sys.stderr,
+                )
 
     return dict(tutorials=tutorials)
 
@@ -299,10 +333,15 @@ def toolkit_metadata():
     print(json.dumps(_generate_toolkit_metadata(), indent=2))
 
 
-@dev.command(help=(
-    'Updates parser`s README files by combining a general template with  '
-    'a parser`s metadata YAML file.'))
-@click.option('--parser', help='Only updated the README of the given parsers subdirctory.')
+@dev.command(
+    help=(
+        'Updates parser`s README files by combining a general template with  '
+        'a parser`s metadata YAML file.'
+    )
+)
+@click.option(
+    '--parser', help='Only updated the README of the given parsers subdirctory.'
+)
 def update_parser_readmes(parser):
     from glob import glob
     import re
@@ -323,7 +362,10 @@ def update_parser_readmes(parser):
     generic_contents = re.sub(
         rf'\*\*\*Note:\*\* This is a general README file for NOMAD parsers, '
         rf'consult the README of specific parser projects for more detailed '
-        rf'information!\*\n\n', '', generic_contents)
+        rf'information!\*\n\n',
+        '',
+        generic_contents,
+    )
 
     def open_metadata(path):
         # read local yaml metadata file
@@ -370,13 +412,16 @@ def update_parser_readmes(parser):
             group_header = 'This is a collection of the NOMAD parsers for the following $codeName$ codes:\n\n$parserList$'
             contents = re.sub(parser_header_re, group_header, contents)
             # remove individual parser specs
-            parser_specs_re = r'(For \$codeLabel\$ please provide[\s\S]+?\$tableOfFiles\$)\n\n'
+            parser_specs_re = (
+                r'(For \$codeLabel\$ please provide[\s\S]+?\$tableOfFiles\$)\n\n'
+            )
             parser_specs = re.search(parser_specs_re, contents).group(1)
             contents = re.sub(parser_specs_re, '', contents)
             metadata = dict(
                 gitPath=f'{project_name}-parsers',
                 parserGitUrl=f'https://github.com/nomad-coe/{project_name}-parsers.git',
-                parserSpecific='')
+                parserSpecific='',
+            )
         if metadata.get('codeName', '').strip() == '':
             metadata['codeName'] = project_name
         if 'preamble' not in metadata:
@@ -385,13 +430,21 @@ def update_parser_readmes(parser):
         # if this is a group of parser, find all individdual parsers and write the
         # parser specs
         parser_list = ''
-        for index, local_metadata in enumerate(sorted(glob(f'{parser_dir}/*/*/metadata.yaml'))):
+        for index, local_metadata in enumerate(
+            sorted(glob(f'{parser_dir}/*/*/metadata.yaml'))
+        ):
             metadata_parser = open_metadata(local_metadata)
             # contents is simply the parser header and specs
             contents_parser = f'{parser_header}\n{parser_specs}'
-            replace(metadata_parser, contents_parser, os.path.join(os.path.dirname(local_metadata), local_fn))
+            replace(
+                metadata_parser,
+                contents_parser,
+                os.path.join(os.path.dirname(local_metadata), local_fn),
+            )
             # add the codename to the list of parsers for the group header
-            codelabel = metadata_parser.get('codeLabel', os.path.basename(os.path.dirname(local_metadata)))
+            codelabel = metadata_parser.get(
+                'codeLabel', os.path.basename(os.path.dirname(local_metadata))
+            )
             codeurl = metadata_parser.get('codeUrl', '')
             parser_list = rf'{parser_list}{index + 1}. [{codelabel}]({codeurl})\n'
         metadata['parserList'] = parser_list.strip()
@@ -421,7 +474,8 @@ def example_data(username: str):
     data.create_entry(
         entry_id=utils.create_uuid(),
         upload_id=upload_id,
-        mainfile='test_content/test_embargo_entry/mainfile.json')
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+    )
 
     data.save(with_files=True, with_es=True, with_mongo=True)
 
@@ -468,8 +522,9 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
             'dimension': dimension[1:-1],
             'label': unit_label,
             'abbreviation': unit_abbreviation,
-            'aliases': aliases[unit_long_name]
+            'aliases': aliases[unit_long_name],
         }
+
     dimensions = list(ureg._dimensions.keys())
     unit_list = []
     for dimension in dimensions:
@@ -483,22 +538,24 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
                 unit_list.append(get_unit_data(unit_name, dimension))
 
     # Some units need to be added manually.
-    unit_list.extend([
-        # Kilogram as SI base unit
-        {
-            'name': 'kilogram',
-            'dimension': 'mass',
-            'label': 'Kilogram',
-            'abbreviation': 'kg',
-        },
-        # Dimensionless
-        {
-            'name': 'dimensionless',
-            'dimension': 'dimensionless',
-            'label': 'Dimensionless',
-            'abbreviation': '',
-        },
-    ])
+    unit_list.extend(
+        [
+            # Kilogram as SI base unit
+            {
+                'name': 'kilogram',
+                'dimension': 'mass',
+                'label': 'Kilogram',
+                'abbreviation': 'kg',
+            },
+            # Dimensionless
+            {
+                'name': 'dimensionless',
+                'dimension': 'dimensionless',
+                'label': 'Dimensionless',
+                'abbreviation': '',
+            },
+        ]
+    )
 
     # Add the unit definition and offset that come from the Pint setup
     for value in unit_list:
@@ -523,7 +580,11 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
             #   y = a(x + c) -> y(0) = ab.
             #
             # which means that a(x + c) = ax + b -> c = b / a
-            b = ureg.Quantity(0, getattr(ureg, i_unit)).to(getattr(ureg, j_unit)).magnitude
+            b = (
+                ureg.Quantity(0, getattr(ureg, i_unit))
+                .to(getattr(ureg, j_unit))
+                .magnitude
+            )
             value['definition'] = str(a).replace('**', '^')
             value['offset'] = b / a.magnitude
 
