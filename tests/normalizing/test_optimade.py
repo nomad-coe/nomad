@@ -21,28 +21,25 @@ from ase import Atoms
 from tests.normalizing.conftest import get_template_for_structure
 
 
-@pytest.mark.parametrize('formula, expected', [
-    ('NaClHC', 'CHClNa'),
-    ('NaClH2', 'ClH2Na')
-])
+@pytest.mark.parametrize(
+    'formula, expected', [('NaClHC', 'CHClNa'), ('NaClH2', 'ClH2Na')]
+)
 def test_chemical_formula_hill(formula, expected):
     archive = get_template_for_structure(Atoms(formula))
     assert archive.metadata.optimade.chemical_formula_hill == expected
 
 
-@pytest.mark.parametrize('formula, expected', [
-    ('Na3Cl2H', 'A3B2C'),
-    ('NaNaNaClClHH', 'A3B2C2')
-])
+@pytest.mark.parametrize(
+    'formula, expected', [('Na3Cl2H', 'A3B2C'), ('NaNaNaClClHH', 'A3B2C2')]
+)
 def test_chemical_formula_anonymous(formula, expected):
     archive = get_template_for_structure(Atoms(formula))
     assert archive.metadata.optimade.chemical_formula_anonymous == expected
 
 
-@pytest.mark.parametrize('formula, expected', [
-    ('Na3Cl2H', 'Cl2HNa3'),
-    ('NaNaNaClClHH', 'Cl2H2Na3')
-])
+@pytest.mark.parametrize(
+    'formula, expected', [('Na3Cl2H', 'Cl2HNa3'), ('NaNaNaClClHH', 'Cl2H2Na3')]
+)
 def test_chemical_formula_reduced(formula, expected):
     archive = get_template_for_structure(Atoms(formula))
     assert archive.metadata.optimade.chemical_formula_reduced == expected

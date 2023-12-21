@@ -40,7 +40,9 @@ class Property:
         self.foo = 1
 
     @property
-    def foo(self,):
+    def foo(
+        self,
+    ):
         return self._foo
 
     @foo.setter

@@ -24,8 +24,14 @@ from typing import Optional
 from nomad import config
 from nomad_dos_fingerprints import DOSFingerprint  # pylint: disable=import-error
 from nomad.datamodel.metainfo.simulation.calculation import (
-    BandGap, BandGapDeprecated, Calculation, Dos, DosValues, DosFingerprint,
-    ElectronicStructureProvenance)
+    BandGap,
+    BandGapDeprecated,
+    Calculation,
+    Dos,
+    DosValues,
+    DosFingerprint,
+    ElectronicStructureProvenance,
+)
 
 from .normalizer import Normalizer
 
@@ -33,13 +39,13 @@ from .normalizer import Normalizer
 class DosNormalizer(Normalizer):
     """Normalizer with the following responsibilities:
 
-      - Determines highest occupied and lowest unoccupied energies for both
-        spin channels.
-      - Adds normalization factor for intensive (=not tied to the imulation
-        cell size) DOS values which are
+    - Determines highest occupied and lowest unoccupied energies for both
+      spin channels.
+    - Adds normalization factor for intensive (=not tied to the imulation
+      cell size) DOS values which are
     """
-    def normalize(self, logger=None) -> None:
 
+    def normalize(self, logger=None) -> None:
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
 
@@ -56,8 +62,12 @@ class DosNormalizer(Normalizer):
             dos_electronic = calc.dos_electronic
             if dos_electronic:
                 energy_fermi = calc.energy.fermi if calc.energy is not None else None
-                energy_highest = calc.energy.highest_occupied if calc.energy is not None else None
-                energy_lowest = calc.energy.lowest_unoccupied if calc.energy is not None else None
+                energy_highest = (
+                    calc.energy.highest_occupied if calc.energy is not None else None
+                )
+                energy_lowest = (
+                    calc.energy.lowest_unoccupied if calc.energy is not None else None
+                )
                 n_spin_channels = len(dos_electronic)
             for index, dos in enumerate(dos_electronic):
                 orbital_projected = dos.orbital_projected
@@ -101,8 +111,10 @@ class DosNormalizer(Normalizer):
                 # species_projected summation into the total DOS and show a warning about
                 # our procedure
                 if not total_dos and species_projected:
-                    self.logger.info('Total DOS not found, but Projected DOS was found. We '
-                                     'will sum up contributions leading to the final DOS.')
+                    self.logger.info(
+                        'Total DOS not found, but Projected DOS was found. We '
+                        'will sum up contributions leading to the final DOS.'
+                    )
                     total_data = []
                     for species_pdos in species_projected:
                         total_data.append(species_pdos.value.magnitude)
@@ -115,7 +127,15 @@ class DosNormalizer(Normalizer):
 
                 # Add energy references
                 dos_values = [dos_total.value.magnitude for dos_total in dos.total]
-                self.add_energy_references(calc, index, dos, energy_fermi, energy_highest, energy_lowest, dos_values)
+                self.add_energy_references(
+                    calc,
+                    index,
+                    dos,
+                    energy_fermi,
+                    energy_highest,
+                    energy_lowest,
+                    dos_values,
+                )
 
                 # Calculate the DOS fingerprint for successfully normalized DOS for finding
                 # the energy_highest_occupied
@@ -126,27 +146,34 @@ class DosNormalizer(Normalizer):
                         if normalization_reference is None:
                             normalization_reference = energy_highest_occupied
                         else:
-                            normalization_reference = max(normalization_reference, energy_highest_occupied)
+                            normalization_reference = max(
+                                normalization_reference, energy_highest_occupied
+                            )
                 if normalization_reference is not None:
                     dos_energies_normalized = dos.energies - normalization_reference
 
                     try:
                         dos_fingerprint = DOSFingerprint().calculate(
-                            dos_energies_normalized.magnitude,
-                            dos_values
+                            dos_energies_normalized.magnitude, dos_values
                         )
                     except Exception as e:
-                        self.logger.error('could not generate dos fingerprint', exc_info=e)
+                        self.logger.error(
+                            'could not generate dos fingerprint', exc_info=e
+                        )
                     else:
                         sec_dos_fingerprint = dos.m_create(DosFingerprint)
                         sec_dos_fingerprint.bins = dos_fingerprint.bins
                         sec_dos_fingerprint.indices = dos_fingerprint.indices
                         sec_dos_fingerprint.stepsize = dos_fingerprint.stepsize
                         sec_dos_fingerprint.grid_id = dos_fingerprint.grid_id
-                        sec_dos_fingerprint.filling_factor = dos_fingerprint.filling_factor
+                        sec_dos_fingerprint.filling_factor = (
+                            dos_fingerprint.filling_factor
+                        )
 
                 # Add normalization factor
-                set_normalization_factor = self.add_electronic_normalization_factor(calc, dos, n_spin_channels)
+                set_normalization_factor = self.add_electronic_normalization_factor(
+                    calc, dos, n_spin_channels
+                )
                 if not set_normalization_factor:
                     continue
 
@@ -156,24 +183,28 @@ class DosNormalizer(Normalizer):
                 self.add_phononic_normalization_factor(calc, dos_phonon)
 
     def add_electronic_normalization_factor(
-            self, calc: Calculation, dos: Dos, n_spin_channels: int) -> Optional[np.float64]:
+        self, calc: Calculation, dos: Dos, n_spin_channels: int
+    ) -> Optional[np.float64]:
         """Returns a factor that returns a size intensive electronic DOS.
         The values are divided by integral(DOS, lowest state, Fermi energy), or likewise sum(<atomic numbers>)."""
         if not calc.system_ref:
             self.logger.warning(
                 'Could not resolve the system reference from calculation.system_ref, '
-                'thus electronic normalization factor not reported.')
+                'thus electronic normalization factor not reported.'
+            )
             return None
         atoms = calc.system_ref.atoms
         if not len(dos.total):
             self.logger.warning(
                 'Could not resolve total DOS from calculation.dos.total, '
-                'thus DOS electronic normalization factor not reported.')
+                'thus DOS electronic normalization factor not reported.'
+            )
             return None
         elif not len(atoms.species):
             self.logger.warning(
                 'Could not resolve atoms information from calculation.system_ref.atoms, '
-                'thus DOS electronic normalization factor not reported.')
+                'thus DOS electronic normalization factor not reported.'
+            )
             return None
         else:
             normalization_factor = 1 / (n_spin_channels * sum(atoms.species))
@@ -181,19 +212,23 @@ class DosNormalizer(Normalizer):
                 dos_total.normalization_factor = normalization_factor
             return normalization_factor
 
-    def add_phononic_normalization_factor(self, calc: Calculation, dos: Dos) -> Optional[float]:
+    def add_phononic_normalization_factor(
+        self, calc: Calculation, dos: Dos
+    ) -> Optional[float]:
         """Returns a factor that returns a size intensive phononic DOS.
         The values are divided by integral(DOS, 0, infinity), or likewise <no. degrees of freedom>"""
         atoms = calc.system_ref.atoms
         if not len(dos.total):
             self.logger.warning(
                 'Could not resolve total DOS from calculation.dos.total, '
-                'thus DOS phononic normalization factor not reported.')
+                'thus DOS phononic normalization factor not reported.'
+            )
             return None
         elif not len(atoms.species):
             self.logger.warning(
                 'Could not resolve atoms information from calculation.system_ref.atoms, '
-                'thus DOS phononic normalization factor not reported.')
+                'thus DOS phononic normalization factor not reported.'
+            )
             return None
         else:
             normalization_factor = 1 / (3 * len(atoms.species))
@@ -202,14 +237,15 @@ class DosNormalizer(Normalizer):
             return normalization_factor
 
     def add_energy_references(
-            self,
-            calc: Calculation,
-            i_channel: int,
-            dos: Dos,
-            energy_fermi: float,
-            energy_highest: float,
-            energy_lowest: float,
-            dos_values: list) -> None:
+        self,
+        calc: Calculation,
+        i_channel: int,
+        dos: Dos,
+        energy_fermi: float,
+        energy_highest: float,
+        energy_lowest: float,
+        dos_values: list,
+    ) -> None:
         """Given the DOS and information about energy references,
         determines the energy references separately for all spin channels.
         """
@@ -217,7 +253,7 @@ class DosNormalizer(Normalizer):
         eref = energy_highest if energy_fermi is None else energy_fermi
         # No reference available
         if eref is None:
-            self.logger.info("could not resolve energy references for dos")
+            self.logger.info('could not resolve energy references for dos')
             return
 
         # Use a reference energy (fermi or highest occupied) to determine the
@@ -311,16 +347,22 @@ class DosNormalizer(Normalizer):
                     idx += 1
 
         # save energy_ref for dos
-        dos.energy_ref = info.energy_highest_occupied if info.energy_highest_occupied else energy_fermi
+        dos.energy_ref = (
+            info.energy_highest_occupied
+            if info.energy_highest_occupied
+            else energy_fermi
+        )
 
         # save band gap value
         if info.energy_lowest_unoccupied and info.energy_highest_occupied:
             gap_value = info.energy_lowest_unoccupied - info.energy_highest_occupied
-            gap_value = gap_value if gap_value > 0. else 0.
+            gap_value = gap_value if gap_value > 0.0 else 0.0
             info.value = gap_value
 
             if info.value is not None:
                 proper_info = BandGap().m_from_dict(info.m_to_dict())
-                proper_info.provenance = ElectronicStructureProvenance(dos=dos.total[0], label='dos')
+                proper_info.provenance = ElectronicStructureProvenance(
+                    dos=dos.total[0], label='dos'
+                )
                 calc.m_add_sub_section(Calculation.band_gap, proper_info)
                 dos.m_add_sub_section(Dos.band_gap, info)

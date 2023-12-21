@@ -25,8 +25,16 @@ from nomad.files import StagingUploadFiles, UploadFiles
 from tests.processing.test_data import run_processing
 
 
-def _assert_parsed_data(upload_id, entries, cls, parser, assert_fnc, mainfile_str, no_archive: bool = False, **kwargs):
-
+def _assert_parsed_data(
+    upload_id,
+    entries,
+    cls,
+    parser,
+    assert_fnc,
+    mainfile_str,
+    no_archive: bool = False,
+    **kwargs,
+):
     upload_files = UploadFiles.get(upload_id)
     assert upload_files is not None
     assert isinstance(upload_files, cls)
@@ -39,10 +47,14 @@ def _assert_parsed_data(upload_id, entries, cls, parser, assert_fnc, mainfile_st
             with upload_files.read_archive(entry.entry_id) as archive:
                 assert entry.entry_id in archive
             if entry.entry_name and mainfile_str in entry.entry_name:
-                test_archive = EntryArchive(metadata=EntryMetadata(entry_id=entry.entry_id, upload_id=upload_id))
+                test_archive = EntryArchive(
+                    metadata=EntryMetadata(entry_id=entry.entry_id, upload_id=upload_id)
+                )
                 test_archive.m_context = Context()
                 mainfile = '/'.join([upload_files.os_path, 'raw', entry.mainfile])
-                parser.parse(mainfile, test_archive, None, child_archives={'0': test_archive})
+                parser.parse(
+                    mainfile, test_archive, None, child_archives={'0': test_archive}
+                )
 
                 assert_fnc(test_archive)
 
@@ -69,7 +81,9 @@ def _assert_elabftw(test_archive):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_elabftw_parser(raw_files, proc_infra, api_v1, test_user):
-    upload = run_processing(('test_upload', 'tests/data/parsers/elabftw/test.eln'), test_user)
+    upload = run_processing(
+        ('test_upload', 'tests/data/parsers/elabftw/test.eln'), test_user
+    )
 
     assert upload.total_entries_count == 2
     assert len(upload.successful_entries) == 2
@@ -77,4 +91,10 @@ def test_elabftw_parser(raw_files, proc_infra, api_v1, test_user):
     with upload.entries_metadata() as entries:
         _assert_parsed_data(
             upload.upload_id,
-            entries, StagingUploadFiles, ELabFTWParser(), _assert_elabftw, 'ro-crate-metadata.json', published=False)
+            entries,
+            StagingUploadFiles,
+            ELabFTWParser(),
+            _assert_elabftw,
+            'ro-crate-metadata.json',
+            published=False,
+        )

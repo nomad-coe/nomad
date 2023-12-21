@@ -23,27 +23,21 @@ from pydantic import BaseModel, Field, Extra
 from nomad.graph.model import RequestConfig, DatasetQuery
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.datamodel.data import User as UserModel
-from nomad.app.v1.models.models import (
-    Metadata,
-    MetadataResponse
-)
-from nomad.app.v1.routers.datasets import (
-    Dataset as DatasetV1,
-    DatasetPagination
-)
+from nomad.app.v1.models.models import Metadata, MetadataResponse
+from nomad.app.v1.routers.datasets import Dataset as DatasetV1, DatasetPagination
 from nomad.app.v1.routers.uploads import (
     UploadProcData,
     UploadProcDataPagination,
     UploadProcDataQuery,
     PaginationResponse,
     EntryProcData,
-    EntryProcDataPagination
+    EntryProcDataPagination,
 )
 
 from nomad.app.v1.models.graph.utils import (
     generate_request_model,
     generate_response_model,
-    mapped
+    mapped,
 )
 
 
@@ -110,7 +104,7 @@ class MSection(BaseModel):
     m_children: Union[MSection, MValue]
 
 
-class Entry(mapped(EntryProcData, mainfile="mainfile_path", entry_metadata=None)):  # type: ignore
+class Entry(mapped(EntryProcData, mainfile='mainfile_path', entry_metadata=None)):  # type: ignore
     m_errors: List[Error]
     mainfile: File
     upload: Upload
@@ -138,7 +132,7 @@ class Entries(BaseModel):
 
 class User(
     UserModel.m_def.m_get_annotation(PydanticModel).model,  # type: ignore
-    extra=Extra.forbid
+    extra=Extra.forbid,
 ):
     # This is more complicated as the user can have different roles in different uploads.
     # This would only refer to uploads with the user as main_author.
@@ -156,22 +150,24 @@ class Users(BaseModel):
 class Upload(
     mapped(  # type: ignore
         UploadProcData,
-        entries="n_entries",
+        entries='n_entries',
         main_author=User,
         coauthors=List[User],
         reviewers=List[User],
         viewers=List[User],
         writers=List[User],
     ),
-    extra=Extra.forbid
+    extra=Extra.forbid,
 ):
     # The old API includes some extra data here:
     processing_successful: int = Field(
-        description='Number of entries that has been processed successfully.')
+        description='Number of entries that has been processed successfully.'
+    )
     processing_failed: int = Field(
-        description='Number of entries that failed to process.')
+        description='Number of entries that failed to process.'
+    )
 
-    entries: Entries = Field(description="The entries contained in this upload.")
+    entries: Entries = Field(description='The entries contained in this upload.')
     files: Directory = Field(
         description="This upload's root directory for all files (raw data)."
     )

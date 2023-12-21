@@ -55,7 +55,10 @@ def test_sleep_timer():
 
 def test_sanitize_logevent():
     assert structlogging.sanitize_logevent('numbers 2 and 45.2') == 'numbers X and X'
-    assert structlogging.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)') == 'list L and L'
+    assert (
+        structlogging.sanitize_logevent('list [2, 3.3, 10] and (273.9, .92)')
+        == 'list L and L'
+    )
     assert structlogging.sanitize_logevent('mat [2, [3.3, 2], 10]') == 'mat M'
 
 
@@ -104,7 +107,10 @@ class TestSection(MSection):
 def test_extract_section():
     test_section = TestSection(
         quantity_section=5,
-        subsection=[TestSubSection(name='subsection1', subsection_number=1), TestSubSection(name='subsection2')]
+        subsection=[
+            TestSubSection(name='subsection1', subsection_number=1),
+            TestSubSection(name='subsection2'),
+        ],
     )
     # Check if quantities are properly extracted
     assert utils.extract_section(test_section, ['quantity_section']) == 5
@@ -124,9 +130,7 @@ def test_extract_section():
 def create_upload(upload_id, user_id, file_paths=None):
     if file_paths is None:
         file_paths = []
-    upload = Upload(
-        upload_id=upload_id,
-        main_author=user_id)
+    upload = Upload(upload_id=upload_id, main_author=user_id)
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     for file_path in file_paths:
@@ -136,15 +140,18 @@ def create_upload(upload_id, user_id, file_paths=None):
     return upload
 
 
-@pytest.mark.parametrize('data, flatten_list', [
-    pytest.param({}, True, id='empty'),
-    pytest.param({'a': 1}, True, id='dict'),
-    pytest.param({'a': {'b': 1}}, True, id='dict-dict'),
-    pytest.param({'a': [1, 2, 3]}, True, id='dict-list'),
-    pytest.param({'a': [{'b': 1}, {'c': 2}, {'d': 3}]}, True, id='dict-list-dict'),
-    pytest.param({'a': [{'b': [1, 2, 3]}]}, True, id='dict-list-dict-list'),
-    pytest.param({'a': [1, 2, 3]}, False, id='dict-list-no-list-flattening'),
-])
+@pytest.mark.parametrize(
+    'data, flatten_list',
+    [
+        pytest.param({}, True, id='empty'),
+        pytest.param({'a': 1}, True, id='dict'),
+        pytest.param({'a': {'b': 1}}, True, id='dict-dict'),
+        pytest.param({'a': [1, 2, 3]}, True, id='dict-list'),
+        pytest.param({'a': [{'b': 1}, {'c': 2}, {'d': 3}]}, True, id='dict-list-dict'),
+        pytest.param({'a': [{'b': [1, 2, 3]}]}, True, id='dict-list-dict-list'),
+        pytest.param({'a': [1, 2, 3]}, False, id='dict-list-no-list-flattening'),
+    ],
+)
 def test_dict_flatten_rebuild(data, flatten_list):
     flattened = flatten_dict(data, flatten_list=flatten_list)
     rebuilt = rebuild_dict(flattened)
@@ -152,13 +159,16 @@ def test_dict_flatten_rebuild(data, flatten_list):
     assert rebuilt == data
 
 
-@pytest.mark.parametrize('data, path, value, exception', [
-    pytest.param({'a': []}, ['a'], [], False, id='empty-list'),
-    pytest.param({'a': []}, ['a', 0], None, True, id='missing-index'),
-    pytest.param({'a': [{}]}, ['a', 0], {}, False, id='empty-dict'),
-    pytest.param({}, ['not-there'], None, True, id='missing-key-1'),
-    pytest.param({'a': [{}]}, ['a', 0, 'b'], None, True, id='missing-key-2'),
-])
+@pytest.mark.parametrize(
+    'data, path, value, exception',
+    [
+        pytest.param({'a': []}, ['a'], [], False, id='empty-list'),
+        pytest.param({'a': []}, ['a', 0], None, True, id='missing-index'),
+        pytest.param({'a': [{}]}, ['a', 0], {}, False, id='empty-dict'),
+        pytest.param({}, ['not-there'], None, True, id='missing-key-1'),
+        pytest.param({'a': [{}]}, ['a', 0, 'b'], None, True, id='missing-key-2'),
+    ],
+)
 def test_deep_get(data, path, value, exception):
     if exception:
         with pytest.raises(ValueError):

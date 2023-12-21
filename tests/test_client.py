@@ -32,7 +32,10 @@ from tests.processing import test_data as test_processing
 
 # TODO: more tests
 
-def assert_results(results: List[MSection], sub_section_defs: List[SubSection] = None, total=1):
+
+def assert_results(
+    results: List[MSection], sub_section_defs: List[SubSection] = None, total=1
+):
     assert len(results) == total
     for result in results:
         assert result.m_def == EntryArchive.m_def
@@ -41,7 +44,9 @@ def assert_results(results: List[MSection], sub_section_defs: List[SubSection] =
             for sub_section_def in sub_section_defs:
                 for other_sub_section_def in current.m_def.all_sub_sections.values():
                     if other_sub_section_def != sub_section_def:
-                        assert len(current.m_get_sub_sections(other_sub_section_def)) == 0
+                        assert (
+                            len(current.m_get_sub_sections(other_sub_section_def)) == 0
+                        )
 
                 sub_sections = current.m_get_sub_sections(sub_section_def)
                 assert len(sub_sections) > 0
@@ -52,28 +57,32 @@ def assert_results(results: List[MSection], sub_section_defs: List[SubSection] =
 def many_uploads(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra):
     _, upload_file = non_empty_uploaded
     for index in range(0, 4):
-        upload = test_processing.run_processing(('test_upload_%d' % index, upload_file), test_user)
+        upload = test_processing.run_processing(
+            ('test_upload_%d' % index, upload_file), test_user
+        )
         upload.publish_upload()  # pylint: disable=no-member
         try:
-            upload.block_until_complete(interval=.01)
+            upload.block_until_complete(interval=0.01)
         except Exception:
             pass
 
 
 @pytest.fixture(scope='session')
 def async_api_v1(monkeysession):
-    '''
+    """
     This fixture provides an HTTP client with AsyncClient that accesses
     the fast api. The patch will redirect all requests to the fast api under test.
-    '''
+    """
     test_client = AsyncClient(app=app)
 
     monkeysession.setattr(
         'nomad.client.archive.ArchiveQuery._fetch_url',
-        'http://testserver/api/v1/entries/query')
+        'http://testserver/api/v1/entries/query',
+    )
     monkeysession.setattr(
         'nomad.client.archive.ArchiveQuery._download_url',
-        'http://testserver/api/v1/entries/archive/query')
+        'http://testserver/api/v1/entries/archive/query',
+    )
 
     monkeysession.setattr('httpx.AsyncClient.get', getattr(test_client, 'get'))
     monkeysession.setattr('httpx.AsyncClient.put', getattr(test_client, 'put'))
@@ -96,16 +105,24 @@ def test_async_query_basic(async_api_v1, published_wo_user_metadata):
 
     assert_results(async_query.download())
 
-    async_query = ArchiveQuery(query=dict(upload_id=[published_wo_user_metadata.upload_id]))
+    async_query = ArchiveQuery(
+        query=dict(upload_id=[published_wo_user_metadata.upload_id])
+    )
 
     assert_results(async_query.download())
 
 
 @pytest.mark.parametrize(
     'q_required,sub_sections',
-    [({'run': '*'}, [EntryArchive.run]), ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
-        ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system])])
-def test_async_query_required(async_api_v1, published_wo_user_metadata, q_required, sub_sections):
+    [
+        ({'run': '*'}, [EntryArchive.run]),
+        ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
+        ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system]),
+    ],
+)
+def test_async_query_required(
+    async_api_v1, published_wo_user_metadata, q_required, sub_sections
+):
     async_query = ArchiveQuery(required=q_required)
 
     assert_results(async_query.download(), sub_section_defs=sub_sections)

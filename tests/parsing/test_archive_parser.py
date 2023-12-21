@@ -28,26 +28,19 @@ from nomad.datamodel import EntryArchive, Context
 
 def test_archive_parser(raw_files):
     archive_data = {
-        "definitions": {
-            "section_definitions": [
+        'definitions': {
+            'section_definitions': [
                 {
-                    "name": "TestSection",
-                    "base_sections": [
-                        "nomad.datamodel.data.EntryData"
-                    ],
-                    "quantities": [
-                        {
-                            "name": "test_quantity",
-                            "type": "str"
-                        }
-                    ]
+                    'name': 'TestSection',
+                    'base_sections': ['nomad.datamodel.data.EntryData'],
+                    'quantities': [{'name': 'test_quantity', 'type': 'str'}],
                 }
             ]
         },
-        "data": {
-            "m_def": "#/definitions/section_definitions/0",
-            "test_quantity": "test_value"
-        }
+        'data': {
+            'm_def': '#/definitions/section_definitions/0',
+            'test_quantity': 'test_value',
+        },
     }
 
     mainfile = os.path.join(config.fs.tmp, 'test_mainfile.archive.json')
@@ -65,7 +58,7 @@ def get_file_parameter():
     example_files = [
         'schema.archive.yaml',
         'schema.archive.json',
-        'intra-entry.archive.json'
+        'intra-entry.archive.json',
     ]
     path = os.walk(os.path.join(os.path.dirname(__file__), '../../examples/data'))
     for root, _, files in path:

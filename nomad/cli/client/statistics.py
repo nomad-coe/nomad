@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-'''
+"""
 A command that generates various statistics.
-'''
+"""
 
 # TODO This has to be migrated to v1. This was not done immediatly, because we wanted
 # to revise the statistics anyways: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/issues/611

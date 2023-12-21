@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-''' Methods to help with testing of nomad@FAIRDI.'''
+""" Methods to help with testing of nomad@FAIRDI."""
 
 from typing import List, Union, Dict, Any
 import urllib.parse
@@ -27,7 +27,7 @@ import os.path
 
 
 def assert_log(caplog, level: str, event_part: str) -> LogRecord:
-    '''
+    """
     Assert whether a log message exists in the logs of the tests at a certain level.
 
     Parameters
@@ -41,7 +41,7 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
         The error message we're after. We search the logs matching level if they
         contain this string.
 
-    '''
+    """
     match = None
     for record in caplog.get_records(when='call'):
         if record.levelname == level:
@@ -62,23 +62,30 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
 
 
 def assert_at_least(source, target):
-    '''
+    """
     Compares two dicts recursively and asserts that all information in source equals
     the same information in target. Additional information in target is ignored.
-    '''
+    """
     for key, value in source.items():
-        assert key in target, '%s with value %s in %s is not in %s' % (key, source[key], source, target)
+        assert key in target, '%s with value %s in %s is not in %s' % (
+            key,
+            source[key],
+            source,
+            target,
+        )
         if isinstance(value, dict):
             assert_at_least(value, target[key])
         else:
-            assert value == target[key], '%s with value %s in %s is not equal the target value %s in %s' % (
-                key, source[key], source, target[key], target)
+            assert value == target[key], (
+                '%s with value %s in %s is not equal the target value %s in %s'
+                % (key, source[key], source, target[key], target)
+            )
 
 
 def assert_url_query_args(url: str, **kwargs):
-    '''
+    """
     Parses the url, and checks that the query arguments match the values specified by kwargs.
-    '''
+    """
     __, __, __, __, query, __ = urllib.parse.urlparse(url)
     query_dict = urllib.parse.parse_qs(query)
     for k, v in kwargs.items():
@@ -89,10 +96,10 @@ def assert_url_query_args(url: str, **kwargs):
 
 
 def build_url(base_url: str, query_args: Dict[str, Any]) -> str:
-    '''
+    """
     Takes a base_url and a dictionary, and combines to a url with query arguments.
     Arguments with value None are ignored.
-    '''
+    """
     # Remove args with value None
     query_args_clean = {k: v for k, v in query_args.items() if v is not None}
     if not query_args_clean:
@@ -101,24 +108,28 @@ def build_url(base_url: str, query_args: Dict[str, Any]) -> str:
 
 
 def set_upload_entry_metadata(upload, metadata: Dict[str, Any]):
-    '''
+    """
     Sets the provided metadata values on all entries of the given upload.
-    '''
+    """
     from nomad import processing as proc
+
     for entry in proc.Entry.objects(upload_id=upload.upload_id):
         entry.set_mongo_entry_metadata(**metadata)
         entry.save()
 
 
 def create_template_upload_file(
-        tmp, mainfiles: Union[str, List[str]] = None, auxfiles: int = 4,
-        directory: str = 'examples_template', name: str = 'examples_template.zip',
-        more_files: Union[str, List[str]] = None):
-
-    '''
+    tmp,
+    mainfiles: Union[str, List[str]] = None,
+    auxfiles: int = 4,
+    directory: str = 'examples_template',
+    name: str = 'examples_template.zip',
+    more_files: Union[str, List[str]] = None,
+):
+    """
     Creates a temporary upload.zip file based on template.json (for the artificial test
     parser) that can be used for test processings.
-    '''
+    """
 
     if mainfiles is None:
         mainfiles = 'tests/data/proc/templates/template.json'
@@ -141,6 +152,8 @@ def create_template_upload_file(
                 zf.write(mainfile, f'{directory}/{os.path.basename(mainfile)}')
 
         for additional_file in more_files:
-            zf.write(additional_file, f'{directory}/{os.path.basename(additional_file)}')
+            zf.write(
+                additional_file, f'{directory}/{os.path.basename(additional_file)}'
+            )
 
     return upload_path

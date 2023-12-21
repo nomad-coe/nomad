@@ -40,7 +40,11 @@ from nomad.search import search, refresh as search_refresh
 from nomad.utils.exampledata import ExampleData
 
 from tests.test_search import assert_search_upload
-from tests.test_files import assert_upload_files, example_file_mainfile, example_file_aux
+from tests.test_files import (
+    assert_upload_files,
+    example_file_mainfile,
+    example_file_aux,
+)
 from tests.utils import create_template_upload_file, set_upload_entry_metadata
 
 
@@ -49,31 +53,29 @@ m_package = Package(name='test_schemas')
 
 
 class TestBatchSample(EntryData):
-    batch_id = Quantity(
-        type=str,
-        description='Id for the batch')
-    sample_number = Quantity(
-        type=int,
-        description='Sample index')
+    batch_id = Quantity(type=str, description='Id for the batch')
+    sample_number = Quantity(type=int, description='Sample index')
     comments = Quantity(
-        type=str,
-        description='Comments',
-        a_eln=dict(component='RichTextEditQuantity'))
+        type=str, description='Comments', a_eln=dict(component='RichTextEditQuantity')
+    )
 
 
 class TestBatch(EntryData):
     batch_id = Quantity(
         type=str,
         description='Id for the batch',
-        a_eln=dict(component='StringEditQuantity'))
+        a_eln=dict(component='StringEditQuantity'),
+    )
     n_samples = Quantity(
         type=int,
         description='Number of samples in batch',
-        a_eln=dict(component='NumberEditQuantity'))
+        a_eln=dict(component='NumberEditQuantity'),
+    )
     sample_refs = Quantity(
         type=Reference(TestBatchSample.m_def),
         shape=['*'],
-        descriptions='The samples in the batch.')
+        descriptions='The samples in the batch.',
+    )
 
     def normalize(self, archive, logger):
         super(TestBatch, self).normalize(archive, logger)
@@ -84,12 +86,10 @@ class TestBatch(EntryData):
             file_name = f'{self.batch_id}_{idx}.archive.json'
             if not archive.m_context.raw_path_exists(file_name):
                 # Create new sample file
-                sample = TestBatchSample(
-                    batch_id=self.batch_id,
-                    sample_number=idx)
+                sample = TestBatchSample(batch_id=self.batch_id, sample_number=idx)
                 sample_entry = sample.m_to_dict(with_root_def=True)
                 with archive.m_context.raw_file(file_name, 'w') as outfile:
-                    json.dump({"data": sample_entry}, outfile)
+                    json.dump({'data': sample_entry}, outfile)
                 # Tell nomad to process it
                 archive.m_context.process_updated_raw_file(file_name)
             sample_refs.append(f'../upload/archive/mainfile/{file_name}#data')
@@ -100,8 +100,14 @@ m_package.__init_metainfo__()
 
 
 def test_generate_entry_id():
-    assert utils.generate_entry_id('an_upload_id', 'a/mainfile/path', None) == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
-    assert utils.generate_entry_id('an_upload_id', 'a/mainfile/path', 'child1') == 'di12O5zSSb0Al9ipG6BBp_I0JYgd'
+    assert (
+        utils.generate_entry_id('an_upload_id', 'a/mainfile/path', None)
+        == 'KUB1stwXd8Ll6lliZnM5OoNZlcaf'
+    )
+    assert (
+        utils.generate_entry_id('an_upload_id', 'a/mainfile/path', 'child1')
+        == 'di12O5zSSb0Al9ipG6BBp_I0JYgd'
+    )
 
 
 def test_send_mail(mails, monkeypatch):
@@ -126,18 +132,27 @@ def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None
 
 def run_processing(uploaded: Tuple[str, str], main_author, **kwargs) -> Upload:
     uploaded_id, uploaded_path = uploaded
-    upload = Upload.create(
-        upload_id=uploaded_id, main_author=main_author, **kwargs)
+    upload = Upload.create(upload_id=uploaded_id, main_author=main_author, **kwargs)
     assert upload.process_status == ProcessStatus.READY
     assert upload.last_status_message is None
     upload.process_upload(
-        file_operations=[dict(op='ADD', path=uploaded_path, target_dir='', temporary=kwargs.get('temporary', False))])
-    upload.block_until_complete(interval=.01)
+        file_operations=[
+            dict(
+                op='ADD',
+                path=uploaded_path,
+                target_dir='',
+                temporary=kwargs.get('temporary', False),
+            )
+        ]
+    )
+    upload.block_until_complete(interval=0.01)
 
     return upload
 
 
-def assert_processing(upload: Upload, published: bool = False, process='process_upload'):
+def assert_processing(
+    upload: Upload, published: bool = False, process='process_upload'
+):
     assert not upload.process_running
     assert upload.current_process == process
     assert upload.upload_id is not None
@@ -165,14 +180,19 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
             for log_data in entry_archive['processing_logs']:
                 for key in ['event', 'entry_id', 'level']:
                     key in log_data
-                has_test_event = has_test_event or log_data['event'] == 'a test log entry'
+                has_test_event = (
+                    has_test_event or log_data['event'] == 'a test log entry'
+                )
 
             assert has_test_event
         assert len(entry.errors) == 0
 
         archive = read_partial_archive_from_mongo(entry.entry_id)
         assert archive.metadata is not None
-        assert archive.workflow2.results.calculation_result_ref.system_ref.atoms.labels is not None
+        assert (
+            archive.workflow2.results.calculation_result_ref.system_ref.atoms.labels
+            is not None
+        )
 
         with upload_files.raw_file(entry.mainfile) as f:
             f.read()
@@ -193,7 +213,10 @@ def assert_processing(upload: Upload, published: bool = False, process='process_
         upload_files.close()
 
     search_results = search(owner=None, query={'upload_id': upload.upload_id})
-    assert search_results.pagination.total == Entry.objects(upload_id=upload.upload_id).count()
+    assert (
+        search_results.pagination.total
+        == Entry.objects(upload_id=upload.upload_id).count()
+    )
     for entry in search_results.data:
         assert entry['published'] == published
         assert entry['upload_id'] == upload.upload_id
@@ -204,7 +227,9 @@ def assert_user_metadata(entries_metadata, user_metadata):
         entry_metadata_dict = entry_metadata.m_to_dict()
         for k, value_expected in user_metadata.items():
             value_actual = entry_metadata_dict[k]
-            assert value_actual == value_expected, f'Mismatch {k}: {value_expected} != {value_actual}'
+            assert (
+                value_actual == value_expected
+            ), f'Mismatch {k}: {value_expected} != {value_actual}'
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -212,21 +237,32 @@ def test_processing(processed, no_warn, mails, monkeypatch):
     assert_processing(processed)
 
     assert len(mails.messages) == 1
-    assert re.search(r'Processing completed', mails.messages[0].data.decode('utf-8')) is not None
+    assert (
+        re.search(r'Processing completed', mails.messages[0].data.decode('utf-8'))
+        is not None
+    )
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_two_runs(test_user, proc_infra, tmp):
     upload_file = create_template_upload_file(
-        tmp, mainfiles=['tests/data/proc/templates/template_tworuns.json'])
-    processed = run_processing(('test_upload_id', upload_file,), test_user)
+        tmp, mainfiles=['tests/data/proc/templates/template_tworuns.json']
+    )
+    processed = run_processing(
+        (
+            'test_upload_id',
+            upload_file,
+        ),
+        test_user,
+    )
     assert_processing(processed)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_with_large_dir(test_user, proc_infra, tmp):
     upload_path = create_template_upload_file(
-        tmp, mainfiles=['tests/data/proc/templates/template.json'], auxfiles=150)
+        tmp, mainfiles=['tests/data/proc/templates/template.json'], auxfiles=150
+    )
     upload_id = upload_path[:-4]
     upload = run_processing((upload_id, upload_path), test_user)
     for entry in upload.successful_entries:
@@ -234,7 +270,9 @@ def test_processing_with_large_dir(test_user, proc_infra, tmp):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
+def test_publish(
+    non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch
+):
     processed = non_empty_processed
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
@@ -244,31 +282,41 @@ def test_publish(non_empty_processed: Upload, no_warn, internal_example_user_met
 
     processed.publish_upload(embargo_length=36)
     try:
-        processed.block_until_complete(interval=.01)
+        processed.block_until_complete(interval=0.01)
     except Exception:
         pass
 
     with processed.entries_metadata() as entries:
         assert_user_metadata(entries, metadata_to_check)
-        assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+        assert_upload_files(
+            processed.upload_id, entries, PublicUploadFiles, published=True
+        )
         assert_search_upload(entries, additional_keys, published=True)
 
-    assert_processing(Upload.get(processed.upload_id), published=True, process='publish_upload')
+    assert_processing(
+        Upload.get(processed.upload_id), published=True, process='publish_upload'
+    )
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_publish_directly(non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch):
+def test_publish_directly(
+    non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch
+):
     processed = run_processing(non_empty_uploaded, test_user, publish_directly=True)
 
     with processed.entries_metadata() as entries:
-        assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+        assert_upload_files(
+            processed.upload_id, entries, PublicUploadFiles, published=True
+        )
         assert_search_upload(entries, [], published=True)
 
     assert_processing(Upload.get(processed.upload_id), published=True)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch):
+def test_republish(
+    non_empty_processed: Upload, no_warn, internal_example_user_metadata, monkeypatch
+):
     processed = non_empty_processed
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
@@ -277,23 +325,28 @@ def test_republish(non_empty_processed: Upload, no_warn, internal_example_user_m
     metadata_to_check['with_embargo'] = True
 
     processed.publish_upload(embargo_length=36)
-    processed.block_until_complete(interval=.01)
+    processed.block_until_complete(interval=0.01)
     assert Upload.get('examples_template') is not None
 
     processed.publish_upload()
-    processed.block_until_complete(interval=.01)
+    processed.block_until_complete(interval=0.01)
 
     with processed.entries_metadata() as entries:
         assert_user_metadata(entries, metadata_to_check)
-        assert_upload_files(processed.upload_id, entries, PublicUploadFiles, published=True)
+        assert_upload_files(
+            processed.upload_id, entries, PublicUploadFiles, published=True
+        )
         assert_search_upload(entries, additional_keys, published=True)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_publish_failed(
-        non_empty_uploaded: Tuple[str, str], internal_example_user_metadata, test_user,
-        monkeypatch, proc_infra):
-
+    non_empty_uploaded: Tuple[str, str],
+    internal_example_user_metadata,
+    test_user,
+    monkeypatch,
+    proc_infra,
+):
     mock_failure(Entry, 'parsing', monkeypatch)
 
     processed = run_processing(non_empty_uploaded, test_user)
@@ -305,7 +358,7 @@ def test_publish_failed(
 
     processed.publish_upload(embargo_length=36)
     try:
-        processed.block_until_complete(interval=.01)
+        processed.block_until_complete(interval=0.01)
     except Exception:
         pass
 
@@ -314,16 +367,28 @@ def test_publish_failed(
         assert_search_upload(entries, additional_keys, published=True, processed=False)
 
 
-@pytest.mark.parametrize('import_settings, embargo_length', [
-    # pytest.param(
-    #     config.BundleImportSettings(include_archive_files=True, trigger_processing=False), 0,
-    #     id='no-processing'),
-    pytest.param(
-        BundleImportSettings(include_archive_files=False, trigger_processing=True), 17,
-        id='trigger-processing')
-])
+@pytest.mark.parametrize(
+    'import_settings, embargo_length',
+    [
+        # pytest.param(
+        #     config.BundleImportSettings(include_archive_files=True, trigger_processing=False), 0,
+        #     id='no-processing'),
+        pytest.param(
+            BundleImportSettings(include_archive_files=False, trigger_processing=True),
+            17,
+            id='trigger-processing',
+        )
+    ],
+)
 def test_publish_to_central_nomad(
-        proc_infra, monkeypatch, oasis_publishable_upload, test_user, no_warn, import_settings, embargo_length):
+    proc_infra,
+    monkeypatch,
+    oasis_publishable_upload,
+    test_user,
+    no_warn,
+    import_settings,
+    embargo_length,
+):
     upload_id, suffix = oasis_publishable_upload
     old_upload = Upload.get(upload_id)
 
@@ -349,23 +414,38 @@ def test_publish_to_central_nomad(
         if k == 'with_embargo':
             assert new_entry_metadata_dict[k] == (embargo_length > 0)
         elif k not in (
-                'upload_id', 'entry_id', 'upload_create_time', 'entry_create_time',
-                'last_processing_time', 'publish_time', 'embargo_length',
-                'n_quantities', 'quantities'):  # TODO: n_quantities and quantities update problem?
+            'upload_id',
+            'entry_id',
+            'upload_create_time',
+            'entry_create_time',
+            'last_processing_time',
+            'publish_time',
+            'embargo_length',
+            'n_quantities',
+            'quantities',
+        ):  # TODO: n_quantities and quantities update problem?
             assert new_entry_metadata_dict[k] == v, f'Metadata not matching: {k}'
     assert new_entry.datasets == ['dataset_id']
     assert old_upload.published_to[0] == config.oasis.central_nomad_deployment_url
     assert new_upload.from_oasis and new_upload.oasis_deployment_url
     assert new_upload.embargo_length == embargo_length
-    assert old_upload.upload_files.access == 'restricted' if old_upload.with_embargo else 'public'
-    assert new_upload.upload_files.access == 'restricted' if new_upload.with_embargo else 'public'
+    assert (
+        old_upload.upload_files.access == 'restricted'
+        if old_upload.with_embargo
+        else 'public'
+    )
+    assert (
+        new_upload.upload_files.access == 'restricted'
+        if new_upload.with_embargo
+        else 'public'
+    )
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_processing_with_warning(proc_infra, test_user, with_warn, tmp):
-
     example_file = create_template_upload_file(
-        tmp, 'tests/data/proc/templates/with_warning_template.json')
+        tmp, 'tests/data/proc/templates/with_warning_template.json'
+    )
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
 
     upload = run_processing((example_upload_id, example_file), test_user)
@@ -383,7 +463,9 @@ def test_process_non_existing(proc_infra, test_user, with_error):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.mark.parametrize('with_failure', [None, 'before', 'after', 'not-matched'])
-def test_re_processing(published: Upload, internal_example_user_metadata, monkeypatch, tmp, with_failure):
+def test_re_processing(
+    published: Upload, internal_example_user_metadata, monkeypatch, tmp, with_failure
+):
     if with_failure == 'not-matched':
         monkeypatch.setattr('nomad.config.reprocess.use_original_parser', True)
 
@@ -407,7 +489,8 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
     old_archive_files = list(
         archive_file
         for archive_file in os.listdir(published.upload_files.os_path)
-        if 'archive' in archive_file)
+        if 'archive' in archive_file
+    )
 
     metadata_to_check = internal_example_user_metadata.copy()
     metadata_to_check['with_embargo'] = True
@@ -422,21 +505,31 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
             os.remove(published.upload_files.join_file(archive_file).os_path)
 
     if with_failure == 'after':
-        raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/unparsable/template.json')
+        raw_files = create_template_upload_file(
+            tmp, 'tests/data/proc/templates/unparsable/template.json'
+        )
     elif with_failure == 'not-matched':
-        monkeypatch.setattr('nomad.parsing.artificial.TemplateParser.is_mainfile', lambda *args, **kwargs: False)
-        raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/different_atoms/template.json')
+        monkeypatch.setattr(
+            'nomad.parsing.artificial.TemplateParser.is_mainfile',
+            lambda *args, **kwargs: False,
+        )
+        raw_files = create_template_upload_file(
+            tmp, 'tests/data/proc/templates/different_atoms/template.json'
+        )
     else:
-        raw_files = create_template_upload_file(tmp, 'tests/data/proc/templates/different_atoms/template.json')
+        raw_files = create_template_upload_file(
+            tmp, 'tests/data/proc/templates/different_atoms/template.json'
+        )
 
     shutil.copyfile(
-        raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path)
+        raw_files, published.upload_files.join_file('raw-restricted.plain.zip').os_path
+    )
 
     # reprocess
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     published.process_upload()
     try:
-        published.block_until_complete(interval=.01)
+        published.block_until_complete(interval=0.01)
     except Exception:
         pass
 
@@ -454,14 +547,27 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
 
     # assert changed archive files
     if with_failure == 'after':
-        with published.upload_files.read_archive(first_entry.entry_id) as archive_reader:
-            assert list(archive_reader[first_entry.entry_id].keys()) == ['processing_logs', 'metadata']
-            archive = EntryArchive.m_from_dict(to_json(archive_reader[first_entry.entry_id]))
+        with published.upload_files.read_archive(
+            first_entry.entry_id
+        ) as archive_reader:
+            assert list(archive_reader[first_entry.entry_id].keys()) == [
+                'processing_logs',
+                'metadata',
+            ]
+            archive = EntryArchive.m_from_dict(
+                to_json(archive_reader[first_entry.entry_id])
+            )
 
     else:
-        with published.upload_files.read_archive(first_entry.entry_id) as archive_reader:
-            assert len(archive_reader[first_entry.entry_id]) > 2  # contains more then logs and metadata
-            archive = EntryArchive.m_from_dict(to_json(archive_reader[first_entry.entry_id]))
+        with published.upload_files.read_archive(
+            first_entry.entry_id
+        ) as archive_reader:
+            assert (
+                len(archive_reader[first_entry.entry_id]) > 2
+            )  # contains more then logs and metadata
+            archive = EntryArchive.m_from_dict(
+                to_json(archive_reader[first_entry.entry_id])
+            )
 
     # assert maintained user metadata (mongo+es)
     assert_upload_files(published.upload_id, entries, PublicUploadFiles, published=True)
@@ -476,15 +582,16 @@ def test_re_processing(published: Upload, internal_example_user_metadata, monkey
         assert archive.results is None
 
 
-@pytest.mark.parametrize('publish,old_staging', [
-    (False, False), (True, True), (True, False)])
+@pytest.mark.parametrize(
+    'publish,old_staging', [(False, False), (True, True), (True, False)]
+)
 def test_re_process_staging(non_empty_processed, publish, old_staging):
     upload = non_empty_processed
 
     if publish:
         upload.publish_upload()
         try:
-            upload.block_until_complete(interval=.01)
+            upload.block_until_complete(interval=0.01)
         except Exception:
             pass
 
@@ -493,7 +600,7 @@ def test_re_process_staging(non_empty_processed, publish, old_staging):
 
     upload.process_upload()
     try:
-        upload.block_until_complete(interval=.01)
+        upload.block_until_complete(interval=0.01)
     except Exception:
         pass
 
@@ -511,7 +618,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
 
     if published:
         upload.publish_upload(embargo_length=0)
-        upload.block_until_complete(interval=.01)
+        upload.block_until_complete(interval=0.01)
 
     assert upload.total_entries_count == 1, upload.total_entries_count
 
@@ -527,7 +634,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
         upload_files.add_rawfiles('tests/data/parsers/vasp/vasp.xml')
 
     upload.process_upload()
-    upload.block_until_complete(interval=.01)
+    upload.block_until_complete(interval=0.01)
 
     assert upload.total_entries_count == 2
     if not published:
@@ -543,132 +650,182 @@ def test_reuse_parser(monkeypatch, tmp, test_user, proc_infra, reuse_parser, no_
         zf.write('tests/data/parsers/vasp/vasp.xml', 'two/run.vasp.xml')
 
     monkeypatch.setattr('nomad.config.process.reuse_parser', reuse_parser)
-    upload = run_processing(('example_upload', upload_path,), test_user)
+    upload = run_processing(
+        (
+            'example_upload',
+            upload_path,
+        ),
+        test_user,
+    )
 
     assert upload.total_entries_count == 2
     assert upload.process_status == 'SUCCESS'
 
 
-@pytest.mark.parametrize('args', [
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder'],
-            path_filter='new_folder/new_sub_folder/template.json',
-            expected_result={
-                'examples_template/template.json': False,
-                'new_folder/new_sub_folder/template.json': True}),
-        id='add-one-filter-file'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder'],
-            path_filter='new_folder/new_sub_folder',
-            expected_result={
-                'examples_template/template.json': False,
-                'new_folder/new_sub_folder/template.json': True}),
-        id='add-one-filter-folder'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder1', 'new_folder/new_sub_folder2'],
-            path_filter='new_folder',
-            expected_result={
-                'examples_template/template.json': False,
-                'new_folder/new_sub_folder1/template.json': True,
-                'new_folder/new_sub_folder2/template.json': True}),
-        id='add-two'),
-    pytest.param(
-        dict(
-            add=['examples_template/new_sub_folder'],
-            path_filter='examples_template/new_sub_folder',
-            expected_result={
-                'examples_template/template.json': False,
-                'examples_template/new_sub_folder/template.json': True}),
-        id='add-to-existing-entry-folder'),
-    pytest.param(
-        dict(
-            add=['examples_template/new_sub_folder'],
-            delete=['examples_template/template.json'],
-            path_filter='examples_template',
-            expected_result={
-                'examples_template/new_sub_folder/template.json': True}),
-        id='add-and-delete'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder'],
-            path_filter='examples_template',
-            expected_result={
-                'examples_template/template.json': True}),
-        id='add-one-filter-other'),
-    pytest.param(
-        dict(
-            delete=['examples_template/template.json'],
-            path_filter='examples_template',
-            expected_result={}),
-        id='delete-everything'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder', (example_file_aux, 'examples_template')],
-            only_updated_files=True,
-            expected_result={
-                'examples_template/template.json': False,
-                'new_folder/new_sub_folder/template.json': True}),
-        id='flag-add-two-files'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder', 'examples_template'],
-            only_updated_files=True,
-            expected_result={
-                'examples_template/template.json': True,
-                'new_folder/new_sub_folder/template.json': True}),
-        id='flag-add-new-and-overwrite-old'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder'],
-            delete=['examples_template/template.json'],
-            only_updated_files=True,
-            expected_result={
-                'new_folder/new_sub_folder/template.json': True}),
-        id='flag-add-new-and-delete-old'),
-    pytest.param(
-        dict(
-            add=['new_folder/new_sub_folder'],
-            delete=['examples_template'],
-            only_updated_files=True,
-            expected_result={
-                'new_folder/new_sub_folder/template.json': True}),
-        id='flag-add-new-and-delete-old-folder'),
-    pytest.param(
-        dict(
-            delete=['examples_template'],
-            only_updated_files=True,
-            expected_result={}),
-        id='flag-delete-everything')])
+@pytest.mark.parametrize(
+    'args',
+    [
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder'],
+                path_filter='new_folder/new_sub_folder/template.json',
+                expected_result={
+                    'examples_template/template.json': False,
+                    'new_folder/new_sub_folder/template.json': True,
+                },
+            ),
+            id='add-one-filter-file',
+        ),
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder'],
+                path_filter='new_folder/new_sub_folder',
+                expected_result={
+                    'examples_template/template.json': False,
+                    'new_folder/new_sub_folder/template.json': True,
+                },
+            ),
+            id='add-one-filter-folder',
+        ),
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder1', 'new_folder/new_sub_folder2'],
+                path_filter='new_folder',
+                expected_result={
+                    'examples_template/template.json': False,
+                    'new_folder/new_sub_folder1/template.json': True,
+                    'new_folder/new_sub_folder2/template.json': True,
+                },
+            ),
+            id='add-two',
+        ),
+        pytest.param(
+            dict(
+                add=['examples_template/new_sub_folder'],
+                path_filter='examples_template/new_sub_folder',
+                expected_result={
+                    'examples_template/template.json': False,
+                    'examples_template/new_sub_folder/template.json': True,
+                },
+            ),
+            id='add-to-existing-entry-folder',
+        ),
+        pytest.param(
+            dict(
+                add=['examples_template/new_sub_folder'],
+                delete=['examples_template/template.json'],
+                path_filter='examples_template',
+                expected_result={
+                    'examples_template/new_sub_folder/template.json': True
+                },
+            ),
+            id='add-and-delete',
+        ),
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder'],
+                path_filter='examples_template',
+                expected_result={'examples_template/template.json': True},
+            ),
+            id='add-one-filter-other',
+        ),
+        pytest.param(
+            dict(
+                delete=['examples_template/template.json'],
+                path_filter='examples_template',
+                expected_result={},
+            ),
+            id='delete-everything',
+        ),
+        pytest.param(
+            dict(
+                add=[
+                    'new_folder/new_sub_folder',
+                    (example_file_aux, 'examples_template'),
+                ],
+                only_updated_files=True,
+                expected_result={
+                    'examples_template/template.json': False,
+                    'new_folder/new_sub_folder/template.json': True,
+                },
+            ),
+            id='flag-add-two-files',
+        ),
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder', 'examples_template'],
+                only_updated_files=True,
+                expected_result={
+                    'examples_template/template.json': True,
+                    'new_folder/new_sub_folder/template.json': True,
+                },
+            ),
+            id='flag-add-new-and-overwrite-old',
+        ),
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder'],
+                delete=['examples_template/template.json'],
+                only_updated_files=True,
+                expected_result={'new_folder/new_sub_folder/template.json': True},
+            ),
+            id='flag-add-new-and-delete-old',
+        ),
+        pytest.param(
+            dict(
+                add=['new_folder/new_sub_folder'],
+                delete=['examples_template'],
+                only_updated_files=True,
+                expected_result={'new_folder/new_sub_folder/template.json': True},
+            ),
+            id='flag-add-new-and-delete-old-folder',
+        ),
+        pytest.param(
+            dict(
+                delete=['examples_template'],
+                only_updated_files=True,
+                expected_result={},
+            ),
+            id='flag-delete-everything',
+        ),
+    ],
+)
 def test_process_partial(proc_infra, non_empty_processed: Upload, args):
     add = args.get('add', [])
     delete = args.get('delete', [])
     path_filter = args.get('path_filter')
     only_updated_files = args.get('only_updated_files', False)
     expected_result = args['expected_result']
-    old_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.successful_entries}
+    old_timestamps = {
+        e.mainfile: e.complete_time for e in non_empty_processed.successful_entries
+    }
     file_operations = []
     for op in add:
         if type(op) == tuple:
             path, target_dir = op
         else:
             path, target_dir = example_file_mainfile, op
-        file_operations.append(dict(
-            op='ADD', path=path, target_dir=target_dir, temporary=False))
+        file_operations.append(
+            dict(op='ADD', path=path, target_dir=target_dir, temporary=False)
+        )
     for path in delete:
         file_operations.append(dict(op='DELETE', path=path))
 
-    non_empty_processed.process_upload(file_operations, path_filter=path_filter, only_updated_files=only_updated_files)
+    non_empty_processed.process_upload(
+        file_operations, path_filter=path_filter, only_updated_files=only_updated_files
+    )
     non_empty_processed.block_until_complete()
     search_refresh()  # Process does not wait for search index to be refreshed when deleting
     assert_processing(non_empty_processed)
-    new_timestamps = {e.mainfile: e.complete_time for e in non_empty_processed.successful_entries}
+    new_timestamps = {
+        e.mainfile: e.complete_time for e in non_empty_processed.successful_entries
+    }
     assert new_timestamps.keys() == expected_result.keys()
     for key, expect_updated in expected_result.items():
         if expect_updated:
-            assert key not in old_timestamps or old_timestamps[key] < new_timestamps[key]
+            assert (
+                key not in old_timestamps or old_timestamps[key] < new_timestamps[key]
+            )
 
 
 def test_re_pack(published: Upload):
@@ -700,12 +857,18 @@ def mock_failure(cls, function_name, monkeypatch):
 
     mock.__name__ = function_name
 
-    monkeypatch.setattr('nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock)
+    monkeypatch.setattr(
+        'nomad.processing.data.%s.%s' % (cls.__name__, function_name), mock
+    )
 
 
-@pytest.mark.parametrize('function', ['update_files', 'match_all', 'cleanup', 'parsing'])
+@pytest.mark.parametrize(
+    'function', ['update_files', 'match_all', 'cleanup', 'parsing']
+)
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_process_failure(monkeypatch, uploaded, function, proc_infra, test_user, with_error):
+def test_process_failure(
+    monkeypatch, uploaded, function, proc_infra, test_user, with_error
+):
     upload_id, _ = uploaded
     # mock the function to throw exceptions
     if hasattr(Upload, function):
@@ -777,15 +940,30 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
         creates_children = True
 
         def is_mainfile(
-                self, filename: str, mime: str, buffer: bytes, decoded_buffer: str,
-                compression: str = None):
+            self,
+            filename: str,
+            mime: str,
+            buffer: bytes,
+            decoded_buffer: str,
+            compression: str = None,
+        ):
             if decoded_buffer.startswith('parentchild\n'):
-                return set([line.strip() for line in decoded_buffer.split('\n')[1:] if line.strip()])
+                return set(
+                    [
+                        line.strip()
+                        for line in decoded_buffer.split('\n')[1:]
+                        if line.strip()
+                    ]
+                )
             return False
 
         def parse(
-                self, mainfile: str, archive: EntryArchive, logger=None,
-                child_archives: Dict[str, EntryArchive] = None):
+            self,
+            mainfile: str,
+            archive: EntryArchive,
+            logger=None,
+            child_archives: Dict[str, EntryArchive] = None,
+        ):
             archive.metadata.comment = 'parent'
             for mainfile_key, child_archive in child_archives.items():
                 child_archive.metadata.comment = mainfile_key
@@ -807,7 +985,9 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
 
         assert upload.process_status == ProcessStatus.SUCCESS
         assert upload.total_entries_count == len(children) + 1
-        assert set([e.mainfile_key for e in upload.successful_entries]) == set([None, *children])
+        assert set([e.mainfile_key for e in upload.successful_entries]) == set(
+            [None, *children]
+        )
         for entry in upload.successful_entries:
             metadata = entry.full_entry_metadata(upload)
             assert metadata.comment == (entry.mainfile_key or 'parent')
@@ -820,12 +1000,11 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_creating_new_entries_during_processing(proc_infra, test_user):
-    '''
+    """
     Tests a use-case where a schema has a normalizer that adds new mainfiles during processing.
-    '''
+    """
     upload_id = 'test_create_during_processing'
-    upload = Upload.create(
-        upload_id=upload_id, main_author=test_user)
+    upload = Upload.create(upload_id=upload_id, main_author=test_user)
     upload_files = StagingUploadFiles(upload_id, create=True)
     with upload_files.raw_file('batch.archive.json', 'w') as outfile:
         json.dump(
@@ -833,10 +1012,11 @@ def test_creating_new_entries_during_processing(proc_infra, test_user):
                 'data': {
                     'm_def': 'tests.processing.test_data.TestBatch',
                     'batch_id': 'my_batch',
-                    'n_samples': 5
+                    'n_samples': 5,
                 }
             },
-            outfile)
+            outfile,
+        )
     upload.process_upload()
     upload.block_until_complete()
     assert upload.process_status == ProcessStatus.SUCCESS
@@ -853,60 +1033,85 @@ def test_creating_new_entries_during_processing(proc_infra, test_user):
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_ems_data(proc_infra, test_user):
-    upload = run_processing(('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user)
+    upload = run_processing(
+        ('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user
+    )
 
     additional_keys = ['results.method.method_name', 'results.material.elements']
     assert upload.total_entries_count == 1
     assert len(upload.successful_entries) == 1
 
     with upload.entries_metadata() as entries:
-        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_upload_files(
+            upload.upload_id, entries, StagingUploadFiles, published=False
+        )
         assert_search_upload(entries, additional_keys, published=False)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_qcms_data(proc_infra, test_user):
-    upload = run_processing(('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user)
+    upload = run_processing(
+        ('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user
+    )
 
-    additional_keys = ['results.method.simulation.program_name', 'results.material.elements']
+    additional_keys = [
+        'results.method.simulation.program_name',
+        'results.material.elements',
+    ]
     assert upload.total_entries_count == 1
     assert len(upload.successful_entries) == 1
 
     with upload.entries_metadata() as entries:
-        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_upload_files(
+            upload.upload_id, entries, StagingUploadFiles, published=False
+        )
         assert_search_upload(entries, additional_keys, published=False)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_phonopy_data(proc_infra, test_user):
-    upload = run_processing(('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user)
+    upload = run_processing(
+        ('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user
+    )
 
     additional_keys = ['results.method.simulation.program_name']
     assert upload.total_entries_count == 2
     assert len(upload.successful_entries) == 2
 
     with upload.entries_metadata() as entries:
-        assert_upload_files(upload.upload_id, entries, StagingUploadFiles, published=False)
+        assert_upload_files(
+            upload.upload_id, entries, StagingUploadFiles, published=False
+        )
         assert_search_upload(entries, additional_keys, published=False)
 
 
 def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
     upload_file = os.path.join(tmp, 'upload.zip')
     with zipfile.ZipFile(upload_file, 'w') as zf:
-        zf.write('tests/data/proc/templates/template.json', 'examples/entry_1/template.json')
-        zf.write('tests/data/proc/templates/template.json', 'examples/entry_2/template.json')
-        zf.write('tests/data/proc/templates/template.json', 'examples/entry_3/template.json')
+        zf.write(
+            'tests/data/proc/templates/template.json', 'examples/entry_1/template.json'
+        )
+        zf.write(
+            'tests/data/proc/templates/template.json', 'examples/entry_2/template.json'
+        )
+        zf.write(
+            'tests/data/proc/templates/template.json', 'examples/entry_3/template.json'
+        )
         zf.write('tests/data/proc/templates/template.json', 'examples/template.json')
         entry_1 = dict(
             comment='Entry 1 of 3',
             references='http://test1.com',
-            external_id='external_id_1')
-        with zf.open('examples/entry_1/nomad.yaml', 'w') as f: f.write(yaml.dump(entry_1).encode())
+            external_id='external_id_1',
+        )
+        with zf.open('examples/entry_1/nomad.yaml', 'w') as f:
+            f.write(yaml.dump(entry_1).encode())
         entry_2 = dict(
             comment='Entry 2 of 3',
             references=['http://test2.com'],
-            external_id='external_id_2')
-        with zf.open('examples/entry_2/nomad.json', 'w') as f: f.write(json.dumps(entry_2).encode())
+            external_id='external_id_2',
+        )
+        with zf.open('examples/entry_2/nomad.json', 'w') as f:
+            f.write(json.dumps(entry_2).encode())
         metadata = {
             'upload_name': 'my name',
             'coauthors': other_test_user.user_id,
@@ -915,14 +1120,13 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
                 'examples/entry_3/template.json': {
                     'comment': 'Entry 3 of 3',
                     'references': 'http://test3.com',
-                    'external_id': 'external_id_3'
+                    'external_id': 'external_id_3',
                 },
-                'examples/entry_1/template.json': {
-                    'comment': 'root entries comment 1'
-                }
-            }
+                'examples/entry_1/template.json': {'comment': 'root entries comment 1'},
+            },
         }
-        with zf.open('nomad.json', 'w') as f: f.write(json.dumps(metadata).encode())
+        with zf.open('nomad.json', 'w') as f:
+            f.write(json.dumps(metadata).encode())
 
     upload = run_processing(('test_upload', upload_file), test_user)
 
@@ -931,7 +1135,12 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
     comment = ['root entries comment 1', 'Entry 2 of 3', 'Entry 3 of 3', None]
     external_ids = ['external_id_1', 'external_id_2', 'external_id_3', None]
-    references = [['http://test1.com'], ['http://test2.com'], ['http://test3.com'], ['http://test0.com']]
+    references = [
+        ['http://test1.com'],
+        ['http://test2.com'],
+        ['http://test3.com'],
+        ['http://test0.com'],
+    ]
     expected_coauthors = [other_test_user]
 
     for i in range(len(entries)):
@@ -950,15 +1159,27 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
 
 
 def test_skip_matching(proc_infra, test_user):
-    upload = run_processing(('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user)
+    upload = run_processing(
+        ('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user
+    )
     assert upload.total_entries_count == 1
 
 
-@pytest.mark.parametrize('url,normalized_url', [
-    pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
-    pytest.param('../upload/archive/mainfile/my/test/file#/run/0/method/0', '../upload/archive/test_id#/run/0/method/0', id='mainfile')])
+@pytest.mark.parametrize(
+    'url,normalized_url',
+    [
+        pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
+        pytest.param(
+            '../upload/archive/mainfile/my/test/file#/run/0/method/0',
+            '../upload/archive/test_id#/run/0/method/0',
+            id='mainfile',
+        ),
+    ],
+)
 def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkeypatch):
-    monkeypatch.setattr('nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id')
+    monkeypatch.setattr(
+        'nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id'
+    )
 
     from nomad.datamodel.metainfo import simulation
 
@@ -969,8 +1190,11 @@ def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkey
     referenced_archive.run.append(simulation.Run())
     referenced_archive.run[0].method.append(simulation.method.Method())
     data.create_entry(
-        upload_id='test_id', entry_id='test_id', mainfile='my/test/file',
-        entry_archive=referenced_archive)
+        upload_id='test_id',
+        entry_id='test_id',
+        mainfile='my/test/file',
+        entry_archive=referenced_archive,
+    )
 
     data.save(with_es=False)
 
@@ -986,5 +1210,9 @@ def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkey
 
     assert calculation.m_root().m_context is not None
     calculation.method_ref = url
-    assert calculation.m_to_dict()['method_ref'] == normalized_url if normalized_url else url
+    assert (
+        calculation.m_to_dict()['method_ref'] == normalized_url
+        if normalized_url
+        else url
+    )
     assert calculation.method_ref.m_root().metadata.entry_id == 'test_id'

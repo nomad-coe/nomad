@@ -23,30 +23,31 @@ from nomad.parsing.file_parser import FileParser
 
 
 class XMLParser(FileParser):
-    '''
+    """
     Parser for XML files using ElementTree.
 
     Arguments:
         mainfile: the file to be parsed
         logger: logger
         convert: specifies if quantities are converted automatically
-    '''
+    """
+
     def __init__(self, mainfile: str = None, logger=None, **kwargs):
         super().__init__(mainfile, logger=logger, open=kwargs.get('open', None))
         self.convert = kwargs.get('convert', True)
         self.init_parameters()
 
     def init_parameters(self):
-        '''
+        """
         Method to call after loading the xml file.
-        '''
+        """
         self._elements = None
 
     @property
     def root(self):
-        '''
+        """
         Returns the root of the XML tree.
-        '''
+        """
         if self._file_handler is None:
             if self.mainfile is None:
                 return
@@ -56,7 +57,9 @@ class XMLParser(FileParser):
                 try:
                     # I cannot use the lxml XMLParser directly because it is not compatible with
                     # the ElementTree implementation.
-                    xml = etree.parse(self.mainfile_mainfile_obj, parser=etree.XMLParser(recover=True))
+                    xml = etree.parse(
+                        self.mainfile_mainfile_obj, parser=etree.XMLParser(recover=True)
+                    )
                     self._file_handler = ElementTree.fromstring(etree.tostring(xml))
                 except Exception:
                     pass
@@ -65,7 +68,9 @@ class XMLParser(FileParser):
                 try:
                     # I cannot use the lxml XMLParser directly because it is not compatible with
                     # the ElementTree implementation.
-                    xml = etree.parse(self.open(self.mainfile), parser=etree.XMLParser(recover=True))
+                    xml = etree.parse(
+                        self.open(self.mainfile), parser=etree.XMLParser(recover=True)
+                    )
                     self._file_handler = ElementTree.fromstring(etree.tostring(xml))
                 except Exception:
                     pass
@@ -75,19 +80,19 @@ class XMLParser(FileParser):
 
     @property
     def elements(self):
-        '''
+        """
         Returns a list of all elements in the XML tree.
-        '''
+        """
         if self._elements is None:
             self._elements = self.root.findall('.//')
 
         return self._elements
 
     def parse(self, key, convert=None):
-        '''
+        """
         Parse a quantity identified by key or an xpath-style path. Automatic conversion
         can be switch off by setting convert to False.
-        '''
+        """
         _convert = convert if convert is not None else self._kwargs.get('convert', None)
         _convert = _convert if _convert is not None else self.convert
         if self._results is None:
@@ -150,7 +155,10 @@ class XMLParser(FileParser):
             elif isinstance(val_in, list):
                 try:
                     val = [v.split() if isinstance(v, str) else v for v in val_in]
-                    val = [v[0] if (isinstance(v, list) and len(v) == 1) else v for v in val]
+                    val = [
+                        v[0] if (isinstance(v, list) and len(v) == 1) else v
+                        for v in val
+                    ]
                     val = np.array(val, dtype=float)
                     if np.all(np.mod(val, 1) == 0):
                         val = np.array(val, dtype=int)

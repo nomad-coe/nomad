@@ -26,23 +26,30 @@ from tests.conftest import test_user_uuid as create_test_user_uuid
 @pytest.fixture(scope='function')
 def user_management(api_v1):
     from nomad.infrastructure import OasisUserManagement
+
     return OasisUserManagement('users')
 
 
-@pytest.mark.parametrize('query,count', [
-    pytest.param('Sheldon', 1, id='exists'),
-    pytest.param('Does not exist $%&#', 0, id='does-not-exist')
-])
+@pytest.mark.parametrize(
+    'query,count',
+    [
+        pytest.param('Sheldon', 1, id='exists'),
+        pytest.param('Does not exist $%&#', 0, id='does-not-exist'),
+    ],
+)
 def test_search_user(user_management: UserManagement, query, count):
     users = user_management.search_user(query)
     assert len(users) == count
 
 
-@pytest.mark.parametrize('key,value', [
-    pytest.param('username', 'scooper', id='username'),
-    pytest.param('email', 'sheldon.cooper@nomad-coe.eu', id='email'),
-    pytest.param('user_id', create_test_user_uuid(1), id='user_id')
-])
+@pytest.mark.parametrize(
+    'key,value',
+    [
+        pytest.param('username', 'scooper', id='username'),
+        pytest.param('email', 'sheldon.cooper@nomad-coe.eu', id='email'),
+        pytest.param('user_id', create_test_user_uuid(1), id='user_id'),
+    ],
+)
 def test_get_user(user_management: UserManagement, key, value):
     user = user_management.get_user(**{key: value})
     assert user is not None

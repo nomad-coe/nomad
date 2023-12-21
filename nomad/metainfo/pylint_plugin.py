@@ -16,20 +16,16 @@
 # limitations under the License.
 #
 
-''' The beginning of a pylint plugin. Unfotunately it is kinda nonsensical without a
-partnering mypy plugin. '''
+""" The beginning of a pylint plugin. Unfotunately it is kinda nonsensical without a
+partnering mypy plugin. """
 
 import astroid
 from astroid import MANAGER
 
 
 annotation_names = {
-    'MSection': {
-        'a_test': '*'
-    },
-    'Section': {
-        'a_mongo': 'nomad.metainfo.mongoengine_extension.MongoDocument'
-    }
+    'MSection': {'a_test': '*'},
+    'Section': {'a_mongo': 'nomad.metainfo.mongoengine_extension.MongoDocument'},
 }
 
 
@@ -39,7 +35,7 @@ def register(linter):
 
 
 def transform(cls):
-    ''' Transforms annotation fields for known annotation classes. '''
+    """Transforms annotation fields for known annotation classes."""
     for cls_name, annotations in annotation_names.items():
         if cls.name == cls_name:
             for name, type_spec in annotations.items():
@@ -50,11 +46,13 @@ def transform(cls):
                     type_module = '.'.join(type_path[:-1])
                     type_name = type_path[-1]
                     module = MANAGER.ast_from_module_name(type_module)
-                    cls.locals[name] = [cls.instantiate_class() for cls in module.lookup(type_name)[1]]
+                    cls.locals[name] = [
+                        cls.instantiate_class() for cls in module.lookup(type_name)[1]
+                    ]
 
 
 def is_derived(func):
-    ''' Check if this is call to the derived decorator. '''
+    """Check if this is call to the derived decorator."""
     decorators = func.decorators.nodes if func.decorators else []
     for decorator_node in decorators:
         if isinstance(decorator_node, astroid.Call):
@@ -65,14 +63,16 @@ def is_derived(func):
 
 
 def derived_transform(node, context=None):
-    '''
+    """
     The derived decorator produces a Quantity. Pylint does not infer this on its own.
     We change the inferred type of a @derived call to a Quantity instance here.
-    '''
+    """
     module = MANAGER.ast_from_module_name('nomad.metainfo.metainfo')
     class_defs = [cls.instantiate_class() for cls in module.lookup('Quantity')[1]]
     return iter([class_defs[0].instantiate_class()])
 
 
 MANAGER.register_transform(astroid.ClassDef, transform)
-MANAGER.register_transform(astroid.FunctionDef, astroid.inference_tip(derived_transform), is_derived)
+MANAGER.register_transform(
+    astroid.FunctionDef, astroid.inference_tip(derived_transform), is_derived
+)

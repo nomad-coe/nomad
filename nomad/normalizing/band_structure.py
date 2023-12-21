@@ -22,8 +22,11 @@ import numpy as np
 import ase
 
 from nomad.datamodel.metainfo.simulation.calculation import (
-    BandStructure, BandGap, BandGapDeprecated, Calculation,
-    ElectronicStructureProvenance
+    BandStructure,
+    BandGap,
+    BandGapDeprecated,
+    Calculation,
+    ElectronicStructureProvenance,
 )
 from nomad.datamodel.metainfo.simulation.system import System
 from nomad.normalizing.normalizer import Normalizer
@@ -35,10 +38,11 @@ from typing import List
 class BandStructureNormalizer(Normalizer):
     """Normalizer with the following responsibilities:
 
-      - Calculates band gaps and energy references.
-      - TODO: Creates labels for special points within the band path (band_segm_labels)
-      - TODO: Determines if the path is a standard one or not (is_standard)
+    - Calculates band gaps and energy references.
+    - TODO: Creates labels for special points within the band path (band_segm_labels)
+    - TODO: Determines if the path is a standard one or not (is_standard)
     """
+
     def normalize(self, logger=None) -> None:
         # Setup logger
         if logger is not None:
@@ -50,12 +54,15 @@ class BandStructureNormalizer(Normalizer):
 
         # Loop through the bands
         for scc in self.section_run.calculation:
-
             # In order to resolve band gaps, we need a reference to the highest
             # occupied energy or the Fermi energy
             energy_fermi = scc.energy.fermi if scc.energy is not None else None
-            energy_highest = scc.energy.highest_occupied if scc.energy is not None else None
-            energy_lowest = scc.energy.lowest_unoccupied if scc.energy is not None else None
+            energy_highest = (
+                scc.energy.highest_occupied if scc.energy is not None else None
+            )
+            energy_lowest = (
+                scc.energy.lowest_unoccupied if scc.energy is not None else None
+            )
 
             # In order to resolve the special points and the reciprocal cell,
             # we need information about the system.
@@ -65,25 +72,24 @@ class BandStructureNormalizer(Normalizer):
                 if valid_band:
                     self.add_reciprocal_cell(band, system)
                     self.add_band_gap(
-                        scc,
-                        band,
-                        energy_fermi,
-                        energy_highest,
-                        energy_lowest
+                        scc, band, energy_fermi, energy_highest, energy_lowest
                     )
                     self.add_path_labels(band, system)
 
     def validate_band(self, band: BandStructure) -> bool:
-        """Used to check that a band has all required information for normalization.
-        """
+        """Used to check that a band has all required information for normalization."""
         if len(band.segment) == 0:
-            self.logger.info("Could not normalize band structure as band segments are missing.")
+            self.logger.info(
+                'Could not normalize band structure as band segments are missing.'
+            )
             return False
         for segment in band.segment:
             seg_k_points = segment.kpoints
             seg_energies = segment.energies
             if seg_k_points is None or seg_energies is None:
-                self.logger.info("Could not normalize band structure as energies or k points are missing.")
+                self.logger.info(
+                    'Could not normalize band structure as energies or k points are missing.'
+                )
                 return False
         return True
 
@@ -103,11 +109,11 @@ class BandStructureNormalizer(Normalizer):
         if band.reciprocal_cell is not None:
             return
         try:
-            orig_atoms = system.m_cache["representative_atoms"]
-            symmetry_analyzer = system.symmetry[0].m_cache["symmetry_analyzer"]
+            orig_atoms = system.m_cache['representative_atoms']
+            symmetry_analyzer = system.symmetry[0].m_cache['symmetry_analyzer']
             prim_atoms = symmetry_analyzer.get_primitive_system()
         except Exception:
-            self.logger.info("Could not resolve reciprocal cell.")
+            self.logger.info('Could not resolve reciprocal cell.')
             return
 
         primitive_cell = prim_atoms.get_cell()
@@ -117,14 +123,16 @@ class BandStructureNormalizer(Normalizer):
         volume_source = source_cell.volume
         volume_diff = abs(volume_primitive - volume_source)
 
-        if volume_diff > (0.001)**3:
+        if volume_diff > (0.001) ** 3:
             recip_cell = primitive_cell.reciprocal() * 1e10
         else:
             recip_cell = source_cell.reciprocal() * 1e10
 
         band.reciprocal_cell = recip_cell
 
-    def get_k_space_distance(self, reciprocal_cell: NDArray, point1: NDArray, point2: NDArray) -> float:
+    def get_k_space_distance(
+        self, reciprocal_cell: NDArray, point1: NDArray, point2: NDArray
+    ) -> float:
         """Used to calculate the Euclidean distance of two points in k-space,
         given relative positions in the reciprocal cell.
 
@@ -142,12 +150,13 @@ class BandStructureNormalizer(Normalizer):
         return k_point_distance
 
     def add_band_gap(
-            self,
-            calc: Calculation,
-            band: BandStructure,
-            energy_fermi: NDArray,
-            energy_highest: NDArray,
-            energy_lowest: NDArray) -> None:
+        self,
+        calc: Calculation,
+        band: BandStructure,
+        energy_fermi: NDArray,
+        energy_highest: NDArray,
+        energy_lowest: NDArray,
+    ) -> None:
         """Given the band structure and information about energy references,
         determines the band gap and energy references separately for all spin
         channels.
@@ -169,7 +178,9 @@ class BandStructureNormalizer(Normalizer):
         # No reference data available
         eref = energy_highest if energy_fermi is None else energy_fermi
         if eref is None:
-            self.logger.info("could not resolve energy references or band gaps for band structure")
+            self.logger.info(
+                'could not resolve energy references or band gaps for band structure'
+            )
             return
         eref = eref.magnitude
 
@@ -193,8 +204,12 @@ class BandStructureNormalizer(Normalizer):
             band_maxima = channel_energies[band_indices, band_maxima_idx]
 
             # Add a tolerance to minima and maxima
-            band_minima_tol = band_minima + config.normalize.band_structure_energy_tolerance
-            band_maxima_tol = band_maxima - config.normalize.band_structure_energy_tolerance
+            band_minima_tol = (
+                band_minima + config.normalize.band_structure_energy_tolerance
+            )
+            band_maxima_tol = (
+                band_maxima - config.normalize.band_structure_energy_tolerance
+            )
 
             i_energy_highest = None
             i_energy_lowest = None
@@ -231,7 +246,7 @@ class BandStructureNormalizer(Normalizer):
                 gap_value = i_energy_lowest - i_energy_highest
             except TypeError:
                 return
-            info.value = 0. if gap_value < 0. else gap_value
+            info.value = 0.0 if gap_value < 0.0 else gap_value
 
             if info.value > 0:
                 # See if the gap is direct or indirect by comparing the k-point
@@ -241,14 +256,19 @@ class BandStructureNormalizer(Normalizer):
                 reciprocal_cell = band.reciprocal_cell
                 if reciprocal_cell is not None:
                     reciprocal_cell = reciprocal_cell.magnitude
-                    k_point_distance = self.get_k_space_distance(reciprocal_cell, k_point_lower, k_point_upper)
-                    is_direct_gap = k_point_distance <= config.normalize.k_space_precision
-                    info.type = "direct" if is_direct_gap else "indirect"
+                    k_point_distance = self.get_k_space_distance(
+                        reciprocal_cell, k_point_lower, k_point_upper
+                    )
+                    is_direct_gap = (
+                        k_point_distance <= config.normalize.k_space_precision
+                    )
+                    info.type = 'direct' if is_direct_gap else 'indirect'
 
             if info.value is not None:
                 proper_info = BandGap().m_from_dict(info.m_to_dict())
                 proper_info.provenance = ElectronicStructureProvenance(
-                    band_structure=band.segment[i_channel], label='band_structure')
+                    band_structure=band.segment[i_channel], label='band_structure'
+                )
                 calc.m_add_sub_section(Calculation.band_gap, proper_info)
                 infos.append(info)
         band.band_gap = infos
@@ -262,23 +282,29 @@ class BandStructureNormalizer(Normalizer):
         for segment in band.segment:
             labels = segment.endpoints_labels
             if labels is not None:
-                self.logger.info("Existing band segment labels detected, skipping label detection.")
+                self.logger.info(
+                    'Existing band segment labels detected, skipping label detection.'
+                )
                 return
 
         # Try to get the required data. Fail if not found.
         try:
-            lattice_vectors = system.atoms.lattice_vectors.to("angstrom").magnitude
+            lattice_vectors = system.atoms.lattice_vectors.to('angstrom').magnitude
             reciprocal_cell_trans = band.reciprocal_cell.magnitude.T
             bravais_lattice = system.symmetry[0].bravais_lattice
         except Exception:
-            self.logger.info("Could not resolve path labels as required information is missing.")
+            self.logger.info(
+                'Could not resolve path labels as required information is missing.'
+            )
             return
 
         # Find special points for this lattice. If an error occurs, the labels
         # are simply not written.
         special_points = self.get_special_points(bravais_lattice, lattice_vectors)
         if not special_points:
-            self.logger.warning("Could not resolve high-symmetry points for the given simulation cell.")
+            self.logger.warning(
+                'Could not resolve high-symmetry points for the given simulation cell.'
+            )
             return
 
         # Form a contiguous array of k points for faster operations
@@ -300,15 +326,19 @@ class BandStructureNormalizer(Normalizer):
             end_point_cartesian = np.dot(segment.kpoints[-1], reciprocal_cell_trans)
 
             # Calculate distance in cartesian space
-            start_index = atomutils.find_match(start_point_cartesian, special_k_points_cartesian, eps)
-            end_index = atomutils.find_match(end_point_cartesian, special_k_points_cartesian, eps)
+            start_index = atomutils.find_match(
+                start_point_cartesian, special_k_points_cartesian, eps
+            )
+            end_index = atomutils.find_match(
+                end_point_cartesian, special_k_points_cartesian, eps
+            )
 
             if start_index is None:
-                start_label = ""
+                start_label = ''
             else:
                 start_label = special_point_labels[start_index]
             if end_index is None:
-                end_label = ""
+                end_label = ''
             else:
                 end_label = special_point_labels[end_index]
             segment.endpoints_labels = [start_label, end_label]
@@ -344,7 +374,7 @@ class BandStructureNormalizer(Normalizer):
                 assert a <= c and b <= c  # ordering of the conventional lattice
                 assert alpha < pi / 2
 
-            for (keys, values) in lattice.get_special_points().items():
+            for keys, values in lattice.get_special_points().items():
                 if keys == 'G':
                     keys = 'Γ'
                 if bravais_lattice == 'tI':

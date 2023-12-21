@@ -22,7 +22,7 @@ from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry
 
 
 class FastAccess(MCategory):
-    '''
+    """
     Used to mark archive objects that need to be stored in a fast 2nd-tier storage medium,
     because they are frequently accessed via archive API.
 
@@ -31,7 +31,7 @@ class FastAccess(MCategory):
 
     If applied to a reference types quantity, the referenced section will also be added to
     the fast storage, regardless if the referenced section has the category or not.
-    '''
+    """
 
     m_def = Category()
 
@@ -51,7 +51,8 @@ class ProvenanceTracker(MSection):
         Class or type of the provenance.
         Can be used to add further description to the provenance.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type))
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
 
 class PropertySection(MSection):

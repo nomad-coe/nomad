@@ -39,14 +39,14 @@ from nomad.datamodel.results import (
 
 
 def wyckoff_sets_from_matid(wyckoff_sets: List[WyckoffSetMatID]) -> List[WyckoffSet]:
-    '''Given a dictionary of wyckoff sets, returns the metainfo equivalent.
+    """Given a dictionary of wyckoff sets, returns the metainfo equivalent.
 
     Args:
         wyckoff_sets: List of Wyckoff sets as returned by MatID.
 
     Returns:
         List of NOMAD WyckoffSet objects.
-    '''
+    """
     wsets = []
     for group in wyckoff_sets:
         wset = WyckoffSet()
@@ -64,8 +64,10 @@ def wyckoff_sets_from_matid(wyckoff_sets: List[WyckoffSetMatID]) -> List[Wyckoff
     return wsets
 
 
-def species(labels: List[str], atomic_numbers: List[int], logger=None) -> Optional[List[Species]]:
-    '''Given a list of atomic labels and atomic numbers, returns the
+def species(
+    labels: List[str], atomic_numbers: List[int], logger=None
+) -> Optional[List[Species]]:
+    """Given a list of atomic labels and atomic numbers, returns the
     corresponding list of Species objects.
 
     Args:
@@ -76,7 +78,7 @@ def species(labels: List[str], atomic_numbers: List[int], logger=None) -> Option
 
     Returns:
         List of Species objects.
-    '''
+    """
     if labels is None or atomic_numbers is None:
         return None
     species: Set[str] = set()
@@ -90,7 +92,9 @@ def species(labels: List[str], atomic_numbers: List[int], logger=None) -> Option
                 symbol = atomutils.chemical_symbols([atomic_number])[0]
             except ValueError:
                 if logger:
-                    logger.info(f'could not identify chemical symbol for atomic number {atomic_number}')
+                    logger.info(
+                        f'could not identify chemical symbol for atomic number {atomic_number}'
+                    )
             else:
                 i_species.chemical_symbols = [symbol]
             i_species.concentration = [1.0]
@@ -100,7 +104,7 @@ def species(labels: List[str], atomic_numbers: List[int], logger=None) -> Option
 
 
 def lattice_parameters_from_array(lattice_vectors: NDArray[Any]) -> LatticeParameters:
-    '''Converts the given 3x3 numpy array into metainfo LatticeParameters.
+    """Converts the given 3x3 numpy array into metainfo LatticeParameters.
     Undefined angle values are not stored.
 
     Args:
@@ -109,7 +113,7 @@ def lattice_parameters_from_array(lattice_vectors: NDArray[Any]) -> LatticeParam
 
     Returns:
         LatticeParameters object.
-    '''
+    """
     param_values = atomutils.cell_to_cellpar(lattice_vectors)
     params = LatticeParameters()
     params.a = float(param_values[0])
@@ -125,7 +129,7 @@ def lattice_parameters_from_array(lattice_vectors: NDArray[Any]) -> LatticeParam
 
 
 def cell_from_ase_atoms(atoms: Atoms) -> Cell:
-    '''Extracts Cell metainfo from the given ASE Atoms.
+    """Extracts Cell metainfo from the given ASE Atoms.
     Undefined angle values are not stored.
 
     Args:
@@ -133,7 +137,7 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
 
     Returns:
         Cell object.
-    '''
+    """
     param_values = atomutils.cell_to_cellpar(atoms.cell)
     cell = Cell()
     cell.a = float(param_values[0]) * ureg.angstrom
@@ -146,7 +150,7 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
     gamma = float(param_values[5])
     cell.gamma = None if np.isnan(gamma) else gamma * ureg.radian
 
-    volume = atoms.cell.volume * ureg.angstrom ** 3
+    volume = atoms.cell.volume * ureg.angstrom**3
     cell.volume = volume
     mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers()) * ureg.kg
     cell.mass_density = None if volume == 0 else mass / volume
@@ -156,15 +160,17 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
     return cell
 
 
-def structure_from_ase_atoms(system: Atoms, wyckoff_sets: List[WyckoffSetMatID] = None, logger=None) -> Structure:
-    '''Returns a populated NOMAD Structure instance from an ase.Atoms-object.
+def structure_from_ase_atoms(
+    system: Atoms, wyckoff_sets: List[WyckoffSetMatID] = None, logger=None
+) -> Structure:
+    """Returns a populated NOMAD Structure instance from an ase.Atoms-object.
 
     Args:
         atoms: The system to transform.
 
     Returns:
         NOMAD Structure instance.
-    '''
+    """
     if system is None:
         return None
     struct = Structure()
@@ -191,14 +197,14 @@ def structure_from_ase_atoms(system: Atoms, wyckoff_sets: List[WyckoffSetMatID] 
 
 
 def nomad_atoms_from_ase_atoms(system: Atoms) -> NOMADAtoms:
-    '''Returns a populated NOMAD Atoms instance from an ase.Atoms-object.
+    """Returns a populated NOMAD Atoms instance from an ase.Atoms-object.
 
     Args:
         atoms: The system to transform.
 
     Returns:
         NOMAD Atoms instance.
-    '''
+    """
     if system is None:
         return None
 
@@ -214,14 +220,14 @@ def nomad_atoms_from_ase_atoms(system: Atoms) -> NOMADAtoms:
 
 
 def ase_atoms_from_nomad_atoms(system: NOMADAtoms) -> Atoms:
-    '''Returns a populated ase.Atoms instance from a NOMAD Atoms instance.
+    """Returns a populated ase.Atoms instance from a NOMAD Atoms instance.
 
     Args:
         system: The system to transform.
 
     Returns:
         ase.Atoms instance.
-    '''
+    """
     cell = system.lattice_vectors
     if cell is not None:
         cell = cell.to(ureg.angstrom).magnitude
@@ -229,22 +235,24 @@ def ase_atoms_from_nomad_atoms(system: NOMADAtoms) -> Atoms:
         positions=system.positions.to(ureg.angstrom).magnitude,
         numbers=system.species,
         cell=cell,
-        pbc=system.periodic
+        pbc=system.periodic,
     )
 
 
 def ase_atoms_from_structure(system: Structure) -> Atoms:
-    '''Returns an instance of ASE.Atoms from a NOMAD Structure-section.
+    """Returns an instance of ASE.Atoms from a NOMAD Structure-section.
 
     Args:
         system: The system to transform
 
     Returns:
         A new ASE.Atoms created from the given data.
-    '''
+    """
     symbol_map = {}
     for species in system.species:
-        assert len(species.chemical_symbols) == 1, "Unable to transform system with multi-species sites as ASE.Atoms."
+        assert (
+            len(species.chemical_symbols) == 1
+        ), 'Unable to transform system with multi-species sites as ASE.Atoms.'
         symbol_map[species.name] = species.chemical_symbols[0]
     symbols = [symbol_map[x] for x in system.species_at_sites]
 
@@ -252,19 +260,19 @@ def ase_atoms_from_structure(system: Structure) -> Atoms:
         positions=system.cartesian_site_positions.to(ureg.angstrom).magnitude,
         symbols=symbols,
         cell=system.lattice_vectors.to(ureg.angstrom).magnitude,
-        pbc=np.array(system.dimension_types, dtype=bool)
+        pbc=np.array(system.dimension_types, dtype=bool),
     )
 
 
 def mda_universe_from_nomad_atoms(system: Atoms, logger=None) -> mda.Universe:
-    '''Returns an instance of mda.Universe from a NOMAD Atoms-section.
+    """Returns an instance of mda.Universe from a NOMAD Atoms-section.
 
     Args:
         system: The atoms to transform
 
     Returns:
         A new mda.Universe created from the given data.
-    '''
+    """
     n_atoms = len(system.positions)
     n_residues = 1
     atom_resindex = [0] * n_atoms
@@ -275,7 +283,7 @@ def mda_universe_from_nomad_atoms(system: Atoms, logger=None) -> mda.Universe:
         n_residues=n_residues,
         atom_resindex=atom_resindex,
         residue_segindex=residue_segindex,
-        trajectory=True
+        trajectory=True,
     )
 
     # Add positions
@@ -290,8 +298,7 @@ def mda_universe_from_nomad_atoms(system: Atoms, logger=None) -> mda.Universe:
     # Add the box dimensions
     if system.lattice_vectors is not None:
         universe.atoms.dimensions = atomutils.cell_to_cellpar(
-            system.lattice_vectors.to(ureg.angstrom).magnitude,
-            degrees=True
+            system.lattice_vectors.to(ureg.angstrom).magnitude, degrees=True
         )
 
     return universe
@@ -310,7 +317,9 @@ def structures_2d(original_atoms, logger=None):
         # checking the presence of vacuum gaps.
         if n_pbc == 3:
             # Get dimension of system by also taking into account the covalent radii
-            dimensions = matid.geometry.get_dimensions(original_atoms, [True, True, True])
+            dimensions = matid.geometry.get_dimensions(
+                original_atoms, [True, True, True]
+            )
             basis_dimensions = np.linalg.norm(original_atoms.get_cell(), axis=1)
             gaps = basis_dimensions - dimensions
             periodicity = gaps <= config.normalize.cluster_threshold
@@ -321,7 +330,9 @@ def structures_2d(original_atoms, logger=None):
             # nonlinear).
             if sum(periodicity) != 2:
                 if logger:
-                    logger.error("could not detect the periodic dimensions in a 2D system")
+                    logger.error(
+                        'could not detect the periodic dimensions in a 2D system'
+                    )
                 return conv_atoms, prim_atoms, wyckoff_sets, spg_number
 
             # Center the system in the non-periodic direction, also taking
@@ -342,11 +353,13 @@ def structures_2d(original_atoms, logger=None):
         symmetry_analyzer = SymmetryAnalyzer(
             symm_system,
             0.4,  # The value is increased here to better match 2D materials.
-            config.normalize.flat_dim_threshold
+            config.normalize.flat_dim_threshold,
         )
 
         spg_number = symmetry_analyzer.get_space_group_number()
-        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=False)
+        wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(
+            return_parameters=False
+        )
         conv_atoms = symmetry_analyzer.get_conventional_system()
         prim_atoms = symmetry_analyzer.get_primitive_system()
 
@@ -358,7 +371,7 @@ def structures_2d(original_atoms, logger=None):
         if logger:
             logger.error(
                 'could not construct a conventional system for a 2D material',
-                exc_info=e
+                exc_info=e,
             )
     return conv_atoms, prim_atoms, wyckoff_sets, spg_number
 
@@ -373,12 +386,14 @@ def material_id_bulk(spg_number: int, wyckoff_sets) -> str:
 def material_id_2d(spg_number: int, wyckoff_sets) -> str:
     if spg_number is None or wyckoff_sets is None:
         return None
-    norm_hash_string = atomutils.get_symmetry_string(spg_number, wyckoff_sets, is_2d=True)
+    norm_hash_string = atomutils.get_symmetry_string(
+        spg_number, wyckoff_sets, is_2d=True
+    )
     return hash(norm_hash_string)
 
 
 def material_id_1d(conv_atoms: Atoms) -> str:
-    '''Hash to be used as identifier for a 1D material. Based on Coulomb
+    """Hash to be used as identifier for a 1D material. Based on Coulomb
     matrix eigenvalues and the Hill formula.
 
     The fingerprint is based on calculating a discretized version of a
@@ -408,7 +423,7 @@ def material_id_1d(conv_atoms: Atoms) -> str:
     Usability, Psychology, and Security (UPSEC’08). USENIX Association,
     USA, Article 6, 1–9.). This method however requires that a predefined
     'correct' structure exists against which the search is done.
-    '''
+    """
     if conv_atoms is None:
         return None
 
@@ -443,12 +458,14 @@ def material_id_1d(conv_atoms: Atoms) -> str:
     phi_k = 2 * r * np.array(range(dimension + 1))
     t = np.mod((eigval[None, :] + phi_k[:, None]), (2 * r * (dimension + 1)))
     grid_mask = (r <= t) & (t < r * (2 * dimension + 1))
-    safe_grid_k = np.argmax(grid_mask == True, axis=0)   # noqa: E712
+    safe_grid_k = np.argmax(grid_mask == True, axis=0)  # noqa: E712
     discretization = spacing * np.floor((eigval + (2 * r * safe_grid_k)) / spacing)
     discretization[safe_grid_k == 1] += 2 * r
 
     # Construct formula
-    names, counts = atomutils.get_hill_decomposition(conv_atoms.get_chemical_symbols(), reduced=False)
+    names, counts = atomutils.get_hill_decomposition(
+        conv_atoms.get_chemical_symbols(), reduced=False
+    )
     formula = atomutils.get_formula_string(names, counts)
 
     # Form hash

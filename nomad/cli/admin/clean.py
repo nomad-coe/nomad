@@ -21,12 +21,20 @@ import click
 from .admin import admin
 
 
-@admin.command(help='Checks consistency of files and es vs mongo and deletes orphan entries.')
+@admin.command(
+    help='Checks consistency of files and es vs mongo and deletes orphan entries.'
+)
 @click.option('--dry', is_flag=True, help='Do not delete anything, just check.')
-@click.option('--skip-entries', is_flag=True, help='Skip cleaning entries with missing uploads.')
+@click.option(
+    '--skip-entries', is_flag=True, help='Skip cleaning entries with missing uploads.'
+)
 @click.option('--skip-fs', is_flag=True, help='Skip cleaning the filesystem.')
 @click.option('--skip-es', is_flag=True, help='Skip cleaning the es index.')
-@click.option('--staging-too', is_flag=True, help='Also clean published entries in staging, make sure these files are not due to reprocessing')
+@click.option(
+    '--staging-too',
+    is_flag=True,
+    help='Also clean published entries in staging, make sure these files are not due to reprocessing',
+)
 @click.option('--force', is_flag=True, help='Do not ask for confirmation.')
 def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
     import os
@@ -42,9 +50,13 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
     infrastructure.setup_elastic()
 
     if not skip_entries:
-        uploads_for_entries = mongo_client[nomad_config.mongo.db_name]['entry'].distinct('upload_id')
+        uploads_for_entries = mongo_client[nomad_config.mongo.db_name][
+            'entry'
+        ].distinct('upload_id')
         uploads = {}
-        for upload in mongo_client[nomad_config.mongo.db_name]['upload'].distinct('_id'):
+        for upload in mongo_client[nomad_config.mongo.db_name]['upload'].distinct(
+            '_id'
+        ):
             uploads[upload] = True
 
         missing_uploads = []
@@ -54,13 +66,23 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
 
         if not dry and len(missing_uploads) > 0:
             if not force:
-                input('Will delete entries (mongo + es) for %d missing uploads. Press any key to continue ...' % len(missing_uploads))
+                input(
+                    'Will delete entries (mongo + es) for %d missing uploads. Press any key to continue ...'
+                    % len(missing_uploads)
+                )
 
             for upload in missing_uploads:
-                mongo_client[nomad_config.mongo.db_name]['entry'].remove(dict(upload_id=upload))
-                elasticsearch_dsl.Search(index=nomad_config.elastic.entries_index).query('term', upload_id=upload).delete()
+                mongo_client[nomad_config.mongo.db_name]['entry'].remove(
+                    dict(upload_id=upload)
+                )
+                elasticsearch_dsl.Search(
+                    index=nomad_config.elastic.entries_index
+                ).query('term', upload_id=upload).delete()
         else:
-            print('Found %s uploads that have entries in mongo, but there is no upload entry.' % len(missing_uploads))
+            print(
+                'Found %s uploads that have entries in mongo, but there is no upload entry.'
+                % len(missing_uploads)
+            )
             print('List first 10:')
             for upload in missing_uploads[:10]:
                 print(upload)
@@ -68,52 +90,71 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
     if not skip_fs:
         upload_dirs = []
         public_dirs, staging_dirs = {}, {}
-        for bucket, dir_map in [(nomad_config.fs.public, public_dirs), (nomad_config.fs.staging, staging_dirs)]:
+        for bucket, dir_map in [
+            (nomad_config.fs.public, public_dirs),
+            (nomad_config.fs.staging, staging_dirs),
+        ]:
             for prefix in os.listdir(bucket):
                 for upload in os.listdir(os.path.join(bucket, prefix)):
                     upload_dirs.append((upload, os.path.join(bucket, prefix, upload)))
                     dir_map[upload] = os.path.join(bucket, prefix, upload)
 
         to_delete = list(
-            path for upload, path in upload_dirs
-            if processing.Upload.objects(upload_id=upload).first() is None)
+            path
+            for upload, path in upload_dirs
+            if processing.Upload.objects(upload_id=upload).first() is None
+        )
 
         if not dry and len(to_delete) > 0:
             if not force:
-                input('Will delete %d upload directories. Press any key to continue ...' % len(to_delete))
+                input(
+                    'Will delete %d upload directories. Press any key to continue ...'
+                    % len(to_delete)
+                )
 
             for path in to_delete:
                 shutil.rmtree(path)
         else:
-            print('Found %d upload directories with no upload in mongo.' % len(to_delete))
+            print(
+                'Found %d upload directories with no upload in mongo.' % len(to_delete)
+            )
             print('List first 10:')
             for path in to_delete[:10]:
                 print(path)
 
     if staging_too and not skip_fs:
         to_delete = list(
-            path for upload, path in staging_dirs.items()
-            if upload in public_dirs)
+            path for upload, path in staging_dirs.items() if upload in public_dirs
+        )
 
         if not dry and len(to_delete) > 0:
             if not force:
-                input('Will delete %d staging upload directories. Press any key to continue ...' % len(to_delete))
+                input(
+                    'Will delete %d staging upload directories. Press any key to continue ...'
+                    % len(to_delete)
+                )
 
             for path in to_delete:
                 shutil.rmtree(path)
         else:
-            print('Found %d staging upload directories with upload directory in public.' % len(to_delete))
+            print(
+                'Found %d staging upload directories with upload directory in public.'
+                % len(to_delete)
+            )
             print('List first 10:')
             for path in to_delete[:10]:
                 print(path)
 
     if not skip_es:
-        es_upload_buckets = quantity_values('upload_id', owner='all', return_buckets=True)
+        es_upload_buckets = quantity_values(
+            'upload_id', owner='all', return_buckets=True
+        )
 
         to_delete = list(
             (bucket.value, bucket.count)
             for bucket in es_upload_buckets
-            if processing.Upload.objects(upload_id=bucket.value).first() is None)
+            if processing.Upload.objects(upload_id=bucket.value).first() is None
+        )
 
         entries = 0
         for _, upload_entries in to_delete:
@@ -122,11 +163,15 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
         if not dry and len(to_delete) > 0:
             if not force:
                 input(
-                    'Will delete %d entries in %d uploads from ES. Press any key to continue ...' %
-                    (entries, len(to_delete)))
+                    'Will delete %d entries in %d uploads from ES. Press any key to continue ...'
+                    % (entries, len(to_delete))
+                )
             for upload_id, _ in to_delete:
                 delete_by_query(owner='all', query=dict(upload_id=upload_id))
         else:
-            print('Found %d entries in %d uploads from ES with no upload in mongo.' % (entries, len(to_delete)))
+            print(
+                'Found %d entries in %d uploads from ES with no upload in mongo.'
+                % (entries, len(to_delete))
+            )
             print('List first 10:')
             tabulate.tabulate(to_delete, headers=['id', '#entries'])

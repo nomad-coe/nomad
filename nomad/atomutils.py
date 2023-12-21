@@ -28,7 +28,17 @@ import math
 import re
 from string import ascii_uppercase
 from functools import reduce
-from typing import List, Dict, Tuple, Any, Union, Iterable, cast, Callable, TYPE_CHECKING
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Any,
+    Union,
+    Iterable,
+    cast,
+    Callable,
+    TYPE_CHECKING,
+)
 import logging
 from nptyping import NDArray, Int
 import numpy as np
@@ -58,15 +68,11 @@ from nomad.metainfo import MSection
 valid_elements = set(ase.data.chemical_symbols[1:])
 
 if TYPE_CHECKING:
-    from nomad.datamodel.results import (
-        Material,
-        System,
-        ElementalComposition
-    )
+    from nomad.datamodel.results import Material, System, ElementalComposition
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
-    '''
+    """
     Calculates the summed atomic mass for the given atomic numbers.
 
     Args:
@@ -74,14 +80,14 @@ def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
 
     Returns:
         The atomic mass in kilograms.
-    '''
+    """
     # It is assumed that the atomic numbers are valid at this point.
     mass = np.sum(atomic_masses[atomic_numbers])
     return mass
 
 
 def get_volume(basis: NDArray[Any]) -> float:
-    '''
+    """
     Calculates the volume of the given parallelepiped.
 
     Args:
@@ -89,12 +95,12 @@ def get_volume(basis: NDArray[Any]) -> float:
 
     Returns:
         Volume of the parallelepiped defined by the basis.
-    '''
+    """
     return np.abs(np.linalg.det(basis))
 
 
 def is_valid_basis(basis: NDArray[Any]) -> bool:
-    '''
+    """
     Checks if the given set of basis vectors are valid. Currently does not
     check for linear independence, only for empty rows.
 
@@ -103,7 +109,7 @@ def is_valid_basis(basis: NDArray[Any]) -> bool:
 
     Returns:
         True if the basis is valid, False otherwise.
-    '''
+    """
     if basis is None:
         return False
     for row in np.asarray(basis):
@@ -113,8 +119,8 @@ def is_valid_basis(basis: NDArray[Any]) -> bool:
 
 
 def translate_pretty(
-        fractional: NDArray[Any],
-        pbc: Union[bool, NDArray[Any]]) -> NDArray[Any]:
+    fractional: NDArray[Any], pbc: Union[bool, NDArray[Any]]
+) -> NDArray[Any]:
     """Translates atoms such that fractional positions are minimized."""
     pbc = pbc2pbc(pbc)
 
@@ -132,11 +138,12 @@ def translate_pretty(
 
 
 def get_center_of_positions(
-        positions: NDArray[Any],
-        cell: NDArray[Any] = None,
-        pbc: Union[bool, NDArray[Any]] = True,
-        weights=None,
-        relative=False) -> NDArray[Any]:
+    positions: NDArray[Any],
+    cell: NDArray[Any] = None,
+    pbc: Union[bool, NDArray[Any]] = True,
+    weights=None,
+    relative=False,
+) -> NDArray[Any]:
     """Calculates the center of positions with the given weighting. Also takes
     the periodicity of the system into account.
 
@@ -186,14 +193,15 @@ def get_center_of_positions(
 
 
 def wrap_positions(
-        positions: NDArray[Any],
-        cell: NDArray[Any] = None,
-        pbc: Union[bool, NDArray[Any]] = True,
-        center: NDArray[Any] = [0.5, 0.5, 0.5],
-        pretty_translation=False,
-        eps: float = 1e-12,
-        relative=False) -> NDArray[Any]:
-    '''
+    positions: NDArray[Any],
+    cell: NDArray[Any] = None,
+    pbc: Union[bool, NDArray[Any]] = True,
+    center: NDArray[Any] = [0.5, 0.5, 0.5],
+    pretty_translation=False,
+    eps: float = 1e-12,
+    relative=False,
+) -> NDArray[Any]:
+    """
     Wraps the given position so that they are within the unit cell.
 
     Args:
@@ -208,7 +216,7 @@ def wrap_positions(
             wrapped.
         relative: If true, the input and output positions are given relative to
             the unit cell. Otherwise the positions are cartesian.
-    '''
+    """
     pbc = pbc2pbc(pbc)
     shift = np.asarray(center) - 0.5 - eps
 
@@ -233,11 +241,12 @@ def wrap_positions(
 
 
 def unwrap_positions(
-        positions: NDArray[Any],
-        cell: NDArray[Any],
-        pbc: Union[bool, NDArray[Any]],
-        relative=False) -> NDArray[Any]:
-    '''
+    positions: NDArray[Any],
+    cell: NDArray[Any],
+    pbc: Union[bool, NDArray[Any]],
+    relative=False,
+) -> NDArray[Any]:
+    """
     Unwraps the given positions so that continuous structures are not broken by
     cell boundaries.
 
@@ -253,7 +262,7 @@ def unwrap_positions(
             wrapped.
         relative: If true, the input and output positions are given relative to
             the unit cell. Otherwise the positions are cartesian.
-    '''
+    """
     pbc = pbc2pbc(pbc)
     if not any(pbc):
         return positions
@@ -263,11 +272,13 @@ def unwrap_positions(
     relative_shifted = relative_pos + ([[0.5, 0.5, 0.5]] - center_of_pos)
     wrapped_relative_pos = wrap_positions(relative_shifted, pbc=pbc, relative=True)
 
-    return wrapped_relative_pos if relative else to_cartesian(wrapped_relative_pos, cell)
+    return (
+        wrapped_relative_pos if relative else to_cartesian(wrapped_relative_pos, cell)
+    )
 
 
 def chemical_symbols(atomic_numbers: Iterable[int]) -> List[str]:
-    '''
+    """
     Converts atomic numbers to chemical_symbols.
 
     Args:
@@ -275,14 +286,12 @@ def chemical_symbols(atomic_numbers: Iterable[int]) -> List[str]:
 
     Returns:
         Array of chemical symbols.
-    '''
+    """
     return [ase.data.chemical_symbols[x] for x in atomic_numbers]
 
 
-def to_scaled(
-        positions: NDArray[Any],
-        cell: NDArray[Any] = None) -> NDArray[Any]:
-    '''
+def to_scaled(positions: NDArray[Any], cell: NDArray[Any] = None) -> NDArray[Any]:
+    """
     Converts cartesian positions into scaled position one using the given
     cell lattice vectors as a basis.
 
@@ -292,14 +301,12 @@ def to_scaled(
 
     Returns:
         The given positions in scaled coordinates.
-    '''
+    """
     return np.linalg.solve(complete_cell(cell).T, positions.T).T
 
 
-def to_cartesian(
-        positions: NDArray[Any],
-        cell: NDArray[Any] = None) -> NDArray[Any]:
-    '''
+def to_cartesian(positions: NDArray[Any], cell: NDArray[Any] = None) -> NDArray[Any]:
+    """
     Converts scaled positions into cartesian one using the given cell
     lattice vectors as a basis.
 
@@ -309,13 +316,13 @@ def to_cartesian(
 
     Returns:
         The given positions in cartesian coordinates.
-    '''
+    """
     cartesian_positions = np.dot(positions, complete_cell(cell))
     return cartesian_positions
 
 
 def complete_cell(cell: NDArray[Any]) -> NDArray[Any]:
-    '''
+    """
     Creates placeholder axes for cells with zero-dimensional lattice vectors
     in order to do linear algebra.
 
@@ -325,12 +332,12 @@ def complete_cell(cell: NDArray[Any]) -> NDArray[Any]:
     Returns:
         The given cell with zero-dimensional lattice vectors filled with
         placeholder axes.
-    '''
+    """
     return ase.geometry.complete_cell(cell)
 
 
 def reciprocal_cell(cell: NDArray[Any]) -> NDArray[Any]:
-    '''
+    """
     Returns the reciprocal cell without the factor or 2*Pi.
 
     Args:
@@ -338,12 +345,14 @@ def reciprocal_cell(cell: NDArray[Any]) -> NDArray[Any]:
 
     Returns:
         Reciprocal cell as a 3x3 array.
-    '''
+    """
     return np.linalg.pinv(cell).transpose()
 
 
-def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[int, None]:
-    '''
+def find_match(
+    pos: NDArray[Any], positions: NDArray[Any], eps: float
+) -> Union[int, None]:
+    """
     Attempts to find a position within a larger list of positions.
 
     Args:
@@ -353,7 +362,7 @@ def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[
 
     Returns:
         Index of the matched position or None if match not found.
-    '''
+    """
     displacements = positions - pos
     distances = np.linalg.norm(displacements, axis=1)
     min_arg = np.argmin(distances)
@@ -364,8 +373,13 @@ def find_match(pos: NDArray[Any], positions: NDArray[Any], eps: float) -> Union[
         return None
 
 
-def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], a_direction: NDArray[Any] = None, degrees=False) -> NDArray[Any]:
-    '''
+def cellpar_to_cell(
+    cellpar: NDArray[Any],
+    ab_normal: NDArray[Any] = [0, 0, 1],
+    a_direction: NDArray[Any] = None,
+    degrees=False,
+) -> NDArray[Any]:
+    """
     Creates a 3x3 cell from the given lattice_parameters.
 
     The returned cell is orientated such that a and b are normal to `ab_normal`
@@ -393,7 +407,7 @@ def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], 
     Returns:
         Six parameters (in this order) as a numpy
         array. Here is an explanation of each parameter:
-    '''
+    """
     if not degrees:
         cellpar[3:6] *= 180.0 / np.pi
 
@@ -401,7 +415,7 @@ def cellpar_to_cell(cellpar: NDArray[Any], ab_normal: NDArray[Any] = [0, 0, 1], 
 
 
 def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
-    '''
+    """
     Returns lattice parameters for the given cell.
 
     Args:
@@ -419,7 +433,7 @@ def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
             alpha = angle between b and c in radians
             beta  = angle between a and c in radians
             gamma = angle between a and b in radians
-    '''
+    """
     # Lengths
     lengths = np.linalg.norm(cell, axis=1)
 
@@ -428,9 +442,7 @@ def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
     for i in range(3):
         j = (i + 1) % 3
         k = (i + 2) % 3
-        angles[i] = np.dot(
-            cell[j],
-            cell[k]) / (lengths[j] * lengths[k])
+        angles[i] = np.dot(cell[j], cell[k]) / (lengths[j] * lengths[k])
     angles = np.arccos(np.clip(angles, -1.0, 1.0))
     if degrees:
         angles *= 180.0 / np.pi
@@ -438,8 +450,10 @@ def cell_to_cellpar(cell: NDArray[Any], degrees=False) -> NDArray[Any]:
     return np.concatenate((lengths, angles), axis=0)
 
 
-def get_symmetry_string(space_group: int, wyckoff_sets: List[Any], is_2d: bool = False) -> str:
-    '''
+def get_symmetry_string(
+    space_group: int, wyckoff_sets: List[Any], is_2d: bool = False
+) -> str:
+    """
     Used to serialize symmetry information into a string. The Wyckoff
     positions are assumed to be normalized and ordered as is the case if using
     the matid-library.
@@ -460,7 +474,7 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[Any], is_2d: bool =
     Returns:
         A string that encodes the symmetry properties of an atomistic
         structure.
-    '''
+    """
     wyckoff_strings = []
     for group in wyckoff_sets:
         element = group.element
@@ -477,8 +491,10 @@ def get_symmetry_string(space_group: int, wyckoff_sets: List[Any], is_2d: bool =
     return string
 
 
-def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> Tuple[List[str], List[int]]:
-    '''
+def get_hill_decomposition(
+    atom_labels: NDArray[Any], reduced: bool = False
+) -> Tuple[List[str], List[int]]:
+    """
     Given a list of atomic labels, returns the chemical formula using the
     Hill system (https://en.wikipedia.org/wiki/Hill_system) with an exception
     for binary ionic compounds where the cation is always given first.
@@ -490,7 +506,7 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
 
     Returns:
         An ordered list of chemical symbols and the corresponding counts.
-    '''
+    """
     # Count occurancy of elements
     names = []
     counts = []
@@ -538,11 +554,11 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
             'Sb': 16,
             'Po': 17,
             'Si': 18,
-            'Bi': 19
+            'Bi': 19,
         }
-        if (names[0] in order):
-            if (names[1] in order):
-                if (order[names[0]] < order[names[1]]):
+        if names[0] in order:
+            if names[1] in order:
+                if order[names[0]] < order[names[1]]:
                     # For non-metals:
                     # Swap symbols and counts if first element
                     # is more electronegative than the second one,
@@ -570,7 +586,7 @@ def get_hill_decomposition(atom_labels: NDArray[Any], reduced: bool = False) -> 
 
 
 def get_formula_string(symbols: Iterable[str], counts: Iterable[int]) -> str:
-    '''
+    """
     Used to form a single formula string from a list of chemical species and
     their counts.
 
@@ -580,7 +596,7 @@ def get_formula_string(symbols: Iterable[str], counts: Iterable[int]) -> str:
 
     Returns:
         The formula as a string.
-    '''
+    """
     formula = ''
     for symbol, count in zip(symbols, counts):
         if count > 1:
@@ -590,8 +606,10 @@ def get_formula_string(symbols: Iterable[str], counts: Iterable[int]) -> str:
     return formula
 
 
-def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArray[Any]) -> Dict[str, Dict[str, int]]:
-    '''
+def get_normalized_wyckoff(
+    atomic_numbers: NDArray[Any], wyckoff_letters: NDArray[Any]
+) -> Dict[str, Dict[str, int]]:
+    """
     Returns a normalized Wyckoff sequence for the given atomic numbers and
     corresponding wyckoff letters. In a normalized sequence the chemical
     species are 'anonymized' by replacing them with upper case alphabets.
@@ -605,7 +623,7 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
         dictionary. The dictionary contains the number of atoms for each
         species, where the species names have been anomymized in the form
         'X_<index>'.
-    '''
+    """
     # Count the occurrence of each chemical species
     atom_count: Dict[int, int] = {}
     for atomic_number in atomic_numbers:
@@ -626,10 +644,10 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
     # by ordering the species.
     def compare_atomic_number(at1, at2):
         def cmpp(a, b):
-            return ((a < b) - (a > b))
+            return (a < b) - (a > b)
 
         c = cmpp(atom_count[at1], atom_count[at2])
-        if (c != 0):
+        if c != 0:
             return c
         for wyckoff_letter in sorted_wyckoff_letters:
             p = wyc_dict[wyckoff_letter]
@@ -637,11 +655,12 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
             if c != 0:
                 return c
         return 0
+
     sorted_species = list(atom_count.keys())
     sorted_species.sort(key=functools.cmp_to_key(compare_atomic_number))
     standard_atom_names = {}
     for i, at in enumerate(sorted_species):
-        standard_atom_names[at] = ('X_%d' % i)
+        standard_atom_names[at] = 'X_%d' % i
 
     # Rename with anonymized species labels
     standard_wyc: dict = {}
@@ -666,7 +685,7 @@ def get_normalized_wyckoff(atomic_numbers: NDArray[Any], wyckoff_letters: NDArra
 
 
 def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
-    '''
+    """
     Searches the AFLOW prototype library for a match for the given space
     group and normalized Wyckoff sequence. The normalized Wyckoff sequence is
     assumed to come from the MatID symmetry routine.
@@ -682,9 +701,11 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
 
     Returns:
         Dictionary containing the AFLOW prototype information.
-    '''
+    """
     structure_type_info = None
-    type_descriptions: Any = aflow_prototypes['prototypes_by_spacegroup'].get(space_group, [])
+    type_descriptions: Any = aflow_prototypes['prototypes_by_spacegroup'].get(
+        space_group, []
+    )
     for type_description in type_descriptions:
         current_norm_wyckoffs = type_description.get('normalized_wyckoff_matid')
         if current_norm_wyckoffs and current_norm_wyckoffs == norm_wyckoff:
@@ -694,7 +715,7 @@ def search_aflow_prototype(space_group: int, norm_wyckoff: dict) -> dict:
 
 
 def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
-    '''
+    """
     Calculates the Brillouin Zone information from the given reciprocal
     lattice.
 
@@ -711,7 +732,7 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
         'faces': The indices of the vertices that make up the faces on the
             first Brillouin zone. The order of these indices matter, because
             only when combined sequentially they form the correct face.
-    '''
+    """
     # Create the near lattice points that surround the origin
     b1 = reciprocal_lattice[0, :]
     b2 = reciprocal_lattice[1, :]
@@ -734,9 +755,7 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
     vertices = voronoi.vertices[vertice_indices].tolist()
 
     # Create a mapping between the original index and an index in the new list
-    index_map = {
-        old_id: new_id for (new_id, old_id) in enumerate(vertice_indices)
-    }
+    index_map = {old_id: new_id for (new_id, old_id) in enumerate(vertice_indices)}
 
     # The ridges are the faces of a 3D Voronoi cell. Here we search for ridges
     # that are placed between the origin and some other point. These form the
@@ -756,7 +775,7 @@ def get_brillouin_zone(reciprocal_lattice: NDArray[Any]) -> dict:
 
 
 def get_minimized_structure(atoms: Atoms):
-    '''
+    """
     Reduce cell size to just fit the system in the non-periodic dimensions.
 
     Args:
@@ -764,7 +783,7 @@ def get_minimized_structure(atoms: Atoms):
 
     Returns:
         A new structure where the non-periodic dimension have been minimized.
-    '''
+    """
     min_atoms = atoms.copy()
     pos = atoms.get_scaled_positions(wrap=False)
     cell = atoms.get_cell()
@@ -797,15 +816,15 @@ def swap_basis(atoms, a, b):
     atoms.set_pbc(pbc_new)
 
 
-class Formula():
-    '''Helper class for extracting formulas used by NOMAD.
-    '''
+class Formula:
+    """Helper class for extracting formulas used by NOMAD."""
+
     formula_parentheses = re.compile(r'([A-Z][a-z]?)\((\d+)\)')
     symbols = set(ase.data.chemical_symbols[1:])
     placeholder_symbol = 'X'
 
     def __init__(self, formula: str, unknown: str = 'replace'):
-        '''
+        """
         Args:
             formula: Chemical formula to work on
             unknown: The handling of unknown species. Can be one of:
@@ -815,14 +834,16 @@ class Formula():
 
         Raises:
             ValueError if no meaningful formula can be extracted.
-        '''
+        """
         # Try if ASE can directly make sense of the formula
         try:
             self.ase_formula = ASEFormula(formula)
         # Try if can be interpreted as fractional formula
         except Exception:
             try:
-                self.ase_formula = ASEFormula(Composition(formula).get_integer_formula_and_factor()[0])
+                self.ase_formula = ASEFormula(
+                    Composition(formula).get_integer_formula_and_factor()[0]
+                )
             # Try if formula contains parentheses that can be removed
             except Exception:
                 self.ase_formula = ASEFormula(self._remove_parentheses(formula))
@@ -846,16 +867,17 @@ class Formula():
             raise ValueError('Invalid option for the argument "unknown"')
         self._count = count
         if len(count) == 0:
-            raise ValueError(f'Could not extract any species from the formula "{formula}"')
+            raise ValueError(
+                f'Could not extract any species from the formula "{formula}"'
+            )
         self._original_formula = formula
 
     def count(self) -> Dict[str, int]:
-        '''Return dictionary that maps chemical symbol to number of atoms.
-        '''
+        """Return dictionary that maps chemical symbol to number of atoms."""
         return self._count.copy()
 
     def format(self, fmt: str) -> str:
-        '''
+        """
         Args:
             fmt: The used format. Available options:
             - hill: Formula in Hill notation (see chemical_formula_hill)
@@ -864,7 +886,7 @@ class Formula():
             - descriptive: Descriptive formula (see chemical_formula_descriptive)
             - anonymous: Anonymized formula (see chemical_formula_anonymous)
             - original: The originally supplied formula format
-        '''
+        """
         if fmt == 'hill':
             return self._formula_hill()
         elif fmt == 'iupac':
@@ -881,49 +903,51 @@ class Formula():
             raise ValueError(f'Invalid format option "{fmt}"')
 
     def elements(self) -> List[str]:
-        '''Returns the list of chemical elements present in the formula.
-        '''
+        """Returns the list of chemical elements present in the formula."""
         return sorted(self.count().keys())
 
     def atomic_fractions(self) -> Dict[str, float]:
-        '''
+        """
         Returns dictionary that maps chemical symbol to atomic fraction.
 
         Returns:
             Dict[str, float]: Dictionary with chemical symbol as key and the atomic
             fraction as value.
-        '''
+        """
         count = self.count()
         total_count = sum(count.values())
         atomic_fractions = {key: value / total_count for key, value in count.items()}
         return atomic_fractions
 
     def mass_fractions(self) -> Dict[str, float]:
-        '''
+        """
         Returns a dictionary that maps chemical symbol to mass fraction.
 
         Returns:
             Dict[str, float]: Dictionary with chemical symbol as key and the mass
             fraction as value.
-        '''
+        """
         count = self.count()
         masses = {
             element: atomic_masses[ase.data.atomic_numbers[element]] * count
             for element, count in count.items()
         }
         total_mass = sum(masses.values())
-        mass_fractions = {element: mass / total_mass for element, mass in masses.items()}
+        mass_fractions = {
+            element: mass / total_mass for element, mass in masses.items()
+        }
         return mass_fractions
 
     def elemental_composition(self) -> List[ElementalComposition]:
-        '''
+        """
         Returns the atomic and mass fractions as a list of
         `ElementalComposition` objects. Any unknown elements are ignored.
 
         Returns:
             List[ElementalComposition]: The list of `ElementalComposition` objects.
-        '''
+        """
         from nomad.datamodel.results import ElementalComposition
+
         atomic_fractions = self.atomic_fractions()
         mass_fractions = self.mass_fractions()
         elemental_composition = [
@@ -933,13 +957,17 @@ class Formula():
                 mass_fraction=mass_fractions[element],
                 mass=atomic_masses[ase.data.atomic_numbers[element]],
             )
-            for element, atomic_fraction in atomic_fractions.items() if element in valid_elements
+            for element, atomic_fraction in atomic_fractions.items()
+            if element in valid_elements
         ]
         return elemental_composition
 
-    def populate(self, section: Union[Material, System],
-                 descriptive_format: Union[str, None] = 'original') -> None:
-        '''
+    def populate(
+        self,
+        section: Union[Material, System],
+        descriptive_format: Union[str, None] = 'original',
+    ) -> None:
+        """
         Populates the supplied section with the list of elements and elemental
         compositions as well as the formulae in the formats: hill, reduced, iupac,
         anonymous and descriptive.
@@ -958,7 +986,7 @@ class Formula():
         Raises:
             ValueError if any of the populated metainfo already exist and would be
             overwritten.
-        '''
+        """
         for quantity in [
             'elements',
             'elemental_composition',
@@ -969,7 +997,9 @@ class Formula():
             'chemical_formula_descriptive',
         ]:
             if getattr(section, quantity):
-                raise ValueError(f'Could not populate compositional data as "{quantity}" is already defined.')
+                raise ValueError(
+                    f'Could not populate compositional data as "{quantity}" is already defined.'
+                )
 
         section.elements = self.elements()
         section.elemental_composition = self.elemental_composition()
@@ -981,24 +1011,25 @@ class Formula():
             section.chemical_formula_descriptive = self.format(descriptive_format)
 
     def _remove_parentheses(self, formula: str) -> str:
-        '''Used to remove parentheses from a formula. E.g. C(2)O(1) becomes C2O1
+        """Used to remove parentheses from a formula. E.g. C(2)O(1) becomes C2O1
         Args:
             formula: the original formula
 
         Returns:
             The formula without parentheses.
-        '''
+        """
         matches = list(re.finditer(self.formula_parentheses, formula))
         if matches:
             n_matched_chars = sum([len(match[0]) for match in matches])
             n_formula = len(formula.strip())
             if n_matched_chars == n_formula:
-                formula = ''.join(['{}{}'.format(match[1], match[2]) for match in matches])
+                formula = ''.join(
+                    ['{}{}'.format(match[1], match[2]) for match in matches]
+                )
         return formula
 
     def _formula_hill(self) -> str:
-        '''Returns the Hill formula.
-        '''
+        """Returns the Hill formula."""
         count = self.count()
         count_hill = {}
         if 'C' in count:
@@ -1011,22 +1042,23 @@ class Formula():
         return self._dict2str(count_hill)
 
     def _formula_iupac(self) -> str:
-        '''Returns the IUPAC formula.
-        '''
+        """Returns the IUPAC formula."""
         count = self.count()
         counts = count.values()
         symbols = list(count.keys())
         gcd = reduce(math.gcd, counts)
         symbols_sorted = sorted(
             symbols,
-            key=lambda x: float('inf') if x == self.placeholder_symbol else get_el_sp(x).iupac_ordering)
+            key=lambda x: float('inf')
+            if x == self.placeholder_symbol
+            else get_el_sp(x).iupac_ordering,
+        )
         count_iupac = {symbol: int(count[symbol] / gcd) for symbol in symbols_sorted}
 
         return self._dict2str(count_iupac)
 
     def _formula_reduced(self) -> str:
-        '''Returns the reduced formula.
-        '''
+        """Returns the reduced formula."""
         count = self.count()
         counts = count.values()
         gcd = reduce(math.gcd, counts)
@@ -1035,7 +1067,7 @@ class Formula():
         return self._dict2str(count_reduced)
 
     def _formula_descriptive(self) -> str:
-        '''Returns the descriptive formula. This is a formula ordered using IUPAC for
+        """Returns the descriptive formula. This is a formula ordered using IUPAC for
         inorganic materials and Hill for organic compounds.
 
         The check is done if 'C' is present in self.count(), except for exceptions of
@@ -1044,16 +1076,60 @@ class Formula():
 
         Ref:
             https://en.wikipedia.org/wiki/List_of_inorganic_compounds
-        '''
+        """
         # List of carbon inorganic compounds in IUPAC notation (ordered in alphabetical order)
         carbon_inorganic_iupac = [
-            'Al4C3', 'B4C', 'BaCO3', 'BeCO3', 'CNH5O3', 'CaC2', 'CaCO3', 'Ce2C3O9',
-            'Cf2C3O9', 'CoCO3', 'Cs2CO3', 'CsHCO3', 'CuCO3', 'Es2C3O9', 'Fe2C9O9',
-            'Fe3C12O12', 'FeC5O5', 'Fr2CO3', 'Gd2C3O9', 'Ho2C3O9', 'La2C3O9', 'Li2CO3',
-            'MgC2', 'MgCO3', 'MoC', 'MoC6O6', 'Na2C2', 'Na2CO3', 'Na2CO4', 'NiCO3',
-            'PbC3O3', 'Pm2C3O9', 'Pr2C3O9', 'RaCO3', 'Rh6C16O16', 'SiC', 'Sm2C3O9',
-            'SrC2TaC', 'SrCO3', 'SrCO3', 'Tb2C3O9', 'Ti3SiC2', 'TiC', 'Tl2CO3', 'VC',
-            'WC', 'WC6O6', 'Yb2C3O9HfC', 'ZnCO3', 'ZrC']
+            'Al4C3',
+            'B4C',
+            'BaCO3',
+            'BeCO3',
+            'CNH5O3',
+            'CaC2',
+            'CaCO3',
+            'Ce2C3O9',
+            'Cf2C3O9',
+            'CoCO3',
+            'Cs2CO3',
+            'CsHCO3',
+            'CuCO3',
+            'Es2C3O9',
+            'Fe2C9O9',
+            'Fe3C12O12',
+            'FeC5O5',
+            'Fr2CO3',
+            'Gd2C3O9',
+            'Ho2C3O9',
+            'La2C3O9',
+            'Li2CO3',
+            'MgC2',
+            'MgCO3',
+            'MoC',
+            'MoC6O6',
+            'Na2C2',
+            'Na2CO3',
+            'Na2CO4',
+            'NiCO3',
+            'PbC3O3',
+            'Pm2C3O9',
+            'Pr2C3O9',
+            'RaCO3',
+            'Rh6C16O16',
+            'SiC',
+            'Sm2C3O9',
+            'SrC2TaC',
+            'SrCO3',
+            'SrCO3',
+            'Tb2C3O9',
+            'Ti3SiC2',
+            'TiC',
+            'Tl2CO3',
+            'VC',
+            'WC',
+            'WC6O6',
+            'Yb2C3O9HfC',
+            'ZnCO3',
+            'ZrC',
+        ]
         # Mapping of special formula ordering different than Hill or IUPAC
         hill_to_special_map = {
             'KCHO3': 'KHCO3',
@@ -1070,8 +1146,7 @@ class Formula():
         return formula_descriptive
 
     def _formula_anonymous(self) -> str:
-        '''Returns the anonymous formula.
-        '''
+        """Returns the anonymous formula."""
         count = self.count()
         counts = count.values()
         gcd = reduce(math.gcd, counts)
@@ -1082,7 +1157,7 @@ class Formula():
         return self._dict2str(count_anonymous)
 
     def _dict2str(self, dct: Dict[str, int]) -> str:
-        '''Convert symbol-to-count dict to a string. Omits the chemical
+        """Convert symbol-to-count dict to a string. Omits the chemical
         proportion number 1.
 
         Args:
@@ -1090,16 +1165,23 @@ class Formula():
 
         Returns:
             Chemical formula as a string.
-        '''
+        """
         return ''.join(symb + (str(n) if n > 1 else '') for symb, n in dct.items())
 
 
 def create_empty_universe(
-        n_atoms: int, n_frames: int = 1, n_residues: int = 1, n_segments: int = 1,
-        atom_resindex: NDArray[Int] = None, residue_segindex: NDArray[Int] = None,
-        flag_trajectory: bool = False, flag_velocities: bool = False, flag_forces: bool = False,
-        timestep: float = None) -> MDAnalysis.Universe:
-    '''Create a blank Universe
+    n_atoms: int,
+    n_frames: int = 1,
+    n_residues: int = 1,
+    n_segments: int = 1,
+    atom_resindex: NDArray[Int] = None,
+    residue_segindex: NDArray[Int] = None,
+    flag_trajectory: bool = False,
+    flag_velocities: bool = False,
+    flag_forces: bool = False,
+    timestep: float = None,
+) -> MDAnalysis.Universe:
+    """Create a blank Universe
 
     This function was adapted from the function empty() within the MDA class Universe().
     The only difference is that the Universe() class is imported directly here, whereas in the
@@ -1154,7 +1236,7 @@ def create_empty_universe(
         The attached Reader when flag_trajectory=True is now a MemoryReader
     .. versionchanged:: 1.0.0
         Universes can now be created with 0 atoms
-    '''
+    """
 
     if not n_atoms:
         n_residues = 0
@@ -1164,16 +1246,23 @@ def create_empty_universe(
         warnings.warn(
             'Residues specified but no atom_resindex given.  '
             'All atoms will be placed in first Residue.',
-            UserWarning)
+            UserWarning,
+        )
 
     if residue_segindex is None:
         warnings.warn(
             'Segments specified but no segment_resindex given.  '
             'All residues will be placed in first Segment',
-            UserWarning)
+            UserWarning,
+        )
 
-    topology = Topology(n_atoms, n_residues, n_segments, atom_resindex=atom_resindex,
-                        residue_segindex=residue_segindex)
+    topology = Topology(
+        n_atoms,
+        n_residues,
+        n_segments,
+        atom_resindex=atom_resindex,
+        residue_segindex=residue_segindex,
+    )
 
     universe = Universe(topology)
 
@@ -1184,65 +1273,72 @@ def create_empty_universe(
 
         # grab and attach a MemoryReader
         universe.trajectory = get_reader_for(coords)(
-            coords, order='fac', n_atoms=n_atoms,
-            velocities=vels, forces=forces, dt=timestep)
+            coords,
+            order='fac',
+            n_atoms=n_atoms,
+            velocities=vels,
+            forces=forces,
+            dt=timestep,
+        )
 
     return universe
 
 
-def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, model_index: int = -1) -> MDAnalysis.Universe:
-    '''Extract the topology from a provided run section of an archive entry
+def archive_to_universe(
+    archive, system_index: int = 0, method_index: int = -1, model_index: int = -1
+) -> MDAnalysis.Universe:
+    """Extract the topology from a provided run section of an archive entry
 
-        Input:
+    Input:
 
-            archive_sec_run: section run of an EntryArchive
+        archive_sec_run: section run of an EntryArchive
 
-            system_index: list index of archive.run[].system to be used for topology extraction
+        system_index: list index of archive.run[].system to be used for topology extraction
 
-            method_index: list index of archive.run[].method to be used for atom parameter (charges and masses) extraction
+        method_index: list index of archive.run[].method to be used for atom parameter (charges and masses) extraction
 
-            model_index: list index of archive.run[].method[].force_field.model for bond list extraction
+        model_index: list index of archive.run[].method[].force_field.model for bond list extraction
 
-        Variables:
+    Variables:
 
-            n_frames (int):
+        n_frames (int):
 
-            n_atoms (int):
+        n_atoms (int):
 
-            atom_names (str, shape=(n_atoms)):
+        atom_names (str, shape=(n_atoms)):
 
-            atom_types (str, shape=(n_atoms)):
+        atom_types (str, shape=(n_atoms)):
 
-            atom_resindex (str, shape=(n_atoms)):
+        atom_resindex (str, shape=(n_atoms)):
 
-            atom_segids (str, shape=(n_atoms)):
+        atom_segids (str, shape=(n_atoms)):
 
-            n_segments (int): Segments correspond to a group of the same type of molecules.
+        n_segments (int): Segments correspond to a group of the same type of molecules.
 
-            n_residues (int): The number of distinct residues (nb - individual molecules are also denoted as a residue).
+        n_residues (int): The number of distinct residues (nb - individual molecules are also denoted as a residue).
 
-            resnames (str, shape=(n_residues)): The name of each residue.
+        resnames (str, shape=(n_residues)): The name of each residue.
 
-            residue_segindex (int, shape=(n_residues)): The segment index that each residue belongs to.
+        residue_segindex (int, shape=(n_residues)): The segment index that each residue belongs to.
 
-            residue_molnums (int, shape=(n_residues)): The molecule index that each residue belongs to.
+        residue_molnums (int, shape=(n_residues)): The molecule index that each residue belongs to.
 
-            residue_moltypes (int, shape=(n_residues)): The molecule type of each residue.
+        residue_moltypes (int, shape=(n_residues)): The molecule type of each residue.
 
-            n_molecules (int):
+        n_molecules (int):
 
-            masses (float, shape=(n_atoms)):  atom masses, units = amu
+        masses (float, shape=(n_atoms)):  atom masses, units = amu
 
-            charges (float, shape=(n_atoms)): atom partial charges, units = e
+        charges (float, shape=(n_atoms)): atom partial charges, units = e
 
-            positions (float, shape=(n_frames,n_atoms,3)): atom positions
+        positions (float, shape=(n_frames,n_atoms,3)): atom positions
 
-            velocities (float, shape=(n_frames,n_atoms,3)): atom velocities
+        velocities (float, shape=(n_frames,n_atoms,3)): atom velocities
 
-            dimensions (float, shape=(n_frames,6)): box dimensions (nb - currently assuming a cubic box!)
+        dimensions (float, shape=(n_frames,6)): box dimensions (nb - currently assuming a cubic box!)
 
-            bonds (tuple, shape=([])): list of tuples with the atom indices of each bond
-    '''
+        bonds (tuple, shape=([])): list of tuples with the atom indices of each bond
+    """
 
     try:
         sec_run = archive.run[-1]
@@ -1251,9 +1347,13 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_atoms = sec_system_top.atoms
         sec_atoms_group = sec_system_top.atoms_group
         sec_calculation = sec_run.calculation
-        sec_method = sec_run.method[method_index] if sec_run.get('method') is not None else None
+        sec_method = (
+            sec_run.method[method_index] if sec_run.get('method') is not None else None
+        )
     except IndexError:
-        logging.warning('Supplied indices or necessary sections do not exist in archive. Cannot build the MDA universe.')
+        logging.warning(
+            'Supplied indices or necessary sections do not exist in archive. Cannot build the MDA universe.'
+        )
         return None
 
     n_atoms = sec_atoms.get('n_atoms')
@@ -1264,7 +1364,11 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     n_frames = len(sec_system) if sec_system is not None else None
     atom_names = sec_atoms.get('labels')
     model_atom_parameters = sec_method.get('atom_parameters')
-    atom_types = [atom.label for atom in model_atom_parameters] if model_atom_parameters else atom_names
+    atom_types = (
+        [atom.label for atom in model_atom_parameters]
+        if model_atom_parameters
+        else atom_names
+    )
     atom_resindex = np.arange(n_atoms)
     atoms_segindices = np.empty(n_atoms)
     atom_segids = np.array(range(n_atoms), dtype='object')
@@ -1309,9 +1413,19 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
             n_molecules += 1
 
     # reorder the residues by atom_indices
-    residue_data = np.array([
-        [residue_min_atom_index[i], residue_n_atoms[i], residue_segindex[i], residue_moltypes[i], resnames[i]]
-        for i in range(len(residue_min_atom_index))], dtype=object)
+    residue_data = np.array(
+        [
+            [
+                residue_min_atom_index[i],
+                residue_n_atoms[i],
+                residue_segindex[i],
+                residue_moltypes[i],
+                resnames[i],
+            ]
+            for i in range(len(residue_min_atom_index))
+        ],
+        dtype=object,
+    )
     residue_data = np.array(sorted(residue_data, key=lambda x: x[0], reverse=False)).T
     residue_n_atoms = residue_data[1].astype(int)
     residue_segindex = residue_data[2].astype(int)
@@ -1319,26 +1433,32 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     resnames = residue_data[4]
     res_index_counter = 0
     for i_residue, res_n_atoms in enumerate(residue_n_atoms):
-        atom_resindex[res_index_counter:res_index_counter + res_n_atoms] = i_residue  # type: ignore
+        atom_resindex[res_index_counter : res_index_counter + res_n_atoms] = i_residue  # type: ignore
         res_index_counter += res_n_atoms
     residue_molnums = np.array(range(n_residues))
     mol_index_counter = 0
     for i_molecule, n_res in enumerate(molecule_n_res):
-        residue_molnums[mol_index_counter:mol_index_counter + n_res] = i_molecule
+        residue_molnums[mol_index_counter : mol_index_counter + n_res] = i_molecule
         mol_index_counter += n_res
 
     # get the atom masses and charges
 
     masses = np.empty(n_atoms)
     charges = np.empty(n_atoms)
-    atom_parameters = sec_method.get('atom_parameters') if sec_method is not None else []
+    atom_parameters = (
+        sec_method.get('atom_parameters') if sec_method is not None else []
+    )
     atom_parameters = atom_parameters if atom_parameters is not None else []
 
     for atom_ind, atom in enumerate(atom_parameters):
         if atom.get('mass'):
-            masses[atom_ind] = ureg.convert(atom.mass.magnitude, atom.mass.units, ureg.amu)
+            masses[atom_ind] = ureg.convert(
+                atom.mass.magnitude, atom.mass.units, ureg.amu
+            )
         if atom.get('charge'):
-            charges[atom_ind] = ureg.convert(atom.charge.magnitude, atom.charge.units, ureg.e)
+            charges[atom_ind] = ureg.convert(
+                atom.charge.magnitude, atom.charge.units, ureg.e
+            )
 
     # get the atom positions, velocites, and box dimensions
     positions = np.empty(shape=(n_frames, n_atoms, 3))
@@ -1348,24 +1468,43 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
         sec_atoms_fr = frame.get('atoms')
         if sec_atoms_fr is not None:
             positions_frame = sec_atoms_fr.positions
-            positions[frame_ind] = ureg.convert(positions_frame.magnitude, positions_frame.units,
-                                                ureg.angstrom) if positions_frame is not None else None
+            positions[frame_ind] = (
+                ureg.convert(
+                    positions_frame.magnitude, positions_frame.units, ureg.angstrom
+                )
+                if positions_frame is not None
+                else None
+            )
             velocities_frame = sec_atoms_fr.velocities
-            velocities[frame_ind] = ureg.convert(velocities_frame.magnitude, velocities_frame.units,
-                                                 ureg.angstrom / ureg.picosecond) if velocities_frame is not None else None
+            velocities[frame_ind] = (
+                ureg.convert(
+                    velocities_frame.magnitude,
+                    velocities_frame.units,
+                    ureg.angstrom / ureg.picosecond,
+                )
+                if velocities_frame is not None
+                else None
+            )
             latt_vec_tmp = sec_atoms_fr.get('lattice_vectors')
             if latt_vec_tmp is not None:
-                length_conversion = ureg.convert(1.0, sec_atoms_fr.lattice_vectors.units, ureg.angstrom)
+                length_conversion = ureg.convert(
+                    1.0, sec_atoms_fr.lattice_vectors.units, ureg.angstrom
+                )
                 dimensions[frame_ind] = [
                     sec_atoms_fr.lattice_vectors.magnitude[0][0] * length_conversion,
                     sec_atoms_fr.lattice_vectors.magnitude[1][1] * length_conversion,
                     sec_atoms_fr.lattice_vectors.magnitude[2][2] * length_conversion,
-                    90, 90, 90]  # TODO: extend to non-cubic boxes
+                    90,
+                    90,
+                    90,
+                ]  # TODO: extend to non-cubic boxes
 
     # get the bonds  # TODO extend to multiple storage options for interactions
     bonds = sec_atoms.bond_list
     if bonds is None:
-        bonds = get_bond_list_from_model_contributions(sec_run, method_index=-1, model_index=-1)
+        bonds = get_bond_list_from_model_contributions(
+            sec_run, method_index=-1, model_index=-1
+        )
 
     # get the system times
     system_timestep = 1.0 * ureg.picosecond
@@ -1377,25 +1516,44 @@ def archive_to_universe(archive, system_index: int = 0, method_index: int = -1, 
     if system_times:
         try:
             method = archive.workflow2.method
-            system_timestep = method.integration_timestep * method.coordinate_save_frequency
+            system_timestep = (
+                method.integration_timestep * method.coordinate_save_frequency
+            )
         except Exception:
-            logging.warning('Cannot find the system times. MDA universe will contain non-physical times and timestep.')
+            logging.warning(
+                'Cannot find the system times. MDA universe will contain non-physical times and timestep.'
+            )
     else:
-        time_steps = [system_times[i_time] - system_times[i_time - 1] for i_time in range(1, len(system_times))]
+        time_steps = [
+            system_times[i_time] - system_times[i_time - 1]
+            for i_time in range(1, len(system_times))
+        ]
         if all(approx(time_steps[0], time_step) for time_step in time_steps):
-            system_timestep = ureg.convert(time_steps[0].magnitude, ureg.second, ureg.picosecond)
+            system_timestep = ureg.convert(
+                time_steps[0].magnitude, ureg.second, ureg.picosecond
+            )
         else:
             logging.warning(
                 'System times are not equally spaced. Cannot set system times in MDA universe.'
-                ' MDA universe will contain non-physical times and timestep.')
+                ' MDA universe will contain non-physical times and timestep.'
+            )
 
-    system_timestep = ureg.convert(system_timestep, system_timestep._units, ureg.picoseconds)
+    system_timestep = ureg.convert(
+        system_timestep, system_timestep._units, ureg.picoseconds
+    )
 
     # create the Universe
     metainfo_universe = create_empty_universe(
-        n_atoms, n_frames=n_frames, n_residues=n_residues, n_segments=n_segments,
-        atom_resindex=atom_resindex, residue_segindex=residue_segindex, flag_trajectory=True,
-        flag_velocities=True, timestep=system_timestep.magnitude)
+        n_atoms,
+        n_frames=n_frames,
+        n_residues=n_residues,
+        n_segments=n_segments,
+        atom_resindex=atom_resindex,
+        residue_segindex=residue_segindex,
+        flag_trajectory=True,
+        flag_velocities=True,
+        timestep=system_timestep.magnitude,
+    )
 
     # set the positions and velocities
     for frame_ind, frame in enumerate(metainfo_universe.trajectory):
@@ -1435,9 +1593,9 @@ class BeadGroup(object):
     # see https://github.com/MDAnalysis/mdanalysis/issues/1891#issuecomment-387138110
     # by @richardjgowers with performance improvements
     def __init__(self, atoms, compound='fragments'):
-        '''Initialize with an AtomGroup instance.
+        """Initialize with an AtomGroup instance.
         Will split based on keyword 'compounds' (residues or fragments).
-        '''
+        """
         self._atoms = atoms
         self.compound = compound
         self._nbeads = len(getattr(self._atoms, self.compound))
@@ -1454,7 +1612,8 @@ class BeadGroup(object):
         # cache positions for current frame
         if self.universe.trajectory.frame != self.__last_frame:
             self._cache['positions'] = self._atoms.center_of_mass(
-                unwrap=True, compound=self.compound)
+                unwrap=True, compound=self.compound
+            )
             self.__last_frame = self.universe.trajectory.frame
         return self._cache['positions']
 
@@ -1475,11 +1634,17 @@ def __correlation(function, positions: List[float]):
     return map(lambda f: function(start_frame, f), chain([start_frame], iterator))
 
 
-def shifted_correlation_average(function: Callable, times: NDArray, positions: NDArray,
-                                index_distribution: Callable = __log_indices, correlation: Callable = __correlation,
-                                segments: int = 10, window: float = 0.5, skip: int = 0) -> tuple[NDArray, NDArray]:
-
-    '''
+def shifted_correlation_average(
+    function: Callable,
+    times: NDArray,
+    positions: NDArray,
+    index_distribution: Callable = __log_indices,
+    correlation: Callable = __correlation,
+    segments: int = 10,
+    window: float = 0.5,
+    skip: int = 0,
+) -> tuple[NDArray, NDArray]:
+    """
     Code adapted from MDevaluate module: https://github.com/mdevaluate/mdevaluate.git
 
     Calculate the time series for a correlation function.
@@ -1522,17 +1687,24 @@ def shifted_correlation_average(function: Callable, times: NDArray, positions: N
         Calculating the mean square displacement of a coordinates object named ``coords``:
 
         >>> indices, data = shifted_correlation(msd, coords)
-    '''
+    """
     if window + skip >= 1:
-        warnings.warn('Invalid parameters for shifted_correlation(), '
-                      'resetting to defaults.', UserWarning)
+        warnings.warn(
+            'Invalid parameters for shifted_correlation(), ' 'resetting to defaults.',
+            UserWarning,
+        )
         window = 0.5
         skip = 0
 
-    start_frames = np.unique(np.linspace(
-        len(positions) * skip, len(positions) * (1 - window),
-        num=segments, endpoint=False, dtype=int
-    ))
+    start_frames = np.unique(
+        np.linspace(
+            len(positions) * skip,
+            len(positions) * (1 - window),
+            num=segments,
+            endpoint=False,
+            dtype=int,
+        )
+    )
     num_frames = int(len(positions) * (window))
 
     idx = index_distribution(0, num_frames)
@@ -1555,43 +1727,59 @@ def shifted_correlation_average(function: Callable, times: NDArray, positions: N
     return correlation_times, result
 
 
-def _calc_diffusion_constant(times: NDArray, values: NDArray, dim: int = 3) -> tuple[float, float]:
-    '''
+def _calc_diffusion_constant(
+    times: NDArray, values: NDArray, dim: int = 3
+) -> tuple[float, float]:
+    """
     Determines the diffusion constant from a fit of the mean squared displacement
     vs. time according to the Einstein relation.
-    '''
+    """
     linear_model = linregress(times, values)
     slope = linear_model.slope
     error = linear_model.rvalue
     return slope * 1 / (2 * dim), error
 
 
-def _get_molecular_bead_groups(universe: MDAnalysis.Universe, moltypes: List[str] = None) -> Dict[str, BeadGroup]:
-    '''
+def _get_molecular_bead_groups(
+    universe: MDAnalysis.Universe, moltypes: List[str] = None
+) -> Dict[str, BeadGroup]:
+    """
     Creates bead groups based on the molecular types as defined by the MDAnalysis universe.
-    '''
+    """
     if moltypes is None:
         atoms_moltypes = getattr(universe.atoms, 'moltypes', [])
         moltypes = np.unique(atoms_moltypes)
     bead_groups = {}
     for moltype in moltypes:
         ags_by_moltype = universe.select_atoms('moltype ' + moltype)
-        ags_by_moltype = ags_by_moltype[ags_by_moltype.masses > abs(1e-2)]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
+        ags_by_moltype = ags_by_moltype[
+            ags_by_moltype.masses > abs(1e-2)
+        ]  # remove any virtual/massless sites (needed for, e.g., 4-bead water models)
         bead_groups[moltype] = BeadGroup(ags_by_moltype, compound='fragments')
 
     return bead_groups
 
 
-def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_prune: int = 1, interval_indices=None, max_mols: int = 5000) -> Dict:
-    '''
+def calc_molecular_rdf(
+    universe: MDAnalysis.Universe,
+    n_traj_split: int = 10,
+    n_prune: int = 1,
+    interval_indices=None,
+    max_mols: int = 5000,
+) -> Dict:
+    """
     Calculates the radial distribution functions between for each unique pair of
     molecule types as a function of their center of mass distance.
 
     interval_indices: 2D array specifying the groups of the n_traj_split intervals to be averaged
     max_mols: the maximum number of molecules per bead group for calculating the rdf, for efficiency purposes.
-    '''
+    """
     # TODO 5k default for max_mols was set after > 50k was giving problems. Should do further testing to see where the appropriate limit should be set.
-    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
+    if (
+        not universe
+        or not universe.trajectory
+        or universe.trajectory[0].dimensions is None
+    ):
         return {}
 
     n_frames = universe.trajectory.n_frames
@@ -1608,8 +1796,10 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
         frames_end[-1] = n_frames
         n_frames_split = frames_end - frames_start
         if np.sum(n_frames_split) != n_frames:
-            logging.error('Something went wrong with input parameters in calc_molecular_rdf().'
-                          'Radial distribution functions will not be calculated.')
+            logging.error(
+                'Something went wrong with input parameters in calc_molecular_rdf().'
+                'Radial distribution functions will not be calculated.'
+            )
             return {}
         if not interval_indices:
             interval_indices = [[i] for i in range(n_traj_split)]
@@ -1618,7 +1808,11 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
     if not bead_groups:
         return bead_groups
     moltypes = [moltype for moltype in bead_groups.keys()]
-    del_list = [i_moltype for i_moltype, moltype in enumerate(moltypes) if bead_groups[moltype]._nbeads > max_mols]
+    del_list = [
+        i_moltype
+        for i_moltype, moltype in enumerate(moltypes)
+        if bead_groups[moltype]._nbeads > max_mols
+    ]
     moltypes = np.delete(moltypes, del_list).tolist()
 
     min_box_dimension = np.min(universe.trajectory[0].dimensions[:3])
@@ -1640,7 +1834,9 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
         for j, moltype_j in enumerate(moltypes):
             if j > i:
                 continue
-            elif i == j and bead_groups[moltype_i].positions.shape[0] == 1:  # skip if only 1 mol in group
+            elif (
+                i == j and bead_groups[moltype_i].positions.shape[0] == 1
+            ):  # skip if only 1 mol in group
                 continue
 
             if i == j:
@@ -1659,59 +1855,100 @@ def calc_molecular_rdf(universe: MDAnalysis.Universe, n_traj_split: int = 10, n_
                 rdf_results_interval['types'].append(pair_type)
                 rdf_results_interval['variables_name'].append(['distance'])
                 rdf = MDA_RDF.InterRDF(
-                    bead_groups[moltype_i], bead_groups[moltype_j], range=(0, max_rdf_dist),
-                    exclusion_block=exclusion_block, nbins=n_bins).run(
-                    frames_start[i_interval], frames_end[i_interval], n_prune)
+                    bead_groups[moltype_i],
+                    bead_groups[moltype_j],
+                    range=(0, max_rdf_dist),
+                    exclusion_block=exclusion_block,
+                    nbins=n_bins,
+                ).run(frames_start[i_interval], frames_end[i_interval], n_prune)
                 rdf_results_interval['frame_start'].append(frames_start[i_interval])
                 rdf_results_interval['frame_end'].append(frames_end[i_interval])
 
-                rdf_results_interval['bins'].append(rdf.results.bins[int(n_smooth / 2):-int(n_smooth / 2)] * ureg.angstrom)
-                rdf_results_interval['value'].append(np.convolve(
-                    rdf.results.rdf, np.ones((n_smooth,)) / n_smooth,
-                    mode='same')[int(n_smooth / 2):-int(n_smooth / 2)])
+                rdf_results_interval['bins'].append(
+                    rdf.results.bins[int(n_smooth / 2) : -int(n_smooth / 2)]
+                    * ureg.angstrom
+                )
+                rdf_results_interval['value'].append(
+                    np.convolve(
+                        rdf.results.rdf, np.ones((n_smooth,)) / n_smooth, mode='same'
+                    )[int(n_smooth / 2) : -int(n_smooth / 2)]
+                )
 
             flag_logging_error = False
             for interval_group in interval_indices:
-                split_weights = n_frames_split[np.array(interval_group)] / np.sum(n_frames_split[np.array(interval_group)])
+                split_weights = n_frames_split[np.array(interval_group)] / np.sum(
+                    n_frames_split[np.array(interval_group)]
+                )
                 if abs(np.sum(split_weights) - 1.0) > 1e-6:
                     flag_logging_error = True
                     continue
-                rdf_values_avg = split_weights[0] * rdf_results_interval['value'][interval_group[0]]
+                rdf_values_avg = (
+                    split_weights[0] * rdf_results_interval['value'][interval_group[0]]
+                )
                 for i_interval, interval in enumerate(interval_group[1:]):
-                    if rdf_results_interval['types'][interval] != rdf_results_interval['types'][interval - 1]:
+                    if (
+                        rdf_results_interval['types'][interval]
+                        != rdf_results_interval['types'][interval - 1]
+                    ):
                         flag_logging_error = True
                         continue
-                    if rdf_results_interval['variables_name'][interval] != rdf_results_interval['variables_name'][interval - 1]:
+                    if (
+                        rdf_results_interval['variables_name'][interval]
+                        != rdf_results_interval['variables_name'][interval - 1]
+                    ):
                         flag_logging_error = True
                         continue
-                    if not (rdf_results_interval['bins'][interval] == rdf_results_interval['bins'][interval - 1]).all():
+                    if not (
+                        rdf_results_interval['bins'][interval]
+                        == rdf_results_interval['bins'][interval - 1]
+                    ).all():
                         flag_logging_error = True
                         continue
-                    rdf_values_avg += split_weights[i_interval + 1] * rdf_results_interval['value'][interval]
+                    rdf_values_avg += (
+                        split_weights[i_interval + 1]
+                        * rdf_results_interval['value'][interval]
+                    )
                 if flag_logging_error:
-                    logging.error('Something went wrong in calc_molecular_rdf(). Some interval groups were skipped.')
-                rdf_results['types'].append(rdf_results_interval['types'][interval_group[0]])
-                rdf_results['variables_name'].append(rdf_results_interval['variables_name'][interval_group[0]])
-                rdf_results['bins'].append(rdf_results_interval['bins'][interval_group[0]])
+                    logging.error(
+                        'Something went wrong in calc_molecular_rdf(). Some interval groups were skipped.'
+                    )
+                rdf_results['types'].append(
+                    rdf_results_interval['types'][interval_group[0]]
+                )
+                rdf_results['variables_name'].append(
+                    rdf_results_interval['variables_name'][interval_group[0]]
+                )
+                rdf_results['bins'].append(
+                    rdf_results_interval['bins'][interval_group[0]]
+                )
                 rdf_results['value'].append(rdf_values_avg)
-                rdf_results['frame_start'].append(int(rdf_results_interval['frame_start'][interval_group[0]]))
-                rdf_results['frame_end'].append(int(rdf_results_interval['frame_end'][interval_group[-1]]))
+                rdf_results['frame_start'].append(
+                    int(rdf_results_interval['frame_start'][interval_group[0]])
+                )
+                rdf_results['frame_end'].append(
+                    int(rdf_results_interval['frame_end'][interval_group[-1]])
+                )
 
     return rdf_results
 
 
-def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max_mols: int = 5000) -> Dict:
-    '''
+def calc_molecular_mean_squared_displacements(
+    universe: MDAnalysis.Universe, max_mols: int = 5000
+) -> Dict:
+    """
     Calculates the mean squared displacement for the center of mass of each
     molecule type.
 
     max_mols: the maximum number of molecules per bead group for calculating the msd, for efficiency purposes.
     50k was tested and is very fast and does not seem to have any memory issues.
-    '''
-    def parse_jumps(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
-        '''
+    """
+
+    def parse_jumps(
+        universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup
+    ):  # TODO Add output declaration
+        """
         See __get_nojump_positions().
-        '''
+        """
         __ = universe.trajectory[0]
         prev = np.array(selection.positions)
         box = universe.trajectory[0].dimensions[:3]
@@ -1719,7 +1956,7 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
         jump_data = (
             sparse_data(data=array('b'), row=array('l'), col=array('l')),
             sparse_data(data=array('b'), row=array('l'), col=array('l')),
-            sparse_data(data=array('b'), row=array('l'), col=array('l'))
+            sparse_data(data=array('b'), row=array('l'), col=array('l')),
         )
 
         for i_frame, _ in enumerate(universe.trajectory[1:]):
@@ -1727,63 +1964,82 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
             delta = ((curr - prev) / box).round().astype(np.int8)
             prev = np.array(curr)
             for d in range(3):
-                col, = np.where(delta[:, d] != 0)
+                (col,) = np.where(delta[:, d] != 0)
                 jump_data[d].col.extend(col)
                 jump_data[d].row.extend([i_frame] * len(col))
                 jump_data[d].data.extend(delta[col, d])
 
         return jump_data
 
-    def generate_nojump_matrices(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup):  # TODO Add output declaration
-        '''
+    def generate_nojump_matrices(
+        universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup
+    ):  # TODO Add output declaration
+        """
         See __get_nojump_positions().
-        '''
+        """
         jump_data = parse_jumps(universe, selection)
         n_frames = len(universe.trajectory)
         n_atoms = selection.positions.shape[0]
 
         nojump_matrices = tuple(
-            sparse.csr_matrix((np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)) for m in jump_data
+            sparse.csr_matrix(
+                (np.array(m.data), (m.row, m.col)), shape=(n_frames, n_atoms)
+            )
+            for m in jump_data
         )
         return nojump_matrices
 
-    def get_nojump_positions(universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup) -> NDArray:
-        '''
+    def get_nojump_positions(
+        universe: MDAnalysis.Universe, selection: MDAnalysis.AtomGroup
+    ) -> NDArray:
+        """
         Unwraps the positions to create a continuous trajectory without jumps across periodic boundaries.
-        '''
+        """
         nojump_matrices = generate_nojump_matrices(universe, selection)
         box = universe.trajectory[0].dimensions[:3]
 
         nojump_positions = []
         for i_frame, __ in enumerate(universe.trajectory):
-            delta = np.array(np.vstack(
-                [m[:i_frame, :].sum(axis=0) for m in nojump_matrices]
-            ).T) * box
+            delta = (
+                np.array(
+                    np.vstack([m[:i_frame, :].sum(axis=0) for m in nojump_matrices]).T
+                )
+                * box
+            )
             nojump_positions.append(selection.positions - delta)
 
         return np.array(nojump_positions)
 
     def mean_squared_displacement(start: NDArray, current: NDArray):
-        '''
+        """
         Calculates mean square displacement between current and initial (start) coordinates.
-        '''
+        """
         vec = start - current
-        return (vec ** 2).sum(axis=1).mean()
+        return (vec**2).sum(axis=1).mean()
 
-    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
+    if (
+        not universe
+        or not universe.trajectory
+        or universe.trajectory[0].dimensions is None
+    ):
         return {}
 
     n_frames = universe.trajectory.n_frames
     if n_frames < 50:
-        warnings.warn('At least 50 frames required to calculate molecular'
-                      ' mean squared displacements, skipping.', UserWarning)
+        warnings.warn(
+            'At least 50 frames required to calculate molecular'
+            ' mean squared displacements, skipping.',
+            UserWarning,
+        )
         return {}
 
     dt = getattr(universe.trajectory, 'dt')
     if dt is None:
         warnings.warn(
             'Universe is missing time step, cannot calculate molecular'
-            ' mean squared displacements, skipping.', UserWarning)
+            ' mean squared displacements, skipping.',
+            UserWarning,
+        )
         return {}
     times = np.arange(n_frames) * dt
 
@@ -1798,24 +2054,34 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
             if max_mols > 50000:
                 warnings.warn(
                     'Calculating mean squared displacements for more than 50k molecules.'
-                    ' Expect long processing times!', UserWarning)
+                    ' Expect long processing times!',
+                    UserWarning,
+                )
             try:
                 # select max_mols nr. of rnd molecules from this moltype
-                moltype_indices = np.array([atom._ix for atom in bead_groups[moltype]._atoms])
+                moltype_indices = np.array(
+                    [atom._ix for atom in bead_groups[moltype]._atoms]
+                )
                 molnums = universe.atoms.molnums[moltype_indices]
                 molnum_types = np.unique(molnums)
-                molnum_types_rnd = np.sort(np.random.choice(molnum_types, size=max_mols))
-                atom_indices_rnd = np.concatenate([np.where(molnums == molnum)[0] for molnum in molnum_types_rnd])
+                molnum_types_rnd = np.sort(
+                    np.random.choice(molnum_types, size=max_mols)
+                )
+                atom_indices_rnd = np.concatenate(
+                    [np.where(molnums == molnum)[0] for molnum in molnum_types_rnd]
+                )
                 selection = ' '.join([str(i) for i in atom_indices_rnd])
                 selection = f'index {selection}'
                 ags_moltype_rnd = universe.select_atoms(selection)
                 bead_groups[moltype] = BeadGroup(ags_moltype_rnd, compound='fragments')
                 warnings.warn(
                     'Maximum number of molecules for calculating the msd has been reached.'
-                    ' Will make a random selection for calculation.')
+                    ' Will make a random selection for calculation.'
+                )
             except Exception:
                 warnings.warn(
-                    'Error in selecting random molecules for large group when calculating msd. Skipping this molecule type.')
+                    'Error in selecting random molecules for large group when calculating msd. Skipping this molecule type.'
+                )
                 del_list.append(i_moltype)
 
     for index in sorted(del_list, reverse=True):
@@ -1830,7 +2096,9 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     msd_results['error_diffusion_constant'] = []
     for moltype in moltypes:
         positions = get_nojump_positions(universe, bead_groups[moltype])
-        results = shifted_correlation_average(mean_squared_displacement, times, positions)
+        results = shifted_correlation_average(
+            mean_squared_displacement, times, positions
+        )
         if results:
             msd_results['value'].append(results[1])
             msd_results['times'].append(results[0])
@@ -1841,18 +2109,27 @@ def calc_molecular_mean_squared_displacements(universe: MDAnalysis.Universe, max
     msd_results['types'] = moltypes
     msd_results['times'] = np.array(msd_results['times']) * ureg.picosecond
     msd_results['value'] = np.array(msd_results['value']) * ureg.angstrom**2
-    msd_results['diffusion_constant'] = (np.array(
-        msd_results['diffusion_constant']) * ureg.angstrom**2 / ureg.picosecond)
-    msd_results['error_diffusion_constant'] = np.array(msd_results['error_diffusion_constant'])
+    msd_results['diffusion_constant'] = (
+        np.array(msd_results['diffusion_constant']) * ureg.angstrom**2 / ureg.picosecond
+    )
+    msd_results['error_diffusion_constant'] = np.array(
+        msd_results['error_diffusion_constant']
+    )
 
     return msd_results
 
 
-def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices: NDArray) -> Dict:
-    '''
+def calc_radius_of_gyration(
+    universe: MDAnalysis.Universe, molecule_atom_indices: NDArray
+) -> Dict:
+    """
     Calculates the radius of gyration as a function of time for the atoms 'molecule_atom_indices'.
-    '''
-    if not universe or not universe.trajectory or universe.trajectory[0].dimensions is None:
+    """
+    if (
+        not universe
+        or not universe.trajectory
+        or universe.trajectory[0].dimensions is None
+    ):
         return {}
     selection = ' '.join([str(i) for i in molecule_atom_indices])
     selection = f'index {selection}'
@@ -1863,19 +2140,29 @@ def calc_radius_of_gyration(universe: MDAnalysis.Universe, molecule_atom_indices
     rg_results['value'] = []
     time_unit = hasattr(universe.trajectory.time, 'units')
     for __ in universe.trajectory:
-        rg_results['times'].append(universe.trajectory.time.magnitude if time_unit else universe.trajectory.time)
+        rg_results['times'].append(
+            universe.trajectory.time.magnitude
+            if time_unit
+            else universe.trajectory.time
+        )
         rg_results['value'].append(molecule.radius_of_gyration())
     rg_results['n_frames'] = len(rg_results['times'])
-    rg_results['times'] = np.array(rg_results['times']) * time_unit if time_unit else np.array(rg_results['times'])
+    rg_results['times'] = (
+        np.array(rg_results['times']) * time_unit
+        if time_unit
+        else np.array(rg_results['times'])
+    )
     rg_results['value'] = np.array(rg_results['value']) * ureg.angstrom
 
     return rg_results
 
 
-def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topology: MSection) -> List[Dict]:
-    '''
+def calc_molecular_radius_of_gyration(
+    universe: MDAnalysis.Universe, system_topology: MSection
+) -> List[Dict]:
+    """
     Calculates the radius of gyration as a function of time for each polymer in the system.
-    '''
+    """
     if not system_topology:
         return []
 
@@ -1894,13 +2181,21 @@ def calc_molecular_radius_of_gyration(universe: MDAnalysis.Universe, system_topo
     return rg_results
 
 
-def get_molecules_from_bond_list(n_particles: int, bond_list: List[tuple], particle_types: List[str] = None, particles_typeid: array = None) -> List[Dict]:
-    '''
+def get_molecules_from_bond_list(
+    n_particles: int,
+    bond_list: List[tuple],
+    particle_types: List[str] = None,
+    particles_typeid: array = None,
+) -> List[Dict]:
+    """
     Returns a list of dictionaries with molecule info from each instance in the list of bonds.
-    '''
+    """
     system_graph = networkx.empty_graph(n_particles)
     system_graph.add_edges_from([(i[0], i[1]) for i in bond_list])
-    molecules = [system_graph.subgraph(c).copy() for c in networkx.connected_components(system_graph)]
+    molecules = [
+        system_graph.subgraph(c).copy()
+        for c in networkx.connected_components(system_graph)
+    ]
     molecule_info: List[Dict] = []
     molecule_dict: Dict = {}
     for mol in molecules:
@@ -1910,25 +2205,39 @@ def get_molecules_from_bond_list(n_particles: int, bond_list: List[tuple], parti
         molecule_dict['type'] = 'molecule'
         molecule_dict['is_molecule'] = True
         if particles_typeid is None and len(particle_types) == n_particles:
-            molecule_dict['names'] = [particle_types[int(x)] for x in sorted(np.array(molecule_dict['indices']))]
+            molecule_dict['names'] = [
+                particle_types[int(x)]
+                for x in sorted(np.array(molecule_dict['indices']))
+            ]
         if particle_types is not None and particles_typeid is not None:
-            molecule_dict['names'] = [particle_types[particles_typeid[int(x)]] for x in sorted(np.array(molecule_dict['indices']))]
+            molecule_dict['names'] = [
+                particle_types[particles_typeid[int(x)]]
+                for x in sorted(np.array(molecule_dict['indices']))
+            ]
         molecule_info.append(molecule_dict)
     return molecule_info
 
 
 def is_same_molecule(mol_1: dict, mol_2: dict) -> bool:
-    '''
+    """
     Checks whether the 2 input molecule dictionary (see "get_molecules_from_bond_list()" above)
     represent the same molecule type, i.e., same particle types and corresponding bond connections.
-    '''
+    """
+
     def get_bond_list_dict(mol):
         mol_shift = np.min(mol['indices'])
         mol_bonds_shift = mol['bonds'] - mol_shift
-        bond_list = [sorted((mol['names'][i], mol['names'][j])) for i, j in mol_bonds_shift]
-        bond_list_names, bond_list_counts = np.unique(bond_list, axis=0, return_counts=True)
+        bond_list = [
+            sorted((mol['names'][i], mol['names'][j])) for i, j in mol_bonds_shift
+        ]
+        bond_list_names, bond_list_counts = np.unique(
+            bond_list, axis=0, return_counts=True
+        )
 
-        return {bond[0] + '-' + bond[1]: bond_list_counts[i_bond] for i_bond, bond in enumerate(bond_list_names)}
+        return {
+            bond[0] + '-' + bond[1]: bond_list_counts[i_bond]
+            for i_bond, bond in enumerate(bond_list_names)
+        }
 
     if sorted(mol_1['names']) != sorted(mol_2['names']):
         return False
@@ -1943,31 +2252,39 @@ def is_same_molecule(mol_1: dict, mol_2: dict) -> bool:
 
 
 def get_composition(children_names: List[str]) -> str:
-    '''
+    """
     Generates a generalized "chemical formula" based on the provided list `children_names`,
     with the format X(m)Y(n) for children_names X and Y of quantities m and n, respectively.
-    '''
+    """
     children_count_tup = np.unique(children_names, return_counts=True)
     formula = ''.join([f'{name}({count})' for name, count in zip(*children_count_tup)])
     return formula
 
 
-def get_bond_list_from_model_contributions(sec_run: MSection, method_index: int = -1, model_index: int = -1) -> List[tuple]:
-    '''
+def get_bond_list_from_model_contributions(
+    sec_run: MSection, method_index: int = -1, model_index: int = -1
+) -> List[tuple]:
+    """
     Generates bond list of tuples using the list of bonded force field interactions stored under run[].method[].force_field.model[].
 
     bond_list: List[tuple]
-    '''
+    """
     contributions = []
-    if sec_run.m_xpath(f'method[{method_index}].force_field.model[{model_index}].contributions'):
-        contributions = sec_run.method[method_index].force_field.model[model_index].contributions
+    if sec_run.m_xpath(
+        f'method[{method_index}].force_field.model[{model_index}].contributions'
+    ):
+        contributions = (
+            sec_run.method[method_index].force_field.model[model_index].contributions
+        )
     bond_list = []
     for contribution in contributions:
         if contribution.type != 'bond':
             continue
 
         atom_indices = contribution.atom_indices
-        if contribution.n_interactions:  # all bonds have been grouped into one contribution
+        if (
+            contribution.n_interactions
+        ):  # all bonds have been grouped into one contribution
             bond_list = [tuple(indices) for indices in atom_indices]
         else:
             bond_list.append(tuple(contribution.atom_indices))

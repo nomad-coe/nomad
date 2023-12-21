@@ -31,7 +31,7 @@ from nomad.files import UploadFiles, StreamedFile, create_zipstream
 
 
 def parameter_dependency_from_model(name: str, model_cls, exclude: List[str] = []):
-    '''
+    """
     Takes a pydantic model class as input and creates a dependency with corresponding
     Query parameter definitions that can be used for GET
     requests.
@@ -42,7 +42,7 @@ def parameter_dependency_from_model(name: str, model_cls, exclude: List[str] = [
     Arguments:
         name: Name for the dependency function.
         model_cls: A ``BaseModel`` inheriting model class as input.
-    '''
+    """
     names = []
     annotations: Dict[str, type] = {}
     defaults = []
@@ -51,9 +51,12 @@ def parameter_dependency_from_model(name: str, model_cls, exclude: List[str] = [
             field_info = field_model.field_info
             names.append(field_model.name)
             annotations[field_model.name] = field_model.outer_type_
-            defaults.append(Query(field_model.default, description=field_info.description))
+            defaults.append(
+                Query(field_model.default, description=field_info.description)
+            )
 
-    code = inspect.cleandoc('''
+    code = inspect.cleandoc(
+        """
     def %s(%s):
         try:
             return %s(%s)
@@ -63,9 +66,14 @@ def parameter_dependency_from_model(name: str, model_cls, exclude: List[str] = [
                 error['loc'] = ['query'] + list(error['loc'])
             raise HTTPException(422, detail=errors)
 
-    ''' % (
-        name, ', '.join(names), model_cls.__name__,
-        ', '.join(['%s=%s' % (name, name) for name in names])))
+    """
+        % (
+            name,
+            ', '.join(names),
+            model_cls.__name__,
+            ', '.join(['%s=%s' % (name, name) for name in names]),
+        )
+    )
 
     compiled = compile(code, 'string', 'exec')
     env = {model_cls.__name__: model_cls}
@@ -78,7 +86,8 @@ def parameter_dependency_from_model(name: str, model_cls, exclude: List[str] = [
 
 
 class DownloadItem(BaseModel):
-    ''' Defines an object (file or folder) for download. '''
+    """Defines an object (file or folder) for download."""
+
     upload_id: str
     raw_path: str
     zip_path: str
@@ -86,13 +95,14 @@ class DownloadItem(BaseModel):
 
 
 def create_download_stream_zipped(
-        download_items: Union[DownloadItem, Iterator[DownloadItem]],
-        upload_files: UploadFiles = None,
-        re_pattern: Any = None,
-        recursive: bool = False,
-        create_manifest_file: bool = False,
-        compress: bool = True) -> Iterator[bytes]:
-    '''
+    download_items: Union[DownloadItem, Iterator[DownloadItem]],
+    upload_files: UploadFiles = None,
+    re_pattern: Any = None,
+    recursive: bool = False,
+    create_manifest_file: bool = False,
+    compress: bool = True,
+) -> Iterator[bytes]:
+    """
     Creates a zip-file stream for downloading raw data with ``StreamingResponse``.
 
     Arguments:
@@ -102,13 +112,16 @@ def create_download_stream_zipped(
         recursive: if subdirectories should be included (recursively).
         create_manifest_file: if set, a manifest file is created in the root folder.
         compress: if the zip file should be compressed or not
-    '''
+    """
+
     def streamed_files(upload_files) -> Iterator[StreamedFile]:
         manifest = []
         try:
             items: Iterator[DownloadItem] = (
-                iter([download_items]) if isinstance(download_items, DownloadItem)
-                else download_items)
+                iter([download_items])
+                if isinstance(download_items, DownloadItem)
+                else download_items
+            )
             streamed_paths: Set[str] = set()
 
             for download_item in items:
@@ -131,22 +144,29 @@ def create_download_stream_zipped(
                         yield StreamedFile(
                             path=download_item.zip_path,
                             f=upload_files.raw_file(download_item.raw_path, 'rb'),
-                            size=upload_files.raw_file_size(download_item.raw_path))
+                            size=upload_files.raw_file_size(download_item.raw_path),
+                        )
                 else:
                     # Directory
                     for path_info in upload_files.raw_directory_list(
-                            download_item.raw_path, recursive, files_only=True):
+                        download_item.raw_path, recursive, files_only=True
+                    ):
                         files_found = True
                         if not re_pattern or re_pattern.search(path_info.path):
                             all_filtered = False
-                            relative_path = os.path.relpath(path_info.path, download_item.raw_path)
-                            zip_path = os.path.join(download_item.zip_path, relative_path)
+                            relative_path = os.path.relpath(
+                                path_info.path, download_item.raw_path
+                            )
+                            zip_path = os.path.join(
+                                download_item.zip_path, relative_path
+                            )
                             if zip_path not in streamed_paths:
                                 streamed_paths.add(zip_path)
                                 yield StreamedFile(
                                     path=zip_path,
                                     f=upload_files.raw_file(path_info.path, 'rb'),
-                                    size=path_info.size)
+                                    size=path_info.size,
+                                )
 
                 if create_manifest_file and download_item.entry_metadata:
                     if not all_filtered or not files_found:
@@ -154,7 +174,11 @@ def create_download_stream_zipped(
 
             if create_manifest_file:
                 manifest_content = json.dumps(manifest).encode()
-                yield StreamedFile(path='manifest.json', f=io.BytesIO(manifest_content), size=len(manifest_content))
+                yield StreamedFile(
+                    path='manifest.json',
+                    f=io.BytesIO(manifest_content),
+                    size=len(manifest_content),
+                )
 
         finally:
             if upload_files:
@@ -164,9 +188,13 @@ def create_download_stream_zipped(
 
 
 def create_download_stream_raw_file(
-        upload_files: UploadFiles, path: str,
-        offset: int = 0, length: int = -1, decompress=False) -> Iterator[bytes]:
-    '''
+    upload_files: UploadFiles,
+    path: str,
+    offset: int = 0,
+    length: int = -1,
+    decompress=False,
+) -> Iterator[bytes]:
+    """
     Creates a file stream for downloading raw data with ``StreamingResponse``.
 
     Arguments:
@@ -176,7 +204,7 @@ def create_download_stream_raw_file(
         length: number of bytes to read. -1 by default, which means the remainder of the
             file will be read.
         decompress: decompresses if the file is compressed (and of a supported type).
-    '''
+    """
     raw_file: Any = upload_files.raw_file(path, 'rb')
     if decompress:
         if path.endswith('.gz'):
@@ -186,7 +214,9 @@ def create_download_stream_raw_file(
             raw_file = lzma.open(filename=raw_file, mode='rb')
 
     assert offset >= 0, 'Invalid offset provided'
-    assert length > 0 or length == -1, 'Invalid length provided. Should be > 0 or equal to -1.'
+    assert (
+        length > 0 or length == -1
+    ), 'Invalid length provided. Should be > 0 or equal to -1.'
     if offset > 0:
         raw_file.seek(offset)
 
@@ -213,35 +243,36 @@ def create_download_stream_raw_file(
 
 
 def create_stream_from_string(content: str) -> io.BytesIO:
-    ''' For returning strings as content using '''
+    """For returning strings as content using"""
     return io.BytesIO(content.encode())
 
 
 def create_responses(*args):
-    return {
-        status_code: response
-        for status_code, response in args}
+    return {status_code: response for status_code, response in args}
 
 
-def browser_download_headers(filename: str, media_type: str = 'application/octet-stream') -> Dict[str, str]:
-    '''
+def browser_download_headers(
+    filename: str, media_type: str = 'application/octet-stream'
+) -> Dict[str, str]:
+    """
     Creates standardized headers which tells browsers that they should download the
     data to a file with the specified filename. Note, the `media_type` should normally be
     either `application/octet-stream` or `application/zip`, using for example `application/json`
     will cause most browsers to try to open and view the file instead of downloading it.
-    '''
+    """
     assert filename, 'Filename must be specified'
     filename = filename.replace('"', '\\"')
     return {
         'Content-Type': media_type,
-        'Content-Disposition': f'attachment; filename="{filename}"'}
+        'Content-Disposition': f'attachment; filename="{filename}"',
+    }
 
 
 def update_url_query_arguments(original_url: str, **kwargs) -> str:
-    '''
+    """
     Takes an url, and returns a new url, obtained by updating the query arguments in the
     `original_url` as specified by the kwargs.
-    '''
+    """
     scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(original_url)
     query_dict = urllib.parse.parse_qs(query)
     for k, v in kwargs.items():

@@ -34,88 +34,141 @@ from tests.utils import assert_log
 
 
 boolean_positions = (
-    'parsers/template', 'tests/data/normalizers/no_sim_cell_boolean_positions.json')
+    'parsers/template',
+    'tests/data/normalizers/no_sim_cell_boolean_positions.json',
+)
 
 single_string_atom_labels = (
-    'parsers/template', 'tests/data/normalizers/single_string_atom_labels.json')
+    'parsers/template',
+    'tests/data/normalizers/single_string_atom_labels.json',
+)
 
 unknown_atom_label = (
-    'parsers/template', 'tests/data/normalizers/unknown_atom_label_test.json')
+    'parsers/template',
+    'tests/data/normalizers/unknown_atom_label_test.json',
+)
 
-fcc_symmetry = (
-    'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
+fcc_symmetry = ('parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
 
-two_d = (
-    'parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
+two_d = ('parsers/template', 'tests/data/normalizers/fcc_crystal_structure.json')
 
-vasp_parser = (
-    'parsers/vasp', 'tests/data/parsers/vasp/vasp.xml')
+vasp_parser = ('parsers/vasp', 'tests/data/parsers/vasp/vasp.xml')
 
 glucose_atom_labels = (
-    'parsers/template', 'tests/data/normalizers/glucose_atom_labels.json')
+    'parsers/template',
+    'tests/data/normalizers/glucose_atom_labels.json',
+)
 
 parser_exceptions = {
     'parsers/wien2k': ['results.method.simulation.dft.xc_functional_names'],
     'parsers/abinit': [
-        'results.material.chemical_formula_descriptive', 'results.material.structural_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.material.structural_type',
+    ],
     'parsers/dl-poly': [
-        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.basis_set_type',
-        'results.method.simulation.dft.xc_functional_names', 'results.material.structural_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parsers/lib-results.material.elements': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+    ],
     'parsers/phonopy': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+    ],
     'parsers/gamess': [
-        'results.material.chemical_formula_descriptive', 'results.material.structural_type',
-        'results.method.simulation.dft.xc_functional_names', 'results.method.simulation.dft.basis_set_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.material.structural_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.method.simulation.dft.basis_set_type',
+    ],
     'parsers/gulp': [
-        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type', 'results.method.simulation.dft.basis_set_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+        'results.method.simulation.dft.basis_set_type',
+    ],
     'parsers/elastic': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parsers/elk': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     # TODO why rename parsers?
     'parser/fleur': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parser/molcas': [
-        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type', 'results.method.simulation.dft.basis_set_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+        'results.method.simulation.dft.basis_set_type',
+    ],
     'parsers/dmol': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parsers/band': ['results.material.structural_type'],
     'parsers/qbox': [
-        'results.material.chemical_formula_descriptive', 'results.material.elements',
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names', 'results.material.structural_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.material.elements',
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parsers/cpmd': [
-        'results.material.chemical_formula_descriptive', 'results.method.simulation.dft.basis_set_type',
-        'results.method.simulation.dft.xc_functional_names', 'results.material.structural_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parser/onetep': [
-        'results.material.chemical_formula_descriptive', 'results.material.elements',
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.material.elements',
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parsers/siesta': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
     'parsers/lobster': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
-    'parsers/xps': ['results.material.chemical_formula_descriptive', 'results.material.elements'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
+    'parsers/xps': [
+        'results.material.chemical_formula_descriptive',
+        'results.material.elements',
+    ],
     'parsers/aflow': [
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names'],
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+    ],
     'parses/yambo': [
-        'results.material.chemical_formula_descriptive', 'results.material.elements',
-        'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-        'results.material.structural_type'],
+        'results.material.chemical_formula_descriptive',
+        'results.material.elements',
+        'results.method.simulation.dft.basis_set_type',
+        'results.method.simulation.dft.xc_functional_names',
+        'results.material.structural_type',
+    ],
 }
-'''
+"""
 Keys that the normalizer for certain parsers might not produce. In an ideal world this
 map would be empty.
-'''
+"""
 
 
 def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
@@ -123,7 +176,6 @@ def test_template_example_normalizer(parsed_template_example, no_warn, caplog):
 
 
 def assert_normalized(entry_archive: datamodel.EntryArchive):
-
     metadata = entry_archive.metadata
 
     if metadata.parser_name == 'parsers/nexus':
@@ -136,7 +188,10 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
 
     if 'results.material.chemical_formula_descriptive' not in exceptions:
         assert results.material.chemical_formula_descriptive is not None
-        assert results.material.chemical_formula_descriptive != config.services.unavailable_value
+        assert (
+            results.material.chemical_formula_descriptive
+            != config.services.unavailable_value
+        )
     if 'results.material.elements' not in exceptions:
         assert len(results.material.elements) > 0
 
@@ -149,14 +204,19 @@ def assert_normalized(entry_archive: datamodel.EntryArchive):
         assert results.material.structural_type is not None
 
         for key in [
-            'results.method.simulation.program_name', 'results.method.simulation.program_version',
-            'results.method.simulation.dft.basis_set_type', 'results.method.simulation.dft.xc_functional_names',
-            'results.material.structural_type', 'results.material.chemical_formula_descriptive'
+            'results.method.simulation.program_name',
+            'results.method.simulation.program_version',
+            'results.method.simulation.dft.basis_set_type',
+            'results.method.simulation.dft.xc_functional_names',
+            'results.material.structural_type',
+            'results.material.chemical_formula_descriptive',
         ]:
             if key in exceptions:
                 continue
 
-            assert entry_archive[key] != config.services.unavailable_value, '%s must not be unavailable' % key
+            assert entry_archive[key] != config.services.unavailable_value, (
+                '%s must not be unavailable' % key
+            )
 
     assert entry_archive.metadata
     assert entry_archive.metadata.quantities
@@ -171,18 +231,22 @@ def test_normalizer(normalized_example: EntryArchive):
 
 
 def test_normalization_atoms(bulk):
-    '''Tests correct value extraction of the system values.
-    '''
+    """Tests correct value extraction of the system values."""
     atoms = bulk.run[0].system[0].atoms
     reference_lattice = 5.431
     reference_lattice_reciprocal = 2 * np.pi / reference_lattice
-    assert (atoms.lattice_vectors.to('angstrom').magnitude == reference_lattice * np.identity(3)).all()
-    assert (atoms.lattice_vectors_reciprocal.to('1/angstrom').magnitude == reference_lattice_reciprocal * np.identity(3)).all()
+    assert (
+        atoms.lattice_vectors.to('angstrom').magnitude
+        == reference_lattice * np.identity(3)
+    ).all()
+    assert (
+        atoms.lattice_vectors_reciprocal.to('1/angstrom').magnitude
+        == reference_lattice_reciprocal * np.identity(3)
+    ).all()
 
 
 def test_normalizer_faulty_matid(caplog):
-    '''Runs normalizer on an example w/ bools for atom pos. Should force matid error.
-    '''
+    """Runs normalizer on an example w/ bools for atom pos. Should force matid error."""
     archive = parse_file(boolean_positions)
     run_normalize(archive)
     assert_log(caplog, 'ERROR', 'matid project system classification failed')
@@ -190,26 +254,26 @@ def test_normalizer_faulty_matid(caplog):
 
 
 def test_normalizer_single_string_atom_labels(caplog):
-    '''
+    """
     Runs normalizer on ['Br1SiSiK'] expects error. Should replace the label with 'X' and
     the numbers of positions should not match the labels.
-    '''
+    """
     archive = parse_file(single_string_atom_labels)
     run_normalize(archive)
     assert_log(caplog, 'ERROR', 'len of atom position does not match number of atoms')
 
 
 def test_normalizer_unknown_atom_label(caplog, no_warn):
-    '''Runs normalizer on ['Br','Si','Si','Za'], for normalization Za will be replaced,
+    """Runs normalizer on ['Br','Si','Si','Za'], for normalization Za will be replaced,
     but stays in the labels.
-    '''
+    """
     archive = parse_file(unknown_atom_label)
     run_normalize(archive)
     assert archive.run[0].m_xpath('system[*].atoms.labels')[0][3] == 'Za'
 
 
 def test_symmetry_classification_fcc():
-    '''Runs normalizer where lattice vectors should give fcc symmetry.'''
+    """Runs normalizer where lattice vectors should give fcc symmetry."""
     archive = parse_file(fcc_symmetry)
     archive = run_normalize(archive)
     expected_crystal_system = 'cubic'
@@ -234,28 +298,30 @@ def test_to_ase():
 
 
 def test_system_classification(atom, molecule, one_d, two_d, surface, bulk):
-    """Tests that the system classification is correct for different kind of systems
-    """
+    """Tests that the system classification is correct for different kind of systems"""
     # Atom
-    assert atom.run[0].system[-1].type == "atom"
+    assert atom.run[0].system[-1].type == 'atom'
     # Molecule
-    assert molecule.run[0].system[-1].type == "molecule / cluster"
+    assert molecule.run[0].system[-1].type == 'molecule / cluster'
     # 1D system
-    assert one_d.run[0].system[-1].type == "1D"
+    assert one_d.run[0].system[-1].type == '1D'
     # 2D system
-    assert two_d.run[0].system[-1].type == "2D"
+    assert two_d.run[0].system[-1].type == '2D'
     # Surface
-    assert surface.run[0].system[-1].type == "surface"
+    assert surface.run[0].system[-1].type == 'surface'
     # Bulk system
-    assert bulk.run[0].system[-1].type == "bulk"
+    assert bulk.run[0].system[-1].type == 'bulk'
 
 
-@pytest.mark.parametrize('entry', [
-    ('single_point'),
-    ('molecular_dynamics'),
-    ('geometry_optimization'),
-    ('phonon'),
-])
+@pytest.mark.parametrize(
+    'entry',
+    [
+        ('single_point'),
+        ('molecular_dynamics'),
+        ('geometry_optimization'),
+        ('phonon'),
+    ],
+)
 def test_representative_systems(entry, request):
     """Checks that the representative systems are correctly identified and
     processed by SystemNormalizer.
@@ -269,7 +335,7 @@ def test_representative_systems(entry, request):
         scc = entry.run[0].calculation[-1]
         repr_system = scc.system_ref
     else:
-        if entry.workflow[0].type == "molecular_dynamics":
+        if entry.workflow[0].type == 'molecular_dynamics':
             scc = frames[0]
         else:
             scc = frames[-1]
@@ -304,9 +370,9 @@ def test_reduced_chemical_formula():
 
 
 def test_vasp_incar_system():
-    '''
+    """
     Ensure we can test an incar value in the VASP example
-    '''
+    """
     archive = parse_file(vasp_parser)
     archive = run_normalize(archive)
     expected_value = 'SrTiO3'  # material's formula in vasp.xml
@@ -317,8 +383,8 @@ def test_vasp_incar_system():
 
 
 def test_aflow_prototypes():
-    '''Tests that some basis structures are matched with the correct AFLOW prototypes
-    '''
+    """Tests that some basis structures are matched with the correct AFLOW prototypes"""
+
     def get_proto(atoms):
         archive = get_template_for_structure(atoms)
         try:
@@ -332,13 +398,13 @@ def test_aflow_prototypes():
         return prototype_aflow_id, prototype_label
 
     # No prototype info for non-bulk structures
-    water = ase.build.molecule("H2O")
+    water = ase.build.molecule('H2O')
     prototype_aflow_id, prototype_label = get_proto(water)
     assert prototype_aflow_id is None
     assert prototype_label is None
 
     # No prototype info for bulk structure without match
-    rattled = ase.build.bulk("C", crystalstructure="diamond", a=3.57, cubic=True)
+    rattled = ase.build.bulk('C', crystalstructure='diamond', a=3.57, cubic=True)
     rattled.rattle(stdev=2, seed=42)
     rattled.wrap()
     aflow_id, prototype_label = get_proto(rattled)
@@ -346,54 +412,61 @@ def test_aflow_prototypes():
     assert prototype_label is None
 
     # Diamond
-    diamond = ase.build.bulk("C", crystalstructure="diamond", a=3.57)
+    diamond = ase.build.bulk('C', crystalstructure='diamond', a=3.57)
     prototype_aflow_id, prototype_label = get_proto(diamond)
-    assert prototype_aflow_id == "A_cF8_227_a"
-    assert prototype_label == "227-C-cF8"
+    assert prototype_aflow_id == 'A_cF8_227_a'
+    assert prototype_label == '227-C-cF8'
 
     # BCC
-    bcc = ase.build.bulk("Fe", crystalstructure="bcc", a=2.856)
+    bcc = ase.build.bulk('Fe', crystalstructure='bcc', a=2.856)
     prototype_aflow_id, prototype_label = get_proto(bcc)
-    assert prototype_aflow_id == "A_cI2_229_a"
-    assert prototype_label == "229-W-cI2"
+    assert prototype_aflow_id == 'A_cI2_229_a'
+    assert prototype_label == '229-W-cI2'
 
     # FCC
-    fcc = ase.build.bulk("Ge", crystalstructure="fcc", a=5.658)
+    fcc = ase.build.bulk('Ge', crystalstructure='fcc', a=5.658)
     prototype_aflow_id, prototype_label = get_proto(fcc)
-    assert prototype_aflow_id == "A_cF4_225_a"
-    assert prototype_label == "225-Cu-cF4"
+    assert prototype_aflow_id == 'A_cF4_225_a'
+    assert prototype_label == '225-Cu-cF4'
 
     # Rocksalt
-    rocksalt = ase.build.bulk("NaCl", crystalstructure="rocksalt", a=5.64)
+    rocksalt = ase.build.bulk('NaCl', crystalstructure='rocksalt', a=5.64)
     prototype_aflow_id, prototype_label = get_proto(rocksalt)
-    assert prototype_aflow_id == "AB_cF8_225_a_b"
-    assert prototype_label == "225-ClNa-cF8"
+    assert prototype_aflow_id == 'AB_cF8_225_a_b'
+    assert prototype_label == '225-ClNa-cF8'
 
     # Zincblende
-    zincblende = ase.build.bulk("ZnS", crystalstructure="zincblende", a=5.42, cubic=True)
+    zincblende = ase.build.bulk(
+        'ZnS', crystalstructure='zincblende', a=5.42, cubic=True
+    )
     prototype_aflow_id, prototype_label = get_proto(zincblende)
-    assert prototype_aflow_id == "AB_cF8_216_c_a"
-    assert prototype_label == "216-SZn-cF8"
+    assert prototype_aflow_id == 'AB_cF8_216_c_a'
+    assert prototype_label == '216-SZn-cF8'
 
     # Wurtzite
-    wurtzite = ase.build.bulk("SiC", crystalstructure="wurtzite", a=3.086, c=10.053)
+    wurtzite = ase.build.bulk('SiC', crystalstructure='wurtzite', a=3.086, c=10.053)
     prototype_aflow_id, prototype_label = get_proto(wurtzite)
-    assert prototype_aflow_id == "AB_hP4_186_b_b"
-    assert prototype_label == "186-SZn-hP4"
+    assert prototype_aflow_id == 'AB_hP4_186_b_b'
+    assert prototype_label == '186-SZn-hP4'
 
 
-@pytest.mark.skipif(config.normalize.springer_db_path is None,
-                    reason='Springer DB path missing')
+@pytest.mark.skipif(
+    config.normalize.springer_db_path is None, reason='Springer DB path missing'
+)
 def test_springer_normalizer():
-    '''
+    """
     Ensure the Springer normalizer works well with the VASP example.
-    '''
+    """
     archive = parse_file(vasp_parser)
     archive = run_normalize(archive)
 
     springer = SpringerMaterial.m_from_dict(
-        archive.run[0].m_xpath('system[*].springer_material')[0][0])
+        archive.run[0].m_xpath('system[*].springer_material')[0][0]
+    )
 
     assert springer.id == 'sd_0305232'
     assert springer.alphabetical_formula == 'O3SrTi'
-    assert springer.url == 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'
+    assert (
+        springer.url
+        == 'http://materials.springer.com/isp/crystallographic/docs/sd_0305232'
+    )

@@ -1,4 +1,3 @@
-
 #
 # Copyright The NOMAD Authors.
 #
@@ -40,10 +39,8 @@ def invoke_cli(*args, **kwargs):
 @pytest.mark.usefixtures('reset_config', 'nomad_logging')
 class TestCli:
     def test_help(self, example_mainfile):
-
         start = time.time()
-        result = invoke_cli(
-            cli, ['--help'], catch_exceptions=False)
+        result = invoke_cli(cli, ['--help'], catch_exceptions=False)
         assert result.exit_code == 0
         assert time.time() - start < 1
 
@@ -52,21 +49,22 @@ class TestCli:
 class TestParse:
     def test_parser(self, example_mainfile):
         _, mainfile_path = example_mainfile
-        result = invoke_cli(
-            cli, ['parse', mainfile_path], catch_exceptions=False)
+        result = invoke_cli(cli, ['parse', mainfile_path], catch_exceptions=False)
         assert result.exit_code == 0
 
 
-@pytest.mark.usefixtures('reset_config', 'no_warn', 'mongo_infra', 'elastic_infra', 'raw_files_infra')
+@pytest.mark.usefixtures(
+    'reset_config', 'no_warn', 'mongo_infra', 'elastic_infra', 'raw_files_infra'
+)
 class TestAdmin:
     def test_reset(self, reset_infra):
         result = invoke_cli(
-            cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False)
+            cli, ['admin', 'reset', '--i-am-really-sure'], catch_exceptions=False
+        )
         assert result.exit_code == 0
 
     def test_reset_not_sure(self):
-        result = invoke_cli(
-            cli, ['admin', 'reset'], catch_exceptions=False)
+        result = invoke_cli(cli, ['admin', 'reset'], catch_exceptions=False)
         assert result.exit_code == 1
 
     # TODO this has somekind of raise condition in it and the test fails every other time
@@ -94,10 +92,14 @@ class TestAdmin:
     #     # TODO test new index pair
     #     # assert es_search(owner=None, query=dict(upload_id=upload_id)).pagination.total == 0
 
-    @pytest.mark.parametrize('publish_time,dry,lifted', [
-        (datetime.datetime.now(), False, False),
-        (datetime.datetime(year=2012, month=1, day=1), True, False),
-        (datetime.datetime(year=2012, month=1, day=1), False, True)])
+    @pytest.mark.parametrize(
+        'publish_time,dry,lifted',
+        [
+            (datetime.datetime.now(), False, False),
+            (datetime.datetime(year=2012, month=1, day=1), True, False),
+            (datetime.datetime(year=2012, month=1, day=1), False, True),
+        ],
+    )
     def test_lift_embargo(self, published, publish_time, dry, lifted):
         upload_id = published.upload_id
         published.publish_time = publish_time
@@ -107,18 +109,27 @@ class TestAdmin:
         assert published.upload_files.exists()
         assert published.with_embargo
 
-        assert search(owner='public', query=dict(upload_id=upload_id)).pagination.total == 0
+        assert (
+            search(owner='public', query=dict(upload_id=upload_id)).pagination.total
+            == 0
+        )
 
         result = invoke_cli(
-            cli, ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
-            catch_exceptions=False)
+            cli,
+            ['admin', 'lift-embargo'] + (['--dry'] if dry else []),
+            catch_exceptions=False,
+        )
 
         assert result.exit_code == 0
         published.block_until_complete()
         assert not published.with_embargo == lifted
-        assert (search(owner='public', query=dict(upload_id=upload_id)).pagination.total > 0) == lifted
+        assert (
+            search(owner='public', query=dict(upload_id=upload_id)).pagination.total > 0
+        ) == lifted
         if lifted:
-            with files.UploadFiles.get(upload_id=upload_id).read_archive(entry_id=entry.entry_id) as archive:
+            with files.UploadFiles.get(upload_id=upload_id).read_archive(
+                entry_id=entry.entry_id
+            ) as archive:
                 assert entry.entry_id in archive
 
     def test_delete_entry(self, published):
@@ -126,7 +137,8 @@ class TestAdmin:
         entry = Entry.objects(upload_id=upload_id).first()
 
         result = invoke_cli(
-            cli, ['admin', 'entries', 'rm', entry.entry_id], catch_exceptions=False)
+            cli, ['admin', 'entries', 'rm', entry.entry_id], catch_exceptions=False
+        )
 
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
@@ -141,14 +153,15 @@ def transform_for_index_test(entry):
 
 @pytest.mark.usefixtures('reset_config', 'no_warn')
 class TestAdminUploads:
-
     def test_query_mongo(self, published):
         upload_id = published.upload_id
 
         query = dict(upload_id=upload_id)
         result = invoke_cli(
-            cli, ['admin', 'uploads', '--entries-mongo-query', json.dumps(query), 'ls'],
-            catch_exceptions=False)
+            cli,
+            ['admin', 'uploads', '--entries-mongo-query', json.dumps(query), 'ls'],
+            catch_exceptions=False,
+        )
 
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -157,7 +170,8 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 'ls', upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 'ls', upload_id], catch_exceptions=False
+        )
 
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
@@ -166,7 +180,16 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', '--entries-es-query', f'{{"upload_id":"{upload_id}"}}', 'ls'], catch_exceptions=False)
+            cli,
+            [
+                'admin',
+                'uploads',
+                '--entries-es-query',
+                f'{{"upload_id":"{upload_id}"}}',
+                'ls',
+            ],
+            catch_exceptions=False,
+        )
         assert result.exit_code == 0
         assert '1 uploads selected' in result.stdout
 
@@ -174,7 +197,8 @@ class TestAdminUploads:
         upload_id = published.upload_id
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 'rm', upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 'rm', upload_id], catch_exceptions=False
+        )
 
         assert result.exit_code == 0
         assert 'deleting' in result.stdout
@@ -190,7 +214,8 @@ class TestAdminUploads:
         assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 'index', upload_id], catch_exceptions=False
+        )
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
@@ -201,11 +226,17 @@ class TestAdminUploads:
         assert search(owner='all', query=dict(comment='specific')).pagination.total == 0
 
         result = invoke_cli(
-            cli, [
-                'admin', 'uploads', 'index',
-                '--transformer', 'tests.test_cli.transform_for_index_test',
-                upload_id],
-            catch_exceptions=False)
+            cli,
+            [
+                'admin',
+                'uploads',
+                'index',
+                '--transformer',
+                'tests.test_cli.transform_for_index_test',
+                upload_id,
+            ],
+            catch_exceptions=False,
+        )
         assert result.exit_code == 0
         assert 'index' in result.stdout
 
@@ -218,7 +249,10 @@ class TestAdminUploads:
         assert entry.nomad_version != 'test_version'
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 'process', '--parallel', '2', upload_id], catch_exceptions=False)
+            cli,
+            ['admin', 'uploads', 'process', '--parallel', '2', upload_id],
+            catch_exceptions=False,
+        )
 
         assert result.exit_code == 0
         assert 'processing' in result.stdout
@@ -233,13 +267,16 @@ class TestAdminUploads:
         published.save()
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 're-pack', upload_id], catch_exceptions=False)
+            cli, ['admin', 'uploads', 're-pack', upload_id], catch_exceptions=False
+        )
 
         assert result.exit_code == 0
         assert 're-pack' in result.stdout
         entry.reload()
         upload_files = files.PublicUploadFiles(upload_id)
-        for path_info in upload_files.raw_directory_list(recursive=True, files_only=True):
+        for path_info in upload_files.raw_directory_list(
+            recursive=True, files_only=True
+        ):
             with upload_files.raw_file(path_info.path) as f:
                 f.read()
         for entry in Entry.objects(upload_id=upload_id):
@@ -257,7 +294,10 @@ class TestAdminUploads:
                 assert entry_metadata.main_author.user_id == test_user.user_id
 
         result = invoke_cli(
-            cli, ['admin', 'uploads', 'chown', other_test_user.username, upload_id], catch_exceptions=False)
+            cli,
+            ['admin', 'uploads', 'chown', other_test_user.username, upload_id],
+            catch_exceptions=False,
+        )
 
         assert result.exit_code == 0
         assert 'changing' in result.stdout
@@ -269,11 +309,15 @@ class TestAdminUploads:
             for entry_metadata in entries_metadata:
                 assert entry_metadata.main_author.user_id == other_test_user.user_id
 
-    @pytest.mark.parametrize('with_entries,success,failure', [
-        (True, False, False),
-        (False, False, False),
-        (True, True, False),
-        (False, False, True)])
+    @pytest.mark.parametrize(
+        'with_entries,success,failure',
+        [
+            (True, False, False),
+            (False, False, False),
+            (True, True, False),
+            (False, False, True),
+        ],
+    )
     def test_reset(self, non_empty_processed, with_entries, success, failure):
         upload_id = non_empty_processed.upload_id
 
@@ -283,9 +327,12 @@ class TestAdminUploads:
         assert entry.process_status == ProcessStatus.SUCCESS
 
         args = ['admin', 'uploads', 'reset']
-        if with_entries: args.append('--with-entries')
-        if success: args.append('--success')
-        if failure: args.append('--failure')
+        if with_entries:
+            args.append('--with-entries')
+        if success:
+            args.append('--success')
+        if failure:
+            args.append('--failure')
         args.append(upload_id)
         result = invoke_cli(cli, args, catch_exceptions=False)
 
@@ -295,8 +342,10 @@ class TestAdminUploads:
         entry = Entry.objects(upload_id=upload_id).first()
 
         expected_state = ProcessStatus.READY
-        if success: expected_state = ProcessStatus.SUCCESS
-        if failure: expected_state = ProcessStatus.FAILURE
+        if success:
+            expected_state = ProcessStatus.SUCCESS
+        if failure:
+            expected_state = ProcessStatus.FAILURE
         assert upload.process_status == expected_state
         if not with_entries:
             assert entry.process_status == ProcessStatus.SUCCESS
@@ -310,7 +359,9 @@ class TestAdminUploads:
         data.create_entry(upload_id='test_upload')
         data.save(with_es=indexed, with_files=False)
 
-        result = invoke_cli(cli, 'admin uploads integrity entry-index', catch_exceptions=True)
+        result = invoke_cli(
+            cli, 'admin uploads integrity entry-index', catch_exceptions=True
+        )
 
         assert result.exit_code == 0
         assert ('test_upload' in result.output) != indexed
@@ -318,15 +369,24 @@ class TestAdminUploads:
 
 @pytest.mark.usefixtures('reset_config')
 class TestClient:
-
-    def test_upload(self, non_empty_example_upload, admin_user, proc_infra, client_with_api_v1):
+    def test_upload(
+        self, non_empty_example_upload, admin_user, proc_infra, client_with_api_v1
+    ):
         result = invoke_cli(
             cli,
             [
-                'client', '-u', admin_user.username, '--token-via-api',
-                'upload', '--upload-name', 'test_upload', '--local-path',
-                non_empty_example_upload],
-            catch_exceptions=False)
+                'client',
+                '-u',
+                admin_user.username,
+                '--token-via-api',
+                'upload',
+                '--upload-name',
+                'test_upload',
+                '--local-path',
+                non_empty_example_upload,
+            ],
+            catch_exceptions=False,
+        )
 
         assert result.exit_code == 0, result.output
         assert '1/0/1' in result.output
@@ -335,16 +395,19 @@ class TestClient:
     def test_local(self, published_wo_user_metadata, client_with_api_v1):
         result = invoke_cli(
             cli,
-            ['client', 'local', published_wo_user_metadata.successful_entries[0].entry_id],
-            catch_exceptions=True)
+            [
+                'client',
+                'local',
+                published_wo_user_metadata.successful_entries[0].entry_id,
+            ],
+            catch_exceptions=True,
+        )
 
         assert result.exit_code == 0, result.output
 
     @pytest.mark.skip('Disabled. Tested code is temporaely commented.')
     def test_statistics(self):
-
-        result = invoke_cli(
-            cli, ['client', 'statistics-table'], catch_exceptions=True)
+        result = invoke_cli(cli, ['client', 'statistics-table'], catch_exceptions=True)
 
         assert result.exit_code == 0, result.output
         assert 'Calculations, e.g. total energies' in result.output
@@ -358,10 +421,8 @@ class TestClient:
 
 @pytest.mark.usefixtures('reset_config')
 class TestDev:
-
     def test_parser_metadata(self):
-        result = invoke_cli(
-            cli, ['dev', 'parser-metadata'], catch_exceptions=True)
+        result = invoke_cli(cli, ['dev', 'parser-metadata'], catch_exceptions=True)
 
         assert result.exit_code == 0, result.output
         assert 'yambo' in result.output

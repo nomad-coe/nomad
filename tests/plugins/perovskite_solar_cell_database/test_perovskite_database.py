@@ -33,7 +33,7 @@ def test_perovskite_solar_cell_plugin_processing(raw_files, no_warn, test_user, 
     test_archive = data.create_entry_from_file(
         upload_id=upload_id,
         mainfile=os.path.join(directory, mainfile),
-        entry_archive=EntryArchive(m_context=context)
+        entry_archive=EntryArchive(m_context=context),
     )
 
     data.save(with_es=False)

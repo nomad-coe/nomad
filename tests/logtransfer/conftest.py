@@ -22,7 +22,7 @@ def start_logtransfer_service():
     server_process = Process(
         target=logtransfer.start_logtransfer_service,
         kwargs=dict(host=host, port=port),
-        name='process_logtransfer'
+        name='process_logtransfer',
     )
 
     server_process.daemon = True
@@ -76,8 +76,8 @@ def logtransfer_rollover_space(monkeysession):
 
 @pytest.fixture(scope='function')
 def logtransfer_no_rollover(monkeysession):
-    monkeysession.setattr('nomad.config.logtransfer.max_bytes', 1E100)
-    monkeysession.setattr('nomad.config.logtransfer.submit_interval', 1E100)
+    monkeysession.setattr('nomad.config.logtransfer.max_bytes', 1e100)
+    monkeysession.setattr('nomad.config.logtransfer.submit_interval', 1e100)
 
     server_process, client_socket = start_logtransfer_service()
 

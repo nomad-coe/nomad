@@ -26,14 +26,16 @@ from nomad.utils.exampledata import ExampleData
 
 from tests.app.v1.routers.common import assert_response
 from tests.processing.test_edit_metadata import (
-    assert_metadata_edited, all_coauthor_entry_metadata, all_admin_entry_metadata)
+    assert_metadata_edited,
+    all_coauthor_entry_metadata,
+    all_admin_entry_metadata,
+)
 
 
 logger = utils.get_logger(__name__)
 
 
-class TestEditRepo():
-
+class TestEditRepo:
     def query(self, *uploads):
         return {'upload_id:any': uploads}
 
@@ -44,12 +46,17 @@ class TestEditRepo():
     @pytest.fixture(autouse=True)
     def example_datasets(self, test_user, other_test_user, mongo):
         self.example_dataset = Dataset(
-            dataset_id='example_ds', dataset_name='example_ds', user_id=test_user.user_id)
+            dataset_id='example_ds',
+            dataset_name='example_ds',
+            user_id=test_user.user_id,
+        )
         self.example_dataset.a_mongo.create()
 
         self.other_example_dataset = Dataset(
-            dataset_id='other_example_ds', dataset_name='other_example_ds',
-            user_id=other_test_user.user_id)
+            dataset_id='other_example_ds',
+            dataset_name='other_example_ds',
+            user_id=other_test_user.user_id,
+        )
         self.other_example_dataset.a_mongo.create()
 
     @pytest.fixture(autouse=True)
@@ -57,12 +64,18 @@ class TestEditRepo():
         # TODO
         example_data = ExampleData()
 
-        example_data.create_upload('upload_1', main_author=test_user, published=True, embargo_length=0)
+        example_data.create_upload(
+            'upload_1', main_author=test_user, published=True, embargo_length=0
+        )
         example_data.create_entry(upload_id='upload_1')
-        example_data.create_upload('upload_2', main_author=test_user, published=True, embargo_length=36)
+        example_data.create_upload(
+            'upload_2', main_author=test_user, published=True, embargo_length=36
+        )
         example_data.create_entry(upload_id='upload_2')
         example_data.create_entry(upload_id='upload_2')
-        example_data.create_upload('upload_3', main_author=other_test_user, published=True, embargo_length=0)
+        example_data.create_upload(
+            'upload_3', main_author=other_test_user, published=True, embargo_length=0
+        )
         example_data.create_entry(upload_id='upload_3')
 
         example_data.save()
@@ -87,7 +100,9 @@ class TestEditRepo():
 
         return self.api.post('entries/edit_v0', headers=self.test_user_auth, json=data)
 
-    def assert_edit(self, rv, quantity: str, success: bool, message: bool, status_code: int = 200):
+    def assert_edit(
+        self, rv, quantity: str, success: bool, message: bool, status_code: int = 200
+    ):
         data = rv.json()
         assert rv.status_code == status_code, data
         actions = data.get('actions')
@@ -136,14 +151,16 @@ class TestEditRepo():
 
         # test v1 data
         assert invert != assert_entry(
-            lambda id: search(owner=None, query=dict(entry_id=id)).data)
+            lambda id: search(owner=None, query=dict(entry_id=id)).data
+        )
 
     def test_edit_all_properties(self, test_user, other_test_user):
         edit_data = dict(
             # reviewers=[other_test_user.user_id],  # TODO: need to set on upload level
             # entry_coauthors=[other_test_user.user_id]  # Not editable any more
             comment='test_edit_props',
-            references=['http://test', 'http://test2'])
+            references=['http://test', 'http://test2'],
+        )
 
         rv = self.perform_edit(**edit_data, query=self.query('upload_1'))
         result = rv.json()
@@ -170,7 +187,8 @@ class TestEditRepo():
         edit_data = dict(
             comment='',
             # entry_coauthors=[]
-            references=[])
+            references=[],
+        )
         rv = self.perform_edit(**edit_data, query=self.query('upload_1'))
         result = rv.json()
         assert rv.status_code == 200
@@ -202,7 +220,9 @@ class TestEditRepo():
         self.assert_elastic(4, comment='test_edit_all', edited=False, invert=True)
 
     def test_edit_multi(self):
-        rv = self.perform_edit(comment='test_edit_multi', query=self.query('upload_1', 'upload_2'))
+        rv = self.perform_edit(
+            comment='test_edit_multi', query=self.query('upload_1', 'upload_2')
+        )
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert self.mongo(1, 2, 3, comment='test_edit_multi')
         self.assert_elastic(1, 2, 3, comment='test_edit_multi')
@@ -215,11 +235,14 @@ class TestEditRepo():
         assert self.mongo(1, comment='test_edit_some')
         self.assert_elastic(1, comment='test_edit_some')
         assert not self.mongo(2, 3, 4, comment='test_edit_some', edited=False)
-        self.assert_elastic(2, 3, 4, comment='test_edit_some', edited=False, invert=True)
+        self.assert_elastic(
+            2, 3, 4, comment='test_edit_some', edited=False, invert=True
+        )
 
     def test_edit_verify(self):
         rv = self.perform_edit(
-            comment='test_edit_verify', verify=True, query=self.query('upload_1'))
+            comment='test_edit_verify', verify=True, query=self.query('upload_1')
+        )
         self.assert_edit(rv, quantity='comment', success=True, message=False)
         assert not self.mongo(1, comment='test_edit_verify', edited=False)
 
@@ -232,7 +255,9 @@ class TestEditRepo():
 
     def test_edit_duplicate_value(self, other_test_user):
         rv = self.perform_edit(references=['a', 'a'], query=self.query('upload_1'))
-        self.assert_edit(rv, status_code=400, quantity='references', success=False, message=True)
+        self.assert_edit(
+            rv, status_code=400, quantity='references', success=False, message=True
+        )
 
     def test_edit_main_author_as_coauthor(self, test_user):
         pass
@@ -241,44 +266,63 @@ class TestEditRepo():
 
     def test_edit_ds(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1'))
+            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1')
+        )
         self.assert_edit(rv, quantity='datasets', success=True, message=False)
         assert self.mongo(1, datasets=[self.example_dataset.dataset_id])
 
     def test_edit_ds_remove_doi(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1'))
+            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1')
+        )
 
         assert rv.status_code == 200
-        rv = self.api.post('datasets/%s/action/doi' % self.example_dataset.dataset_name, headers=self.test_user_auth)
+        rv = self.api.post(
+            'datasets/%s/action/doi' % self.example_dataset.dataset_name,
+            headers=self.test_user_auth,
+        )
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=self.query('upload_1'))
         assert rv.status_code == 400
         data = rv.json()
         assert not data['success']
         assert self.example_dataset.dataset_name in data['message']
-        assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is not None
+        assert (
+            Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id)
+            is not None
+        )
 
     def test_edit_ds_remove(self):
         rv = self.perform_edit(
-            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1'))
+            datasets=[self.example_dataset.dataset_name], query=self.query('upload_1')
+        )
         assert rv.status_code == 200
         rv = self.perform_edit(datasets=[], query=self.query('upload_1'))
         assert rv.status_code == 200
         with pytest.raises(KeyError):
-            assert Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id) is None
+            assert (
+                Dataset.m_def.a_mongo.get(dataset_id=self.example_dataset.dataset_id)
+                is None
+            )
 
     def test_edit_ds_user_namespace(self, test_user):
-        assert Dataset.m_def.a_mongo.objects(
-            dataset_name=self.other_example_dataset.dataset_name).first() is not None
+        assert (
+            Dataset.m_def.a_mongo.objects(
+                dataset_name=self.other_example_dataset.dataset_name
+            ).first()
+            is not None
+        )
 
         rv = self.perform_edit(
-            datasets=[self.other_example_dataset.dataset_name], query=self.query('upload_1'))
+            datasets=[self.other_example_dataset.dataset_name],
+            query=self.query('upload_1'),
+        )
 
         self.assert_edit(rv, quantity='datasets', success=True, message=True)
         new_dataset = Dataset.m_def.a_mongo.objects(
             dataset_name=self.other_example_dataset.dataset_name,
-            user_id=test_user.user_id).first()
+            user_id=test_user.user_id,
+        ).first()
         assert new_dataset is not None
         assert self.mongo(1, datasets=[new_dataset.dataset_id])
 
@@ -300,98 +344,152 @@ class TestEditRepo():
         # rv = self.perform_edit(entry_coauthors=[other_test_user.user_id], query=self.query('upload_1'))
         # self.assert_edit(rv, quantity='entry_coauthors', success=True, message=False)
 
-    @pytest.mark.skip(reason='Not necessary during transition. Fails because main_author is not editable anyways.')
+    @pytest.mark.skip(
+        reason='Not necessary during transition. Fails because main_author is not editable anyways.'
+    )
     def test_admin_only(self, other_test_user):
         rv = self.perform_edit(main_author=other_test_user.user_id)
         assert rv.status_code != 200
 
 
-@pytest.mark.parametrize('user, kwargs', [
-    pytest.param(
-        'test_user', dict(
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=all_coauthor_entry_metadata,
-            affected_upload_ids=['id_unpublished_w']),
-        id='edit-all'),
-    pytest.param(
-        'admin_user', dict(
-            query={'upload_id': 'id_published_w'},
-            owner='all',
-            metadata=all_admin_entry_metadata,
-            affected_upload_ids=['id_published_w']),
-        id='protected-admin'),
-    pytest.param(
-        'test_user', dict(
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=all_admin_entry_metadata,
-            expected_error_loc=('metadata', 'entry_create_time')),
-        id='protected-not-admin'),
-    pytest.param(
-        'admin_user', dict(
-            query={'upload_id': 'id_published_w'},
-            owner='all',
-            metadata=dict(comment='test comment'),
-            affected_upload_ids=['id_published_w']),
-        id='published-admin'),
-    pytest.param(
-        'test_user', dict(
-            query={'upload_id': 'id_published_w'},
-            metadata=dict(comment='test comment'),
-            affected_upload_ids=['id_published_w']),
-        id='published-not-admin'),
-    pytest.param(
-        None, dict(
-            owner='all',
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=dict(comment='test comment'),
-            expected_status_code=401),
-        id='no-credentials'),
-    pytest.param(
-        'invalid', dict(
-            owner='all',
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=dict(comment='test comment'),
-            expected_status_code=401),
-        id='invalid-credentials'),
-    pytest.param(
-        'other_test_user', dict(
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=dict(comment='test comment'),
-            expected_error_loc=('query',)),
-        id='no-access'),
-    pytest.param(
-        'other_test_user', dict(
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=dict(comment='test comment'),
-            affected_upload_ids=['id_unpublished_w'],
-            add_coauthor=True),
-        id='coauthor-access'),
-    pytest.param(
-        'test_user', dict(
-            query={'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]},
-            metadata=dict(comment='a test comment'),
-            affected_upload_ids=['id_unpublished_w']),
-        id='compound-query-ok'),
-    pytest.param(
-        'test_user', dict(
-            query={'upload_id': 'id_unpublished_w'},
-            metadata=dict(upload_name='a test name'),
-            expected_error_loc=('metadata', 'upload_name')),
-        id='query-cannot-edit-upload-data'),
-    pytest.param(
-        'test_user', dict(
-            query={'upload_create_time:lt': '2021-01-01'},
-            metadata=dict(comment='a test comment'),
-            expected_error_loc=('query',)),
-        id='query-no-results')])
+@pytest.mark.parametrize(
+    'user, kwargs',
+    [
+        pytest.param(
+            'test_user',
+            dict(
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=all_coauthor_entry_metadata,
+                affected_upload_ids=['id_unpublished_w'],
+            ),
+            id='edit-all',
+        ),
+        pytest.param(
+            'admin_user',
+            dict(
+                query={'upload_id': 'id_published_w'},
+                owner='all',
+                metadata=all_admin_entry_metadata,
+                affected_upload_ids=['id_published_w'],
+            ),
+            id='protected-admin',
+        ),
+        pytest.param(
+            'test_user',
+            dict(
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=all_admin_entry_metadata,
+                expected_error_loc=('metadata', 'entry_create_time'),
+            ),
+            id='protected-not-admin',
+        ),
+        pytest.param(
+            'admin_user',
+            dict(
+                query={'upload_id': 'id_published_w'},
+                owner='all',
+                metadata=dict(comment='test comment'),
+                affected_upload_ids=['id_published_w'],
+            ),
+            id='published-admin',
+        ),
+        pytest.param(
+            'test_user',
+            dict(
+                query={'upload_id': 'id_published_w'},
+                metadata=dict(comment='test comment'),
+                affected_upload_ids=['id_published_w'],
+            ),
+            id='published-not-admin',
+        ),
+        pytest.param(
+            None,
+            dict(
+                owner='all',
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=dict(comment='test comment'),
+                expected_status_code=401,
+            ),
+            id='no-credentials',
+        ),
+        pytest.param(
+            'invalid',
+            dict(
+                owner='all',
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=dict(comment='test comment'),
+                expected_status_code=401,
+            ),
+            id='invalid-credentials',
+        ),
+        pytest.param(
+            'other_test_user',
+            dict(
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=dict(comment='test comment'),
+                expected_error_loc=('query',),
+            ),
+            id='no-access',
+        ),
+        pytest.param(
+            'other_test_user',
+            dict(
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=dict(comment='test comment'),
+                affected_upload_ids=['id_unpublished_w'],
+                add_coauthor=True,
+            ),
+            id='coauthor-access',
+        ),
+        pytest.param(
+            'test_user',
+            dict(
+                query={
+                    'and': [
+                        {'upload_create_time:gt': '2021-01-01'},
+                        {'published': False},
+                    ]
+                },
+                metadata=dict(comment='a test comment'),
+                affected_upload_ids=['id_unpublished_w'],
+            ),
+            id='compound-query-ok',
+        ),
+        pytest.param(
+            'test_user',
+            dict(
+                query={'upload_id': 'id_unpublished_w'},
+                metadata=dict(upload_name='a test name'),
+                expected_error_loc=('metadata', 'upload_name'),
+            ),
+            id='query-cannot-edit-upload-data',
+        ),
+        pytest.param(
+            'test_user',
+            dict(
+                query={'upload_create_time:lt': '2021-01-01'},
+                metadata=dict(comment='a test comment'),
+                expected_error_loc=('query',),
+            ),
+            id='query-no-results',
+        ),
+    ],
+)
 def test_post_entries_edit(
-        client, proc_infra, example_data_writeable, example_datasets, test_auth_dict, test_users_dict,
-        user, kwargs):
-    '''
+    client,
+    proc_infra,
+    example_data_writeable,
+    example_datasets,
+    test_auth_dict,
+    test_users_dict,
+    user,
+    kwargs,
+):
+    """
     Note, since the endpoint basically just forwards the request to
     `MetadataEditRequestHandler.edit_metadata`, we only do very simple verification here,
     the more extensive testnig is done in `tests.processing.test_edit_metadata`.
-    '''
+    """
     user_auth, _token = test_auth_dict[user]
     user = test_users_dict.get(user)
     query = kwargs.get('query')
@@ -409,12 +507,19 @@ def test_post_entries_edit(
     if add_coauthor:
         upload = proc.Upload.get(affected_upload_ids[0])
         upload.edit_upload_metadata(
-            edit_request_json={'metadata': {'coauthors': user.user_id}}, user_id=upload.main_author)
+            edit_request_json={'metadata': {'coauthors': user.user_id}},
+            user_id=upload.main_author,
+        )
         upload.block_until_complete()
 
     edit_request_json = dict(
-        query=query, owner=owner, metadata=metadata, entries=entries, entries_key=entries_key,
-        verify_only=verify_only)
+        query=query,
+        owner=owner,
+        metadata=metadata,
+        entries=entries,
+        entries_key=entries_key,
+        verify_only=verify_only,
+    )
     url = 'entries/edit'
     edit_start = datetime.utcnow().isoformat()[0:22]
     response = client.post(url, headers=user_auth, json=edit_request_json)
@@ -427,5 +532,14 @@ def test_post_entries_edit(
     else:
         assert_response(response, 200)
         assert_metadata_edited(
-            user, None, query, metadata, entries, entries_key, verify_only,
-            expected_metadata, affected_upload_ids, edit_start)
+            user,
+            None,
+            query,
+            metadata,
+            entries,
+            entries_key,
+            verify_only,
+            expected_metadata,
+            affected_upload_ids,
+            edit_start,
+        )

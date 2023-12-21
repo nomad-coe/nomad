@@ -1,4 +1,13 @@
-from nomad.metainfo import Quantity, Package, Section, MEnum, Datetime, MSection, SubSection, SectionProxy
+from nomad.metainfo import (
+    Quantity,
+    Package,
+    Section,
+    MEnum,
+    Datetime,
+    MSection,
+    SubSection,
+    SectionProxy,
+)
 from nomad.datamodel.data import EntryData
 from nomad.datamodel.metainfo.annotations import ELNAnnotation, ELNComponentEnum
 import numpy as np
@@ -11,12 +20,12 @@ class MySection(MSection):
     name = Quantity(
         type=str,
         a_eln=ELNAnnotation(component=ELNComponentEnum.StringEditQuantity),
-        description='For testing subsection quantity.'
+        description='For testing subsection quantity.',
     )
 
 
 class MySectionRecursiveA(MSection):
-    child = SubSection(section_def=SectionProxy("MySectionRecursiveB"))
+    child = SubSection(section_def=SectionProxy('MySectionRecursiveB'))
     name_a = Quantity(type=str)
 
 
@@ -29,48 +38,46 @@ class MySchema(EntryData):
     name = Quantity(
         type=str,
         a_eln=ELNAnnotation(component=ELNComponentEnum.StringEditQuantity),
-        description='For testing string field.'
+        description='For testing string field.',
     )
     message = Quantity(
         type=MEnum(['A', 'B']),
         a_eln=ELNAnnotation(component=ELNComponentEnum.EnumEditQuantity),
-        description='For testing enum field.'
+        description='For testing enum field.',
     )
     empty = Quantity(
         type=str,
         a_eln=ELNAnnotation(component=ELNComponentEnum.StringEditQuantity),
-        description='For testing empty field.'
+        description='For testing empty field.',
     )
     valid = Quantity(
         type=bool,
         a_eln=ELNAnnotation(component=ELNComponentEnum.BoolEditQuantity),
-        description='For testing boolean field.'
+        description='For testing boolean field.',
     )
     count = Quantity(
         type=int,
         a_eln=ELNAnnotation(component=ELNComponentEnum.NumberEditQuantity),
-        description='For testing integer field.'
+        description='For testing integer field.',
     )
     frequency = Quantity(
         type=float,
         unit='1/s',
         a_eln=ELNAnnotation(component=ELNComponentEnum.NumberEditQuantity),
-        description='For testing floating point field.'
+        description='For testing floating point field.',
     )
     timestamp = Quantity(
         type=Datetime,
         a_eln=ELNAnnotation(component=ELNComponentEnum.DateTimeEditQuantity),
-        description='For testing datetime field.'
+        description='For testing datetime field.',
     )
     reference_section = Quantity(
         type=MySection,
         a_eln=ELNAnnotation(component=ELNComponentEnum.ReferenceEditQuantity),
-        description='For testing section reference.'
+        description='For testing section reference.',
     )
     non_scalar = Quantity(
-        type=np.float64,
-        shape=[3, 3],
-        description='For testing non-scalar field.'
+        type=np.float64, shape=[3, 3], description='For testing non-scalar field.'
     )
 
     child = SubSection(section_def=MySection, repeats=False)

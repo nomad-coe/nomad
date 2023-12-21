@@ -14,4 +14,6 @@ def test_plotly_snapshot(raw_files):
     figures = plotly_archive.data['figures']
     snapshot_figures = snapshot['figures']
     for i in range(0, 4):
-        assert json.dumps(figures[i].figure, sort_keys=True) == json.dumps(snapshot_figures[i], sort_keys=True)
+        assert json.dumps(figures[i].figure, sort_keys=True) == json.dumps(
+            snapshot_figures[i], sort_keys=True
+        )

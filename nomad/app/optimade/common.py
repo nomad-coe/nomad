@@ -18,13 +18,7 @@
 
 from typing import Dict, cast
 
-from nomad.metainfo.metainfo import (
-    Quantity,
-    Reference,
-    Datetime,
-    MEnum,
-    MTypes
-)
+from nomad.metainfo.metainfo import Quantity, Reference, Datetime, MEnum, MTypes
 from nomad.metainfo.elasticsearch_extension import SearchQuantity, entry_type
 
 
@@ -47,17 +41,14 @@ def create_provider_field(name, definition):
         type = 'integer'
     else:
         raise NotImplementedError(
-            f'Optimade provider field with NOMAD type {definition.type} not implemented.')
+            f'Optimade provider field with NOMAD type {definition.type} not implemented.'
+        )
 
     description = definition.description
     if not description:
         description = 'no description available'
 
-    return dict(
-        name=name,
-        description=description,
-        type=type,
-        sortable=False)
+    return dict(name=name, description=description, type=type, sortable=False)
 
 
 def provider_specific_fields() -> Dict[str, SearchQuantity]:
@@ -73,6 +64,7 @@ def provider_specific_fields() -> Dict[str, SearchQuantity]:
         # ES index with initialized in infrastructure. But this is called during
         # optimade import. Detangle mapping creation from index creation!
         from nomad.datamodel.datamodel import EntryArchive
+
         entry_type.create_mapping(EntryArchive.m_def)
 
     for qualified_name, search_quantity in entry_type.quantities.items():

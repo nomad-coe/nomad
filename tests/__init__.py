@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-'''
+"""
 The nomad@FAIRDI tests are based on the pytest library. Pytest uses *fixtures* to
 modularize setup and teardown of mocks, infrastructure, and other context objects.
 The following depicts the used hierarchy of fixtures:
@@ -24,7 +24,7 @@ The following depicts the used hierarchy of fixtures:
 .. image:: /assets/test_fixtures.png
 
 Otherwise the test submodules follow the names of the nomad code modules.
-'''
+"""
 
 from nomad import config
 

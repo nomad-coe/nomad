@@ -25,10 +25,33 @@ import pandas as pd
 import pint.quantity
 
 from nomad.metainfo.metainfo import (
-    MSection, MCategory, Section, Quantity, SubSection, Definition, Package, DeriveError,
-    MetainfoError, Environment, Annotation, AnnotationModel, SectionAnnotation, Context,
-    DefinitionAnnotation, derived, MTypes)
-from nomad.metainfo.example import Run, VaspRun, System, SystemHash, Parsing, SCC, m_package as example_package
+    MSection,
+    MCategory,
+    Section,
+    Quantity,
+    SubSection,
+    Definition,
+    Package,
+    DeriveError,
+    MetainfoError,
+    Environment,
+    Annotation,
+    AnnotationModel,
+    SectionAnnotation,
+    Context,
+    DefinitionAnnotation,
+    derived,
+    MTypes,
+)
+from nomad.metainfo.example import (
+    Run,
+    VaspRun,
+    System,
+    SystemHash,
+    Parsing,
+    SCC,
+    m_package as example_package,
+)
 from nomad import utils
 from nomad.units import ureg
 
@@ -49,11 +72,16 @@ def assert_section_instance(section: MSection):
     assert_section_def(section.m_def)
 
     if section.m_parent is not None:
-        assert section.m_parent.m_get_sub_section(section.m_parent_sub_section, section.m_parent_index) == section
+        assert (
+            section.m_parent.m_get_sub_section(
+                section.m_parent_sub_section, section.m_parent_index
+            )
+            == section
+        )
 
 
 class TestM3:
-    ''' Test for meta-info definition that are used to define other definitions. '''
+    """Test for meta-info definition that are used to define other definitions."""
 
     def test_section(self):
         assert Section.m_def == Section.m_def.m_def
@@ -92,7 +120,7 @@ class TestM3:
 
 
 class TestPureReflection:
-    ''' Test for using meta-info instances without knowing/using the respective definitions. '''
+    """Test for using meta-info instances without knowing/using the respective definitions."""
 
     def test_instantiation(self):
         test_section_def = Section(name='TestSection')
@@ -106,19 +134,20 @@ class TestPureReflection:
 
 
 class MaterialDefining(MCategory):
-    '''Quantities that add to what constitutes a different material.'''
+    """Quantities that add to what constitutes a different material."""
+
     pass
 
 
 class TestM2:
-    ''' Test for meta-info definitions. '''
+    """Test for meta-info definitions."""
 
     def test_basics(self):
         assert_section_def(Run.m_def)
         assert_section_def(System.m_def)
 
     def test_default_section_def(self):
-        ''' A section class without an explicit section def must set a default section def. '''
+        """A section class without an explicit section def must set a default section def."""
         assert Run.m_def is not None
         assert Run.m_def.name == 'Run'
 
@@ -133,7 +162,10 @@ class TestM2:
         assert Run.m_def.all_sub_sections['systems'] in Run.m_def.sub_sections
         assert Run.m_def.all_sub_sections['systems'].sub_section == System.m_def
         assert len(Run.m_def.all_sub_sections_by_section[System.m_def]) == 1
-        assert Run.m_def.all_sub_sections_by_section[System.m_def][0].sub_section == System.m_def
+        assert (
+            Run.m_def.all_sub_sections_by_section[System.m_def][0].sub_section
+            == System.m_def
+        )
 
     def test_unset_sub_section(self):
         run = Run()
@@ -182,36 +214,42 @@ class TestM2:
     def test_unit(self):
         assert System.lattice_vectors.unit is not None
 
-    @pytest.mark.parametrize('unit', [
-        pytest.param('delta_degC / hr'),
-        pytest.param('ΔdegC / hr'),
-        pytest.param(ureg.delta_degC / ureg.hour),
-    ])
+    @pytest.mark.parametrize(
+        'unit',
+        [
+            pytest.param('delta_degC / hr'),
+            pytest.param('ΔdegC / hr'),
+            pytest.param(ureg.delta_degC / ureg.hour),
+        ],
+    )
     def test_unit_explicit_delta(self, unit):
-        '''Explicit delta values are not allowed when setting or de-serializing.
-        '''
+        """Explicit delta values are not allowed when setting or de-serializing."""
         with pytest.raises(TypeError):
             Quantity(type=np.dtype(np.float64), unit=unit)
         with pytest.raises(TypeError):
-            Quantity.m_from_dict({'m_def': 'nomad.metainfo.metainfo.Quantity', 'unit': str(unit)})
+            Quantity.m_from_dict(
+                {'m_def': 'nomad.metainfo.metainfo.Quantity', 'unit': str(unit)}
+            )
 
-    @pytest.mark.parametrize('unit', [
-        pytest.param('degC / hr'),
-        pytest.param(ureg.degC / ureg.hour),
-    ])
+    @pytest.mark.parametrize(
+        'unit',
+        [
+            pytest.param('degC / hr'),
+            pytest.param(ureg.degC / ureg.hour),
+        ],
+    )
     def test_unit_implicit_delta(self, unit):
-        '''Implicit delta values are allowed in setting and deserializing, delta
+        """Implicit delta values are allowed in setting and deserializing, delta
         prefixes are not serialized.
-        '''
+        """
         quantity = Quantity(type=np.dtype(np.float64), unit=unit)
         serialized = quantity.m_to_dict()
         assert serialized['unit'] == 'degree_Celsius / hour'
         Quantity.m_from_dict(serialized)
 
-    @pytest.mark.parametrize('dtype', [
-        pytest.param(np.longlong),
-        pytest.param(np.ulonglong)
-    ])
+    @pytest.mark.parametrize(
+        'dtype', [pytest.param(np.longlong), pytest.param(np.ulonglong)]
+    )
     def test_unsupported_type(self, dtype):
         with pytest.raises(MetainfoError):
             Quantity(type=dtype)
@@ -305,9 +343,12 @@ class TestM2:
         assert len(pkg.warnings) > 0
 
     # TODO
-    @pytest.mark.skip(reason=(
-        'We disabled the constraint that is tested here, because some Nexus definitions '
-        'are violating it.'))
+    @pytest.mark.skip(
+        reason=(
+            'We disabled the constraint that is tested here, because some Nexus definitions '
+            'are violating it.'
+        )
+    )
     def test_higher_shapes_require_dtype(self):
         class TestSection(MSection):  # pylint: disable=unused-variable
             test = Quantity(type=int, shape=[3, 3])
@@ -318,6 +359,7 @@ class TestM2:
 
     def test_only_extends_one_base(self):
         with pytest.raises(MetainfoError):
+
             class TestSection(Run, System):  # pylint: disable=unused-variable
                 m_def = Section(extends_base_section=True)
 
@@ -336,10 +378,19 @@ class TestM2:
                 assert 'test_quantity' in definition.all_quantities
                 assert section_cls.test_quantity.m_get_annotations('test').initialized
                 assert section_cls.test_quantity.a_test.initialized
-                assert section_cls.test_quantity.m_get_annotations('test', as_list=True)[0].initialized
-                assert section_cls.test_quantity.m_get_annotations(Annotation).initialized
+                assert section_cls.test_quantity.m_get_annotations(
+                    'test', as_list=True
+                )[0].initialized
+                assert section_cls.test_quantity.m_get_annotations(
+                    Annotation
+                ).initialized
                 assert all(a.initialized for a in section_cls.list_test_quantity.a_test)
-                assert all(a.initialized for a in section_cls.list_test_quantity.m_get_annotations(Annotation))
+                assert all(
+                    a.initialized
+                    for a in section_cls.list_test_quantity.m_get_annotations(
+                        Annotation
+                    )
+                )
                 self.initialized = True
 
             def new(self, section):
@@ -348,7 +399,11 @@ class TestM2:
         class TestDefinitionAnnotation(DefinitionAnnotation):
             def init_annotation(self, definition):
                 super().init_annotation(definition)
-                assert definition.name in ['test_quantity', 'list_test_quantity', 'test_sub_section']
+                assert definition.name in [
+                    'test_quantity',
+                    'list_test_quantity',
+                    'test_sub_section',
+                ]
                 assert definition.m_parent is not None
                 self.initialized = True
 
@@ -358,23 +413,36 @@ class TestM2:
             test_quantity = Quantity(type=str, a_test=TestDefinitionAnnotation())
             list_test_quantity = Quantity(
                 type=str,
-                a_test=[TestDefinitionAnnotation(), TestDefinitionAnnotation()])
+                a_test=[TestDefinitionAnnotation(), TestDefinitionAnnotation()],
+            )
 
-            test_sub_section = SubSection(sub_section=System, a_test=TestDefinitionAnnotation())
+            test_sub_section = SubSection(
+                sub_section=System, a_test=TestDefinitionAnnotation()
+            )
 
         assert TestSection.m_def.a_test.initialized
         assert TestSection.m_def.m_get_annotations(TestSectionAnnotation).initialized
         assert TestSection().a_test == 'test annotation'
 
         assert TestSection.test_quantity.a_test is not None
-        assert len(TestSection.list_test_quantity.m_get_annotations(TestDefinitionAnnotation)) == 2
+        assert (
+            len(
+                TestSection.list_test_quantity.m_get_annotations(
+                    TestDefinitionAnnotation
+                )
+            )
+            == 2
+        )
         assert TestSection.test_sub_section.a_test is not None
 
-    @pytest.mark.parametrize('annotation, passes', [
-        pytest.param(dict(string='test_value'), True, id='passes-string'),
-        pytest.param(dict(integer=1), True, id='passes-int'),
-        pytest.param(dict(integer='string'), False, id='fails')
-    ])
+    @pytest.mark.parametrize(
+        'annotation, passes',
+        [
+            pytest.param(dict(string='test_value'), True, id='passes-string'),
+            pytest.param(dict(integer=1), True, id='passes-int'),
+            pytest.param(dict(integer='string'), False, id='fails'),
+        ],
+    )
     def test_annotation_models(self, annotation, passes):
         class TestAnnotation(AnnotationModel):
             string: str = 'default'
@@ -402,7 +470,9 @@ class TestM2:
     def test_more_property(self):
         class TestSection(MSection):
             m_def = Section(this_does_not_exist_in_metainfo='value')
-            test_quantity = Quantity(type=str, also_no_metainfo_quantity=1, one_more=False)
+            test_quantity = Quantity(
+                type=str, also_no_metainfo_quantity=1, one_more=False
+            )
             test_delayed_more_quantity = Quantity(type=str)
             another_test_quantity = Quantity(type=str)
 
@@ -435,7 +505,7 @@ existing_multiple.systems = [System(), System()]
 
 
 class TestM1:
-    ''' Test for meta-info instances. '''
+    """Test for meta-info instances."""
 
     def test_run(self):
         class Run(MSection):
@@ -509,7 +579,7 @@ class TestM1:
 
         run.systems.append(System())
         first = run.systems[0]
-        del(run.systems[0])
+        del run.systems[0]
         assert first.m_parent is None
         assert run.systems[0].m_parent_index == 0
 
@@ -597,6 +667,7 @@ class TestM1:
     def test_setting_with_dimensionless_unit(self, dtype, shape):
         if dtype not in MTypes.numpy:
             shape = None
+
         class TestSection(MSection):
             test_quantity = Quantity(type=dtype, shape=shape)
 
@@ -606,7 +677,7 @@ class TestM1:
         elif dtype in MTypes.float:
             value = 3.14
         elif dtype in MTypes.complex:
-            value = 1+2j
+            value = 1 + 2j
         else:
             raise Exception('Unsupported type')
         if shape:
@@ -626,7 +697,9 @@ class TestM1:
         system.lattice_vectors = [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
         assert isinstance(system.lattice_vectors, pint.quantity._Quantity)
         assert isinstance(system.unit_cell, pint.quantity._Quantity)
-        assert np.array_equal(system.unit_cell.magnitude, system.lattice_vectors.magnitude)  # pylint: disable=no-member
+        assert np.array_equal(
+            system.unit_cell.magnitude, system.lattice_vectors.magnitude
+        )  # pylint: disable=no-member
 
     @pytest.fixture(scope='function')
     def example_data(self):
@@ -635,7 +708,9 @@ class TestM1:
         run.m_create(Parsing)
         system: System = run.m_create(System)
         system.atom_labels = ['H', 'H', 'O']
-        system.atom_positions = np.array([[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]])
+        system.atom_positions = np.array(
+            [[1.2e-10, 0, 0], [0, 1.2e-10, 0], [0, 0, 1.2e-10]]
+        )
         system.atom_labels = np.array(['H', 'H', 'O'])
         return run
 
@@ -764,15 +839,9 @@ class TestM1:
         assert system.m_to_dict()['lattice_vectors'] == value
 
         class TestSection(MSection):
-            f32_default = Quantity(
-                type=np.dtype(np.float32),
-                shape=[], default=1.0)
-            f32 = Quantity(
-                type=np.dtype(np.float32),
-                shape=[])
-            f64 = Quantity(
-                type=np.dtype(np.float64),
-                shape=[])
+            f32_default = Quantity(type=np.dtype(np.float32), shape=[], default=1.0)
+            f32 = Quantity(type=np.dtype(np.float32), shape=[])
+            f64 = Quantity(type=np.dtype(np.float64), shape=[])
 
         section = TestSection()
         section.f32_default = -200
@@ -805,7 +874,9 @@ class TestM1:
         assert copy.systems is not run.systems
         assert copy.systems[0] is not run.systems[0]
         assert copy.systems[0].m_parent_index == 0
-        assert copy.systems[0].m_parent_sub_section is run.systems[0].m_parent_sub_section
+        assert (
+            copy.systems[0].m_parent_sub_section is run.systems[0].m_parent_sub_section
+        )
 
     def test_copy_keeps_m_sub_section_list(self):
         run = Run()
@@ -830,7 +901,7 @@ class TestM1:
         assert section.float_quantity is None
         assert section.bool_quantity is None
 
-    @pytest.mark.filterwarnings("ignore")
+    @pytest.mark.filterwarnings('ignore')
     def test_xpath(self):
         run = Run()
         run.code_name = 'amazingX'
@@ -838,14 +909,18 @@ class TestM1:
         system.atom_labels = ['H', 'O']
         system.system_type = 'molecule'
         calc = run.m_create(SCC)
-        calc.energy_total = -1.20E-23
+        calc.energy_total = -1.20e-23
         calc.system = system
 
         assert run.m_xpath('code_name') == 'amazingX'
         assert run.m_xpath('systems[-1].system_type') == 'molecule'
         assert run.m_xpath('sccs[0].system.atom_labels') == ['H', 'O']
-        assert run.m_xpath('systems[?system_type == `molecule`].atom_labels') == [['H', 'O']]
-        assert run.m_xpath('sccs[?energy_total < `1.0E-23`].system') == [{'atom_labels': ['H', 'O'], 'system_type': 'molecule'}]
+        assert run.m_xpath('systems[?system_type == `molecule`].atom_labels') == [
+            ['H', 'O']
+        ]
+        assert run.m_xpath('sccs[?energy_total < `1.0E-23`].system') == [
+            {'atom_labels': ['H', 'O'], 'system_type': 'molecule'}
+        ]
 
     def test_m_update(self):
         class Child(MSection):
@@ -860,21 +935,49 @@ class TestM1:
         parent.m_update(
             quantity='Hello',
             single_sub_section=Child(),
-            many_sub_section=[Child(), Child()])
+            many_sub_section=[Child(), Child()],
+        )
 
         assert parent.quantity == 'Hello'
         assert parent.single_sub_section is not None
         assert len(parent.many_sub_section) == 2
 
-    @pytest.mark.parametrize('root,path,exception', [
-        pytest.param(Run(), 'parsing', None, id="non-existing non-repeating section"),
-        pytest.param(Run(), 'systems', None, id="non-existing repeating section"),
-        pytest.param(existing_nonrepeating, 'parsing', None, id="existing non-repeating section"),
-        pytest.param(existing_repeating, 'systems', None, id="existing repeating section"),
-        pytest.param(Run(), 'code_name', 'Could not find section definition for path "code_name"', id="cannot target quantity"),
-        pytest.param(Run(), 'missing', 'Could not find section definition for path "missing"', id="invalid path"),
-        pytest.param(existing_multiple, 'systems', 'Cannot resolve "systems" as several instances were found', id="ambiguous path"),
-    ])
+    @pytest.mark.parametrize(
+        'root,path,exception',
+        [
+            pytest.param(
+                Run(), 'parsing', None, id='non-existing non-repeating section'
+            ),
+            pytest.param(Run(), 'systems', None, id='non-existing repeating section'),
+            pytest.param(
+                existing_nonrepeating,
+                'parsing',
+                None,
+                id='existing non-repeating section',
+            ),
+            pytest.param(
+                existing_repeating, 'systems', None, id='existing repeating section'
+            ),
+            pytest.param(
+                Run(),
+                'code_name',
+                'Could not find section definition for path "code_name"',
+                id='cannot target quantity',
+            ),
+            pytest.param(
+                Run(),
+                'missing',
+                'Could not find section definition for path "missing"',
+                id='invalid path',
+            ),
+            pytest.param(
+                existing_multiple,
+                'systems',
+                'Cannot resolve "systems" as several instances were found',
+                id='ambiguous path',
+            ),
+        ],
+    )
     def test_m_setdefault(self, root, path, exception):
         if not exception:
             system = root.m_setdefault(path)
@@ -909,14 +1012,13 @@ class TestM1:
         section = Parent(
             quantity=1,
             child=Child(quantity=2),
-            child_repeated=[ChildRepeated(quantity=3), ChildRepeated(quantity=4)]
+            child_repeated=[ChildRepeated(quantity=3), ChildRepeated(quantity=4)],
         )
         for i, [_, _, _, path] in enumerate(section.m_traverse()):
             assert path == expected[i]
 
 
 class TestEnvironment:
-
     @pytest.fixture
     def env(self) -> Environment:
         env = Environment()
@@ -941,7 +1043,9 @@ def test_serialise_as_dict(as_dict, add_key, str_type, dup_key):
         q = Quantity(type=str if str_type else int)
 
     class TestContainer(MSection):
-        s = SubSection(sub_section=TestSection, repeats=True, key_quantity='q' if add_key else None)
+        s = SubSection(
+            sub_section=TestSection, repeats=True, key_quantity='q' if add_key else None
+        )
 
     container = TestContainer()
 

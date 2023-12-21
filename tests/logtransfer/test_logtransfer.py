@@ -11,8 +11,15 @@ from nomad import config
 
 
 def standard_test_log_record(msg='testmsg') -> bytes:
-    record = LogRecord(name='test', msg=msg, args=(), exc_info=None, lineno=1, level=logging.INFO,
-                       pathname='testpath')
+    record = LogRecord(
+        name='test',
+        msg=msg,
+        args=(),
+        exc_info=None,
+        lineno=1,
+        level=logging.INFO,
+        pathname='testpath',
+    )
     return LogstashFormatter().format(record)
 
 
@@ -29,7 +36,12 @@ def test_get_all_rotated_files():
     n_rollover = 20  # more than 10 to check also the correct sorting
     handler.backupCount = n_rollover
 
-    expected = [os.path.abspath(os.path.join(config.fs.tmp, config.logtransfer.log_filename + f'.{i}')) for i in range(n_rollover, 0, -1)]
+    expected = [
+        os.path.abspath(
+            os.path.join(config.fs.tmp, config.logtransfer.log_filename + f'.{i}')
+        )
+        for i in range(n_rollover, 0, -1)
+    ]
 
     for i in range(n_rollover):
         logger.info(f'msg{i}')
@@ -46,12 +58,15 @@ def test_rotating_logfiles():
 
     # write some message to logger
     logger, handler = logtransfer._initialize_logger_and_handler()
-    logger.info("msg")
+    logger.info('msg')
     handler.doRollover()
 
     backup_files = logtransfer.get_all_rotated_logfiles()
     assert len(backup_files) == 1
-    assert os.path.basename(backup_files[0]) == os.path.basename(logtransfer.get_log_filepath()) + '.1'
+    assert (
+        os.path.basename(backup_files[0])
+        == os.path.basename(logtransfer.get_log_filepath()) + '.1'
+    )
 
     logtransfer.clear_logfiles()
 
@@ -75,7 +90,9 @@ def test_logstash_submit_single_log(logtransfer_rollover_time):
 
 
 @pytest.mark.timeout(3)
-def test_logstash_submit_multiple_logs(logtransfer_rollover_time, central_logstash_mock):
+def test_logstash_submit_multiple_logs(
+    logtransfer_rollover_time, central_logstash_mock
+):
     n_messages = 5
     log_event = [f'testlog{i}' for i in range(5)]
 
@@ -94,7 +111,7 @@ def test_logstash_submit_multiple_logs(logtransfer_rollover_time, central_logsta
 
             try:
                 for me in log_event:
-                    assert f'\"event\": \"{me}\"'.encode() in file_content
+                    assert f'"event": "{me}"'.encode() in file_content
             except AssertionError:
                 break
             else:
@@ -149,11 +166,9 @@ def test_logstash_rollover_time(logtransfer_rollover_time):
 
 
 def assert_equal_content_logfiles(expected_logs):
-
     # run until assertions pass
     while True:
         try:
-
             with open(logtransfer.get_log_filepath(), 'rb') as f:
                 active_logfile = f.read()
 
@@ -173,12 +188,11 @@ def assert_equal_content_logfiles(expected_logs):
         except (FileNotFoundError, AssertionError):
             time.sleep(0.2)
         else:
-            break   # break loop when no error was raised
+            break  # break loop when no error was raised
 
 
 @pytest.mark.timeout(10)
 def test_logstash_rollover_space(logtransfer_rollover_space):
-
     n_bytes, idx = 0, 0
     expected_logs = []
     while True:
@@ -193,7 +207,9 @@ def test_logstash_rollover_space(logtransfer_rollover_space):
         if len(logtransfer.get_all_rotated_logfiles()) > 2:
             break
         else:
-            time.sleep(0.01)  # slow down logging a bit, so that server can perform rollovers
+            time.sleep(
+                0.01
+            )  # slow down logging a bit, so that server can perform rollovers
 
     expected_logs = b''.join(expected_logs)
     assert_equal_content_logfiles(expected_logs)
@@ -218,8 +234,9 @@ def test_logstash_rollover_space_large_message(logtransfer_rollover_space):
 
 
 @pytest.mark.timeout(3)
-def test_logtransfer_to_federation_backend(api_v1, logtransfer_rollover_time, central_logstash_mock):
-
+def test_logtransfer_to_federation_backend(
+    api_v1, logtransfer_rollover_time, central_logstash_mock
+):
     logstash_line = standard_test_log_record() + b'\n'
 
     with central_logstash_mock as server:
@@ -243,4 +260,6 @@ def test_logtransfer_to_federation_backend(api_v1, logtransfer_rollover_time, ce
 
     # remove key and convert back to string to compare that both logs have identical key/values
     received_json.pop('ip_address')
-    assert json.dumps(sent_json, sort_keys=True) == json.dumps(received_json, sort_keys=True)
+    assert json.dumps(sent_json, sort_keys=True) == json.dumps(
+        received_json, sort_keys=True
+    )

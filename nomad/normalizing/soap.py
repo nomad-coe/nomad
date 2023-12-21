@@ -54,40 +54,38 @@ class SoapNormalizer(SystemBasedNormalizer):
 
         # setup params to be used by quippy
         params, _ = dataset_to_params(atoms)
-        N, S, L = params["n_max"], params["n_Z"], params["l_max"]
+        N, S, L = params['n_max'], params['n_Z'], params['l_max']
         soap.n_max = N
         soap.l_max = L
-        soap.r_cut = np.float64(params["soap cutoff"])
-        soap.atom_sigma = np.float64(params["atom_sigma"])
+        soap.r_cut = np.float64(params['soap cutoff'])
+        soap.atom_sigma = np.float64(params['atom_sigma'])
 
         # regular soap
         quippy_str = params_to_quippy_str(params)
         desc = descriptors.Descriptor(quippy_str)
         output = desc.calc(atoms)
-        ps_array_list = [flat_to_array(p, N, L, S) for p in output["data"]]
-        soap.soap = np.array(
-            [np.reshape(d, (S, S, -1)) for d in ps_array_list]
-        )
+        ps_array_list = [flat_to_array(p, N, L, S) for p in output['data']]
+        soap.soap = np.array([np.reshape(d, (S, S, -1)) for d in ps_array_list])
 
         # global soap
-        quippy_str += " average=T"
+        quippy_str += ' average=T'
         desc = descriptors.Descriptor(quippy_str)
         output = desc.calc(atoms)
-        A = flat_to_array(output["data"][0], N, L, S)
+        A = flat_to_array(output['data'][0], N, L, S)
         soap.global_soap = np.reshape(A, (S, S, -1))
 
         # tensor reduced soap
         quippy_str = params_to_quippy_str(params)
-        quippy_str += "sym_mix=F Z_mix=T R_mix=T K=50 coupling=F"
+        quippy_str += 'sym_mix=F Z_mix=T R_mix=T K=50 coupling=F'
         desc = descriptors.Descriptor(quippy_str)
         output = desc.calc(atoms)
-        soap.tr_soap = output["data"]
+        soap.tr_soap = output['data']
 
         # gloabl tensor reduced soap
-        quippy_str += " average=T"
+        quippy_str += ' average=T'
         desc = descriptors.Descriptor(quippy_str)
         output = desc.calc(atoms)
-        soap.global_tr_soap = output["data"][0]
+        soap.global_tr_soap = output['data'][0]
 
         # add the soap descriptor to the system
         if not system.descriptors:
@@ -98,9 +96,9 @@ class SoapNormalizer(SystemBasedNormalizer):
 
 
 def params_to_quippy_str(params):
-    qs = ""
+    qs = ''
     for key, val in params.items():
-        qs += str(key) + "=" + str(val) + " "
+        qs += str(key) + '=' + str(val) + ' '
     return qs
 
 
@@ -108,22 +106,22 @@ def dataset_to_params(atoms):
     """convert the dataset into params"""
     Zs = set(atoms.numbers)
     Zs = sorted(list(Zs), key=lambda x: x)
-    Zstr = "{"
+    Zstr = '{'
     for Z in Zs:
-        Zstr += str(Z) + " "
-    Zstr = Zstr[:-1] + "}"
+        Zstr += str(Z) + ' '
+    Zstr = Zstr[:-1] + '}'
 
     params = {}
-    params["n_Z"] = len(Zs)
-    params["n_species"] = len(Zs)
-    params["Z"] = Zstr
-    params["species_Z"] = Zstr
-    params["n_max"] = 8
-    params["l_max"] = 4
-    params["soap cutoff"] = 5
-    params["atom_sigma"] = 0.4
-    params["cutoff_transition_width"] = 0.5
-    params["central_weight"] = 1
+    params['n_Z'] = len(Zs)
+    params['n_species'] = len(Zs)
+    params['Z'] = Zstr
+    params['species_Z'] = Zstr
+    params['n_max'] = 8
+    params['l_max'] = 4
+    params['soap cutoff'] = 5
+    params['atom_sigma'] = 0.4
+    params['cutoff_transition_width'] = 0.5
+    params['central_weight'] = 1
     return params, Zs
 
 

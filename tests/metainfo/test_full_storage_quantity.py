@@ -17,35 +17,49 @@
 #
 import pytest
 
-from nomad.metainfo import MSection, Quantity, Attribute, SubSection, MetainfoError, Section
+from nomad.metainfo import (
+    MSection,
+    Quantity,
+    Attribute,
+    SubSection,
+    MetainfoError,
+    Section,
+)
 from nomad.metainfo.util import MQuantity
 from nomad.units import ureg
 
 
 class SectionA(MSection):
     plain = Quantity(type=float)
-    full = Quantity(type=float, unit='m', dimensionality='[length]', attributes=[Attribute(name='gender', type=str)])
-    VARIABLE_game = Quantity(type=str, variable=True, attributes=[
-        Attribute(name='year', type=int),
-        Attribute(name='aka', type=str, shape=['1..3']),
-    ])
+    full = Quantity(
+        type=float,
+        unit='m',
+        dimensionality='[length]',
+        attributes=[Attribute(name='gender', type=str)],
+    )
+    VARIABLE_game = Quantity(
+        type=str,
+        variable=True,
+        attributes=[
+            Attribute(name='year', type=int),
+            Attribute(name='aka', type=str, shape=['1..3']),
+        ],
+    )
     a_attribute = Attribute(type=str)
 
 
 class SectionB(MSection):
     out_plain = Quantity(type=int)
     b_attribute = Attribute(type=str)
-    subsection = SubSection(
-        section=SectionA.m_def
-    )
+    subsection = SubSection(section=SectionA.m_def)
 
 
 def test_full_storage_quantity():
     a_section = SectionA()
     b_section = SectionB()
 
-    a_section.plain = 1.
-    assert a_section.plain == 1.
+    a_section.plain = 1.0
+    assert a_section.plain == 1.0
 
     # wrong dimensionality
     with pytest.raises(MetainfoError):
@@ -81,12 +95,20 @@ def test_full_storage_quantity():
 
     # shape error
     with pytest.raises(MetainfoError):
-        a_section.m_set_quantity_attribute('gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3', 'GTA3'])
+        a_section.m_set_quantity_attribute(
+            'gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3', 'GTA3']
+        )
 
-    a_section.m_set_quantity_attribute('gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3'])
+    a_section.m_set_quantity_attribute(
+        'gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3']
+    )
     a_section.m_set_section_attribute('a_attribute', 'easy')
 
-    assert a_section.m_get_quantity_attribute('gta3_game', 'aka') == ['rockstar games', 'gta', 'gta 3']
+    assert a_section.m_get_quantity_attribute('gta3_game', 'aka') == [
+        'rockstar games',
+        'gta',
+        'gta 3',
+    ]
     assert a_section.m_get_section_attribute('a_attribute') == 'easy'
 
     b_section.subsection = a_section

@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-'''
+"""
 This module provides function to establish connections to the database, searchengine, etc.
 infrastructure services. Usually everything is setup at once with :func:`setup`. This
 is run once for each *api* and *worker* process. Individual functions for partial setups
 exist to facilitate testing, aspects of :py:mod:`nomad.cli`, etc.
-'''
+"""
 
 import os.path
 import os
@@ -49,24 +49,25 @@ from nomad.parsing import parsers  # pylint: disable=unused-import
 
 # TODO put somemore thought into warnings
 import warnings
-warnings.filterwarnings("ignore")
+
+warnings.filterwarnings('ignore')
 
 logger = get_logger(__name__)
 
 elastic_client = None
-''' The elastic search client. '''
+""" The elastic search client. """
 
 mongo_client = None
-''' The pymongo mongodb client. '''
+""" The pymongo mongodb client. """
 
 
 def setup():
-    '''
+    """
     Uses the current configuration (nomad/config.py and environment) to setup all the
     infrastructure services (repository db, mongo, elastic search) and logging.
     Will create client instances for the databases and has to be called before they
     can be used.
-    '''
+    """
     setup_files()
     setup_mongo()
     setup_elastic()
@@ -79,9 +80,11 @@ def setup_files():
 
 
 def setup_mongo(client=False):
-    ''' Creates connection to mongodb. '''
+    """Creates connection to mongodb."""
     global mongo_client
-    kwargs = dict(db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port)
+    kwargs = dict(
+        db=config.mongo.db_name, host=config.mongo.host, port=config.mongo.port
+    )
     if config.mongo.username and config.mongo.password:
         kwargs.update(username=config.mongo.username, password=config.mongo.password)
 
@@ -96,31 +99,39 @@ def setup_mongo(client=False):
 
 
 def setup_elastic():
-    ''' Creates connection to elastic search. '''
+    """Creates connection to elastic search."""
     http_auth = None
     if config.elastic.username and config.elastic.password:
         http_auth = (config.elastic.username, config.elastic.password)
     global elastic_client
     elastic_client = connections.create_connection(
         hosts=['%s:%d' % (config.elastic.host, config.elastic.port)],
-        timeout=config.elastic.timeout, max_retries=10, retry_on_timeout=True,
-        http_auth=http_auth)
+        timeout=config.elastic.timeout,
+        max_retries=10,
+        retry_on_timeout=True,
+        http_auth=http_auth,
+    )
     logger.info('setup elastic connection')
-    from nomad.metainfo.elasticsearch_extension import create_indices as create_v1_indices
+    from nomad.metainfo.elasticsearch_extension import (
+        create_indices as create_v1_indices,
+    )
+
     create_v1_indices()
     logger.info('initialized v1 elastic indices')
 
     return elastic_client
 
 
-class KeycloakError(Exception): pass
+class KeycloakError(Exception):
+    pass
 
 
-class Keycloak():
-    '''
+class Keycloak:
+    """
     A class that encapsulates all keycloak related functions for easier mocking and
     configuration
-    '''
+    """
+
     def __init__(self):
         self.__oidc_client = None
         self.__public_keys = None
@@ -132,7 +143,8 @@ class Keycloak():
                 server_url=config.keycloak.server_url,
                 client_id=config.keycloak.client_id,
                 realm_name=config.keycloak.realm_name,
-                client_secret_key=config.keycloak.client_secret)
+                client_secret_key=config.keycloak.client_secret,
+            )
 
         return self.__oidc_client
 
@@ -145,7 +157,8 @@ class Keycloak():
                 for jwk in jwks['keys']:
                     kid = jwk['kid']
                     self.__public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(
-                        json.dumps(jwk))
+                        json.dumps(jwk)
+                    )
             except Exception as e:
                 self.__public_keys = None
                 raise e
@@ -156,12 +169,12 @@ class Keycloak():
         return self._oidc_client.refresh_token(refresh_token)
 
     def basicauth(self, username: str, password: str) -> str:
-        '''
+        """
         Performs basic authentication and returns an access token.
 
         Raises:
             KeycloakError
-        '''
+        """
         try:
             token_info = self._oidc_client.token(username=username, password=password)
         except KeycloakAuthenticationError as e:
@@ -177,43 +190,61 @@ class Keycloak():
             kid = jwt.get_unverified_header(access_token)['kid']
             key = keycloak._public_keys.get(kid)
             if key is None:
-                logger.error('The user provided keycloak public key does not exist. Does the UI use the right realm?')
-                raise KeycloakError(utils.strip('''
+                logger.error(
+                    'The user provided keycloak public key does not exist. Does the UI use the right realm?'
+                )
+                raise KeycloakError(
+                    utils.strip(
+                        """
                     Could not validate credentials.
                     The user provided keycloak public key does not exist.
-                    Does the UI use the right realm?'''))
+                    Does the UI use the right realm?"""
+                    )
+                )
 
             issuer = f'{config.keycloak.public_server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
             options = dict(verify_aud=False, verify_exp=True, verify_iss=True)
             return jwt.decode(
-                access_token, key=key, algorithms=['RS256'], options=options,
-                issuer=issuer)
+                access_token,
+                key=key,
+                algorithms=['RS256'],
+                options=options,
+                issuer=issuer,
+            )
         except jwt.InvalidTokenError:
-            raise KeycloakError('Could not validate credentials. The given token is invalid.')
+            raise KeycloakError(
+                'Could not validate credentials. The given token is invalid.'
+            )
 
     def tokenauth(self, access_token: str) -> object:
-        '''
+        """
         Authenticates the given access_token
 
         Returns:
             The user
-        '''
+        """
         try:
             payload = self.decode_access_token(access_token)
 
             user_id: str = payload.get('sub')
             if user_id is None:
-                raise KeycloakError(utils.strip('''
+                raise KeycloakError(
+                    utils.strip(
+                        """
                     Could not validate credentials.
-                    The given token does not contain a user_id.'''))
+                    The given token does not contain a user_id."""
+                    )
+                )
 
             from nomad import datamodel
+
             return datamodel.User(
                 user_id=user_id,
                 username=payload.get('preferred_username', None),
                 email=payload.get('email', None),
                 first_name=payload.get('given_name', None),
-                last_name=payload.get('family_name', None))
+                last_name=payload.get('family_name', None),
+            )
 
         except Exception as e:
             logger.error('cannot perform tokenauth', exc_info=e)
@@ -223,24 +254,24 @@ class Keycloak():
 keycloak = Keycloak()
 
 
-class UserManagement():
+class UserManagement:
     def add_user(self, user, bcrypt_password=None, invite=False):
-        '''
+        """
         Adds the given :class:`nomad.datamodel.User` instance to the configured keycloak
         realm using the keycloak admin API.
-        '''
+        """
         raise NotImplementedError()
 
     def search_user(self, query: str):
         raise NotImplementedError()
 
     def get_user(self, user_id: str = None, username: str = None, email: str = None):
-        '''
+        """
         Retrives all available information about a user from the local keycloak admin
         interface or the central NOMAD installation. This can be used to retrieve
         complete user information, because the info solely gathered from tokens is generally
         incomplete.
-        '''
+        """
         raise NotImplementedError()
 
 
@@ -249,23 +280,28 @@ class OasisUserManagement(UserManagement):
         if users_api_url:
             self._users_api_url = users_api_url
         else:
-            self._users_api_url = f'{config.oasis.central_nomad_deployment_url}/v1/users'
+            self._users_api_url = (
+                f'{config.oasis.central_nomad_deployment_url}/v1/users'
+            )
 
     def add_user(self, user, bcrypt_password=None, invite=False):
         raise NotImplementedError(
-            'Adding a user is not possible for an Oasis using the central user management.')
+            'Adding a user is not possible for an Oasis using the central user management.'
+        )
 
     def __user_from_api_user(self, api_user):
         from nomad import datamodel
+
         del api_user['is_admin']
         del api_user['is_oasis_admin']
         return datamodel.User.m_from_dict(api_user)
 
     def search_user(self, query: str):
         import requests
+
         response = requests.get(self._users_api_url, params=dict(prefix=query))
         if response.status_code != 200:
-            raise KeycloakError('Could not request central nomad\'s user management.')
+            raise KeycloakError("Could not request central nomad's user management.")
 
         return list(self.__user_from_api_user(user) for user in response.json()['data'])
 
@@ -284,7 +320,7 @@ class OasisUserManagement(UserManagement):
 
         response = requests.get(self._users_api_url, params=kwargs)
         if response.status_code != 200:
-            raise KeycloakError('Could not request central nomad\'s user management.')
+            raise KeycloakError("Could not request central nomad's user management.")
 
         data = response.json()
         if len(data['data']) == 0:
@@ -318,6 +354,7 @@ class KeycloakUserManagement(UserManagement):
 
     def add_user(self, user, bcrypt_password=None, invite=False):
         from nomad import datamodel
+
         if not isinstance(user, datamodel.User):
             if 'user_id' not in user:
                 user['user_id'] = 'not set'
@@ -343,24 +380,36 @@ class KeycloakUserManagement(UserManagement):
             attributes=dict(
                 repo_user_id=user.repo_user_id,
                 affiliation=user.affiliation if user.affiliation is not None else '',
-                affiliation_address=user.affiliation_address if user.affiliation_address is not None else ''),
-            createdTimestamp=user.created.timestamp() * 1000 if user.created is not None else None,
+                affiliation_address=user.affiliation_address
+                if user.affiliation_address is not None
+                else '',
+            ),
+            createdTimestamp=user.created.timestamp() * 1000
+            if user.created is not None
+            else None,
             enabled=True,
-            emailVerified=True)
+            emailVerified=True,
+        )
 
         if invite:
             keycloak_user['requiredActions'] = [
-                'UPDATE_PASSWORD', 'UPDATE_PROFILE', 'VERIFY_EMAIL']
+                'UPDATE_PASSWORD',
+                'UPDATE_PROFILE',
+                'VERIFY_EMAIL',
+            ]
 
         if bcrypt_password is not None:
-            keycloak_user['credentials'] = [dict(
-                type='password',
-                hashedSaltedValue=bcrypt_password,
-                algorithm='bcrypt')]
+            keycloak_user['credentials'] = [
+                dict(
+                    type='password',
+                    hashedSaltedValue=bcrypt_password,
+                    algorithm='bcrypt',
+                )
+            ]
 
         keycloak_user = {
-            key: value for key, value in keycloak_user.items()
-            if value is not None}
+            key: value for key, value in keycloak_user.items() if value is not None
+        }
 
         if user.user_id != 'not_set':
             try:
@@ -394,7 +443,9 @@ class KeycloakUserManagement(UserManagement):
     def __user_from_keycloak_user(self, keycloak_user):
         from nomad import datamodel
 
-        kwargs = {key: value[0] for key, value in keycloak_user.get('attributes', {}).items()}
+        kwargs = {
+            key: value[0] for key, value in keycloak_user.get('attributes', {}).items()
+        }
         oasis_admin = kwargs.pop('is_oasis_admin', None) is not None
         return datamodel.User(
             m_ignore_additional_keys=True,
@@ -405,7 +456,8 @@ class KeycloakUserManagement(UserManagement):
             last_name=keycloak_user.get('lastName'),
             is_oasis_admin=oasis_admin,
             created=datetime.fromtimestamp(keycloak_user['createdTimestamp'] / 1000),
-            **kwargs)
+            **kwargs,
+        )
 
     def search_user(self, query: str):
         kwargs = {}
@@ -421,7 +473,8 @@ class KeycloakUserManagement(UserManagement):
 
         return [
             self.__user_from_keycloak_user(keycloak_user)
-            for keycloak_user in keycloak_results]
+            for keycloak_user in keycloak_results
+        ]
 
     def get_user(self, user_id: str = None, username: str = None, email: str = None):
         if username is not None and user_id is None:
@@ -457,13 +510,16 @@ class KeycloakUserManagement(UserManagement):
 
     @property
     def _admin_client(self):
-        if True:  # TODO (self.__admin_client is None:), client becomes unusable after 60s
+        if (
+            True
+        ):  # TODO (self.__admin_client is None:), client becomes unusable after 60s
             self.__admin_client = KeycloakAdmin(
                 server_url=config.keycloak.server_url,
                 username=config.keycloak.username,
                 password=config.keycloak.password,
                 realm_name=config.keycloak.realm_name,
-                verify=True)
+                verify=True,
+            )
             self.__admin_client.realm_name = config.keycloak.realm_name
 
         return self.__admin_client
@@ -477,7 +533,7 @@ else:
 
 
 def reset(remove: bool):
-    '''
+    """
     Resets the databases mongo, elastic/entries, and all files. Be careful.
     In contrast to :func:`remove`, it will only remove the contents of dbs and indicies.
     This function just attempts to remove everything, there is no exception handling
@@ -485,7 +541,7 @@ def reset(remove: bool):
 
     Args:
         remove: Do not try to recreate empty databases, remove entirely.
-    '''
+    """
     try:
         if not mongo_client:
             setup_mongo()
@@ -495,7 +551,10 @@ def reset(remove: bool):
         logger.error('exception reset mongodb', exc_info=e)
 
     try:
-        from nomad.metainfo.elasticsearch_extension import create_indices, delete_indices
+        from nomad.metainfo.elasticsearch_extension import (
+            create_indices,
+            delete_indices,
+        )
 
         if not elastic_client:
             setup_elastic()
@@ -520,7 +579,8 @@ def reset(remove: bool):
                 try:
                     if os.path.isfile(path):
                         os.unlink(path)
-                    elif os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
+                    elif os.path.isdir(path):
+                        shutil.rmtree(path, ignore_errors=True)
                 except Exception:
                     pass
 

@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-'''
+"""
 Commands for updating the DOS similarity of materials from an external file.
-'''
+"""
 
 # TODO If we want to keep supporting DOS similarities in the next version of
 # Encyclopedia, this script needs to be updated to work with the new materials

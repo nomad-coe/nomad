@@ -20,9 +20,11 @@ import pytest
 import numpy as np
 import yaml
 
-from nomad.app.v1.routers.metainfo import get_package_by_section_definition_id, store_package_definition
-from nomad.metainfo import (
-    MSection, MCategory, Quantity, SubSection)
+from nomad.app.v1.routers.metainfo import (
+    get_package_by_section_definition_id,
+    store_package_definition,
+)
+from nomad.metainfo import MSection, MCategory, Quantity, SubSection
 from nomad.metainfo.metainfo import Datetime, Package, MEnum, Reference, Definition
 
 # resolve_references are tested in .test_references
@@ -57,14 +59,16 @@ class Root(Abstract):
 values = dict(
     scalar='test_value',
     many=['test_value_1', 'test_value_2'],
-    matrix=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+    matrix=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+)
 
 expected_child = dict(**values)
 expected_root = dict(
     child=expected_child,
     children=[expected_child, expected_child],
     abstract=dict(m_def='tests.metainfo.test_to_dict.Child', **expected_child),
-    **values)
+    **values,
+)
 
 
 @pytest.fixture
@@ -86,19 +90,26 @@ def test_m_from_dict(example):
     assert Root.m_from_dict(example.m_to_dict()).m_to_dict() == expected_root
 
 
-@pytest.mark.parametrize('metainfo_data', [
-    pytest.param({
-        'm_def': 'nomad.metainfo.metainfo.Package',
-        'name': 'test.Package',
-        'section_definitions': [
+@pytest.mark.parametrize(
+    'metainfo_data',
+    [
+        pytest.param(
             {
-                'name': 'MySection'
-            }
-        ]
-    }, id='python')
-])
+                'm_def': 'nomad.metainfo.metainfo.Package',
+                'name': 'test.Package',
+                'section_definitions': [{'name': 'MySection'}],
+            },
+            id='python',
+        )
+    ],
+)
 def test_from_dict(metainfo_data, monkeypatch, mongo_module):
-    assert MSection.from_dict(metainfo_data).m_to_dict(with_root_def=True, with_out_meta=True) == metainfo_data
+    assert (
+        MSection.from_dict(metainfo_data).m_to_dict(
+            with_root_def=True, with_out_meta=True
+        )
+        == metainfo_data
+    )
 
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
 
@@ -120,22 +131,44 @@ def test_from_dict(metainfo_data, monkeypatch, mongo_module):
 def test_with_meta(example):
     assert example.m_to_dict(with_meta=True) == dict(
         m_def='tests.metainfo.test_to_dict.Root',
-        child=dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='child', **expected_child),
+        child=dict(
+            m_def='tests.metainfo.test_to_dict.Child',
+            m_parent_sub_section='child',
+            **expected_child,
+        ),
         children=[
-            dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='children', m_parent_index=0, **expected_child),
-            dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='children', m_parent_index=1, **expected_child)],
-        abstract=dict(m_def='tests.metainfo.test_to_dict.Child', m_parent_sub_section='abstract', **expected_child),
-        **values)
+            dict(
+                m_def='tests.metainfo.test_to_dict.Child',
+                m_parent_sub_section='children',
+                m_parent_index=0,
+                **expected_child,
+            ),
+            dict(
+                m_def='tests.metainfo.test_to_dict.Child',
+                m_parent_sub_section='children',
+                m_parent_index=1,
+                **expected_child,
+            ),
+        ],
+        abstract=dict(
+            m_def='tests.metainfo.test_to_dict.Child',
+            m_parent_sub_section='abstract',
+            **expected_child,
+        ),
+        **values,
+    )
 
 
 def test_include_defaults(example):
     assert example.m_to_dict(include_defaults=True) == dict(
-        default='test_value', **expected_root)
+        default='test_value', **expected_root
+    )
 
 
 def test_derived(example):
     assert example.m_to_dict(include_derived=True) == dict(
-        derived='test_value', **expected_root)
+        derived='test_value', **expected_root
+    )
 
 
 @pytest.mark.parametrize('include', [True, False])
@@ -159,26 +192,35 @@ def test_exclude_include(example, include: bool):
 
 def test_categories(example):
     root = dict(**expected_root)
-    del(root['many'])
-    del(root['matrix'])
+    del root['many']
+    del root['matrix']
 
     assert example.m_to_dict(categories=[Category]) == root
 
 
-@pytest.mark.parametrize('type, serialized_type', [
-    pytest.param(str, dict(type_kind='python', type_data='str'), id='primitive'),
-    pytest.param(
-        Reference(Definition),
-        dict(type_kind='reference', type_data='/section_definitions/0'), id='reference'),
-    pytest.param(
-        MEnum('A', 'B', m_descriptions=dict(A='a', B='b')),
-        dict(
-            type_kind='Enum',
-            type_data=['A', 'B'],
-            type_descriptions=dict(A='a', B='b')
-        ), id='enum'),
-    pytest.param(np.float64, dict(type_kind='numpy', type_data='float64'), id='numpy')
-])
+@pytest.mark.parametrize(
+    'type, serialized_type',
+    [
+        pytest.param(str, dict(type_kind='python', type_data='str'), id='primitive'),
+        pytest.param(
+            Reference(Definition),
+            dict(type_kind='reference', type_data='/section_definitions/0'),
+            id='reference',
+        ),
+        pytest.param(
+            MEnum('A', 'B', m_descriptions=dict(A='a', B='b')),
+            dict(
+                type_kind='Enum',
+                type_data=['A', 'B'],
+                type_descriptions=dict(A='a', B='b'),
+            ),
+            id='enum',
+        ),
+        pytest.param(
+            np.float64, dict(type_kind='numpy', type_data='float64'), id='numpy'
+        ),
+    ],
+)
 def test_quantity_type(type, serialized_type):
     class MySection(MSection):
         my_quantity = Quantity(type=type)
@@ -200,7 +242,7 @@ def test_transform(example):
 
 @pytest.fixture(scope='function')
 def schema_yaml():
-    return '''
+    return """
 name: advanced_metainfo_example
 section_definitions:
   - name: BaseSection
@@ -261,7 +303,7 @@ section_definitions:
         type: Datetime
       - name: floaty
         type: np.float64
-'''
+"""
 
 
 def test_schema_deserialization(schema_yaml):
@@ -275,18 +317,31 @@ def test_schema_deserialization(schema_yaml):
     application_data = pkg.all_definitions['ApplicationData']
 
     assert inner_section_base == base_inner_section
-    assert pkg.all_definitions['ApplicationSection'].all_properties['authors'].section_def.m_resolved() == inner_section
-    assert pkg.all_definitions['ApplicationSection'].all_properties['data'].section_def.m_resolved() == pkg.all_definitions['ApplicationData']
+    assert (
+        pkg.all_definitions['ApplicationSection']
+        .all_properties['authors']
+        .section_def.m_resolved()
+        == inner_section
+    )
+    assert (
+        pkg.all_definitions['ApplicationSection']
+        .all_properties['data']
+        .section_def.m_resolved()
+        == pkg.all_definitions['ApplicationData']
+    )
     assert application_data.all_properties['name'].type == str
-    assert application_data.all_properties['related'].type.target_section_def.m_resolved() == application_data
+    assert (
+        application_data.all_properties['related'].type.target_section_def.m_resolved()
+        == application_data
+    )
     assert application_data.all_properties['time'].type == Datetime
     assert application_data.all_properties['floaty'].type == np.float64
 
 
 def test_schema_definition_id(schema_yaml):
-    '''
+    """
     Test if the definition id is correctly generated.
-    '''
+    """
     schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
     pkg = Package.m_from_dict(schema_dict)
     pkg.init_metainfo()
@@ -301,6 +356,10 @@ def test_schema_definition_id(schema_yaml):
             assert value['m_def_id'] is not None
             assert value['definition_id'] is not None
 
-        return {k: check_dict(v) for k, v in value.items() if k not in ('m_def_id', 'definition_id')}
+        return {
+            k: check_dict(v)
+            for k, v in value.items()
+            if k not in ('m_def_id', 'definition_id')
+        }
 
     check_dict(pkg.m_to_dict(with_def_id=True))

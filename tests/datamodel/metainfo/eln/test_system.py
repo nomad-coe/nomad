@@ -39,7 +39,7 @@ def test_substance(raw_files, test_user, mongo):
     test_archive = data.create_entry_from_file(
         upload_id=upload_id,
         mainfile=os.path.join(directory, mainfile),
-        entry_archive=EntryArchive(m_context=context)
+        entry_archive=EntryArchive(m_context=context),
     )
 
     data.save(with_es=False)
@@ -49,8 +49,8 @@ def test_substance(raw_files, test_user, mongo):
     # Check that api call to CAS found Lead Iodide
     assert test_archive.data.cas_number == '10101-63-0'
     # Check that the material results section was populated by the normalizer
-    assert "I" in test_archive.results.material.elements
-    assert "Pb" in test_archive.results.material.elements
+    assert 'I' in test_archive.results.material.elements
+    assert 'Pb' in test_archive.results.material.elements
 
 
 def test_ensemble(raw_files, test_user, mongo):
@@ -64,15 +64,18 @@ def test_ensemble(raw_files, test_user, mongo):
     test_archive = data.create_entry_from_file(
         upload_id=upload_id,
         mainfile=os.path.join(directory, mainfile),
-        entry_archive=EntryArchive(m_context=context)
+        entry_archive=EntryArchive(m_context=context),
     )
 
     data.save(with_es=False)
 
-    test_archive.metadata.main_author = User.m_from_dict({
-        "first_name": "Sheldon",
-        "last_name": "Cooper",
-        "affiliation": "Humboldt-Universität zu Berlin"})
+    test_archive.metadata.main_author = User.m_from_dict(
+        {
+            'first_name': 'Sheldon',
+            'last_name': 'Cooper',
+            'affiliation': 'Humboldt-Universität zu Berlin',
+        }
+    )
     run_normalize(test_archive)
 
     # Check that entry type is the custom 'my_ensemble' class

@@ -25,7 +25,6 @@ from nomad.datamodel.metainfo import basesections
 
 
 class MockResponse:
-
     def __init__(self, json: dict):
         self._json = json
         self.status_code = 200
@@ -40,8 +39,9 @@ class MockResponse:
 
 @pytest.fixture(scope='function')
 def external_api_fixture(monkeypatch):
-
-    with open('tests/data/datamodel/metainfo/external_api_mock_response.json', 'r') as fp:
+    with open(
+        'tests/data/datamodel/metainfo/external_api_mock_response.json', 'r'
+    ) as fp:
         mock_responses = json.load(fp)
 
     def pub_chem_api_get_properties(cid: int, properties: Iterable[str]):
@@ -59,26 +59,33 @@ def external_api_fixture(monkeypatch):
     def cas_api_details(cas_rn: str):
         return MockResponse(mock_responses['cas_api_details'])
 
-    monkeypatch.setattr(basesections, 'pub_chem_api_get_properties', pub_chem_api_get_properties)
-    monkeypatch.setattr(basesections, 'pub_chem_api_get_synonyms', pub_chem_api_get_synonyms)
+    monkeypatch.setattr(
+        basesections, 'pub_chem_api_get_properties', pub_chem_api_get_properties
+    )
+    monkeypatch.setattr(
+        basesections, 'pub_chem_api_get_synonyms', pub_chem_api_get_synonyms
+    )
     monkeypatch.setattr(basesections, 'pub_chem_api_search', pub_chem_api_search)
     monkeypatch.setattr(basesections, 'cas_api_search', cas_api_search)
     monkeypatch.setattr(basesections, 'cas_api_details', cas_api_details)
 
 
-@pytest.mark.parametrize('mainfile', [
-    pytest.param('test_substance.archive.yaml', id='Substance'),
-    pytest.param('test_cas_substance.archive.yaml', id='CASSubstance'),
-    pytest.param('test_pub_chem_substance.archive.yaml', id='PubChemSubstance'),
-    pytest.param('test_not_overwrite_substance.archive.yaml', id='not-overwrite'),
-])
+@pytest.mark.parametrize(
+    'mainfile',
+    [
+        pytest.param('test_substance.archive.yaml', id='Substance'),
+        pytest.param('test_cas_substance.archive.yaml', id='CASSubstance'),
+        pytest.param('test_pub_chem_substance.archive.yaml', id='PubChemSubstance'),
+        pytest.param('test_not_overwrite_substance.archive.yaml', id='not-overwrite'),
+    ],
+)
 def test_substance(mainfile, external_api_fixture):
     directory = 'tests/data/datamodel/metainfo'
     test_archive = run_processing(directory, mainfile)
 
     # Check that the material results section was populated by the normalizer
-    assert "I" in test_archive.results.material.elements
-    assert "Pb" in test_archive.results.material.elements
+    assert 'I' in test_archive.results.material.elements
+    assert 'Pb' in test_archive.results.material.elements
     assert len(test_archive.results.material.elemental_composition) == 2
     for composition in test_archive.results.material.elemental_composition:
         if composition.element == 'I':

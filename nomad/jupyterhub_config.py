@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-'''
+"""
 Configuration for JuypterHUB. We use JuypterHUB to run remote tools, like jupyter, on
 NOMAD servers.
-'''
+"""
 
 from dockerspawner.dockerspawner import DockerSpawner
 from oauthenticator.generic import GenericOAuthenticator
@@ -35,8 +35,12 @@ def pre_spawn(spawner):
 
         # Only the nomad-service can launch specialized tools with mounted volumes
         if spawner.name:
-            spawner.log.error(f'The {spawner.name} server is not allowed to start this way, raise an error')
-            raise NotImplementedError('Only the nomad-service can launch specialized tools.')
+            spawner.log.error(
+                f'The {spawner.name} server is not allowed to start this way, raise an error'
+            )
+            raise NotImplementedError(
+                'Only the nomad-service can launch specialized tools.'
+            )
 
         return
 
@@ -44,21 +48,21 @@ def pre_spawn(spawner):
     if user_home:
         spawner.volumes[user_home['host_path']] = {
             'mode': 'rw',
-            'bind': user_home['mount_path']
+            'bind': user_home['mount_path'],
         }
 
     uploads = spawner.user_options.get('uploads', [])
     for upload in uploads:
         spawner.volumes[upload['host_path']] = {
             'mode': 'rw',
-            'bind': upload['mount_path']
+            'bind': upload['mount_path'],
         }
 
     external_mounts = spawner.user_options.get('external_mounts', [])
     for external_mount in external_mounts:
         spawner.volumes[external_mount['host_path']] = {
             'bind': external_mount['bind'],
-            'mode': external_mount['mode']
+            'mode': external_mount['mode'],
         }
 
     environment = spawner.user_options.get('environment', {})
@@ -75,9 +79,9 @@ c.Spawner.pre_spawn_hook = pre_spawn
 # configure nomad service
 c.JupyterHub.services = [
     {
-        "name": "nomad-service",
-        "admin": True,
-        "api_token": config.north.hub_service_api_token,
+        'name': 'nomad-service',
+        'admin': True,
+        'api_token': config.north.hub_service_api_token,
     }
 ]
 
@@ -95,13 +99,19 @@ c.JupyterHub.bind_url = f'http://:9000/{config.services.api_base_path.strip("/")
 
 # configure authenticator
 nomad_public_keycloak = f'{config.keycloak.public_server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
-nomad_keycloak = f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
+nomad_keycloak = (
+    f'{config.keycloak.server_url.rstrip("/")}/realms/{config.keycloak.realm_name}'
+)
 c.JupyterHub.authenticator_class = GenericOAuthenticator
 c.GenericOAuthenticator.login_service = 'keycloak'
 c.GenericOAuthenticator.client_id = config.keycloak.client_id
-c.GenericOAuthenticator.authorize_url = f'{nomad_public_keycloak}/protocol/openid-connect/auth'
+c.GenericOAuthenticator.authorize_url = (
+    f'{nomad_public_keycloak}/protocol/openid-connect/auth'
+)
 c.GenericOAuthenticator.token_url = f'{nomad_keycloak}/protocol/openid-connect/token'
-c.GenericOAuthenticator.userdata_url = f'{nomad_keycloak}/protocol/openid-connect/userinfo'
+c.GenericOAuthenticator.userdata_url = (
+    f'{nomad_keycloak}/protocol/openid-connect/userinfo'
+)
 c.GenericOAuthenticator.userdata_params = {'state': 'state'}
 c.GenericOAuthenticator.username_key = 'preferred_username'
 c.GenericOAuthenticator.scope = ['openid', 'profile']
@@ -121,13 +131,16 @@ class DockerSpawnerWithWindowsFixes(DockerSpawner):
             if result is not None:
                 break
             import time
+
             time.sleep(3)
             tries += 1
 
         return result
 
 
-c.JupyterHub.spawner_class = DockerSpawner if not config.north.windows else DockerSpawnerWithWindowsFixes
+c.JupyterHub.spawner_class = (
+    DockerSpawner if not config.north.windows else DockerSpawnerWithWindowsFixes
+)
 c.DockerSpawner.image = 'jupyter/datascience-notebook'
 c.DockerSpawner.remove = True
 # Prefix for container names. See name_template for full container name for a particular

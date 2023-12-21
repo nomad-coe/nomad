@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-'''
+"""
 Definitions that are used in the documentation via mkdocs-macro-plugin.
-'''
+"""
 
 import yaml
 import json
@@ -34,9 +34,7 @@ from markdown.extensions.toc import slugify
 from nomad.utils import strip
 from nomad import config
 from nomad.config.plugins import Parser, Plugin
-from nomad.app.v1.models import (
-    query_documentation,
-    owner_documentation)
+from nomad.app.v1.models import query_documentation, owner_documentation
 from nomad.app.v1.routers.entries import archive_required_documentation
 from nomad import utils
 
@@ -47,12 +45,12 @@ exported_config_models = set()  # type: ignore
 doc_snippets = {
     'query': query_documentation,
     'owner': owner_documentation,
-    'archive-required': archive_required_documentation
+    'archive-required': archive_required_documentation,
 }
 
 
 def get_field_type_info(field: ModelField) -> Tuple[str, Set[Any]]:
-    '''Used to recursively walk through a type definition, building up a cleaned
+    """Used to recursively walk through a type definition, building up a cleaned
     up type name and returning all of the classes that were used.
 
     Args:
@@ -61,7 +59,7 @@ def get_field_type_info(field: ModelField) -> Tuple[str, Set[Any]]:
     Returns:
         Tuple containing the cleaned up type name and a set of classes
         found inside.
-    '''
+    """
     # Notice that pydantic does not store the full type in field.type_, but instead in
     # field.outer_type_
     type_ = field.outer_type_
@@ -69,9 +67,9 @@ def get_field_type_info(field: ModelField) -> Tuple[str, Set[Any]]:
     models = set()
 
     def fetch_models(type_, type_name):
-        '''Used to recursively walk through a type definition, building up a
+        """Used to recursively walk through a type definition, building up a
         pretty type name and adding any found models to the docs.
-        '''
+        """
         # Get the type name
         early_stop = False
         skip_parent = False
@@ -98,7 +96,7 @@ def get_field_type_info(field: ModelField) -> Tuple[str, Set[Any]]:
             elif type(cls) == _AnnotatedAlias:
                 skip_parent = True
             else:
-                name = str(cls).split("[", 1)[0].rsplit('.')[-1]
+                name = str(cls).split('[', 1)[0].rsplit('.')[-1]
 
         if not skip_parent:
             if not name:
@@ -130,14 +128,14 @@ def get_field_type_info(field: ModelField) -> Tuple[str, Set[Any]]:
 
 
 def get_field_description(field: ModelField) -> Optional[str]:
-    '''Retrieves the description for a pydantic field as a markdown string.
+    """Retrieves the description for a pydantic field as a markdown string.
 
     Args:
         field: The pydantic field to inspect.
 
     Returns:
         Markdown string for the description.
-    '''
+    """
     value = field.field_info.description
     if value:
         value = utils.strip(value)
@@ -147,14 +145,14 @@ def get_field_description(field: ModelField) -> Optional[str]:
 
 
 def get_field_default(field: ModelField) -> Optional[str]:
-    '''Retrieves the default value from a pydantic field as a markdown string.
+    """Retrieves the default value from a pydantic field as a markdown string.
 
     Args:
         field: The pydantic field to inspect.
 
     Returns:
         Markdown string for the default value.
-    '''
+    """
     default_value = field.default
     if default_value is not None:
         if isinstance(default_value, (dict, BaseModel)):
@@ -167,7 +165,7 @@ def get_field_default(field: ModelField) -> Optional[str]:
 
 
 def get_field_options(field: ModelField) -> Dict[str, Optional[str]]:
-    '''Retrieves a dictionary of value-description pairs from a pydantic field.
+    """Retrieves a dictionary of value-description pairs from a pydantic field.
 
     Args:
         field: The pydantic field to inspect.
@@ -175,7 +173,7 @@ def get_field_options(field: ModelField) -> Dict[str, Optional[str]]:
     Returns:
         Dictionary containing the possible options and their description for
         this field. The description may be None indicating that it does not exist.
-    '''
+    """
     options: Dict[str, Optional[str]] = {}
     if isclass(field.type_) and issubclass(field.type_, Enum):
         for x in field.type_:
@@ -184,22 +182,23 @@ def get_field_options(field: ModelField) -> Dict[str, Optional[str]]:
 
 
 def get_field_deprecated(field: ModelField) -> bool:
-    '''Returns whether the given pydantic field is deprecated or not.
+    """Returns whether the given pydantic field is deprecated or not.
 
     Args:
         field: The pydantic field to inspect.
 
     Returns:
         Whether the field is deprecated.
-    '''
+    """
     return field.field_info.extra.get('deprecated', False)
 
 
 class MyYamlDumper(yaml.Dumper):
-    '''
+    """
     A custom dumper that always shows objects in yaml and not json syntax
     even with default_flow_style=None.
-    '''
+    """
+
     def represent_mapping(self, *args, **kwargs):
         node = super(MyYamlDumper, self).represent_mapping(*args, **kwargs)
         node.flow_style = False
@@ -219,10 +218,12 @@ def define_env(env):
 
     @env.macro
     def metainfo_data():  # pylint: disable=unused-variable
-        return utils.strip('''
+        return utils.strip(
+            """
             You can browse the [NOMAD metainfo schema](../gui/analyze/metainfo)
             or the archive of each entry (e.g. [a VASP example](../gui/search/entries/entry/id/d5OYC0SJTDevHMPk7YHd4A/-7j8ojKkna2NLXdytv_OjV4zsBXw/archive))
-            in the web-interface.''')
+            in the web-interface."""
+        )
 
     @env.macro
     def file_contents(path):  # pylint: disable=unused-variable
@@ -231,7 +232,7 @@ def define_env(env):
 
     @env.macro
     def yaml_snippet(path, indent, filter=None):  # pylint: disable=unused-variable
-        '''
+        """
         Produces a yaml string from a (partial) .json or .yaml file.
 
         Arguments:
@@ -240,7 +241,7 @@ def define_env(env):
             filter:
                 Optional comma separated list of keys that should be removed from
                 the top-level object.
-        '''
+        """
 
         if ':' not in path:
             path = f'{path}:'
@@ -272,16 +273,15 @@ def define_env(env):
                 if key in filter:
                     to_remove.append(key)
             for key in to_remove:
-                del(data[key])
+                del data[key]
 
         yaml_string = yaml.dump(
-            data,
-            sort_keys=False, default_flow_style=None,
-            Dumper=MyYamlDumper)
+            data, sort_keys=False, default_flow_style=None, Dumper=MyYamlDumper
+        )
         return f'\n{indent}'.join(f'{indent}{yaml_string}'.split('\n'))
 
     @env.macro
-    def config_models(models=None):   # pylint: disable=unused-variable
+    def config_models(models=None):  # pylint: disable=unused-variable
         from nomad import config
 
         results = ''
@@ -293,7 +293,9 @@ def define_env(env):
                 if not models and attribute_name in exported_config_models:
                     continue
 
-                results += pydantic_model_from_model(attribute.__class__, attribute_name)
+                results += pydantic_model_from_model(
+                    attribute.__class__, attribute_name
+                )
                 results += '\n\n'
 
         return results
@@ -331,7 +333,9 @@ def define_env(env):
                 return ''
             type_name, classes = get_field_type_info(field)
             nonlocal required_models
-            required_models |= {cls for cls in classes if isclass(cls) and issubclass(cls, BaseModel)}
+            required_models |= {
+                cls for cls in classes if isclass(cls) and issubclass(cls, BaseModel)
+            }
             return f'|{field.name}|`{type_name}`|{content(field)}|\n'
 
         if heading is None:
@@ -344,7 +348,9 @@ def define_env(env):
 
         result += '|name|type| |\n'
         result += '|----|----|-|\n'
-        result += ''.join([field_row(field) for field in fields.values() if field.name not in hide])
+        result += ''.join(
+            [field_row(field) for field in fields.values() if field.name not in hide]
+        )
 
         for required_model in required_models:
             if required_model.__name__ not in exported_config_models:
@@ -355,12 +361,12 @@ def define_env(env):
 
     @env.macro
     def pydantic_model(path, heading=None, hide=[]):  # pylint: disable=unused-variable
-        '''
+        """
         Produces markdown code for the given pydantic model.
 
         Arguments:
             path: The python qualified name of the model class.
-        '''
+        """
         import importlib
 
         module_name, name = path.rsplit('.', 1)
@@ -379,7 +385,8 @@ def define_env(env):
     @env.macro
     def parser_list():  # pylint: disable=unused-variable
         parsers = [
-            plugin for _, plugin in config.plugins.filtered_items()
+            plugin
+            for _, plugin in config.plugins.filtered_items()
             if isinstance(plugin, Parser)
         ]
 
@@ -390,7 +397,8 @@ def define_env(env):
             # if parser.metadata and 'parserSpecific' in parser.metadata:
             #     more_description = strip(parser.metadata['parserSpecific'])
 
-            metadata = strip(f'''
+            metadata = strip(
+                f"""
                 ### {parser.code_name}
 
                 {parser.description or ''}
@@ -402,9 +410,13 @@ def define_env(env):
                 |package|{parser.python_package}|
                 |parser class|{parser.parser_class_name}|
                 |parser code|[{parser.plugin_source_code_url}]({parser.plugin_source_code_url})|
-            ''')
+            """
+            )
 
-            if parser.metadata and parser.metadata.get('tableOfFiles', '').strip(' \t\n') != '':
+            if (
+                parser.metadata
+                and parser.metadata.get('tableOfFiles', '').strip(' \t\n') != ''
+            ):
                 metadata += f'\n\n{strip(parser.metadata["tableOfFiles"])}'
 
             return metadata
@@ -415,27 +427,35 @@ def define_env(env):
             category.append(parser)
 
         def render_category(name: str, category: List[Parser]) -> str:
-            return f'## {name}s\n\n' + '\n\n'.join([
-                render_parser(parser) for parser in category
-            ])
+            return f'## {name}s\n\n' + '\n\n'.join(
+                [render_parser(parser) for parser in category]
+            )
 
-        return ', '.join([
-            f'[{parser.code_name}](#{slugify(parser.code_name, "-")})'
-            for parser in parsers
-        ]) + '\n\n' + '\n\n'.join([
-            render_category(name, category)
-            for name, category in categories.items()
-        ])
+        return (
+            ', '.join(
+                [
+                    f'[{parser.code_name}](#{slugify(parser.code_name, "-")})'
+                    for parser in parsers
+                ]
+            )
+            + '\n\n'
+            + '\n\n'.join(
+                [
+                    render_category(name, category)
+                    for name, category in categories.items()
+                ]
+            )
+        )
 
     @env.macro
     def plugin_list():  # pylint: disable=unused-variable
-        plugins = [
-            plugin for plugin in config.plugins.options.values()
-        ]
+        plugins = [plugin for plugin in config.plugins.options.values()]
 
         def render_plugin(plugin: Plugin) -> str:
             result = plugin.name
-            docs_or_code_url = plugin.plugin_documentation_url or plugin.plugin_source_code_url
+            docs_or_code_url = (
+                plugin.plugin_documentation_url or plugin.plugin_source_code_url
+            )
             if docs_or_code_url:
                 result = f'[{plugin.name}]({docs_or_code_url})'
             if plugin.description:
@@ -445,10 +465,12 @@ def define_env(env):
 
         categories = {}
         for plugin in plugins:
-            category = plugin.python_package.split(".")[0]
+            category = plugin.python_package.split('.')[0]
             categories.setdefault(category, []).append(plugin)
 
-        return '\n\n'.join([
-            f'**{category}**: {", ".join([render_plugin(plugin) for plugin in plugins])}'
-            for category, plugins in categories.items()
-        ])
+        return '\n\n'.join(
+            [
+                f'**{category}**: {", ".join([render_plugin(plugin) for plugin in plugins])}'
+                for category, plugins in categories.items()
+            ]
+        )

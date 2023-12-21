@@ -39,9 +39,10 @@ def approx(value, abs=0, rel=1e-1):
 def test_fingerprint(dos_si_vasp):
     # Check if DOS fingerprint was created
     dos_fingerprint_dict = dos_si_vasp.m_xpath(
-        '''
+        """
         run[*].calculation[*].dos_electronic[*].fingerprint
-        ''')[-1][-1][0]
+        """
+    )[-1][-1][0]
     dos_fingerprint = DOSFingerprint().from_dict(dos_fingerprint_dict)
     assert dos_fingerprint.get_similarity(dos_fingerprint) == 1
     assert dos_fingerprint.filling_factor != 0
@@ -49,7 +50,7 @@ def test_fingerprint(dos_si_vasp):
 
 
 @pytest.mark.parametrize(
-    "ranges, highest, lowest, fermi, expected_highest, expected_lowest, n",
+    'ranges, highest, lowest, fermi, expected_highest, expected_lowest, n',
     [
         # Explicit highest/lowest occupied given by parser: The current
         # behaviour is to override these values based on the data that is
@@ -71,9 +72,11 @@ def test_fingerprint(dos_si_vasp):
         ([[[0, 1], [2, 3]]], None, None, [2.01], [2.0], [2.0], 101),
         # Fermi energy at the center of a tiny peak.
         ([[[1, 1.1]]], None, None, [1], [1], [1], 101),
-    ]
+    ],
 )
-def test_energy_reference_detection(ranges, highest, lowest, fermi, expected_highest, expected_lowest, n):
+def test_energy_reference_detection(
+    ranges, highest, lowest, fermi, expected_highest, expected_lowest, n
+):
     """Checks that the energy reference detection for DOS works in different
     scenarios.
     """
@@ -84,15 +87,19 @@ def test_energy_reference_detection(ranges, highest, lowest, fermi, expected_hig
     assert len(archive.run[0].calculation[0].dos_electronic) == 1
     dos = archive.run[0].calculation[0].dos_electronic[0]
     gap = dos.band_gap[0]
-    assert gap.energy_highest_occupied.to(ureg.electron_volt).magnitude == pytest.approx(
-        expected_highest[0]
-    )
-    assert gap.energy_lowest_unoccupied.to(ureg.electron_volt).magnitude == pytest.approx(
-        expected_lowest[0]
-    )
+    assert gap.energy_highest_occupied.to(
+        ureg.electron_volt
+    ).magnitude == pytest.approx(expected_highest[0])
+    assert gap.energy_lowest_unoccupied.to(
+        ureg.electron_volt
+    ).magnitude == pytest.approx(expected_lowest[0])
 
 
-def test_dos_magnitude(dos_si_vasp: EntryArchive, dos_si_exciting: EntryArchive, dos_si_fhiaims: EntryArchive):
+def test_dos_magnitude(
+    dos_si_vasp: EntryArchive,
+    dos_si_exciting: EntryArchive,
+    dos_si_fhiaims: EntryArchive,
+):
     """
     Verify that the raw DOS extracted from similar systems describes the same number of
     electrons. Testing for VASP, exciting and FHI-aims DOS Si2 parsing.

@@ -30,13 +30,35 @@ from nomad.parsing.parsers import parser_dict
 
 
 _upload_keys_to_remove_v0 = (
-    'published', 'upload_path', 'upload_time', 'temporary', 'joined')
+    'published',
+    'upload_path',
+    'upload_time',
+    'temporary',
+    'joined',
+)
 _metadata_keys_to_flatten_v0 = (
-    'pid', 'external_id', 'nomad_version', 'nomad_commit', 'comment',
-    'references', 'datasets')
+    'pid',
+    'external_id',
+    'nomad_version',
+    'nomad_commit',
+    'comment',
+    'references',
+    'datasets',
+)
 _metadata_keys_to_remove_v0 = (
-    'upload_name', 'upload_time', 'uploader', 'published', 'license', 'with_embargo',
-    'external_db', 'shared_with', 'coauthors', 'processed', 'domain', 'raw_id')
+    'upload_name',
+    'upload_time',
+    'uploader',
+    'published',
+    'license',
+    'with_embargo',
+    'external_db',
+    'shared_with',
+    'coauthors',
+    'processed',
+    'domain',
+    'raw_id',
+)
 
 
 class _CollectionStatistics(BaseModel):
@@ -60,10 +82,10 @@ class _DatasetCacheItem(BaseModel):
 
 
 def create_collections_if_needed(db_dst: Database):
-    '''
+    """
     If the collections haven't yet been created, create them by calling .objects() on the
     MongoDocument class.
-    '''
+    """
     if 'upload' not in db_dst.list_collection_names():
         Upload.objects()
     if 'entry' not in db_dst.list_collection_names():
@@ -73,16 +95,25 @@ def create_collections_if_needed(db_dst: Database):
 
 
 def migrate_mongo_uploads(
-        db_src: Database, db_dst: Database, uploads_query: Any, failed_ids_to_file: bool,
-        upload_update: Dict[str, Any], entry_update: Dict[str, Any], overwrite: str,
-        fix_problems: bool, dry: bool):
-    ''' Converts and/or migrates an upload and all related entries and datasets. '''
+    db_src: Database,
+    db_dst: Database,
+    uploads_query: Any,
+    failed_ids_to_file: bool,
+    upload_update: Dict[str, Any],
+    entry_update: Dict[str, Any],
+    overwrite: str,
+    fix_problems: bool,
+    dry: bool,
+):
+    """Converts and/or migrates an upload and all related entries and datasets."""
     logger = utils.get_logger(__name__)
 
     uploads = db_src.upload.find(uploads_query)
     number_of_uploads = db_src.upload.count_documents(uploads_query)
     print(f'Found {number_of_uploads} uploads to import.')
-    src_entry_collection = db_src.calc if 'calc' in db_src.list_collection_names() else db_src.entry
+    src_entry_collection = (
+        db_src.calc if 'calc' in db_src.list_collection_names() else db_src.entry
+    )
     dataset_cache: Dict[str, _DatasetCacheItem] = {}
     stats = _UpgradeStatistics()
     stats.uploads.total = number_of_uploads
@@ -95,7 +126,10 @@ def migrate_mongo_uploads(
         upload_id = upload_dict.get('_id')
         try:
             if _is_processing(upload_dict):
-                logger.warn(f'Skipping upload because it is currently processing', upload_id=upload_id)
+                logger.warn(
+                    f'Skipping upload because it is currently processing',
+                    upload_id=upload_id,
+                )
 
                 count_processing += 1
                 failed_and_skipped.append(upload_id)
@@ -103,11 +137,18 @@ def migrate_mongo_uploads(
                 upload_dict_dst = db_dst.upload.find_one({'_id': upload_id})
                 if upload_dict_dst:
                     if overwrite == 'always':
-                        assert not _is_processing(upload_dict_dst), 'Destination upload is processing'
+                        assert not _is_processing(
+                            upload_dict_dst
+                        ), 'Destination upload is processing'
                     elif overwrite == 'if-newer':
                         complete_time = upload_dict.get('complete_time', datetime.min)
-                        complete_time_dst = upload_dict_dst.get('complete_time', datetime.min)
-                        if _is_processing(upload_dict_dst) or complete_time <= complete_time_dst:
+                        complete_time_dst = upload_dict_dst.get(
+                            'complete_time', datetime.min
+                        )
+                        if (
+                            _is_processing(upload_dict_dst)
+                            or complete_time <= complete_time_dst
+                        ):
                             count_ignored += 1
                             continue
                     elif overwrite == 'never':
@@ -115,13 +156,30 @@ def migrate_mongo_uploads(
                         continue
 
                 entry_dicts, dataset_dicts, doi_dicts = _convert_mongo_upload(
-                    db_src, src_entry_collection, upload_dict, upload_update, entry_update,
-                    fix_problems, dataset_cache, stats, logger)
+                    db_src,
+                    src_entry_collection,
+                    upload_dict,
+                    upload_update,
+                    entry_update,
+                    fix_problems,
+                    dataset_cache,
+                    stats,
+                    logger,
+                )
                 if not dry:
-                    _commit_upload(upload_dict, entry_dicts, dataset_dicts, doi_dicts, db_dst, stats)
+                    _commit_upload(
+                        upload_dict,
+                        entry_dicts,
+                        dataset_dicts,
+                        doi_dicts,
+                        db_dst,
+                        stats,
+                    )
                 del entry_dicts, dataset_dicts  # To free up memory immediately
         except Exception as e:
-            logger.error(f'Failed to migrate upload: {str(e)}', upload_id=upload_id, exc_info=e)
+            logger.error(
+                f'Failed to migrate upload: {str(e)}', upload_id=upload_id, exc_info=e
+            )
             count_failures += 1
             failed_and_skipped.append(upload_id)
         count_treated += 1
@@ -133,7 +191,8 @@ def migrate_mongo_uploads(
             est_remain = elapsed * number_of_uploads / count_treated - elapsed
             print(
                 f'Elapsed: {_seconds_to_h_m(elapsed)}, progress: {progress * 100.0:6.2f} %, '
-                f'est. remain: {_seconds_to_h_m(est_remain)}')
+                f'est. remain: {_seconds_to_h_m(est_remain)}'
+            )
             next_report_time += 60
     # Write failed ids to file, if requested
     if failed_ids_to_file:
@@ -141,13 +200,16 @@ def migrate_mongo_uploads(
             for upload_id in failed_and_skipped:
                 f.write(upload_id + '\n')
     # Print a summary
-    summary = f'Summary:\n\nElapsed time: {_seconds_to_h_m(time.time() - start_time)}\n\n'
+    summary = (
+        f'Summary:\n\nElapsed time: {_seconds_to_h_m(time.time() - start_time)}\n\n'
+    )
     summary += f'{"Doc type":<10}{"found":>20}{"converted":>20}{"migrated":>20}\n'
     summary += '-' * 70 + '\n'
     for sub_stats in (stats.uploads, stats.entries, stats.datasets, stats.dois):
         summary += (
             f'{sub_stats.collection_name:<10}{sub_stats.total:>20}'  # pylint: disable=E1101
-            f'{sub_stats.converted:>20}{sub_stats.migrated:>20}\n')
+            f'{sub_stats.converted:>20}{sub_stats.migrated:>20}\n'
+        )
     if count_failures:
         summary += f'\n!!! THERE WERE ERRORS: {count_failures} upload(s) could not be converted/migrated\n\n'
     else:
@@ -168,14 +230,21 @@ def migrate_mongo_uploads(
 
 
 def _convert_mongo_upload(
-        db_src: Database, src_entry_collection: Collection, upload_dict: Dict[str, Any],
-        upload_update: Dict[str, Any], entry_update: Dict[str, Any], fix_problems: bool,
-        dataset_cache: Dict[str, _DatasetCacheItem], stats: _UpgradeStatistics, logger):
-    '''
+    db_src: Database,
+    src_entry_collection: Collection,
+    upload_dict: Dict[str, Any],
+    upload_update: Dict[str, Any],
+    entry_update: Dict[str, Any],
+    fix_problems: bool,
+    dataset_cache: Dict[str, _DatasetCacheItem],
+    stats: _UpgradeStatistics,
+    logger,
+):
+    """
     Converts (upgrades) an upload_dict and all related records. If successful,
     returns three lists: one with converted entry dicts, and one with converted dataset dicts,
     and one with converted DOI dicts.
-    '''
+    """
     upload_id = upload_dict['_id']
     published = upload_dict.get('publish_time') is not None
     # Determine which version we are migrating from
@@ -189,7 +258,9 @@ def _convert_mongo_upload(
         _rename_key(upload_dict, 'user_id', 'main_author')
         # Verify and then remove redundant legacy field 'published'.
         if 'published' in upload_dict:
-            assert upload_dict['published'] == published, 'Inconsistency: published flag vs publish_time'
+            assert (
+                upload_dict['published'] == published
+            ), 'Inconsistency: published flag vs publish_time'
         # Set license if missing
         if 'license' not in upload_dict:
             upload_dict['license'] = 'CC BY 4.0'
@@ -216,9 +287,13 @@ def _convert_mongo_upload(
             assert 'metadata' in entry_dict, 'Entry dict has no metadata key'
             entry_metadata_dict: Dict[str, Any] = entry_dict['metadata']
             with_embargo = entry_metadata_dict.get('with_embargo')
-            assert with_embargo == first_with_embargo, 'Inconsistent embargo settings for entries'
+            assert (
+                with_embargo == first_with_embargo
+            ), 'Inconsistent embargo settings for entries'
             shared_with_set = set(entry_metadata_dict.get('shared_with') or ())
-            assert shared_with_set == first_shared_with_set, 'Inconsistent shared_with settings for entries'
+            assert (
+                shared_with_set == first_shared_with_set
+            ), 'Inconsistent shared_with settings for entries'
             uploader = entry_metadata_dict.get('uploader')
             assert uploader == first_entry_uploader, 'Inconsistent uploader for entries'
             external_db = entry_metadata_dict.get('external_db')
@@ -231,16 +306,20 @@ def _convert_mongo_upload(
                 first_external_db = first_external_db or external_db  # Fix it
                 fixed_external_db = True
             common_coauthors.intersection_update(
-                _wrap_author(ca) for ca in entry_metadata_dict.get('coauthors', ()))
+                _wrap_author(ca) for ca in entry_metadata_dict.get('coauthors', ())
+            )
 
         if fixed_external_db:
-            logger.warn('Fixed inconsistent external_db for upload', upload_id=upload_id)
+            logger.warn(
+                'Fixed inconsistent external_db for upload', upload_id=upload_id
+            )
 
         # Check embargo setting on the upload
         if published:
             if first_with_embargo:
-                assert upload_dict.get('embargo_length'), (
-                    f'Embargo flag set on entries, but no embargo_length specified on upload')
+                assert upload_dict.get(
+                    'embargo_length'
+                ), f'Embargo flag set on entries, but no embargo_length specified on upload'
             else:
                 upload_dict['embargo_length'] = 0
         if 'embargo_length' not in upload_dict:
@@ -250,18 +329,34 @@ def _convert_mongo_upload(
         upload_dict['external_db'] = first_external_db
         # main_author
         if first_entry_uploader != upload_dict['main_author']:
-            assert first_external_db, 'Different uploader on entry and upload, but external_db not set'
+            assert (
+                first_external_db
+            ), 'Different uploader on entry and upload, but external_db not set'
             # It's ok, but we should fetch main_author from entries.uploader instead of uplad.user_id
             upload_dict['main_author'] = first_entry_uploader
         # coauthors - put as many as possible in Upload.coauthors, the rest in entry.entry_coauthors
         if common_coauthors:
-            upload_dict['coauthors'] = [ca for ca in first_entry_coauthors if _wrap_author(ca) in common_coauthors]
+            upload_dict['coauthors'] = [
+                ca
+                for ca in first_entry_coauthors
+                if _wrap_author(ca) in common_coauthors
+            ]
     else:
-        common_coauthors = set(_wrap_author(ca) for ca in upload_dict.get('coauthors', ()))
+        common_coauthors = set(
+            _wrap_author(ca) for ca in upload_dict.get('coauthors', ())
+        )
 
     # Check that all required fields are there
-    for field in ('_id', 'upload_create_time', 'main_author', 'embargo_length', 'license'):
-        assert upload_dict.get(field) is not None, f'Missing required upload field: {field}'
+    for field in (
+        '_id',
+        'upload_create_time',
+        'main_author',
+        'embargo_length',
+        'license',
+    ):
+        assert (
+            upload_dict.get(field) is not None
+        ), f'Missing required upload field: {field}'
 
     if upload_update:
         upload_dict.update(upload_update)
@@ -269,8 +364,9 @@ def _convert_mongo_upload(
     # migrate entries
     newly_encountered_dataset_ids: Set[str] = set()
     for entry_dict in entry_dicts:
-        assert not _is_processing(entry_dict), (
-            f'the entry {entry_dict["_id"]} has status processing, but the upload is not processing.')
+        assert not _is_processing(
+            entry_dict
+        ), f'the entry {entry_dict["_id"]} has status processing, but the upload is not processing.'
         _convert_mongo_entry(entry_dict, common_coauthors, fix_problems, logger)
         # Convert datasets
         datasets = entry_dict.get('datasets')
@@ -292,10 +388,14 @@ def _convert_mongo_upload(
                     # Dataset record does not exist
                     assert fix_problems, (
                         f'Missing dataset reference encountered: {dataset_id} - '
-                        'use --fix-problems to fix')
+                        'use --fix-problems to fix'
+                    )
                     logger.warn(
                         'Fixing (removing) missing dataset reference for entry',
-                        entry_id=entry_dict['_id'], dataset_id=dataset_id, upload_id=upload_id)
+                        entry_id=entry_dict['_id'],
+                        dataset_id=dataset_id,
+                        upload_id=upload_id,
+                    )
                 elif not ds_cache.converted_dataset_dict:
                     # The value must be the empty dict, which represents a conversion failure
                     assert False, f'Reference to unconvertable dataset {dataset_id}'
@@ -325,15 +425,22 @@ def _convert_mongo_upload(
     return entry_dicts, dataset_dicts, doi_dicts
 
 
-def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_problems: bool, logger):
+def _convert_mongo_entry(
+    entry_dict: Dict[str, Any], common_coauthors: Set, fix_problems: bool, logger
+):
     _convert_mongo_proc(entry_dict)
     # Validate the id and possibly fix problems
     generated_entry_id = utils.generate_entry_id(
-        entry_dict['upload_id'], entry_dict['mainfile'], entry_dict.get('mainfile_key'))
+        entry_dict['upload_id'], entry_dict['mainfile'], entry_dict.get('mainfile_key')
+    )
     if entry_dict['_id'] != generated_entry_id:
         if not fix_problems:
             assert False, f'Entry id {entry_dict["_id"]} does not match generated value - use --fix-problems to fix'
-        logger.warn('Fixing bad id for entry', old_id=entry_dict['_id'], entry_id=generated_entry_id)
+        logger.warn(
+            'Fixing bad id for entry',
+            old_id=entry_dict['_id'],
+            entry_id=generated_entry_id,
+        )
         entry_dict['_id'] = generated_entry_id
     # Convert old v0 metadata
     if 'metadata' in entry_dict:
@@ -348,7 +455,9 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
         # Entry coauthors
         entry_coauthors = entry_metadata.get('coauthors')
         if entry_coauthors:
-            entry_coauthors = [ca for ca in entry_coauthors if _wrap_author(ca) not in common_coauthors]
+            entry_coauthors = [
+                ca for ca in entry_coauthors if _wrap_author(ca) not in common_coauthors
+            ]
             entry_dict['entry_coauthors'] = entry_coauthors or None
         # Flatten keys
         for key in _metadata_keys_to_flatten_v0:
@@ -358,12 +467,16 @@ def _convert_mongo_entry(entry_dict: Dict[str, Any], common_coauthors: Set, fix_
         for key in _metadata_keys_to_remove_v0:
             if key in entry_metadata:
                 entry_metadata.pop(key)
-        assert not entry_metadata, f'Unexpected fields in Calc.metadata: {repr(entry_metadata)}'
+        assert (
+            not entry_metadata
+        ), f'Unexpected fields in Calc.metadata: {repr(entry_metadata)}'
         entry_dict.pop('metadata')
 
     # Check that all required fields are populated
     for field in ('_id', 'upload_id', 'entry_create_time', 'parser_name'):
-        assert entry_dict.get(field) is not None, f'Missing required entry field: {field}'
+        assert (
+            entry_dict.get(field) is not None
+        ), f'Missing required entry field: {field}'
 
     # Check if the parser exists
     parser_name = entry_dict.get('parser_name')
@@ -379,7 +492,9 @@ def _convert_mongo_proc(proc_dict: Dict[str, Any]):
         process_status = proc_dict['tasks_status']
         if process_status == 'CREATED':
             process_status = ProcessStatus.READY
-        assert process_status in ProcessStatus.STATUSES_VALID_IN_DB, f'Invalid tasks_status: {process_status}'
+        assert (
+            process_status in ProcessStatus.STATUSES_VALID_IN_DB
+        ), f'Invalid tasks_status: {process_status}'
         proc_dict['process_status'] = process_status
         last_status_message = proc_dict.get('last_status_message')
         if not last_status_message:
@@ -389,9 +504,13 @@ def _convert_mongo_proc(proc_dict: Dict[str, Any]):
             if errors:
                 last_status_message = f'Process {current_process} failed: {errors[-1]}'
             elif current_process and process_status == ProcessStatus.SUCCESS:
-                last_status_message = f'Process {current_process} completed successfully'
+                last_status_message = (
+                    f'Process {current_process} completed successfully'
+                )
             else:
-                assert False, f'Unexpected proc state: {current_process} / {process_status}'
+                assert (
+                    False
+                ), f'Unexpected proc state: {current_process} / {process_status}'
             proc_dict['last_status_message'] = last_status_message
 
         for field in ('tasks', 'current_task', 'tasks_status'):
@@ -404,19 +523,23 @@ def _convert_mongo_dataset(dataset_dict: Dict[str, Any]):
     _rename_key(dataset_dict, 'modified', 'dataset_modified_time')
     # Check that all required fields are there
     for field in ('dataset_name',):
-        assert dataset_dict.get(field) is not None, f'Dataset missing required field {field}'
+        assert (
+            dataset_dict.get(field) is not None
+        ), f'Dataset missing required field {field}'
 
 
 def _convert_mongo_doi(doi_dict: Dict[str, Any]):
     pass
 
 
-def _get_dataset_cache_data(dataset_id: str, db_src: Database, logger) -> _DatasetCacheItem:
-    '''
+def _get_dataset_cache_data(
+    dataset_id: str, db_src: Database, logger
+) -> _DatasetCacheItem:
+    """
     Fetches and converts a dataset and related doi record. None values will be used in the
     returned :class:`_DatasetCacheItem` if a record is missing; empty dicts are used if the
     record exists but can't be converted
-    '''
+    """
     dataset_dict = db_src.dataset.find_one({'_id': dataset_id})
     doi_dict = None
     if dataset_dict:
@@ -435,7 +558,9 @@ def _get_dataset_cache_data(dataset_id: str, db_src: Database, logger) -> _Datas
             logger.error(str(e), dataset_id=dataset_id, exc_info=e)
             dataset_dict = {}
             doi_dict = {}
-    return _DatasetCacheItem(converted_dataset_dict=dataset_dict, converted_doi_dict=doi_dict)
+    return _DatasetCacheItem(
+        converted_dataset_dict=dataset_dict, converted_doi_dict=doi_dict
+    )
 
 
 def _is_processing(proc_dict: Dict[str, Any]) -> bool:
@@ -446,21 +571,29 @@ def _is_processing(proc_dict: Dict[str, Any]) -> bool:
 
 
 def _commit_upload(
-        upload_dict: Dict[str, Any], entry_dicts: List[Dict[str, Any]],
-        dataset_dicts: List[Dict[str, Any]], doi_dicts: List[Dict[str, Any]],
-        db_dst: Database, stats: _UpgradeStatistics):
+    upload_dict: Dict[str, Any],
+    entry_dicts: List[Dict[str, Any]],
+    dataset_dicts: List[Dict[str, Any]],
+    doi_dicts: List[Dict[str, Any]],
+    db_dst: Database,
+    stats: _UpgradeStatistics,
+):
     # Commit datasets
     if dataset_dicts:
         dataset_writes = []
         for dataset_dict in dataset_dicts:
-            dataset_writes.append(ReplaceOne({'_id': dataset_dict['_id']}, dataset_dict, upsert=True))
+            dataset_writes.append(
+                ReplaceOne({'_id': dataset_dict['_id']}, dataset_dict, upsert=True)
+            )
         db_dst.dataset.bulk_write(dataset_writes)
         stats.datasets.migrated += len(dataset_dicts)
     # Commit DOIs
     if doi_dicts:
         doi_writes = []
         for doi_dict in doi_dicts:
-            doi_writes.append(ReplaceOne({'_id': doi_dict['_id']}, doi_dict, upsert=True))
+            doi_writes.append(
+                ReplaceOne({'_id': doi_dict['_id']}, doi_dict, upsert=True)
+            )
         db_dst.d_o_i.bulk_write(doi_writes)
         stats.dois.migrated += len(doi_writes)
     # Commit upload
@@ -470,17 +603,19 @@ def _commit_upload(
     if entry_dicts:
         entry_writes = []
         for entry_dict in entry_dicts:
-            entry_writes.append(ReplaceOne({'_id': entry_dict['_id']}, entry_dict, upsert=True))
+            entry_writes.append(
+                ReplaceOne({'_id': entry_dict['_id']}, entry_dict, upsert=True)
+            )
         db_dst.entry.bulk_write(entry_writes)
         stats.entries.migrated += len(entry_dicts)
 
 
 def _rename_key(d: Dict[str, Any], old_name: str, new_name: str):
-    '''
+    """
     Renames a key in the provided dictionary `d`, from `old_name` to `new_name`. We may use
     "point notation" in `old_name`, i.e. "metadata.external_id" will look for a
     key 'external_id' in d['metadata'].
-    '''
+    """
     parts = old_name.split('.')
     d_current = d
     for i, part in enumerate(parts):
@@ -495,16 +630,16 @@ def _rename_key(d: Dict[str, Any], old_name: str, new_name: str):
 
 
 def _seconds_to_h_m(seconds: float):
-    ''' Converst a time in seconds to a nicer string with hour and minute parts. '''
+    """Converst a time in seconds to a nicer string with hour and minute parts."""
     return f'{seconds // 3600:>3.0f} h {(seconds % 3600) / 60:2.0f} min'
 
 
 def _wrap_author(author):
-    '''
+    """
     Takes an author reference (str or dict) and if it is a dict, converts it into a tuple.
     If the author is a str, it is instead returned as it is. This is used to get an object
     which is hashable and can be used in sets.
-    '''
+    """
     if isinstance(author, str):
         return author
     return tuple((k, author[k]) for k in sorted(author.keys()))

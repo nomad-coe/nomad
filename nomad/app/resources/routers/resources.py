@@ -27,7 +27,14 @@ from pydantic import BaseModel, Field
 from typing import List, Any, Dict, Optional
 from datetime import datetime
 import ase.io
-from mongoengine import Document, StringField, DateTimeField, IntField, ListField, BooleanField
+from mongoengine import (
+    Document,
+    StringField,
+    DateTimeField,
+    IntField,
+    ListField,
+    BooleanField,
+)
 from mongoengine.queryset.visitor import Q
 from asgiref.sync import async_to_sync
 
@@ -46,19 +53,21 @@ default_tag = 'resources'
 optimade_providers = {
     'https://www.crystallography.net/cod/optimade/v1/': dict(
         name='Crystallography Open Database',
-        ref_url=lambda x: f'https://www.crystallography.net/cod/{x["entry_id"]}.html'
+        ref_url=lambda x: f'https://www.crystallography.net/cod/{x["entry_id"]}.html',
     ),
     'https://optimade.materialsproject.org/v1/': dict(
         name='The Materials Project',
-        ref_url=lambda x: f'https://materialsproject.org/materials/{x["entry_id"]}'
+        ref_url=lambda x: f'https://materialsproject.org/materials/{x["entry_id"]}',
     ),
     'https://aiida.materialscloud.org/mc3d-structures/optimade/v1/': dict(
         name='Materials Cloud',
-        ref_url=lambda x: f'https://www.materialscloud.org/discover/mc3d/details/{x["chemical_formula_reduced"]}'
+        ref_url=lambda x: f'https://www.materialscloud.org/discover/mc3d/details/{x["chemical_formula_reduced"]}',
     ),
     'https://oqmd.org/optimade/v1/': dict(
         name='OQMD',
-        ref_url=lambda x: None if x.get('oqmd_id') is None else f'https://oqmd.org/materials/entry/{x["oqmd_id"]}'
+        ref_url=lambda x: None
+        if x.get('oqmd_id') is None
+        else f'https://oqmd.org/materials/entry/{x["oqmd_id"]}',
     ),
     # jarvis search does not seem to work, it gives out all structures
     # 'https://jarvis.nist.gov/optimade/jarvisdft/v1/': dict(
@@ -67,19 +76,19 @@ optimade_providers = {
     # ),
     'https://api.mpds.io/v1/': dict(
         name='Materials Platform for Data Science',
-        ref_url=lambda x: f'https://mpds.io/#entry/{x["entry_id"]}'
+        ref_url=lambda x: f'https://mpds.io/#entry/{x["entry_id"]}',
     ),
     'https://optimade.odbx.science/v1/': dict(
         name='Open Database of Xtals',
-        ref_url=lambda x: f'https://odbx.science/structures/{x["entry_id"]}'
+        ref_url=lambda x: f'https://odbx.science/structures/{x["entry_id"]}',
     ),
     'https://www.crystallography.net/tcod/optimade/v1/': dict(
         name='Theoretical Crystallography Open Database',
-        ref_url=lambda x: f'https://www.crystallography.net/tcod/{x["entry_id"]}.html'
+        ref_url=lambda x: f'https://www.crystallography.net/tcod/{x["entry_id"]}.html',
     ),
     'http://optimade.2dmatpedia.org/v1/': dict(
         name='2DMatpedia',
-        ref_url=lambda x: f'http://2dmatpedia.org/2dmaterials/doc/{x["entry_id"]}'
+        ref_url=lambda x: f'http://2dmatpedia.org/2dmaterials/doc/{x["entry_id"]}',
     ),
     # aflow does not seem to work
     # 'https://aflow.org/API/optimade/v1/': dict(
@@ -88,7 +97,9 @@ optimade_providers = {
     # )
 }
 
-optimade_dbs: List[str] = [str(details['name']) for details in optimade_providers.values()]
+optimade_dbs: List[str] = [
+    str(details['name']) for details in optimade_providers.values()
+]
 
 no_url_found = '__no_url_found'
 
@@ -108,29 +119,41 @@ springer_required_items = {
     'Compound Class(es):': 'compound_classes',
     'Dataset ID': 'id',
     'Space Group:': 'space_group_number',
-    'Phase Label(s):': 'phase_labels'
+    'Phase Label(s):': 'phase_labels',
 }
 
 comments = {
-    aflow_prototypes_db: '''
+    aflow_prototypes_db: """
     Reference to the prototype structure in the Aflow encyclopedia of crystallographic
     prototypes.
-    ''',
-    springer_materials_db: '''
+    """,
+    springer_materials_db: """
     Reference to the entry in the Springer Materials Inorganic Solid Phases database.
-    '''
+    """,
 }
-comments.update({db: f'''
+comments.update(
+    {
+        db: f"""
 Reference to the entry in the {db} database queried using the Optimade API.
-''' for db in optimade_dbs})
+"""
+        for db in optimade_dbs
+    }
+)
 
 
-space_groups = ['triclinic'] * 2 + ['monoclinic'] * 13 + ['orthorhombic'] * 59 + [
-    'tetragonal'] * 68 + ['trigonal'] * 25 + ['hexagonal'] * 27 + ['cubic'] * 36
+space_groups = (
+    ['triclinic'] * 2
+    + ['monoclinic'] * 13
+    + ['orthorhombic'] * 59
+    + ['tetragonal'] * 68
+    + ['trigonal'] * 25
+    + ['hexagonal'] * 27
+    + ['cubic'] * 36
+)
 
 
 spaces_re = re.compile(r'\s+')
-search_re = re.compile(' href=\"(/isp/[^\"]+)')
+search_re = re.compile(' href="(/isp/[^"]+)')
 formula_re = re.compile(r'([A-Z][a-z]?)([0-9.]*)|\[(.*?)\]([0-9]+)')
 elements_re = re.compile(r'[A-Z][a-z]*')
 prototype_re = re.compile(r'\<a +href="(A.+?)\.html"\>')
@@ -151,9 +174,16 @@ class Resource(Document):
     available_data = ListField()
     space_group_number = IntField()
     n_sites = IntField()
-    meta = {'db_alias': 'resources', 'indexes': [
-        'chemical_formula', 'wyckoff_letters', 'database_name', 'space_group_number',
-        'n_sites']}
+    meta = {
+        'db_alias': 'resources',
+        'indexes': [
+            'chemical_formula',
+            'wyckoff_letters',
+            'database_name',
+            'space_group_number',
+            'n_sites',
+        ],
+    }
 
 
 class ResourceModel(BaseModel):
@@ -161,35 +191,47 @@ class ResourceModel(BaseModel):
     #     {}, description=''' Value of the data referenced by the entry.
     #     ''')
     available_data: List[str] = Field(
-        [], description='''List of available data referenced by the entry''')
+        [], description="""List of available data referenced by the entry"""
+    )
     url: str = Field(
-        None, description='''
+        None,
+        description="""
         URL of the entry in the database.
-        ''')
+        """,
+    )
     id: str = Field(
-        None, description='''
+        None,
+        description="""
         Name to identify the referenced data.
-        ''')
+        """,
+    )
     download_time: datetime = Field(
-        None, description='''
+        None,
+        description="""
         Date the data was downloaded.
-        ''')
+        """,
+    )
     database_name: Optional[str] = Field(
-        None, description='''
+        None,
+        description="""
         Name to identify the referenced data.
-        ''')
+        """,
+    )
     kind: Optional[str] = Field(
-        description='''
+        description="""
         Kind of the reference data, e.g. journal, online, book.
-        ''')
+        """
+    )
     comment: Optional[str] = Field(
-        description='''
+        description="""
         Annotations on the reference.
-        ''')
+        """
+    )
     database_version: Optional[str] = Field(
-        description='''
+        description="""
         Version of the database.
-        ''')
+        """
+    )
     # TODO include homepage, assign version and comment
 
     @classmethod
@@ -201,11 +243,13 @@ class ResourceModel(BaseModel):
 
 class ResourcesModel(BaseModel):
     data: List[ResourceModel] = Field(
-        [], description='The list of resources, currently in our database.')
+        [], description='The list of resources, currently in our database.'
+    )
 
     is_retrieving_more: bool = Field(
         False,
-        description='Indicates that NOMAD is currently potentially adding more resources.')
+        description='Indicates that NOMAD is currently potentially adding more resources.',
+    )
 
 
 async def _download(session: httpx.AsyncClient, path: str) -> httpx.Response:
@@ -216,7 +260,9 @@ async def _download(session: httpx.AsyncClient, path: str) -> httpx.Response:
             if response.status_code == 200:
                 return response
         except Exception as e:
-            logger.error('Cannot use http to download related resource data', exc_info=e)
+            logger.error(
+                'Cannot use http to download related resource data', exc_info=e
+            )
         n_retries += 1
         if n_retries > config.resources.download_retries:
             break
@@ -247,7 +293,9 @@ def _components(formula_str: str, multiplier: float = 1.0) -> Dict[str, float]:
         elif molecule:
             if not amount_m:
                 amount_m = 1.0
-            _update_dict(symbol_amount, _components(molecule, float(amount_m) * multiplier))
+            _update_dict(
+                symbol_amount, _components(molecule, float(amount_m) * multiplier)
+            )
 
     return symbol_amount
 
@@ -256,18 +304,19 @@ def _normalize_formula(formula_str: str) -> str:
     symbol_amount = _components(formula_str)
 
     total = sum(symbol_amount.values())
-    symbol_normamount = {e: round(a / total * 100.) for e, a in symbol_amount.items()}
+    symbol_normamount = {e: round(a / total * 100.0) for e, a in symbol_amount.items()}
 
     formula_sorted = [
-        f'{s}{symbol_normamount[s]}' for s in sorted(list(symbol_normamount.keys()))]
+        f'{s}{symbol_normamount[s]}' for s in sorted(list(symbol_normamount.keys()))
+    ]
 
     return ''.join(formula_sorted)
 
 
 def parse_springer_entry(htmltext: str) -> Dict[str, str]:
-    '''
+    """
     Parse the springer entry quantities in required_items from an html text.
-    '''
+    """
     soup = bs4.BeautifulSoup(htmltext, 'html.parser')
     results = {}
     for item in soup.find_all(attrs={'class': 'data-list__item'}):
@@ -287,11 +336,17 @@ def parse_springer_entry(htmltext: str) -> Dict[str, str]:
             break
 
     if 'classification' in results:
-        results['classification'] = [x.strip() for x in results['classification'].split(',')]
+        results['classification'] = [
+            x.strip() for x in results['classification'].split(',')
+        ]
         results['classification'] = [x for x in results['classification'] if x != '–']
     if 'compound_classes' in results:
-        results['compound_classes'] = [x.strip() for x in results['compound_classes'].split(',')]
-        results['compound_classes'] = [x for x in results['compound_classes'] if x != '–']
+        results['compound_classes'] = [
+            x.strip() for x in results['compound_classes'].split(',')
+        ]
+        results['compound_classes'] = [
+            x for x in results['compound_classes'] if x != '–'
+        ]
 
     normalized_formula = None
     for formula_type in ['alphabetic_formula', 'phase_labels']:
@@ -316,9 +371,9 @@ def parse_springer_entry(htmltext: str) -> Dict[str, str]:
 
 
 def parse_aflow_prototype(text: str) -> Dict[str, Any]:
-    '''
+    """
     Parse information from aflow prototype structure entry.
-    '''
+    """
     soup = bs4.BeautifulSoup(text, 'html.parser')
     results = dict()
     tds = soup.find_all('td')
@@ -328,11 +383,16 @@ def parse_aflow_prototype(text: str) -> Dict[str, Any]:
     return results
 
 
-async def _get_urls_aflow_prototypes(session: httpx.AsyncClient, space_group_number: int) -> List[str]:
+async def _get_urls_aflow_prototypes(
+    session: httpx.AsyncClient, space_group_number: int
+) -> List[str]:
     if space_group_number is None or space_group_number == 0:
         return []
 
-    response = await _download(session, f'{aflow_home_url}/{space_groups[space_group_number - 1]}_spacegroup.html')
+    response = await _download(
+        session,
+        f'{aflow_home_url}/{space_groups[space_group_number - 1]}_spacegroup.html',
+    )
     if response is None:
         return []
 
@@ -346,7 +406,9 @@ async def _get_urls_aflow_prototypes(session: httpx.AsyncClient, space_group_num
     return urls
 
 
-async def _get_resources_aflow_prototypes(session: httpx.AsyncClient, path: str, chemical_formula: str) -> List[Resource]:
+async def _get_resources_aflow_prototypes(
+    session: httpx.AsyncClient, path: str, chemical_formula: str
+) -> List[Resource]:
     response = await _download(session, path)
     if response is None:
         return []
@@ -383,7 +445,9 @@ async def _get_resources_aflow_prototypes(session: httpx.AsyncClient, path: str,
     return [resource]
 
 
-async def _get_urls_springer_materials(session: httpx.AsyncClient, chemical_formula: str) -> List[str]:
+async def _get_urls_springer_materials(
+    session: httpx.AsyncClient, chemical_formula: str
+) -> List[str]:
     if chemical_formula is None:
         return []
 
@@ -396,7 +460,9 @@ async def _get_urls_springer_materials(session: httpx.AsyncClient, chemical_form
         url = f'{springer_materials_home_url}/search?searchTerm=es:{elements_str}&pageNumber={page}&datasourceFacet=sm_isp&substanceId='
         response = await _download(session, url)
         if response is None:
-            logger.error('Error accessing urls from springer materials.', data=dict(url=url))
+            logger.error(
+                'Error accessing urls from springer materials.', data=dict(url=url)
+            )
             break
         page += 1
         paths = search_re.findall(response.text)
@@ -408,14 +474,18 @@ async def _get_urls_springer_materials(session: httpx.AsyncClient, chemical_form
     return urls
 
 
-async def _get_resources_springer_materials(session: httpx.AsyncClient, path: str) -> List[Resource]:
+async def _get_resources_springer_materials(
+    session: httpx.AsyncClient, path: str
+) -> List[Resource]:
     resource = Resource()
     resource.url = path
     resource.id = os.path.basename(path)
     resource.database_name = springer_materials_db
     response = await _download(session, path)
     if response is None:
-        logger.error(f'Error accessing springer materials resource.', data=dict(path=path))
+        logger.error(
+            f'Error accessing springer materials resource.', data=dict(path=path)
+        )
         return [resource]
     try:
         # we need to query individual entry ONLY to get spacegroup!
@@ -425,7 +495,9 @@ async def _get_resources_springer_materials(session: httpx.AsyncClient, path: st
     except Exception:
         data = dict()
     space_group_number = data.get('space_group_number', '0')
-    resource.space_group_number = int(space_group_number) if space_group_number.isdecimal() else None
+    resource.space_group_number = (
+        int(space_group_number) if space_group_number.isdecimal() else None
+    )
     resource.chemical_formula = data.get('normalized_formula')
     # resource.data = data
     resource.available_data = list(data.keys())
@@ -435,25 +507,45 @@ async def _get_resources_springer_materials(session: httpx.AsyncClient, path: st
     return [resource]
 
 
-async def _get_urls_optimade(chemical_formula_hill: str, chemical_formula_reduced: str, providers: List[str] = None) -> List[str]:
-    filter_hill = f'chemical_formula_hill = "{chemical_formula_hill}"' if chemical_formula_hill is not None else None
-    filter_reduced = f'chemical_formula_reduced = "{chemical_formula_reduced}"' if chemical_formula_reduced is not None else None
+async def _get_urls_optimade(
+    chemical_formula_hill: str,
+    chemical_formula_reduced: str,
+    providers: List[str] = None,
+) -> List[str]:
+    filter_hill = (
+        f'chemical_formula_hill = "{chemical_formula_hill}"'
+        if chemical_formula_hill is not None
+        else None
+    )
+    filter_reduced = (
+        f'chemical_formula_reduced = "{chemical_formula_reduced}"'
+        if chemical_formula_reduced is not None
+        else None
+    )
 
     if providers is None:
         providers = list(optimade_providers.keys())
     else:
-        providers = [key for key, val in optimade_providers.items() if val['name'] in providers]
+        providers = [
+            key for key, val in optimade_providers.items() if val['name'] in providers
+        ]
 
     urls = []
     for base_url in providers:
-        query = filter_hill if base_url.startswith('https://www.crystallography.net/') else filter_reduced
+        query = (
+            filter_hill
+            if base_url.startswith('https://www.crystallography.net/')
+            else filter_reduced
+        )
         if query is None:
             continue
         urls.append(f'{base_url}structures?filter={query}&response_format=json')
     return urls
 
 
-async def _get_resources_optimade(session: httpx.AsyncClient, path: str) -> List[Resource]:
+async def _get_resources_optimade(
+    session: httpx.AsyncClient, path: str
+) -> List[Resource]:
     response = await _download(session, path)
     if response is None:
         logger.error(f'Error accessing optimade resources.', data=dict(path=path))
@@ -467,8 +559,11 @@ async def _get_resources_optimade(session: httpx.AsyncClient, path: str) -> List
     for entry in data.get('data', []):
         entry_id = entry.get('id')
         params = dict(
-            entry_id=entry.get('id'), chemical_formula_reduced=data.get('chemical_formula_reduced', ''),
-            oqmd_id=entry.get('attributes', {}).get('_oqmd_entry_id'), entry=entry)
+            entry_id=entry.get('id'),
+            chemical_formula_reduced=data.get('chemical_formula_reduced', ''),
+            oqmd_id=entry.get('attributes', {}).get('_oqmd_entry_id'),
+            entry=entry,
+        )
         resource = Resource()
         # resolve provider-specific path to entry in respective database
         resource.url = ref_url(params)  # type: ignore
@@ -492,9 +587,14 @@ async def _get_resources_optimade(session: httpx.AsyncClient, path: str) -> List
 
 @app.task
 def retrieve_resources(
-    status_resource_id, urls_to_ignore: List[str],
-    space_group_number, chemical_formula, chemical_formula_hill,
-    chemical_formula_reduced, wyckoff_letters, n_sites
+    status_resource_id,
+    urls_to_ignore: List[str],
+    space_group_number,
+    chemical_formula,
+    chemical_formula_hill,
+    chemical_formula_reduced,
+    wyckoff_letters,
+    n_sites,
 ):
     urls_to_ignore_as_set = set(urls_to_ignore)
 
@@ -502,26 +602,50 @@ def retrieve_resources(
         limits = httpx.Limits(max_connections=config.resources.max_connections)
         async with httpx.AsyncClient(limits=limits) as session:
             # get urls from sources
-            aflow_task = asyncio.create_task(_get_urls_aflow_prototypes(session, space_group_number))
-            springer_task = asyncio.create_task(_get_urls_springer_materials(session, chemical_formula))
-            optimade_task = asyncio.create_task(_get_urls_optimade(chemical_formula_hill, chemical_formula_reduced, optimade_dbs))
+            aflow_task = asyncio.create_task(
+                _get_urls_aflow_prototypes(session, space_group_number)
+            )
+            springer_task = asyncio.create_task(
+                _get_urls_springer_materials(session, chemical_formula)
+            )
+            optimade_task = asyncio.create_task(
+                _get_urls_optimade(
+                    chemical_formula_hill, chemical_formula_reduced, optimade_dbs
+                )
+            )
 
             aflow_urls: List[str]
             springer_urls: List[str]
             optimade_urls: List[str]
-            aflow_urls, springer_urls, optimade_urls = await asyncio.gather(aflow_task, springer_task, optimade_task)
+            aflow_urls, springer_urls, optimade_urls = await asyncio.gather(
+                aflow_task, springer_task, optimade_task
+            )
 
             # get resource(s) corresponding to each url
             tasks = []
-            tasks.extend([
-                asyncio.create_task(_get_resources_aflow_prototypes(session, url, chemical_formula))
-                for url in aflow_urls if url not in urls_to_ignore_as_set])
-            tasks.extend([
-                asyncio.create_task(_get_resources_springer_materials(session, url))
-                for url in springer_urls if url not in urls_to_ignore_as_set])
-            tasks.extend([
-                asyncio.create_task(_get_resources_optimade(session, url))
-                for url in optimade_urls if url not in urls_to_ignore_as_set])
+            tasks.extend(
+                [
+                    asyncio.create_task(
+                        _get_resources_aflow_prototypes(session, url, chemical_formula)
+                    )
+                    for url in aflow_urls
+                    if url not in urls_to_ignore_as_set
+                ]
+            )
+            tasks.extend(
+                [
+                    asyncio.create_task(_get_resources_springer_materials(session, url))
+                    for url in springer_urls
+                    if url not in urls_to_ignore_as_set
+                ]
+            )
+            tasks.extend(
+                [
+                    asyncio.create_task(_get_resources_optimade(session, url))
+                    for url in optimade_urls
+                    if url not in urls_to_ignore_as_set
+                ]
+            )
 
             await asyncio.gather(*tasks)
 
@@ -540,15 +664,17 @@ def retrieve_resources(
     summary='Get a list of external resources.',
     response_model=ResourcesModel,
     response_model_exclude_unset=True,
-    response_model_exclude_none=True)
+    response_model_exclude_none=True,
+)
 async def get_resources(
-        space_group_number: int = FastApiQuery(None),
-        wyckoff_letters: List[str] = FastApiQuery(None),
-        n_sites: int = FastApiQuery(None),
-        chemical_formula_reduced: str = FastApiQuery(None)):
-    '''
+    space_group_number: int = FastApiQuery(None),
+    wyckoff_letters: List[str] = FastApiQuery(None),
+    n_sites: int = FastApiQuery(None),
+    chemical_formula_reduced: str = FastApiQuery(None),
+):
+    """
     Get all external resources that match a specific query
-    '''
+    """
 
     chemical_formula_hill, chemical_formula = None, None
     if chemical_formula_reduced is not None:
@@ -568,16 +694,26 @@ async def get_resources(
         data: List[ResourceModel] = []
         additional_data: List[ResourceModel] = []
         for resource in resources:
-            if resource is None or resource.url is None or resource.id is None or resource.id.startswith(no_url_found):
+            if (
+                resource is None
+                or resource.url is None
+                or resource.id is None
+                or resource.id.startswith(no_url_found)
+            ):
                 continue
             database = resource.database_name
             sources.setdefault(database, 0)
             sources[database] += 1
             # show the first five results from each resource and the rest we append later
             model = ResourceModel(
-                url=resource.url, id=resource.id, available_data=resource.available_data,
-                database_name=resource.database_name, download_time=resource.download_time,
-                database_version=resource.database_version, comment=comments.get(database))
+                url=resource.url,
+                id=resource.id,
+                available_data=resource.available_data,
+                database_name=resource.database_name,
+                download_time=resource.download_time,
+                database_version=resource.database_version,
+                comment=comments.get(database),
+            )
             if sources[database] <= 5:
                 data.append(model)
             else:
@@ -586,25 +722,42 @@ async def get_resources(
         return data + additional_data
 
     query_aflow = Q(
-        chemical_formula=chemical_formula, space_group_number=space_group_number,
-        wyckoff_letters=wyckoff_letters, n_sites=n_sites, database_name=aflow_prototypes_db)
+        chemical_formula=chemical_formula,
+        space_group_number=space_group_number,
+        wyckoff_letters=wyckoff_letters,
+        n_sites=n_sites,
+        database_name=aflow_prototypes_db,
+    )
     query_springer = Q(
-        chemical_formula=chemical_formula, space_group_number=space_group_number,
-        database_name=springer_materials_db)
-    query_optimade = Q(chemical_formula=chemical_formula, database_name__in=optimade_dbs)
+        chemical_formula=chemical_formula,
+        space_group_number=space_group_number,
+        database_name=springer_materials_db,
+    )
+    query_optimade = Q(
+        chemical_formula=chemical_formula, database_name__in=optimade_dbs
+    )
     resources = Resource.objects(query_aflow | query_springer | query_optimade)
 
     status_resource = Resource.objects(
-        chemical_formula=chemical_formula, space_group_number=space_group_number,
-        wyckoff_letters=wyckoff_letters, n_sites=n_sites, database_name=status_db).first()
+        chemical_formula=chemical_formula,
+        space_group_number=space_group_number,
+        wyckoff_letters=wyckoff_letters,
+        n_sites=n_sites,
+        database_name=status_db,
+    ).first()
 
     trigger_refresh = False
     if not status_resource:
         status_resource = Resource(
             id=utils.create_uuid(),
-            chemical_formula=chemical_formula, space_group_number=space_group_number,
-            wyckoff_letters=wyckoff_letters, n_sites=n_sites, database_name=status_db,
-            download_time=datetime.now(), is_updating=True)
+            chemical_formula=chemical_formula,
+            space_group_number=space_group_number,
+            wyckoff_letters=wyckoff_letters,
+            n_sites=n_sites,
+            database_name=status_db,
+            download_time=datetime.now(),
+            is_updating=True,
+        )
         trigger_refresh = True
 
     if not status_resource.is_updating:
@@ -629,13 +782,19 @@ async def get_resources(
         status_resource.is_updating = True
         status_resource.save()
 
-        retrieve_resources.apply_async([
-            status_resource.id, list(existing_urls),
-            space_group_number, chemical_formula,
-            chemical_formula_hill, chemical_formula_reduced,
-            wyckoff_letters, n_sites
-        ])
+        retrieve_resources.apply_async(
+            [
+                status_resource.id,
+                list(existing_urls),
+                space_group_number,
+                chemical_formula,
+                chemical_formula_hill,
+                chemical_formula_reduced,
+                wyckoff_letters,
+                n_sites,
+            ]
+        )
 
     return ResourcesModel(
-        data=existing_models,
-        is_retrieving_more=status_resource.is_updating)
+        data=existing_models, is_retrieving_more=status_resource.is_updating
+    )

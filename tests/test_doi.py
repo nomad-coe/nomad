@@ -43,13 +43,19 @@ def test_create_draft_doi(mongo, test_user, no_warn):
         assert DOI.objects(doi=doi.doi).first() is None
 
 
-@pytest.mark.parametrize('status_code,response_ok,is_findable,text', [
-    pytest.param(200, True, False, 'Success', id='pass-with-200-only-drafted'),
-    pytest.param(200, True, True, 'Success', id='pass-with-200-with-findable'),
-    pytest.param(400, False, False, 'Bad Request', id='fail-with-400'),
-])
-def test_datacite_requests(mongo, monkeypatch, test_user, status_code, response_ok, is_findable, text):
+@pytest.mark.parametrize(
+    'status_code,response_ok,is_findable,text',
+    [
+        pytest.param(200, True, False, 'Success', id='pass-with-200-only-drafted'),
+        pytest.param(200, True, True, 'Success', id='pass-with-200-with-findable'),
+        pytest.param(400, False, False, 'Bad Request', id='fail-with-400'),
+    ],
+)
+def test_datacite_requests(
+    mongo, monkeypatch, test_user, status_code, response_ok, is_findable, text
+):
     if config.datacite.enabled:
+
         def mock_datacite_request(*args, **kwargs):
             mock_response = MagicMock()
             mock_response.status_code = status_code
@@ -59,9 +65,15 @@ def test_datacite_requests(mongo, monkeypatch, test_user, status_code, response_
 
         doi = DOI.create('the_title', test_user)
 
-        monkeypatch.setattr(doi.create_draft.__globals__['requests'], 'post', mock_datacite_request)
-        monkeypatch.setattr(doi.make_findable.__globals__['requests'], 'put', mock_datacite_request)
-        monkeypatch.setattr(doi.delete.__globals__['requests'], 'delete', mock_datacite_request)
+        monkeypatch.setattr(
+            doi.create_draft.__globals__['requests'], 'post', mock_datacite_request
+        )
+        monkeypatch.setattr(
+            doi.make_findable.__globals__['requests'], 'put', mock_datacite_request
+        )
+        monkeypatch.setattr(
+            doi.delete.__globals__['requests'], 'delete', mock_datacite_request
+        )
 
         if response_ok:
             doi.create_draft()

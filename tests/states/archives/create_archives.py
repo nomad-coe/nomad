@@ -21,9 +21,9 @@ from nomad.utils.exampledata import create_entry_archive
 
 
 def archive_dft_bulk():
-    '''
+    """
     Contains a prototypical archive containing many different properties.
-    '''
+    """
     vdw_method = 'G06'
     relativity_method = 'scalar_relativistic_atomic_ZORA'
     basis_set_name = 'STO-3G'
@@ -57,8 +57,8 @@ def archive_dft_bulk():
                 'structure_name': 'rock salt',
                 'space_group_symbol': 'Fd-3m',
                 'space_group_number': 227,
-                'point_group': '6mm'
-            }
+                'point_group': '6mm',
+            },
         },
         'method': {
             'method_name': 'DFT',
@@ -71,9 +71,9 @@ def archive_dft_bulk():
                     'van_der_Waals_method': vdw_method,
                     'relativity_method': relativity_method,
                     'xc_functional_type': 'GGA',
-                    'xc_functional_names': ['GGA_C_PBE', 'GGA_X_PBE']
-                }
-            }
+                    'xc_functional_names': ['GGA_C_PBE', 'GGA_X_PBE'],
+                },
+            },
         },
         'properties': {
             'available_properties': [
@@ -86,25 +86,31 @@ def archive_dft_bulk():
                 'bulk_modulus',
                 'shear_modulus',
                 'energy_volume_curve',
-                'trajectory'
+                'trajectory',
             ],
             'electronic': {
-                'dos_electronic': [{
-                    'energies': '/run/0/calculation/0/dos_electronic/0/energies',
-                    'total': ['/run/0/calculation/0/dos_electronic/0/total/0'],
-                    'band_gap': [{
-                        'energy_highest_occupied': 0
-                    }]
-                }],
-                'band_structure_electronic': [{
-                    'segment': ['/run/0/calculation/0/band_structure_electronic/0/segment/0'],
-                    'reciprocal_cell': '/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell',
-                    'band_gap': [{
-                        'energy_highest_occupied': 0,
-                        'value': 1e-19,
-                        'type': 'indirect'
-                    }]
-                }]
+                'dos_electronic': [
+                    {
+                        'energies': '/run/0/calculation/0/dos_electronic/0/energies',
+                        'total': ['/run/0/calculation/0/dos_electronic/0/total/0'],
+                        'band_gap': [{'energy_highest_occupied': 0}],
+                    }
+                ],
+                'band_structure_electronic': [
+                    {
+                        'segment': [
+                            '/run/0/calculation/0/band_structure_electronic/0/segment/0'
+                        ],
+                        'reciprocal_cell': '/run/0/calculation/0/band_structure_electronic/0/reciprocal_cell',
+                        'band_gap': [
+                            {
+                                'energy_highest_occupied': 0,
+                                'value': 1e-19,
+                                'type': 'indirect',
+                            }
+                        ],
+                    }
+                ],
             },
             'structures': {
                 'structure_original': {
@@ -114,9 +120,9 @@ def archive_dft_bulk():
                         'c': 5e-10,
                         'alpha': math.pi / 2,
                         'beta': math.pi / 2,
-                        'gamma': math.pi / 2
+                        'gamma': math.pi / 2,
                     },
-                    'cell_volume': 125e-30
+                    'cell_volume': 125e-30,
                 },
                 'structure_conventional': {
                     'lattice_parameters': {
@@ -125,9 +131,9 @@ def archive_dft_bulk():
                         'c': 5e-10,
                         'alpha': math.pi / 2,
                         'beta': math.pi / 2,
-                        'gamma': math.pi / 2
+                        'gamma': math.pi / 2,
                     },
-                    'cell_volume': 125e-37
+                    'cell_volume': 125e-37,
                 },
                 'structure_primitive': {
                     'lattice_parameters': {
@@ -136,10 +142,10 @@ def archive_dft_bulk():
                         'c': 5e-10,
                         'alpha': math.pi / 2,
                         'beta': math.pi / 2,
-                        'gamma': math.pi / 2
+                        'gamma': math.pi / 2,
                     },
-                    'cell_volume': 125e-30
-                }
+                    'cell_volume': 125e-30,
+                },
             },
             'vibrational': {
                 'dos_phonon': {
@@ -147,37 +153,29 @@ def archive_dft_bulk():
                     'total': ['/run/0/calculation/0/dos_phonon/0/total/0'],
                 },
                 'band_structure_phonon': {
-                    'segment': ['/run/0/calculation/0/band_structure_phonon/0/segment/0']
+                    'segment': [
+                        '/run/0/calculation/0/band_structure_phonon/0/segment/0'
+                    ]
                 },
                 'heat_capacity_constant_volume': {
                     'heat_capacities': '/workflow/0/thermodynamics/heat_capacity_c_v',
-                    'temperatures': '/workflow/0/thermodynamics/temperature'
+                    'temperatures': '/workflow/0/thermodynamics/temperature',
                 },
                 'energy_free_helmholtz': {
                     'energies': '/workflow/0/thermodynamics/vibrational_free_energy_at_constant_volume',
-                    'temperatures': '/workflow/0/thermodynamics/temperature'
-                }
+                    'temperatures': '/workflow/0/thermodynamics/temperature',
+                },
             },
             'mechanical': {
-                'bulk_modulus': [
-                    {
-                        'type': 'murnaghan',
-                        'value': 1
-                    }
-                ],
-                'shear_modulus': [
-                    {
-                        'type': 'voigt_reuss_hill_average',
-                        'value': 1
-                    }
-                ],
+                'bulk_modulus': [{'type': 'murnaghan', 'value': 1}],
+                'shear_modulus': [{'type': 'voigt_reuss_hill_average', 'value': 1}],
                 'energy_volume_curve': [
                     {
                         'type': 'murhaghan',
                         'volumes': '/workflow/1/equation_of_state/volumes',
-                        'energies_fit': '/workflow/1/equation_of_state/eos_fit/0/fitted_energies'
+                        'energies_fit': '/workflow/1/equation_of_state/eos_fit/0/fitted_energies',
                     }
-                ]
+                ],
             },
             'thermodynamic': {
                 'trajectory': [
@@ -200,89 +198,93 @@ def archive_dft_bulk():
                                 'time_step': 1e-15,
                                 'ensemble_type': 'NVT',
                             }
-                        }
+                        },
                     }
                 ]
             },
-        }
+        },
     }
     run = {
-        'program': {
-            'name': program_name,
-            'version': program_version
-        },
+        'program': {'name': program_name, 'version': program_version},
         'method': [
             {
                 'dft': {
                     'xc_functional': {
                         'correlation': [{'name': 'GGA_C_PBE'}],
-                        'exchange': [{'name': 'GGA_X_PBE'}]
+                        'exchange': [{'name': 'GGA_X_PBE'}],
                     }
                 },
                 'electronic': {
                     'van_der_Waals_method': vdw_method,
                     'relativity_method': relativity_method,
-                    'method': 'DFT'
+                    'method': 'DFT',
                 },
-                'basis_set': [{
-                    'name': basis_set_name,
-                    'type': basis_set_type
-                }]
+                'basis_set': [{'name': basis_set_name, 'type': basis_set_type}],
             }
         ],
-        'system': [{
-            'atoms': {
-                'species': [1, 1]
-            },
-        }],
-        'calculation': [{
-            'system_ref': '/run/0/system/0',
-            'pressure': 0,
-            'temperature': 0,
-            'volume': 0,
-            'dos_electronic': [{
-                'energies': [0, 1e-19],
-                'total': [
+        'system': [
+            {
+                'atoms': {'species': [1, 1]},
+            }
+        ],
+        'calculation': [
+            {
+                'system_ref': '/run/0/system/0',
+                'pressure': 0,
+                'temperature': 0,
+                'volume': 0,
+                'dos_electronic': [
                     {
-                        'value': [0, 1e18],
-                        'normalization_factor': 1e-19,
-                        'spin': 0
+                        'energies': [0, 1e-19],
+                        'total': [
+                            {
+                                'value': [0, 1e18],
+                                'normalization_factor': 1e-19,
+                                'spin': 0,
+                            }
+                        ],
+                        'band_gap': [{'energy_highest_occupied': 0, 'index': 0}],
                     }
                 ],
-                'band_gap': [{
-                    'energy_highest_occupied': 0,
-                    'index': 0
-                }]
-            }],
-            'dos_phonon': [{
-                'energies': [0, 1e-19],
-                'total': [{
-                    'value': [0, 1e18],
-                    'normalization_factor': 1e-19
-                }]
-            }],
-            'band_structure_electronic': [{
-                'reciprocal_cell': [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
-                'segment': [{
-                    'energies': [[[0], [1e-19]]],
-                    'kpoints': [[0, 0, 0], [0.5, 0.5, 0.5]],
-                    'endpoints_labels': ['L', 'K']
-                }],
-                'band_gap': [{
-                    'energy_highest_occupied': 0,
-                    'value': 1e-19,
-                    'type': 'indirect'
-                }]
-            }],
-            'band_structure_phonon': [{
-                'reciprocal_cell': [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
-                'segment': [{
-                    'energies': [[[0], [1e-19]]],
-                    'kpoints': [[0, 0, 0], [0.5, 0.5, 0.5]],
-                    'endpoints_labels': ['L', 'K']
-                }]
-            }]
-        }]
+                'dos_phonon': [
+                    {
+                        'energies': [0, 1e-19],
+                        'total': [{'value': [0, 1e18], 'normalization_factor': 1e-19}],
+                    }
+                ],
+                'band_structure_electronic': [
+                    {
+                        'reciprocal_cell': [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
+                        'segment': [
+                            {
+                                'energies': [[[0], [1e-19]]],
+                                'kpoints': [[0, 0, 0], [0.5, 0.5, 0.5]],
+                                'endpoints_labels': ['L', 'K'],
+                            }
+                        ],
+                        'band_gap': [
+                            {
+                                'energy_highest_occupied': 0,
+                                'value': 1e-19,
+                                'type': 'indirect',
+                            }
+                        ],
+                    }
+                ],
+                'band_structure_phonon': [
+                    {
+                        'reciprocal_cell': [[1e9, 0, 0], [0, 1e9, 0], [0, 0, 1e9]],
+                        'segment': [
+                            {
+                                'energies': [[[0], [1e-19]]],
+                                'kpoints': [[0, 0, 0], [0.5, 0.5, 0.5]],
+                                'endpoints_labels': ['L', 'K'],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
     }
     workflow = [
         {
@@ -292,7 +294,7 @@ def archive_dft_bulk():
             'thermodynamics': {
                 'heat_capacity_c_v': [0, 1],
                 'vibrational_free_energy_at_constant_volume': [0, 1],
-                'temperature': [0, 100]
+                'temperature': [0, 100],
             },
         },
         {
@@ -302,11 +304,13 @@ def archive_dft_bulk():
             'equation_of_state': {
                 'energies': [0, 1],
                 'volumes': [0, 1],
-                'eos_fit': [{
-                    'function_name': 'murnaghan',
-                    'fitted_energies': [0, 1],
-                    'bulk_modulus': 1
-                }]
+                'eos_fit': [
+                    {
+                        'function_name': 'murnaghan',
+                        'fitted_energies': [0, 1],
+                        'bulk_modulus': 1,
+                    }
+                ],
             },
         },
         {
@@ -320,7 +324,7 @@ def archive_dft_bulk():
             'calculation_result_ref': '/run/0/calculation/0',
             'calculations_ref': ['/run/0/calculation/0'],
             'molecular_dynamics': {'time_step': 1e-15, 'ensemble_type': 'NVT'},
-        }
+        },
     ]
 
     return create_entry_archive(metadata, results, run, workflow)

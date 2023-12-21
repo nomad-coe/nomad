@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-'''
+"""
 Command line interface (CLI) for nomad. Provides a group/sub-command structure, think git,
 that offers various functionality to the command line user.
 
 Use it from the command line with ``nomad --help`` or ``python -m nomad.cli --help`` to learn
 more.
-'''
+"""
 
 from . import dev, parse, client, admin  # noqa
 from .cli import run_cli, cli  # noqa

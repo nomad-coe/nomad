@@ -27,18 +27,31 @@ from nomad import config, utils
 
 from .common import root_path
 from .routers import (
-    users, entries, materials, auth, info, datasets, uploads, suggestions, metainfo,
-    north, systems, federation, graph
+    users,
+    entries,
+    materials,
+    auth,
+    info,
+    datasets,
+    uploads,
+    suggestions,
+    metainfo,
+    north,
+    systems,
+    federation,
+    graph,
 )
 
 logger = utils.get_logger(__name__)
 
 
 class ORJSONResponse(JSONResponse):
-    media_type = "application/json"
+    media_type = 'application/json'
 
     def render(self, content: Any) -> bytes:
-        return orjson.dumps(content, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS)  # pylint: disable=maybe-no-member
+        return orjson.dumps(
+            content, option=orjson.OPT_INDENT_2 | orjson.OPT_NON_STR_KEYS
+        )  # pylint: disable=maybe-no-member
 
 
 app = FastAPI(
@@ -49,19 +62,22 @@ app = FastAPI(
     swagger_ui_oauth2_redirect_url='/extensions/docs/oauth2-redirect',
     title='NOMAD API',
     version=f'v1, NOMAD {config.meta.version}',
-    description=utils.strip(f'''
+    description=utils.strip(
+        f"""
         Please visit the [API section of the NOMAD documentation]({config.api_url(True, 'docs/api.html')})
         for a introduction and examples.
-    '''),
-    default_response_class=ORJSONResponse)
+    """
+    ),
+    default_response_class=ORJSONResponse,
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["Content-Disposition"]
+    allow_methods=['*'],
+    allow_headers=['*'],
+    expose_headers=['Content-Disposition'],
 )
 
 
@@ -89,10 +105,11 @@ async def unicorn_exception_handler(request: Request, e: Exception):
                 'reason': 'Unexpected exception while handling your request',
                 'exception': str(e),
                 'exception_class': e.__class__.__name__,
-                'exception_traceback': traceback.format_exc()
+                'exception_traceback': traceback.format_exc(),
             }
-        }
+        },
     )
+
 
 app.include_router(info.router, prefix='/info')
 app.include_router(auth.router, prefix='/auth')

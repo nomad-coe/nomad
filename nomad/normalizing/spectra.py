@@ -17,7 +17,8 @@
 #
 
 from nomad.datamodel.metainfo.simulation.calculation import (
-    Spectra, ElectronicStructureProvenance
+    Spectra,
+    ElectronicStructureProvenance,
 )
 from nomad.normalizing.normalizer import Normalizer
 
@@ -25,9 +26,10 @@ from nomad.normalizing.normalizer import Normalizer
 class SpectraNormalizer(Normalizer):
     """Normalizer for Spectra in run.calculation with the following responsibilities:
 
-      - Sets provenance method section.
-      - Normalizes intensities to their maximum value.
+    - Sets provenance method section.
+    - Normalizes intensities to their maximum value.
     """
+
     def normalize(self, logger=None) -> None:
         # Setup logger
         if logger is not None:
@@ -42,7 +44,9 @@ class SpectraNormalizer(Normalizer):
                     if not calc_section.method_ref:
                         return
                     if calc_section.method_ref.photon and not spectra.provenance:
-                        provenance = ElectronicStructureProvenance(methodology=calc_section.method_ref, label='photon')
+                        provenance = ElectronicStructureProvenance(
+                            methodology=calc_section.method_ref, label='photon'
+                        )
                         spectra.m_add_sub_section(Spectra.provenance, provenance)
                     # Normalizing intensities to their maximum value.
                     # spectra.intensities = spectra.intensities / max(spectra.intensities)
@@ -50,8 +54,7 @@ class SpectraNormalizer(Normalizer):
                     # and XSPECTRA (Fermi rule) codes. Generalize for others
 
     def is_valid_spectra(self, spectra: Spectra) -> bool:
-        """Used to check that a spectra has all required information for normalization.
-        """
+        """Used to check that a spectra has all required information for normalization."""
         if spectra.excitation_energies is not None and spectra.intensities is not None:
             n_energies = len(spectra.excitation_energies)
             n_intensities = len(spectra.intensities)
@@ -59,13 +62,17 @@ class SpectraNormalizer(Normalizer):
                 spectra.n_energies = n_energies
             else:
                 self.logger.warning(
-                    'Empty arrays or size of arrays do not coincide: could not validate spectra.')
+                    'Empty arrays or size of arrays do not coincide: could not validate spectra.'
+                )
                 return False
             if (spectra.intensities < 0.0).any():
-                self.logger.warning('Invalid negative intensities found: could not validate spectra.')
+                self.logger.warning(
+                    'Invalid negative intensities found: could not validate spectra.'
+                )
                 return False
             return True
         else:
             self.logger.warning(
-                'Parsed spectra do not contain excitation_energies and intensitites to be normalized.')
+                'Parsed spectra do not contain excitation_energies and intensitites to be normalized.'
+            )
             return False

@@ -44,12 +44,12 @@ from nomad.client import api, upload_file
 
 
 class DbUpdater:
-    '''
+    """
     Automatically synchronizes nomad it with a given database. It creates a list of paths
     to mainfiles in nomad and compares it with paths in the external database. The missing
     paths in nomad will then be downloaded from the external database and subsequently
     uploaded to nomad. The downloaded files are by default saved in '/nomad/fairdi/external'.
-    '''
+    """
 
     def __init__(self, *args, auth: client.Auth, **kwargs):
         self.db_name = 'aflowlib'
@@ -92,8 +92,11 @@ class DbUpdater:
         # set target file based on database
         if self.db_name.lower() == 'aflowlib':
             if self.target_file is None:
-                self.target_file = 'vasprun.xml.relax2.xz' if re.match(
-                    r'.+/LIB\d+_LIB/?', self.root_url) else 'OUTCAR.static.xz'
+                self.target_file = (
+                    'vasprun.xml.relax2.xz'
+                    if re.match(r'.+/LIB\d+_LIB/?', self.root_url)
+                    else 'OUTCAR.static.xz'
+                )
         else:
             raise NotImplementedError('%s not yet supported.' % self.db_name)
 
@@ -190,27 +193,32 @@ class DbUpdater:
                 paths = paths if paths else servers
                 # main_author: Stefano Curtarolo
                 query = dict(
-                    main_author_id='81b96683-7170-49d7-8c4e-e9f34906b3ea',
-                    paths=paths)
+                    main_author_id='81b96683-7170-49d7-8c4e-e9f34906b3ea', paths=paths
+                )
 
             self.nomad_files = []
             page_after_value = None
             while True:
-                response = api.post('entries/query', data=json.dumps({
-                    'owner': 'all',
-                    'query': query,
-                    'aggregations': {
-                        'mainfiles': {
-                            'terms': {
-                                'quantity': 'mainfile',
-                                'pagination': {
-                                    'page_size': 1000,
-                                    'page_after_value': page_after_value
+                response = api.post(
+                    'entries/query',
+                    data=json.dumps(
+                        {
+                            'owner': 'all',
+                            'query': query,
+                            'aggregations': {
+                                'mainfiles': {
+                                    'terms': {
+                                        'quantity': 'mainfile',
+                                        'pagination': {
+                                            'page_size': 1000,
+                                            'page_after_value': page_after_value,
+                                        },
+                                    }
                                 }
-                            }
+                            },
                         }
-                    }
-                }))
+                    ),
+                )
                 assert response.status_code == 200
                 aggregation = response.json()['aggregations']['mainfiles']['terms']
                 page_after_value = aggregation['pagination']['next_page_after_value']
@@ -224,14 +232,15 @@ class DbUpdater:
                 self._write_to_file(self.nomad_files, self.nomadfile)
 
     def compare_lists(self):
-        '''
+        """
         Identify the difference between the nomad list and db list
-        '''
+        """
+
         def reduce_list(ilist: typing.List[str]):
             olist = []
             for e in ilist:
                 p = urllib_parse.urlparse(e).path.strip('/')
-                olist.append(os.path.join(*p.split('/')[1:self.max_depth]))
+                olist.append(os.path.join(*p.split('/')[1 : self.max_depth]))
             olist = list(set(olist))
             olist.sort()
             return olist
@@ -380,7 +389,10 @@ class DbUpdater:
         def is_done_upload(uid: int) -> bool:
             response = api.get(f'uploads/{uid}', auth=self.auth)
             assert response.status_code == 200
-            return response.json()['data']['process_status'] in proc.ProcessStatus.STATUSES_NOT_PROCESSING
+            return (
+                response.json()['data']['process_status']
+                in proc.ProcessStatus.STATUSES_NOT_PROCESSING
+            )
 
         print('Publishing')
         uids = self.uids if uids is None else uids
@@ -390,7 +402,12 @@ class DbUpdater:
                 assert response.status_code == 200
 
     def upload(self, file_path: str, upload_name: str) -> int:
-        uid = upload_file(os.path.abspath(file_path), self.auth, local_path=True, upload_name=upload_name)
+        uid = upload_file(
+            os.path.abspath(file_path),
+            self.auth,
+            local_path=True,
+            upload_name=upload_name,
+        )
         assert uid is not None
         return uid
 
@@ -442,7 +459,9 @@ class DbUpdater:
                     continue
                 if status != 'uploaded':
                     tar_files(dirs, tarname)
-                    uid = upload_file(tarname, auth=self.auth, upload_name=uploadname, local_path=True)
+                    uid = upload_file(
+                        tarname, auth=self.auth, upload_name=uploadname, local_path=True
+                    )
                     assert uid is not None
                 if self.do_publish:
                     self.publish([uid])
@@ -454,9 +473,9 @@ class DbUpdater:
                 dirs = []
 
     def download(self):
-        '''
+        """
         Download files from database.
-        '''
+        """
         print('Downloading from %s' % self.root_url)
         s = time.time()
         plist = [[] for i in range(self.parallel)]
@@ -481,9 +500,9 @@ class DbUpdater:
         print('Time for download and upload (s)', time.time() - s)
 
     def get_list_to_download(self):
-        '''
+        """
         Generate lists of files from database and from nomad and returns the difference.
-        '''
+        """
         if self.outfile is not None and os.path.isfile(self.outfile):
             self.update_list = []
             self.is_updated_list = []
@@ -514,20 +533,22 @@ class DbUpdater:
 
 
 def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
-    '''Writes the prototype data file in a compressed format to a python
+    """Writes the prototype data file in a compressed format to a python
     module.
 
     Args:
         aflow_prototypes
-    '''
+    """
+
     class NoIndent(object):
         def __init__(self, value):
             self.value = value
 
     class NoIndentEncoder(json.JSONEncoder):
-        '''A custom JSON encoder that can pretty-print objects wrapped in the
+        """A custom JSON encoder that can pretty-print objects wrapped in the
         NoIndent class.
-        '''
+        """
+
         def __init__(self, *args, **kwargs):
             super(NoIndentEncoder, self).__init__(*args, **kwargs)
             self.kwargs = dict(kwargs)
@@ -538,7 +559,7 @@ def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
             if isinstance(o, NoIndent):
                 key = uuid.uuid4().hex
                 self._replacement_map[key] = json.dumps(o.value, **self.kwargs)
-                return "@@%s@@" % (key,)
+                return '@@%s@@' % (key,)
             else:
                 return super(NoIndentEncoder, self).default(o)
 
@@ -548,27 +569,36 @@ def write_prototype_data_file(aflow_prototypes: dict, filepath) -> None:
                 result = result.replace('"@@%s@@"' % (k,), v)
             return result
 
-    prototype_dict = aflow_prototypes["prototypes_by_spacegroup"]
+    prototype_dict = aflow_prototypes['prototypes_by_spacegroup']
     for prototypes in prototype_dict.values():
         for prototype in prototypes:
             # Save the information back in a prettified form
-            prototype["atom_positions"] = NoIndent(prototype["atom_positions"])
-            prototype["atom_labels"] = NoIndent(prototype["atom_labels"])
-            prototype["lattice_vectors"] = NoIndent(prototype["lattice_vectors"])
+            prototype['atom_positions'] = NoIndent(prototype['atom_positions'])
+            prototype['atom_labels'] = NoIndent(prototype['atom_labels'])
+            prototype['lattice_vectors'] = NoIndent(prototype['lattice_vectors'])
             try:
-                prototype["normalized_wyckoff_matid"] = NoIndent(prototype["normalized_wyckoff_matid"])
+                prototype['normalized_wyckoff_matid'] = NoIndent(
+                    prototype['normalized_wyckoff_matid']
+                )
             except KeyError:
                 pass
 
     # Save the updated data
-    with io.open(filepath, "w", encoding="utf8") as f:
-        json_dump = json.dumps(aflow_prototypes, ensure_ascii=False, indent=4, sort_keys=True, cls=NoIndentEncoder)
-        json_dump = re.sub(r"\"(-?\d+(?:[\.,]\d+)?)\"", r'\1', json_dump)  # Removes quotes around numbers
-        f.write("aflow_prototypes = {}\n".format(json_dump))
+    with io.open(filepath, 'w', encoding='utf8') as f:
+        json_dump = json.dumps(
+            aflow_prototypes,
+            ensure_ascii=False,
+            indent=4,
+            sort_keys=True,
+            cls=NoIndentEncoder,
+        )
+        json_dump = re.sub(
+            r'\"(-?\d+(?:[\.,]\d+)?)\"', r'\1', json_dump
+        )  # Removes quotes around numbers
+        f.write('aflow_prototypes = {}\n'.format(json_dump))
 
 
 def update_prototypes(ctx, filepath, matches_only):
-
     if matches_only:
         from nomad.aflow_prototypes import aflow_prototypes
     else:
@@ -576,7 +606,7 @@ def update_prototypes(ctx, filepath, matches_only):
         # retrieve it and read only the prototype list from it.
         prototypes_file_url = 'http://aflowlib.org/CrystalDatabase/js/table_sort.js'
         r = requests.get(prototypes_file_url, allow_redirects=True)
-        datastring = r.content.decode("utf-8")
+        datastring = r.content.decode('utf-8')
         datastring = datastring.split('];')[0]
         datastring = datastring.split('= [')[1]
         data = json.loads('[' + datastring + ']')
@@ -589,7 +619,7 @@ def update_prototypes(ctx, filepath, matches_only):
             newdict = {}
 
             # Make prototype plaintext
-            prototype = bs4.BeautifulSoup(protodict["Prototype"], "html5lib").getText()
+            prototype = bs4.BeautifulSoup(protodict['Prototype'], 'html5lib').getText()
 
             # Add to new dictionary
             newdict['Notes'] = protodict['Notes']
@@ -597,34 +627,56 @@ def update_prototypes(ctx, filepath, matches_only):
             newdict['Space Group Symbol'] = protodict['Space Group Symbol']
             newdict['Space Group Number'] = protodict['Space Group Number']
             newdict['Pearsons Symbol'] = protodict['Pearson Symbol']
-            newdict['Strukturbericht Designation'] = protodict['Strukturbericht Designation']
+            newdict['Strukturbericht Designation'] = protodict[
+                'Strukturbericht Designation'
+            ]
             newdict['aflow_prototype_id'] = protodict['AFLOW Prototype']
-            newdict['aflow_prototype_url'] = 'http://www.aflowlib.org/CrystalDatabase/' + protodict['href'][2:]
+            newdict['aflow_prototype_url'] = (
+                'http://www.aflowlib.org/CrystalDatabase/' + protodict['href'][2:]
+            )
 
             # Download cif or poscar if possible make ASE ase.Atoms object if possible
             # to obtain labels, positions, cell
-            cifurl = 'http://www.aflowlib.org/CrystalDatabase/CIF/' + protodict['href'][2:-5] + '.cif'
+            cifurl = (
+                'http://www.aflowlib.org/CrystalDatabase/CIF/'
+                + protodict['href'][2:-5]
+                + '.cif'
+            )
             r = requests.get(cifurl, allow_redirects=True)
-            cif_str = r.content.decode("utf-8")
+            cif_str = r.content.decode('utf-8')
             cif_file = io.StringIO()
             cif_file.write(cif_str)
             cif_file.seek(0)
             try:
                 atoms = ase.io.read(cif_file, format='cif')
             except Exception:
-                print("Error in getting prototype structure from CIF: {}", format(cifurl))
+                print(
+                    'Error in getting prototype structure from CIF: {}', format(cifurl)
+                )
                 # Then try to get structure from POSCAR
                 try:
-                    poscarurl = 'http://www.aflowlib.org/CrystalDatabase/POSCAR/' + protodict['href'][2:-5] + '.poscar'
+                    poscarurl = (
+                        'http://www.aflowlib.org/CrystalDatabase/POSCAR/'
+                        + protodict['href'][2:-5]
+                        + '.poscar'
+                    )
                     r = requests.get(poscarurl, allow_redirects=True)
-                    poscar_str = r.content.decode("utf-8")
+                    poscar_str = r.content.decode('utf-8')
                     poscar_file = io.StringIO()
                     poscar_file.write(poscar_str)
                     poscar_file.seek(0)
                     atoms = ase.io.read(poscar_file, format='vasp')
                 except Exception:
-                    print("Error in getting prototype structure from POSCAR: {}".format(poscarurl))
-                    print("Could not read prototype structure from CIF or POSCAR file for prototype: {}, {}, ".format(prototype, newdict['aflow_prototype_url']))
+                    print(
+                        'Error in getting prototype structure from POSCAR: {}'.format(
+                            poscarurl
+                        )
+                    )
+                    print(
+                        'Could not read prototype structure from CIF or POSCAR file for prototype: {}, {}, '.format(
+                            prototype, newdict['aflow_prototype_url']
+                        )
+                    )
                     n_missing += 1
                     continue
 
@@ -637,7 +689,7 @@ def update_prototypes(ctx, filepath, matches_only):
             newdict['atom_labels'] = atom_labels
             newdictarray.append(newdict)
 
-            print("Processed: {}".format(len(newdictarray)))
+            print('Processed: {}'.format(len(newdictarray)))
 
         # Sort prototype dictionaries by spacegroup and make dictionary
         structure_types_by_spacegroup = {}
@@ -649,39 +701,34 @@ def update_prototypes(ctx, filepath, matches_only):
             structure_types_by_spacegroup[i_sg] = protos_sg
 
         # Wrap in a dictionary that can hold other data, e.g. the symmemtry tolerance parameter.
-        aflow_prototypes = {
-            "prototypes_by_spacegroup": structure_types_by_spacegroup
-        }
+        aflow_prototypes = {'prototypes_by_spacegroup': structure_types_by_spacegroup}
         print(
-            "Extracted latest AFLOW prototypes online. Total number of "
-            "successfully fetched prototypes: {}, missing: {}"
-            .format(n_prototypes, n_missing)
+            'Extracted latest AFLOW prototypes online. Total number of '
+            'successfully fetched prototypes: {}, missing: {}'.format(
+                n_prototypes, n_missing
+            )
         )
 
     # Update matches
     n_prototypes = 0
     n_failed = 0
     n_unmatched = 0
-    prototype_dict = aflow_prototypes["prototypes_by_spacegroup"]
+    prototype_dict = aflow_prototypes['prototypes_by_spacegroup']
 
     for aflow_spg_number, prototypes in prototype_dict.items():
         n_prototypes += len(prototypes)
         for prototype in prototypes:
-
             # Read prototype structure
-            pos = np.array(prototype["atom_positions"])
-            labels = prototype["atom_labels"]
-            cell = np.array(prototype["lattice_vectors"])
-            atoms = ase.Atoms(
-                symbols=labels,
-                positions=pos,
-                cell=cell,
-                pbc=True
-            )
+            pos = np.array(prototype['atom_positions'])
+            labels = prototype['atom_labels']
+            cell = np.array(prototype['lattice_vectors'])
+            atoms = ase.Atoms(symbols=labels, positions=pos, cell=cell, pbc=True)
 
             # Try to first see if the space group can be matched with the one in AFLOW
             try:
-                symm = matid.SymmetryAnalyzer(atoms, config.normalize.prototype_symmetry_tolerance)
+                symm = matid.SymmetryAnalyzer(
+                    atoms, config.normalize.prototype_symmetry_tolerance
+                )
                 spg_number = symm.get_space_group_number()
                 wyckoff_matid = symm.get_wyckoff_letters_conventional()
                 norm_system = symm.get_conventional_system()
@@ -692,14 +739,17 @@ def update_prototypes(ctx, filepath, matches_only):
                 # letters to the data.
                 if spg_number == aflow_spg_number:
                     atomic_numbers = norm_system.get_atomic_numbers()
-                    normalized_wyckoff_matid = atomutils.get_normalized_wyckoff(atomic_numbers, wyckoff_matid)
-                    prototype["normalized_wyckoff_matid"] = normalized_wyckoff_matid
+                    normalized_wyckoff_matid = atomutils.get_normalized_wyckoff(
+                        atomic_numbers, wyckoff_matid
+                    )
+                    prototype['normalized_wyckoff_matid'] = normalized_wyckoff_matid
                 else:
                     n_unmatched += 1
     print(
-        "Updated matches in AFLOW prototype library. Total number of "
-        "prototypes: {}, unmatched: {}, failed: {}"
-        .format(n_prototypes, n_unmatched, n_failed)
+        'Updated matches in AFLOW prototype library. Total number of '
+        'prototypes: {}, unmatched: {}, failed: {}'.format(
+            n_prototypes, n_unmatched, n_failed
+        )
     )
 
     # Write data file to the specified path

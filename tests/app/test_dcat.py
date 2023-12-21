@@ -34,8 +34,10 @@ def api():
 
 def create_dataset(**kwargs):
     dataset = Dataset(
-        dataset_create_time=datetime.now(), dataset_modified_time=datetime.now(),
-        **kwargs)
+        dataset_create_time=datetime.now(),
+        dataset_modified_time=datetime.now(),
+        **kwargs,
+    )
     dataset.m_get_annotations('mongo').save()
     return dataset
 
@@ -53,25 +55,32 @@ def data(test_user, other_test_user, elastic_infra, mongo_module):
                 user_id=test_user.user_id,
                 dataset_name='test dataset 1',
                 dataset_type='owned',
-                doi='TEST/DOI'),
+                doi='TEST/DOI',
+            ),
             create_dataset(
                 dataset_id='dataset_2',
                 user_id=test_user.user_id,
                 dataset_name='test dataset 2',
-                dataset_type='owned')
+                dataset_type='owned',
+            ),
         ],
-        comment='this is an entry comment')
+        comment='this is an entry comment',
+    )
 
     data = ExampleData(main_author=test_user)
     data.create_upload(
-        upload_id='upload-id', upload_create_time=datetime(2000, 1, 1), published=True, embargo_length=0)
+        upload_id='upload-id',
+        upload_create_time=datetime(2000, 1, 1),
+        published=True,
+        embargo_length=0,
+    )
     archive = data.create_entry(**example_attrs)
     archive.m_create(Results).m_create(Material).chemical_formula_descriptive = 'H2O'
 
     for i in range(1, 11):
         example_attrs.update(
-            entry_id='test-id-%d' % i,
-            last_processing_time=datetime(2020, 1, i))
+            entry_id='test-id-%d' % i, last_processing_time=datetime(2020, 1, i)
+        )
         data.create_entry(**example_attrs)
 
     data.save(with_files=False)
@@ -96,10 +105,10 @@ def test_get_dataset(api, example_entry):
     assert rv.status_code == 200
 
 
-@pytest.mark.parametrize('after,modified_since', [
-    (None, None),
-    (None, '2020-01-07'),
-    ('test-id-3', '2020-01-07')])
+@pytest.mark.parametrize(
+    'after,modified_since',
+    [(None, None), (None, '2020-01-07'), ('test-id-3', '2020-01-07')],
+)
 def test_get_catalog(api, data, after, modified_since):
     url = '/catalog/?format=turtle'
     if after:

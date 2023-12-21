@@ -31,7 +31,10 @@ from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.metainfo.workflow import Workflow
-from nomad.datamodel.metainfo.simulation.system import System, Symmetry as SystemSymmetry
+from nomad.datamodel.metainfo.simulation.system import (
+    System,
+    Symmetry as SystemSymmetry,
+)
 from nomad.normalizing.common import structures_2d
 from nomad.datamodel.results import (
     BandGap,
@@ -75,19 +78,17 @@ from nomad.datamodel.results import (
     Spectra,
 )
 
-re_label = re.compile("^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*")
+re_label = re.compile('^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*')
 elements = set(ase.data.chemical_symbols)
 
 
 def valid_array(array: Any) -> bool:
-    """Checks if the given variable is a non-empty array.
-    """
+    """Checks if the given variable is a non-empty array."""
     return array is not None and len(array) > 0
 
 
 def isint(value: Any) -> bool:
-    """Checks if the given variable can be interpreted as an integer.
-    """
+    """Checks if the given variable can be interpreted as an integer."""
     try:
         int(value)
         return True
@@ -116,7 +117,7 @@ class ResultsNormalizer(Normalizer):
             self.normalize_measurement(measurement)
 
     def normalize_sample(self, sample) -> None:
-        material = self.entry_archive.m_setdefault("results.material")
+        material = self.entry_archive.m_setdefault('results.material')
 
         if sample.elements and len(sample.elements) > 0:
             material.elements = sample.elements
@@ -124,11 +125,15 @@ class ResultsNormalizer(Normalizer):
             # Try to guess elements from sample formula or name
             if sample.chemical_formula:
                 try:
-                    material.elements = list(set(ase.Atoms(sample.chemical_formula).get_chemical_symbols()))
+                    material.elements = list(
+                        set(ase.Atoms(sample.chemical_formula).get_chemical_symbols())
+                    )
                 except Exception:
                     if sample.name:
                         try:
-                            material.elements = list(set(ase.Atoms(sample.name).get_chemical_symbols()))
+                            material.elements = list(
+                                set(ase.Atoms(sample.name).get_chemical_symbols())
+                            )
                         except Exception:
                             pass
         if sample.chemical_formula:
@@ -152,8 +157,7 @@ class ResultsNormalizer(Normalizer):
 
         # Method
         if results.method is None:
-            results.method = Method(
-                method_name=measurement.method_abbreviation)
+            results.method = Method(method_name=measurement.method_abbreviation)
 
         # Sample
         if results.material is None:
@@ -181,7 +185,8 @@ class ResultsNormalizer(Normalizer):
                     resolution=measurement.instrument[0].eels.resolution,
                     detector_type=measurement.instrument[0].eels.detector_type,
                     min_energy=measurement.instrument[0].eels.min_energy,
-                    max_energy=measurement.instrument[0].eels.max_energy)
+                    max_energy=measurement.instrument[0].eels.max_energy,
+                )
                 provenance.m_add_sub_section(SpectraProvenance.eels, methodology)
             spectroscopic.m_add_sub_section(SpectroscopicProperties.spectra, spectra)
 
@@ -203,7 +208,9 @@ class ResultsNormalizer(Normalizer):
 
         # Create the section and populate the subsections
         results = self.entry_archive.results
-        properties, conv_atoms, wyckoff_sets, spg_number = self.properties(repr_system, repr_symmetry)
+        properties, conv_atoms, wyckoff_sets, spg_number = self.properties(
+            repr_system, repr_symmetry
+        )
         results.properties = properties
         results.material = MaterialNormalizer(
             self.entry_archive,
@@ -214,15 +221,16 @@ class ResultsNormalizer(Normalizer):
             wyckoff_sets,
             properties,
             optimade,
-            logger
+            logger,
         ).material()
 
-        results.method = MethodNormalizer(self.entry_archive, repr_system, results.material, logger).method()
+        results.method = MethodNormalizer(
+            self.entry_archive, repr_system, results.material, logger
+        ).method()
 
         # set entry type based on method and material
         workflow = self.entry_archive.workflow2
         if workflow is not None:
-
             workflow_name = workflow.name if workflow.name else workflow.m_def.name
 
             tag = ''
@@ -233,9 +241,13 @@ class ResultsNormalizer(Normalizer):
                 method_name = results.method.method_name
                 program_name = results.method.simulation.program_name
                 if workflow_name == 'SinglePoint' and method_name:
-                    self.entry_archive.metadata.entry_type = f'{program_name} {method_name} {workflow_name}'
+                    self.entry_archive.metadata.entry_type = (
+                        f'{program_name} {method_name} {workflow_name}'
+                    )
                 else:
-                    self.entry_archive.metadata.entry_type = f'{program_name} {workflow_name}'
+                    self.entry_archive.metadata.entry_type = (
+                        f'{program_name} {workflow_name}'
+                    )
             except Exception:
                 self.entry_archive.metadata.entry_type = workflow_name
             type_tag = f'{self.entry_archive.metadata.entry_type} {tag}'
@@ -243,7 +255,9 @@ class ResultsNormalizer(Normalizer):
             # Populate entry_name
             material = results.material
             if material and material.chemical_formula_descriptive:
-                self.entry_archive.metadata.entry_name = f'{material.chemical_formula_descriptive} {type_tag}'
+                self.entry_archive.metadata.entry_name = (
+                    f'{material.chemical_formula_descriptive} {type_tag}'
+                )
             else:
                 self.entry_archive.metadata.entry_name = f'{type_tag}'
 
@@ -299,7 +313,9 @@ class ResultsNormalizer(Normalizer):
 
                 for info in bs.band_gap:
                     info_new = BandGapDeprecated().m_from_dict(info.m_to_dict())
-                    bs_results.m_add_sub_section(BandStructureElectronic.band_gap, info_new)
+                    bs_results.m_add_sub_section(
+                        BandStructureElectronic.band_gap, info_new
+                    )
                 bs_root.insert(0, bs_results)
         return bs_root
 
@@ -370,8 +386,16 @@ class ResultsNormalizer(Normalizer):
                 dos_data.spin_channel = dos_section.spin_channel
                 # Projected DOS
                 has_projected = False
-                _projected_sections = {key: value for key, value in dos_section.m_def.all_sub_sections.items() if 'projected' in key}
-                _projected_data = {key: value for key, value in dos_data.m_def.all_quantities.items() if 'projected' in key}
+                _projected_sections = {
+                    key: value
+                    for key, value in dos_section.m_def.all_sub_sections.items()
+                    if 'projected' in key
+                }
+                _projected_data = {
+                    key: value
+                    for key, value in dos_data.m_def.all_quantities.items()
+                    if 'projected' in key
+                }
                 for key, value in _projected_sections.items():
                     dos_projected = dos_section.m_get(value)
                     if dos_projected is not None and len(dos_projected) > 0:
@@ -380,7 +404,9 @@ class ResultsNormalizer(Normalizer):
                 dos_results.has_projected = has_projected
         return [dos_results] if dos_results else []
 
-    def resolve_greens_functions(self, path: list[str]) -> List[GreensFunctionsElectronic]:
+    def resolve_greens_functions(
+        self, path: list[str]
+    ) -> List[GreensFunctionsElectronic]:
         """Returns a section containing the references of the electronic Greens functions.
         This section is then stored under `archive.results.properties.electronic`.
 
@@ -404,23 +430,39 @@ class ResultsNormalizer(Normalizer):
             tau = gfs.tau
             if valid_array(tau):
                 gfs_results.tau = gfs
-                gfs_results.greens_function_tau = gfs if valid_array(gfs.greens_function_tau) else None
+                gfs_results.greens_function_tau = (
+                    gfs if valid_array(gfs.greens_function_tau) else None
+                )
             # matsubara_freq-axes quantities
             matsubara_freq = gfs.matsubara_freq
             if valid_array(matsubara_freq):
                 gfs_results.matsubara_freq = gfs
-                gfs_results.greens_function_iw = gfs if valid_array(gfs.greens_function_iw) else None
-                gfs_results.self_energy_iw = gfs if valid_array(gfs.self_energy_iw) else None
+                gfs_results.greens_function_iw = (
+                    gfs if valid_array(gfs.greens_function_iw) else None
+                )
+                gfs_results.self_energy_iw = (
+                    gfs if valid_array(gfs.self_energy_iw) else None
+                )
             # frequencies-axes quantities
             frequencies = gfs.frequencies
             if valid_array(frequencies):
                 gfs_results.frequencies = gfs
-                gfs_results.greens_function_freq = gfs if valid_array(gfs.greens_function_freq) else None
-                gfs_results.self_energy_freq = gfs if valid_array(gfs.self_energy_freq) else None
-                gfs_results.hybridization_function_freq = gfs if valid_array(gfs.hybridization_function_freq) else None
+                gfs_results.greens_function_freq = (
+                    gfs if valid_array(gfs.greens_function_freq) else None
+                )
+                gfs_results.self_energy_freq = (
+                    gfs if valid_array(gfs.self_energy_freq) else None
+                )
+                gfs_results.hybridization_function_freq = (
+                    gfs if valid_array(gfs.hybridization_function_freq) else None
+                )
             # Other GFs quantities
-            gfs_results.orbital_occupations = gfs if valid_array(gfs.orbital_occupations) else None
-            gfs_results.quasiparticle_weights = gfs if valid_array(gfs.quasiparticle_weights) else None
+            gfs_results.orbital_occupations = (
+                gfs if valid_array(gfs.orbital_occupations) else None
+            )
+            gfs_results.quasiparticle_weights = (
+                gfs if valid_array(gfs.quasiparticle_weights) else None
+            )
             if gfs.chemical_potential:
                 gfs_results.chemical_potential = gfs
             gfs_results.type = gfs.type if gfs.type else None
@@ -448,9 +490,7 @@ class ResultsNormalizer(Normalizer):
             n_energies = spectrum.n_energies
             if n_energies and n_energies > 0:
                 spectra_results = Spectra(
-                    type=spectrum.type,
-                    label='computation',
-                    n_energies=n_energies
+                    type=spectrum.type, label='computation', n_energies=n_energies
                 )
                 provenance = spectra_results.m_create(SpectraProvenance)
                 provenance.electronic_structure = spectrum.provenance
@@ -464,7 +504,9 @@ class ResultsNormalizer(Normalizer):
                     spectra_root.insert(0, spectra_results)
         return spectra_root
 
-    def _resolve_workflow_gs_properties(self, methods: list[str], properties: list[str]) -> None:
+    def _resolve_workflow_gs_properties(
+        self, methods: list[str], properties: list[str]
+    ) -> None:
         """Resolves the ground state (gs) properties passed as a list `properties` (band_gap,
         band_structure, dos) for a given list of `methods` (dft, gw, tb, maxent).
 
@@ -473,10 +515,18 @@ class ResultsNormalizer(Normalizer):
             properties (list[str]): the list of properties to be resolved from `workflow2.results`.
         """
         for method in methods:
-            name = 'MaxEnt' if method == 'maxent' else 'FirstPrinciples' if method == 'first_principles' else method.upper()
+            name = (
+                'MaxEnt'
+                if method == 'maxent'
+                else 'FirstPrinciples'
+                if method == 'first_principles'
+                else method.upper()
+            )
             for prop in properties:
                 property_list = self.electronic_properties.get(prop)
-                method_property_resolved = getattr(self, f'resolve_{prop}')(['workflow2', 'results', f'{prop}_{method}'])
+                method_property_resolved = getattr(self, f'resolve_{prop}')(
+                    ['workflow2', 'results', f'{prop}_{method}']
+                )
                 for item in method_property_resolved:
                     item.label = name
                     property_list.append(item)
@@ -505,8 +555,12 @@ class ResultsNormalizer(Normalizer):
         methods = ['dft', 'tb']
         self._resolve_workflow_gs_properties(methods, properties)
         # Resolving DMFT Greens functions
-        gfs_electronic: List[GreensFunctionsElectronic] = self.electronic_properties.get('greens_functions')  # type: ignore
-        gfs_electronic_dmft = self.resolve_greens_functions(['workflow2', 'results', 'greens_functions_dmft'])
+        gfs_electronic: List[
+            GreensFunctionsElectronic
+        ] = self.electronic_properties.get('greens_functions')  # type: ignore
+        gfs_electronic_dmft = self.resolve_greens_functions(
+            ['workflow2', 'results', 'greens_functions_dmft']
+        )
         for item in gfs_electronic_dmft:
             item.label = 'DMFT'
             gfs_electronic.append(item)
@@ -519,10 +573,14 @@ class ResultsNormalizer(Normalizer):
         methods = ['maxent']
         self._resolve_workflow_gs_properties(methods, properties)
         # Resolving DMFT Greens functions
-        gfs_electronic: List[GreensFunctionsElectronic] = self.electronic_properties.get('greens_functions')  # type: ignore
+        gfs_electronic: List[
+            GreensFunctionsElectronic
+        ] = self.electronic_properties.get('greens_functions')  # type: ignore
         for method in ['dmft', 'maxent']:
             name = 'MaxEnt' if method == 'maxent' else method.upper()
-            gfs = self.resolve_greens_functions(['workflow2', 'results', f'greens_functions_{method}'])
+            gfs = self.resolve_greens_functions(
+                ['workflow2', 'results', f'greens_functions_{method}']
+            )
             for item in gfs:
                 item.label = name
                 gfs_electronic.append(item)
@@ -542,21 +600,23 @@ class ResultsNormalizer(Normalizer):
         methods = ['dft', 'gw']
         self._resolve_workflow_gs_properties(methods, properties)
         spct_electronic = spectra
-        spectra = self.resolve_spectra(["workflow2", "results", "spectra", "spectrum_polarization"])
+        spectra = self.resolve_spectra(
+            ['workflow2', 'results', 'spectra', 'spectrum_polarization']
+        )
         if spectra:
             spct_electronic = spectra
         return spct_electronic
 
     def band_structure_phonon(self) -> Union[BandStructurePhonon, None]:
         """Returns a new section containing a phonon band structure. In
-        the case of multiple valid band structures, only the latest one is
-        considered.
+         the case of multiple valid band structures, only the latest one is
+         considered.
 
-       Band structure is reported only under the following conditions:
-          - There is a non-empty array of kpoints.
-          - There is a non-empty array of energies.
+        Band structure is reported only under the following conditions:
+           - There is a non-empty array of kpoints.
+           - There is a non-empty array of energies.
         """
-        path = ["run", "calculation", "band_structure_phonon"]
+        path = ['run', 'calculation', 'band_structure_phonon']
         for bs in traverse_reversed(self.entry_archive, path):
             if not bs.segment:
                 continue
@@ -577,13 +637,13 @@ class ResultsNormalizer(Normalizer):
 
     def dos_phonon(self) -> Union[DOSPhonon, None]:
         """Returns a section containing phonon dos data. In the case of
-        multiple valid data sources, only the latest one is reported.
+         multiple valid data sources, only the latest one is reported.
 
-       DOS is reported only under the following conditions:
-          - There is a non-empty array of values.
-          - There is a non-empty array of energies.
+        DOS is reported only under the following conditions:
+           - There is a non-empty array of values.
+           - There is a non-empty array of energies.
         """
-        path = ["run", "calculation", "dos_phonon"]
+        path = ['run', 'calculation', 'dos_phonon']
         for dos in traverse_reversed(self.entry_archive, path):
             energies = dos.energies
             values = np.array([d.value.magnitude for d in dos.total])
@@ -597,11 +657,11 @@ class ResultsNormalizer(Normalizer):
 
     def energy_free_helmholtz(self) -> Union[EnergyFreeHelmholtz, None]:
         """Returns a section Helmholtz free energy data. In the case of
-        multiple valid data sources, only the latest one is reported.
+         multiple valid data sources, only the latest one is reported.
 
-       Helmholtz free energy is reported only under the following conditions:
-          - There is a non-empty array of temperatures.
-          - There is a non-empty array of energies.
+        Helmholtz free energy is reported only under the following conditions:
+           - There is a non-empty array of temperatures.
+           - There is a non-empty array of energies.
         """
         workflow = self.entry_archive.workflow2
         if workflow is None or not hasattr(workflow, 'results'):
@@ -609,7 +669,7 @@ class ResultsNormalizer(Normalizer):
         if not workflow.results or not hasattr(workflow.results, 'temperature'):
             return None
 
-        path = ["workflow2", "results"]
+        path = ['workflow2', 'results']
 
         for thermo_prop in traverse_reversed(self.entry_archive, path):
             temperatures = thermo_prop.temperature
@@ -624,11 +684,11 @@ class ResultsNormalizer(Normalizer):
 
     def heat_capacity_constant_volume(self) -> Union[HeatCapacityConstantVolume, None]:
         """Returns a section containing heat capacity data. In the case of
-        multiple valid data sources, only the latest one is reported.
+         multiple valid data sources, only the latest one is reported.
 
-       Heat capacity is reported only under the following conditions:
-          - There is a non-empty array of temperatures.
-          - There is a non-empty array of energies.
+        Heat capacity is reported only under the following conditions:
+           - There is a non-empty array of temperatures.
+           - There is a non-empty array of energies.
         """
         workflow = self.entry_archive.workflow2
         if workflow is None or not hasattr(workflow, 'results'):
@@ -636,7 +696,7 @@ class ResultsNormalizer(Normalizer):
         if not workflow.results or not hasattr(workflow.results, 'temperature'):
             return None
 
-        path = ["workflow2", "results"]
+        path = ['workflow2', 'results']
         for thermo_prop in traverse_reversed(self.entry_archive, path):
             temperatures = thermo_prop.temperature
             heat_capacities = thermo_prop.heat_capacity_c_v
@@ -652,7 +712,7 @@ class ResultsNormalizer(Normalizer):
         """Populates both geometry optimization methodology and calculated
         properties based on the first found geometry optimization workflow.
         """
-        path = ["workflow2"]
+        path = ['workflow2']
         for workflow in traverse_reversed(self.entry_archive, path):
             # Check validity
             if workflow.m_def.name == 'GeometryOptimization':
@@ -660,22 +720,31 @@ class ResultsNormalizer(Normalizer):
                 if workflow.results:
                     geo_opt.trajectory = workflow.results.calculations_ref
                     if workflow.results.calculation_result_ref:
-                        geo_opt.system_optimized = workflow.results.calculation_result_ref.system_ref
+                        geo_opt.system_optimized = (
+                            workflow.results.calculation_result_ref.system_ref
+                        )
                     geo_opt.energies = workflow.results.energies
-                    geo_opt.final_energy_difference = workflow.results.final_energy_difference
+                    geo_opt.final_energy_difference = (
+                        workflow.results.final_energy_difference
+                    )
                     geo_opt.final_force_maximum = workflow.results.final_force_maximum
-                    geo_opt.final_displacement_maximum = workflow.results.final_displacement_maximum
+                    geo_opt.final_displacement_maximum = (
+                        workflow.results.final_displacement_maximum
+                    )
                 if workflow.method is not None:
                     geo_opt.type = workflow.method.type
-                    geo_opt.convergence_tolerance_energy_difference = workflow.method.convergence_tolerance_energy_difference
-                    geo_opt.convergence_tolerance_force_maximum = workflow.method.convergence_tolerance_force_maximum
+                    geo_opt.convergence_tolerance_energy_difference = (
+                        workflow.method.convergence_tolerance_energy_difference
+                    )
+                    geo_opt.convergence_tolerance_force_maximum = (
+                        workflow.method.convergence_tolerance_force_maximum
+                    )
                 return geo_opt
 
         return None
 
     def get_md_provenance(self, workflow: Workflow) -> Optional[MolecularDynamics]:
-        """Retrieves the MD provenance from the given workflow.
-        """
+        """Retrieves the MD provenance from the given workflow."""
         md = None
         if workflow.m_def.name == 'MolecularDynamics':
             try:
@@ -687,13 +756,12 @@ class ResultsNormalizer(Normalizer):
         return md
 
     def trajectory(self) -> List[Trajectory]:
-        """Returns a list of trajectories.
-        """
-        path = ["workflow2"]
+        """Returns a list of trajectories."""
+        path = ['workflow2']
         trajs = []
         for workflow in traverse_reversed(self.entry_archive, path):
             # Check validity
-            if workflow.m_def.name == "MolecularDynamics":
+            if workflow.m_def.name == 'MolecularDynamics':
                 traj = Trajectory()
                 md = self.get_md_provenance(workflow)
                 if md:
@@ -728,7 +796,9 @@ class ResultsNormalizer(Normalizer):
                             temperature_time.append(time)
                         if calc.energy:
                             if calc.energy.potential is not None:
-                                potential_energy.append(calc.energy.potential.value.magnitude)
+                                potential_energy.append(
+                                    calc.energy.potential.value.magnitude
+                                )
                                 potential_energy_time.append(time)
 
                 available_properties = []
@@ -739,10 +809,14 @@ class ResultsNormalizer(Normalizer):
                     traj.pressure = PressureDynamic(value=pressure, time=pressure_time)
                     available_properties.append('pressure')
                 if temperature:
-                    traj.temperature = TemperatureDynamic(value=temperature, time=temperature_time)
+                    traj.temperature = TemperatureDynamic(
+                        value=temperature, time=temperature_time
+                    )
                     available_properties.append('temperature')
                 if potential_energy:
-                    traj.energy_potential = EnergyDynamic(value=potential_energy, time=potential_energy_time)
+                    traj.energy_potential = EnergyDynamic(
+                        value=potential_energy, time=potential_energy_time
+                    )
                     available_properties.append('energy_potential')
                 if available_properties:
                     traj.available_properties = available_properties
@@ -750,13 +824,12 @@ class ResultsNormalizer(Normalizer):
         return trajs
 
     def rdf(self) -> List[RadialDistributionFunction]:
-        """Returns a list of radial distribution functions.
-        """
+        """Returns a list of radial distribution functions."""
         workflow = self.entry_archive.workflow2
         if workflow is None or workflow.m_def.name != 'MolecularDynamics':
             return None
 
-        path = ["workflow2", "results", "radial_distribution_functions"]
+        path = ['workflow2', 'results', 'radial_distribution_functions']
         rdfs = []
         for rdf_workflow in traverse_reversed(self.entry_archive, path):
             rdf_values = rdf_workflow.radial_distribution_function_values
@@ -771,44 +844,55 @@ class ResultsNormalizer(Normalizer):
                         rdf.frame_start = rdf_value.frame_start
                         rdf.frame_end = rdf_value.frame_end
                         rdf.type = rdf_workflow.type
-                        md = self.get_md_provenance(rdf_workflow.m_parent.m_parent.m_parent)
+                        md = self.get_md_provenance(
+                            rdf_workflow.m_parent.m_parent.m_parent
+                        )
                         if md:
-                            rdf.provenance = MDProvenance(
-                                molecular_dynamics=md
-                            )
+                            rdf.provenance = MDProvenance(molecular_dynamics=md)
                     except Exception as e:
-                        self.logger.error('error in resolving radial distribution data', exc_info=e)
+                        self.logger.error(
+                            'error in resolving radial distribution data', exc_info=e
+                        )
                     else:
                         rdfs.append(rdf)
 
         return rdfs
 
     def rg(self) -> List[RadiusOfGyration]:
-        """Returns a list of Radius of gyration trajectories.
-        """
-        path_workflow = ["workflow2"]
+        """Returns a list of Radius of gyration trajectories."""
+        path_workflow = ['workflow2']
         rgs: List[RadiusOfGyration] = []
         for workflow in traverse_reversed(self.entry_archive, path_workflow):
-
             # Check validity
-            if workflow.m_def.name == "MolecularDynamics" and workflow.results:
+            if workflow.m_def.name == 'MolecularDynamics' and workflow.results:
                 results = workflow.results
                 md = self.get_md_provenance(workflow)
-                if results.calculations_ref and results.calculations_ref[0].radius_of_gyration:
-                    for rg_index, rg in enumerate(results.calculations_ref[0].radius_of_gyration):
-                        for rg_values_index, __ in enumerate(rg.radius_of_gyration_values):
+                if (
+                    results.calculations_ref
+                    and results.calculations_ref[0].radius_of_gyration
+                ):
+                    for rg_index, rg in enumerate(
+                        results.calculations_ref[0].radius_of_gyration
+                    ):
+                        for rg_values_index, __ in enumerate(
+                            rg.radius_of_gyration_values
+                        ):
                             rg_results = RadiusOfGyration()
                             rg_value = []
                             rg_time = []
                             if md:
-                                rg_results.provenance = MDProvenance(molecular_dynamics=md)
+                                rg_results.provenance = MDProvenance(
+                                    molecular_dynamics=md
+                                )
                             for calc in results.calculations_ref:
                                 sec_rg = calc.radius_of_gyration[rg_index]
                                 rg_results.kind = sec_rg.kind
                                 time = calc.time
                                 if time is not None:
                                     time = time.magnitude
-                                sec_rg_values = sec_rg.radius_of_gyration_values[rg_values_index]
+                                sec_rg_values = sec_rg.radius_of_gyration_values[
+                                    rg_values_index
+                                ]
                                 rg_results.label = sec_rg_values.label
                                 rg_results.atomsgroup_ref = sec_rg_values.atomsgroup_ref
                                 rg_time.append(time)
@@ -819,13 +903,12 @@ class ResultsNormalizer(Normalizer):
         return rgs
 
     def msd(self) -> List[MeanSquaredDisplacement]:
-        """Returns a list of mean squared displacements.
-        """
+        """Returns a list of mean squared displacements."""
         workflow = self.entry_archive.workflow2
         if workflow is None or workflow.m_def.name != 'MolecularDynamics':
             return None
 
-        path = ["workflow2", "results", "mean_squared_displacements"]
+        path = ['workflow2', 'results', 'mean_squared_displacements']
         msds = []
         for msd_workflow in traverse_reversed(self.entry_archive, path):
             msd_values = msd_workflow.mean_squared_displacement_values
@@ -844,25 +927,27 @@ class ResultsNormalizer(Normalizer):
                         diffusion_constant = msd_value.diffusion_constant
                         if diffusion_constant is not None:
                             msd.diffusion_constant_value = diffusion_constant.value
-                            msd.diffusion_constant_error_type = diffusion_constant.error_type
+                            msd.diffusion_constant_error_type = (
+                                diffusion_constant.error_type
+                            )
                             msd.diffusion_constant_errors = diffusion_constant.errors
 
-                        md = self.get_md_provenance(msd_workflow.m_parent.m_parent.m_parent)
+                        md = self.get_md_provenance(
+                            msd_workflow.m_parent.m_parent.m_parent
+                        )
                         if md:
-                            msd.provenance = MDProvenance(
-                                molecular_dynamics=md
-                            )
+                            msd.provenance = MDProvenance(molecular_dynamics=md)
                     except Exception as e:
-                        self.logger.error('error in resolving mean squared displacement data', exc_info=e)
+                        self.logger.error(
+                            'error in resolving mean squared displacement data',
+                            exc_info=e,
+                        )
                     else:
                         msds.append(msd)
 
         return msds
 
-    def properties(
-            self,
-            repr_system: System,
-            repr_symmetry: SystemSymmetry) -> tuple:
+    def properties(self, repr_system: System, repr_symmetry: SystemSymmetry) -> tuple:
         """Returns a populated Properties subsection."""
         properties = Properties()
 
@@ -871,33 +956,44 @@ class ResultsNormalizer(Normalizer):
         wyckoff_sets = None
         spg_number = None
         if repr_system:
-            original_atoms = repr_system.m_cache.get("representative_atoms")
+            original_atoms = repr_system.m_cache.get('representative_atoms')
             if original_atoms:
                 structural_type = repr_system.type
-                if structural_type == "bulk":
-                    conv_atoms, _, wyckoff_sets, spg_number = self.structures_bulk(repr_symmetry)
-                elif structural_type == "2D":
-                    conv_atoms, _, wyckoff_sets, spg_number = structures_2d(original_atoms)
-                elif structural_type == "1D":
+                if structural_type == 'bulk':
+                    conv_atoms, _, wyckoff_sets, spg_number = self.structures_bulk(
+                        repr_symmetry
+                    )
+                elif structural_type == '2D':
+                    conv_atoms, _, wyckoff_sets, spg_number = structures_2d(
+                        original_atoms
+                    )
+                elif structural_type == '1D':
                     conv_atoms, _ = self.structures_1d(original_atoms)
 
         # Electronic and Spectroscopic
         #   electronic properties list
         ElectronicPropertyTypes = Dict[
-            str, Union[
+            str,
+            Union[
                 List[BandGap],
                 List[BandStructureElectronic],
                 List[DOSElectronic],
                 List[DOSElectronicNew],
-                List[GreensFunctionsElectronic]
-            ]
+                List[GreensFunctionsElectronic],
+            ],
         ]
         electronic_properties: ElectronicPropertyTypes = {
             'band_gap': self.resolve_band_gap(['run', 'calculation', 'band_gap']),
-            'band_structure': self.resolve_band_structure(['run', 'calculation', 'band_structure_electronic']),
-            'dos_deprecated': self.resolve_dos_deprecated(['run', 'calculation', 'dos_electronic']),
+            'band_structure': self.resolve_band_structure(
+                ['run', 'calculation', 'band_structure_electronic']
+            ),
+            'dos_deprecated': self.resolve_dos_deprecated(
+                ['run', 'calculation', 'dos_electronic']
+            ),
             'dos': self.resolve_dos(['run', 'calculation', 'dos_electronic']),
-            'greens_functions': self.resolve_greens_functions(['run', 'calculation', 'greens_functions'])
+            'greens_functions': self.resolve_greens_functions(
+                ['run', 'calculation', 'greens_functions']
+            ),
         }
         self.electronic_properties = electronic_properties
         #   spectroscopic properties list
@@ -915,11 +1011,16 @@ class ResultsNormalizer(Normalizer):
             elif workflow_name == 'MaxEnt':
                 self.get_maxent_workflow_properties()
             elif workflow_name == 'PhotonPolarization':
-                spectra = self.resolve_spectra(['workflow2', 'results', 'spectrum_polarization'])
+                spectra = self.resolve_spectra(
+                    ['workflow2', 'results', 'spectrum_polarization']
+                )
             elif workflow_name == 'XS':
                 spectra = self.get_xs_workflow_properties(spectra)
 
-        method_def = {value.sub_section.name: value for _, value in ElectronicProperties.m_def.all_sub_sections.items()}
+        method_def = {
+            value.sub_section.name: value
+            for _, value in ElectronicProperties.m_def.all_sub_sections.items()
+        }
         if any(len(value) > 0 for value in self.electronic_properties.values()):
             electronic = ElectronicProperties()
             for electronic_property in self.electronic_properties.values():
@@ -956,10 +1057,17 @@ class ResultsNormalizer(Normalizer):
         bulk_modulus = self.bulk_modulus()
         shear_modulus = self.shear_modulus()
         geometry_optimization = self.geometry_optimization()
-        if energy_volume_curves or bulk_modulus or shear_modulus or geometry_optimization:
+        if (
+            energy_volume_curves
+            or bulk_modulus
+            or shear_modulus
+            or geometry_optimization
+        ):
             mechanical = MechanicalProperties()
             for ev in energy_volume_curves:
-                mechanical.m_add_sub_section(MechanicalProperties.energy_volume_curve, ev)
+                mechanical.m_add_sub_section(
+                    MechanicalProperties.energy_volume_curve, ev
+                )
             for bm in bulk_modulus:
                 mechanical.m_add_sub_section(MechanicalProperties.bulk_modulus, bm)
             for sm in shear_modulus:
@@ -1009,7 +1117,7 @@ class ResultsNormalizer(Normalizer):
         wyckoff_sets = None
         spg_number = None
         if repr_symmetry:
-            symmetry_analyzer = repr_symmetry.m_cache.get("symmetry_analyzer")
+            symmetry_analyzer = repr_symmetry.m_cache.get('symmetry_analyzer')
             if symmetry_analyzer:
                 spg_number = symmetry_analyzer.get_space_group_number()
                 conv_atoms = symmetry_analyzer.get_conventional_system()
@@ -1019,7 +1127,9 @@ class ResultsNormalizer(Normalizer):
                 conv_atoms.set_pbc(True)
                 prim_atoms.set_pbc(True)
                 try:
-                    wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(return_parameters=True)
+                    wyckoff_sets = symmetry_analyzer.get_wyckoff_sets_conventional(
+                        return_parameters=True
+                    )
                 except Exception:
                     self.logger.error('Error resolving Wyckoff sets.')
                     wyckoff_sets = []
@@ -1036,7 +1146,7 @@ class ResultsNormalizer(Normalizer):
             symmetry_analyzer = SymmetryAnalyzer(
                 symm_system,
                 config.normalize.symmetry_tolerance,
-                config.normalize.flat_dim_threshold
+                config.normalize.flat_dim_threshold,
             )
             prim_atoms = symmetry_analyzer.get_primitive_system()
             prim_atoms.set_pbc(True)
@@ -1050,7 +1160,9 @@ class ResultsNormalizer(Normalizer):
             # If one axis is not periodic, return. This only happens if the vacuum
             # gap is not aligned with a cell vector.
             if sum(periodicity) != 1:
-                self.logger.warning("could not detect the periodic dimensions in a 1D system")
+                self.logger.warning(
+                    'could not detect the periodic dimensions in a 1D system'
+                )
                 return conv_atoms, prim_atoms
 
             # Translate to center of mass
@@ -1080,35 +1192,40 @@ class ResultsNormalizer(Normalizer):
         except Exception as e:
             self.logger.error(
                 'could not construct a conventional system for a 1D material',
-                exc_info=e
+                exc_info=e,
             )
         return conv_atoms, prim_atoms
 
     def energy_volume_curves(self) -> List[EnergyVolumeCurve]:
-        """Returns a list containing the found EnergyVolumeCurves.
-        """
+        """Returns a list containing the found EnergyVolumeCurves."""
         workflow = self.entry_archive.workflow2
         ev_curves: List[EnergyVolumeCurve] = []
         # workflow must be equation of state
-        if workflow is None or workflow.m_def.name != 'EquationOfState' or workflow.results is None:
+        if (
+            workflow is None
+            or workflow.m_def.name != 'EquationOfState'
+            or workflow.results is None
+        ):
             return ev_curves
 
         # Volumes must be present
         volumes = workflow.results.volumes
         if not valid_array(volumes):
-            self.logger.warning("missing eos volumes")
+            self.logger.warning('missing eos volumes')
             return ev_curves
 
         # Raw EV curve
         energies_raw = workflow.results.energies
         if valid_array(energies_raw):
-            ev_curves.append(EnergyVolumeCurve(
-                type="raw",
-                volumes=workflow.results.volumes,
-                energies_raw=workflow.results.energies,
-            ))
+            ev_curves.append(
+                EnergyVolumeCurve(
+                    type='raw',
+                    volumes=workflow.results.volumes,
+                    energies_raw=workflow.results.energies,
+                )
+            )
         else:
-            self.logger.warning("missing eos energies")
+            self.logger.warning('missing eos energies')
 
         # Fitted EV curves
         fits = workflow.results.eos_fit
@@ -1118,41 +1235,52 @@ class ResultsNormalizer(Normalizer):
             energies_fitted = fit.fitted_energies
             function_name = fit.function_name
             if valid_array(energies_fitted):
-                ev_curves.append(EnergyVolumeCurve(
-                    type=function_name,
-                    volumes=workflow.results.volumes,
-                    energies_fit=energies_fitted,
-                ))
+                ev_curves.append(
+                    EnergyVolumeCurve(
+                        type=function_name,
+                        volumes=workflow.results.volumes,
+                        energies_fit=energies_fitted,
+                    )
+                )
 
         return ev_curves
 
     def bulk_modulus(self) -> List[BulkModulus]:
-        """Returns a list containing the found BulkModulus.
-        """
+        """Returns a list containing the found BulkModulus."""
         workflow = self.entry_archive.workflow2
         bulk_modulus: List[BulkModulus] = []
-        if workflow is None or not hasattr(workflow, 'results') or workflow.results is None:
+        if (
+            workflow is None
+            or not hasattr(workflow, 'results')
+            or workflow.results is None
+        ):
             return bulk_modulus
 
         if workflow.m_def.name == 'Elastic':
             bulk_modulus_vrh = workflow.results.bulk_modulus_hill
             if bulk_modulus_vrh:
-                bulk_modulus.append(BulkModulus(
-                    type="voigt_reuss_hill_average",
-                    value=bulk_modulus_vrh,
-                ))
+                bulk_modulus.append(
+                    BulkModulus(
+                        type='voigt_reuss_hill_average',
+                        value=bulk_modulus_vrh,
+                    )
+                )
             bulk_modulus_voigt = workflow.results.bulk_modulus_voigt
             if bulk_modulus_voigt:
-                bulk_modulus.append(BulkModulus(
-                    type="voigt_average",
-                    value=bulk_modulus_voigt,
-                ))
+                bulk_modulus.append(
+                    BulkModulus(
+                        type='voigt_average',
+                        value=bulk_modulus_voigt,
+                    )
+                )
             bulk_modulus_reuss = workflow.results.bulk_modulus_reuss
             if bulk_modulus_reuss:
-                bulk_modulus.append(BulkModulus(
-                    type="reuss_average",
-                    value=bulk_modulus_reuss,
-                ))
+                bulk_modulus.append(
+                    BulkModulus(
+                        type='reuss_average',
+                        value=bulk_modulus_reuss,
+                    )
+                )
 
         if workflow.m_def.name == 'EquationOfState':
             fits = workflow.results.eos_fit
@@ -1163,21 +1291,28 @@ class ResultsNormalizer(Normalizer):
                 modulus = fit.bulk_modulus
                 function_name = fit.function_name
                 if modulus is not None and function_name:
-                    bulk_modulus.append(BulkModulus(
-                        type=function_name,
-                        value=modulus,
-                    ))
+                    bulk_modulus.append(
+                        BulkModulus(
+                            type=function_name,
+                            value=modulus,
+                        )
+                    )
                 else:
-                    self.logger.warning("missing eos fitted energies and/or function name")
+                    self.logger.warning(
+                        'missing eos fitted energies and/or function name'
+                    )
 
         return bulk_modulus
 
     def shear_modulus(self) -> List[ShearModulus]:
-        """Returns a list containing the found ShearModulus.
-        """
+        """Returns a list containing the found ShearModulus."""
         workflow = self.entry_archive.workflow2
         shear_modulus: List[ShearModulus] = []
-        if workflow is None or not hasattr(workflow, 'results') or workflow.results is None:
+        if (
+            workflow is None
+            or not hasattr(workflow, 'results')
+            or workflow.results is None
+        ):
             return shear_modulus
 
         if workflow.m_def.name != 'Elastic':
@@ -1185,21 +1320,27 @@ class ResultsNormalizer(Normalizer):
 
         shear_modulus_vrh = workflow.results.shear_modulus_hill
         if shear_modulus_vrh:
-            shear_modulus.append(ShearModulus(
-                type="voigt_reuss_hill_average",
-                value=shear_modulus_vrh,
-            ))
+            shear_modulus.append(
+                ShearModulus(
+                    type='voigt_reuss_hill_average',
+                    value=shear_modulus_vrh,
+                )
+            )
         shear_modulus_voigt = workflow.results.shear_modulus_voigt
         if shear_modulus_voigt:
-            shear_modulus.append(ShearModulus(
-                type="voigt_average",
-                value=shear_modulus_voigt,
-            ))
+            shear_modulus.append(
+                ShearModulus(
+                    type='voigt_average',
+                    value=shear_modulus_voigt,
+                )
+            )
         shear_modulus_reuss = workflow.results.shear_modulus_reuss
         if shear_modulus_reuss:
-            shear_modulus.append(ShearModulus(
-                type="reuss_average",
-                value=shear_modulus_reuss,
-            ))
+            shear_modulus.append(
+                ShearModulus(
+                    type='reuss_average',
+                    value=shear_modulus_reuss,
+                )
+            )
 
         return shear_modulus

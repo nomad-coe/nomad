@@ -32,48 +32,77 @@ from nomad import utils
 def mocked_login(url):
     if url is None:
         if url is None:
-            raise ValueError("please provide a URL you want to connect to.")
+            raise ValueError('please provide a URL you want to connect to.')
 
-    if not url.startswith("http"):
-        url = "https://" + url
+    if not url.startswith('http'):
+        url = 'https://' + url
 
     url_obj = urlparse(url)
-    if url_obj.netloc is None or url_obj.netloc == "":
+    if url_obj.netloc is None or url_obj.netloc == '':
         raise ValueError(
-            "please provide the url in this format: https://openbis.host.ch:8443"
+            'please provide the url in this format: https://openbis.host.ch:8443'
         )
     if url_obj.hostname is None:
-        raise ValueError("hostname is missing")
-    if (
-            url_obj.scheme == "http"
-    ):
-        raise ValueError("always use https!")
+        raise ValueError('hostname is missing')
+    if url_obj.scheme == 'http':
+        raise ValueError('always use https!')
 
 
-@pytest.mark.parametrize('status_code,project_url,username,password,space_data,project_data,experiment_data', [
-    pytest.param(
-        200,
-        'https://openbis-server.ethz.ch/openbis/webapp/eln-lims/',
-        'test_email',
-        'test_password',
-        {'code': 'code_value', 'frozen': False, 'permId': 'permId_value', },
-        {'code': 'code_value', 'frozen': False, 'permId': 'permId_value',
-         'identifier': '/DEFAULT/DEFAULT'},
-        {'code': 'code_value', 'frozen': False, 'permId': 'permId_value'},
-        id='successful parsing'),
-    pytest.param(
-        400,
-        'http://openbis-server.ethz.ch/openbis/webapp/eln-lims/',
-        'test_email',
-        'test_password',
-        {'code': 'code_value', 'frozen': False, 'permId': 'permId_value', },
-        {'code': 'code_value', 'frozen': False, 'permId': 'permId_value',
-         'identifier': '/DEFAULT/DEFAULT'},
-        {'code': 'code_value', 'frozen': False, 'permId': 'permId_value'},
-        id='incorrect project_url')
-])
-def test_openbis(mongo, monkeypatch, test_user, status_code, project_url,
-                 username, password, space_data, project_data, experiment_data):
+@pytest.mark.parametrize(
+    'status_code,project_url,username,password,space_data,project_data,experiment_data',
+    [
+        pytest.param(
+            200,
+            'https://openbis-server.ethz.ch/openbis/webapp/eln-lims/',
+            'test_email',
+            'test_password',
+            {
+                'code': 'code_value',
+                'frozen': False,
+                'permId': 'permId_value',
+            },
+            {
+                'code': 'code_value',
+                'frozen': False,
+                'permId': 'permId_value',
+                'identifier': '/DEFAULT/DEFAULT',
+            },
+            {'code': 'code_value', 'frozen': False, 'permId': 'permId_value'},
+            id='successful parsing',
+        ),
+        pytest.param(
+            400,
+            'http://openbis-server.ethz.ch/openbis/webapp/eln-lims/',
+            'test_email',
+            'test_password',
+            {
+                'code': 'code_value',
+                'frozen': False,
+                'permId': 'permId_value',
+            },
+            {
+                'code': 'code_value',
+                'frozen': False,
+                'permId': 'permId_value',
+                'identifier': '/DEFAULT/DEFAULT',
+            },
+            {'code': 'code_value', 'frozen': False, 'permId': 'permId_value'},
+            id='incorrect project_url',
+        ),
+    ],
+)
+def test_openbis(
+    mongo,
+    monkeypatch,
+    test_user,
+    status_code,
+    project_url,
+    username,
+    password,
+    space_data,
+    project_data,
+    experiment_data,
+):
     logger = utils.get_logger(__name__)
 
     class AttrsAll:
@@ -156,9 +185,15 @@ def test_openbis(mongo, monkeypatch, test_user, status_code, project_url,
         parsed_openbis_spaces = openbis_instance.spaces[0].m_to_dict()
         parsed_openbis_projects = parsed_openbis_spaces.pop('projects')[0]
         parsed_openbis_experiments = parsed_openbis_projects.pop('experiments')[0]
-        assert json.dumps(parsed_openbis_spaces, sort_keys=True) == json.dumps(space_data, sort_keys=True)
-        assert json.dumps(parsed_openbis_projects, sort_keys=True) == json.dumps(project_data, sort_keys=True)
-        assert json.dumps(parsed_openbis_experiments, sort_keys=True) == json.dumps(experiment_data, sort_keys=True)
+        assert json.dumps(parsed_openbis_spaces, sort_keys=True) == json.dumps(
+            space_data, sort_keys=True
+        )
+        assert json.dumps(parsed_openbis_projects, sort_keys=True) == json.dumps(
+            project_data, sort_keys=True
+        )
+        assert json.dumps(parsed_openbis_experiments, sort_keys=True) == json.dumps(
+            experiment_data, sort_keys=True
+        )
     if status_code is 400:
         with pytest.raises(OpenbisImportError):
             openbis_instance.normalize(test_archive, logger=logger)

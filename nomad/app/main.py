@@ -22,10 +22,15 @@ import hashlib
 import json
 
 from fastapi import FastAPI, Request, Response, status
-from fastapi.exception_handlers import http_exception_handler as default_http_exception_handler
+from fastapi.exception_handlers import (
+    http_exception_handler as default_http_exception_handler,
+)
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.staticfiles import StaticFiles as StarletteStaticFiles, NotModifiedResponse
+from starlette.staticfiles import (
+    StaticFiles as StarletteStaticFiles,
+    NotModifiedResponse,
+)
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.datastructures import Headers
@@ -50,14 +55,16 @@ class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
         if 'Authorization' not in request.headers:
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                content='You have to authenticate to use this Oasis endpoint.')
+                content='You have to authenticate to use this Oasis endpoint.',
+            )
         else:
             token = request.headers['Authorization'].split(' ')[1]
             user, _ = infrastructure.keycloak.tokenauth(token)
             if user is None or user.email not in config.oasis.allowed_users:
                 return Response(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    content='You are not authorized to access this Oasis endpoint.')
+                    content='You are not authorized to access this Oasis endpoint.',
+                )
 
         return await call_next(request)
 
@@ -75,6 +82,7 @@ app.mount(f'{app_base}/h5grove', h5grove_app)
 
 if config.resources.enabled:
     from .resources.main import app as resources_app
+
     app.mount(f'{app_base}/resources', resources_app)
 
 dist_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dist'))
@@ -89,7 +97,6 @@ if os.path.exists(configured_gui_folder):
 
 
 class StaticFiles(StarletteStaticFiles):
-
     etag_re = r'^(W/)?"?([^"]*)"?$'
 
     def is_not_modified(
@@ -98,10 +105,10 @@ class StaticFiles(StarletteStaticFiles):
         # The starlette etag implementation is not considering the "..." and W/"..." etag
         # RFC syntax used by browsers.
         try:
-            if_none_match = request_headers["if-none-match"]
+            if_none_match = request_headers['if-none-match']
             match = re.match(StaticFiles.etag_re, if_none_match)
             if_none_match = match.group(2)
-            etag = response_headers["etag"]
+            etag = response_headers['etag']
             if if_none_match == etag:
                 return True
         except KeyError:
@@ -111,7 +118,6 @@ class StaticFiles(StarletteStaticFiles):
 
 
 class GuiFiles(StaticFiles):
-
     gui_artifacts_data = None
     gui_env_data = None
     gui_data_etag = None
@@ -120,11 +126,16 @@ class GuiFiles(StaticFiles):
         if path not in ['env.js', 'artifacts.js']:
             response = await super().get_response(path, scope)
         else:
-            assert GuiFiles.gui_data_etag is not None, 'Etag for gui data was not initialized'
+            assert (
+                GuiFiles.gui_data_etag is not None
+            ), 'Etag for gui data was not initialized'
             response = PlainTextResponse(
-                GuiFiles.gui_env_data if path == 'env.js' else GuiFiles.gui_artifacts_data,
+                GuiFiles.gui_env_data
+                if path == 'env.js'
+                else GuiFiles.gui_artifacts_data,
                 media_type='application/javascript',
-                headers=dict(etag=GuiFiles.gui_data_etag))
+                headers=dict(etag=GuiFiles.gui_data_etag),
+            )
 
         request_headers = Headers(scope=scope)
         if self.is_not_modified(response.headers, request_headers):
@@ -132,9 +143,17 @@ class GuiFiles(StaticFiles):
         return response
 
 
-app.mount(f'{app_base}/dist', StaticFiles(directory=dist_folder, check_dir=False), name='dist', )
-app.mount(f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs')
-app.mount(f'{app_base}/gui', GuiFiles(directory=gui_folder, check_dir=False), name='gui')
+app.mount(
+    f'{app_base}/dist',
+    StaticFiles(directory=dist_folder, check_dir=False),
+    name='dist',
+)
+app.mount(
+    f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs'
+)
+app.mount(
+    f'{app_base}/gui', GuiFiles(directory=gui_folder, check_dir=False), name='gui'
+)
 
 
 @app.on_event('startup')
@@ -151,6 +170,7 @@ async def startup_event():
     # connect again: https://jira.mongodb.org/browse/PYTHON-2090
     try:
         from mongoengine import disconnect
+
         disconnect()
     except Exception:
         pass
@@ -160,11 +180,11 @@ async def startup_event():
     GuiFiles.gui_env_data = get_gui_config()
 
     config_data = [
-        item.json()
-        for item in config.__dict__.values()
-        if isinstance(item, BaseModel)]
+        item.json() for item in config.__dict__.values() if isinstance(item, BaseModel)
+    ]
     GuiFiles.gui_data_etag = hashlib.md5(
-        json.dumps(config_data).encode(), usedforsecurity=False).hexdigest()
+        json.dumps(config_data).encode(), usedforsecurity=False
+    ).hexdigest()
 
     infrastructure.setup()
 
@@ -181,7 +201,8 @@ async def http_exception_handler(request, exc):
 
     if accept is not None and 'html' in accept:
         return HTMLResponse(
-            status_code=404, content=f'''
+            status_code=404,
+            content=f"""
         <html>
             <head><title>{config.meta.name}</title></head>
             <body>
@@ -194,10 +215,12 @@ async def http_exception_handler(request, exc):
                 <a href="{app_base}/dcat/extensions/docs">DCAT API</a><br/>
             </body>
         </html>
-        ''')
+        """,
+        )
 
     return JSONResponse(
-        status_code=404, content={
+        status_code=404,
+        content={
             'detail': 'Not found',
             'info': {
                 'app': config.meta.dict(),
@@ -209,21 +232,22 @@ async def http_exception_handler(request, exc):
                     },
                     'optimade': {
                         'root': f'{app_base}/optimade/v1',
-                        'dashboard': f'{app_base}/optimade/v1/extensions/docs'
+                        'dashboard': f'{app_base}/optimade/v1/extensions/docs',
                     },
                     'dcat': {
                         'root': f'{app_base}/dcat',
-                        'dashboard': f'{app_base}/dcat/extensions/docs'
-                    }
-                }
-            }
-        })
+                        'dashboard': f'{app_base}/dcat/extensions/docs',
+                    },
+                },
+            },
+        },
+    )
 
 
 @app.get(f'{app_base}/alive')
 async def alive():
-    ''' Simple endpoint to utilize kubernetes liveness/readiness probing. '''
-    return "I am, alive!"
+    """Simple endpoint to utilize kubernetes liveness/readiness probing."""
+    return 'I am, alive!'
 
 
 @app.get('/-/health', status_code=status.HTTP_200_OK)
@@ -251,7 +275,9 @@ async def add_header(request: Request, call_next):
     if max_age is not None:
         response.headers['Cache-Control'] = f'max-age={max_age}, must-revalidate'
     else:
-        response.headers['Cache-Control'] = f'max-age=0, no-cache, no-store, must-revalidate'
+        response.headers[
+            'Cache-Control'
+        ] = f'max-age=0, no-cache, no-store, must-revalidate'
 
     # The etags that we and starlette produce do not follow the RFC, because they do not
     # start with a " as the RFC specifies. Nginx considers them weak etags and will strip

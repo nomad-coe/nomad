@@ -27,9 +27,23 @@ from cachetools.func import lru_cache
 from fastapi import HTTPException
 
 from nomad import utils
-from nomad.metainfo import Definition, Section, Quantity, SubSection, Reference, QuantityReference, SectionReference, \
-    Package
-from .query import ArchiveQueryError, to_json, _query_archive_key_pattern, _extract_key_and_index, _extract_child
+from nomad.metainfo import (
+    Definition,
+    Section,
+    Quantity,
+    SubSection,
+    Reference,
+    QuantityReference,
+    SectionReference,
+    Package,
+)
+from .query import (
+    ArchiveQueryError,
+    to_json,
+    _query_archive_key_pattern,
+    _extract_key_and_index,
+    _extract_child,
+)
 from .storage import ArchiveReader, ArchiveList, ArchiveError, ArchiveDict
 from .storage_v2 import ArchiveDict as NewArchiveDict
 from ..datamodel.context import parse_path, ServerContext
@@ -67,14 +81,15 @@ def _setdefault(target: Union[dict, list], key, value_type: type):
 
 @dataclasses.dataclass
 class RequiredReferencedArchive:
-    '''
+    """
     Hold necessary information for each query so that there is no need to
     pass them around as separate arguments.
 
     The same RequiredReader object will be reused for different archives,
     so it is chosen to pass archive explicitly as a method argument instead of
     class member. Otherwise, a new RequiredReader object needs to be created.
-    '''
+    """
+
     entry_id: str = None  # The id of the entry that the current reference is in
     upload_id: str = None  # The id of the upload that the current reference is in
     path_prefix: str = None
@@ -89,7 +104,7 @@ class RequiredReferencedArchive:
 
 
 class RequiredReader:
-    '''
+    """
     Clients can read only the required parts of an archive. They specify the required
     parts with a required specification like this.
 
@@ -123,13 +138,18 @@ class RequiredReader:
 
     Attributes:
         - required: The requirement specification as a python dictionary or directive string.
-    '''
+    """
 
     def __init__(
-            self, required: Union[dict, str], root_section_def: Section = None,
-            resolve_inplace: bool = False, user=None):
+        self,
+        required: Union[dict, str],
+        root_section_def: Section = None,
+        resolve_inplace: bool = False,
+        user=None,
+    ):
         if root_section_def is None:
             from nomad import datamodel
+
             self.root_section_def = datamodel.EntryArchive.m_def
         else:
             self.root_section_def = root_section_def
@@ -137,10 +157,15 @@ class RequiredReader:
         self.resolve_inplace = resolve_inplace
         self.required = copy.deepcopy(required)
 
-        if isinstance(self.required, dict) and (
-                global_config := self.required.pop('resolve-inplace', None)) is not None:
+        if (
+            isinstance(self.required, dict)
+            and (global_config := self.required.pop('resolve-inplace', None))
+            is not None
+        ):
             if not isinstance(global_config, bool):
-                raise RequiredValidationError('resolve-inplace is not a bool', ['resolve-inplace'])
+                raise RequiredValidationError(
+                    'resolve-inplace is not a bool', ['resolve-inplace']
+                )
             self.resolve_inplace = global_config
 
         # store user information that will be used to retrieve references using the same authentication
@@ -223,18 +248,28 @@ class RequiredReader:
     #
     #     return result
 
-    def read(self, archive_reader: ArchiveReader, entry_id: str, upload_id: str) -> dict:
-        '''
+    def read(
+        self, archive_reader: ArchiveReader, entry_id: str, upload_id: str
+    ) -> dict:
+        """
         Reads the archive of the given entry id from the given archive reader and applies
         the instance's requirement specification.
-        '''
+        """
 
         archive_root = archive_reader[utils.adjust_uuid_size(entry_id)]
         result_root: dict = {}
         ref_result_root: dict = {}
 
         dataset = RequiredReferencedArchive(
-            entry_id, upload_id, '', result_root, ref_result_root, archive_root, set(), self.root_section_def)
+            entry_id,
+            upload_id,
+            '',
+            result_root,
+            ref_result_root,
+            archive_root,
+            set(),
+            self.root_section_def,
+        )
 
         result = self._apply_required(self.required, archive_root, dataset)
         result_root.update(**cast(dict, result))
@@ -248,8 +283,9 @@ class RequiredReader:
         return result_root
 
     def _resolve_refs(
-            self, definition: Definition, archive: dict, dataset: RequiredReferencedArchive) -> dict:
-        ''' Resolves all references in archive. '''
+        self, definition: Definition, archive: dict, dataset: RequiredReferencedArchive
+    ) -> dict:
+        """Resolves all references in archive."""
         if isinstance(definition, Quantity):
             # it's a quantity ref, the archive is already resolved
             return to_json(archive[definition.name])
@@ -261,7 +297,8 @@ class RequiredReader:
 
         if 'm_def' in archive:
             section_def = self._resolve_definition(
-                dataset.upload_id, archive['m_def'].split('@')[0], dataset.archive_root)
+                dataset.upload_id, archive['m_def'].split('@')[0], dataset.archive_root
+            )
             result = {'m_def': archive['m_def']}
         else:
             section_def = cast(Section, definition)
@@ -271,8 +308,11 @@ class RequiredReader:
             if (prop_def := section_def.all_properties.get(prop)) is None:
                 continue
             if isinstance(prop_def, SubSection):
+
                 def handle_item(v):
-                    return self._resolve_refs(prop_def.sub_section.m_resolved(), v, dataset)
+                    return self._resolve_refs(
+                        prop_def.sub_section.m_resolved(), v, dataset
+                    )
             elif isinstance(prop_type := prop_def.type, Reference):
                 if isinstance(prop_type, QuantityReference):
                     target_def = prop_type.target_quantity_def.m_resolved()
@@ -288,8 +328,11 @@ class RequiredReader:
                 continue
 
             try:
-                result[prop] = [handle_item(item) for item in value] if isinstance(
-                    value, (list, ArchiveList, ArchiveListNew)) else handle_item(value)
+                result[prop] = (
+                    [handle_item(item) for item in value]
+                    if isinstance(value, (list, ArchiveList, ArchiveListNew))
+                    else handle_item(value)
+                )
             except ArchiveError as e:
                 # We continue just logging the error. Unresolvable references
                 # will appear as unset references in the returned archive.
@@ -297,7 +340,9 @@ class RequiredReader:
 
         return result
 
-    def _resolve_ref(self, required: dict | str, path: str, dataset: RequiredReferencedArchive) -> dict | str:
+    def _resolve_ref(
+        self, required: dict | str, path: str, dataset: RequiredReferencedArchive
+    ) -> dict | str:
         # The archive item is a reference, the required is still a dict, the references
         # This is a simplified version of the metainfo implementation (m_resolve).
         # It implements the same semantics, but does not apply checks.
@@ -341,14 +386,21 @@ class RequiredReader:
 
             other_path = f'../uploads/{upload_id}/archive/{entry_id}'
             other_dataset = dataset.replace(
-                entry_id=entry_id, upload_id=upload_id, path_prefix=f'{other_path}#',
-                visited_paths=dataset.visited_paths.union({new_path}), archive_root=other_archive
+                entry_id=entry_id,
+                upload_id=upload_id,
+                path_prefix=f'{other_path}#',
+                visited_paths=dataset.visited_paths.union({new_path}),
+                archive_root=other_archive,
             )
 
             if self.resolve_inplace:
                 # need to resolve it again to get relative position correctly
                 return self._resolve_ref_local(
-                    required, fragment, other_dataset.replace(result_root=dataset.result_root), False)
+                    required,
+                    fragment,
+                    other_dataset.replace(result_root=dataset.result_root),
+                    False,
+                )
 
             # if not resolved inplace
             # need to create a new path in the result to make sure data does not overlap
@@ -357,19 +409,31 @@ class RequiredReader:
 
             # need to resolve it again to get relative position correctly
             return self._resolve_ref_local(
-                required, fragment, other_dataset.replace(result_root=dataset.ref_result_root[other_path]), False)
+                required,
+                fragment,
+                other_dataset.replace(result_root=dataset.ref_result_root[other_path]),
+                False,
+            )
 
         # it appears to be a remote reference, won't try to resolve it
         if self.resolve_inplace:
-            raise ArchiveQueryError(f'resolvable reference to remote archive not implemented: {path}')
+            raise ArchiveQueryError(
+                f'resolvable reference to remote archive not implemented: {path}'
+            )
 
         # simply return the intact path if not required to resolve in-place
         return path
 
-    def _resolve_ref_local(self, required: dict | str, path: str, dataset: RequiredReferencedArchive, same_entry: bool):
-        '''
+    def _resolve_ref_local(
+        self,
+        required: dict | str,
+        path: str,
+        dataset: RequiredReferencedArchive,
+        same_entry: bool,
+    ):
+        """
         On enter, path must be relative to the archive root.
-        '''
+        """
         resolved = dataset.archive_root
         path_stack = path.strip('/').split('/')
 
@@ -425,10 +489,17 @@ class RequiredReader:
         context = None
         if upload_id:
             from nomad.app.v1.routers.uploads import get_upload_with_read_access
-            context = ServerContext(get_upload_with_read_access(upload_id, self.user, include_others=True))
+
+            context = ServerContext(
+                get_upload_with_read_access(upload_id, self.user, include_others=True)
+            )
 
         def __resolve_definition_in_archive(
-                _root: dict, _path_stack: list, _upload_id: str = None, _entry_id: str = None):
+            _root: dict,
+            _path_stack: list,
+            _upload_id: str = None,
+            _entry_id: str = None,
+        ):
             custom_def_package: Package = Package.m_from_dict(_root, m_context=context)
             custom_def_package.entry_id = _entry_id
             custom_def_package.upload_id = _upload_id
@@ -440,7 +511,11 @@ class RequiredReader:
                 # appears to be a local definition
                 return __resolve_definition_in_archive(
                     to_json(archive_root['definitions']),
-                    [v for v in definition.split('/') if v not in ('', '#', 'definitions')]
+                    [
+                        v
+                        for v in definition.split('/')
+                        if v not in ('', '#', 'definitions')
+                    ],
                 )
 
             # todo: !!!need to unify different formats!!! see also implementation in graph_reader.py
@@ -449,12 +524,14 @@ class RequiredReader:
             if match := regex.match(definition):
                 entry_id = match.groups()[0]
                 from nomad.processing import Entry
+
                 upload_id = Entry.objects(entry_id=entry_id).first().upload_id
                 archive = self._retrieve_archive('archive', entry_id, upload_id)
                 return __resolve_definition_in_archive(
                     to_json(archive['definitions']),
                     list(match.groups()[1:]),
-                    upload_id, entry_id
+                    upload_id,
+                    entry_id,
                 )
 
         proxy = SectionReference.deserialize(None, None, definition)
@@ -462,8 +539,11 @@ class RequiredReader:
         return self._unwrap_reference(proxy.section_cls.m_def)
 
     def _apply_required(
-            self, required: dict | str, archive_item: Union[dict, str],
-            dataset: RequiredReferencedArchive) -> Union[Dict, str]:
+        self,
+        required: dict | str,
+        archive_item: Union[dict, str],
+        dataset: RequiredReferencedArchive,
+    ) -> Union[Dict, str]:
         if archive_item is None:
             return None  # type: ignore
 
@@ -474,8 +554,13 @@ class RequiredReader:
             archive_item = to_json(archive_item)
 
         if isinstance(archive_item, (dict, NewArchiveDict)) and 'm_def' in archive_item:
-            dataset = dataset.replace(definition=self._resolve_definition(
-                dataset.upload_id, archive_item['m_def'].split('@')[0], dataset.archive_root))
+            dataset = dataset.replace(
+                definition=self._resolve_definition(
+                    dataset.upload_id,
+                    archive_item['m_def'].split('@')[0],
+                    dataset.archive_root,
+                )
+            )
             result['m_def'] = archive_item['m_def']
 
         if (directive := required if isinstance(required, str) else None) is not None:
@@ -499,11 +584,20 @@ class RequiredReader:
             try:
                 prop, index = _parse_required_key(key)
             except Exception:
-                raise HTTPException(422, detail=[dict(msg=f'invalid required key', loc=[key])])
+                raise HTTPException(
+                    422, detail=[dict(msg=f'invalid required key', loc=[key])]
+                )
 
             if (prop_def := dataset.definition.all_properties.get(prop)) is None:
                 raise HTTPException(
-                    422, detail=[dict(msg=f'{dataset.definition.name} has no property {prop}', loc=[key])])
+                    422,
+                    detail=[
+                        dict(
+                            msg=f'{dataset.definition.name} has no property {prop}',
+                            loc=[key],
+                        )
+                    ],
+                )
 
             prop_def = self._unwrap_reference(prop_def)
 
@@ -511,11 +605,18 @@ class RequiredReader:
                 archive_child = _extract_child(archive_item, prop, index)
 
                 from .storage_v2 import ArchiveList as ArchiveListNew
+
                 if isinstance(archive_child, (ArchiveListNew, ArchiveList, list)):
-                    result[prop] = [self._apply_required(
-                        val, item, dataset.replace(definition=prop_def)) for item in archive_child]
+                    result[prop] = [
+                        self._apply_required(
+                            val, item, dataset.replace(definition=prop_def)
+                        )
+                        for item in archive_child
+                    ]
                 else:
-                    result[prop] = self._apply_required(val, archive_child, dataset.replace(definition=prop_def))
+                    result[prop] = self._apply_required(
+                        val, archive_child, dataset.replace(definition=prop_def)
+                    )
             except ArchiveError as e:
                 # We continue just logging the error. Unresolvable references
                 # will appear as unset references in the returned archive.
@@ -528,7 +629,7 @@ class RequiredReader:
 
     @lru_cache(maxsize=32)
     def _retrieve_archive(self, kind: str, id_or_path: str, upload_id: str):
-        '''
+        """
         Retrieves the archive from the server using the stored user credentials.
 
         The entry_id based API is used.
@@ -538,13 +639,16 @@ class RequiredReader:
         Returns:
             dict: The archive as a dict.
             None: The archive could not be found.
-        '''
+        """
 
         if kind == 'raw':
             # it is a path to raw file
             # get the corresponding entry id
             from nomad.processing import Entry
-            entry: Entry = Entry.objects(upload_id=upload_id, mainfile=id_or_path).first()
+
+            entry: Entry = Entry.objects(
+                upload_id=upload_id, mainfile=id_or_path
+            ).first()
             if not entry:
                 # cannot find the entry, None will be identified in the caller
                 return None
@@ -556,9 +660,12 @@ class RequiredReader:
 
         # do not rely on upload_id, as have to retrieve the archive via API due to user credentials
         from nomad.app.v1.routers.entries import answer_entry_archive_request
+
         # it should retrieve the minimum information from server with minimal bandwidth
         try:
-            response = answer_entry_archive_request(dict(entry_id=entry_id), required='*', user=self.user)
+            response = answer_entry_archive_request(
+                dict(entry_id=entry_id), required='*', user=self.user
+            )
         except HTTPException:
             # in case of 404, return None to indicate that the archive cannot be found
             return None

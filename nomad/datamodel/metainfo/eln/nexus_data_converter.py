@@ -10,9 +10,11 @@ from nomad.units import ureg
 
 from typing import Optional
 from pynxtools.dataconverter.writer import Writer
-from pynxtools.dataconverter.convert import (get_nxdl_root_and_path,
-                                             get_names_of_all_readers,
-                                             convert)  # pylint: disable=import-error
+from pynxtools.dataconverter.convert import (
+    get_nxdl_root_and_path,
+    get_names_of_all_readers,
+    convert,
+)  # pylint: disable=import-error
 from pynxtools.nexus.nexus import get_app_defs_names  # pylint: disable=import-error
 
 
@@ -35,7 +37,7 @@ def create_eln_dict(archive):
                 value=val_unit.magnitude.tolist()
                 if isinstance(val_unit.magnitude, np.ndarray)
                 else val_unit.magnitude,
-                unit=str(format(val_unit.units, '~'))
+                unit=str(format(val_unit.units, '~')),
             )
         return value
 
@@ -53,10 +55,15 @@ def write_yaml(archive, filename, eln_dict):
         yaml.dump(eln_dict['data'], eln_file, allow_unicode=True)
 
 
-def populate_nexus_subsection(template: Template, app_def: str, archive,
-                              logger, output_file_path: Optional[str]= None,
-                              on_temp_file=False):
-    '''Populate nexus subsection in nomad from nexus template.
+def populate_nexus_subsection(
+    template: Template,
+    app_def: str,
+    archive,
+    logger,
+    output_file_path: Optional[str] = None,
+    on_temp_file=False,
+):
+    """Populate nexus subsection in nomad from nexus template.
 
     There are three ways to populate nexus subsection from nexus template.
     1. First it writes a nexus file (.nxs), then the nexus subsectoin will be populated from
@@ -76,22 +83,34 @@ def populate_nexus_subsection(template: Template, app_def: str, archive,
     Raises:
         Exception: could not trigger processing from NexusParser
         Exception: could not trigger processing from NexusParser
-    '''
+    """
     _, nxdl_f_path = get_nxdl_root_and_path(app_def)
 
     # Writing nxs file, parse and populate NeXus subsection:
     if output_file_path:
-        archive.data.output = os.path.join(archive.m_context.raw_path(), output_file_path)
-        Writer(data=template, nxdl_f_path=nxdl_f_path, output_path=archive.data.output).write()
+        archive.data.output = os.path.join(
+            archive.m_context.raw_path(), output_file_path
+        )
+        Writer(
+            data=template, nxdl_f_path=nxdl_f_path, output_path=archive.data.output
+        ).write()
         try:
             from nomad.parsing.nexus.nexus import NexusParser
+
             nexus_parser = NexusParser()
-            nexus_parser.parse(mainfile=archive.data.output, archive=archive,
-                               logger=logger)
+            nexus_parser.parse(
+                mainfile=archive.data.output, archive=archive, logger=logger
+            )
             try:
-                archive.m_context.process_updated_raw_file(output_file_path, allow_modify=True)
+                archive.m_context.process_updated_raw_file(
+                    output_file_path, allow_modify=True
+                )
             except Exception as e:
-                logger.error('could not trigger processing', mainfile=archive.data.output, exc_info=e)
+                logger.error(
+                    'could not trigger processing',
+                    mainfile=archive.data.output,
+                    exc_info=e,
+                )
                 raise e
             else:
                 logger.info('triggered processing', mainfile=archive.data.output)
@@ -103,15 +122,18 @@ def populate_nexus_subsection(template: Template, app_def: str, archive,
     elif not output_file_path or on_temp_file:
         output_file = 'temp_file.nxs'
         output_file = os.path.join(archive.m_context.raw_path(), output_file)
-        logger.info('No output NeXus file is found and data is being written temporary file.')
+        logger.info(
+            'No output NeXus file is found and data is being written temporary file.'
+        )
         try:
-            Writer(data=template, nxdl_f_path=nxdl_f_path,
-                   output_path=output_file).write()
+            Writer(
+                data=template, nxdl_f_path=nxdl_f_path, output_path=output_file
+            ).write()
 
             from nomad.parsing.nexus.nexus import NexusParser
+
             nexus_parser = NexusParser()
-            nexus_parser.parse(mainfile=output_file, archive=archive,
-                               logger=logger)
+            nexus_parser.parse(mainfile=output_file, archive=archive, logger=logger)
             # Ensure no local reference with the hdf5file
         except Exception as e:
             logger.error('could not trigger processing', exc_info=e)
@@ -122,13 +144,12 @@ def populate_nexus_subsection(template: Template, app_def: str, archive,
 
 
 class ElnYamlConverter(EntryData):
-
     output = Quantity(
         type=str,
         description='Output yaml file to save all the data. Default: eln_data.yaml',
         a_eln=dict(component='StringEditQuantity'),
         a_browser=dict(adaptor='RawFileAdaptor'),
-        default='eln_data.yaml'
+        default='eln_data.yaml',
     )
 
     def normalize(self, archive, logger):
@@ -139,30 +160,33 @@ class ElnYamlConverter(EntryData):
 
 
 class NexusDataConverter(EntryData):
-
     reader = Quantity(
         type=MEnum(get_names_of_all_readers()),
         description='The reader needed to run the Nexus converter.',
-        a_eln=dict(component='AutocompleteEditQuantity'))
+        a_eln=dict(component='AutocompleteEditQuantity'),
+    )
 
     nxdl = Quantity(
         type=MEnum(get_app_defs_names()),
         description='The nxdl needed for running the Nexus converter.',
-        a_eln=dict(component='AutocompleteEditQuantity'))
+        a_eln=dict(component='AutocompleteEditQuantity'),
+    )
 
     input_files = Quantity(
         type=str,
         shape=['*'],
         description='Input files needed to run the nexus converter.',
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor'))
+        a_browser=dict(adaptor='RawFileAdaptor'),
+    )
 
     output = Quantity(
         type=str,
         description='Output Nexus filename to save all the data. Default: output.nxs',
         a_eln=dict(component='StringEditQuantity'),
         a_browser=dict(adaptor='RawFileAdaptor'),
-        default='output.nxs')
+        default='output.nxs',
+    )
 
     def normalize(self, archive, logger):
         super(NexusDataConverter, self).normalize(archive, logger)
@@ -183,20 +207,26 @@ class NexusDataConverter(EntryData):
             'reader': archive.data.reader,
             'nxdl': re.sub('.nxdl$', '', archive.data.nxdl),
             'input_file': [
-                os.path.join(raw_path, file)
-                for file in archive.data.input_files],
-            'output': os.path.join(raw_path, archive.data.output)
+                os.path.join(raw_path, file) for file in archive.data.input_files
+            ],
+            'output': os.path.join(raw_path, archive.data.output),
         }
         try:
             convert(**converter_params)
         except Exception as e:
-            logger.error('could not convert to nxs', mainfile=archive.data.output, exc_info=e)
+            logger.error(
+                'could not convert to nxs', mainfile=archive.data.output, exc_info=e
+            )
             raise e
 
         try:
-            archive.m_context.process_updated_raw_file(archive.data.output, allow_modify=True)
+            archive.m_context.process_updated_raw_file(
+                archive.data.output, allow_modify=True
+            )
         except Exception as e:
-            logger.error('could not trigger processing', mainfile=archive.data.output, exc_info=e)
+            logger.error(
+                'could not trigger processing', mainfile=archive.data.output, exc_info=e
+            )
             raise e
         else:
             logger.info('triggered processing', mainfile=archive.data.output)

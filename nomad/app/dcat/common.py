@@ -30,7 +30,7 @@ base_url = config.api_url(api='dcat')
 
 
 def url(*args, **kwargs):
-    ''' Returns the full dcat api url for the given path (args) and query (kwargs) parameters. '''
+    """Returns the full dcat api url for the given path (args) and query (kwargs) parameters."""
     url = f'{base_url.rstrip("/")}/{"/".join(args).lstrip("/")}'
 
     if len(kwargs) > 0:
@@ -40,11 +40,11 @@ def url(*args, **kwargs):
 
 
 class Formats(str, Enum):
-    xml = 'xml',
-    n3 = 'n3',
-    turtle = 'turtle',
-    nt = 'nt',
-    pretty_xml = 'pretty-xml',
+    xml = ('xml',)
+    n3 = ('n3',)
+    turtle = ('turtle',)
+    nt = ('nt',)
+    pretty_xml = ('pretty-xml',)
     trig = 'trig'
 
 
@@ -60,7 +60,7 @@ all_repsonse_types = {
     'text/rdf+n3': 'n3',
     'text/rdf+nt': 'nt',
     'text/rdf+turtle': 'turtle',
-    'application/x-trig': 'trig'
+    'application/x-trig': 'trig',
 }
 
 response_types = [
@@ -71,7 +71,8 @@ response_types = [
     'text/turtle',
     'text/rdf+n3',
     'text/rdf+nt',
-    'application/x-trig']
+    'application/x-trig',
+]
 
 
 def rdf_response(
@@ -86,11 +87,18 @@ def rdf_response(
 
     def create_response(g: Graph):
         try:
-            content_type = next(key for key, value in all_repsonse_types.items() if value == format_)
+            content_type = next(
+                key for key, value in all_repsonse_types.items() if value == format_
+            )
         except StopIteration:
-            content_type = 'application/xml' if format_ in ['xml', 'pretty-xml'] else f'text/format'
+            content_type = (
+                'application/xml'
+                if format_ in ['xml', 'pretty-xml']
+                else f'text/format'
+            )
 
         return Response(
-            g.serialize(format=format_).decode('utf-8'), media_type=content_type)
+            g.serialize(format=format_).decode('utf-8'), media_type=content_type
+        )
 
     return create_response

@@ -28,7 +28,9 @@ def entries():
 
 @entries.command(help='Delete selected entries from mongo and elastic')
 @click.argument('ENTRIES', nargs=-1)
-@click.option('--skip-es', help='Keep the elastic index version of the data.', is_flag=True)
+@click.option(
+    '--skip-es', help='Keep the elastic index version of the data.', is_flag=True
+)
 @click.option('--skip-mongo', help='Keep uploads and entries in mongo.', is_flag=True)
 def rm(entries, skip_es, skip_mongo):
     from nomad import processing as proc, infrastructure, search

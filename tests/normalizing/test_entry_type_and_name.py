@@ -22,8 +22,9 @@ from .conftest import run_normalize, run_processing
 
 @pytest.fixture(scope='session')
 def unknown_material_archive():
-    archive = tests.parsing.test_parsing.parse_file((
-        'parsers/lammps', 'tests/data/normalizers/workflow/lammps/log.lammps'))
+    archive = tests.parsing.test_parsing.parse_file(
+        ('parsers/lammps', 'tests/data/normalizers/workflow/lammps/log.lammps')
+    )
     return run_normalize(archive)
 
 
@@ -35,20 +36,67 @@ def unknown_workflow_archive():
     return archive
 
 
-@pytest.mark.parametrize('fixture, entry_type, entry_name', [
-    pytest.param('dmft', 'w2dynamics DMFT SinglePoint', 'KSi2Br w2dynamics DMFT SinglePoint simulation', id='DMFT SinglePoint for inorganic material'),
-    pytest.param('geometry_optimization', 'VASP GeometryOptimization', 'Si VASP GeometryOptimization simulation', id='Workflow for inorganic material'),
-    pytest.param('unknown_material_archive', 'LAMMPS MolecularDynamics', 'LAMMPS MolecularDynamics simulation', id='Unknown material'),
-    pytest.param('organic_formula', 'VASP GeometryOptimization', 'CHCl3 VASP GeometryOptimization simulation', id='Organic material'),
-    pytest.param('organic_carbonyl_formula', 'VASP GeometryOptimization', 'CAgO VASP GeometryOptimization simulation', id='Organic carbonyl material'),
-    pytest.param('inorganic_carbonyl_formula', 'VASP GeometryOptimization', 'FeC5O5 VASP GeometryOptimization simulation', id='Inorganic carbonyl material'),
-    pytest.param('inorganic_special_formula', 'VASP SinglePoint', 'KHCO3 VASP SinglePoint simulation', id='Inorganic material with special formula'),
-    pytest.param('unknown_program', 'not processed SinglePoint', 'Si not processed SinglePoint simulation', id='Unknown program name'),
-    pytest.param('unknown_workflow_archive', 'PerovskiteSolarCell', None, id='Unknown workflow_name'),
-])
+@pytest.mark.parametrize(
+    'fixture, entry_type, entry_name',
+    [
+        pytest.param(
+            'dmft',
+            'w2dynamics DMFT SinglePoint',
+            'KSi2Br w2dynamics DMFT SinglePoint simulation',
+            id='DMFT SinglePoint for inorganic material',
+        ),
+        pytest.param(
+            'geometry_optimization',
+            'VASP GeometryOptimization',
+            'Si VASP GeometryOptimization simulation',
+            id='Workflow for inorganic material',
+        ),
+        pytest.param(
+            'unknown_material_archive',
+            'LAMMPS MolecularDynamics',
+            'LAMMPS MolecularDynamics simulation',
+            id='Unknown material',
+        ),
+        pytest.param(
+            'organic_formula',
+            'VASP GeometryOptimization',
+            'CHCl3 VASP GeometryOptimization simulation',
+            id='Organic material',
+        ),
+        pytest.param(
+            'organic_carbonyl_formula',
+            'VASP GeometryOptimization',
+            'CAgO VASP GeometryOptimization simulation',
+            id='Organic carbonyl material',
+        ),
+        pytest.param(
+            'inorganic_carbonyl_formula',
+            'VASP GeometryOptimization',
+            'FeC5O5 VASP GeometryOptimization simulation',
+            id='Inorganic carbonyl material',
+        ),
+        pytest.param(
+            'inorganic_special_formula',
+            'VASP SinglePoint',
+            'KHCO3 VASP SinglePoint simulation',
+            id='Inorganic material with special formula',
+        ),
+        pytest.param(
+            'unknown_program',
+            'not processed SinglePoint',
+            'Si not processed SinglePoint simulation',
+            id='Unknown program name',
+        ),
+        pytest.param(
+            'unknown_workflow_archive',
+            'PerovskiteSolarCell',
+            None,
+            id='Unknown workflow_name',
+        ),
+    ],
+)
 def test_entry_type_and_name(fixture, entry_type, entry_name, request):
-    """Tests if entry_type and entry_name for simulations are properly defined.
-    """
+    """Tests if entry_type and entry_name for simulations are properly defined."""
     archive = request.getfixturevalue(fixture)
     assert archive.metadata.entry_type == entry_type
     assert archive.metadata.entry_name == entry_name

@@ -24,7 +24,13 @@ from typing import List, Any, Union
 
 from mongoengine import StringField, IntField, ListField
 
-from nomad.processing.base import Proc, ProcessAlreadyRunning, process, process_local, ProcessStatus
+from nomad.processing.base import (
+    Proc,
+    ProcessAlreadyRunning,
+    process,
+    process_local,
+    ProcessStatus,
+)
 
 random.seed(0)
 
@@ -38,7 +44,9 @@ def reset_events():
     events.clear()
 
 
-def assert_proc(proc, current_process, process_status=ProcessStatus.SUCCESS, errors=0, warnings=0):
+def assert_proc(
+    proc, current_process, process_status=ProcessStatus.SUCCESS, errors=0, warnings=0
+):
     assert proc.current_process == current_process
     assert proc.process_status == process_status
     assert len(proc.errors) == errors
@@ -57,10 +65,14 @@ def assert_events(expected_events: List[Union[str, List[str]]]):
         elif isinstance(expected, list):
             # list -> expecting a number of events, in any order
             while expected:
-                assert ind <= len(events), f'Not enough events, expecting one of {expected}'
+                assert ind <= len(
+                    events
+                ), f'Not enough events, expecting one of {expected}'
                 event = events[ind]
                 ind += 1
-                assert event in expected, f'Unexpected event: {event}, expecting one of {expected}'
+                assert (
+                    event in expected
+                ), f'Unexpected event: {event}, expecting one of {expected}'
                 expected.remove(event)  # type: ignore
         else:
             assert False, 'Bad value in expected_events'
@@ -73,7 +85,9 @@ class SimpleProc(Proc):
         pass
 
     @process()
-    def a_process_with_arguments(self, a_string, a_int, a_float, a_bool, a_list, a_tuple, a_dict, **kwargs):
+    def a_process_with_arguments(
+        self, a_string, a_int, a_float, a_bool, a_list, a_tuple, a_dict, **kwargs
+    ):
         assert a_string == 'a string'
         assert a_int == 7
         assert a_float == 3.14
@@ -84,15 +98,23 @@ class SimpleProc(Proc):
         assert kwargs == {'kwarg': 'kwarg_value'}
 
 
-@pytest.mark.parametrize('with_args', [
-    pytest.param(False, id='no-args'),
-    pytest.param(True, id='with-args')])
+@pytest.mark.parametrize(
+    'with_args', [pytest.param(False, id='no-args'), pytest.param(True, id='with-args')]
+)
 def test_simple_process(worker, mongo, no_warn, with_args):
     p = SimpleProc.create()
     if with_args:
         process = 'a_process_with_arguments'
         p.a_process_with_arguments(
-            'a string', 7, 3.14, True, [1, 2], (3, 4), {'1': 'one', '2': 2}, kwarg='kwarg_value')
+            'a string',
+            7,
+            3.14,
+            True,
+            [1, 2],
+            (3, 4),
+            {'1': 'one', '2': 2},
+            kwarg='kwarg_value',
+        )
     else:
         process = 'a_process'
         p.a_process()
@@ -153,7 +175,9 @@ class ChildProc(Proc):
         if new_child_id:
             # For testing adding new children during processing
             events.append(f'{self.child_id}:child_proc:add_child')
-            new_child = ChildProc.create(child_id=new_child_id, parent_id=self.parent_id)
+            new_child = ChildProc.create(
+                child_id=new_child_id, parent_id=self.parent_id
+            )
             new_child.child_proc(True)
         if not succeed:
             events.append(f'{self.child_id}:child_proc:fail')
@@ -177,15 +201,20 @@ class ParentProc(Proc):
 
     @process()
     def spawn(
-            self, fail_spawn: bool = False, suffix: str = '', delay=0.1,
-            child_args: List[Any] = [], join_args: List[Any] = []):
-        '''
+        self,
+        fail_spawn: bool = False,
+        suffix: str = '',
+        delay=0.1,
+        child_args: List[Any] = [],
+        join_args: List[Any] = [],
+    ):
+        """
         Arguments:
             fail_spawn: if we should fail after we have spawned the child processes
             child_args: For each value in the list, spawn a child with the provided args
             join_args: list of parameters controlling the behaviour when joining. `fail` mean
                 fail the join. A boolean or list of booleans result in new children spawned.
-        '''
+        """
         events.append(f'{self.parent_id}:spawn:start{suffix}')
         self.join_args = join_args
         self.current_slot = 0
@@ -193,7 +222,9 @@ class ParentProc(Proc):
         for child_arg in child_args:
             if not isinstance(child_arg, list):
                 child_arg = [child_arg]
-            child = ChildProc.create(child_id=str(child_count), parent_id=self.parent_id)
+            child = ChildProc.create(
+                child_id=str(child_count), parent_id=self.parent_id
+            )
             child.child_proc(*child_arg)
             child_count += 1
         if fail_spawn:
@@ -221,7 +252,9 @@ class ParentProc(Proc):
                     for i, succeed in enumerate(join_arg):
                         # Start up another child
                         child = ChildProc.create(
-                            child_id=f'rejoin{self.current_slot}.{i}', parent_id=self.parent_id)
+                            child_id=f'rejoin{self.current_slot}.{i}',
+                            parent_id=self.parent_id,
+                        )
                         child.child_proc(succeed)
                     events.append(f'{self.parent_id}:join:waiting')
                     return ProcessStatus.WAITING_FOR_RESULT
@@ -249,57 +282,106 @@ class ParentProc(Proc):
         events.append(f'{self.parent_id}:local_process:succ')
 
 
-@pytest.mark.parametrize('spawn_kwargs, expected_events', [
-    pytest.param(
-        dict(),
-        ['p:spawn:start', 'p:spawn:waiting', 'p:join:succ'],
-        id='no-children'),
-    pytest.param(
-        dict(child_args=[True] * 20),
-        ['p:spawn:start', ['p:spawn:waiting'] + [f'{ci}:child_proc:succ' for ci in range(20)], 'p:join:succ'],
-        id='20-successful'),
-    pytest.param(
-        dict(child_args=[True, False]),
-        ['p:spawn:start', ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'], 'p:join:succ'],
-        id='one-succ-one-fail'),
-    pytest.param(
-        dict(fail_spawn=True, child_args=[True, False]),
-        ['p:spawn:start', ['p:spawn:fail', '0:child_proc:succ', '1:child_proc:fail']],
-        id='fail-spawn'),
-    pytest.param(
-        dict(child_args=[True, False], join_args=[fail]),
-        ['p:spawn:start', ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'], 'p:join:fail'],
-        id='join-fail'),
-    pytest.param(
-        dict(child_args=[True, False], join_args=[True, [True, False], False]),
-        [
-            'p:spawn:start', ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
-            'p:join:waiting', 'rejoin1.0:child_proc:succ',
-            'p:join:waiting', ['rejoin2.0:child_proc:succ', 'rejoin2.1:child_proc:fail'],
-            'p:join:waiting', 'rejoin3.0:child_proc:fail', 'p:join:succ'],
-        id='join-multiple'),
-    pytest.param(
-        dict(child_args=[True, False], join_args=[True, [], []]),
-        [
-            'p:spawn:start', ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
-            'p:join:waiting', 'rejoin1.0:child_proc:succ', 'p:join:waiting', 'p:join:waiting',
-            'p:join:succ'],
-        id='join-multiple-no-children'),
-    pytest.param(
-        dict(child_args=[True, False], join_args=[True, False, fail]),
-        [
-            'p:spawn:start', ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
-            'p:join:waiting', 'rejoin1.0:child_proc:succ',
-            'p:join:waiting', 'rejoin2.0:child_proc:fail',
-            'p:join:fail'],
-        id='join-multiple-then-fail'),
-    pytest.param(
-        dict(child_args=[[True, 'new_child']], join_args=[]),
-        [
-            'p:spawn:start',
-            ['p:spawn:waiting', '0:child_proc:add_child', '0:child_proc:succ', 'new_child:child_proc:succ'],
-            'p:join:succ'],
-        id='add-child-while-processing')])
+@pytest.mark.parametrize(
+    'spawn_kwargs, expected_events',
+    [
+        pytest.param(
+            dict(),
+            ['p:spawn:start', 'p:spawn:waiting', 'p:join:succ'],
+            id='no-children',
+        ),
+        pytest.param(
+            dict(child_args=[True] * 20),
+            [
+                'p:spawn:start',
+                ['p:spawn:waiting'] + [f'{ci}:child_proc:succ' for ci in range(20)],
+                'p:join:succ',
+            ],
+            id='20-successful',
+        ),
+        pytest.param(
+            dict(child_args=[True, False]),
+            [
+                'p:spawn:start',
+                ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
+                'p:join:succ',
+            ],
+            id='one-succ-one-fail',
+        ),
+        pytest.param(
+            dict(fail_spawn=True, child_args=[True, False]),
+            [
+                'p:spawn:start',
+                ['p:spawn:fail', '0:child_proc:succ', '1:child_proc:fail'],
+            ],
+            id='fail-spawn',
+        ),
+        pytest.param(
+            dict(child_args=[True, False], join_args=[fail]),
+            [
+                'p:spawn:start',
+                ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
+                'p:join:fail',
+            ],
+            id='join-fail',
+        ),
+        pytest.param(
+            dict(child_args=[True, False], join_args=[True, [True, False], False]),
+            [
+                'p:spawn:start',
+                ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
+                'p:join:waiting',
+                'rejoin1.0:child_proc:succ',
+                'p:join:waiting',
+                ['rejoin2.0:child_proc:succ', 'rejoin2.1:child_proc:fail'],
+                'p:join:waiting',
+                'rejoin3.0:child_proc:fail',
+                'p:join:succ',
+            ],
+            id='join-multiple',
+        ),
+        pytest.param(
+            dict(child_args=[True, False], join_args=[True, [], []]),
+            [
+                'p:spawn:start',
+                ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
+                'p:join:waiting',
+                'rejoin1.0:child_proc:succ',
+                'p:join:waiting',
+                'p:join:waiting',
+                'p:join:succ',
+            ],
+            id='join-multiple-no-children',
+        ),
+        pytest.param(
+            dict(child_args=[True, False], join_args=[True, False, fail]),
+            [
+                'p:spawn:start',
+                ['p:spawn:waiting', '0:child_proc:succ', '1:child_proc:fail'],
+                'p:join:waiting',
+                'rejoin1.0:child_proc:succ',
+                'p:join:waiting',
+                'rejoin2.0:child_proc:fail',
+                'p:join:fail',
+            ],
+            id='join-multiple-then-fail',
+        ),
+        pytest.param(
+            dict(child_args=[[True, 'new_child']], join_args=[]),
+            [
+                'p:spawn:start',
+                [
+                    'p:spawn:waiting',
+                    '0:child_proc:add_child',
+                    '0:child_proc:succ',
+                    'new_child:child_proc:succ',
+                ],
+                'p:join:succ',
+            ],
+            id='add-child-while-processing',
+        ),
+    ],
+)
 def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events):
     child_args = spawn_kwargs.get('child_args', [])
     join_args = spawn_kwargs.get('join_args', [])
@@ -312,7 +394,9 @@ def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events
         if child.process_running:
             assert fail_spawn  # Otherwise they should all be done
             child.block_until_complete()
-        expected_child_status = ProcessStatus.SUCCESS if succeed else ProcessStatus.FAILURE
+        expected_child_status = (
+            ProcessStatus.SUCCESS if succeed else ProcessStatus.FAILURE
+        )
         assert child.process_status == expected_child_status
     for i, join_arg in enumerate(join_args):
         if join_arg != fail:
@@ -320,8 +404,16 @@ def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events
                 join_arg = [join_arg]
             for i2, succeed in enumerate(join_arg):
                 child = ChildProc.get(f'rejoin{i + 1}.{i2}')
-                assert child.process_status == ProcessStatus.SUCCESS if succeed else ProcessStatus.FAILURE
-    expected_parent_status = ProcessStatus.FAILURE if fail_spawn or fail in join_args else ProcessStatus.SUCCESS
+                assert (
+                    child.process_status == ProcessStatus.SUCCESS
+                    if succeed
+                    else ProcessStatus.FAILURE
+                )
+    expected_parent_status = (
+        ProcessStatus.FAILURE
+        if fail_spawn or fail in join_args
+        else ProcessStatus.SUCCESS
+    )
     assert parent.process_status == expected_parent_status
     assert_events(expected_events)
 
@@ -334,7 +426,12 @@ def test_queueing(worker, mongo, reset_events):
         # Spawn, with "long" delay for the first process so everything will be queued up
         p.spawn(suffix=f':{i}', child_args=[True], delay=1.0 if i == 0 else 0.1)
         expected_events.extend(
-            [f'p:spawn:start:{i}', [f'p:spawn:waiting:{i}', '0:child_proc:succ'], 'p:join:succ'])
+            [
+                f'p:spawn:start:{i}',
+                [f'p:spawn:waiting:{i}', '0:child_proc:succ'],
+                'p:join:succ',
+            ]
+        )
     assert len(p.queue) >= 19  # The first process may have started
     p.block_until_complete()
     assert p.process_status == ProcessStatus.SUCCESS
@@ -346,12 +443,25 @@ def test_queueing_failure(worker, mongo, reset_events):
     # Schedule 20 calls, the second should fail
     for i in range(20):
         # Spawn, with "long" delay for the first process so everything will be queued up
-        p.spawn(fail_spawn=(i == 1), suffix=f':{i}', child_args=[], delay=1.0 if i == 0 else 0.1)
+        p.spawn(
+            fail_spawn=(i == 1),
+            suffix=f':{i}',
+            child_args=[],
+            delay=1.0 if i == 0 else 0.1,
+        )
     assert len(p.queue) >= 19  # The first process may have started
     p.block_until_complete()
     assert p.process_status == ProcessStatus.FAILURE
     # After the failure, the queue will be cleared
-    assert_events(['p:spawn:start:0', 'p:spawn:waiting:0', 'p:join:succ', 'p:spawn:start:1', 'p:spawn:fail:1'])
+    assert_events(
+        [
+            'p:spawn:start:0',
+            'p:spawn:waiting:0',
+            'p:join:succ',
+            'p:spawn:start:1',
+            'p:spawn:fail:1',
+        ]
+    )
 
 
 def test_non_blocking_then_blocking(worker, mongo, reset_events):
@@ -362,7 +472,14 @@ def test_non_blocking_then_blocking(worker, mongo, reset_events):
     p.block_until_complete()
     assert p.process_status == ProcessStatus.SUCCESS
     assert_events(
-        ['p:spawn:start', 'p:spawn:waiting', 'p:join:succ', 'p:blocking:start', 'p:blocking:succ'])
+        [
+            'p:spawn:start',
+            'p:spawn:waiting',
+            'p:join:succ',
+            'p:blocking:start',
+            'p:blocking:succ',
+        ]
+    )
 
 
 def test_blocking_then_non_blocking(worker, mongo, reset_events):
@@ -415,7 +532,14 @@ def test_local_blocking(worker, mongo, reset_events):
     p.local_process(delay=1.0)
     assert p.process_status == ProcessStatus.SUCCESS
     a_thread.join()
-    assert_events(['p:local_process:start', 'other_call:blocked1', 'other_call:blocked2', 'p:local_process:succ'])
+    assert_events(
+        [
+            'p:local_process:start',
+            'other_call:blocked1',
+            'other_call:blocked2',
+            'p:local_process:succ',
+        ]
+    )
 
 
 def test_local_failed(worker, mongo, reset_events):

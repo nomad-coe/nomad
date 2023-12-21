@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-'''
+"""
 This module contains all functions necessary to manage DOI via datacite.org and its
 MDS API (https://support.datacite.org/docs/mds-api-guide).
-'''
+"""
 import xml.etree.ElementTree as ET
 import datetime
 import requests
@@ -33,21 +33,22 @@ from fastapi import HTTPException
 
 
 class DOIException(Exception):
-    ''' Datacite-requests related errors. '''
+    """Datacite-requests related errors."""
+
     pass
 
 
 def _create_dataset_url(doi: str) -> str:
-    '''
+    """
     Returns:
         The url that set in the DOI record and is used to resolve the DOI. The URL
         points to the dataset page in the NOMAD GUI.
-    '''
+    """
     return f'{config.gui_url()}/dataset/doi/{doi}'
 
 
 def edit_doi_url(doi: str, url: str = None):
-    ''' Changes the URL of an already findable DOI. '''
+    """Changes the URL of an already findable DOI."""
     if url is None:
         url = _create_dataset_url(doi)
 
@@ -60,7 +61,10 @@ def edit_doi_url(doi: str, url: str = None):
     # xml stored at datacite and for those the DOI update might fail. We try to
     # get the xml string, parse and re-serialize and put it again. After this the
     # url update might work.
-    if response.status_code == 422 and 'No matching global declaration available' in response.text:
+    if (
+        response.status_code == 422
+        and 'No matching global declaration available' in response.text
+    ):
         metadata_url = f'{config.datacite.mds_host}/metadata/{doi}'
         response = requests.get(metadata_url, **_requests_args())
         original_xml = response.text
@@ -70,14 +74,20 @@ def edit_doi_url(doi: str, url: str = None):
         requests.put(
             metadata_url,
             headers={'Content-Type': 'application/xml;charset=UTF-8'},
-            data=repaired_xml.encode('utf-8'), **_requests_args())
+            data=repaired_xml.encode('utf-8'),
+            **_requests_args(),
+        )
         response = requests.put(doi_url, headers=headers, data=data, **_requests_args())
         if response.status_code >= 300:
-            raise Exception(f'Encountered known xml problems for {doi}. But could not fix.')
+            raise Exception(
+                f'Encountered known xml problems for {doi}. But could not fix.'
+            )
 
     if response.status_code >= 300:
-        raise Exception('Unexpected datacite response (status code %d): %s' % (
-            response.status_code, response.text))
+        raise Exception(
+            'Unexpected datacite response (status code %d): %s'
+            % (response.status_code, response.text)
+        )
 
 
 def _xml(parent, element: str, value: str = None):
@@ -107,7 +117,7 @@ class DOI(Document):
 
     @staticmethod
     def create(title: str, user: User) -> 'DOI':
-        ''' Creates a unique DOI with the NOMAD DOI prefix. '''
+        """Creates a unique DOI with the NOMAD DOI prefix."""
         # TODO We use a collection of all DOIs in mongo to ensure uniqueness. We attempt
         # to create new DOIs based on a counter per day until we find a non existing DOI.
         # This might be bad if many DOIs per day are to be expected.
@@ -116,7 +126,10 @@ class DOI(Document):
 
         while True:
             doi_str = '%s/NOMAD/%s-%d' % (
-                config.datacite.prefix, create_time.strftime('%Y.%m.%d'), counter)
+                config.datacite.prefix,
+                create_time.strftime('%Y.%m.%d'),
+                counter,
+            )
 
             try:
                 doi = DOI(doi=doi_str)
@@ -140,8 +153,10 @@ class DOI(Document):
         if title is None or title.strip() == '':
             title = 'NOMAD Repository Dataset'
 
-        mds_resource = ET.Element("resource")
-        mds_resource.attrib['xsi:schemaLocation'] = 'http://datacite.org/schema/kernel-3 http://schema.datacite.org/meta/kernel-3.1/metadata.xsd'
+        mds_resource = ET.Element('resource')
+        mds_resource.attrib[
+            'xsi:schemaLocation'
+        ] = 'http://datacite.org/schema/kernel-3 http://schema.datacite.org/meta/kernel-3.1/metadata.xsd'
         mds_resource.attrib['xmlns'] = 'http://datacite.org/schema/kernel-3'
         mds_resource.attrib['xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
 
@@ -157,7 +172,9 @@ class DOI(Document):
         _xml(mds_resource, 'publisher', 'NOMAD Repository')
         _xml(mds_resource, 'publicationYear', str(datetime.datetime.now().year))
 
-        doi.metadata_xml = ET.tostring(mds_resource, encoding='UTF-8', method='xml').decode('utf-8')
+        doi.metadata_xml = ET.tostring(
+            mds_resource, encoding='UTF-8', method='xml'
+        ).decode('utf-8')
         doi.save()
 
         return doi
@@ -166,8 +183,10 @@ class DOI(Document):
         if response is None or response.status_code >= 300:
             utils.get_logger(__name__).error(
                 'could not %s' % msg,
-                status_code=response.status_code, body=response.content,
-                doi=self.doi)
+                status_code=response.status_code,
+                body=response.content,
+                doi=self.doi,
+            )
 
             raise DOIException()
 
@@ -181,7 +200,9 @@ class DOI(Document):
                 response = requests.post(
                     self.metadata_url,
                     headers={'Content-Type': 'application/xml;charset=UTF-8'},
-                    data=self.metadata_xml.encode('utf-8'), **_requests_args())
+                    data=self.metadata_xml.encode('utf-8'),
+                    **_requests_args(),
+                )
             except HTTPException:
                 pass
 
@@ -211,8 +232,11 @@ class DOI(Document):
 
             try:
                 response = requests.put(
-                    self.doi_url, **_requests_args(),
-                    headers={'Content-Type': 'text/plain;charset=UTF-8'}, data=body)
+                    self.doi_url,
+                    **_requests_args(),
+                    headers={'Content-Type': 'text/plain;charset=UTF-8'},
+                    data=body,
+                )
             except HTTPException:
                 pass
 

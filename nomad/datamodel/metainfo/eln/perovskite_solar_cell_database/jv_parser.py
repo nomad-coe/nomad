@@ -25,18 +25,41 @@ def jv_dict_generator(filename):
     filedata = f.read()
     f.close()
 
-    newdata = filedata.replace("²", "^2")
+    newdata = filedata.replace('²', '^2')
 
     f = open(filename, 'w')
     f.write(newdata)
     f.close()
 
     with open(filename) as f:
-        df = pd.read_csv(f, skiprows=8, nrows=9, sep='\t', index_col=0, engine='python', encoding='unicode_escape')
+        df = pd.read_csv(
+            f,
+            skiprows=8,
+            nrows=9,
+            sep='\t',
+            index_col=0,
+            engine='python',
+            encoding='unicode_escape',
+        )
     with open(filename) as f:
-        df_header = pd.read_csv(f, skiprows=0, nrows=6, sep=':|\t', index_col=0, encoding='unicode_escape', engine='python')
+        df_header = pd.read_csv(
+            f,
+            skiprows=0,
+            nrows=6,
+            sep=':|\t',
+            index_col=0,
+            encoding='unicode_escape',
+            engine='python',
+        )
     with open(filename) as f:
-        df_curves = pd.read_csv(f, header=19, skiprows=[20], sep='\t', encoding='unicode_escape', engine='python')
+        df_curves = pd.read_csv(
+            f,
+            header=19,
+            skiprows=[20],
+            sep='\t',
+            encoding='unicode_escape',
+            engine='python',
+        )
         df_curves = df_curves.dropna(how='all', axis=1)
 
     list_columns = list(df.columns[0:-1])
@@ -66,43 +89,91 @@ def jv_dict_generator(filename):
 
     for i in list_columns:
         if 'rev' in i:
-            jv_dict['reverse_scan_Jsc'].append(float('{:0.3e}'.format(abs(df[i].iloc[0]))))
+            jv_dict['reverse_scan_Jsc'].append(
+                float('{:0.3e}'.format(abs(df[i].iloc[0])))
+            )
             jv_dict['reverse_scan_Voc'].append(float('{:0.3e}'.format(df[i].iloc[1])))
             jv_dict['reverse_scan_FF'].append(float('{:0.3e}'.format(df[i].iloc[2])))
             jv_dict['reverse_scan_PCE'].append(float('{:0.3e}'.format(df[i].iloc[3])))
             jv_dict['reverse_scan_Vmp'].append(float('{:0.3e}'.format(df[i].iloc[6])))
-            jv_dict['reverse_scan_Jmp'].append(float('{:0.3e}'.format(abs(df[i].iloc[5]))))
-            jv_dict['reverse_scan_series_resistance'].append(float('{:0.3e}'.format(df[i].iloc[7])))
-            jv_dict['reverse_scan_shunt_resistance'].append(float('{:0.3e}'.format(df[i].iloc[8])))
+            jv_dict['reverse_scan_Jmp'].append(
+                float('{:0.3e}'.format(abs(df[i].iloc[5])))
+            )
+            jv_dict['reverse_scan_series_resistance'].append(
+                float('{:0.3e}'.format(df[i].iloc[7]))
+            )
+            jv_dict['reverse_scan_shunt_resistance'].append(
+                float('{:0.3e}'.format(df[i].iloc[8]))
+            )
 
         elif 'for' in i:
-            jv_dict['forward_scan_Jsc'].append(abs(float('{:0.3e}'.format(df[i].iloc[0]))))
+            jv_dict['forward_scan_Jsc'].append(
+                abs(float('{:0.3e}'.format(df[i].iloc[0])))
+            )
             jv_dict['forward_scan_Voc'].append(float('{:0.3e}'.format(df[i].iloc[1])))
             jv_dict['forward_scan_FF'].append(float('{:0.3e}'.format(df[i].iloc[2])))
             jv_dict['forward_scan_PCE'].append(float('{:0.3e}'.format(df[i].iloc[3])))
             jv_dict['forward_scan_Vmp'].append(float('{:0.3e}'.format(df[i].iloc[6])))
-            jv_dict['forward_scan_Jmp'].append(float('{:0.3e}'.format(abs(df[i].iloc[5]))))
-            jv_dict['forward_scan_series_resistance'].append(float('{:0.3e}'.format(df[i].iloc[7])))
-            jv_dict['forward_scan_shunt_resistance'].append(float('{:0.3e}'.format(df[i].iloc[8])))
+            jv_dict['forward_scan_Jmp'].append(
+                float('{:0.3e}'.format(abs(df[i].iloc[5])))
+            )
+            jv_dict['forward_scan_series_resistance'].append(
+                float('{:0.3e}'.format(df[i].iloc[7]))
+            )
+            jv_dict['forward_scan_shunt_resistance'].append(
+                float('{:0.3e}'.format(df[i].iloc[8]))
+            )
 
     jv_dict['no_cells'] = len(jv_dict['reverse_scan_Jsc'])
-    jv_dict['reverse_scan_Jsc'] = sum(jv_dict['reverse_scan_Jsc']) / len(jv_dict['reverse_scan_Jsc'])
-    jv_dict['reverse_scan_Voc'] = sum(jv_dict['reverse_scan_Voc']) / len(jv_dict['reverse_scan_Voc'])
-    jv_dict['reverse_scan_FF'] = sum(jv_dict['reverse_scan_FF']) / len(jv_dict['reverse_scan_FF'])
-    jv_dict['reverse_scan_PCE'] = sum(jv_dict['reverse_scan_PCE']) / len(jv_dict['reverse_scan_PCE'])
-    jv_dict['reverse_scan_Vmp'] = sum(jv_dict['reverse_scan_Vmp']) / len(jv_dict['reverse_scan_Vmp'])
-    jv_dict['reverse_scan_Jmp'] = sum(jv_dict['reverse_scan_Jmp']) / len(jv_dict['reverse_scan_Jmp'])
-    jv_dict['reverse_scan_series_resistance'] = sum(jv_dict['reverse_scan_series_resistance']) / len(jv_dict['reverse_scan_series_resistance'])
-    jv_dict['reverse_scan_shunt_resistance'] = sum(jv_dict['reverse_scan_shunt_resistance']) / len(jv_dict['reverse_scan_shunt_resistance'])
+    jv_dict['reverse_scan_Jsc'] = sum(jv_dict['reverse_scan_Jsc']) / len(
+        jv_dict['reverse_scan_Jsc']
+    )
+    jv_dict['reverse_scan_Voc'] = sum(jv_dict['reverse_scan_Voc']) / len(
+        jv_dict['reverse_scan_Voc']
+    )
+    jv_dict['reverse_scan_FF'] = sum(jv_dict['reverse_scan_FF']) / len(
+        jv_dict['reverse_scan_FF']
+    )
+    jv_dict['reverse_scan_PCE'] = sum(jv_dict['reverse_scan_PCE']) / len(
+        jv_dict['reverse_scan_PCE']
+    )
+    jv_dict['reverse_scan_Vmp'] = sum(jv_dict['reverse_scan_Vmp']) / len(
+        jv_dict['reverse_scan_Vmp']
+    )
+    jv_dict['reverse_scan_Jmp'] = sum(jv_dict['reverse_scan_Jmp']) / len(
+        jv_dict['reverse_scan_Jmp']
+    )
+    jv_dict['reverse_scan_series_resistance'] = sum(
+        jv_dict['reverse_scan_series_resistance']
+    ) / len(jv_dict['reverse_scan_series_resistance'])
+    jv_dict['reverse_scan_shunt_resistance'] = sum(
+        jv_dict['reverse_scan_shunt_resistance']
+    ) / len(jv_dict['reverse_scan_shunt_resistance'])
 
-    jv_dict['forward_scan_Jsc'] = sum(jv_dict['forward_scan_Jsc']) / len(jv_dict['forward_scan_Jsc'])
-    jv_dict['forward_scan_Voc'] = sum(jv_dict['forward_scan_Voc']) / len(jv_dict['forward_scan_Voc'])
-    jv_dict['forward_scan_FF'] = sum(jv_dict['forward_scan_FF']) / len(jv_dict['forward_scan_FF'])
-    jv_dict['forward_scan_PCE'] = sum(jv_dict['forward_scan_PCE']) / len(jv_dict['forward_scan_PCE'])
-    jv_dict['forward_scan_Vmp'] = sum(jv_dict['forward_scan_Vmp']) / len(jv_dict['forward_scan_Vmp'])
-    jv_dict['forward_scan_Jmp'] = sum(jv_dict['forward_scan_Jmp']) / len(jv_dict['forward_scan_Jmp'])
-    jv_dict['forward_scan_series_resistance'] = sum(jv_dict['forward_scan_series_resistance']) / len(jv_dict['forward_scan_series_resistance'])
-    jv_dict['forward_scan_shunt_resistance'] = sum(jv_dict['forward_scan_shunt_resistance']) / len(jv_dict['forward_scan_shunt_resistance'])
+    jv_dict['forward_scan_Jsc'] = sum(jv_dict['forward_scan_Jsc']) / len(
+        jv_dict['forward_scan_Jsc']
+    )
+    jv_dict['forward_scan_Voc'] = sum(jv_dict['forward_scan_Voc']) / len(
+        jv_dict['forward_scan_Voc']
+    )
+    jv_dict['forward_scan_FF'] = sum(jv_dict['forward_scan_FF']) / len(
+        jv_dict['forward_scan_FF']
+    )
+    jv_dict['forward_scan_PCE'] = sum(jv_dict['forward_scan_PCE']) / len(
+        jv_dict['forward_scan_PCE']
+    )
+    jv_dict['forward_scan_Vmp'] = sum(jv_dict['forward_scan_Vmp']) / len(
+        jv_dict['forward_scan_Vmp']
+    )
+    jv_dict['forward_scan_Jmp'] = sum(jv_dict['forward_scan_Jmp']) / len(
+        jv_dict['forward_scan_Jmp']
+    )
+    jv_dict['forward_scan_series_resistance'] = sum(
+        jv_dict['forward_scan_series_resistance']
+    ) / len(jv_dict['forward_scan_series_resistance'])
+    jv_dict['forward_scan_shunt_resistance'] = sum(
+        jv_dict['forward_scan_shunt_resistance']
+    ) / len(jv_dict['forward_scan_shunt_resistance'])
 
     if jv_dict['reverse_scan_PCE'] >= jv_dict['forward_scan_PCE']:
         jv_dict['default_Jsc'] = jv_dict['reverse_scan_Jsc']
@@ -126,8 +197,12 @@ def jv_dict_generator(filename):
 
     jv_dict['jv_curve'] = []
     for column in range(1, len(df_curves.columns)):
-        jv_dict['jv_curve'].append({'name': df_curves.columns[column],
-                                    'voltage': df_curves[df_curves.columns[0]].values,
-                                    'current_density': df_curves[df_curves.columns[column]].values})
+        jv_dict['jv_curve'].append(
+            {
+                'name': df_curves.columns[column],
+                'voltage': df_curves[df_curves.columns[0]].values,
+                'current_density': df_curves[df_curves.columns[column]].values,
+            }
+        )
 
     return jv_dict

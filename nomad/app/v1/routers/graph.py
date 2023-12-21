@@ -18,7 +18,13 @@
 
 from fastapi import Depends, APIRouter, Body, HTTPException
 
-from nomad.graph.graph_reader import MongoReader, ConfigError, GeneralReader, UserReader, Token
+from nomad.graph.graph_reader import (
+    MongoReader,
+    ConfigError,
+    GeneralReader,
+    UserReader,
+    Token,
+)
 from .auth import create_user_dependency
 from .entries import EntriesArchive
 from ..models import User
@@ -46,7 +52,10 @@ def relocate_children(request):
 def reorder_children(query):
     if not isinstance(query, dict):
         return query
-    return {k: reorder_children(v) for k, v in sorted(query.items(), key=lambda item: item[0])}
+    return {
+        k: reorder_children(v)
+        for k, v in sorted(query.items(), key=lambda item: item[0])
+    }
 
 
 @router.post(
@@ -55,7 +64,9 @@ def reorder_children(query):
     summary='Query the database with a graph style without verification.',
     description='Query the database with a graph style without verification.',
 )
-async def raw_query(query=Body(...), user: User = Depends(create_user_dependency(required=True))):
+async def raw_query(
+    query=Body(...), user: User = Depends(create_user_dependency(required=True))
+):
     relocate_children(query)
     with MongoReader(query, user=user) as reader:
         return normalise_response(reader.read())
@@ -70,9 +81,14 @@ async def raw_query(query=Body(...), user: User = Depends(create_user_dependency
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
 )
-async def basic_query(query: GraphRequest = Body(...), user: User = Depends(create_user_dependency(required=True))):
+async def basic_query(
+    query: GraphRequest = Body(...),
+    user: User = Depends(create_user_dependency(required=True)),
+):
     try:
-        query_dict = query.dict(exclude_none=True, exclude_unset=True, exclude_defaults=True)
+        query_dict = query.dict(
+            exclude_none=True, exclude_unset=True, exclude_defaults=True
+        )
         relocate_children(query_dict)
         with MongoReader(query_dict, user=user) as reader:
             response: dict = reader.read()
@@ -90,8 +106,7 @@ async def basic_query(query: GraphRequest = Body(...), user: User = Depends(crea
     summary='Search entries and access their archives',
 )
 async def archive_query(
-        data: EntriesArchive,
-        user: User = Depends(create_user_dependency())
+    data: EntriesArchive, user: User = Depends(create_user_dependency())
 ):
     graph_dict: dict = {Token.SEARCH: {'m_request': {'query': {}}}}
     root_request: dict = graph_dict[Token.SEARCH]['m_request']['query']

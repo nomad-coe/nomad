@@ -23,19 +23,50 @@ from .cli import cli
 
 @cli.command(help='Run parsing and normalizing locally.', name='parse')
 @click.argument('MAINFILE', nargs=1, required=True, type=str)
-@click.option('--show-archive', is_flag=True, default=False, help='Print the archive data.')
-@click.option('--archive-with-meta', is_flag=True, default=False, help='If the archvie is printed, it would include metadata like m_def and m_annotations.')
-@click.option('--show-metadata', is_flag=True, default=False, help='Print the extracted repo metadata.')
-@click.option('--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.')
+@click.option(
+    '--show-archive', is_flag=True, default=False, help='Print the archive data.'
+)
+@click.option(
+    '--archive-with-meta',
+    is_flag=True,
+    default=False,
+    help='If the archvie is printed, it would include metadata like m_def and m_annotations.',
+)
+@click.option(
+    '--show-metadata',
+    is_flag=True,
+    default=False,
+    help='Print the extracted repo metadata.',
+)
+@click.option(
+    '--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.'
+)
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
-@click.option('--parser', help='''Skip matching and use the provided parser (format: `parsers/<name>`).
-              Additional selection rules still apply for parsers with multiple main files.''')
-@click.option('--server-context', is_flag=True, default=False, help='Whether to use server context.')
+@click.option(
+    '--parser',
+    help="""Skip matching and use the provided parser (format: `parsers/<name>`).
+              Additional selection rules still apply for parsers with multiple main files.""",
+)
+@click.option(
+    '--server-context',
+    is_flag=True,
+    default=False,
+    help='Whether to use server context.',
+)
 @click.option('--username', default=None, help='Username for authentication.')
 @click.option('--password', default=None, help='Password for authentication.')
 def _parse(
-        mainfile, show_archive, archive_with_meta, show_metadata, skip_normalizers, not_strict, parser, server_context,
-        username, password):
+    mainfile,
+    show_archive,
+    archive_with_meta,
+    show_metadata,
+    skip_normalizers,
+    not_strict,
+    parser,
+    server_context,
+    username,
+    password,
+):
     import sys
     import json
 
@@ -46,7 +77,8 @@ def _parse(
         parser_name=parser,
         server_context=server_context,
         username=username,
-        password=password)
+        password=password,
+    )
 
     entry_archives = parse(mainfile, **kwargs)
 
@@ -56,7 +88,11 @@ def _parse(
             entry_archive.metadata.apply_archive_metadata(entry_archive)
 
         if show_archive:
-            json.dump(entry_archive.m_to_dict(with_meta=archive_with_meta), sys.stdout, indent=2)
+            json.dump(
+                entry_archive.m_to_dict(with_meta=archive_with_meta),
+                sys.stdout,
+                indent=2,
+            )
 
         if show_metadata:
             metadata = entry_archive.metadata

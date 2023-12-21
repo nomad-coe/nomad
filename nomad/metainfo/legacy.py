@@ -16,17 +16,16 @@
 # limitations under the License.
 #
 
-'''
+"""
 This module contains functionality to use old 'legacy' NOMAD CoE parsers with the
 new nomad@fairdi infrastructure. This covers aspects like the new metainfo, a unifying
 wrapper for parsers, parser logging, and a parser backend.
-'''
+"""
 
 from nomad.metainfo import DefinitionAnnotation, Environment
 
 
 class LegacyDefinition(DefinitionAnnotation):
-
     def __init__(self, name: str):
         self.name = name
 

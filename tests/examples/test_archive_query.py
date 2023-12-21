@@ -29,7 +29,8 @@ from tests.test_client import async_api_v1
 
 def test_archive_query(async_api_v1, elastic, raw_files, mongo, test_user, capsys):
     mainfile = os.path.join(
-        __file__, '..', '..', 'data', 'examples', 'archive_query_vasprun.xml.gz')
+        __file__, '..', '..', 'data', 'examples', 'archive_query_vasprun.xml.gz'
+    )
     archive = run_singular_parser('parsers/vasp', mainfile)
     run_normalize(archive)
     archive.metadata.apply_archive_metadata(archive)

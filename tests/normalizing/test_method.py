@@ -43,19 +43,19 @@ def test_precision(bulk):
 def test_method_dft(dft):
     """Methodology from a DFT calculation."""
     method = dft.results.method
-    assert method.method_name == "DFT"
-    assert method.simulation.program_name == "VASP"
-    assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.dft.basis_set_type == "plane waves"
-    assert method.simulation.dft.core_electron_treatment == "pseudopotential"
-    assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
-    assert method.simulation.dft.xc_functional_type == "GGA"
-    assert method.simulation.dft.smearing_kind == "gaussian"
+    assert method.method_name == 'DFT'
+    assert method.simulation.program_name == 'VASP'
+    assert method.simulation.program_version == '4.6.35'
+    assert method.simulation.dft.basis_set_type == 'plane waves'
+    assert method.simulation.dft.core_electron_treatment == 'pseudopotential'
+    assert method.simulation.dft.xc_functional_names == ['GGA_C_PBE', 'GGA_X_PBE']
+    assert method.simulation.dft.xc_functional_type == 'GGA'
+    assert method.simulation.dft.smearing_kind == 'gaussian'
     assert method.simulation.dft.smearing_width == 1e-20
     assert method.simulation.dft.spin_polarized is True
     assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
-    assert method.simulation.dft.van_der_Waals_method == "G06"
-    assert method.simulation.dft.relativity_method == "scalar_relativistic"
+    assert method.simulation.dft.van_der_Waals_method == 'G06'
+    assert method.simulation.dft.relativity_method == 'scalar_relativistic'
 
 
 def test_method_referenced(dft_method_referenced):
@@ -63,49 +63,59 @@ def test_method_referenced(dft_method_referenced):
     several methodologies.
     """
     method = dft_method_referenced.results.method
-    assert method.method_name == "DFT"
-    assert method.simulation.program_name == "VASP"
-    assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.dft.basis_set_type == "plane waves"
-    assert method.simulation.dft.core_electron_treatment == "pseudopotential"
-    assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
-    assert method.simulation.dft.xc_functional_type == "GGA"
-    assert method.simulation.dft.smearing_kind == "gaussian"
+    assert method.method_name == 'DFT'
+    assert method.simulation.program_name == 'VASP'
+    assert method.simulation.program_version == '4.6.35'
+    assert method.simulation.dft.basis_set_type == 'plane waves'
+    assert method.simulation.dft.core_electron_treatment == 'pseudopotential'
+    assert method.simulation.dft.xc_functional_names == ['GGA_C_PBE', 'GGA_X_PBE']
+    assert method.simulation.dft.xc_functional_type == 'GGA'
+    assert method.simulation.dft.smearing_kind == 'gaussian'
     assert method.simulation.dft.smearing_width == 1e-20
     assert method.simulation.dft.spin_polarized is True
     assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
-    assert method.simulation.dft.van_der_Waals_method == "G06"
-    assert method.simulation.dft.relativity_method == "scalar_relativistic"
+    assert method.simulation.dft.van_der_Waals_method == 'G06'
+    assert method.simulation.dft.relativity_method == 'scalar_relativistic'
 
 
-@pytest.mark.parametrize('entry, expected', [
-    ('dft_exact_exchange', .25),
-    ('dft_b3lyp', .2),
-    ('dft_pbeh', .25),
-    ('dft_m05', .28),
-    ('dft_pbe0_13', 1 / 3),
-    ('dft_pbe38', 3 / 8),
-    ('dft_pbe50', .5),
-    ('dft_m06_2x', .54),
-    ('dft_m05_2x', .56),
-])
+@pytest.mark.parametrize(
+    'entry, expected',
+    [
+        ('dft_exact_exchange', 0.25),
+        ('dft_b3lyp', 0.2),
+        ('dft_pbeh', 0.25),
+        ('dft_m05', 0.28),
+        ('dft_pbe0_13', 1 / 3),
+        ('dft_pbe38', 3 / 8),
+        ('dft_pbe50', 0.5),
+        ('dft_m06_2x', 0.54),
+        ('dft_m05_2x', 0.56),
+    ],
+)
 def test_exact_exchange_mixing_factor(entry, expected, request):
     """Exact exchange mixing factor in hybrid functionals"""
     entry = request.getfixturevalue(entry)
     assert entry.results.method.simulation.dft.exact_exchange_mixing_factor == expected
 
 
-@pytest.mark.parametrize('entry, expected', [
-    pytest.param('dft_empty', 'unavailable',
-                 id='DFT with no XC functional specification'),
-    pytest.param('dft_wrong', 'unavailable',
-                 id='DFT with non-sensical XC functional specification'),
-    pytest.param('dft_pw', 'LDA', id='PW functional'),
-    pytest.param('dft', 'GGA', id='PBE functional'),
-    pytest.param('dft_m06', 'meta-GGA', id='M06 functional'),
-    pytest.param('dft_m05', 'hyper-GGA', id='M05 functional'),
-    pytest.param('dft_b3lyp', 'hybrid', id='B3LYP functional'),
-])
+@pytest.mark.parametrize(
+    'entry, expected',
+    [
+        pytest.param(
+            'dft_empty', 'unavailable', id='DFT with no XC functional specification'
+        ),
+        pytest.param(
+            'dft_wrong',
+            'unavailable',
+            id='DFT with non-sensical XC functional specification',
+        ),
+        pytest.param('dft_pw', 'LDA', id='PW functional'),
+        pytest.param('dft', 'GGA', id='PBE functional'),
+        pytest.param('dft_m06', 'meta-GGA', id='M06 functional'),
+        pytest.param('dft_m05', 'hyper-GGA', id='M05 functional'),
+        pytest.param('dft_b3lyp', 'hybrid', id='B3LYP functional'),
+    ],
+)
 def test_jacobs_ladder_value(entry, expected, request):
     """Test assignment of the rung on Jacob's ladder."""
     entry = request.getfixturevalue(entry)
@@ -116,77 +126,89 @@ def test_jacobs_ladder_value(entry, expected, request):
 def test_method_dft_plus_u(dft_plus_u):
     """Methodology from a DFT+U calculation with a Hubbard model."""
     method = dft_plus_u.results.method
-    assert method.method_name == "DFT"
-    assert method.simulation.program_name == "VASP"
-    assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.dft.basis_set_type == "plane waves"
-    assert method.simulation.dft.core_electron_treatment == "pseudopotential"
-    assert method.simulation.dft.xc_functional_names == ["GGA_C_PBE", "GGA_X_PBE"]
-    assert method.simulation.dft.xc_functional_type == "GGA"
-    assert method.simulation.dft.smearing_kind == "gaussian"
+    assert method.method_name == 'DFT'
+    assert method.simulation.program_name == 'VASP'
+    assert method.simulation.program_version == '4.6.35'
+    assert method.simulation.dft.basis_set_type == 'plane waves'
+    assert method.simulation.dft.core_electron_treatment == 'pseudopotential'
+    assert method.simulation.dft.xc_functional_names == ['GGA_C_PBE', 'GGA_X_PBE']
+    assert method.simulation.dft.xc_functional_type == 'GGA'
+    assert method.simulation.dft.smearing_kind == 'gaussian'
     assert method.simulation.dft.smearing_width == 1e-20
     assert method.simulation.dft.spin_polarized is True
     assert method.simulation.dft.scf_threshold_energy_change == 1e-24 * ureg.joule
-    assert method.simulation.dft.van_der_Waals_method == "G06"
-    assert method.simulation.dft.relativity_method == "scalar_relativistic"
+    assert method.simulation.dft.van_der_Waals_method == 'G06'
+    assert method.simulation.dft.relativity_method == 'scalar_relativistic'
     assert method.simulation.dft.hubbard_kanamori_model[0].atom_label == 'Ti'
     assert method.simulation.dft.hubbard_kanamori_model[0].orbital == '3d'
-    assert method.simulation.dft.hubbard_kanamori_model[0].u_effective.magnitude == 3.5e-19
+    assert (
+        method.simulation.dft.hubbard_kanamori_model[0].u_effective.magnitude == 3.5e-19
+    )
     assert method.simulation.dft.hubbard_kanamori_model[0].u.magnitude == 4.5e-19
     assert method.simulation.dft.hubbard_kanamori_model[0].j.magnitude == 1e-19
-    assert method.simulation.dft.hubbard_kanamori_model[0].double_counting_correction == 'Dudarev'
+    assert (
+        method.simulation.dft.hubbard_kanamori_model[0].double_counting_correction
+        == 'Dudarev'
+    )
 
 
 def test_method_tb_wannier(tb_wannier):
     """Methodology from a Projection calculation"""
     method = tb_wannier.results.method
-    assert method.method_name == "TB"
-    assert method.simulation.program_name == "Wannier90"
-    assert method.simulation.program_version == "3.1.0"
+    assert method.method_name == 'TB'
+    assert method.simulation.program_name == 'Wannier90'
+    assert method.simulation.program_version == '3.1.0'
     assert method.simulation.tb.type == 'Wannier'
-    assert method.simulation.tb.localization_type == "single_shot"
+    assert method.simulation.tb.localization_type == 'single_shot'
 
 
 def test_method_gw(gw):
     """Methodology from a SinglePoint GW calculation."""
     method = gw.results.method
-    assert method.method_name == "GW"
-    assert method.simulation.program_name == "VASP"
-    assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.gw.type == "G0W0"
+    assert method.method_name == 'GW'
+    assert method.simulation.program_name == 'VASP'
+    assert method.simulation.program_version == '4.6.35'
+    assert method.simulation.gw.type == 'G0W0'
 
 
 def test_method_bse(bse):
     """Methodology from a SinglePoint GW calculation."""
     method = bse.results.method
-    assert method.method_name == "BSE"
-    assert method.simulation.program_name == "VASP"
-    assert method.simulation.program_version == "4.6.35"
-    assert method.simulation.bse.type == "Singlet"
-    assert method.simulation.bse.solver == "Lanczos-Haydock"
+    assert method.method_name == 'BSE'
+    assert method.simulation.program_name == 'VASP'
+    assert method.simulation.program_version == '4.6.35'
+    assert method.simulation.bse.type == 'Singlet'
+    assert method.simulation.bse.solver == 'Lanczos-Haydock'
 
 
 def test_method_dmft(dmft):
     """Methodology from a SinglePoint DMFT calculation"""
     method = dmft.results.method
-    assert method.method_name == "DMFT"
-    assert method.simulation.program_name == "w2dynamics"
-    assert method.simulation.dmft.impurity_solver_type == "CT-HYB"
+    assert method.method_name == 'DMFT'
+    assert method.simulation.program_name == 'w2dynamics'
+    assert method.simulation.dmft.impurity_solver_type == 'CT-HYB'
     assert method.simulation.dmft.inverse_temperature.magnitude == 60.0
-    assert method.simulation.dmft.magnetic_state == "paramagnetic"
+    assert method.simulation.dmft.magnetic_state == 'paramagnetic'
     assert method.simulation.dmft.u.magnitude == 4.0e-19
     assert method.simulation.dmft.jh.magnitude == 0.6e-19
 
 
 def test_method_eels(eels):
     method = eels.results.method
-    assert method.method_name == "EELS"
+    assert method.method_name == 'EELS'
 
 
 def test_basis_set(normalized_example):
     ref_basis_sets = {
         'exciting': ['APW', 'LAPW', 'APW+lo', 'LAPW+lo', '(L)APW', '(L)APW+lo'],
-        'fleur': ['APW', 'LAPW', 'APW+lo', 'LAPW+lo', '(L)APW', '(L)APW+lo'],  # TODO: does not match the metainfo name
+        'fleur': [
+            'APW',
+            'LAPW',
+            'APW+lo',
+            'LAPW+lo',
+            '(L)APW',
+            '(L)APW+lo',
+        ],  # TODO: does not match the metainfo name
         'WIEN2k': ['APW', 'LAPW', 'APW+lo', 'LAPW+lo', '(L)APW', '(L)APW+lo'],
         'Elk': ['APW', 'LAPW', 'APW+lo', 'LAPW+lo', '(L)APW', '(L)APW+lo'],
         'ABINIT': ['plane waves'],
@@ -231,17 +253,18 @@ def test_basis_set(normalized_example):
     if base is not None:
         program_name = base.program_name
         if program_name in codes_withouth_methods:
-            assert not base.precision  # precision is generated only if run.method exists
+            assert (
+                not base.precision
+            )  # precision is generated only if run.method exists
         elif program_name != 'not processed':
             reference = ref_basis_sets[program_name]
             if basis_set := base.precision.basis_set:
                 assert basis_set in reference + ['unavailable']
 
 
-@pytest.mark.parametrize('entry, method_identified', [
-    ('hash_exciting', True),
-    ('hash_vasp', False)
-])
+@pytest.mark.parametrize(
+    'entry, method_identified', [('hash_exciting', True), ('hash_vasp', False)]
+)
 def test_method_id(entry, method_identified, request):
     """Test that method_id can be detected or is left undetected from certain
     calculations.
@@ -249,4 +272,6 @@ def test_method_id(entry, method_identified, request):
     entry = request.getfixturevalue(entry)
     assert (entry.results.method.method_id is not None) == method_identified
     assert (entry.results.method.equation_of_state_id is not None) == method_identified
-    assert (entry.results.method.parameter_variation_id is not None) == method_identified
+    assert (
+        entry.results.method.parameter_variation_id is not None
+    ) == method_identified

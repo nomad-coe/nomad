@@ -41,7 +41,9 @@ def test_get_entry(published: Upload):
 
 def test_no_optimade(mongo, elastic, raw_files, client, test_user):
     example_data = ExampleData(main_author=test_user)
-    example_data.create_upload(upload_id='test_upload', published=True, embargo_length=0)
+    example_data.create_upload(
+        upload_id='test_upload', published=True, embargo_length=0
+    )
     example_data.create_structure('test_upload', 1, 2, 1, [], 0)
     example_data.create_structure('test_upload', 2, 2, 1, [], 0, optimade=False)
     example_data.save()
@@ -59,12 +61,17 @@ def example_structures(elastic_infra, mongo_module, raw_files_infra, test_user):
 
     example_data = ExampleData(main_author=test_user)
     example_data.create_upload(
-        upload_id='test_upload', upload_create_time='1978-04-08T10:10:00Z',
-        published=True, embargo_length=0)
+        upload_id='test_upload',
+        upload_create_time='1978-04-08T10:10:00Z',
+        published=True,
+        embargo_length=0,
+    )
     example_data.create_structure('test_upload', 1, 2, 1, [], 0)
     example_data.create_structure('test_upload', 2, 2, 1, ['C'], 0)
     example_data.create_structure('test_upload', 3, 2, 1, [], 1)
-    example_data.create_structure('test_upload', 4, 1, 1, [], 0, metadata=dict(comment='A comment'))
+    example_data.create_structure(
+        'test_upload', 4, 1, 1, [], 0, metadata=dict(comment='A comment')
+    )
     example_data.save()
 
     yield
@@ -72,70 +79,82 @@ def example_structures(elastic_infra, mongo_module, raw_files_infra, test_user):
     clear_raw_files()
 
 
-@pytest.mark.parametrize('query, results', [
-    ('nelements > 1', 4),
-    ('nelements >= 2', 4),
-    ('nelements > 2', 1),
-    ('nelements < 4', 4),
-    ('nelements < 3', 3),
-    ('nelements <= 3', 4),
-    ('nelements != 2', 1),
-    ('2 != nelements', 1),
-    ('1 < nelements', 4),
-    ('3 <= nelements', 1),
-    ('elements HAS "H"', 4),
-    ('elements HAS ALL "H", "O"', 4),
-    ('elements HAS ALL "H", "C"', 1),
-    ('elements HAS ANY "H", "C"', 4),
-    ('elements HAS ANY "C"', 1),
-    ('elements HAS ONLY "C"', 0),
-    ('elements HAS ALL "H", "O" AND nelements = 2', 3),
-    ('elements HAS ONLY "H", "O"', 3),
-    ('nelements >= 2 AND elements HAS ONLY "H", "O"', 3),
-    ('nelements >= 2 AND elements HAS ALL "H", "O", "C"', 1),
-    ('nelements >= 2 AND NOT elements HAS ALL "H", "O", "C"', 3),
-    ('NOT nelements = 2 AND elements HAS ANY "H", "O", "C"', 1),
-    ('NOT nelements = 3 AND NOT elements HAS ONLY "H", "O"', 0),
-    ('elements:elements_ratios HAS "H":>0.66', 2),
-    ('elements:elements_ratios HAS ALL "O":>0.33', 3),
-    ('elements:elements_ratios HAS ALL "O":>0.33,"O":<0.34', 2),
-    ('elements IS KNOWN', 4),
-    ('elements IS UNKNOWN', 0),
-    ('chemical_formula_reduced = "H2O"', 2),
-    ('chemical_formula_reduced CONTAINS "H2"', 3),
-    ('chemical_formula_reduced CONTAINS "H"', 4),
-    ('chemical_formula_reduced CONTAINS "C"', 1),
-    ('chemical_formula_reduced STARTS "H2"', 2),
-    ('chemical_formula_reduced STARTS WITH "H2"', 2),
-    ('chemical_formula_reduced ENDS WITH "O"', 4),
-    ('chemical_formula_reduced ENDS "C"', 0),
-    ('chemical_formula_hill CONTAINS "1"', 0),
-    ('chemical_formula_hill STARTS WITH "H" AND chemical_formula_hill ENDS WITH "O"', 3),
-    ('NOT chemical_formula_descriptive ENDS WITH "1"', 4),
-    ('chemical_formula_descriptive CONTAINS "C" AND NOT chemical_formula_descriptive STARTS WITH "O"', 1),
-    ('NOT chemical_formula_anonymous STARTS WITH "A"', 0),
-    ('chemical_formula_anonymous CONTAINS "A2B" AND chemical_formula_anonymous ENDS WITH "C"', 1),
-    ('nsites >=3 AND elements LENGTH = 2', 2),
-    ('elements LENGTH = 2', 3),
-    ('elements LENGTH 2', 3),
-    ('elements LENGTH = 3', 1),
-    ('nperiodic_dimensions = 0', 3),
-    ('nperiodic_dimensions = 1', 1),
-    ('nelements = 2 AND nperiodic_dimensions = 1', 1),
-    ('nelements = 3 AND nperiodic_dimensions = 1', 0),
-    ('nelements = 3 OR nperiodic_dimensions = 1', 2),
-    ('nelements > 1 OR nperiodic_dimensions = 1 AND nelements = 2', 4),
-    ('(nelements > 1 OR nperiodic_dimensions = 1) AND nelements = 2', 3),
-    ('NOT nperiodic_dimensions = 1', 3),
-    ('nelements LENGTH = 1', -1),
-    ('LENGTH nelements = 1', -1),
-    ('chemical_formula_anonymous starts with "A"', -1),
-    ('elements HAS ONY "H", "O"', -1),
-    ('last_modified >= "2009-02-01T20:07:00Z"', 0),
-    ('species_at_sites HAS "C"', 1),
-    ('_nmd_results_material_structural_type = "molecule / cluster"', 3),
-    ('_nmd_results_material_chemical_formula_reduced = "H20"', 0)
-])
+@pytest.mark.parametrize(
+    'query, results',
+    [
+        ('nelements > 1', 4),
+        ('nelements >= 2', 4),
+        ('nelements > 2', 1),
+        ('nelements < 4', 4),
+        ('nelements < 3', 3),
+        ('nelements <= 3', 4),
+        ('nelements != 2', 1),
+        ('2 != nelements', 1),
+        ('1 < nelements', 4),
+        ('3 <= nelements', 1),
+        ('elements HAS "H"', 4),
+        ('elements HAS ALL "H", "O"', 4),
+        ('elements HAS ALL "H", "C"', 1),
+        ('elements HAS ANY "H", "C"', 4),
+        ('elements HAS ANY "C"', 1),
+        ('elements HAS ONLY "C"', 0),
+        ('elements HAS ALL "H", "O" AND nelements = 2', 3),
+        ('elements HAS ONLY "H", "O"', 3),
+        ('nelements >= 2 AND elements HAS ONLY "H", "O"', 3),
+        ('nelements >= 2 AND elements HAS ALL "H", "O", "C"', 1),
+        ('nelements >= 2 AND NOT elements HAS ALL "H", "O", "C"', 3),
+        ('NOT nelements = 2 AND elements HAS ANY "H", "O", "C"', 1),
+        ('NOT nelements = 3 AND NOT elements HAS ONLY "H", "O"', 0),
+        ('elements:elements_ratios HAS "H":>0.66', 2),
+        ('elements:elements_ratios HAS ALL "O":>0.33', 3),
+        ('elements:elements_ratios HAS ALL "O":>0.33,"O":<0.34', 2),
+        ('elements IS KNOWN', 4),
+        ('elements IS UNKNOWN', 0),
+        ('chemical_formula_reduced = "H2O"', 2),
+        ('chemical_formula_reduced CONTAINS "H2"', 3),
+        ('chemical_formula_reduced CONTAINS "H"', 4),
+        ('chemical_formula_reduced CONTAINS "C"', 1),
+        ('chemical_formula_reduced STARTS "H2"', 2),
+        ('chemical_formula_reduced STARTS WITH "H2"', 2),
+        ('chemical_formula_reduced ENDS WITH "O"', 4),
+        ('chemical_formula_reduced ENDS "C"', 0),
+        ('chemical_formula_hill CONTAINS "1"', 0),
+        (
+            'chemical_formula_hill STARTS WITH "H" AND chemical_formula_hill ENDS WITH "O"',
+            3,
+        ),
+        ('NOT chemical_formula_descriptive ENDS WITH "1"', 4),
+        (
+            'chemical_formula_descriptive CONTAINS "C" AND NOT chemical_formula_descriptive STARTS WITH "O"',
+            1,
+        ),
+        ('NOT chemical_formula_anonymous STARTS WITH "A"', 0),
+        (
+            'chemical_formula_anonymous CONTAINS "A2B" AND chemical_formula_anonymous ENDS WITH "C"',
+            1,
+        ),
+        ('nsites >=3 AND elements LENGTH = 2', 2),
+        ('elements LENGTH = 2', 3),
+        ('elements LENGTH 2', 3),
+        ('elements LENGTH = 3', 1),
+        ('nperiodic_dimensions = 0', 3),
+        ('nperiodic_dimensions = 1', 1),
+        ('nelements = 2 AND nperiodic_dimensions = 1', 1),
+        ('nelements = 3 AND nperiodic_dimensions = 1', 0),
+        ('nelements = 3 OR nperiodic_dimensions = 1', 2),
+        ('nelements > 1 OR nperiodic_dimensions = 1 AND nelements = 2', 4),
+        ('(nelements > 1 OR nperiodic_dimensions = 1) AND nelements = 2', 3),
+        ('NOT nperiodic_dimensions = 1', 3),
+        ('nelements LENGTH = 1', -1),
+        ('LENGTH nelements = 1', -1),
+        ('chemical_formula_anonymous starts with "A"', -1),
+        ('elements HAS ONY "H", "O"', -1),
+        ('last_modified >= "2009-02-01T20:07:00Z"', 0),
+        ('species_at_sites HAS "C"', 1),
+        ('_nmd_results_material_structural_type = "molecule / cluster"', 3),
+        ('_nmd_results_material_chemical_formula_reduced = "H20"', 0),
+    ],
+)
 def test_optimade_parser(example_structures, query, results):
     if results >= 0:
         query = parse_filter(query)
@@ -162,19 +181,17 @@ def assert_eq_attrib(data, key, ref, item=None):
         assert data['data'][item]['attributes'][key] == ref
 
 
-@pytest.mark.parametrize('limit, offset, results', [
-    (1, 1, 1), (3, 2, 2), (5, 0, 4)
-])
+@pytest.mark.parametrize('limit, offset, results', [(1, 1, 1), (3, 2, 2), (5, 0, 4)])
 def test_list_endpoint_pagination(client, example_structures, limit, offset, results):
-    rv = client.get('/optimade/structures?page_limit=%d&page_offset=%d' % (limit, offset))
+    rv = client.get(
+        '/optimade/structures?page_limit=%d&page_offset=%d' % (limit, offset)
+    )
     assert rv.status_code == 200
     data = rv.json()
     assert len(data['data']) == results
 
 
-@pytest.mark.parametrize('sort, order', [
-    ('nelements', 1), ('-nelements', -1)
-])
+@pytest.mark.parametrize('sort, order', [('nelements', 1), ('-nelements', -1)])
 def test_list_endpoint_sort(client, example_structures, sort, order):
     rv = client.get('/optimade/structures?sort=%s' % sort)
     assert rv.status_code == 200
@@ -184,9 +201,15 @@ def test_list_endpoint_sort(client, example_structures, sort, order):
     for i, item in enumerate(data):
         if i > 0:
             if order == 1:
-                assert item['attributes']['nelements'] >= data[i - 1]['attributes']['nelements']
+                assert (
+                    item['attributes']['nelements']
+                    >= data[i - 1]['attributes']['nelements']
+                )
             else:
-                assert item['attributes']['nelements'] <= data[i - 1]['attributes']['nelements']
+                assert (
+                    item['attributes']['nelements']
+                    <= data[i - 1]['attributes']['nelements']
+                )
 
 
 def test_list_endpoint_response_fields(client, example_structures):
@@ -203,7 +226,9 @@ def test_list_endpoint_response_fields(client, example_structures):
 
 
 def test_single_endpoint_response_fields(client, example_structures):
-    rv = client.get('/optimade/structures/%s?response_fields=nelements,elements' % 'test_entry_id_1')
+    rv = client.get(
+        '/optimade/structures/%s?response_fields=nelements,elements' % 'test_entry_id_1'
+    )
     assert rv.status_code == 200, json.dumps(rv.json(), indent=2)
     data = rv.json()
     ref_elements = ['H', 'O']
@@ -219,11 +244,21 @@ def test_single_endpoint(client, example_structures):
     data = rv.json()
     for key in ['type', 'id', 'attributes']:
         assert key in data['data']
-    fields = ['elements', 'nelements', 'elements_ratios',
-              'chemical_formula_descriptive', 'chemical_formula_reduced',
-              'chemical_formula_hill', 'chemical_formula_anonymous',
-              'dimension_types', 'lattice_vectors', 'cartesian_site_positions',
-              'nsites', 'species_at_sites', 'species']
+    fields = [
+        'elements',
+        'nelements',
+        'elements_ratios',
+        'chemical_formula_descriptive',
+        'chemical_formula_reduced',
+        'chemical_formula_hill',
+        'chemical_formula_anonymous',
+        'dimension_types',
+        'lattice_vectors',
+        'cartesian_site_positions',
+        'nsites',
+        'species_at_sites',
+        'species',
+    ]
     for field in fields:
         assert field in data['data']['attributes']
 
@@ -268,9 +303,20 @@ def test_structures_endpoint(client, example_structures):
         for key in ['id', 'attributes']:
             assert d.get(key) is not None
         required_keys = [
-            'last_modified', 'elements', 'nelements', 'elements_ratios', 'chemical_formula_descriptive',
-            'chemical_formula_reduced', 'chemical_formula_anonymous', 'dimension_types',
-            'cartesian_site_positions', 'nsites', 'species_at_sites', 'species', 'structure_features']
+            'last_modified',
+            'elements',
+            'nelements',
+            'elements_ratios',
+            'chemical_formula_descriptive',
+            'chemical_formula_reduced',
+            'chemical_formula_anonymous',
+            'dimension_types',
+            'cartesian_site_positions',
+            'nsites',
+            'species_at_sites',
+            'species',
+            'structure_features',
+        ]
         for key in required_keys:
             assert key in d['attributes']
 
@@ -291,13 +337,18 @@ def test_nmd_properties_info(client, example_structures):
     assert rv.status_code == 200
     data = rv.json()
     assert '_nmd_results_material_structural_type' in data['data']['properties']
-    assert '_nmd_results_material_chemical_formula_reduced' in data['data']['properties']
+    assert (
+        '_nmd_results_material_chemical_formula_reduced' in data['data']['properties']
+    )
     assert '_nmd_results_material_elements' in data['data']['properties']
     assert '_nmd_archive_url' in data['data']['properties']
 
 
 def test_nmd_properties(client, example_structures):
-    rv = client.get('/optimade/structures/%s' % 'test_entry_id_1?response_fields=_nmd_results_material_elements,_nmd_results_material_structural_type,_nmd_doesnotexist,_nmd_archive_url')
+    rv = client.get(
+        '/optimade/structures/%s'
+        % 'test_entry_id_1?response_fields=_nmd_results_material_elements,_nmd_results_material_structural_type,_nmd_doesnotexist,_nmd_archive_url'
+    )
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None
@@ -312,7 +363,9 @@ def test_nmd_properties(client, example_structures):
 
 def test_nmd_properties_include_all(client, example_structures):
     all_fields = [f'_nmd_{name}' for name in provider_specific_fields()]
-    rv = client.get(f'/optimade/structures/test_entry_id_1?response_fields={",".join(all_fields)}')
+    rv = client.get(
+        f'/optimade/structures/test_entry_id_1?response_fields={",".join(all_fields)}'
+    )
     assert rv.status_code == 200
     data = rv.json()
     assert data.get('data') is not None

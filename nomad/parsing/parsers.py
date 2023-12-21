@@ -25,7 +25,13 @@ from nomad.config import Parser as ParserPlugin
 from nomad.datamodel import EntryArchive, EntryMetadata, results
 from nomad.datamodel.context import Context, ClientContext
 
-from .parser import MissingParser, BrokenParser, Parser, ArchiveParser, MatchingParserInterface
+from .parser import (
+    MissingParser,
+    BrokenParser,
+    Parser,
+    ArchiveParser,
+    MatchingParserInterface,
+)
 from .artificial import EmptyParser, GenerateRandomParser, TemplateParser, ChaosParser
 from .tabular import TabularDataParser
 
@@ -40,7 +46,7 @@ try:
     _compressions = {
         b'\x1f\x8b\x08': ('gz', gzip.open),
         b'\x42\x5a\x68': ('bz2', bz2.open),
-        b'\xfd\x37\x7a': ('xz', lzma.open)
+        b'\xfd\x37\x7a': ('xz', lzma.open),
     }
 
     encoding_magic = magic.Magic(mime_encoding=True)
@@ -49,8 +55,10 @@ except ImportError:
     pass
 
 
-def match_parser(mainfile_path: str, strict=True, parser_name: Optional[str] = None) -> Tuple[Parser, List[str]]:
-    '''
+def match_parser(
+    mainfile_path: str, strict=True, parser_name: Optional[str] = None
+) -> Tuple[Parser, List[str]]:
+    """
     Performs parser matching. This means it take the given mainfile and potentially
     opens it with the given callback and tries to identify a parser that can parse
     the file.
@@ -68,7 +76,7 @@ def match_parser(mainfile_path: str, strict=True, parser_name: Optional[str] = N
         `mainfile_keys` defines the keys to use for child entries, if any. If there are
         no child entries, `mainfile_keys` will be None. If no parser matches, we return
         (None, None).
-    '''
+    """
     mainfile = os.path.basename(mainfile_path)
     if mainfile.startswith('.') or mainfile.startswith('~'):
         return None, None
@@ -107,13 +115,18 @@ def match_parser(mainfile_path: str, strict=True, parser_name: Optional[str] = N
         if strict and isinstance(parser, (MissingParser, EmptyParser)):
             continue
 
-        match_result = parser.is_mainfile(mainfile_path, mime_type, buffer, decoded_buffer, compression)
+        match_result = parser.is_mainfile(
+            mainfile_path, mime_type, buffer, decoded_buffer, compression
+        )
         if match_result:
             if isinstance(match_result, Iterable):
-                assert parser.creates_children, 'Illegal return value - parser does not specify `creates_children`'
+                assert (
+                    parser.creates_children
+                ), 'Illegal return value - parser does not specify `creates_children`'
                 for mainfile_key in match_result:  # type: ignore
-                    assert mainfile_key and isinstance(mainfile_key, str), (
-                        f'Child keys must be strings, got {type(mainfile_key)}')
+                    assert mainfile_key and isinstance(
+                        mainfile_key, str
+                    ), f'Child keys must be strings, got {type(mainfile_key)}'
                 mainfile_keys = sorted(match_result)  # type: ignore
             else:
                 mainfile_keys = None
@@ -150,16 +163,21 @@ class ParserContext(Context):
 
 
 def run_parser(
-        mainfile_path: str, parser: Parser, mainfile_keys: List[str] = None,
-        logger=None, server_context: bool = False,
-        username: str = None, password: str = None) -> List[EntryArchive]:
-    '''
+    mainfile_path: str,
+    parser: Parser,
+    mainfile_keys: List[str] = None,
+    logger=None,
+    server_context: bool = False,
+    username: str = None,
+    password: str = None,
+) -> List[EntryArchive]:
+    """
     Parses a file, given the path, the parser, and mainfile_keys, as returned by
     :func:`match_parser`, and returns the resulting EntryArchive objects. Parsers that have
     `create_children == False` (the most common case) will generate a list with a single entry,
     for parsers that create children the list will consist of the main entry followed by the
     child entries. The returned archive objects will have minimal metadata.
-    '''
+    """
     directory = os.path.dirname(mainfile_path)
     if server_context:
         # TODO this looks totally wrong. ParserContext is not a server context at all.
@@ -168,7 +186,10 @@ def run_parser(
         entry_archive = EntryArchive(m_context=ParserContext(directory))
     else:
         entry_archive = EntryArchive(
-            m_context=ClientContext(local_dir=directory, username=username, password=password))
+            m_context=ClientContext(
+                local_dir=directory, username=username, password=password
+            )
+        )
 
     entry_archive.metadata = EntryMetadata()
     entry_archive.metadata.mainfile = mainfile_path
@@ -205,10 +226,13 @@ def run_parser(
 
 
 parsers = [GenerateRandomParser(), TemplateParser(), ChaosParser()]
-parsers.extend([
-    plugin.create_matching_parser_interface() for plugin_name, plugin in config.plugins.options.items()
-    if config.plugins.filter(plugin_name) and isinstance(plugin, ParserPlugin)
-])
+parsers.extend(
+    [
+        plugin.create_matching_parser_interface()
+        for plugin_name, plugin in config.plugins.options.items()
+        if config.plugins.filter(plugin_name) and isinstance(plugin, ParserPlugin)
+    ]
+)
 parsers.extend([TabularDataParser(), ArchiveParser()])
 
 # There are some entries with PIDs that have mainfiles which do not match what
@@ -216,21 +240,29 @@ parsers.extend([TabularDataParser(), ArchiveParser()])
 # to keep the PIDs. These parsers will not match for new, non migrated data.
 empty_parsers = [
     EmptyParser(
-        name='missing/octopus', code_name='Octopus', code_homepage='https://octopus-code.org/',
-        mainfile_name_re=r'(inp)|(.*/inp)'
+        name='missing/octopus',
+        code_name='Octopus',
+        code_homepage='https://octopus-code.org/',
+        mainfile_name_re=r'(inp)|(.*/inp)',
     ),
     EmptyParser(
-        name='missing/crystal', code_name='CRYSTAL', code_homepage='https://www.crystal.unito.it/index.php',
-        mainfile_name_re=r'.*\.cryst\.out'
+        name='missing/crystal',
+        code_name='CRYSTAL',
+        code_homepage='https://www.crystal.unito.it/index.php',
+        mainfile_name_re=r'.*\.cryst\.out',
     ),
     EmptyParser(
-        name='missing/wien2k', code_name='WIEN2k', code_homepage='http://www.wien2k.at/',
-        mainfile_name_re=r'.*\.scf'
+        name='missing/wien2k',
+        code_name='WIEN2k',
+        code_homepage='http://www.wien2k.at/',
+        mainfile_name_re=r'.*\.scf',
     ),
     EmptyParser(
-        name='missing/fhi-aims', code_name='FHI-aims', code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
-        mainfile_name_re=r'.*\.fhiaims'
-    )
+        name='missing/fhi-aims',
+        code_name='FHI-aims',
+        code_homepage='https://aimsclub.fhi-berlin.mpg.de/',
+        mainfile_name_re=r'.*\.fhiaims',
+    ),
 ]
 
 if config.process.use_empty_parsers:
@@ -239,8 +271,10 @@ if config.process.use_empty_parsers:
 parsers.append(BrokenParser())
 
 
-parser_dict: Dict[str, Parser] = {parser.name: parser for parser in parsers + empty_parsers}  # type: ignore
-''' A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. '''
+parser_dict: Dict[str, Parser] = {
+    parser.name: parser for parser in parsers + empty_parsers
+}  # type: ignore
+""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """
 
 
 # renamed parsers
@@ -262,24 +296,28 @@ code_names = []
 code_metadata = {}
 for parser in parsers:
     code_name = getattr(parser, 'code_name', None)
-    if getattr(parser, 'domain', None) == 'dft' and \
-            code_name is not None and \
-            code_name != 'currupted mainfile' and \
-            code_name != 'Template':
+    if (
+        getattr(parser, 'domain', None) == 'dft'
+        and code_name is not None
+        and code_name != 'currupted mainfile'
+        and code_name != 'Template'
+    ):
         code_names.append(code_name)
         if parser.metadata:
             code_metadata[code_name] = parser.metadata if parser.metadata else {}
         else:
             code_metadata[code_name] = {}
 code_names = sorted(set(code_names), key=lambda code_name: code_name.lower())
-results.Simulation.program_name.a_elasticsearch[0].values = code_names + [config.services.unavailable_value]
+results.Simulation.program_name.a_elasticsearch[0].values = code_names + [
+    config.services.unavailable_value
+]
 
 
 def import_all_parsers():
-    '''
+    """
     Imports all the parsers. This will instantiate all parser metainfo as a side
     effect.
-    '''
+    """
     for parser in parsers:
         if isinstance(parser, MatchingParserInterface):
             parser.import_parser_class()  # pylint: disable=no-member

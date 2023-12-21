@@ -56,16 +56,19 @@ class MRegEx:
         r'localhost|'
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
         r'(?::\d+)?'
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        r'(?:/?|[/?]\S+)$',
+        re.IGNORECASE,
+    )
     complex_str = re.compile(
         r'^(?=[iIjJ.\d+-])([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![iIjJ.\d]))?'
-        r'([+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)?[iIjJ])?$')
+        r'([+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)?[iIjJ])?$'
+    )
 
 
 def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None]):
-    '''
+    """
     Try to convert a given value to a complex number.
-    '''
+    """
 
     def __check_precision(_type):
         if isinstance(_type, type(None)):
@@ -73,7 +76,8 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
 
         precision_error = ValueError(
             f'Cannot type {_type.__name__} to complex number of type {complex_type.__name__} '
-            f'due to possibility of loss of precision.')
+            f'due to possibility of loss of precision.'
+        )
 
         def __check_unix():
             if os.name != 'nt' and _type in (np.float128, np.complex256):
@@ -84,7 +88,16 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
                 raise precision_error
             __check_unix()
         elif complex_type == np.complex64:  # 32-bit complex
-            if _type in (int, float, np.int32, np.int64, np.uint32, np.uint64, np.float64, np.complex128):
+            if _type in (
+                int,
+                float,
+                np.int32,
+                np.int64,
+                np.uint32,
+                np.uint64,
+                np.float64,
+                np.complex128,
+            ):
                 raise precision_error
             __check_unix()
 
@@ -95,7 +108,11 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
     # a list of complex numbers represented by int, float or str
     if isinstance(value, list):
         normalized = [normalize_complex(v, complex_type, to_unit) for v in value]
-        return normalized if complex_type == complex else np.array(normalized, dtype=complex_type)
+        return (
+            normalized
+            if complex_type == complex
+            else np.array(normalized, dtype=complex_type)
+        )
 
     # complex or real part only
     if type(value) in MTypes.num:
@@ -111,7 +128,9 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
     if isinstance(value, dict):
         real = value.get('re')
         imag = value.get('im')
-        assert real is not None or imag is not None, 'Cannot convert an empty dict to complex number.'
+        assert (
+            real is not None or imag is not None
+        ), 'Cannot convert an empty dict to complex number.'
 
         def __combine(_real, _imag):
             _real_list: bool = isinstance(_real, list)
@@ -125,7 +144,9 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
                 if _real_list and _imag_list and len(_real) == len(_imag):
                     return [__combine(r, i) for r, i in zip(_real, _imag)]
 
-                raise ValueError('Cannot combine real and imaginary parts of complex numbers.')
+                raise ValueError(
+                    'Cannot combine real and imaginary parts of complex numbers.'
+                )
 
             __check_precision(type(_real))
             __check_precision(type(_imag))
@@ -136,7 +157,11 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
             return complex_type(_real) + complex_type(_imag) * 1j
 
         combined = __combine(real, imag)
-        return combined if complex_type == complex else np.array(combined, dtype=complex_type)
+        return (
+            combined
+            if complex_type == complex
+            else np.array(combined, dtype=complex_type)
+        )
 
     # a string, '1+2j'
     # one of 'i', 'I', 'j', 'J' can be used to represent the imaginary unit
@@ -149,9 +174,9 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
 
 
 def serialize_complex(value):
-    '''
+    """
     Convert complex number to string.
-    '''
+    """
     # scalar
     if type(value) in MTypes.complex:
         return {'re': value.real, 'im': value.imag}
@@ -176,15 +201,32 @@ class MTypes:
         float: lambda v: None if v is None else float(v),
         complex: lambda v: None if v is None else complex(v),
         bool: lambda v: None if v is None else bool(v),
-        np.bool_: lambda v: None if v is None else bool(v)}
+        np.bool_: lambda v: None if v is None else bool(v),
+    }
 
-    primitive_name = {v.__name__: v for v in primitive} | {'string': str, 'boolean': bool}
+    primitive_name = {v.__name__: v for v in primitive} | {
+        'string': str,
+        'boolean': bool,
+    }
 
-    int_numpy = {np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32, np.uint64}
+    int_numpy = {
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+    }
     int_python = {int}
     int = int_python | int_numpy
-    float_numpy = {np.float16, np.float32, np.float64} | (set() if os.name == 'nt' else {np.float128})
-    complex_numpy = {np.complex64, np.complex128} | (set() if os.name == 'nt' else {np.complex256})
+    float_numpy = {np.float16, np.float32, np.float64} | (
+        set() if os.name == 'nt' else {np.float128}
+    )
+    complex_numpy = {np.complex64, np.complex128} | (
+        set() if os.name == 'nt' else {np.complex256}
+    )
     float_python = {float}
     complex_python = {complex}
     float = float_python | float_numpy
@@ -200,7 +242,7 @@ class MTypes:
 
 
 class MEnum(Sequence):
-    '''
+    """
     Allows to define string types with values limited to a pre-set list of possible values.
 
     The allowed values can be provided as a list of strings, the keys of which will be identical to values.
@@ -217,7 +259,7 @@ class MEnum(Sequence):
 
     For example:
         some_variable = MEnum(['a', 'b', 'c'], m_descriptions={'a': 'first', 'b': 'second', 'c': 'third'})
-    '''
+    """
 
     def __init__(self, *args, **kwargs):
         # Supports one big list in place of args
@@ -273,10 +315,11 @@ class MEnum(Sequence):
 
 
 class MQuantity:
-    '''
+    """
     A simple wrapper to represent complex quantities that may have multiple values,
     additional attributes, and more.
-    '''
+    """
+
     name: str = None
     value: Any = None
     unit: Optional[pint.Unit] = None
@@ -284,14 +327,15 @@ class MQuantity:
     attributes: dict = None
 
     def __init__(
-            self,
-            in_name: Optional[str],
-            in_value: Any,
-            in_unit: Optional[pint.Unit] = None,
-            in_attributes: Optional[dict] = None):
-        '''
+        self,
+        in_name: Optional[str],
+        in_value: Any,
+        in_unit: Optional[pint.Unit] = None,
+        in_attributes: Optional[dict] = None,
+    ):
+        """
         The validation of value/unit/attribute is performed at 'MSection' level.
-        '''
+        """
         self.name = in_name
         if self.name:
             assert isinstance(self.name, str), 'Name must be a string'
@@ -319,20 +363,20 @@ class MQuantity:
 
     @staticmethod
     def wrap(in_value: Any, in_name: Optional[str] = None):
-        '''
+        """
         Syntax sugar to wrap a value into a MQuantity. The name is optional.
 
         This would be useful for non-variadic primitive quantities with additional attributes.
-        '''
+        """
         return MQuantity(in_name, in_value)
 
     def __repr__(self):
         return self.name if self.name else 'Unnamed quantity'
 
     def m_set_attribute(self, name, value):
-        '''
+        """
         Validation is done outside this container
-        '''
+        """
         self.attributes[name] = value
 
 
@@ -383,7 +427,9 @@ class MSubSectionList(list):
         list.extend(self, new_value)
         for index, value in enumerate(new_value):
             # noinspection PyProtectedMember
-            self.section._on_add_sub_section(self.sub_section_def, value, start_index + index)
+            self.section._on_add_sub_section(
+                self.sub_section_def, value, start_index + index
+            )
 
     def insert(self, i, element):
         raise NotImplementedError('You can only append subsections.')
@@ -422,18 +468,18 @@ class ReferenceURL:
 
 
 class Annotation:
-    ''' Base class for annotations. '''
+    """Base class for annotations."""
 
     def m_to_dict(self):
-        '''
+        """
         Returns a JSON serializable representation that is used for exporting the
         annotation to JSON.
-        '''
+        """
         return str(self.__class__.__name__)
 
 
 class DefinitionAnnotation(Annotation):
-    ''' Base class for annotations for definitions. '''
+    """Base class for annotations for definitions."""
 
     def __init__(self):
         self.definition = None
@@ -443,10 +489,10 @@ class DefinitionAnnotation(Annotation):
 
 
 class SectionAnnotation(DefinitionAnnotation):
-    '''
+    """
     Special annotation class for section definition that allows to auto add annotations
     to section instances.
-    '''
+    """
 
     def new(self, section) -> Dict[str, Any]:
         return {}
@@ -465,8 +511,10 @@ def to_dict(entries):
     return entries
 
 
-def convert_to(from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional[ureg.Unit]):
-    '''
+def convert_to(
+    from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional[ureg.Unit]
+):
+    """
     Convert a magnitude from one unit to another.
 
     Arguments:
@@ -476,7 +524,7 @@ def convert_to(from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional
 
     Return:
         the converted magnitude
-    '''
+    """
 
     if to_unit is None:
         return from_magnitude
@@ -487,16 +535,18 @@ def convert_to(from_magnitude, from_unit: Optional[ureg.Unit], to_unit: Optional
 
 
 def __similarity_match(candidates: list, name: str):
-    '''
+    """
     Use similarity to find the best match for a name.
-    '''
-    similarity: list = [SequenceMatcher(None, v.name.upper(), name.upper()).ratio() for v in candidates]
+    """
+    similarity: list = [
+        SequenceMatcher(None, v.name.upper(), name.upper()).ratio() for v in candidates
+    ]
 
     return candidates[similarity.index(max(similarity))]
 
 
 def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = None):
-    '''
+    """
     For properties with variadic names, it is necessary to check all possible definitions
     in the schema to find the unique and correct definition that matches the naming pattern.
 
@@ -521,7 +571,7 @@ def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = No
         4. If no hint is provided, or no candidate has the hint attribute, check all quantities in the
             first candidate list and use name similarity to determine which to be used.
 
-    '''
+    """
 
     # check the exact name match
     if name in definitions:
@@ -533,7 +583,9 @@ def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = No
         if not definition.variable:
             continue
 
-        name_pattern = re.sub(r'^([a-z0-9_]*)[A-Z0-9]+([a-z0-9_]*)$', r'\1[a-z0-9]+\2', definition.name)
+        name_pattern = re.sub(
+            r'^([a-z0-9_]*)[A-Z0-9]+([a-z0-9_]*)$', r'\1[a-z0-9]+\2', definition.name
+        )
         if re.match(name_pattern, name):
             candidates.append(definition)
 
@@ -563,10 +615,10 @@ def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = No
 
 
 def retrieve_attribute(section, definition, attr_name: str) -> tuple:
-    '''
+    """
     Retrieve the attribute of a definition by its name.
     In the case of variadic/template name, the name is also resolved by checking naming pattern.
-    '''
+    """
     from nomad.metainfo.metainfo import Definition
 
     # find the section or quantity where attribute is defined
@@ -588,16 +640,17 @@ def retrieve_attribute(section, definition, attr_name: str) -> tuple:
 
 
 def validate_allowable_unit(
-        dimensionality: Optional[str],
-        allowable_list: Union[str, list, pint.Unit, pint.Quantity]) -> bool:
-    '''
+    dimensionality: Optional[str],
+    allowable_list: Union[str, list, pint.Unit, pint.Quantity],
+) -> bool:
+    """
     For a given list of units, e.g., ['m', 'cm', 'mm'], and a target NX unit token such as 'NX_LENGTH',
     this function checks the compatibility of the target unit with the list of units.
 
     Returns:
         True if ALL units are compatible with the unit token (dimensionality).
         False if at least one unit cannot be represented by the unit token (dimensionality).
-    '''
+    """
     if not dimensionality:
         return True
 
@@ -624,14 +677,14 @@ def validate_allowable_unit(
 
 
 def default_hash():
-    '''
+    """
     Returns a hash object using the designated hash algorithm.
-    '''
+    """
     return hashlib.new(__hash_method)
 
 
 def split_python_definition(definition_with_id: str) -> Tuple[list, Optional[str]]:
-    '''
+    """
     Split a Python type name into names and an optional id.
 
     Example:
@@ -640,7 +693,7 @@ def split_python_definition(definition_with_id: str) -> Tuple[list, Optional[str
         my_package.my_section       ==> (['my_package', 'my_section'], None)
 
         my_package/section_definitions/0 ==> (['my_package', 'section_definitions/0'], None)
-    '''
+    """
 
     def __split(name: str):
         # The definition name must contain at least one dot which comes from the module name.
@@ -683,8 +736,7 @@ def check_dimensionality(quantity_def, unit: Optional[pint.Unit]) -> None:
 
 
 def check_unit(unit: Union[str, pint.Unit]) -> None:
-    '''Check that the unit is valid.
-    '''
+    """Check that the unit is valid."""
     if isinstance(unit, str):
         unit_str = unit
     elif isinstance(unit, pint.Unit):
@@ -699,10 +751,10 @@ def check_unit(unit: Union[str, pint.Unit]) -> None:
 
 
 def to_section_def(section_def):
-    '''
+    """
     Resolves duck-typing for values that are section definitions or section classes to
     section definition.
-    '''
+    """
     return section_def.m_def if isinstance(section_def, type) else section_def  # type: ignore
 
 
@@ -716,7 +768,9 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
         flexible_unit = getattr(definition, 'flexible_unit', False)
 
         if not flexible_unit and not value.units.dimensionless and unit is None:
-            raise TypeError(f'The quantity {definition} does not have a unit, but value {value} does.')
+            raise TypeError(
+                f'The quantity {definition} does not have a unit, but value {value} does.'
+            )
 
         if type(value.magnitude) == np.ndarray and np_type != value.dtype:
             value = value.astype(np_type)
@@ -731,7 +785,8 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
             value = value.to_numpy()
         except AttributeError:
             raise AttributeError(
-                f'Could not convert value {value} of type pandas.Dataframe to a numpy array')
+                f'Could not convert value {value} of type pandas.Dataframe to a numpy array'
+            )
 
     if np_type in MTypes.complex:
         value = normalize_complex(value, np_type, unit)
@@ -741,17 +796,23 @@ def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value:
             try:
                 value = np.asarray(value, dtype=np_type)
             except TypeError:
-                raise TypeError(f'Could not convert value {value} of {definition} to a numpy array')
+                raise TypeError(
+                    f'Could not convert value {value} of {definition} to a numpy array'
+                )
         elif type(value) != np_type:
             try:
                 value = np_type(value)
             except TypeError:
-                raise TypeError(f'Could not convert value {value} of {definition} to a numpy scalar')
+                raise TypeError(
+                    f'Could not convert value {value} of {definition} to a numpy scalar'
+                )
     elif value.dtype != np_type and np_type in MTypes.complex:
         try:
             value = value.astype(np_type)
         except TypeError:
-            raise TypeError(f'Could not convert value {value} of {definition} to a numpy array')
+            raise TypeError(
+                f'Could not convert value {value} of {definition} to a numpy array'
+            )
 
     return value
 
@@ -785,7 +846,9 @@ def validate_shape(section, quantity_def, value: Any) -> bool:
     if len(value_shape) != len(quantity_shape):
         return False
 
-    return all(__validate_shape(section, x, y) for x, y in zip(quantity_shape, value_shape))
+    return all(
+        __validate_shape(section, x, y) for x, y in zip(quantity_shape, value_shape)
+    )
 
 
 def dict_to_named_list(data) -> list:
@@ -900,7 +963,7 @@ def normalize_datetime(value) -> Optional[datetime]:
 
 def camel_case_to_snake_case(obj: dict):
     for k, v in list(obj.items()):
-        if k != k.lower() and k != k.upper() and "_" not in k:
+        if k != k.lower() and k != k.upper() and '_' not in k:
             snake_case_key = re.sub(r'(?<!^)(?=[A-Z])', '_', k).lower()
             obj[snake_case_key] = v
             del obj[k]

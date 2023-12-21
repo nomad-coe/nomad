@@ -22,7 +22,9 @@ from cachetools import cached
 
 from optimade.filterparser import LarkParser
 from optimade.filtertransformers.elasticsearch import (
-    ElasticsearchQuantity as Quantity, ElasticTransformer as OPTElasticTransformer)
+    ElasticsearchQuantity as Quantity,
+    ElasticTransformer as OPTElasticTransformer,
+)
 
 from .common import provider_specific_fields
 
@@ -31,25 +33,34 @@ _parser = LarkParser(version=(1, 0, 1))
 
 
 class FilterException(Exception):
-    ''' Raised on parsing a filter expression with syntactic of semantic errors. '''
+    """Raised on parsing a filter expression with syntactic of semantic errors."""
+
     pass
 
 
 @cached(cache={})
 def _get_transformer(without_prefix, **kwargs):
     from nomad.datamodel import OptimadeEntry
+
     quantities: Dict[str, Quantity] = {
         q.name: Quantity(
-            q.name, backend_field='optimade.%s' % q.name,
-            elastic_mapping_type=q.a_elasticsearch.mapping['type'])
-
+            q.name,
+            backend_field='optimade.%s' % q.name,
+            elastic_mapping_type=q.a_elasticsearch.mapping['type'],
+        )
         for q in OptimadeEntry.m_def.all_quantities.values()
-        if 'elasticsearch' in q.m_annotations}
+        if 'elasticsearch' in q.m_annotations
+    }
 
-    quantities['id'] = Quantity('id', backend_field='entry_id', elastic_mapping_type='keyword')
-    quantities['immutable_id'] = Quantity('immutable_id', backend_field='entry_id', elastic_mapping_type='keyword')
+    quantities['id'] = Quantity(
+        'id', backend_field='entry_id', elastic_mapping_type='keyword'
+    )
+    quantities['immutable_id'] = Quantity(
+        'immutable_id', backend_field='entry_id', elastic_mapping_type='keyword'
+    )
     quantities['last_modified'] = Quantity(
-        'last_modified', backend_field='upload_create_time', elastic_mapping_type='date')
+        'last_modified', backend_field='upload_create_time', elastic_mapping_type='date'
+    )
 
     quantities['elements'].length_quantity = quantities['nelements']
     quantities['elements'].nested_quantity = quantities['elements_ratios']
@@ -65,13 +76,14 @@ def _get_transformer(without_prefix, **kwargs):
                 quantities[name] = Quantity(
                     name,
                     backend_field=search_quantity.search_field,
-                    elastic_mapping_type=search_quantity.mapping['type'])
+                    elastic_mapping_type=search_quantity.mapping['type'],
+                )
 
     return ElasticTransformer(quantities=quantities, **kwargs)
 
 
 def parse_filter(filter_str: str, without_prefix=False) -> Q:
-    ''' Parses the given optimade filter str and returns a suitable elastic search query.
+    """Parses the given optimade filter str and returns a suitable elastic search query.
 
     Arguments:
         filter_str: Can be direct user input with no prior processing.
@@ -81,8 +93,9 @@ def parse_filter(filter_str: str, without_prefix=False) -> Q:
     Raises:
         FilterException: If the given str cannot be parsed, or if there are any semantic
             errors in the given expression.
-    '''
+    """
     from .elasticsearch import NomadStructureMapper
+
     transformer = _get_transformer(without_prefix, mapper=NomadStructureMapper)
 
     try:
@@ -106,19 +119,19 @@ class ElasticTransformer(OPTElasticTransformer):
         """
         field = self._field(quantity, nested=nested)
         if op in self.operator_map:
-            return Q("range", **{field: {self.operator_map[op]: value}})
+            return Q('range', **{field: {self.operator_map[op]: value}})
 
         if quantity.elastic_mapping_type == 'text':
-            query_type = "match"
+            query_type = 'match'
         elif quantity.elastic_mapping_type in ['keyword', 'integer', 'float', 'bool']:
-            query_type = "term"
+            query_type = 'term'
         else:
-            raise NotImplementedError("Quantity has unsupported ES field type")
+            raise NotImplementedError('Quantity has unsupported ES field type')
 
-        if op in ["=", ""]:
+        if op in ['=', '']:
             return Q(query_type, **{field: value})
 
-        if op == "!=":
+        if op == '!=':
             return ~Q(  # pylint: disable=invalid-unary-operand-type
                 query_type, **{field: value}
             )
@@ -137,7 +150,10 @@ class ElasticTransformer(OPTElasticTransformer):
                 raise Exception('HAS ONLY is not supported by %s' % quantity.name)
 
             has_all = super()._has_query_op(quantities, 'HAS ALL', predicate_zip_list)
-            has_length = Q('term', **{quantity.length_quantity.backend_field: len(predicate_zip_list)})
+            has_length = Q(
+                'term',
+                **{quantity.length_quantity.backend_field: len(predicate_zip_list)},
+            )
             return has_all & has_length
 
         else:

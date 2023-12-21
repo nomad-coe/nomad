@@ -38,11 +38,17 @@ def context():
         pass
 
     class TestContext(Context):
-        def load_archive(self, entry_id: str, upload_id: str, installation_url: str) -> EntryArchive:
+        def load_archive(
+            self, entry_id: str, upload_id: str, installation_url: str
+        ) -> EntryArchive:
             assert installation_url is None or installation_url == self.installation_url
-            return EntryArchive(metadata=EntryMetadata(entry_id=entry_id, upload_id=upload_id))
+            return EntryArchive(
+                metadata=EntryMetadata(entry_id=entry_id, upload_id=upload_id)
+            )
 
-        def load_raw_file(self, path: str, upload_id: str, installation_url: str, url: str = None) -> MSection:
+        def load_raw_file(
+            self, path: str, upload_id: str, installation_url: str, url: str = None
+        ) -> MSection:
             assert installation_url is None or installation_url == self.installation_url
             return MySection()
 
@@ -50,38 +56,53 @@ def context():
 
 
 @pytest.mark.parametrize(
-    'url, result', [
+    'url, result',
+    [
         pytest.param('#/root', '#/root', id='fragment'),
         pytest.param('#root', '#/root', id='fragment-slash'),
-        pytest.param('../upload/archive/entry_id#root', '../upload/archive/entry_id#/root', id='entry'),
+        pytest.param(
+            '../upload/archive/entry_id#root',
+            '../upload/archive/entry_id#/root',
+            id='entry',
+        ),
         pytest.param(
             '../upload/archive/mainfile/path#root',
             f'../upload/archive/{utils.generate_entry_id("test_id", "path")}#/root',
-            id='mainfile')
-    ])
+            id='mainfile',
+        ),
+    ],
+)
 def test_normalize_reference(context, url, result):
     root_section = EntryArchive(metadata=EntryMetadata(upload_id='test_id'))
     assert context.normalize_reference(root_section, url) == result
 
 
 @pytest.mark.parametrize(
-    'source, target_archive, target_path, result', [
+    'source, target_archive, target_path, result',
+    [
         pytest.param(
-            '''{ "run": [{ "system": [{}] }]}''',
+            """{ "run": [{ "system": [{}] }]}""",
             None,
-            '/run/0/system/0', '#/run/0/system/0', id='intra-archive'
+            '/run/0/system/0',
+            '#/run/0/system/0',
+            id='intra-archive',
         ),
         pytest.param(
-            '''{ "metadata": { "upload_id": "source", "entry_id": "source" }}''',
-            '''{ "metadata": { "upload_id": "source", "entry_id": "target" }, "run": [{ "system": [{}] }]}''',
-            '/run/0/system/0', '../upload/archive/target#/run/0/system/0', id='intra-upload'
+            """{ "metadata": { "upload_id": "source", "entry_id": "source" }}""",
+            """{ "metadata": { "upload_id": "source", "entry_id": "target" }, "run": [{ "system": [{}] }]}""",
+            '/run/0/system/0',
+            '../upload/archive/target#/run/0/system/0',
+            id='intra-upload',
         ),
         pytest.param(
-            '''{ "metadata": { "upload_id": "source", "entry_id": "source" }}''',
-            '''{ "metadata": { "upload_id": "target", "entry_id": "target" }, "run": [{ "system": [{}] }]}''',
-            '/run/0/system/0', '../uploads/target/archive/target#/run/0/system/0', id='intra-oasis'
-        )
-    ])
+            """{ "metadata": { "upload_id": "source", "entry_id": "source" }}""",
+            """{ "metadata": { "upload_id": "target", "entry_id": "target" }, "run": [{ "system": [{}] }]}""",
+            '/run/0/system/0',
+            '../uploads/target/archive/target#/run/0/system/0',
+            id='intra-oasis',
+        ),
+    ],
+)
 def test_create_reference(context, source, target_archive, target_path, result):
     source = EntryArchive.m_from_dict(json.loads(source))
     source.m_context = context
@@ -97,63 +118,110 @@ def test_create_reference(context, source, target_archive, target_path, result):
 
 
 @pytest.mark.parametrize(
-    'path, result', [
+    'path, result',
+    [
         pytest.param(
-            '/entries/sample_entry/archive#/seg01/1', (None, None, 'sample_entry', 'archive', '/seg01/1'),
-            id='local-same-upload-01'),
+            '/entries/sample_entry/archive#/seg01/1',
+            (None, None, 'sample_entry', 'archive', '/seg01/1'),
+            id='local-same-upload-01',
+        ),
         pytest.param(
-            '../entries/sample_entry/archive#/seg01/1', (None, None, 'sample_entry', 'archive', '/seg01/1'),
-            id='local-same-upload-02'),
+            '../entries/sample_entry/archive#/seg01/1',
+            (None, None, 'sample_entry', 'archive', '/seg01/1'),
+            id='local-same-upload-02',
+        ),
         pytest.param(
             '/uploads/sample_upload/archive/sample_entry#/seg1/22',
             (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
-            id='local-another-upload-01'),
+            id='local-another-upload-01',
+        ),
         pytest.param(
-            '/upload/archive/sample_entry#/seg1/22', (None, None, 'sample_entry', 'archive', '/seg1/22'),
-            id='local-another-upload-02'),
+            '/upload/archive/sample_entry#/seg1/22',
+            (None, None, 'sample_entry', 'archive', '/seg1/22'),
+            id='local-another-upload-02',
+        ),
         pytest.param(
             '/upload/archive/mainfile/mainfile_id#/seg1/22',
             (None, None, utils.hash(None, 'mainfile_id'), 'archive', '/seg1/22'),
-            id='local-another-upload-03'),
+            id='local-another-upload-03',
+        ),
         pytest.param(
             '../uploads/sample_upload/archive/sample_entry#/seg1/22',
             (None, 'sample_upload', 'sample_entry', 'archive', '/seg1/22'),
-            id='local-another-upload-04'),
+            id='local-another-upload-04',
+        ),
         pytest.param(
             '../uploads/GrP11O7pSJCb8Tu-FD0z1g/raw/template-schema.archive.yaml#/definitions/section_definitions/0',
-            (None, 'GrP11O7pSJCb8Tu-FD0z1g', 'template-schema.archive.yaml', 'raw', '/definitions/section_definitions/0'),
-            id='local-another-upload-05'),
+            (
+                None,
+                'GrP11O7pSJCb8Tu-FD0z1g',
+                'template-schema.archive.yaml',
+                'raw',
+                '/definitions/section_definitions/0',
+            ),
+            id='local-another-upload-05',
+        ),
         pytest.param(
             'https://myoasis.de/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('https://myoasis.de', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
-            id='remote-upload-01'),
+            (
+                'https://myoasis.de',
+                'sample_upload',
+                'sample_entry',
+                'archive',
+                '/run/0/calculation/1',
+            ),
+            id='remote-upload-01',
+        ),
         pytest.param(
             './uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('.', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'), id='remote-upload-02'),
+            ('.', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
+            id='remote-upload-02',
+        ),
         pytest.param(
             './uploads/sample_upload/archives/sample_entry#/run/0/calculation/1',
-            None, id='remote-upload-03'),
+            None,
+            id='remote-upload-03',
+        ),
         pytest.param(
             'localhost/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('localhost', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
-            id='remote-upload-04'),
+            (
+                'localhost',
+                'sample_upload',
+                'sample_entry',
+                'archive',
+                '/run/0/calculation/1',
+            ),
+            id='remote-upload-04',
+        ),
         pytest.param(
             'http://127.0.0.1/uploads/sample_upload/archive/sample_entry#/run/0/calculation/1',
-            ('http://127.0.0.1', 'sample_upload', 'sample_entry', 'archive', '/run/0/calculation/1'),
-            id='remote-upload-05'),
-    ])
+            (
+                'http://127.0.0.1',
+                'sample_upload',
+                'sample_entry',
+                'archive',
+                '/run/0/calculation/1',
+            ),
+            id='remote-upload-05',
+        ),
+    ],
+)
 def test_parsing_reference(path, result):
     path_parts = parse_path(path)
     assert path_parts == result
 
 
 @pytest.mark.parametrize(
-    'url', [
+    'url',
+    [
         pytest.param('../upload/archive/entry', id='intra-upload'),
         pytest.param('../uploads/upload/archive/entry', id='intra-oasis'),
         pytest.param('../uploads/upload/raw/path/to/file', id='raw-file'),
-        pytest.param('../uploads/upload/archive/mainfile/path/to/mainfile', id='mainfile'),
-    ])
+        pytest.param(
+            '../uploads/upload/archive/mainfile/path/to/mainfile', id='mainfile'
+        ),
+    ],
+)
 def test_resolve_archive(context, url):
     target = context.resolve_archive_url(url)
     assert target is not None
@@ -162,73 +230,56 @@ def test_resolve_archive(context, url):
 
 
 @pytest.mark.parametrize(
-    'upload_contents', [
+    'upload_contents',
+    [
         pytest.param(
             {
                 'mainfile.archive.json': {
-                    'definitions': {
-                        'section_definitions': [
-                            {
-                                "name": "MySection"
-                            }
-                        ]
-                    },
-                    'data': {
-                        'm_def': '#/definitions/section_definitions/0'
-                    }
+                    'definitions': {'section_definitions': [{'name': 'MySection'}]},
+                    'data': {'m_def': '#/definitions/section_definitions/0'},
                 }
-            }, id='intra-entry'),
+            },
+            id='intra-entry',
+        ),
         pytest.param(
             {
                 'schema.archive.json': {
-                    'definitions': {
-                        'section_definitions': [
-                            {
-                                "name": "MySection"
-                            }
-                        ]
-                    }
+                    'definitions': {'section_definitions': [{'name': 'MySection'}]}
                 },
                 'data.archive.json': {
                     'data': {
                         'm_def': f'../upload/archive/{utils.generate_entry_id("test_upload", "schema.archive.json")}#/definitions/section_definitions/0'
                     }
-                }
-            }, id='intra-upload-entry-id'),
+                },
+            },
+            id='intra-upload-entry-id',
+        ),
         pytest.param(
             {
                 'schema.archive.json': {
-                    'definitions': {
-                        'section_definitions': [
-                            {
-                                "name": "MySection"
-                            }
-                        ]
-                    }
+                    'definitions': {'section_definitions': [{'name': 'MySection'}]}
                 },
                 'data.archive.json': {
                     'data': {
                         'm_def': '../upload/archive/mainfile/schema.archive.json#/definitions/section_definitions/0'
                     }
-                }
-            }, id='intra-upload-mainfile'),
+                },
+            },
+            id='intra-upload-mainfile',
+        ),
         pytest.param(
             {
                 'schema.archive.json': {
-                    'definitions': {
-                        'section_definitions': [
-                            {
-                                "name": "MySection"
-                            }
-                        ]
-                    }
+                    'definitions': {'section_definitions': [{'name': 'MySection'}]}
                 },
                 'data.archive.json': {
                     'data': {
                         'm_def': '../upload/raw/schema.archive.json#/definitions/section_definitions/0'
                     }
-                }
-            }, id='intra-upload-raw'),
+                },
+            },
+            id='intra-upload-raw',
+        ),
         pytest.param(
             {
                 'schema.json': {
@@ -236,55 +287,52 @@ def test_resolve_archive(context, url):
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "nomad.datamodel.data.EntryData"
-                                ],
-                                "name": "Chemical"
+                                'base_sections': ['nomad.datamodel.data.EntryData'],
+                                'name': 'Chemical',
                             },
                             {
-                                "base_sections": [
-                                    "nomad.datamodel.data.EntryData"
-                                ],
-                                "name": "Sample",
-                                "quantities": [
+                                'base_sections': ['nomad.datamodel.data.EntryData'],
+                                'name': 'Sample',
+                                'quantities': [
                                     {
-                                        "name": "chemicals",
-                                        "shape": ["*"],
-                                        "type": {
-                                            "type_kind": "reference",
-                                            "type_data": "#/definitions/section_definitions/0"
-                                        }
+                                        'name': 'chemicals',
+                                        'shape': ['*'],
+                                        'type': {
+                                            'type_kind': 'reference',
+                                            'type_data': '#/definitions/section_definitions/0',
+                                        },
                                     }
-                                ]
-                            }
+                                ],
+                            },
                         ]
-                    }
+                    },
                 },
                 'chemical.archive.json': {
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "../upload/raw/schema.json#/definitions/section_definitions/0"
+                                'base_sections': [
+                                    '../upload/raw/schema.json#/definitions/section_definitions/0'
                                 ],
-                                "name": "MyChemical"
+                                'name': 'MyChemical',
                             }
                         ]
                     },
-                    'data': {
-                        'm_def': '#/definitions/section_definitions/0'
-                    }
+                    'data': {'m_def': '#/definitions/section_definitions/0'},
                 },
                 'sample.archive.json': {
                     'data': {
                         'm_def': '../upload/raw/schema.json#/definitions/section_definitions/1',
                         'chemicals': [
                             '../upload/archive/mainfile/chemical.archive.json#/data'
-                        ]
+                        ],
                     }
-                }
-            }, id='mixed-references')
-    ])
+                },
+            },
+            id='mixed-references',
+        ),
+    ],
+)
 def test_server_custom_schema(upload_contents, raw_files):
     upload_files = files.StagingUploadFiles('test_upload', create=True)
     upload = processing.Upload(upload_id='test_upload')
@@ -301,10 +349,15 @@ def test_server_custom_schema(upload_contents, raw_files):
 
         entry_id = utils.generate_entry_id('test_upload', file_name)
         archive = EntryArchive(
-            m_context=context, metadata=EntryMetadata(
-                upload_id='test_upload', entry_id=entry_id, mainfile=file_name))
+            m_context=context,
+            metadata=EntryMetadata(
+                upload_id='test_upload', entry_id=entry_id, mainfile=file_name
+            ),
+        )
 
-        parser.parse(mainfile=upload_files.raw_file_object(file_name).os_path, archive=archive)
+        parser.parse(
+            mainfile=upload_files.raw_file_object(file_name).os_path, archive=archive
+        )
         upload_files.write_archive(entry_id, archive.m_to_dict())
         results = archive.m_to_dict(with_out_meta=True)
         del results['metadata']
@@ -312,7 +365,8 @@ def test_server_custom_schema(upload_contents, raw_files):
 
 
 @pytest.mark.parametrize(
-    'upload1_contents, upload2_contents', [
+    'upload1_contents, upload2_contents',
+    [
         pytest.param(
             {
                 'schema.json': {
@@ -320,22 +374,20 @@ def test_server_custom_schema(upload_contents, raw_files):
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "nomad.datamodel.data.EntryData"
-                                ],
-                                "name": "BaseSection"
+                                'base_sections': ['nomad.datamodel.data.EntryData'],
+                                'name': 'BaseSection',
                             }
                         ]
-                    }
+                    },
                 },
                 'chemical.archive.json': {
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "../upload/raw/schema.json#/definitions/section_definitions/0"
+                                'base_sections': [
+                                    '../upload/raw/schema.json#/definitions/section_definitions/0'
                                 ],
-                                "name": "SubstanceExtended"
+                                'name': 'SubstanceExtended',
                             }
                         ]
                     }
@@ -344,32 +396,33 @@ def test_server_custom_schema(upload_contents, raw_files):
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "../upload/raw/chemical.archive.json#/definitions/section_definitions/0"
+                                'base_sections': [
+                                    '../upload/raw/chemical.archive.json#/definitions/section_definitions/0'
                                 ],
-                                "name": "Chem"
+                                'name': 'Chem',
                             }
                         ]
                     }
-                }
+                },
             },
             {
                 'extended_chem.archive.json': {
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "../upload/upload1_id/archive/upload1_entry2#/definitions/section_definitions/0"
+                                'base_sections': [
+                                    '../upload/upload1_id/archive/upload1_entry2#/definitions/section_definitions/0'
                                 ],
-                                "name": "ExtendedChem"
+                                'name': 'ExtendedChem',
                             }
                         ]
                     },
-                    "data": {
-                        "m_def": "#/definitions/section_definitions/0"
-                    }
+                    'data': {'m_def': '#/definitions/section_definitions/0'},
                 }
-            }, id='external-references')]
+            },
+            id='external-references',
+        )
+    ],
 )
 def test_server_external_schema(upload1_contents, upload2_contents, raw_files):
     upload1_files = files.StagingUploadFiles('upload1_id', create=True)
@@ -387,10 +440,15 @@ def test_server_external_schema(upload1_contents, upload2_contents, raw_files):
             continue
         entry_id = 'upload1_entry{}'.format(index)
         archive = EntryArchive(
-            m_context=context1, metadata=EntryMetadata(
-                upload_id='upload1_id', entry_id=entry_id, mainfile=file_name))
+            m_context=context1,
+            metadata=EntryMetadata(
+                upload_id='upload1_id', entry_id=entry_id, mainfile=file_name
+            ),
+        )
 
-        parser.parse(mainfile=upload1_files.raw_file_object(file_name).os_path, archive=archive)
+        parser.parse(
+            mainfile=upload1_files.raw_file_object(file_name).os_path, archive=archive
+        )
         upload1_files.write_archive(entry_id, archive.m_to_dict())
 
     upload2_files = files.StagingUploadFiles('upload2_id', create=True)
@@ -405,10 +463,15 @@ def test_server_external_schema(upload1_contents, upload2_contents, raw_files):
     for index, (file_name, content) in enumerate(upload2_contents.items()):
         entry_id = 'upload2_entry{}'.format(index)
         archive = EntryArchive(
-            m_context=context2, metadata=EntryMetadata(
-                upload_id='upload2_id', entry_id=entry_id, mainfile=file_name))
+            m_context=context2,
+            metadata=EntryMetadata(
+                upload_id='upload2_id', entry_id=entry_id, mainfile=file_name
+            ),
+        )
 
-        parser.parse(mainfile=upload2_files.raw_file_object(file_name).os_path, archive=archive)
+        parser.parse(
+            mainfile=upload2_files.raw_file_object(file_name).os_path, archive=archive
+        )
         upload2_files.write_archive(entry_id, archive.m_to_dict())
         results = archive.m_to_dict(with_out_meta=True)
         del results['metadata']
@@ -423,11 +486,14 @@ def test_client_custom_schema(api_v1, published_wo_user_metadata):
     full_path = test_path + local_file
 
     entry_id = utils.generate_entry_id(
-        published_wo_user_metadata.upload_id, f'examples_template/template.json')
+        published_wo_user_metadata.upload_id, f'examples_template/template.json'
+    )
 
     with open(full_path, 'r') as f:
         text = f.read().replace(
-            '/run/0', f'{url}/uploads/{published_wo_user_metadata.upload_id}/archive/{entry_id}#/run/0')
+            '/run/0',
+            f'{url}/uploads/{published_wo_user_metadata.upload_id}/archive/{entry_id}#/run/0',
+        )
         content = json.loads(text)
 
     full_path = test_path + 'modified_' + local_file
@@ -442,7 +508,9 @@ def test_client_custom_schema(api_v1, published_wo_user_metadata):
     parser.parse(mainfile=full_path, archive=archive)
 
     assert isinstance(
-        archive.run[0].calculation[0].system_ref.atoms, nomad.datamodel.metainfo.simulation.system.Atoms)
+        archive.run[0].calculation[0].system_ref.atoms,
+        nomad.datamodel.metainfo.simulation.system.Atoms,
+    )
 
     results = archive.m_to_dict()
 
@@ -453,31 +521,32 @@ def test_client_custom_schema(api_v1, published_wo_user_metadata):
 
 
 @pytest.mark.parametrize(
-    'referencing_upload_contents', [
+    'referencing_upload_contents',
+    [
         pytest.param(
             {
                 'extended_chem.archive.json': {
                     'definitions': {
                         'section_definitions': [
                             {
-                                "base_sections": [
-                                    "../upload/references_upload_id1/archive/-ld_4ohLePE2oOcfX_CYa9oiu_1l#/definitions/section_definitions/0"
+                                'base_sections': [
+                                    '../upload/references_upload_id1/archive/-ld_4ohLePE2oOcfX_CYa9oiu_1l#/definitions/section_definitions/0'
                                 ],
-                                "name": "ExtendedChem"
+                                'name': 'ExtendedChem',
                             }
                         ]
                     },
-                    "data": {
-                        "m_def": "#/definitions/section_definitions/0"
-                    }
+                    'data': {'m_def': '#/definitions/section_definitions/0'},
                 }
-            }, id='external-references')]
+            },
+            id='external-references',
+        )
+    ],
 )
 def test_client_external_schema(
-        referencing_upload_contents, raw_files, test_user, api_v1, proc_infra):
-    upload1 = Upload(
-        upload_id='references_upload_id1',
-        main_author=test_user.user_id)
+    referencing_upload_contents, raw_files, test_user, api_v1, proc_infra
+):
+    upload1 = Upload(upload_id='references_upload_id1', main_author=test_user.user_id)
     upload1.save()
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/upload1')
@@ -494,17 +563,22 @@ def test_client_external_schema(
         upload_id='upload2_id',
         installation_url=installation_url,
         username=test_user.username,
-        password='password'
+        password='password',
     )
 
     parser = ArchiveParser()
     for index, (file_name, content) in enumerate(referencing_upload_contents.items()):
         entry_id = 'upload2_entry{}'.format(index)
         archive = EntryArchive(
-            m_context=context2, metadata=EntryMetadata(
-                upload_id='upload2_id', entry_id=entry_id, mainfile=file_name))
+            m_context=context2,
+            metadata=EntryMetadata(
+                upload_id='upload2_id', entry_id=entry_id, mainfile=file_name
+            ),
+        )
 
-        parser.parse(mainfile=upload2_files.raw_file_object(file_name).os_path, archive=archive)
+        parser.parse(
+            mainfile=upload2_files.raw_file_object(file_name).os_path, archive=archive
+        )
         upload2_files.write_archive(entry_id, archive.m_to_dict())
         results = archive.m_to_dict(with_out_meta=True)
         del results['metadata']
@@ -512,9 +586,7 @@ def test_client_external_schema(
 
 
 def test_circular_external_schema(raw_files, test_user, api_v1, proc_infra):
-    upload1 = Upload(
-        upload_id='upload_id',
-        main_author=test_user.user_id)
+    upload1 = Upload(upload_id='upload_id', main_author=test_user.user_id)
     upload1.save()
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/circular')

@@ -20,7 +20,9 @@ config.logstash.enabled = False
 server_logger = logging.getLogger(name='logtransfer_server')
 server_logger.setLevel(logging.INFO)
 server_handler = logging.StreamHandler()
-server_handler.setFormatter(logging.Formatter('%(levelname)s: %(asctime)s %(message)s', '%Y-%m-%d %H:%M:%S'))
+server_handler.setFormatter(
+    logging.Formatter('%(levelname)s: %(asctime)s %(message)s', '%Y-%m-%d %H:%M:%S')
+)
 server_logger.addHandler(server_handler)
 
 
@@ -30,7 +32,7 @@ def get_log_filepath():
 
 
 def get_all_rotated_logfiles():
-    '''
+    """
     Returns all rotated logfiles.
 
     A rotated logfile has the following structure:
@@ -41,11 +43,11 @@ def get_all_rotated_logfiles():
 
     In contrast, for the active logfile, where logs may still be written, [index] is empty.
     The list is sorted such that the oldest file with the highest index appears first.
-    '''
+    """
     rotated_logfiles = []
 
     for filepath in os.listdir(config.fs.tmp):
-        if re.search(fr'{config.logtransfer.log_filename}.[0-9]+', filepath):
+        if re.search(rf'{config.logtransfer.log_filename}.[0-9]+', filepath):
             fullpath = os.path.abspath(os.path.join(config.fs.tmp, filepath))
             n_rotated_logfiles = int(fullpath.split('.')[-1])
             rotated_logfiles.append((fullpath, n_rotated_logfiles))
@@ -61,12 +63,12 @@ def gzip_bytes(msg) -> bytes:
 
 
 def clear_logfiles():
-    '''
+    """
     Perform a rollover on the current logfile and then remove all rotated logfiles.
 
     Note that if the logger is still used than this operation is unsafe and potentially breaks the logger. This
     function is mainly intended for testing.
-    '''
+    """
 
     try:
         logfile = get_log_filepath()
@@ -90,31 +92,32 @@ def is_empty_logfile():
 
 
 class NotifyRotatingFileHandler(RotatingFileHandler):
-    '''Adapted `RotatingFileHandler` used within in the `Logtransfer` class.
+    """Adapted `RotatingFileHandler` used within in the `Logtransfer` class.
 
     This adaptation of RotatingFileHandler does not perform a file rollover when `maxBytes` is reached. Instead, it
     notifies the Logtransfer class thread. This is because data is being sent to the central Nomad, and performing a
     file rollover at the same time could result in file conflicts and race conditions.
 
     The Lock is needed to protect `shouldRollover()` and `doRollover()` as they are not thread-safe (see attribute
-    `stream` in the handler).'''
+    `stream` in the handler)."""
+
     rollover_lock = threading.Lock()
     notify_rollover_event: threading.Event = None
 
     def set_event_attribute(self, event: threading.Event):
-        '''Set the event to the class on which this handler can notify the thread to safely perform the file
-        rollover.'''
+        """Set the event to the class on which this handler can notify the thread to safely perform the file
+        rollover."""
         self.notify_rollover_event = event
 
     def is_event_attribute_set(self):
         return isinstance(self.notify_rollover_event, threading.Event)
 
     def emit(self, record) -> None:
-        '''Emit a record.
+        """Emit a record.
 
         Output the record to the file, if `maxBytes` (see `RotatingFileHandler`) is reached a
         `threading.Event` is set (for the event see `Logtransfer.transfer_logs`.
-        '''
+        """
         try:
             with self.rollover_lock:  # shouldRollover and doRollover are not thread-safe
                 # mypy does not recognize the method in the superclass
@@ -130,17 +133,14 @@ class NotifyRotatingFileHandler(RotatingFileHandler):
 
 
 class Logtransfer:
-    '''
+    """
     Responsible for rotating the logfile and transfering the logs to central Nomad.
 
     The main method is `transfer_logs` which is intended to run in a thread (concurrently to the logstash proxy server
     that receives and writes new logs).
-    '''
+    """
 
-    def __init__(
-            self,
-            rotating_file: NotifyRotatingFileHandler):
-
+    def __init__(self, rotating_file: NotifyRotatingFileHandler):
         self.reached_max_bytes_event = threading.Event()
         self.rotating_file = rotating_file
         self.rotating_file.set_event_attribute(self.reached_max_bytes_event)
@@ -150,17 +150,19 @@ class Logtransfer:
         if self.submit_interval <= 0 and not isinstance(self.submit_interval, int):
             raise TypeError(
                 f'submit_interval must be a positive integer value. Got {self.submit_interval} '
-                f'with type {type(self.submit_interval)}')
+                f'with type {type(self.submit_interval)}'
+            )
 
         self.central_nomad_api_url = config.oasis.central_nomad_deployment_url
 
         if not self.central_nomad_api_url.endswith('/'):
             self.central_nomad_api_url += '/'
 
-        self.raise_unexpected_exceptions = config.logtransfer.raise_unexpected_exceptions
+        self.raise_unexpected_exceptions = (
+            config.logtransfer.raise_unexpected_exceptions
+        )
 
     def _rotated_logfile_iterator(self):
-
         all_rotated_logfiles = get_all_rotated_logfiles()
 
         if len(all_rotated_logfiles) > 0:
@@ -178,7 +180,6 @@ class Logtransfer:
             server_logger.info('No logfiles to submit.')
 
     def _submit_logfile_to_central(self, logfile_content: bytes):
-
         central_post_federation_url = f'{self.central_nomad_api_url}federation/logs/'
 
         try:
@@ -187,7 +188,7 @@ class Logtransfer:
             ret_request = requests.post(
                 central_post_federation_url,
                 headers=headers,
-                data=gzip_bytes(logfile_content)
+                data=gzip_bytes(logfile_content),
             )
 
             is_successful = ret_request.status_code == 200
@@ -207,7 +208,9 @@ class Logtransfer:
 
         except requests.exceptions.ConnectionError:
             is_successful = False
-            server_logger.info(f'HTTP connection to {central_post_federation_url} could not be established')
+            server_logger.info(
+                f'HTTP connection to {central_post_federation_url} could not be established'
+            )
 
         return is_successful
 
@@ -260,7 +263,8 @@ class Logtransfer:
                 if self.rotating_file.stream.tell() != 0:  # type: ignore
                     server_logger.info(
                         'Perform rollover on logfile. stream position in '  # type: ignore
-                        f'bytes={self.rotating_file.stream.tell()}')
+                        f'bytes={self.rotating_file.stream.tell()}'
+                    )
 
                     # Note: this should be the only place where doRollover() is called. A call outside this thread
                     # causes a race condition on the methods where the logfiles are submitted and removed
@@ -272,7 +276,6 @@ class Logtransfer:
 
 
 class LogstashTCPHandler(socketserver.StreamRequestHandler):
-
     def handle(self) -> None:
         self.server: TCPServerReuseAddress
 
@@ -294,10 +297,10 @@ class LogstashTCPHandler(socketserver.StreamRequestHandler):
 
 
 class TCPServerReuseAddress(socketserver.TCPServer):
-    '''
+    """
     This class overwrites default class parameters of TCPServer.
     This is recommended at https://stackoverflow.com/a/42147927)
-    '''
+    """
 
     # TODO: consider also if it is better to inherit from ThreadingTCPServer because (from Python docu):
     #  https://docs.python.org/3/library/socketserver.html#socketserver.ThreadingTCPServer
@@ -310,7 +313,9 @@ class TCPServerReuseAddress(socketserver.TCPServer):
     # this allows to quickly set up the server again after it may have terminated
     allow_reuse_port = True
     allow_reuse_address = True
-    request_queue_size = 20  # default is 5, set to higher value here to avoid ConnectionRefused errors
+    request_queue_size = (
+        20  # default is 5, set to higher value here to avoid ConnectionRefused errors
+    )
 
     def __init__(self, logger, *args, **kwargs):
         super(TCPServerReuseAddress, self).__init__(*args, **kwargs)
@@ -319,7 +324,6 @@ class TCPServerReuseAddress(socketserver.TCPServer):
 
 
 def _start_logstash_proxy_server(logger, host, port):
-
     if isinstance(port, str):
         # accept parseable str to align with Nomad config specification
         try:
@@ -329,8 +333,12 @@ def _start_logstash_proxy_server(logger, host, port):
                 f'Server port must be of type integer (or parseable string). Got port={port} of type {type(port)}'
             )
 
-    logstash_proxy_server = TCPServerReuseAddress(logger, (host, port), LogstashTCPHandler, bind_and_activate=True)
-    logstash_proxy_server.timeout = 30  # is closed after timeout period with no requests being received
+    logstash_proxy_server = TCPServerReuseAddress(
+        logger, (host, port), LogstashTCPHandler, bind_and_activate=True
+    )
+    logstash_proxy_server.timeout = (
+        30  # is closed after timeout period with no requests being received
+    )
 
     with logstash_proxy_server as server:
         server_logger.info(f'Start logstash proxy server on host={host} port={port}.')
@@ -357,7 +365,7 @@ def _initialize_logger_and_handler():
         filename=get_log_filepath(),
         mode='a',
         backupCount=config.logtransfer.backup_count,
-        maxBytes=config.logtransfer.max_bytes
+        maxBytes=config.logtransfer.max_bytes,
     )
 
     logstash_logger.addHandler(rotating_logfile_handler)
@@ -368,12 +376,12 @@ def _initialize_logger_and_handler():
 
 
 def start_logtransfer_service(host=None, port=None):
-    '''
+    """
     Start logtransfer service.
 
     The two parameters host and port are mainly necessary for testing. If left None, then the values from the
     Nomad config are used.
-    '''
+    """
     # for appropriate arguments see attributes in
     # nomad.config.logstash and nomad.config.logstash_proxy and config.oasis.central_nomad_api_url
 
@@ -388,7 +396,9 @@ def start_logtransfer_service(host=None, port=None):
     assert rotating_logfile_handler.is_event_attribute_set()
 
     d = threading.Thread(target=transfer_to_central.transfer_logs, name='logtransfer')
-    d.setDaemon(True)  # kill thread immediately if main thread (running the server) terminates
+    d.setDaemon(
+        True
+    )  # kill thread immediately if main thread (running the server) terminates
     d.start()
 
     if host is None:

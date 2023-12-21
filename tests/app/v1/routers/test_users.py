@@ -1,4 +1,3 @@
-
 #
 # Copyright The NOMAD Authors.
 #
@@ -18,8 +17,10 @@
 #
 
 import pytest
-from tests.conftest import (test_users as conf_test_users,
-                            test_user_uuid as conf_test_user_uuid)
+from tests.conftest import (
+    test_users as conf_test_users,
+    test_user_uuid as conf_test_user_uuid,
+)
 
 
 def assert_user(user, expected_user):
@@ -47,12 +48,15 @@ def test_me_auth_bad_token(client):
 
 def test_invite(client, test_user_auth, no_warn):
     rv = client.put(
-        'users/invite', headers=test_user_auth, json={
+        'users/invite',
+        headers=test_user_auth,
+        json={
             'first_name': 'John',
             'last_name': 'Doe',
             'affiliation': 'Affiliation',
-            'email': 'john.doe@affiliation.edu'
-        })
+            'email': 'john.doe@affiliation.edu',
+        },
+    )
     assert rv.status_code == 200
     data = rv.json()
     keys = data.keys()
@@ -60,24 +64,38 @@ def test_invite(client, test_user_auth, no_warn):
     assert all(key in keys for key in required_keys)
 
 
-@pytest.mark.parametrize('args, expected_status_code, expected_content', [
-    pytest.param(dict(
-        prefix='Sheldon'), 200,
-        conf_test_users[conf_test_user_uuid(1)],
-        id='search-user'),
-    pytest.param(dict(
-        user_id=conf_test_user_uuid(1)), 200,
-        conf_test_users[conf_test_user_uuid(1)],
-        id='one-user-id'),
-    pytest.param(dict(
-        user_id=[conf_test_user_uuid(1), conf_test_user_uuid(2)]), 200,
-        [conf_test_users[conf_test_user_uuid(1)], conf_test_users[conf_test_user_uuid(2)]],
-        id='multi-user-id'),
-    pytest.param(dict(
-        user_id=[conf_test_user_uuid(1), conf_test_user_uuid(9)]), 200,
-        [conf_test_users[conf_test_user_uuid(1)]],
-        id='wrong-user-id')
-])
+@pytest.mark.parametrize(
+    'args, expected_status_code, expected_content',
+    [
+        pytest.param(
+            dict(prefix='Sheldon'),
+            200,
+            conf_test_users[conf_test_user_uuid(1)],
+            id='search-user',
+        ),
+        pytest.param(
+            dict(user_id=conf_test_user_uuid(1)),
+            200,
+            conf_test_users[conf_test_user_uuid(1)],
+            id='one-user-id',
+        ),
+        pytest.param(
+            dict(user_id=[conf_test_user_uuid(1), conf_test_user_uuid(2)]),
+            200,
+            [
+                conf_test_users[conf_test_user_uuid(1)],
+                conf_test_users[conf_test_user_uuid(2)],
+            ],
+            id='multi-user-id',
+        ),
+        pytest.param(
+            dict(user_id=[conf_test_user_uuid(1), conf_test_user_uuid(9)]),
+            200,
+            [conf_test_users[conf_test_user_uuid(1)]],
+            id='wrong-user-id',
+        ),
+    ],
+)
 def test_users(client, args, expected_status_code, expected_content):
     prefix = args.get('prefix', None)
     user_id = args.get('user_id', None)
@@ -112,11 +130,17 @@ def test_users(client, args, expected_status_code, expected_content):
                     assert_user(user, expected_user)
 
 
-@pytest.mark.parametrize('args, expected_status_code, expected_content', [
-    pytest.param(dict(
-        user_id=conf_test_user_uuid(1)), 200,
-        conf_test_users[conf_test_user_uuid(1)],
-        id='valid-user')])
+@pytest.mark.parametrize(
+    'args, expected_status_code, expected_content',
+    [
+        pytest.param(
+            dict(user_id=conf_test_user_uuid(1)),
+            200,
+            conf_test_users[conf_test_user_uuid(1)],
+            id='valid-user',
+        )
+    ],
+)
 def test_users_id(client, args, expected_status_code, expected_content):
     user_id = args['user_id']
     rv = client.get(f'users/{user_id}')

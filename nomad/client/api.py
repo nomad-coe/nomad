@@ -23,7 +23,8 @@ import time
 from nomad import config
 
 
-class APIError(Exception): pass
+class APIError(Exception):
+    pass
 
 
 def _call_requests(method, path: str, ssl: bool = True, *args, **kwargs):
@@ -48,12 +49,12 @@ def delete(*args, **kwargs):
 
 
 def url(path):
-    ''' Returns the full NOMAD API url for the given api path. '''
+    """Returns the full NOMAD API url for the given api path."""
     return f'{config.client.url}/v1/{path}'
 
 
 class Auth(requests.auth.AuthBase):
-    '''
+    """
     A request Auth class that can be used to authenticate in request callcs like this:
 
     .. code::
@@ -69,11 +70,14 @@ class Auth(requests.auth.AuthBase):
         from_api: If true, the necessary access token is acquired through the NOMAD api via basic auth
             and not via keycloak directly. Default is False. Not recommended, but might
             be useful, if keycloak can't be configured (e.g. during tests) or reached.
-    '''
+    """
+
     def __init__(
-            self, user: str = config.client.user,
-            password: str = config.client.password,
-            from_api: bool = False):
+        self,
+        user: str = config.client.user,
+        password: str = config.client.password,
+        from_api: bool = False,
+    ):
         self.user = user
         self._password = password
         self.from_api = from_api
@@ -81,7 +85,8 @@ class Auth(requests.auth.AuthBase):
         self.__oidc = KeycloakOpenID(
             server_url=config.keycloak.server_url,
             realm_name=config.keycloak.realm_name,
-            client_id=config.keycloak.client_id)
+            client_id=config.keycloak.client_id,
+        )
 
         if user and password:
             # force to get access token from user and password
@@ -97,14 +102,16 @@ class Auth(requests.auth.AuthBase):
         if self._token is None:
             response = requests.get(
                 url('auth/token'),
-                params=dict(username=self.user, password=self._password))
+                params=dict(username=self.user, password=self._password),
+            )
 
             if response.status_code != 200:
                 response_json = response.json()
                 raise APIError(
                     f'Could not acquire authentication token: '
                     f'{response_json.get("description") or response_json.get("detail") or "unknown reason"} '
-                    f'({response_json.get("code", response.status_code)})')
+                    f'({response_json.get("code", response.status_code)})'
+                )
 
             self._token = response.json()
 
@@ -112,7 +119,9 @@ class Auth(requests.auth.AuthBase):
         if self._token is None and self.user and self._password:
             self._token = self.__oidc.token(username=self.user, password=self._password)
             self._token['time'] = time.time()
-        elif not self._token or not ('expires_in' in self._token and 'time' in self._token):
+        elif not self._token or not (
+            'expires_in' in self._token and 'time' in self._token
+        ):
             # cannot refresh
             return
         elif self._token['expires_in'] < int(time.time()) - self._token['time'] + 10:
@@ -120,7 +129,9 @@ class Auth(requests.auth.AuthBase):
                 self._token = self.__oidc.refresh_token(self._token['refresh_token'])
                 self._token['time'] = time.time()
             except Exception:
-                self._token = self.__oidc.token(username=self.user, password=self._password)
+                self._token = self.__oidc.token(
+                    username=self.user, password=self._password
+                )
                 self._token['time'] = time.time()
 
     def __call__(self, request):

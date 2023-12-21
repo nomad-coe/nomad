@@ -31,26 +31,34 @@ from nomad.units import ureg
 from nomad.utils import get_logger
 
 
-@pytest.mark.parametrize('path,value', [
-    pytest.param('name', 'nexus'),
-    pytest.param('NXobject.name', 'NXobject'),
-    pytest.param('NXentry.nx_kind', 'group'),
-    pytest.param('NXdetector.real_time__field', '*'),
-    pytest.param('NXentry.DATA.nx_optional', True),
-    pytest.param('NXentry.DATA.nx_kind', 'group'),
-    pytest.param('NXentry.DATA.nx_optional', True),
-    pytest.param('NXdetector.real_time__field.name', 'real_time__field'),
-    pytest.param('NXdetector.real_time__field.nx_type', 'NX_NUMBER'),
-    pytest.param('NXdetector.real_time__field.nx_units', 'NX_TIME'),
-    pytest.param('NXarpes.ENTRY.DATA.nx_optional', False),
-    pytest.param('NXentry.nx_category', 'base'),
-    pytest.param('NXdispersion_table.refractive_index__field.nx_type', 'NX_COMPLEX'),
-    pytest.param('NXdispersive_material.ENTRY.dispersion_x.'
-                 'DISPERSION_TABLE.refractive_index__field.nx_type', 'NX_COMPLEX'),
-    pytest.param('NXapm.nx_category', 'application')
-])
+@pytest.mark.parametrize(
+    'path,value',
+    [
+        pytest.param('name', 'nexus'),
+        pytest.param('NXobject.name', 'NXobject'),
+        pytest.param('NXentry.nx_kind', 'group'),
+        pytest.param('NXdetector.real_time__field', '*'),
+        pytest.param('NXentry.DATA.nx_optional', True),
+        pytest.param('NXentry.DATA.nx_kind', 'group'),
+        pytest.param('NXentry.DATA.nx_optional', True),
+        pytest.param('NXdetector.real_time__field.name', 'real_time__field'),
+        pytest.param('NXdetector.real_time__field.nx_type', 'NX_NUMBER'),
+        pytest.param('NXdetector.real_time__field.nx_units', 'NX_TIME'),
+        pytest.param('NXarpes.ENTRY.DATA.nx_optional', False),
+        pytest.param('NXentry.nx_category', 'base'),
+        pytest.param(
+            'NXdispersion_table.refractive_index__field.nx_type', 'NX_COMPLEX'
+        ),
+        pytest.param(
+            'NXdispersive_material.ENTRY.dispersion_x.'
+            'DISPERSION_TABLE.refractive_index__field.nx_type',
+            'NX_COMPLEX',
+        ),
+        pytest.param('NXapm.nx_category', 'application'),
+    ],
+)
 def test_assert_nexus_metainfo(path: str, value: Any):
-    '''
+    """
     Test the existence of nexus metainfo
 
 
@@ -58,7 +66,7 @@ def test_assert_nexus_metainfo(path: str, value: Any):
 
 
 
-    '''
+    """
     current = nexus_metainfo_package
     for name in path.split('.'):
         elements: list = []
@@ -108,13 +116,19 @@ def test_nexus_example():
 
     example_data = 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs'
     NexusParser().parse(example_data, archive, get_logger(__name__))
-    assert archive.nexus.NXarpes.ENTRY[0].SAMPLE[0].pressure__field == ureg.Quantity('3.27e-10*millibar')
+    assert archive.nexus.NXarpes.ENTRY[0].SAMPLE[0].pressure__field == ureg.Quantity(
+        '3.27e-10*millibar'
+    )
 
     instrument = archive.nexus.NXarpes.ENTRY[0].INSTRUMENT[0]
 
     assert instrument.nx_name == 'instrument'
-    assert instrument.monochromator.energy__field == ureg.Quantity('36.49699020385742*electron_volt')
-    assert instrument.analyser.entrance_slit_size__field == ureg.Quantity('750 micrometer')
+    assert instrument.monochromator.energy__field == ureg.Quantity(
+        '36.49699020385742*electron_volt'
+    )
+    assert instrument.analyser.entrance_slit_size__field == ureg.Quantity(
+        '750 micrometer'
+    )
     # good ENUM - x-ray
     assert instrument.SOURCE[0].probe__field == 'x-ray'
     # wrong inherited ENUM - Burst
@@ -130,12 +144,15 @@ def test_nexus_example():
     # assert data.delays__field.check("fs")
     # but the following still works
     assert data.energies__field is not None
-    assert data.energies__field.check("eV")
+    assert data.energies__field.check('eV')
     # manual name resolution
     assert data.AXISNAME__field['angles__field'] is not None
-    assert data.AXISNAME__field['angles__field'].attributes['nx_data_max'] == 2.168025463513032
-    assert (1 * data.AXISNAME__field['angles__field'].unit).check("1/Å")
-    assert (1 * data.AXISNAME__field['delays__field'].unit).check("fs")
+    assert (
+        data.AXISNAME__field['angles__field'].attributes['nx_data_max']
+        == 2.168025463513032
+    )
+    assert (1 * data.AXISNAME__field['angles__field'].unit).check('1/Å')
+    assert (1 * data.AXISNAME__field['delays__field'].unit).check('fs')
 
 
 def test_same_name_field_and_group():

@@ -24,10 +24,10 @@ from nomad.processing import Upload
 
 
 def dft():
-    '''
+    """
     State containing DFT entries that can be used to e.g. test the different
     entry tabs.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -38,7 +38,7 @@ def dft():
         upload_id=upload_id,
         entry_id=entry_id,
         mainfile='vasp.xml',
-        entry_archive=archive_dft_bulk()
+        entry_archive=archive_dft_bulk(),
     )
 
     # The archive will also be saved on disk for the GUI tests to use.
@@ -57,7 +57,8 @@ def eln():
         upload_id='eln_upload_id',
         main_author=main_author,
         coauthors=coauthors,
-        reviewers=reviewers)
+        reviewers=reviewers,
+    )
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('examples/data/light_eln')
@@ -70,9 +71,8 @@ def eln_properties():
     main_author = infrastructure.user_management.get_user(username='test').user_id
     reviewers = [infrastructure.user_management.get_user(username='ttester').user_id]
     upload = Upload(
-        upload_id='eln_upload_id',
-        main_author=main_author,
-        reviewers=reviewers)
+        upload_id='eln_upload_id', main_author=main_author, reviewers=reviewers
+    )
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('examples/data/eln_properties')
@@ -90,7 +90,8 @@ def references():
         upload_id='references_upload_id1',
         main_author=main_author,
         coauthors=coauthors,
-        reviewers=reviewers)
+        reviewers=reviewers,
+    )
     upload1.save()
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/upload1')
@@ -101,7 +102,8 @@ def references():
         upload_id='references_upload_id2',
         main_author=main_author,
         coauthors=coauthors,
-        reviewers=reviewers)
+        reviewers=reviewers,
+    )
     upload2.save()
     files.StagingUploadFiles(upload_id=upload2.upload_id, create=True)
     upload2.staging_upload_files.add_rawfiles('examples/data/references/upload2')
@@ -135,15 +137,15 @@ material_dict = {
         'structure_name': 'rock salt',
         'space_group_symbol': 'Fd-3m',
         'space_group_number': 227,
-        'point_group': '6mm'
-    }
+        'point_group': '6mm',
+    },
 }
 
 
 def material():
-    '''
+    """
     Entry that contains a material.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -158,17 +160,17 @@ def material():
             metadata=metadata_dict,
             results={
                 'material': material_dict,
-            }
-        )
+            },
+        ),
     )
 
     data.save()
 
 
 def dos_electronic():
-    '''
+    """
     Entry that contains an electronic DOS.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -188,44 +190,49 @@ def dos_electronic():
                         'dos_electronic',
                     ],
                     'electronic': {
-                        'dos_electronic': [{
-                            'energies': '/run/0/calculation/0/dos_electronic/0/energies',
-                            'total': ['/run/0/calculation/0/dos_electronic/0/total/0'],
-                            'band_gap': [{
-                                'energy_highest_occupied': 0
-                            }]
-                        }],
-                    }
-                }
-            },
-            run={
-                'calculation': [{
-                    'dos_electronic': [{
-                        'energies': [0, 1e-19],
-                        'total': [
+                        'dos_electronic': [
                             {
-                                'value': [0, 1e18],
-                                'normalization_factor': 1e-19,
-                                'spin': 0
+                                'energies': '/run/0/calculation/0/dos_electronic/0/energies',
+                                'total': [
+                                    '/run/0/calculation/0/dos_electronic/0/total/0'
+                                ],
+                                'band_gap': [{'energy_highest_occupied': 0}],
                             }
                         ],
-                        'band_gap': [{
-                            'energy_highest_occupied': 0,
-                            'index': 0
-                        }]
-                    }],
-                }]
-            }
-        )
+                    },
+                },
+            },
+            run={
+                'calculation': [
+                    {
+                        'dos_electronic': [
+                            {
+                                'energies': [0, 1e-19],
+                                'total': [
+                                    {
+                                        'value': [0, 1e18],
+                                        'normalization_factor': 1e-19,
+                                        'spin': 0,
+                                    }
+                                ],
+                                'band_gap': [
+                                    {'energy_highest_occupied': 0, 'index': 0}
+                                ],
+                            }
+                        ],
+                    }
+                ]
+            },
+        ),
     )
 
     data.save()
 
 
 def bulk_modulus():
-    '''
+    """
     Entry that contains a bulk modulus.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -245,14 +252,9 @@ def bulk_modulus():
                         'bulk_modulus',
                     ],
                     'mechanical': {
-                        'bulk_modulus': [
-                            {
-                                'type': 'murnaghan',
-                                'value': 1
-                            }
-                        ],
+                        'bulk_modulus': [{'type': 'murnaghan', 'value': 1}],
                     },
-                }
+                },
             },
             workflow={
                 'm_def': 'simulationworkflowschema.EquationOfState',
@@ -262,24 +264,26 @@ def bulk_modulus():
                     'equation_of_state': {
                         'energies': [0, 1],
                         'volumes': [0, 1],
-                        'eos_fit': [{
-                            'function_name': 'murnaghan',
-                            'fitted_energies': [0, 1],
-                            'bulk_modulus': 1
-                        }]
-                    }
-                }
-            }
-        )
+                        'eos_fit': [
+                            {
+                                'function_name': 'murnaghan',
+                                'fitted_energies': [0, 1],
+                                'bulk_modulus': 1,
+                            }
+                        ],
+                    },
+                },
+            },
+        ),
     )
 
     data.save()
 
 
 def trajectory():
-    '''
+    """
     Entry that contains a trajectory.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -295,9 +299,7 @@ def trajectory():
             results={
                 'material': material_dict,
                 'properties': {
-                    'available_properties': [
-                        'trajectory'
-                    ],
+                    'available_properties': ['trajectory'],
                     'thermodynamic': {
                         'trajectory': [
                             {
@@ -313,24 +315,30 @@ def trajectory():
                                     'value': [0],
                                     'time': [0],
                                 },
-                                'available_properties': ['pressure', 'temperature', 'volume'],
+                                'available_properties': [
+                                    'pressure',
+                                    'temperature',
+                                    'volume',
+                                ],
                                 'methodology': {
                                     'molecular_dynamics': {
                                         'time_step': 1e-15,
                                         'ensemble_type': 'NVT',
                                     }
-                                }
+                                },
                             }
                         ]
                     },
-                }
+                },
             },
             run={
-                'calculation': [{
-                    'pressure': 0,
-                    'temperature': 0,
-                    'volume': 0,
-                }]
+                'calculation': [
+                    {
+                        'pressure': 0,
+                        'temperature': 0,
+                        'volume': 0,
+                    }
+                ]
             },
             workflow={
                 'm_def': 'simulationworkflowschema.MolecularDynamics',
@@ -341,18 +349,18 @@ def trajectory():
                 'method': {
                     'integration_timestep': 1e-15,
                     'thermodynamic_ensemble': 'NVT',
-                }
-            }
-        )
+                },
+            },
+        ),
     )
 
     data.save()
 
 
 def dos_phonon():
-    '''
+    """
     Entry that contains a phonon DOS.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -376,19 +384,22 @@ def dos_phonon():
                             'energies': '/run/0/calculation/0/dos_phonon/0/energies',
                             'total': ['/run/0/calculation/0/dos_phonon/0/total/0'],
                         },
-                    }
-                }
+                    },
+                },
             },
             run={
-                'calculation': [{
-                    'dos_phonon': [{
-                        'energies': [0, 1e-19],
-                        'total': [{
-                            'value': [0, 1e18],
-                            'normalization_factor': 1e-19
-                        }]
-                    }],
-                }]
+                'calculation': [
+                    {
+                        'dos_phonon': [
+                            {
+                                'energies': [0, 1e-19],
+                                'total': [
+                                    {'value': [0, 1e18], 'normalization_factor': 1e-19}
+                                ],
+                            }
+                        ],
+                    }
+                ]
             },
             workflow={
                 'm_def': 'simulationworkflowschema.Phonon',
@@ -398,20 +409,20 @@ def dos_phonon():
                     'thermodynamics': {
                         'heat_capacity_c_v': [0, 1],
                         'vibrational_free_energy_at_constant_volume': [0, 1],
-                        'temperature': [0, 100]
+                        'temperature': [0, 100],
                     },
-                }
-            }
-        )
+                },
+            },
+        ),
     )
 
     data.save()
 
 
 def rdf():
-    '''
+    """
     Entry that contains an RDF.
-    '''
+    """
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test')
     data = ExampleData(main_author=main_author)
@@ -430,32 +441,32 @@ def rdf():
                     'available_properties': [
                         'radial_distribution_function',
                     ],
-                    "structural": {
-                        "radial_distribution_function": [
+                    'structural': {
+                        'radial_distribution_function': [
                             {
-                                "type": "molecular",
-                                "label": "0-0",
-                                "bins": [
+                                'type': 'molecular',
+                                'label': '0-0',
+                                'bins': [
                                     8.408812522888184e-12,
                                 ],
-                                "n_bins": 1,
-                                "value": [
+                                'n_bins': 1,
+                                'value': [
                                     0.0,
                                 ],
-                                "frame_start": 0,
-                                "frame_end": 40,
-                                "methodology": {
-                                    "molecular_dynamics": {
-                                        "time_step": 2.5e-16,
-                                        "ensemble_type": "NVT"
+                                'frame_start': 0,
+                                'frame_end': 40,
+                                'methodology': {
+                                    'molecular_dynamics': {
+                                        'time_step': 2.5e-16,
+                                        'ensemble_type': 'NVT',
                                     }
-                                }
+                                },
                             }
                         ]
-                    }
-                }
-            }
-        )
+                    },
+                },
+            },
+        ),
     )
 
     data.save()
@@ -464,9 +475,7 @@ def rdf():
 def plotly():
     infrastructure.setup()
     main_author = infrastructure.user_management.get_user(username='test').user_id
-    upload = Upload(
-        upload_id='plotly_upload_id',
-        main_author=main_author)
+    upload = Upload(upload_id='plotly_upload_id', main_author=main_author)
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('examples/data/plotly')

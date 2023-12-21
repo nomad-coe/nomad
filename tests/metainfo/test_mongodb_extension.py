@@ -38,8 +38,8 @@ class D(MSection):
 
 
 class A(MSection):
-    """Root level document with primary key.
-    """
+    """Root level document with primary key."""
+
     m_def = Section(a_mongo=MongoDocument())
     primary_id = Quantity(type=str, a_mongo=Mongo(primary_key=True))
     array = Quantity(type=float, shape=[2], a_mongo=Mongo())
@@ -53,18 +53,18 @@ class A(MSection):
 
 def test_create_new(mongo):
     a = A()
-    a.primary_id = "123"
-    a.not_in_mongo = "not_in_mongo"
+    a.primary_id = '123'
+    a.not_in_mongo = 'not_in_mongo'
     b = a.m_create(B)
-    b.value = "b_value"
+    b.value = 'b_value'
     c = a.m_create(C)
-    c.value = "c_value"
+    c.value = 'c_value'
     c = a.m_create(C)
-    c.value = "c_value"
+    c.value = 'c_value'
 
     # Create JSON with the values that are supposed to be in mongo
     a_dict = a.m_to_dict()
-    del a_dict["not_in_mongo"]
+    del a_dict['not_in_mongo']
     a_json = json.dumps(a_dict, sort_keys=True)
 
     # Store to mongo
@@ -72,7 +72,7 @@ def test_create_new(mongo):
     mongo_doc.save()
 
     # Retrieve from mongo, and convert to JSON
-    a_from_db = A.m_def.a_mongo.get(primary_id="123")
+    a_from_db = A.m_def.a_mongo.get(primary_id='123')
     a_from_db_json = json.dumps(a_from_db.m_to_dict(), sort_keys=True)
 
     # Test equality of the JSON serializations
@@ -81,7 +81,7 @@ def test_create_new(mongo):
 
 def test_update_with_new():
     a = A()
-    a.primary_id = "123"
+    a.primary_id = '123'
     a.value1 = 1
     a.value2 = 2
 
@@ -90,19 +90,19 @@ def test_update_with_new():
 
     # Update with new document that has the same ID
     a_new = A()
-    a_new.primary_id = "123"
+    a_new.primary_id = '123'
     a_new.value2 = 3
     a_new.a_mongo.save()
 
     # Check that the document has only partly been updated
-    a_from_db = A.m_def.a_mongo.get(primary_id="123")
+    a_from_db = A.m_def.a_mongo.get(primary_id='123')
     assert a_from_db.value1 == 1
     assert a_from_db.value2 == 3
 
 
 def test_update_self():
     a = A()
-    a.primary_id = "123"
+    a.primary_id = '123'
     a.value1 = 1
     a.value2 = 2
 
@@ -114,53 +114,52 @@ def test_update_self():
     a.a_mongo.save()
 
     # Check that the document has only partly been updated
-    a_from_db = A.m_def.a_mongo.get(primary_id="123")
+    a_from_db = A.m_def.a_mongo.get(primary_id='123')
     assert a_from_db.value1 == 1
     assert a_from_db.value2 == 3
 
 
 def test_annotations(mongo):
-    """Test that non-annotated quantities and sections are not stored.
-    """
+    """Test that non-annotated quantities and sections are not stored."""
     a = A()
-    a.primary_id = "123"
-    a.not_in_mongo = "not_in_mongo"
+    a.primary_id = '123'
+    a.not_in_mongo = 'not_in_mongo'
     d = a.m_create(D)
-    d.value = "b_value"
+    d.value = 'b_value'
 
     # Store to mongo
     a.a_mongo.save()
 
     # Check that values do not exist in mongodb
-    a_from_db = A.m_def.a_mongo.get(primary_id="123")
+    a_from_db = A.m_def.a_mongo.get(primary_id='123')
     assert a_from_db.not_in_mongo is None
     assert a_from_db.d is None
 
 
 def test_repeated_subsections():
     a = A()
-    a.primary_id = "123"
+    a.primary_id = '123'
     c = a.m_create(C)
-    c.value = "c_value"
+    c.value = 'c_value'
     c = a.m_create(C)
-    c.value = "c_value"
+    c.value = 'c_value'
 
     # Store to mongo
     a.a_mongo.save()
 
     # Check that both sections are stored in mongodb
-    a_from_db = A.m_def.a_mongo.get(primary_id="123")
+    a_from_db = A.m_def.a_mongo.get(primary_id='123')
     assert len(a_from_db.c) == 2
 
 
 def test_arrays():
     a = A()
-    a.primary_id = "123"
+    a.primary_id = '123'
     a.array = np.array([1.2, 3.4])
 
     # Store to mongo
     a.a_mongo.save()
 
     # Check that array was correctly save
-    a_from_db = A.m_def.a_mongo.get(primary_id="123")
+    a_from_db = A.m_def.a_mongo.get(primary_id='123')
     assert a_from_db.array == [1.2, 3.4]
