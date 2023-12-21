@@ -49,6 +49,8 @@ def qa(skip_tests: bool, exitfirst: bool):
         )
     click.echo('Run code style and lint checks ...')
     ret_code += os.system('python -m ruff nomad tests')
+    click.echo('Run code formatting checks ...')
+    ret_code += os.system('python -m ruff format nomad tests')
     click.echo('Run static type checks ...')
     ret_code += os.system('python -m mypy nomad tests')
 
