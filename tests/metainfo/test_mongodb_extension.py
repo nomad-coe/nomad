@@ -51,7 +51,7 @@ class A(MSection):
     d = SubSection(sub_section=D.m_def)
 
 
-def test_create_new(mongo):
+def test_create_new(mongo_function):
     a = A()
     a.primary_id = '123'
     a.not_in_mongo = 'not_in_mongo'
@@ -119,7 +119,7 @@ def test_update_self():
     assert a_from_db.value2 == 3
 
 
-def test_annotations(mongo):
+def test_annotations(mongo_function):
     """Test that non-annotated quantities and sections are not stored."""
     a = A()
     a.primary_id = '123'

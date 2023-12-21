@@ -21,20 +21,20 @@ import pytest
 from unittest.mock import MagicMock
 
 
-def test_create(mongo, test_user, no_warn):
+def test_create(mongo_function, test_user, no_warn):
     doi = DOI.create('the_title', test_user)
 
     assert DOI.objects(doi=doi.doi).first() is not None
     assert doi.metadata_xml is not None
 
 
-def test_create_doi_counter(mongo, test_user, no_warn):
+def test_create_doi_counter(mongo_function, test_user, no_warn):
     DOI.create('the_title', test_user)
     doi = DOI.create('the_title', test_user)
     assert doi.doi.endswith('-2')
 
 
-def test_create_draft_doi(mongo, test_user, no_warn):
+def test_create_draft_doi(mongo_function, test_user, no_warn):
     if config.datacite.enabled:
         doi = DOI.create('the_title', test_user)
         doi.create_draft()
@@ -52,7 +52,7 @@ def test_create_draft_doi(mongo, test_user, no_warn):
     ],
 )
 def test_datacite_requests(
-    mongo, monkeypatch, test_user, status_code, response_ok, is_findable, text
+    mongo_function, monkeypatch, test_user, status_code, response_ok, is_findable, text
 ):
     if config.datacite.enabled:
 

@@ -339,7 +339,7 @@ def test_tabular_complex_schema(raw_files_function, monkeypatch, schema):
 
 
 def test_tabular_entry_mode(
-    mongo, test_user, raw_files_function, monkeypatch, proc_infra
+    mongo_function, test_user, raw_files_function, monkeypatch, proc_infra
 ):
     upload = Upload(upload_id='test_upload_id', main_author=test_user.user_id)
     upload.save()

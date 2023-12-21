@@ -28,7 +28,7 @@ from tests.normalizing.conftest import run_processing, run_normalize
 from nomad.datamodel.data import User
 
 
-def test_substance(raw_files_function, test_user, mongo):
+def test_substance(raw_files_function, test_user, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_substance.archive.yaml'
     upload_id = 'test_upload_id'
@@ -53,7 +53,7 @@ def test_substance(raw_files_function, test_user, mongo):
     assert 'Pb' in test_archive.results.material.elements
 
 
-def test_ensemble(raw_files_function, test_user, mongo):
+def test_ensemble(raw_files_function, test_user, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_ensemble.archive.yaml'
     upload_id = 'test_upload_id'

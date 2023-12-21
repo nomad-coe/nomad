@@ -193,7 +193,7 @@ def celery_inspect(purged_app):
 # It might be necessary to make this a function scoped fixture, if old tasks keep
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
-def worker(mongo, celery_session_worker, celery_inspect):
+def worker(mongo_function, celery_session_worker, celery_inspect):
     """Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed."""
     yield
 
@@ -238,12 +238,6 @@ def mongo_module(mongo_infra):
 
 @pytest.fixture(scope='function')
 def mongo_function(mongo_infra):
-    """Provides a cleaned mocked mongo per function."""
-    return clear_mongo(mongo_infra)
-
-
-@pytest.fixture(scope='function')
-def mongo(mongo_infra):
     """Provides a cleaned mocked mongo per function."""
     return clear_mongo(mongo_infra)
 
@@ -444,7 +438,7 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(worker, elastic, mongo, raw_files_function):
+def proc_infra(worker, elastic, mongo_function, raw_files_function):
     """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
     return dict(elastic=elastic)
 
@@ -1208,7 +1202,7 @@ def plugin_schema():
 
 
 @pytest.fixture(scope='function')
-def example_data_writeable(mongo, test_user, normalized):
+def example_data_writeable(mongo_function, test_user, normalized):
     data = ExampleData(main_author=test_user)
 
     # one upload with one entry, published
@@ -1246,7 +1240,7 @@ def example_data_writeable(mongo, test_user, normalized):
 
 
 @pytest.fixture(scope='function')
-def example_datasets(mongo, test_user, other_test_user):
+def example_datasets(mongo_function, test_user, other_test_user):
     dataset_specs = (
         ('test_dataset_1', test_user, None),
         ('test_dataset_2', test_user, 'test_doi_2'),
@@ -1283,7 +1277,7 @@ def reset_config():
 
 
 @pytest.fixture
-def reset_infra(mongo, elastic):
+def reset_infra(mongo_function, elastic):
     """Fixture that resets infrastructure after deleting db or search index."""
     yield None
 

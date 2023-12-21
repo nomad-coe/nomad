@@ -118,7 +118,7 @@ def test_send_mail(mails, monkeypatch):
 
 
 @pytest.fixture(scope='function', autouse=True)
-def mongo_forall(mongo):
+def mongo_forall(mongo_function):
     pass
 
 
@@ -1179,7 +1179,7 @@ def test_skip_matching(proc_infra, test_user):
     ],
 )
 def test_upload_context(
-    raw_files_function, mongo, test_user, url, normalized_url, monkeypatch
+    raw_files_function, mongo_function, test_user, url, normalized_url, monkeypatch
 ):
     monkeypatch.setattr(
         'nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id'

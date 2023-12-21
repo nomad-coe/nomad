@@ -3135,7 +3135,7 @@ def test_post_upload_edit(
 )
 def test_post_upload(
     client,
-    mongo,
+    mongo_function,
     proc_infra,
     monkeypatch,
     test_auth_dict,
@@ -3394,7 +3394,7 @@ def test_post_upload_action_publish_to_central_nomad(
 )
 def test_post_upload_action_process(
     client,
-    mongo,
+    mongo_function,
     proc_infra,
     monkeypatch,
     example_data_writeable,
@@ -3503,7 +3503,7 @@ def test_post_upload_action_process(
 )
 def test_post_upload_action_delete_entry_files(
     client,
-    mongo,
+    mongo_function,
     proc_infra,
     example_data_writeable,
     test_auth_dict,
