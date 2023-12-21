@@ -53,6 +53,11 @@ my-nomad-schema
 ```
 
 ## Plugin code
+#### Code Quality and Linting
+
+While developing NOMAD plugins, we highly recommend using a Python linter, such as [Ruff](https://docs.astral.sh/ruff) to analyze and enforce coding standards in your plugin projects. This also ensures smoother integration and collaboration. Ruff is also included in the templates provided on Github.
+
+Feel free to customize the rules based on your preferences for linting.
 
 The directory `nomadschemaexample` is our Python package *plugin code*. In this case,
 it contains a simple `schema.py`. Read the [Schema plugin documentation](../customization/plugins_dev.md#develop-a-schema-plugin)
