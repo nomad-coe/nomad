@@ -284,7 +284,7 @@ def quantity_generator(quantity_name, header_name, shape="shape: ['*']", to_dict
         ),
     ],
 )
-def test_tabular_complex_schema(raw_files, monkeypatch, schema):
+def test_tabular_complex_schema(raw_files_function, monkeypatch, schema):
     """
     Testing TabularParser parser. This feature creates an entry out of each row from the given excel/csv file
     """
@@ -338,7 +338,9 @@ def test_tabular_complex_schema(raw_files, monkeypatch, schema):
         )
 
 
-def test_tabular_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra):
+def test_tabular_entry_mode(
+    mongo, test_user, raw_files_function, monkeypatch, proc_infra
+):
     upload = Upload(upload_id='test_upload_id', main_author=test_user.user_id)
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
@@ -374,7 +376,7 @@ def test_tabular_entry_mode(mongo, test_user, raw_files, monkeypatch, proc_infra
     ],
 )
 def test_tabular_column_mode(
-    raw_files,
+    raw_files_function,
     monkeypatch,
     test_case,
     sub_sections_placeholder,
@@ -500,7 +502,7 @@ def test_tabular_column_mode(
     ],
 )
 def test_tabular_row_mode(
-    raw_files,
+    raw_files_function,
     monkeypatch,
     test_case,
     section_placeholder,
@@ -740,7 +742,7 @@ def test_tabular_row_mode(
         ),
     ],
 )
-def test_tabular_csv(raw_files, monkeypatch, schema, content):
+def test_tabular_csv(raw_files_function, monkeypatch, schema, content):
     """Tests that missing data is handled correctly. Pandas by default
     interprets missing numeric values as NaN, which are incompatible with
     metainfo.
@@ -864,7 +866,7 @@ def test_tabular_csv(raw_files, monkeypatch, schema, content):
         ),
     ],
 )
-def test_tabular_checkbox(raw_files, monkeypatch, schema, content):
+def test_tabular_checkbox(raw_files_function, monkeypatch, schema, content):
     """Tests that missing data is handled correctly. Pandas by default
     interprets missing numeric values as NaN, which are incompatible with
     metainfo.

@@ -333,7 +333,7 @@ def test_resolve_archive(context, url):
         ),
     ],
 )
-def test_server_custom_schema(upload_contents, raw_files):
+def test_server_custom_schema(upload_contents, raw_files_function):
     upload_files = files.StagingUploadFiles('test_upload', create=True)
     upload = processing.Upload(upload_id='test_upload')
     for file_name, content in upload_contents.items():
@@ -424,7 +424,7 @@ def test_server_custom_schema(upload_contents, raw_files):
         )
     ],
 )
-def test_server_external_schema(upload1_contents, upload2_contents, raw_files):
+def test_server_external_schema(upload1_contents, upload2_contents, raw_files_function):
     upload1_files = files.StagingUploadFiles('upload1_id', create=True)
     upload1 = processing.Upload(upload_id='upload1_id')
     for file_name, content in upload1_contents.items():
@@ -544,7 +544,7 @@ def test_client_custom_schema(api_v1, published_wo_user_metadata):
     ],
 )
 def test_client_external_schema(
-    referencing_upload_contents, raw_files, test_user, api_v1, proc_infra
+    referencing_upload_contents, raw_files_function, test_user, api_v1, proc_infra
 ):
     upload1 = Upload(upload_id='references_upload_id1', main_author=test_user.user_id)
     upload1.save()
@@ -585,7 +585,7 @@ def test_client_external_schema(
         assert results == content
 
 
-def test_circular_external_schema(raw_files, test_user, api_v1, proc_infra):
+def test_circular_external_schema(raw_files_function, test_user, api_v1, proc_infra):
     upload1 = Upload(upload_id='upload_id', main_author=test_user.user_id)
     upload1.save()
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)

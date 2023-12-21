@@ -138,7 +138,7 @@ def test_short_uuids():
         assert to_json(archive['0']) == {'archive': 'test'}
 
 
-def test_write_file(raw_files, example_uuid):
+def test_write_file(raw_files_function, example_uuid):
     path = os.path.join(config.fs.tmp, 'test.msg')
     write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
     with read_archive(path) as archive:

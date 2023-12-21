@@ -60,7 +60,9 @@ class TestEditRepo:
         self.other_example_dataset.a_mongo.create()
 
     @pytest.fixture(autouse=True)
-    def example_data(self, test_user, other_test_user, raw_files, elastic, mongo):
+    def example_data(
+        self, test_user, other_test_user, raw_files_function, elastic, mongo
+    ):
         # TODO
         example_data = ExampleData()
 

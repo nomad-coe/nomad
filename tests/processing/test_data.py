@@ -123,7 +123,9 @@ def mongo_forall(mongo):
 
 
 @pytest.fixture
-def uploaded_id_with_warning(raw_files) -> Generator[Tuple[str, str], None, None]:
+def uploaded_id_with_warning(
+    raw_files_function
+) -> Generator[Tuple[str, str], None, None]:
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
 
@@ -1176,7 +1178,9 @@ def test_skip_matching(proc_infra, test_user):
         ),
     ],
 )
-def test_upload_context(raw_files, mongo, test_user, url, normalized_url, monkeypatch):
+def test_upload_context(
+    raw_files_function, mongo, test_user, url, normalized_url, monkeypatch
+):
     monkeypatch.setattr(
         'nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id'
     )

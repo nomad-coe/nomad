@@ -153,12 +153,6 @@ def raw_files_function(raw_files_infra):
     clear_raw_files()
 
 
-@pytest.fixture(scope='function')
-def raw_files(raw_files_infra):
-    """Provides cleaned out files directory structure per function. Clears files before test."""
-    clear_raw_files()
-
-
 def clear_raw_files():
     directories = [config.fs.staging, config.fs.public, config.fs.tmp]
     for directory in directories:
@@ -450,7 +444,7 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(worker, elastic, mongo, raw_files):
+def proc_infra(worker, elastic, mongo, raw_files_function):
     """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
     return dict(elastic=elastic)
 
@@ -688,7 +682,7 @@ def normalized(parsed: EntryArchive) -> EntryArchive:
 
 
 @pytest.fixture(scope='function')
-def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
+def uploaded(example_upload: str, raw_files_function) -> Tuple[str, str]:
     """
     Provides a uploaded with uploaded example file and gives the upload_id.
     Clears files after test.
@@ -698,7 +692,9 @@ def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
 
 
 @pytest.fixture(scope='function')
-def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, str]:
+def non_empty_uploaded(
+    non_empty_example_upload: str, raw_files_function
+) -> Tuple[str, str]:
     example_upload_id = os.path.basename(non_empty_example_upload).replace('.zip', '')
     return example_upload_id, non_empty_example_upload
 
@@ -1114,7 +1110,7 @@ def example_data_nexus(
 @pytest.fixture(scope='function')
 def example_data_schema_yaml(
     elastic_module,
-    raw_files,
+    raw_files_function,
     no_warn,
     raw_files_module,
     mongo_module,

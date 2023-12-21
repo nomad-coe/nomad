@@ -20,7 +20,7 @@ from tests.normalizing.conftest import run_normalize
 from tests.normalizing.conftest import run_processing
 
 
-def test_processing(raw_files, no_warn):
+def test_processing(raw_files_function, no_warn):
     directory = 'tests/data/datamodel/metainfo/eln/structure_file'
     mainfile = 'structure_file.archive.json'
     mainfile_schema = 'eln_with_structure.schema.archive.yaml'

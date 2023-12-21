@@ -27,7 +27,7 @@ from nomad import config
 
 
 @pytest.fixture
-def h5grove_api(raw_files):
+def h5grove_api(raw_files_function):
     h5grove_app.h5grove_router.settings.base_dir = config.fs.staging
     return TestClient(h5grove_app.app, base_url='http://testserver/')
 

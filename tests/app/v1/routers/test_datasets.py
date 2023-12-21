@@ -54,7 +54,7 @@ def create_dataset(**kwargs):
 
 
 @pytest.fixture(scope='function')
-def data(elastic, raw_files, mongo, test_user, other_test_user):
+def data(elastic, raw_files_function, mongo, test_user, other_test_user):
     data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='upload_1', published=True)
     data.create_entry(

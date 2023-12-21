@@ -152,7 +152,7 @@ def load_config(config_dict, monkeypatch):
     ],
 )
 def test_config_apply(
-    raw_files, with_config, monkeypatch, caplog, config_dict, include
+    raw_files_function, with_config, monkeypatch, caplog, config_dict, include
 ):
     load_config(config_dict, monkeypatch)
     config_dict = {}
@@ -184,7 +184,9 @@ def test_config_apply(
         ),
     ],
 )
-def test_config_error(raw_files, with_config, monkeypatch, caplog, config_dict, error):
+def test_config_error(
+    raw_files_function, with_config, monkeypatch, caplog, config_dict, error
+):
     load_config(config_dict, monkeypatch)
     assert_log(caplog, 'ERROR', error)
 

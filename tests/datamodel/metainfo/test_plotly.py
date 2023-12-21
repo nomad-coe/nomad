@@ -2,7 +2,7 @@ import json
 from tests.normalizing.conftest import run_processing
 
 
-def test_plotly_snapshot(raw_files):
+def test_plotly_snapshot(raw_files_function):
     directory = 'tests/data/datamodel/metainfo/plotly'
     mainfile = 'plotly.schema.archive.yaml'
     plotly_archive = run_processing(directory, mainfile)

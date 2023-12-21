@@ -22,7 +22,9 @@ from nomad.datamodel.context import ClientContext
 from nomad.utils.exampledata import ExampleData
 
 
-def test_perovskite_solar_cell_plugin_processing(raw_files, no_warn, test_user, mongo):
+def test_perovskite_solar_cell_plugin_processing(
+    raw_files_function, no_warn, test_user, mongo
+):
     directory = 'tests/data/plugins/perovskite_solar_cell_database'
     mainfile = 'example.archive.json'
     upload_id = 'test_upload_id'
