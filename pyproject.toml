@@ -44,7 +44,7 @@ dependencies = [
     'mdanalysis==2.5.0',
     'xarray>=0.20.2',
     'phonopy~=2.11.0',
-    'pymatgen~=2023.2.28',
+    'pymatgen>=2023.2.28',
     'bitarray>=2.3.5',
     'scikit-learn>=1.0.2',
     'toposort',
