@@ -977,16 +977,13 @@ async def post_entries_archive_query(
     data: EntriesArchive,
     user: User = Depends(create_user_dependency()),
 ):
-    with utils.timer(
-        logger, 'time to handle archive query (search+filtering)', url=request.url.path
-    ):
-        return _answer_entries_archive_request(
-            owner=data.owner,
-            query=data.query,
-            pagination=data.pagination,
-            required=data.required,
-            user=user,
-        )
+    return _answer_entries_archive_request(
+        owner=data.owner,
+        query=data.query,
+        pagination=data.pagination,
+        required=data.required,
+        user=user,
+    )
 
 
 @router.get(
@@ -1043,11 +1040,8 @@ def _answer_entries_archive_download_request(
     if response.pagination.total > config.services.max_entry_download:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                'The limit of maximum number of entries in a single download (%d) has been '
-                'exeeded (%d).'
-                % (config.services.max_entry_download, response.pagination.total)
-            ),
+            detail=f'The limit of maximum number of entries in a single download'
+            f' ({config.services.max_entry_download}) has been exceeded ({response.pagination.total}).',
         )
 
     manifest = []
@@ -1062,7 +1056,7 @@ def _answer_entries_archive_download_request(
             owner, query, include=search_includes, user=user
         ):
             path = os.path.join(
-                entry_metadata['upload_id'], '%s.json' % entry_metadata['entry_id']
+                entry_metadata['upload_id'], f'{entry_metadata["entry_id"]}.json'
             )
             try:
                 archive_data = _read_archive(entry_metadata, uploads, required_reader)
@@ -1477,12 +1471,9 @@ async def post_entry_archive_query(
     Returns a partial archive for the given `entry_id` based on the `required` specified
     in the body.
     """
-    with utils.timer(
-        logger, 'time to handle archive query (filtering)', entry_id=entry_id
-    ):
-        return answer_entry_archive_request(
-            dict(entry_id=entry_id), required=data.required, user=user
-        )
+    return answer_entry_archive_request(
+        dict(entry_id=entry_id), required=data.required, user=user
+    )
 
 
 def edit(
