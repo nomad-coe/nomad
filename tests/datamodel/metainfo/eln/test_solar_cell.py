@@ -20,7 +20,7 @@ from tests.normalizing.conftest import run_normalize
 from tests.normalizing.conftest import run_processing
 
 
-def test_processing(raw_files, no_warn):
+def test_processing(raw_files_function, no_warn):
     directory = 'tests/data/datamodel/metainfo/eln/solar_cells'
     mainfile = 'solar_cell.archive.json'
     mainfile_schema = 'solar_cell_eln.schema.archive.yaml'

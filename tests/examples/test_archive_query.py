@@ -27,7 +27,14 @@ from tests.normalizing.conftest import run_normalize
 from tests.test_client import async_api_v1
 
 
-def test_archive_query(async_api_v1, elastic, raw_files, mongo, test_user, capsys):
+def test_archive_query(
+    async_api_v1,
+    elastic_function,
+    raw_files_function,
+    mongo_function,
+    test_user,
+    capsys,
+):
     mainfile = os.path.join(
         __file__, '..', '..', 'data', 'examples', 'archive_query_vasprun.xml.gz'
     )

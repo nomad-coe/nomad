@@ -74,7 +74,7 @@ example_archive_contents = {
 
 
 @pytest.fixture(scope='function', autouse=True)
-def raw_files_on_all_tests(raw_files):
+def raw_files_on_all_tests(raw_files_function):
     """Autouse fixture to apply raw_files to all tests."""
     pass
 

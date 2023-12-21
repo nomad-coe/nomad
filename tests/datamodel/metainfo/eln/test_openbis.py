@@ -92,7 +92,7 @@ def mocked_login(url):
     ],
 )
 def test_openbis(
-    mongo,
+    mongo_function,
     monkeypatch,
     test_user,
     status_code,

@@ -22,7 +22,7 @@ from nomad.datamodel.context import ClientContext
 from nomad.utils.exampledata import ExampleData
 
 
-def test_processing(raw_files, no_warn, test_user, mongo):
+def test_processing(raw_files_function, no_warn, test_user, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln/perovskite_database'
     mainfile = 'example.archive.json'
     upload_id = 'test_upload_id'

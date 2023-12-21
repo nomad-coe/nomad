@@ -153,12 +153,6 @@ def raw_files_function(raw_files_infra):
     clear_raw_files()
 
 
-@pytest.fixture(scope='function')
-def raw_files(raw_files_infra):
-    """Provides cleaned out files directory structure per function. Clears files before test."""
-    clear_raw_files()
-
-
 def clear_raw_files():
     directories = [config.fs.staging, config.fs.public, config.fs.tmp]
     for directory in directories:
@@ -199,7 +193,7 @@ def celery_inspect(purged_app):
 # It might be necessary to make this a function scoped fixture, if old tasks keep
 # 'bleeding' into successive tests.
 @pytest.fixture(scope='function')
-def worker(mongo, celery_session_worker, celery_inspect):
+def worker(mongo_function, celery_session_worker, celery_inspect):
     """Provides a clean worker (no old tasks) per function. Waits for all tasks to be completed."""
     yield
 
@@ -244,12 +238,6 @@ def mongo_module(mongo_infra):
 
 @pytest.fixture(scope='function')
 def mongo_function(mongo_infra):
-    """Provides a cleaned mocked mongo per function."""
-    return clear_mongo(mongo_infra)
-
-
-@pytest.fixture(scope='function')
-def mongo(mongo_infra):
     """Provides a cleaned mocked mongo per function."""
     return clear_mongo(mongo_infra)
 
@@ -327,12 +315,6 @@ def elastic_module(elastic_infra):
 
 @pytest.fixture(scope='function')
 def elastic_function(elastic_infra):
-    """Provides a clean elastic per function. Clears elastic before test."""
-    return clear_elastic(elastic_infra)
-
-
-@pytest.fixture(scope='function')
-def elastic(elastic_infra):
     """Provides a clean elastic per function. Clears elastic before test."""
     return clear_elastic(elastic_infra)
 
@@ -450,9 +432,9 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(worker, elastic, mongo, raw_files):
+def proc_infra(worker, elastic_function, mongo_function, raw_files_function):
     """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
-    return dict(elastic=elastic)
+    return dict(elastic=elastic_function)
 
 
 @pytest.fixture(scope='function')
@@ -688,7 +670,7 @@ def normalized(parsed: EntryArchive) -> EntryArchive:
 
 
 @pytest.fixture(scope='function')
-def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
+def uploaded(example_upload: str, raw_files_function) -> Tuple[str, str]:
     """
     Provides a uploaded with uploaded example file and gives the upload_id.
     Clears files after test.
@@ -698,7 +680,9 @@ def uploaded(example_upload: str, raw_files) -> Tuple[str, str]:
 
 
 @pytest.fixture(scope='function')
-def non_empty_uploaded(non_empty_example_upload: str, raw_files) -> Tuple[str, str]:
+def non_empty_uploaded(
+    non_empty_example_upload: str, raw_files_function
+) -> Tuple[str, str]:
     example_upload_id = os.path.basename(non_empty_example_upload).replace('.zip', '')
     return example_upload_id, non_empty_example_upload
 
@@ -1114,7 +1098,7 @@ def example_data_nexus(
 @pytest.fixture(scope='function')
 def example_data_schema_yaml(
     elastic_module,
-    raw_files,
+    raw_files_function,
     no_warn,
     raw_files_module,
     mongo_module,
@@ -1212,7 +1196,7 @@ def plugin_schema():
 
 
 @pytest.fixture(scope='function')
-def example_data_writeable(mongo, test_user, normalized):
+def example_data_writeable(mongo_function, test_user, normalized):
     data = ExampleData(main_author=test_user)
 
     # one upload with one entry, published
@@ -1250,7 +1234,7 @@ def example_data_writeable(mongo, test_user, normalized):
 
 
 @pytest.fixture(scope='function')
-def example_datasets(mongo, test_user, other_test_user):
+def example_datasets(mongo_function, test_user, other_test_user):
     dataset_specs = (
         ('test_dataset_1', test_user, None),
         ('test_dataset_2', test_user, 'test_doi_2'),
@@ -1287,7 +1271,7 @@ def reset_config():
 
 
 @pytest.fixture
-def reset_infra(mongo, elastic):
+def reset_infra(mongo_function, elastic_function):
     """Fixture that resets infrastructure after deleting db or search index."""
     yield None
 

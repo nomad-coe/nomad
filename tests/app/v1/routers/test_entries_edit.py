@@ -40,11 +40,11 @@ class TestEditRepo:
         return {'upload_id:any': uploads}
 
     @pytest.fixture(autouse=True)
-    def set_api(self, client, elastic, mongo):
+    def set_api(self, client, elastic_function, mongo_function):
         self.api = client
 
     @pytest.fixture(autouse=True)
-    def example_datasets(self, test_user, other_test_user, mongo):
+    def example_datasets(self, test_user, other_test_user, mongo_function):
         self.example_dataset = Dataset(
             dataset_id='example_ds',
             dataset_name='example_ds',
@@ -60,7 +60,14 @@ class TestEditRepo:
         self.other_example_dataset.a_mongo.create()
 
     @pytest.fixture(autouse=True)
-    def example_data(self, test_user, other_test_user, raw_files, elastic, mongo):
+    def example_data(
+        self,
+        test_user,
+        other_test_user,
+        raw_files_function,
+        elastic_function,
+        mongo_function,
+    ):
         # TODO
         example_data = ExampleData()
 

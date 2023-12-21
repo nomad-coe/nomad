@@ -26,7 +26,7 @@ from nomad.parsing.parser import ArchiveParser
 from nomad.datamodel import EntryArchive, Context
 
 
-def test_archive_parser(raw_files):
+def test_archive_parser(raw_files_function):
     archive_data = {
         'definitions': {
             'section_definitions': [

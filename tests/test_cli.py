@@ -353,7 +353,9 @@ class TestAdminUploads:
             assert entry.process_status == expected_state
 
     @pytest.mark.parametrize('indexed', [True, False])
-    def test_integrity_entry_index(self, test_user, mongo, elastic, indexed):
+    def test_integrity_entry_index(
+        self, test_user, mongo_function, elastic_function, indexed
+    ):
         data = ExampleData(main_author=test_user)
         data.create_upload(upload_id='test_upload')
         data.create_entry(upload_id='test_upload')

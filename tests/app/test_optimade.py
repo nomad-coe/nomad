@@ -39,7 +39,9 @@ def test_get_entry(published: Upload):
     assert 'optimade.chemical_formula_hill' in utils.flatten_dict(search_result)
 
 
-def test_no_optimade(mongo, elastic, raw_files, client, test_user):
+def test_no_optimade(
+    mongo_function, elastic_function, raw_files_function, client, test_user
+):
     example_data = ExampleData(main_author=test_user)
     example_data.create_upload(
         upload_id='test_upload', published=True, embargo_length=0

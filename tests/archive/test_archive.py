@@ -138,7 +138,7 @@ def test_short_uuids():
         assert to_json(archive['0']) == {'archive': 'test'}
 
 
-def test_write_file(raw_files, example_uuid):
+def test_write_file(raw_files_function, example_uuid):
     path = os.path.join(config.fs.tmp, 'test.msg')
     write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
     with read_archive(path) as archive:
@@ -813,7 +813,7 @@ def all_archive():
     ],
 )
 def test_required_reader(
-    archive, required, inplace_result, root_result, resolve_inplace, mongo
+    archive, required, inplace_result, root_result, resolve_inplace, mongo_function
 ):
     f = BytesIO()
     write_archive(f, 1, [('entry_id', archive.m_to_dict())], entry_toc_depth=2)
@@ -1243,12 +1243,12 @@ def test_partial_archive(archive):
     assert_partial_archive(partial_archive)
 
 
-def test_partial_archive_read_write(archive, mongo):
+def test_partial_archive_read_write(archive, mongo_function):
     write_partial_archive_to_mongo(archive)
     assert_partial_archive(read_partial_archive_from_mongo('test_id'))
 
 
-def test_partial_archive_re_write(archive, mongo):
+def test_partial_archive_re_write(archive, mongo_function):
     write_partial_archive_to_mongo(archive)
     archive.metadata.comment = 'changed'
     write_partial_archive_to_mongo(archive)
@@ -1256,7 +1256,7 @@ def test_partial_archive_re_write(archive, mongo):
     assert archive.metadata.comment == 'changed'
 
 
-def test_read_partial_archives(archive, mongo):
+def test_read_partial_archives(archive, mongo_function):
     write_partial_archive_to_mongo(archive)
     assert_partial_archive(read_partial_archives_from_mongo(['test_id'])['test_id'])
 

@@ -199,7 +199,7 @@ def test_broken_xml_vasp(assert_parser_result):
 
 
 @pytest.fixture(scope='function')
-def with_latin_1_file(raw_files):
+def with_latin_1_file(raw_files_function):
     copyfile('tests/data/latin-1.out', 'tests/data/parsers/latin-1.out')
     yield
     os.remove('tests/data/parsers/latin-1.out')
@@ -269,7 +269,12 @@ def with_latin_1_file(raw_files):
     ],
 )
 def test_match(
-    raw_files, with_latin_1_file, no_warn, parsers, num_output_files, monkeypatch
+    raw_files_function,
+    with_latin_1_file,
+    no_warn,
+    parsers,
+    num_output_files,
+    monkeypatch,
 ):
     example_upload_id = 'example_upload_id'
     upload_files = files.StagingUploadFiles(example_upload_id, create=True)

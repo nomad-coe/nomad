@@ -33,7 +33,7 @@ from tests.test_files import create_test_upload_files
 from tests.metainfo.test_yaml_schema import yaml_to_package
 
 
-def test_schema_processing(raw_files, no_warn):
+def test_schema_processing(raw_files_function, no_warn):
     directory = os.path.join(os.path.dirname(__file__), '../data/datamodel')
     mainfile = 'schema.archive.json'
 
@@ -55,7 +55,7 @@ def test_schema_processing(raw_files, no_warn):
     assert test_archive.metadata.entry_type == 'Schema'
 
 
-def test_eln_annotation_validation_parsing(raw_files, caplog):
+def test_eln_annotation_validation_parsing(raw_files_function, caplog):
     mainfile = os.path.join(
         os.path.dirname(__file__), '../data/datamodel/eln.archive.yaml'
     )

@@ -34,7 +34,7 @@ from tests.test_utils import create_upload
         pytest.param('Zinc_Selenide.archive.json', [], id='chemical'),
     ],
 )
-def test_eln(mainfile, assert_xpaths, raw_files, no_warn):
+def test_eln(mainfile, assert_xpaths, raw_files_function, no_warn):
     mainfile_directory = 'examples/data/eln'
     archive = run_processing(mainfile_directory, mainfile)
 
@@ -55,7 +55,7 @@ def test_eln(mainfile, assert_xpaths, raw_files, no_warn):
         ),
     ],
 )
-def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
+def test_sample_tabular(mainfile, assert_xpaths, raw_files_function, no_warn):
     mainfile_directory = 'examples/data/docs'
     archive = run_processing(mainfile_directory, mainfile)
 
@@ -86,7 +86,13 @@ def test_sample_tabular(mainfile, assert_xpaths, raw_files, no_warn):
     ],
 )
 def test_sample_entry_mode(
-    mongo, test_user, raw_files, monkeypatch, proc_infra, test_files, number_of_entries
+    mongo_function,
+    test_user,
+    raw_files_function,
+    monkeypatch,
+    proc_infra,
+    test_files,
+    number_of_entries,
 ):
     upload = create_upload('test_upload_id', test_user.user_id, test_files)
     assert upload is not None
@@ -206,7 +212,13 @@ def test_sample_entry_mode(
     ],
 )
 def test_tabular_doc_examples(
-    mongo, test_user, raw_files, monkeypatch, proc_infra, test_files, status
+    mongo_function,
+    test_user,
+    raw_files_function,
+    monkeypatch,
+    proc_infra,
+    test_files,
+    status,
 ):
     upload = create_upload('test_upload_id', test_user.user_id, test_files)
     assert upload is not None

@@ -157,7 +157,7 @@ def get_schema_quantity(type, quantity):
 
 
 @pytest.fixture()
-def example_data(elastic, test_user):
+def example_data(elastic_function, test_user):
     data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
     for i in range(0, 4):
@@ -171,7 +171,7 @@ def example_data(elastic, test_user):
 
 
 @pytest.fixture()
-def example_eln_data(elastic, test_user):
+def example_eln_data(elastic_function, test_user):
     class DataSection(EntryData):
         text = Quantity(type=str)
         keyword = Quantity(type=MEnum('one', 'two'))
@@ -214,7 +214,7 @@ def test_index(indices, example_data):
 
 
 @pytest.fixture()
-def indices(elastic):
+def indices(elastic_function):
     pass
 
 

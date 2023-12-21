@@ -33,7 +33,7 @@ from nomad.utils.exampledata import ExampleData
 from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 
-def test_labfolder_integration(mongo, monkeypatch, test_user):
+def test_labfolder_integration(mongo_function, monkeypatch, test_user):
     directory = 'tests/data/datamodel/metainfo/eln/material_library'
     mainfile = 'example-labfolder.archive.json'
 
@@ -187,7 +187,7 @@ def test_labfolder_integration(mongo, monkeypatch, test_user):
     ],
 )
 def test_labfolder_detailed(
-    mongo,
+    mongo_function,
     monkeypatch,
     test_user,
     status_code,

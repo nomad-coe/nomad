@@ -101,7 +101,7 @@ class SimpleProc(Proc):
 @pytest.mark.parametrize(
     'with_args', [pytest.param(False, id='no-args'), pytest.param(True, id='with-args')]
 )
-def test_simple_process(worker, mongo, no_warn, with_args):
+def test_simple_process(worker, mongo_function, no_warn, with_args):
     p = SimpleProc.create()
     if with_args:
         process = 'a_process_with_arguments'
@@ -128,7 +128,7 @@ class FailingProc(Proc):
         _ = 1 / 0
 
 
-def test_failing_process(worker, mongo, with_error):
+def test_failing_process(worker, mongo_function, with_error):
     p = FailingProc.create()
 
     event = 'process failed with exception'
@@ -151,7 +151,7 @@ class ProcTwice(Proc):
         pass
 
 
-def test_process_twice(worker, mongo, no_warn):
+def test_process_twice(worker, mongo_function, no_warn):
     p = ProcTwice.create()
     p.process()
     p.block_until_complete()
@@ -382,7 +382,9 @@ class ParentProc(Proc):
         ),
     ],
 )
-def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events):
+def test_parent_child(
+    worker, mongo_function, reset_events, spawn_kwargs, expected_events
+):
     child_args = spawn_kwargs.get('child_args', [])
     join_args = spawn_kwargs.get('join_args', [])
     fail_spawn = spawn_kwargs.get('fail_spawn', False)
@@ -418,7 +420,7 @@ def test_parent_child(worker, mongo, reset_events, spawn_kwargs, expected_events
     assert_events(expected_events)
 
 
-def test_queueing(worker, mongo, reset_events):
+def test_queueing(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
     expected_events = []
     # Schedule 20 calls
@@ -438,7 +440,7 @@ def test_queueing(worker, mongo, reset_events):
     assert_events(expected_events)
 
 
-def test_queueing_failure(worker, mongo, reset_events):
+def test_queueing_failure(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
     # Schedule 20 calls, the second should fail
     for i in range(20):
@@ -464,7 +466,7 @@ def test_queueing_failure(worker, mongo, reset_events):
     )
 
 
-def test_non_blocking_then_blocking(worker, mongo, reset_events):
+def test_non_blocking_then_blocking(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
     p.spawn(delay=1.0)
     p.blocking()
@@ -482,7 +484,7 @@ def test_non_blocking_then_blocking(worker, mongo, reset_events):
     )
 
 
-def test_blocking_then_non_blocking(worker, mongo, reset_events):
+def test_blocking_then_non_blocking(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
     p.blocking(delay=1.0)
     with pytest.raises(ProcessAlreadyRunning):
@@ -492,7 +494,7 @@ def test_blocking_then_non_blocking(worker, mongo, reset_events):
     assert_events(['p:blocking:start', 'p:blocking:succ'])
 
 
-def test_local_blocked(worker, mongo, reset_events):
+def test_local_blocked(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
 
     def other_call():
@@ -512,7 +514,7 @@ def test_local_blocked(worker, mongo, reset_events):
     assert_events(['p:non_blocking:start', 'other_call:blocked', 'p:non_blocking:succ'])
 
 
-def test_local_blocking(worker, mongo, reset_events):
+def test_local_blocking(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
 
     def other_call():
@@ -542,7 +544,7 @@ def test_local_blocking(worker, mongo, reset_events):
     )
 
 
-def test_local_failed(worker, mongo, reset_events):
+def test_local_failed(worker, mongo_function, reset_events):
     p = ParentProc.create(parent_id='p')
     try:
         p.local_process(fail=True)

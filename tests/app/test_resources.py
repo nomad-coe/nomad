@@ -92,7 +92,7 @@ def patched_download(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def resources(mongo, monkeypatch):
+def resources(mongo_function, monkeypatch):
     monkeypatch.setattr('nomad.config.resources.enabled', True)
     monkeypatch.setattr('nomad.config.resources.db_name', 'test_db_resources')
     remove_mongo()
