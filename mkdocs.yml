@@ -47,6 +47,7 @@ nav:
       - Navigate the code: howto/develop/code.md
       - Contribute: howto/develop/contrib.md
       - Extend the search: howto/develop/search.md
+      - Migrate to autoformatted code: howto/develop/migrate-to-autoformatter.md
   - Domain-specific examples:
     - Overview: examples/overview.md
     - Computational data:
