@@ -1,0 +1,9 @@
+# This file lists revisions of large-scale formatting/style changes so that
+# they can be excluded from git blame results.
+#
+# To set this file as the default ignore file for git blame, run:
+#   $ git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# formatting changes
+5d5879a4b4f12fec1ebd0d133684190810b6a838
+0a50db18aee7668f7d4f0af94099501468528e99

@@ -403,6 +403,15 @@ We use Ruff and Mypy to maintain code quality. Additionally, we recommend instal
 nomad dev qa --skip-tests
 ```
 
+We use ruff as a linter and as an autoformatter. If you only want to lint your code, you can run:
+```shell
+ruff check .
+```
+
+To format your code you can run:
+```shell
+ruff format .
+```
 
 To run all tests and code QA:
 
@@ -411,6 +420,8 @@ nomad dev qa
 ```
 
 This mimics the tests and checks that the GitLab CI/CD will perform.
+
+If you are migrating an old merge request to a formatted one, please see find the migration guide [here](../migrate-to-autoformatter.md)
 
 ### Frontend tests
 
@@ -622,10 +633,12 @@ pipelines. In order to actually use the these features, you have to make sure th
 are enabled in your own User settings:
 
 ```json
-"python.linting.pycodestyleEnabled": true,
-"python.linting.pylintEnabled": true,
 "python.linting.mypyEnabled": true,
 "python.testing.pytestEnabled": true,
+"[python]": {
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "charliermarsh.ruff"
+}
 ```
 
 The settings also include a few launch configuration for VS Code's debugger. You can create
