@@ -319,12 +319,6 @@ def elastic_function(elastic_infra):
     return clear_elastic(elastic_infra)
 
 
-@pytest.fixture(scope='function')
-def elastic(elastic_infra):
-    """Provides a clean elastic per function. Clears elastic before test."""
-    return clear_elastic(elastic_infra)
-
-
 def test_user_uuid(handle):
     return '00000000-0000-0000-0000-00000000000%d' % handle
 
@@ -438,9 +432,9 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(worker, elastic, mongo_function, raw_files_function):
+def proc_infra(worker, elastic_function, mongo_function, raw_files_function):
     """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
-    return dict(elastic=elastic)
+    return dict(elastic=elastic_function)
 
 
 @pytest.fixture(scope='function')
@@ -1277,7 +1271,7 @@ def reset_config():
 
 
 @pytest.fixture
-def reset_infra(mongo_function, elastic):
+def reset_infra(mongo_function, elastic_function):
     """Fixture that resets infrastructure after deleting db or search index."""
     yield None
 

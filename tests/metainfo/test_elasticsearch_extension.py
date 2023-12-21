@@ -471,7 +471,7 @@ def test_index_docs(indices):
     }
 
 
-def test_index_entry(elastic, indices, example_entry):
+def test_index_entry(elastic_function, indices, example_entry):
     index_entries_with_materials([example_entry], refresh=True)
     assert_entry_indexed(example_entry)
 
@@ -539,7 +539,7 @@ def create_entries(spec: str):
         pytest.param('1-1', '1-1*', '1-1*', id='update-material-property'),
     ],
 )
-def test_index_entries(elastic, indices, before, to_index, after):
+def test_index_entries(elastic_function, indices, before, to_index, after):
     index_entries_with_materials(create_entries(before), refresh=True)
     index_entries_with_materials(create_entries(to_index), refresh=True)
 
@@ -550,7 +550,7 @@ def test_index_entries(elastic, indices, before, to_index, after):
     'cap, entries',
     [pytest.param(2, 1, id='below-cap'), pytest.param(2, 3, id='above-cap')],
 )
-def test_index_materials_capped(elastic, indices, monkeypatch, cap, entries):
+def test_index_materials_capped(elastic_function, indices, monkeypatch, cap, entries):
     monkeypatch.setattr('nomad.config.elastic.entries_per_material_cap', cap)
     index_entries_with_materials(
         create_entries(','.join([f'{i}-1' for i in range(1, entries + 1)])),

@@ -17,7 +17,7 @@
 #
 
 
-def test_info(client, elastic):
+def test_info(client, elastic_function):
     rv = client.get('info')
     assert rv.status_code == 200
 
