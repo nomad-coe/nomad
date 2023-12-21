@@ -91,7 +91,7 @@ app.add_route('/', redirect_to_docs, include_in_schema=False)
 
 @app.middleware('http')
 async def log_request_time(request: Request, call_next):
-    with utils.timer(logger, 'time to handle request', url=request.url.path):
+    with utils.timer(logger, 'request handled', url=request.url.path):
         return await call_next(request)
 
 
