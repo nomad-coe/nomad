@@ -360,7 +360,7 @@ def test_representative_systems(entry, request):
 
 
 def test_reduced_chemical_formula():
-    'Ensure we get the right reduced chemical formula for glucose atom labels'
+    "Ensure we get the right reduced chemical formula for glucose atom labels"
     archive = parse_file(glucose_atom_labels)
     archive = run_normalize(archive)
     expected_red_chem_formula = 'C6H12O6'

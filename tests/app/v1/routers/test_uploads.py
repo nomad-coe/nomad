@@ -438,7 +438,7 @@ def block_until_completed(client, upload_id: str, user_auth):
 
 
 def get_upload_entries_metadata(
-    entries: List[Dict[str, Any]]
+    entries: List[Dict[str, Any]],
 ) -> Iterable[EntryMetadata]:
     """
     Create a iterable of :class:`EntryMetadata` from a API upload json record, plus a

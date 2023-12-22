@@ -124,7 +124,7 @@ def mongo_forall(mongo_function):
 
 @pytest.fixture
 def uploaded_id_with_warning(
-    raw_files_function
+    raw_files_function,
 ) -> Generator[Tuple[str, str], None, None]:
     example_file = 'tests/data/proc/examples_with_warning_template.zip'
     example_upload_id = os.path.basename(example_file).replace('.zip', '')

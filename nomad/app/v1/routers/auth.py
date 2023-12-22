@@ -409,7 +409,7 @@ async def get_token_via_query(username: str, password: str):
     response_model=SignatureToken,
 )
 async def get_signature_token(
-    user: Union[User, None] = Depends(create_user_dependency(required=True))
+    user: Union[User, None] = Depends(create_user_dependency(required=True)),
 ):
     """
     Generates and returns a signature token for the authenticated user. Authentication
