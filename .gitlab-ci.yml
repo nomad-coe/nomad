@@ -89,7 +89,7 @@ python linting:
     - cd /app
   script:
     - ruff nomad tests
-    - ruff format nomad tests
+    - ruff format nomad tests --check
     - ruff nomad tests --output-format gitlab > $CI_PROJECT_DIR/gl-code-quality-report.json
     - mypy nomad tests
   rules:

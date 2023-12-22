@@ -1590,7 +1590,7 @@ def _es_to_api_aggregation(
 
 
 def _specific_agg(
-    agg: Aggregation
+    agg: Aggregation,
 ) -> Union[
     TermsAggregation,
     AutoDateHistogramAggregation,
