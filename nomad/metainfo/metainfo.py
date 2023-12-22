@@ -2864,7 +2864,7 @@ class MSection(
             yield self
 
     def m_traverse(
-        self,
+        self
     ) -> Generator[Tuple[Any, Any, int, List[Union[str, int]]], None, None]:
         """
         Performs a depth-first traversal and yield tuples of section, property

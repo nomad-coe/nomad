@@ -839,7 +839,7 @@ def published(
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def published_wo_user_metadata(
-    non_empty_processed: processing.Upload,
+    non_empty_processed: processing.Upload
 ) -> processing.Upload:
     """
     Provides a processed upload. Upload was uploaded with test_user.

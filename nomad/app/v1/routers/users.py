@@ -68,7 +68,7 @@ class Users(BaseModel):
     response_model=User,
 )
 async def read_users_me(
-    current_user: User = Depends(create_user_dependency(required=True)),
+    current_user: User = Depends(create_user_dependency(required=True))
 ):
     current_user_dict: dict = current_user.m_to_dict(
         with_out_meta=True, include_derived=True

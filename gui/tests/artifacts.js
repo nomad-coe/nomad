@@ -842,19 +842,6 @@ window.nomadArtifacts = {
       "aggregatable": false,
       "dynamic": false
     },
-    "optimade.species_at_sites": {
-      "name": "species_at_sites",
-      "description": "Name of the species at each site (where values for sites are specified with the same\norder of the cartesian_site_positions property). The properties of the species are\nfound in the species property.",
-      "type": {
-        "type_kind": "python",
-        "type_data": "str"
-      },
-      "shape": [
-        "nsites"
-      ],
-      "aggregatable": true,
-      "dynamic": false
-    },
     "optimade.structure_features": {
       "name": "structure_features",
       "description": "A list of strings that flag which special features are used by the structure.\n\n- disorder: This flag MUST be present if any one entry in the species list has a\nchemical_symbols list that is longer than 1 element.\n- unknown_positions: This flag MUST be present if at least one component of the\ncartesian_site_positions list of lists has value null.\n- assemblies: This flag MUST be present if the assemblies list is present.",
@@ -35240,9 +35227,6 @@ window.nomadArtifacts = {
                 "m_parent_index": 12,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
-                  "elasticsearch": [
-                    "optimade.species_at_sites"
-                  ],
                   "optimade": [
                     "Optimade"
                   ]

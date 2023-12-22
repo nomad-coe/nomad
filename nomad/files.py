@@ -1619,8 +1619,8 @@ class PublicUploadFiles(UploadFiles):
             return False
         if self.missing_raw_files:
             return (
-                not path
-            )  # We consider the empty path (i.e. root) to always "exists".
+                not path  # We consider the empty path (i.e. root) to always "exists".
+            )
         self._parse_content()
         explicit_directory_path = path.endswith(os.path.sep)
         path = path.rstrip(os.path.sep)

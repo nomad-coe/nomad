@@ -300,7 +300,6 @@ class OptimadeEntry(MSection):
         type=str,
         shape=['nsites'],
         links=optimade_links('h.6.2.12'),
-        a_elasticsearch=Elasticsearch(),
         a_optimade=Optimade(query=False, entry=True, sortable=False, type='list'),
         description="""
             Name of the species at each site (where values for sites are specified with the same
