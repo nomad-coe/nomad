@@ -24,6 +24,7 @@ import time
 import zipfile
 from datetime import datetime
 from typing import List, Dict, Any, Iterable
+from tests.app.v1.routers.uploads.common import assert_upload
 
 from tests.utils import build_url, set_upload_entry_metadata
 from tests.test_files import (
@@ -52,10 +53,8 @@ from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.bundles import BundleExporter
 from nomad.datamodel import EntryMetadata
-from nomad.datamodel.data import User
-from nomad.groups import UserGroup
 
-from .test_entries import assert_archive_response
+from ..test_entries import assert_archive_response
 
 """
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -256,29 +255,6 @@ def assert_expected_mainfiles(upload_id, expected_mainfiles):
                 assert entry.process_status == ProcessStatus.SUCCESS
             else:
                 assert entry.process_status == ProcessStatus.FAILURE
-
-
-def assert_upload(response_json, **kwargs):
-    data = response_json['data']
-    assert 'upload_id' in response_json
-    assert 'upload_id' in data
-    assert 'upload_create_time' in data
-    assert 'main_author' in data
-    assert 'coauthors' in data
-    assert 'reviewers' in data
-    assert 'viewers' in data
-    assert 'writers' in data
-    assert 'published' in data
-    assert 'with_embargo' in data
-    assert 'embargo_length' in data
-    assert 'license' in data
-    assert (data['embargo_length'] > 0) == data['with_embargo']
-    if data['published']:
-        assert 'publish_time' in data
-
-    for key, value in kwargs.items():
-        assert data.get(key, None) == value
-    return data
 
 
 def assert_upload_does_not_exist(client, upload_id: str, user_auth):
@@ -712,89 +688,6 @@ def test_get_uploads(client, mongo_module, test_auth_dict, example_data, kwargs)
 
 
 @pytest.mark.parametrize(
-    'kwargs',
-    [
-        pytest.param(
-            dict(
-                user=None,
-                expected_upload_ids=[],
-                expected_status_code=401,
-            ),
-            id='groups-guest',
-        ),
-        pytest.param(
-            dict(
-                user='invalid',
-                expected_upload_ids=[],
-                expected_status_code=401,
-            ),
-            id='groups-invalid-user',
-        ),
-        pytest.param(
-            dict(
-                user='other_test_user',
-                expected_upload_ids=[
-                    'id_coauthor_other_group',
-                    'id_reviewer_other_group',
-                    'id_coauthor_mixed_group',
-                    'id_reviewer_mixed_group',
-                ],
-            ),
-            id='groups-no-args',
-        ),
-        pytest.param(
-            dict(
-                user='other_test_user',
-                query_params={'roles': 'coauthor'},
-                expected_upload_ids=[
-                    'id_coauthor_other_group',
-                    'id_coauthor_mixed_group',
-                ],
-            ),
-            id='groups-coauthor',
-        ),
-        pytest.param(
-            dict(
-                user='other_test_user',
-                query_params={'roles': 'reviewer'},
-                expected_upload_ids=[
-                    'id_reviewer_other_group',
-                    'id_reviewer_mixed_group',
-                ],
-            ),
-            id='groups-reviewer',
-        ),
-    ],
-)
-def test_get_group_uploads(client, example_data_groups, test_auth_dict, kwargs):
-    user = kwargs.get('user', 'test_user')
-    query_params = kwargs.get('query_params', {})
-    expected_status_code = kwargs.get('expected_status_code', 200)
-    expected_upload_ids = kwargs.get('expected_upload_ids', None)
-    expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth, __token = test_auth_dict[user]
-
-    response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
-    assert_response(response, expected_status_code)
-    if expected_status_code != 200:
-        return
-
-    response_json = response.json()
-    response_data = response_json['data']
-
-    if expected_upload_ids is not None:
-        assert (
-            len(response_data) == len(expected_upload_ids)
-        ), f'Wrong number of records returned, expected {len(expected_upload_ids)}, got {len(response_data)}'
-        found_upload_ids = [upload['upload_id'] for upload in response_data]
-        assert (
-            expected_upload_ids == found_upload_ids
-        ), f'Wrong upload is list returned. Expected {repr(expected_upload_ids)}, got {repr(found_upload_ids)}.'
-
-    assert_pagination(response_json['pagination'], expected_pagination)
-
-
-@pytest.mark.parametrize(
     'user, upload_id, expected_status_code',
     [
         pytest.param('test_user', 'id_unpublished', 200, id='valid-upload_id'),
@@ -806,37 +699,11 @@ def test_get_group_uploads(client, example_data_groups, test_auth_dict, kwargs):
         pytest.param('invalid', 'id_unpublished', 401, id='invalid-credentials'),
         pytest.param('other_test_user', 'id_unpublished', 401, id='no-access'),
         pytest.param('admin_user', 'id_unpublished', 200, id='admin-access'),
-        pytest.param(
-            'other_test_user', 'id_coauthor_other_group', 200, id='coauthor-other-group'
-        ),
-        pytest.param(
-            'invalid', 'id_coauthor_other_group', 401, id='coauthor-other-group-invalid'
-        ),
-        pytest.param(
-            None, 'id_coauthor_other_group', 401, id='coauthor-other-groups-guest'
-        ),
-        pytest.param(
-            'other_test_user', 'id_reviewer_other_group', 200, id='reviewer-other-group'
-        ),
-        pytest.param(
-            'invalid', 'id_reviewer_other_group', 401, id='reviewer-other-group-invalid'
-        ),
-        pytest.param(
-            None, 'id_reviewer_other_group', 401, id='reviewer-other-group-guest'
-        ),
-        pytest.param(
-            'other_test_user', 'id_coauthor_mixed_group', 200, id='coauthor-mixed-group'
-        ),
-        pytest.param(
-            'other_test_user', 'id_reviewer_mixed_group', 200, id='reviewer-mixed-group'
-        ),
     ],
 )
 def test_get_upload(
     client,
     mongo_module,
-    example_data,
-    example_data_groups,
     test_auth_dict,
     user,
     upload_id,
