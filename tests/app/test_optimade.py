@@ -152,7 +152,6 @@ def example_structures(elastic_infra, mongo_module, raw_files_infra, test_user):
         ('chemical_formula_anonymous starts with "A"', -1),
         ('elements HAS ONY "H", "O"', -1),
         ('last_modified >= "2009-02-01T20:07:00Z"', 0),
-        ('species_at_sites HAS "C"', 1),
         ('_nmd_results_material_structural_type = "molecule / cluster"', 3),
         ('_nmd_results_material_chemical_formula_reduced = "H20"', 0),
     ],

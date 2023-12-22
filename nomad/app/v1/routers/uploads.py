@@ -660,7 +660,7 @@ and publish your data."""
     response_model_exclude_none=True,
 )
 async def get_command_examples(
-    user: User = Depends(create_user_dependency(required=True)),
+    user: User = Depends(create_user_dependency(required=True))
 ):
     """Get url and example command for shell based uploads."""
     token = generate_upload_token(user)
