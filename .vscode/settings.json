@@ -1,152 +1,111 @@
 {
-    "python.defaultInterpreterPath": ".pyenv/bin/python",
-    "python.terminal.activateEnvInCurrentTerminal": true,
-    "editor.rulers": [
-        90
-    ],
-    "editor.renderWhitespace": "all",
-    "editor.tabSize": 4,
-    "[javascript]": {
-        "editor.tabSize": 2
-    },
-    "files.trimTrailingWhitespace": true,
-    "python.linting.pylintArgs": [
-        "--rcfile=${workspaceFolder}/.pylintrc"
-    ],
-    "python.linting.pycodestylePath": "pycodestyle",
-    "python.linting.pycodestyleArgs": [
-        "--config=${workspaceFolder}/pycodestyle.ini"
-    ],
-    "python.linting.mypyArgs": [
-        "--ignore-missing-imports",
-        "--follow-imports=silent",
-        "--no-strict-optional"
-    ],
-    "files.watcherExclude": {
-      "${workspaceFolder}/.pyenv/**": true,
-    },
-    "yaml.schemas": {
-        ".vscode/schema_validation.json": "*.archive.yaml"
-    },
-    "launch": {
-        "version": "0.2.0",
-        "configurations": [
-            {
-                "name": "gui",
-                "type": "chrome",
-                "request": "launch",
-                "url": "http://localhost:3000",
-                "webRoot": "${workspaceFolder}/gui"
-            },
-            {
-                "name": "app",
-                "type": "python",
-                "request": "launch",
-                "justMyCode": false,
-                "program": "${workspaceFolder}/.pyenv/bin/nomad",
-                "args": [
-                    "admin",
-                    "run",
-                    "app"
-                ]
-            },
-            {
-                "name": "worker",
-                "type": "python",
-                "request": "launch",
-                "justMyCode": false,
-                "program": "${workspaceFolder}/.pyenv/bin/nomad",
-                "args": [
-                    "admin",
-                    "run",
-                    "worker"
-                ]
-            },
-            {
-                "name": "hub",
-                "type": "python",
-                "request": "launch",
-                "justMyCode": false,
-                "program": "${workspaceFolder}/.pyenv/bin/nomad",
-                "args": [
-                    "admin",
-                    "run",
-                    "hub"
-                ]
-            },
-            {
-                "name": "tests",
-                "type": "python",
-                "request": "launch",
-                "cwd": "${workspaceFolder}",
-                "program": "${workspaceFolder}/.pyenv/bin/pytest",
-                "justMyCode": false,
-                "env": {
-                    "_PYTEST_RAISE": "1"
-                },
-                "args": [
-                    "-sv",
-                    "tests"
-                ]
-            },
-            {
-                "name": "nomad parse",
-                "type": "python",
-                "request": "launch",
-                "cwd": "${workspaceFolder}",
-                "program": "${workspaceFolder}/.env/bin/nomad",
-                "justMyCode": false,
-                "args": [
-                    "parse",
-                    "--show-archive",
-                    "tests/data/parsers/vasp/vasp.xml"
-                ]
-            },
-            {
-                "name": "nomad gui generate",
-                "type": "python",
-                "request": "launch",
-                "cwd": "${workspaceFolder}",
-                "module": "nomad.cli",
-                "justMyCode": false,
-                "args": [
-                    "dev",
-                    "gui-artifacts"
-                ]
-            },
-            {
-                "name": "Python: Current File",
-                "type": "python",
-                "request": "launch",
-                "program": "${file}"
-            },
-            {
-                "name": "Python: Attach",
-                "type": "python",
-                "request": "attach",
-                "localRoot": "${workspaceFolder}",
-                "remoteRoot": "${workspaceFolder}",
-                "port": 3000,
-                "secret": "my_secret",
-                "host": "localhost"
-            }
-        ]
-    },
-    "files.exclude": {
-        "\"**/*.pyc\": {\"when\": \"$(basename).py\"}": true,
-        "**/__pycache__": true,
-        "**/node_modules": true
-
-    },
-    "eslint.workingDirectories": [
-        {
-            "directory": "gui"
-        }
-    ],
-    "python.testing.pytestPath": "pytest",
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "jest.autoRun": "off"
+  "python.defaultInterpreterPath": ".pyenv/bin/python",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "editor.rulers": [90],
+  "editor.renderWhitespace": "all",
+  "editor.tabSize": 4,
+  "[javascript]": {
+    "editor.tabSize": 2
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.watcherExclude": {
+    "${workspaceFolder}/.pyenv/**": true
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "gui",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:3000",
+        "webRoot": "${workspaceFolder}/gui"
+      },
+      {
+        "name": "app",
+        "type": "python",
+        "request": "launch",
+        "justMyCode": false,
+        "program": "${workspaceFolder}/.pyenv/bin/nomad",
+        "args": ["admin", "run", "app"]
+      },
+      {
+        "name": "worker",
+        "type": "python",
+        "request": "launch",
+        "justMyCode": false,
+        "program": "${workspaceFolder}/.pyenv/bin/nomad",
+        "args": ["admin", "run", "worker"]
+      },
+      {
+        "name": "hub",
+        "type": "python",
+        "request": "launch",
+        "justMyCode": false,
+        "program": "${workspaceFolder}/.pyenv/bin/nomad",
+        "args": ["admin", "run", "hub"]
+      },
+      {
+        "name": "tests",
+        "type": "python",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "program": "${workspaceFolder}/.pyenv/bin/pytest",
+        "justMyCode": false,
+        "env": {
+          "_PYTEST_RAISE": "1"
+        },
+        "args": ["-sv", "tests"]
+      },
+      {
+        "name": "nomad parse",
+        "type": "python",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "program": "${workspaceFolder}/.env/bin/nomad",
+        "justMyCode": false,
+        "args": ["parse", "--show-archive", "tests/data/parsers/vasp/vasp.xml"]
+      },
+      {
+        "name": "nomad gui generate",
+        "type": "python",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "module": "nomad.cli",
+        "justMyCode": false,
+        "args": ["dev", "gui-artifacts"]
+      },
+      {
+        "name": "Python: Current File",
+        "type": "python",
+        "request": "launch",
+        "program": "${file}"
+      },
+      {
+        "name": "Python: Attach",
+        "type": "python",
+        "request": "attach",
+        "localRoot": "${workspaceFolder}",
+        "remoteRoot": "${workspaceFolder}",
+        "port": 3000,
+        "secret": "my_secret",
+        "host": "localhost"
+      }
+    ]
+  },
+  "files.exclude": {
+    "\"**/*.pyc\": {\"when\": \"$(basename).py\"}": true,
+    "**/__pycache__": true,
+    "**/node_modules": true
+  },
+  "eslint.workingDirectories": [
+    {
+      "directory": "gui"
+    }
+  ],
+  "python.testing.pytestPath": "pytest",
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.unittestEnabled": false,
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "editor.formatOnSave": true
 }
