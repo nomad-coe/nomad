@@ -23,7 +23,7 @@ import sys
 
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Set
 
 import numpy as np
 from toposort import toposort_flatten
@@ -295,7 +295,7 @@ def __add_common_properties(xml_node: ET.Element, definition: Definition):
         definition.more['nx_optional'] = __if_base(xml_node)
 
 
-def __create_attributes(xml_node: ET.Element, definition: Union[Section, Property]):
+def __create_attributes(xml_node: ET.Element, definition: Union[Section, Quantity]):
     """
     Add all attributes in the given nexus XML node to the given
     Quantity or SubSection using the Attribute class (new mechanism).
@@ -323,42 +323,20 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
             else:
                 nx_shape = []
 
-        # check if the attribute exist
-        # if yes then modify directly
-        # if not create a new one and append to the list
-        for m_attribute in definition.attributes:
-            if m_attribute.name == name:
-                m_attribute.shape = nx_shape
-                m_attribute.type = nx_type
+        m_attribute = Attribute(
+            name=name, variable=__if_template(name), shape=nx_shape, type=nx_type
+        )
 
-                for name, value in attribute.items():
-                    m_attribute.more[f'nx_{name}'] = value
+        for name, value in attribute.items():
+            m_attribute.more[f'nx_{name}'] = value
 
-                break
-        else:
-            m_attribute = Attribute(
-                name=name, variable=__if_template(name), shape=nx_shape, type=nx_type
-            )
+        __add_common_properties(attribute, m_attribute)
 
-            for name, value in attribute.items():
-                m_attribute.more[f'nx_{name}'] = value
+        definition.attributes.append(m_attribute)
 
-            definition.attributes.append(m_attribute)
 
-    m_nx_data_path_exists = False
-    for attrib in definition.attributes:
-        if attrib.name == 'm_nx_data_path':
-            m_nx_data_path_exists = True
-            break
-    m_nx_data_file_exists = False
-    for attrib in definition.attributes:
-        if attrib.name == 'm_nx_data_file':
-            m_nx_data_file_exists = True
-            break
-
-        # TODO: Add call to __add_common for description of attribs
-
-    if not m_nx_data_path_exists:
+def __add_additional_attributes(definition: Definition):
+    if 'm_nx_data_path' not in definition.all_attributes:
         definition.attributes.append(
             Attribute(
                 name='m_nx_data_path',
@@ -369,8 +347,8 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
                 'This attribute holds the actual path of the value in the nexus data.',
             )
         )
-    # NeXus file.
-    if not m_nx_data_file_exists:
+
+    if 'm_nx_data_file' not in definition.all_attributes:
         definition.attributes.append(
             Attribute(
                 name='m_nx_data_file',
@@ -383,26 +361,28 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Propert
         )
 
     if isinstance(definition, Quantity):
+        # TODO We should also check the shape of the quantity
+        if definition.type not in [np.float64, np.int64, np.uint64]:
+            return
+
         for nx_array_attr in [
             'nx_data_mean',
             'nx_data_var',
             'nx_data_min',
             'nx_data_max',
         ]:
-            for attrib in definition.attributes:
-                if attrib.name == nx_array_attr:
-                    break
-            else:
-                definition.attributes.append(
-                    Attribute(
-                        name=nx_array_attr,
-                        variable=False,
-                        shape=[],
-                        type=np.float64,
-                        description='This is a nexus template property. '
-                        'This attribute holds specific  statistics on the nexus data array.',
-                    )
+            if nx_array_attr in definition.all_attributes:
+                continue
+            definition.attributes.append(
+                Attribute(
+                    name=nx_array_attr,
+                    variable=False,
+                    shape=[],
+                    type=np.float64,
+                    description='This is a nexus template property. '
+                    'This attribute holds specific  statistics on the nexus data array.',
                 )
+            )
 
 
 def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
@@ -452,6 +432,7 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
         base_quantity: Quantity = container.base_sections[0].all_quantities.get(name)
         if base_quantity:
             value_quantity = base_quantity.m_copy(deep=True)
+            value_quantity.attributes.clear()
 
     # create quantity
     if value_quantity is None:
@@ -475,9 +456,10 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
     )
 
     __add_common_properties(xml_node, value_quantity)
-    __create_attributes(xml_node, value_quantity)
 
     container.quantities.append(value_quantity)
+
+    __create_attributes(xml_node, value_quantity)
 
     return value_quantity
 
@@ -499,7 +481,6 @@ def __create_group(xml_node: ET.Element, root_section: Section):
         group_section = Section(validate=VALIDATE, nx_kind='group', name=nx_name)
 
         __attach_base_section(group_section, root_section, __to_section(nx_type))
-        __copy_base_attributes(group_section, nx_type)
         __add_common_properties(group, group_section)
 
         nx_name = xml_attrs.get('name', nx_type.replace('NX', '').upper())
@@ -535,30 +516,6 @@ def __attach_base_section(section: Section, container: Section, default: Section
     section.base_sections = [base_section]
 
 
-def __copy_base_attributes(destination: Section, source_name: str):
-    """
-    Copy attributes from base subsection to derived subsection.
-
-    Attributes are stored in `SubSection.attributes` list. They are not inherited
-    thus need to be manually copied.
-    """
-    source: Section = __section_definitions.get(source_name)
-
-    if not source or not destination or source is destination:
-        return
-
-    for m_attribute in source.attributes:
-        destination.attributes.append(
-            Attribute(
-                name=m_attribute.name,
-                type=m_attribute.type,
-                shape=m_attribute.shape,
-                variable=m_attribute.variable,
-                **m_attribute.more,
-            )
-        )
-
-
 def __create_class_section(xml_node: ET.Element) -> Section:
     """
     Creates a metainfo section from the top-level nexus definition given as xml node.
@@ -579,7 +536,6 @@ def __create_class_section(xml_node: ET.Element) -> Section:
     if 'extends' in xml_attrs:
         base_section = __to_section(xml_attrs['extends'])
         class_section.base_sections = [base_section]
-        __copy_base_attributes(class_section, base_section.name)
 
     __add_common_properties(xml_node, class_section)
 
@@ -742,6 +698,17 @@ def init_nexus_metainfo():
     # We need to initialize the metainfo definitions. This is usually done automatically,
     # when the metainfo schema is defined though MSection Python classes.
     nexus_metainfo_package.init_metainfo()
+
+    # Add additional NOMAD specific attributes (nx_data_path, nx_data_file, nx_mean, ...)
+    sections: Set[Section] = set()
+    quantities: Set[Quantity] = set()
+    for section in __section_definitions.values():
+        sections.add(section.inherited_sections[0])
+        quantities.update(section.all_quantities.values())
+    for definition in sections:
+        __add_additional_attributes(definition)
+    for definition in quantities:
+        __add_additional_attributes(definition)
 
     # We skip the Python code generation for now and offer Python classes as variables
     # TO DO not necessary right now, could also be done case-by-case by the nexus parser

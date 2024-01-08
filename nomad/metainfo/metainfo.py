@@ -4842,6 +4842,8 @@ def all_attributes(self: Union[Section, Property]) -> Dict[str, Attribute]:
     else:
         for section in self.m_parent.inherited_sections:
             property = section.all_properties.get(self.name)
+            if property is None:
+                continue
             for definition in property.attributes:
                 result[definition.name] = definition
 
