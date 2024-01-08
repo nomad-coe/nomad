@@ -71,7 +71,6 @@ from nomad.metainfo.util import (
     normalize_complex,
     normalize_datetime,
     resolve_variadic_name,
-    retrieve_attribute,
     serialize_complex,
     split_python_definition,
     to_dict,
@@ -1458,11 +1457,13 @@ class MSection(
 
         raise AttributeError(name)
 
-    def __set_normalize(self, quantity_def: Quantity, value: Any) -> Any:
-        target_type = quantity_def.type
+    def __set_normalize(
+        self, definition: Union[Quantity, Attribute], value: Any
+    ) -> Any:
+        target_type = definition.type
 
         if isinstance(target_type, DataType):
-            return target_type.set_normalize(self, quantity_def, value)
+            return target_type.set_normalize(self, cast(Quantity, definition), value)
 
         if isinstance(target_type, Section):
             if isinstance(value, MProxy):
@@ -1470,12 +1471,12 @@ class MSection(
 
             if not isinstance(value, MSection):
                 raise TypeError(
-                    f'The value {value} for reference quantity {quantity_def} is not a section instance.'
+                    f'The value {value} for reference quantity {definition} is not a section instance.'
                 )
 
             if not value.m_follows(target_type):
                 raise TypeError(
-                    f'The value {value} for quantity {quantity_def} does not follow {target_type}'
+                    f'The value {value} for quantity {definition} does not follow {target_type}'
                 )
 
             return value
@@ -1483,7 +1484,7 @@ class MSection(
         if isinstance(target_type, MEnum):
             if value not in cast(MEnum, target_type).get_all_values():
                 raise TypeError(
-                    f'The value {value} is not an enum value for {quantity_def}.'
+                    f'The value {value} is not an enum value for {definition}.'
                 )
             return value
 
@@ -1500,7 +1501,11 @@ class MSection(
             return int(value)
 
         if target_type in MTypes.complex:
-            return normalize_complex(value, target_type, quantity_def.unit)
+            return normalize_complex(
+                value,
+                target_type,
+                definition.unit if isinstance(definition, Quantity) else None,
+            )
 
         if type(value) != target_type:
             if target_type in MTypes.primitive:
@@ -1511,7 +1516,7 @@ class MSection(
 
             if value is not None:
                 raise TypeError(
-                    f'The value {value} for {quantity_def} is not of type {target_type}.'
+                    f'The value {value} for {definition} is not of type {target_type}.'
                 )
 
         return value
@@ -1918,7 +1923,7 @@ class MSection(
             tgt_property.name if isinstance(tgt_property, Definition) else tgt_property
         )
 
-        tgt_def, tgt_attr = retrieve_attribute(self.m_def, tgt_property, attr_name)
+        tgt_def, tgt_attr = self.m_def.get_attribute(tgt_property, attr_name)
 
         if tgt_attr.type in MTypes.numpy:
             attr_value = to_numpy(tgt_attr.type, [], None, tgt_attr, attr_value)
@@ -1984,7 +1989,7 @@ class MSection(
         tgt_def: Definition = (
             tgt_property
             if tgt_property is None
-            else retrieve_attribute(self.m_def, tgt_property, attr_name)[0]
+            else self.m_def.get_attribute(tgt_property, attr_name)[0]
         )
 
         # section attributes
@@ -4473,6 +4478,42 @@ class Section(Definition):
                 ):
                     property.m_set(m_quantity, inherited_property.m_get(m_quantity))
 
+    def get_attribute(self, definition, attr_name: str) -> Tuple[Definition, Attribute]:
+        """
+        Resolve the attribute within this section definition based on parent definition
+        and attribute name. The definition can be None for section attributes, a
+        quantity definition, or the name of a variadically named quantity.
+        In the case of variadic/template name, the name is also resolved by checking naming pattern.
+        """
+
+        # find the section or quantity where attribute is defined
+        tgt_def: Definition = None
+        if definition is None:
+            tgt_def = self
+        elif isinstance(definition, Definition):
+            tgt_def = definition
+        else:
+            try:
+                tgt_def = resolve_variadic_name(self.all_properties, definition)
+            except ValueError:
+                pass
+
+        if tgt_def is None:
+            raise ValueError(
+                f'Cannot find the definition by the given name {definition}'
+            )
+
+        # find the corresponding attribute
+        try:
+            tgt_attr = resolve_variadic_name(tgt_def.all_attributes, attr_name)
+        except ValueError:
+            tgt_attr = None
+
+        if tgt_attr is not None:
+            return tgt_def, tgt_attr
+
+        raise ValueError('The given attribute name is not found in the given property.')
+
     @constraint
     def unique_names(self):
         names: Set[str] = set()
@@ -4792,10 +4833,17 @@ Definition.attributes = SubSection(
 @derived(
     cached=True, virtual=True
 )  # Virtual has to be set manually, due to bootstrapping hen-egg problems
-def all_attributes(self: Property) -> Dict[str, Attribute]:
+def all_attributes(self: Union[Section, Property]) -> Dict[str, Attribute]:
     result: Dict[str, Attribute] = {}
-    for definition in self.attributes:
-        result[definition.name] = definition
+    if isinstance(self, Section):
+        for section in self.inherited_sections:
+            for definition in section.attributes:
+                result[definition.name] = definition
+    else:
+        for section in self.m_parent.inherited_sections:
+            property = section.all_properties.get(self.name)
+            for definition in property.attributes:
+                result[definition.name] = definition
 
     return result
 

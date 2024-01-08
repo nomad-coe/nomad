@@ -614,31 +614,6 @@ def resolve_variadic_name(definitions: dict, name: str, hint: Optional[str] = No
     return __similarity_match(candidates, name)
 
 
-def retrieve_attribute(section, definition, attr_name: str) -> tuple:
-    """
-    Retrieve the attribute of a definition by its name.
-    In the case of variadic/template name, the name is also resolved by checking naming pattern.
-    """
-    from nomad.metainfo.metainfo import Definition
-
-    # find the section or quantity where attribute is defined
-    if definition is None:
-        tgt_def = section
-    elif isinstance(definition, Definition):
-        tgt_def = definition
-    else:
-        tgt_def = resolve_variadic_name(section.all_quantities, definition)
-    if tgt_def is None:
-        raise ValueError(f'Cannot find the definition by the given {definition}')
-
-    # find the corresponding attribute
-    tgt_attr = resolve_variadic_name(tgt_def.all_attributes, attr_name)
-    if tgt_attr is None:
-        raise ValueError('The given attribute name is not found in the given property.')
-
-    return tgt_def, tgt_attr
-
-
 def validate_allowable_unit(
     dimensionality: Optional[str],
     allowable_list: Union[str, list, pint.Unit, pint.Quantity],

@@ -22,7 +22,15 @@ import pytest
 import numpy as np
 import pytz
 
-from nomad.metainfo import MSection, Quantity, Attribute, MEnum, Reference, Datetime
+from nomad.metainfo import (
+    MSection,
+    Quantity,
+    Attribute,
+    MEnum,
+    Reference,
+    Datetime,
+    Section,
+)
 from nomad.metainfo.metainfo import MQuantity, Definition
 from nomad.metainfo.util import validate_allowable_unit
 from nomad.units import ureg
@@ -187,3 +195,67 @@ def test_repeating_quantity():
     my_section.instance_nonrepeat = None
 
     _ = my_section.instance_nonrepeat
+
+
+def test_inheritance():
+    class BaseSection(MSection):
+        m_def = Section(attributes=[Attribute(name='section_attribute', type=str)])
+        test_quantity = Quantity(
+            type=str, attributes=[Attribute(name='quantity_attribute', type=str)]
+        )
+
+    class InheritedSection(BaseSection):
+        pass
+
+    assert (
+        InheritedSection.m_def.all_attributes['section_attribute']
+        == BaseSection.m_def.attributes[0]
+    )
+    assert (
+        InheritedSection.m_def.all_properties['test_quantity'].all_attributes[
+            'quantity_attribute'
+        ]
+        == BaseSection.test_quantity.attributes[0]
+    )
+
+    instance = InheritedSection()
+    instance.m_set_section_attribute('section_attribute', 'test')
+    instance.m_set_quantity_attribute('test_quantity', 'quantity_attribute', 'test')
+
+    assert instance.m_get_section_attribute('section_attribute') == 'test'
+    assert (
+        instance.m_get_quantity_attribute('test_quantity', 'quantity_attribute')
+        == 'test'
+    )
+
+
+def test_overwriting():
+    class BaseSection(MSection):
+        m_def = Section(attributes=[Attribute(name='section_attribute', type=str)])
+        test_quantity = Quantity(
+            type=str, attributes=[Attribute(name='quantity_attribute', type=str)]
+        )
+
+    class InheritedSection(BaseSection):
+        m_def = Section(attributes=[Attribute(name='section_attribute', type=int)])
+        test_quantity = Quantity(
+            type=str, attributes=[Attribute(name='quantity_attribute', type=int)]
+        )
+
+    assert (
+        InheritedSection.m_def.all_attributes['section_attribute']
+        == InheritedSection.m_def.attributes[0]
+    )
+    assert (
+        InheritedSection.m_def.all_properties['test_quantity'].all_attributes[
+            'quantity_attribute'
+        ]
+        == InheritedSection.test_quantity.attributes[0]
+    )
+
+    instance = InheritedSection()
+    instance.m_set_section_attribute('section_attribute', 1)
+    instance.m_set_quantity_attribute('test_quantity', 'quantity_attribute', 1)
+
+    assert instance.m_get_section_attribute('section_attribute') == 1
+    assert instance.m_get_quantity_attribute('test_quantity', 'quantity_attribute') == 1
