@@ -18,8 +18,14 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
 # if: $CI_COMMIT_BRANCH
 # A branch pipeline, but there is no merge request open for the branch, run the branch pipeline.
 
+default:
+  tags:
+    - cloud
+
 variables:
   DOCKER_TAG: ${CI_COMMIT_REF_SLUG}
+  DOCKER_HOST: tcp://docker-dind:2375
+  DOCKER_TLS_CERTDIR: ""
 
 workflow:
   rules:
