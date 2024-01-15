@@ -1,6 +1,9 @@
 import pytest
-from ..common import assert_response, perform_get
+
+from nomad.processing.data import Upload
+from ..common import assert_response, perform_get, perform_post
 from .common import assert_upload
+
 
 @pytest.mark.parametrize(
     'kwargs',
@@ -124,3 +127,65 @@ def test_get_group_upload(
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_upload(response.json())
+
+
+@pytest.mark.parametrize(
+    'user, expected_status_code, group_quantity, new_groups',
+    [
+        pytest.param(
+            'test_user',
+            200,
+            'coauthor_groups',
+            ['other_owner_group'],
+            id='coauthor-other-group',
+        ),
+        pytest.param(
+            'test_user',
+            200,
+            'coauthor_groups',
+            ['user_owner_group', 'other_owner_group', 'mixed_group'],
+            id='coauthor-multiple-groups',
+        ),
+        pytest.param(
+            'test_user',
+            200,
+            'reviewer_groups',
+            ['other_owner_group'],
+            id='reviewer-other-group',
+        ),
+        pytest.param(
+            'other_test_user',
+            422,
+            'reviewer_groups',
+            ['other_owner_group'],
+            id='other-user-reviewer-other-group',
+        ),
+    ],
+)
+def test_add_groups_to_upload(
+    client,
+    user_groups_module,
+    proc_infra,
+    upload_no_group,
+    test_auth_dict,
+    user,
+    expected_status_code,
+    group_quantity,
+    new_groups,
+):
+    user_auth, __token = test_auth_dict[user]
+    upload_id = list(upload_no_group.uploads)[0]
+    new_group_ids = [user_groups_module[label].group_id for label in new_groups]
+
+    url = f'uploads/{upload_id}/edit'
+    metadata = {group_quantity: new_group_ids}
+    edit_request = dict(metadata=metadata)
+    response = perform_post(client, url, user_auth, json=edit_request)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code != 200:
+        return
+
+    upload = Upload.get(upload_id)
+    upload.block_until_complete()
+    assert getattr(upload, group_quantity) == new_group_ids

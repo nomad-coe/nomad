@@ -38,7 +38,7 @@ def test_get_groups(
     assert_response(response, expected_status_code)
 
     groups = UserGroups.parse_raw(response.content)
-    for group, ex_group in zip(groups.data, user_groups_module):
+    for group, ex_group in zip(groups.data, user_groups_module.values()):
         ex_group = UserGroup.from_orm(ex_group)
         assert group == ex_group
 

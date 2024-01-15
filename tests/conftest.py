@@ -531,10 +531,10 @@ def mixed_group():
 
 
 def _user_groups():
-    user_groups = []
-    for group in test_user_groups.values():
+    user_groups = {}
+    for label, group in test_user_groups.items():
         user_group = create_user_group(**group)
-        user_groups.append(user_group)
+        user_groups[label] = user_group
 
     return user_groups
 
@@ -1330,6 +1330,17 @@ def example_data_groups(
     )
 
     data.save(with_files=False)
+
+
+@pytest.fixture(scope='function')
+def upload_no_group(mongo_function, test_user):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='id_no_group')
+    data.save()
+
+    yield data
+
+    data.delete()
 
 
 @pytest.fixture(scope='function')
