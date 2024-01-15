@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -57,7 +58,8 @@ import {
   setToArray,
   parseQuantityName,
   rsplit,
-  parseOperator
+  parseOperator,
+  getSuggestions
 } from '../../utils'
 import { Quantity } from '../units/Quantity'
 import { Unit } from '../units/Unit'
@@ -66,6 +68,7 @@ import { combinePagination, addColumnDefaults } from '../datatable/Datatable'
 import UploadStatusIcon from '../uploads/UploadStatusIcon'
 import { getWidgetsObject } from './widgets/Widget'
 import { inputSectionContext } from './input/InputSection'
+import { SearchSuggestion } from './SearchSuggestion'
 import { withFilters } from './FilterRegistry'
 import { useUnitContext } from '../units/UnitContext'
 
@@ -197,6 +200,9 @@ export const SearchContextRaw = React.memo(({
   initialFilterData,
   initialFilterGroups,
   initialFilterValues,
+  initialSearchSyntaxes,
+  id,
+  suggestionHistorySize,
   children
 }) => {
   const {api, user} = useApi()
@@ -211,9 +217,9 @@ export const SearchContextRaw = React.memo(({
   const updatedFilters = useRef(new Set())
   const firstLoad = useRef(true)
   const disableUpdate = useRef(false)
-  const contextID = useMemo(() => uuidv4(), [])
   const indexFilters = useRef(0)
   const indexLocked = useRef(0)
+  const contextID = useMemo(() => uuidv4(), [])
 
   // Initialize the set of filters that are available in this context
   const {initialFilterPaths, initialFilterAbbreviations} = useMemo(() => {
@@ -403,7 +409,10 @@ export const SearchContextRaw = React.memo(({
       useRemoveWidget,
       useResetWidgets,
       useQuery,
+      useSearchSuggestionsValue,
+      useSetSearchSuggestions,
       usePagination,
+      useSetPagination,
       usePaginationState,
       useAgg,
       useAggs,
@@ -429,38 +438,73 @@ export const SearchContextRaw = React.memo(({
       key: `isMenuOpen_${contextID}`,
       default: false
     })
+
     const isCollapsedState = atom({
       key: `isCollapsed_${contextID}`,
       default: false
     })
+
     const isStatisticsEnabledState = atom({
       key: `statisticsEnabled_${contextID}`,
       default: true
     })
+
     const apiDataState = atom({
       key: `apiData_${contextID}`,
       default: null
     })
+
     const apiQueryState = atom({
       key: `apiQuery_${contextID}`,
       default: null
     })
+
     const resultsState = atom({
       key: `results_${contextID}`,
       default: {
         pagination: {}
       }
     })
+
     const resultsUsedState = atom({
       key: `resultsUsed_${contextID}`,
       default: false
     })
+
+    let suggestions = []
+    const suggestionID = id && `nomad-searchcontext-${id}`
+    if (suggestionID) {
+      try {
+        suggestions = JSON
+          .parse(window.localStorage.getItem(suggestionID))
+          .map(item => new SearchSuggestion(item))
+          .slice(0, suggestionHistorySize)
+      } catch (e) {
+      }
+    }
+    const searchSuggestionsState = atom({
+      key: `searchSuggestions_${contextID}`,
+      default: suggestions,
+      effects: [
+        ({onSet}) => {
+          if (suggestionID) {
+            onSet((newValue, _, isReset) => {
+              isReset
+                ? window.localStorage.removeItem(suggestionID)
+                : window.localStorage.setItem(suggestionID, JSON.stringify(newValue))
+            })
+          }
+        }
+      ]
+    })
+
     const requiredState = atom({
       key: `required_${contextID}`,
       default: {
         exclude: resource === 'entries' ? ['quantities', 'sections', 'files'] : undefined
       }
     })
+
     // Stores the available filters. Initialized with static filters, can be
     // modified later.
     const filtersDataState = atom({
@@ -477,6 +521,7 @@ export const SearchContextRaw = React.memo(({
       key: `queryFamily_${contextID}`,
       default: (name) => initialQuery[name]
     })
+
     const dynamicQueryModesFamily = atomFamily({
       key: `dynamicQueryModesFamily_${contextID}`,
       default: (name) => undefined
@@ -511,7 +556,10 @@ export const SearchContextRaw = React.memo(({
 
     const paginationState = atom({
       key: `pagination_${contextID}`,
-      default: initialPagination
+      default: {
+        ...initialPagination,
+        order_by: '_score'
+      }
     })
 
     const guiLocked = parseQueries(initialFiltersLocked, initialFilterData, initialFilterAbbreviations.filterFullnames)
@@ -1056,6 +1104,22 @@ export const SearchContextRaw = React.memo(({
       }, [])
     }
 
+    /**
+     * Used to retrieve the currently set search suggestions.
+     *
+     * @returns Array containing the value and a function for setting it.
+     */
+    function useSearchSuggestionsValue() {
+      return useRecoilValue(searchSuggestionsState)
+    }
+
+    /**
+     * Used to set the currently set search suggestions.
+     */
+    function useSetSearchSuggestions() {
+      return useSetRecoilState(searchSuggestionsState)
+    }
+
     return {
       useFilterLocked,
       useFiltersLocked,
@@ -1080,6 +1144,8 @@ export const SearchContextRaw = React.memo(({
       useSetFilters,
       useUpdateFilter,
       useQuery,
+      useSearchSuggestionsValue,
+      useSetSearchSuggestions,
       useFilterNames: () => useRecoilValue(filterNamesState),
       useFiltersData: () => useRecoilValue(filtersDataState),
       useFilterMaps: () => useRecoilValue(filterMapsState),
@@ -1087,6 +1153,7 @@ export const SearchContextRaw = React.memo(({
       useAggs: () => useRecoilValue(aggsState),
       useSetAggsResponse: () => useSetRecoilState(aggsResponseState),
       usePagination: () => useRecoilValue(paginationState),
+      useSetPagination: () => useSetRecoilState(paginationState),
       usePaginationState: () => useRecoilState(paginationState),
       useIsMenuOpen: () => useRecoilValue(isMenuOpenState),
       useSetIsMenuOpen: () => useSetRecoilState(isMenuOpenState),
@@ -1113,7 +1180,9 @@ export const SearchContextRaw = React.memo(({
     initialFiltersLocked,
     initialPagination,
     dashboard,
-    initialAggs
+    initialAggs,
+    id,
+    suggestionHistorySize
   ])
 
   const setResults = useSetResults()
@@ -1504,6 +1573,54 @@ export const SearchContextRaw = React.memo(({
     }
 
     /**
+     * Hook that can be used to fetch search suggestions stored in the local
+     * device.
+     * */
+    const useSearchSuggestions = (input, size = 5) => {
+      const suggestions = useSearchSuggestionsValue()
+      const suggestionFilter = useMemo(() => {
+        const sugg = getSuggestions(suggestions, 0, suggestion => suggestion.input)
+        return sugg.filter
+      }, [suggestions])
+
+      return input.trim() === ''
+        ? suggestions.slice(0, size)
+        : suggestionFilter(input).slice(0, size)
+    }
+
+    /**
+     * Hook for pushing new suggestion values to the search context. New values
+     * are pushed to the top of the list, and if the suggestion already exists,
+     * it is simply pulled to the top.
+     * */
+    const usePushSearchSuggestion = () => {
+      const setSuggestions = useSetSearchSuggestions()
+      return useCallback((suggestion) => {
+        setSuggestions(old => {
+          let newSuggestions = old.filter(x => x.key !== suggestion.key)
+          const newSuggestion = new SearchSuggestion(suggestion)
+          newSuggestion.history = true
+          newSuggestions = [newSuggestion, ...old].slice(0, suggestionHistorySize)
+          return newSuggestions
+        })
+      }, [setSuggestions])
+    }
+
+    /**
+     * Hook for deleting specific suggestion values from the search context
+     * using the suggestion key.
+     * */
+    const useRemoveSearchSuggestion = () => {
+      const setSuggestions = useSetSearchSuggestions()
+      return useCallback((key) => {
+        setSuggestions(old => {
+          const newSuggestions = [...old].filter(x => x.key !== key)
+          return newSuggestions
+        })
+      }, [setSuggestions])
+    }
+
+    /**
      * Hook that returns a function for parsing a single filter key, value pair
      * into a form that is supported by the GUI. The parsing depends on the
      * SearchContext as filters may define a custom deserialization function and
@@ -1515,7 +1632,6 @@ export const SearchContextRaw = React.memo(({
         []
       )
     }
-
     /**
      * Hook that returns a function for parsing an object containing filter
      * values into a form that is supported by the GUI. The parsing depends on
@@ -1539,6 +1655,7 @@ export const SearchContextRaw = React.memo(({
       filterGroups: initialFilterGroups,
       filterFullnames,
       filterAbbreviations,
+      searchSyntaxes: initialSearchSyntaxes,
       useIsMenuOpen,
       useSetIsMenuOpen,
       useIsCollapsed,
@@ -1548,8 +1665,12 @@ export const SearchContextRaw = React.memo(({
       useApiData,
       useApiQuery,
       useQuery,
+      useSetPagination,
       useParseQuery,
       useParseQueries,
+      useSearchSuggestions,
+      usePushSearchSuggestion,
+      useRemoveSearchSuggestion,
       useFilterValue,
       useSetFilter,
       useFilterState,
@@ -1585,6 +1706,7 @@ export const SearchContextRaw = React.memo(({
     initialFilterGroups,
     filterFullnames,
     filterAbbreviations,
+    initialSearchSyntaxes,
     useIsMenuOpen,
     useSetIsMenuOpen,
     useIsCollapsed,
@@ -1609,6 +1731,7 @@ export const SearchContextRaw = React.memo(({
     useResetWidgets,
     useQueryString,
     usePagination,
+    useSetPagination,
     useResults,
     useResultsUsed,
     useRequired,
@@ -1626,7 +1749,10 @@ export const SearchContextRaw = React.memo(({
     setPagination,
     setResults,
     setApiData,
-    units
+    units,
+    suggestionHistorySize,
+    useSearchSuggestionsValue,
+    useSetSearchSuggestions
   ])
 
   return <searchContext.Provider value={values}>
@@ -1645,7 +1771,14 @@ SearchContextRaw.propTypes = {
   initialFilterData: PropTypes.object, // Determines which filters are available
   initialFilterGroups: PropTypes.object, // Maps filter groups to a set of filter names
   initialFilterValues: PropTypes.object, // Here one can provide default filter values
-  children: PropTypes.node
+  initialSearchSyntaxes: PropTypes.object, // Determines which syntaxes are supported
+  children: PropTypes.node,
+  id: PropTypes.string,
+  suggestionHistorySize: PropTypes.number
+}
+
+SearchContextRaw.defaultProps = {
+  suggestionHistorySize: 20
 }
 
 export const SearchContext = compose(withQueryString, withFilters)(SearchContextRaw)

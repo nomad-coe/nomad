@@ -1384,24 +1384,26 @@ export const alphabet = [
  *
  * @param {array} values Array of available values
  * @param {number} minLength Minimum input length before suggestions are considered.
- * @param {str} category Category for the suggestions
  * @param {func} text Function that maps the value into the suggested text input
  *
  * @return {object} Object containing a list of options and a function for
  *   filtering them based on the input.
  */
-export function getSuggestions(
-  values, minLength = 2, category) {
+export function getSuggestions(values, minLength = 2, get = (x) => x) {
+  const normalizer = (input) => {
+    return input
+      .replace(/[_.]/g, ' ') // Ignore dots and underscores
+      .replace(/[ ]/g, '') // Ignore whitespacing
+      .toLowerCase() // Ignore case
+  }
+
   const options = values
-    .map(value => {
-      const optionCleaned = value.trim().replace(/_/g, ' ').toLowerCase()
-      const matches = [...optionCleaned.matchAll(/[ .]/g)]
-      let tokens = [optionCleaned]
-      tokens = tokens.concat(matches.map(match => optionCleaned.slice(match.index + 1)))
+    .map(item => {
+      const value = get(item)
       return {
         value: value,
-        category: category,
-        tokens: tokens
+        normalized: normalizer(value),
+        original: item
       }
     })
   const filter = (input) => {
@@ -1410,13 +1412,13 @@ export function getSuggestions(
       return []
     }
     // Gather all matches
-    const inputCleaned = input.trim().replace(/_/g, ' ').toLowerCase()
-    let suggestions = options.filter(option => option.tokens.some(token => token.startsWith(inputCleaned)))
+    const inputNormalized = normalizer(input)
+    let suggestions = options.filter(option => option.normalized.includes(inputNormalized))
 
     // Sort matches based on value length (the more the input covers from the
     // value, the better the match)
     suggestions = suggestions.sort((a, b) => a.value.length - b.value.length)
-    return suggestions
+    return suggestions.map(suggestion => suggestion.original)
   }
 
   return {options, filter}

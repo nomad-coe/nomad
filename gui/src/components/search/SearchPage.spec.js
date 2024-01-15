@@ -31,19 +31,19 @@ describe('', () => {
   afterAll(() => closeAPI())
 
   test.each(
-    // [ui.apps.options['mofs']]
     Object.entries(ui.apps.options)
   )('renders search page correctly, context: %s', async (key, context) => {
     render(
       <SearchContext
           resource={context.resource}
-          initialSchemas={context.schemas}
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
           initialFilterMenus={context.filter_menus}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
+          initialSearchSyntaxes={context?.search_syntaxes}
+          id={context?.path}
       >
         <SearchPage />
       </SearchContext>

@@ -39,7 +39,7 @@ import { menuMap } from './menus/FilterMainMenu'
  */
 export const WrapperSearch = ({children}) => {
   return <WrapperDefault>
-    <SearchContext resource="entries">
+    <SearchContext resource="entries" id='entries'>
       {children}
     </SearchContext>
   </WrapperDefault>

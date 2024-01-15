@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState } from 'react'
+import React, { forwardRef, useCallback, useState } from 'react'
 import { Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@material-ui/core'
 import Markdown from './Markdown'
 import PropTypes from 'prop-types'
 import HelpIcon from '@material-ui/icons/Help'
 
-export const HelpButton = ({title, content, maxWidth, IconProps, children, ...IconButtonProps}) => {
+export const HelpButton = forwardRef(({heading, content, text, maxWidth, IconProps, children, ...IconButtonProps}, ref) => {
   const [open, setOpen] = useState(false)
   const handleToggleOpen = useCallback(() => {
     setOpen(old => !old)
@@ -29,30 +29,31 @@ export const HelpButton = ({title, content, maxWidth, IconProps, children, ...Ic
   }, [IconButtonProps])
 
   return <>
-    <IconButton {...IconButtonProps} onClick={handleToggleOpen}>
+    <IconButton {...IconButtonProps} onClick={handleToggleOpen} ref={ref}>
       {children || <HelpIcon {...IconProps}/>}
     </IconButton>
-    <HelpDialog title={title} content={content} open={open} onClose={handleToggleOpen} maxWidth={maxWidth} />
+    <HelpDialog heading={heading} content={content} text={text} open={open} onClose={handleToggleOpen} maxWidth={maxWidth} />
   </>
-}
+})
 
 HelpButton.propTypes = {
-  title: PropTypes.string,
+  heading: PropTypes.string,
   content: PropTypes.string,
+  text: PropTypes.string,
   maxWidth: PropTypes.string,
   IconProps: PropTypes.object,
   children: PropTypes.node
 }
 
-const HelpDialog = ({title, content, maxWidth, open, onClose}) => {
+const HelpDialog = ({heading, content, text, maxWidth, open, onClose}) => {
   return <Dialog
     maxWidth={maxWidth}
     onClose={onClose}
     open={open}
   >
-    <DialogTitle>{title || 'Help'}</DialogTitle>
+    <DialogTitle>{heading || 'Help'}</DialogTitle>
     <DialogContent>
-      <Markdown>{content}</Markdown>
+      <Markdown text={text}>{content}</Markdown>
     </DialogContent>
     <DialogActions>
       <Button onClick={onClose} color="primary">
@@ -63,8 +64,9 @@ const HelpDialog = ({title, content, maxWidth, open, onClose}) => {
 }
 
 HelpDialog.propTypes = {
-  title: PropTypes.string,
+  heading: PropTypes.string,
   content: PropTypes.string,
+  text: PropTypes.string,
   maxWidth: PropTypes.string,
   open: PropTypes.bool,
   onClose: PropTypes.func

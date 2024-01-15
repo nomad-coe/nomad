@@ -171,6 +171,23 @@ def example_data(elastic_function, test_user):
 
 
 @pytest.fixture()
+def example_text_search_data(mongo_module, elastic_function, test_user):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='test_upload_text_search', published=True)
+    data.create_entry(
+        upload_id='test_upload_text_search',
+        entry_id=f'test_entry_text_search',
+        mainfile='test_content/test_embargo_entry/mainfile.json',
+        text_search_contents=['this is a test keyword'],
+    )
+    data.save(with_files=False, with_mongo=False)
+
+    yield
+
+    data.delete()
+
+
+@pytest.fixture()
 def example_eln_data(elastic_function, test_user):
     class DataSection(EntryData):
         text = Quantity(type=str)
@@ -592,3 +609,25 @@ def test_pagination_dynamic(
         path = order_by.split(schema_separator)[0]
         for i, data in enumerate(results.data):
             assert deep_get(data, *split(path)) == expected[i]
+
+
+@pytest.mark.parametrize(
+    'query, expected',
+    [
+        pytest.param(
+            '{"text_search_contents": "this is a test keyword"}', 1, id='exact match'
+        ),
+        pytest.param('{"text_search_contents": "keyword"}', 1, id='single word match'),
+        pytest.param('{"text_search_contents": "KEYWORD"}', 1, id='case insensitive'),
+        pytest.param(
+            '{"text_search_contents": "keyw"}', 1, id='also match for partial word'
+        ),
+        pytest.param('{"text_search_contents": "nope"}', 0, id='no match'),
+    ],
+)
+def test_text_search(example_text_search_data, query, expected):
+    """Tests that free-text queries correctly use the correct ES query type to
+    return reasonable matches.
+    """
+    results = search(owner='all', query=WithQuery(query=json.loads(query)).query)
+    assert len(results.data) == expected

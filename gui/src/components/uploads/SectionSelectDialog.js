@@ -38,8 +38,11 @@ import {Check} from '@material-ui/icons'
 import { cloneDeep } from 'lodash'
 import {getItemLabelKey} from '../archive/ArchiveBrowser'
 
+// Use the same context as in the global entries search, but with free-text
+// query enabled
 const searchDialogContext = React.createContext()
 const context = cloneDeep(ui?.apps?.options?.entries)
+context.search_syntaxes.exclude = undefined
 
 const allFilters = new Set(defaultFilterGroups && (Object.keys(context?.filter_menus?.options))
   .map(filter => {
@@ -280,6 +283,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
     let quantities = new Set([
       'entry_name',
       'mainfile',
+      'text_search_contents',
       'results.material.elements',
       'results.material.chemical_formula_hill',
       'results.material.chemical_formula_anonymous',
@@ -407,12 +411,13 @@ function SectionSelectDialog(props) {
 
   return <SearchContext
     resource={context?.resource}
-    initialSchemas={context?.schemas}
     initialPagination={context?.pagination}
     initialColumns={columns}
     initialRows={rows}
     initialFilterMenus={context?.filter_menus}
     initialFiltersLocked={filtersLocked}
+    initialSearchSyntaxes={context?.search_syntaxes}
+    id='sectionselect'
   >
     <SearchBox open={open} onCancel={onCancel} onSelectedChanged={onSelectedChanged} selected={selected}/>
   </SearchContext>

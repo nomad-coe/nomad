@@ -80,12 +80,16 @@ const useInputTextStyles = makeStyles(theme => ({
     padding: '3px'
   },
   listbox: {
-      boxSizing: 'border-box',
-      '& ul': {
-        padding: 0,
-        margin: 0
-      }
+    boxSizing: 'border-box',
+    '& ul': {
+      padding: 0,
+      margin: 0
     }
+  },
+  option: {
+    paddingTop: 0,
+    paddingBottom: 0
+  }
 }))
 export const InputText = React.memo(({
   value,
@@ -96,6 +100,7 @@ export const InputText = React.memo(({
   onChange,
   onAccept,
   onSelect,
+  onHighlight,
   onBlur,
   onFocus,
   onError,
@@ -105,6 +110,7 @@ export const InputText = React.memo(({
   renderGroup,
   suggestAllOnFocus,
   showOpenSuggestions,
+  autoHighlight,
   ListboxComponent,
   filterOptions,
   className,
@@ -133,8 +139,9 @@ export const InputText = React.memo(({
 
   // Handle item highlighting: items can he highlighted with mouse or keyboard.
   const handleHighlight = useCallback((event, value, reason) => {
+    onHighlight?.(value, reason)
     highlightRef.current = value
-  }, [highlightRef])
+  }, [highlightRef, onHighlight])
 
   // Handle blur
   const handleBlur = useCallback(() => {
@@ -196,7 +203,11 @@ export const InputText = React.memo(({
       onBlur={handleBlur}
       fullWidth
       disableClearable
-      classes={{listbox: styles.listbox}}
+      autoHighlight={autoHighlight}
+      classes={{
+        listbox: styles.listbox,
+        option: styles.option
+      }}
       ListboxComponent={ListboxComponent}
       PaperComponent={PaperComponent}
       options={suggestions}
@@ -227,6 +238,7 @@ export const InputText = React.memo(({
           InputLabelProps={{shrink}}
           InputProps={{
             ...params.InputProps,
+            ...InputProps,
             endAdornment: (<div className={styles.adornmentList}>
               {loading ? <CircularProgress color="inherit" size={20} className={styles.adornment} /> : null}
               {(value?.length && !disableClearable)
@@ -256,8 +268,8 @@ export const InputText = React.memo(({
                 </IconButton>
                 : null
               }
-            </div>),
-            ...InputProps
+              {InputProps?.endAdornment || null}
+            </div>)
           }}
           {...TextFieldProps}
         />
@@ -277,6 +289,7 @@ InputText.propTypes = {
   onAccept: PropTypes.func, // Triggered when value should be accepted
   onBlur: PropTypes.func, // Triggered when text goes out of focus
   onFocus: PropTypes.func, // Triggered when text is focused
+  onHighlight: PropTypes.func, // Triggered when selection is highlighted
   onError: PropTypes.func, // Triggered when any errors should be cleared
   getOptionLabel: PropTypes.func,
   groupBy: PropTypes.func,
@@ -288,6 +301,7 @@ InputText.propTypes = {
   InputProps: PropTypes.object,
   filterOptions: PropTypes.func,
   disableClearable: PropTypes.bool,
+  autoHighlight: PropTypes.bool,
   disableAcceptOnBlur: PropTypes.bool,
   suggestAllOnFocus: PropTypes.bool, // Whether to provide all suggestion values when input is focused
   showOpenSuggestions: PropTypes.bool, // Whether to show button for opening suggestions
@@ -297,7 +311,8 @@ InputText.propTypes = {
 
 InputText.defaultProps = {
   getOptionLabel: (option) => option.value,
-  showOpenSuggestions: false
+  showOpenSuggestions: false,
+  autoHighlight: false
 }
 
 /*

@@ -256,3 +256,42 @@ def test_search_quantities_plugin(
         == f'data.{source_quantity}{schema_separator}{python_schema_name}'
     )
     assert searchable_quantity.definition == definition
+
+
+def test_text_search_contents():
+    """Test that text search contents are correctly extracted from the data-section."""
+
+    class MySubSection(MSection):
+        str_scalar = Quantity(type=str)
+        str_array = Quantity(type=str, shape=['*'])
+        enum_scalar = Quantity(type=MEnum('enum1', 'enum2'))
+        enum_array = Quantity(type=MEnum('enum1', 'enum2'), shape=['*'])
+
+    class MySchema(EntryData, MySubSection):
+        children = SubSection(section=MySubSection, repeats=True)
+
+    archive = EntryArchive(metadata=EntryMetadata(entry_name='test'))
+    archive.data = MySchema(str_scalar='scalar1', str_array=['array1', ' array2'])
+    archive.data.children.append(
+        MySubSection(str_scalar=' scalar2', str_array=['  array1  ', 'array3'])
+    )
+    archive.data.children.append(
+        MySubSection(enum_scalar='enum1', enum_array=['enum1', 'enum2'])
+    )
+    archive.data.children.append(MySubSection(str_scalar='scalar3 '))
+    archive.data.children.append(MySubSection(str_scalar='scalar1'))
+    archive.data.children.append(MySubSection(str_scalar='  scalar1  '))
+
+    archive.metadata.apply_archive_metadata(archive)
+    assert len(archive.metadata.text_search_contents) == 8
+    for value in [
+        'scalar1',
+        'scalar2',
+        'scalar3',
+        'array1',
+        'array2',
+        'array3',
+        'enum1',
+        'enum2',
+    ]:
+        assert value in archive.metadata.text_search_contents

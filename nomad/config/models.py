@@ -1262,6 +1262,28 @@ class Filters(OptionsGlob):
     )
 
 
+class SearchSyntaxes(StrictSettings):
+    """Controls the availability of different search syntaxes. These syntaxes
+    determine how raw user input in e.g. the search bar is parsed into queries
+    supported by the API.
+
+    Currently you can only exclude items. By default, the following options are
+    included:
+
+     - `existence`: Used to query for the existence of a specific metainfo field in the data.
+     - `equality`: Used to query for a specific value with exact match.
+     - `range_bounded`: Queries values that are between two numerical limits, inclusive or exclusive.
+     - `range_half_bounded`: Queries values that are above/below a numerical limit, inclusive or exclusive.
+     - `free_text`: For inexact, queries. Requires that a set of keywords has been filled in the entry.
+    """
+
+    exclude: Optional[List[str]] = Field(
+        description="""
+        List of excluded options.
+    """
+    )
+
+
 class Layout(StrictSettings):
     """Defines widget size and grid positioning for different breakpoints."""
 
@@ -1431,6 +1453,9 @@ class App(StrictSettings):
         will always be active for this context and will not be displayed to the
         user by default.
         """
+    )
+    search_syntaxes: Optional[SearchSyntaxes] = Field(
+        description='Controls which types of search syntax are available.'
     )
 
 
@@ -1768,6 +1793,7 @@ class UI(StrictSettings):
                                 },
                             }
                         },
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                     'calculations': {
                         'label': 'Calculations',
@@ -2132,11 +2158,12 @@ class UI(StrictSettings):
                                         },
                                     },
                                 },
-                            ]
+                            ],
                         },
                         'filters_locked': {
                             'quantities': 'results.method.simulation.program_name',
                         },
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                     'materials': {
                         'label': 'Materials',
@@ -2260,6 +2287,7 @@ class UI(StrictSettings):
                             }
                         },
                         'filters': {'exclude': ['mainfile', 'entry_name']},
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                     'eln': {
                         'label': 'ELN',
@@ -2414,6 +2442,7 @@ class UI(StrictSettings):
                             }
                         },
                         'filters_locked': {'results.method.method_name': 'EELS'},
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                     'solarcells': {
                         'label': 'Solar Cells',
@@ -2994,6 +3023,7 @@ class UI(StrictSettings):
                         'filters_locked': {
                             'sections': 'nomad.datamodel.results.SolarCell'
                         },
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                     'heterogeneouscatalyst': {
                         'label': 'Heterogeneous Catalysis',
@@ -3866,6 +3896,7 @@ class UI(StrictSettings):
                         'filters_locked': {
                             'quantities': 'results.properties.catalytic'
                         },
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                     'mofs': {
                         'label': 'Metal-Organic Frameworks',
@@ -4228,6 +4259,7 @@ class UI(StrictSettings):
                             }
                         },
                         'filters_locked': {'results.material.topology.label': 'MOF'},
+                        'search_syntaxes': {'exclude': ['free_text']},
                     },
                 },
             }

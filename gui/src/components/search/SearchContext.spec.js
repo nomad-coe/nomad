@@ -15,11 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { renderHook } from '@testing-library/react-hooks'
+import { renderHook, act } from '@testing-library/react-hooks'
 import { WrapperSearch } from './conftest.spec'
 import { useSearchContext } from './SearchContext'
 import { Quantity } from '../units/Quantity'
 import { isEqualWith } from 'lodash'
+import { SearchSuggestion, SuggestionType } from './SearchSuggestion'
 
 describe('parseQuery', function() {
   test.each([
@@ -44,4 +45,40 @@ describe('parseQuery', function() {
     }
     }
   )
+})
+
+const suggestionsInitial = [
+  new SearchSuggestion({input: 'old', type: SuggestionType.Freetext})
+]
+describe('suggestions', function() {
+  beforeAll(() => {
+    window.localStorage.setItem(
+      'nomad-searchcontext-entries',
+      JSON.stringify(suggestionsInitial)
+    )
+  })
+  afterAll(() => {
+    window.localStorage.removeItem('nomad-searchcontext-entries')
+  })
+  test('load initial suggestions from localStorage', async () => {
+    const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: WrapperSearch })
+    const { result: resultUseSearchSuggestions } = renderHook(() => resultUseSearchContext.current.useSearchSuggestions(''), { wrapper: WrapperSearch })
+    const suggestions = resultUseSearchSuggestions.current
+    expect(suggestions).toHaveLength(suggestionsInitial.length)
+    suggestions.forEach((value, index) => {
+      expect(value.key === suggestionsInitial[index].key)
+    })
+  })
+  test('save new suggestion to localStorage', async () => {
+    const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: WrapperSearch })
+    const { result: resultusePushSearchSuggestion } = renderHook(() => resultUseSearchContext.current.usePushSearchSuggestion(), { wrapper: WrapperSearch })
+    const pushSearchSuggestion = resultusePushSearchSuggestion.current
+    const newSuggestion = new SearchSuggestion({input: 'new', type: SuggestionType.Freetext})
+    act(() => {
+      pushSearchSuggestion(newSuggestion)
+    })
+    const suggestions = JSON.parse(window.localStorage.getItem('nomad-searchcontext-entries')).map(x => new SearchSuggestion(x))
+    expect(suggestions).toHaveLength(suggestionsInitial.length + 1)
+    expect(suggestions[0].key).toBe(newSuggestion.key)
+  })
 })

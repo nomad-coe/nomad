@@ -98,7 +98,7 @@ export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect
 
   // Used to filter the shown options based on input
   const filterOptions = useCallback((opt, { inputValue }) => {
-    let filtered = filter(inputValue).map(option => option.value)
+    let filtered = filter(inputValue)
     if (!disableGroup) filtered = filtered.sort((a, b) => options[a].group > options[b].group ? 1 : -1)
     return filtered
   }, [disableGroup, filter, options])

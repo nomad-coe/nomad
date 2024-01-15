@@ -77,12 +77,12 @@ const SampleHistoryUsingCard = memo(({ index }) => {
   return (
     <SearchContext
       resource={context?.resource}
-      initialSchemas={context?.schemas}
       initialPagination={context?.pagination}
       initialColumns={context?.columns}
       initialRows={context?.rows}
       initialFilterMenus={context?.filter_menus}
       initialFiltersLocked={filtersLocked}
+      initialSearchSyntaxes={context?.search_syntaxes}
     >
       <HistoryCard />
     </SearchContext>
