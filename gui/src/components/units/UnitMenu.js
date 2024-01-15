@@ -36,6 +36,10 @@ const useStyles = makeStyles(theme => ({
   list: {
     paddingRight: '0 !important',
     width: '100% !important'
+  },
+  option: {
+    paddingTop: '6px',
+    paddingBottom: '6px'
   }
 }))
 const UnitMenu = React.memo(({
@@ -160,7 +164,9 @@ const UnitMenu = React.memo(({
           onChange={handleChange}
           onSelect={handleSelect}
           onBlur={handleBlur}
-          renderOption={(option) => dimensionMap[option].label}
+          renderOption={(option) => <Typography className={styles.option}>
+            {dimensionMap[option].label}
+          </Typography>}
           getOptionLabel={(option) => option}
           TextFieldProps={{label: 'Dimension'}}
         />

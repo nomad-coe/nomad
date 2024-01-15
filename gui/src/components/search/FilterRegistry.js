@@ -378,6 +378,7 @@ registerFilter('entry_name.prefix', idMetadata, {...noAggQuantity, label: 'Entry
 registerFilter('results.material.material_id', idMetadata, termQuantity)
 registerFilter('optimade_filter', idOptimade, {multiple: true, queryMode: 'all'})
 registerFilter('processed', idMetadata, {label: 'Processed', queryMode: 'all'})
+registerFilter('text_search_contents', idMetadata, {multiple: true, queryMode: 'all'})
 registerFilter('custom_quantities', idCustomQuantities, {
   serializerExact: value => {
     const jsonStr = JSON.stringify(value)
@@ -720,8 +721,7 @@ export function getStaticSuggestions(quantities, filterData) {
       const minLength = maxLength <= 2 ? 1 : 2
       suggestions[quantity] = getSuggestions(
         options,
-        minLength,
-        quantity
+        minLength
       )
     }
   }
@@ -730,8 +730,7 @@ export function getStaticSuggestions(quantities, filterData) {
   if (quantities.has(quantityNameSearch)) {
     suggestions[quantityNameSearch] = getSuggestions(
       filters.filter(value => value !== quantityNameSearch && !filterData[value].section),
-      2,
-      quantityNameSearch
+      2
     )
   }
   return suggestions
@@ -909,7 +908,6 @@ export const withFilters = (WrappedComponent) => {
 
   WithFilters.displayName = `withFilter(${WrappedComponent.displayName || WrappedComponent.name})`
   WithFilters.propTypes = {
-    initialSchemas: PropTypes.object, // Determines which schemas are available
     initialFilters: PropTypes.object // Determines which filters are available
   }
 

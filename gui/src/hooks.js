@@ -127,7 +127,7 @@ export function useSuggestions(quantitiesSuggest, quantitiesAll, input, filterDa
     const suggestionsTemp = {}
     for (const quantity of quantitiesFixed) {
       const fixed = staticSuggestions[quantity.name]
-      suggestionsTemp[quantity.name] = fixed.filter(input)
+      suggestionsTemp[quantity.name] = fixed.filter(input).map((value) => ({value, category: quantity.name}))
     }
 
     // Start loading the dynamic suggestions
@@ -143,7 +143,6 @@ export function useSuggestions(quantitiesSuggest, quantitiesAll, input, filterDa
                 suggestionsTemp[quantity.name] = esSuggestions.map(suggestion => ({
                   category: quantity.name,
                   value: suggestion.value
-                  // text: `${quantity.name}=${suggestion.value}`
                 }))
               }
             }

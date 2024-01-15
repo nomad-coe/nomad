@@ -26,8 +26,9 @@ import rfc3161ng
 from elasticsearch_dsl import analyzer, tokenizer
 
 from nomad import utils
-from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
 from nomad.datamodel.metainfo.common import FastAccess
+from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
+from nomad.metainfo.util import MTypes
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
@@ -561,6 +562,14 @@ class EntryMetadata(MSection):
         a_elasticsearch=PathSearch(),
     )
 
+    text_search_contents = Quantity(
+        type=str,
+        shape=['*'],
+        description="""Contains text contents that should be considered when
+        doing free text queries for entries.""",
+        a_elasticsearch=[Elasticsearch(mapping='text', es_query='match_bool_prefix')],
+    )
+
     files = Quantity(
         type=str,
         shape=['0..*'],
@@ -865,6 +874,7 @@ class EntryMetadata(MSection):
         section_paths = {}
         entry_references = []
         search_quantities = []
+        keywords_set = set()
 
         def get_section_path(section):
             section_path = section_paths.get(section)
@@ -1000,6 +1010,19 @@ class EntryMetadata(MSection):
             if section_path.startswith(('data', 'nexus')) and isinstance(
                 property_def, Quantity
             ):
+                # From each string dtype, we get a truncated sample to put into
+                # the keywords field, unless we are already storing too many unique values.
+                print(property_def.type)
+                if (
+                    property_def.type in MTypes.str
+                    or isinstance(property_def.type, MEnum)
+                ) and len(keywords_set) < 10000:
+                    keyword = section.m_get(property_def)
+                    if keyword:
+                        if not property_def.shape:
+                            keyword = [keyword]
+                        for val in keyword:
+                            keywords_set.add(str(val)[0:500].strip())
                 searchable_quantity = create_searchable_quantity(
                     property_def,
                     quantity_path,
@@ -1036,6 +1059,7 @@ class EntryMetadata(MSection):
         self.sections = [section.qualified_name() for section in sections]
         self.sections.sort()
         self.n_quantities = n_quantities
+        self.text_search_contents = list(keywords_set)
 
         def generate_compatible(_s, used_directly: bool):
             return CompatibleSectionDef(

@@ -163,7 +163,7 @@ export const InputMetainfo = React.memo(({
 
   // Used to filter the shown options based on input
   const filterOptions = useCallback((opt, { inputValue }) => {
-    let filtered = filter(inputValue).map(option => option.value)
+    let filtered = filter(inputValue)
     if (group) filtered = filtered.sort((a, b) => options[a].group > options[b].group ? 1 : -1)
     return filtered
   }, [options, filter, group])
@@ -343,10 +343,10 @@ ListboxMetainfo.propTypes = {
   children: PropTypes.node
 }
 
-const LISTBOX_PADDING = 8
+export const LISTBOX_PADDING = 8
 const OuterElementContext = createContext({})
 
-const OuterElementType = React.forwardRef((props, ref) => {
+export const OuterElementType = React.forwardRef((props, ref) => {
   const outerProps = useContext(OuterElementContext)
   return <div ref={ref} {...props} {...outerProps} />
 })
@@ -358,7 +358,7 @@ export const renderGroup = (params) => [
   params.children
 ]
 
-function useResetCache(data) {
+export function useResetCache(data) {
   const ref = useRef(null)
   useEffect(() => {
     if (ref.current != null) {
@@ -368,7 +368,7 @@ function useResetCache(data) {
   return ref
 }
 
-function renderRow({ data, index, style }) {
+export function renderRow({ data, index, style }) {
   return React.cloneElement(data[index], {
     style: {
       ...style,

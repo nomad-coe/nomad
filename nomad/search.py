@@ -106,6 +106,7 @@ from nomad.metainfo.elasticsearch_extension import (
     entry_type,
     material_entry_type,
     entry_index,
+    Elasticsearch,
     Index,
     DocumentType,
     SearchQuantity,
@@ -1044,16 +1045,25 @@ def validate_pagination(
 ):
     order_quantity = None
     if pagination.order_by is not None:
-        order_quantity = validate_quantity(
-            pagination.order_by,
-            doc_type=doc_type,
-            loc=(loc if loc else []) + ['pagination', 'order_by'],
-        )
-        if not order_quantity.definition.is_scalar:
-            raise QueryValidationError(
-                'the order_by quantity must be a scalar',
+        # When sorting by _score, or by _doc is requested, we create a dummy
+        # order_quantity
+        if pagination.order_by == '_score' or pagination.order_by == '_doc':
+            dummy_annotation = Elasticsearch(
+                definition=Quantity(type=float), doc_type=doc_type
+            )
+            order_quantity = SearchQuantity(dummy_annotation)
+            order_quantity.search_field = pagination.order_by
+        else:
+            order_quantity = validate_quantity(
+                pagination.order_by,
+                doc_type=doc_type,
                 loc=(loc if loc else []) + ['pagination', 'order_by'],
             )
+            if not order_quantity.definition.is_scalar:
+                raise QueryValidationError(
+                    'the order_by quantity must be a scalar',
+                    loc=(loc if loc else []) + ['pagination', 'order_by'],
+                )
 
     page_after_value = pagination.page_after_value
     if (

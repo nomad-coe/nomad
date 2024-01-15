@@ -17,6 +17,7 @@
  */
 import React, { useContext, useState, useEffect, useMemo } from 'react'
 import PropTypes from 'prop-types'
+import { cloneDeep } from 'lodash'
 import { Typography, makeStyles } from '@material-ui/core'
 import { ui } from '../../config'
 import { errorContext } from '../errors'
@@ -30,7 +31,11 @@ This page allows you to **inspect** and **download** NOMAD datasets. It also all
 to explore a dataset with similar controls that the search page offers.
 `
 
-const context = ui?.apps?.options?.entries
+// Use the same context as in the global entries search, but with free-text
+// query enabled
+const context = cloneDeep(ui?.apps?.options?.entries)
+context.search_syntaxes.exclude = undefined
+
 const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',
@@ -62,7 +67,6 @@ const DatasetPage = React.memo(({match}) => {
   return dataset
     ? <SearchContext
       resource={context?.resource}
-      initialSchemas={context?.schemas}
       initialPagination={context?.pagination}
       initialColumns={context?.columns}
       initialRows={context?.rows}
@@ -70,6 +74,8 @@ const DatasetPage = React.memo(({match}) => {
       initialFilters={context?.filters}
       initialFiltersLocked={datasetFilter}
       initialDashboard={context?.dashboard}
+      initialSearchSyntaxes={context?.search_syntaxes}
+      id='dataset-search'
     >
       <SearchPage header={
         <div className={styles.header}>

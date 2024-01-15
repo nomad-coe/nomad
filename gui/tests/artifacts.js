@@ -143,6 +143,19 @@ window.nomadArtifacts = {
       "aggregatable": false,
       "dynamic": false
     },
+    "text_search_contents": {
+      "name": "text_search_contents",
+      "description": "Contains text contents that should be considered when\ndoing free text queries for entries.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false
+    },
     "files": {
       "name": "files",
       "description": "The paths to the files within the upload that belong to this entry.\nAll files within the same directory as the entry's mainfile are considered the\nauxiliary files that belong to the entry.",
@@ -27887,6 +27900,25 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "text_search_contents"
+                  ]
+                },
+                "name": "text_search_contents",
+                "description": "Contains text contents that should be considered when\ndoing free text queries for entries.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 14,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "files",
                     "files.path"
                   ]
@@ -27903,7 +27935,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 14,
+                "m_parent_index": 15,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -27922,7 +27954,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 15,
+                "m_parent_index": 16,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -27938,7 +27970,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 16,
+                "m_parent_index": 17,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -27958,7 +27990,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 17,
+                "m_parent_index": 18,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -27978,7 +28010,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 18,
+                "m_parent_index": 19,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "auth_level": [
@@ -28001,7 +28033,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 19,
+                "m_parent_index": 20,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28022,7 +28054,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 20,
+                "m_parent_index": 21,
                 "m_parent_sub_section": "quantities",
                 "name": "embargo_length",
                 "description": "The length of the requested embargo period, in months",
@@ -28037,7 +28069,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 21,
+                "m_parent_index": 22,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "auth_level": [
@@ -28058,7 +28090,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 22,
+                "m_parent_index": 23,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28079,7 +28111,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 23,
+                "m_parent_index": 24,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28098,7 +28130,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 24,
+                "m_parent_index": 25,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28117,7 +28149,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 25,
+                "m_parent_index": 26,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28136,7 +28168,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 26,
+                "m_parent_index": 27,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28155,7 +28187,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 27,
+                "m_parent_index": 28,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28175,7 +28207,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 28,
+                "m_parent_index": 29,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28198,7 +28230,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 29,
+                "m_parent_index": 30,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28225,7 +28257,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 30,
+                "m_parent_index": 31,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28242,7 +28274,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 31,
+                "m_parent_index": 32,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "auth_level": [
@@ -28265,7 +28297,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 32,
+                "m_parent_index": 33,
                 "m_parent_sub_section": "quantities",
                 "name": "coauthors",
                 "description": "A user provided list of co-authors for the whole upload. These can view and edit the\nupload when in staging, and view it also if it is embargoed.",
@@ -28284,7 +28316,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 33,
+                "m_parent_index": 34,
                 "m_parent_sub_section": "quantities",
                 "name": "entry_coauthors",
                 "description": "A user provided list of co-authors specific for this entry. This is a legacy field,\nfor new uploads, coauthors should be specified on the upload level only.",
@@ -28302,7 +28334,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 34,
+                "m_parent_index": 35,
                 "m_parent_sub_section": "quantities",
                 "name": "reviewers",
                 "description": "A user provided list of reviewers. Reviewers can see the whole upload, also if\nit is unpublished or embargoed",
@@ -28321,7 +28353,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 35,
+                "m_parent_index": 36,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28341,7 +28373,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 36,
+                "m_parent_index": 37,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28361,7 +28393,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 37,
+                "m_parent_index": 38,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28381,7 +28413,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 38,
+                "m_parent_index": 39,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28405,7 +28437,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 39,
+                "m_parent_index": 40,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28424,7 +28456,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 40,
+                "m_parent_index": 41,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28441,7 +28473,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 41,
+                "m_parent_index": 42,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28461,7 +28493,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 42,
+                "m_parent_index": 43,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [

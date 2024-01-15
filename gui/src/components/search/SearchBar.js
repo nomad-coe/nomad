@@ -15,45 +15,127 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState, useMemo } from 'react'
+import React, { useCallback, useState, useMemo, createContext, useContext, useRef } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import assert from 'assert'
 import { isNil, has } from 'lodash'
 import { makeStyles } from '@material-ui/core/styles'
 import SearchIcon from '@material-ui/icons/Search'
-import { Paper, Tooltip } from '@material-ui/core'
-import IconButton from '@material-ui/core/IconButton'
-import { DType } from '../../utils'
+import HistoryIcon from '@material-ui/icons/History'
+import CloseIcon from '@material-ui/icons/Close'
+import { HelpButton } from '../../components/Help'
+import { Paper, Tooltip, Chip, List, ListSubheader, Typography, IconButton } from '@material-ui/core'
+import { parseQuantityName, getSchemaAbbreviation } from '../../utils'
 import { useSuggestions } from '../../hooks'
 import { useSearchContext } from './SearchContext'
 import { quantityNameSearch } from './FilterRegistry'
-import { MetainfoOption, ListboxMetainfo, renderGroup } from './input/InputMetainfo'
+import { VariableSizeList } from 'react-window'
 import { InputText } from './input/InputText'
+import { SearchSuggestion, SuggestionType } from './SearchSuggestion'
+import { SearchSyntaxes } from './SearchSyntaxes'
+import { renderRow, useResetCache, LISTBOX_PADDING } from './input/InputMetainfo'
 
-const opMap = {
-  '<=': 'lte',
-  '>=': 'gte',
-  '>': 'gt',
-  '<': 'lt'
-}
-const opMapReverse = {
-  '<=': 'gte',
-  '>=': 'lte',
-  '>': 'lt',
-  '<': 'gt'
+/**
+ * Displays a suggestion in the search bar.
+ */
+export const useSuggestionStyles = makeStyles(theme => ({
+  root: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    '& > *': {
+        marginRight: theme.spacing(1)
+    },
+    '& > *:last-child': {
+        marginRight: 0
+    },
+    // The delete icon is hidden until the item is hovered. It is not removed
+    // from the document with "display: none" in order for the hover to not
+    // change the layout which may cause other elements to shift around.
+    '& .delete': {
+      visibility: "hidden"
+    },
+    '&:hover .delete': {
+      visibility: "visible"
+    }
+  },
+  primary: {
+    flexGrow: 1,
+    whiteSpace: 'nowrap',
+    overflowX: 'scroll',
+    '&::-webkit-scrollbar': {
+      display: 'none'
+    },
+    '-ms-overflow-style': 'none',
+    scrollbarWidth: 'none'
+  }
+}))
+const Suggestion = ({suggestion, onDelete, tooltip}) => {
+  const typeTooltip = (suggestion.type === SuggestionType.Name
+    ? 'Suggested name for an available filter in this app'
+    : SearchSyntaxes[suggestion.type]?.readme) || ''
+  const label = (suggestion.type === SuggestionType.Name
+    ? 'name'
+    : SearchSyntaxes[suggestion.type]?.labelShort) || ''
+  const styles = useSuggestionStyles()
+  let schema, primary
+  if (suggestion.type === SuggestionType.Name) {
+    const {path, schema: schemaTmp} = parseQuantityName(suggestion.input)
+    primary = path
+    schema = schemaTmp
+  } else {
+    primary = suggestion.input
+  }
+
+  return <div className={styles.root}>
+    <Typography className={styles.primary}>
+      <Tooltip title={tooltip || ''} placement='bottom' enterDelay={500} enterNextDelay={500}>
+        <span>{primary}</span>
+      </Tooltip>
+    </Typography>
+    {suggestion.history
+      ? <Tooltip title="Remove from search history">
+        <IconButton className="delete" size="small" onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onDelete?.()
+        }}>
+          <CloseIcon fontSize="small" color="action" />
+        </IconButton>
+      </Tooltip>
+      : null
+    }
+    {suggestion.history
+      ? <Tooltip title="From search history">
+        <HistoryIcon fontSize="small" color="action"/>
+      </Tooltip>
+      : null
+    }
+    {schema
+      ? <Tooltip title={`Definition from ${schema}`}>
+      <Typography variant='caption'>{getSchemaAbbreviation(schema)}</Typography>
+    </Tooltip>
+      : null
+    }
+    <Tooltip title={typeTooltip}>
+      <Chip size='small' label={label}/>
+    </Tooltip>
+  </div>
 }
 
-const numericTypes = new Set([DType.Timestamp, DType.Int, DType.Float])
+Suggestion.propTypes = {
+  suggestion: PropTypes.object,
+  onDelete: PropTypes.func,
+  tooltip: PropTypes.string
+}
 
 export const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
     alignItems: 'center',
     position: 'relative'
-  },
-  notchedOutline: {
-    borderColor: 'rgba(0, 0, 0, 0.0)'
   },
   iconButton: {
     padding: 10
@@ -73,15 +155,29 @@ const SearchBar = React.memo(({
     filterData,
     filterFullnames,
     useUpdateFilter,
-    useFiltersLocked,
-    useParseQuery
+    useParseQuery,
+    useSearchSuggestions,
+    usePushSearchSuggestion,
+    useRemoveSearchSuggestion,
+    useSetPagination,
+    searchSyntaxes
   } = useSearchContext()
+  const includedFormats = Object
+    .keys(SearchSyntaxes)
+    .filter((key) => !searchSyntaxes?.exclude?.includes(key))
+  const formatReadmeList = includedFormats
+    .map((key) => {
+      const examples = SearchSyntaxes[key]?.examples?.map((example) => `   ${example}`).join('\n')
+      return ` - **${SearchSyntaxes[key]?.label}**: ${SearchSyntaxes[key]?.readme} For example:\n\n   \`\`\`\n${examples}\n   \`\`\`\n`
+    })
+    .join('\n')
   const [inputValue, setInputValue] = useState('')
   const [suggestionInput, setSuggestionInput] = useState('')
   const [error, setError] = useState(false)
-  const filtersLocked = useFiltersLocked()
+  const setPagination = useSetPagination()
   const updateFilter = useUpdateFilter()
   const parseQuery = useParseQuery()
+  const inputRef = useRef()
 
   const [quantitiesAll, quantitiesAllSet, quantitiesSuggestable] = useMemo(() => {
     let quantitySetSuggestable, quantityList
@@ -128,32 +224,53 @@ const SearchBar = React.memo(({
   const suggestionQuantities = useMemo(() => {
     return quantitiesAll.filter((q) => suggestionNames.has(q.name))
   }, [quantitiesAll, suggestionNames])
-  const [suggestions, loading] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput, filterData)
-  const {options, keys} = useMemo(() => {
-    const keys = []
-    const options = {}
-    for (const suggestion of suggestions) {
-      let filter, key, primary
+
+  const [suggestionsMatch, setSuggestionsMatch] = useState([])
+  const pushSuggestion = usePushSearchSuggestion()
+  const removeSuggestion = useRemoveSearchSuggestion()
+  const suggestionsHistory = useSearchSuggestions(inputValue)
+  const [suggestionsMetainfo, loading] = useSuggestions(suggestionQuantities, quantitiesAllSet, suggestionInput, filterData)
+
+  // Contains the final set of suggestions
+  const [suggestions, keys] = useMemo(() => {
+    const suggestions = {}
+
+    for (const suggestion of suggestionsMatch) {
+      suggestions[suggestion.key] = suggestion
+    }
+
+    for (const suggestion of suggestionsHistory) {
+      suggestions[suggestion.key] = suggestion
+    }
+
+    for (const suggestion of suggestionsMetainfo) {
+      let input, type
       if (suggestion.category === quantityNameSearch) {
-        filter = filterData[suggestion.value]
-        key = suggestion.value
-        primary = filter?.quantity || suggestion.value
+        type = SuggestionType.Name
+        input = suggestion.value
       } else {
-        key = `${suggestion.category}=${suggestion.value}`
-        primary = key
+        type = SuggestionType.Equality
+        input = `${suggestion.category} = ${suggestion.value}`
       }
-      keys.push(key)
-      options[key] = {
-        key: key,
-        group: suggestion.category,
-        dtype: filter?.dtype,
-        schema: filter?.schema,
-        primary: primary,
-        description: filter?.description
+      const suggestionObject = new SearchSuggestion({input, type})
+      const key = suggestionObject.key
+      if (!has(suggestions, key)) {
+        suggestions[key] = suggestionObject
       }
     }
-    return {options, keys}
-  }, [suggestions, filterData])
+    return [suggestions, Object.keys(suggestions)]
+  }, [suggestionsMatch, suggestionsHistory, suggestionsMetainfo])
+
+  const clearSuggestions = useCallback(() => {
+    setSuggestionInput('')
+    setSuggestionsMatch([])
+  }, [])
+
+  const clearInput = useCallback(() => {
+    setError(error => error ? undefined : null)
+    setInputValue('')
+    setSuggestionInput('')
+  }, [])
 
   // Used to check the validity of the given quantity name
   const checkMetainfo = useCallback((name) => {
@@ -167,184 +284,143 @@ const SearchBar = React.memo(({
     return [fullName, undefined]
   }, [quantitiesAllSet, filterData, filterFullnames])
 
-  // Triggered when a value is submitted by pressing enter or clicking the
-  // search icon.
-  const handleSubmit = useCallback((value) => {
-    if (!value?.trim()?.length) {
-      return
+  // Get suggestions based on the current input and the supported query syntaxes
+  const getSuggestionsMatch = useCallback((input) => {
+    input = input?.trim()
+    if (!input?.length) {
+      return []
     }
-    const reString = '[^\\s=<>](?:[^=<>]*[^\\s=<>])?'
-    const op = '(?:<|>)=?'
-    let valid = false
-    let quantityFullname
-    let queryValue
-    let comparison = true
-
-    // Presence query
-    const presence = value.match(new RegExp(`^\\s*(${reString})\\s*=\\s*\\*\\s*$`))
-    if (presence) {
-      quantityFullname = `quantities`
-      queryValue = parseQuery(quantityFullname, presence[1])
-      valid = true
+    const suggestions = []
+    for (const key of includedFormats) {
+        // regex.test() is significantly faster than string.match()
+        const match = SearchSyntaxes[key].regex.test(input)
+        if (match) {
+          suggestions.push(new SearchSuggestion({input, type: key}))
+        }
     }
+    return suggestions
+  }, [includedFormats])
 
-    // Equality query
-    if (!valid) {
-      const equals = value.match(new RegExp(`^\\s*(${reString})\\s*=\\s*(${reString})\\s*$`))
-      if (equals) {
-        const quantityName = equals[1]
-        const [fullName, error] = checkMetainfo(quantityName)
-        quantityFullname = fullName
-        if (error) {
-          setError(error)
-          return
-        }
-        try {
-          queryValue = parseQuery(quantityFullname, equals[2])
-        } catch (error) {
-          setError(`Invalid value for this metainfo. Please check your syntax.`)
-          return
-        }
-        comparison = false
-        valid = true
+  // Triggered when the user selects a highlighted item with mouse or with
+  // keyboard.
+  const handleAccept = useCallback((key) => {
+    let suggestion = suggestions[key]
+    if (!suggestion) {
+      const bestSuggestion = suggestions[keys[0]]
+      if (bestSuggestion?.input?.trim() === key?.trim()) {
+        suggestion = bestSuggestion
+      } else {
+        setError('Unsupported query')
+        return
       }
     }
-
-    // Simple LTE/GTE query
-    if (!valid) {
-      const ltegte = value.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
-      if (ltegte) {
-        const a = ltegte[1]
-        const op = ltegte[2]
-        const b = ltegte[3]
-        const [aFullname, aError] = checkMetainfo(a)
-        const [bFullname, bError] = checkMetainfo(b)
-        if (aError && bError) {
-          if (!aFullname && !bFullname) {
-            setError(`Unknown quantity name`)
-          } else {
-            setError(aError || bError)
-          }
-          return
-        }
-        quantityFullname = aError ? bFullname : aFullname
-        const value = aError ? a : b
-        const dtype = filterData[quantityFullname].dtype
-        if (!numericTypes.has(dtype)) {
-          setError(`Cannot perform range query for a non-numeric quantity`)
-          return
-        }
-        let quantityValue
-        try {
-          quantityValue = parseQuery(quantityFullname, value, undefined, false)
-        } catch (error) {
-          console.log(error)
-          setError(`Invalid value for this metainfo. Please check your syntax.`)
-          return
-        }
-        queryValue = {}
-        queryValue[opMap[op]] = quantityValue
-        valid = true
-      }
-    }
-
-    // Sandwiched LTE/GTE query
-    if (!valid) {
-      const ltegteSandwich = value.match(new RegExp(`^\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*(${op})\\s*(${reString})\\s*$`))
-      if (ltegteSandwich) {
-        const a = ltegteSandwich[1]
-        const op1 = ltegteSandwich[2]
-        const b = ltegteSandwich[3]
-        const op2 = ltegteSandwich[4]
-        const c = ltegteSandwich[5]
-        const [fullName, error] = checkMetainfo(b)
-        if (error) {
-          setError(error)
-          return
-        }
-        quantityFullname = fullName
-        const dtype = filterData[quantityFullname].dtype
-        if (!numericTypes.has(dtype)) {
-          setError(`Cannot perform range query for a non-numeric quantity.`)
-          return
-        }
-        queryValue = {}
-        try {
-          queryValue[opMapReverse[op1]] = parseQuery(quantityFullname, a, undefined, false)
-          queryValue[opMap[op2]] = parseQuery(quantityFullname, c, undefined, false)
-        } catch (error) {
-          setError(`Invalid value for this metainfo. Please check your syntax.`)
-          return
-        }
-        valid = true
-      }
-    }
-
-    // Check if filter is locked
-    if (!isNil(filtersLocked[quantityFullname]) && filterData[quantityFullname].global) {
-      setError(`Cannot change the filter as it is locked in the current search context.`)
+    if (suggestion.type === SuggestionType.Name) {
+      setInputValue(suggestion.input)
       return
     }
 
-    // Submit to search context on successful validation.
-    if (valid) {
-      updateFilter([quantityFullname, old => {
-        const multiple = filterData[quantityFullname].multiple
-        return (comparison || isNil(old) || !multiple)
-          ? queryValue
-          : new Set([...old, ...queryValue])
-      }])
-      setInputValue('')
-    } else {
-      setError(`Invalid query`)
+    // Parse the suggestion using the matched format
+    const format = SearchSyntaxes[suggestion.type]
+    const {target: targetTmp, value: valueTmp, inputNormalized} = format.parse(suggestion.input)
+
+    // Check that targeted metainfo is ok, and attempt to parse the query
+    const [target, errorMeta] = checkMetainfo(targetTmp)
+    let value, errorQuery
+    if (!errorMeta) {
+      try {
+        value = parseQuery(target, valueTmp)
+      } catch (err) {
+        errorQuery = `Invalid value for the metainfo ${target}. Please check your syntax.`
+      }
     }
-  }, [checkMetainfo, updateFilter, filterData, parseQuery, filtersLocked])
 
-  const handleSelect = useCallback((key) => {
-    setInputValue(key)
-  }, [])
+    // Catch any errors and raise them
+    const error = errorMeta || errorQuery
+    if (error) {
+      setError(error)
+      return
+    }
 
-  // Handle typing events. After a debounce time has expired, a list of
-  // suggestion will be retrieved if they are available for this metainfo and
-  // the input is deemed meaningful.
-  const handleInputChange = useCallback((value) => {
+    // The pagination is explicitly set to be done by descending relevance
+    // score if a free-text query is performed
+    if (suggestion.type === SuggestionType.Freetext) {
+      setPagination(old => {
+        return {...old, order_by: '_score', order: 'desc'}
+      })
+    }
+
+    // Update the search filter
+    updateFilter([target, old => {
+      const multiple = filterData[target].multiple
+      return (format?.label === SuggestionType.RangeHalfBounded || suggestion.type === SuggestionType.RangeBounded || isNil(old) || !multiple)
+        ? value
+        : new Set([...old, ...value])
+    }])
+
+    // We need to create a copy here, since Recoil won't allow mutating object
+    // stored in a state.
+    const normalizedSuggestion = new SearchSuggestion(suggestion)
+    normalizedSuggestion.input = inputNormalized
+
+    pushSuggestion(normalizedSuggestion)
+    clearSuggestions()
+    clearInput()
+  }, [checkMetainfo, clearInput, clearSuggestions, filterData, keys, parseQuery, pushSuggestion, suggestions, updateFilter, setPagination])
+
+  // When a suggestion is highlighted with keyboard (not mouse), the text field
+  // is changed to that suggestion value. Note that this should not trigger the
+  // suggestions etc. and this is why we don't set inputValue.
+  const handleHighlight = useCallback((key, reason) => {
+    if (reason === 'keyboard') {
+      const suggestion = suggestions[key]?.input
+      if (suggestion) {
+        inputRef.current.value = suggestion
+      }
+    }
+  }, [suggestions])
+
+  // Handle typing events
+  const handleInputChange = useCallback((input) => {
     setError(error => error ? undefined : null)
-    setInputValue(value)
-    value = value?.trim()
-    if (!value) {
-      setSuggestionInput('')
+    setInputValue(input)
+    input = input?.trim()
+    if (!input) {
+      clearSuggestions()
       return
     }
 
-    // If some input is given, and the quantity supports suggestions, we use
-    // input suggester to suggest values. If the input is prefixed with a proper
-    // quantity name and an equals-sign, we extract the quantity name and the
-    // typed input
-    const split = value.split('=', 2)
+    // Get suggestions for making specific queries
+    setSuggestionsMatch(getSuggestionsMatch(input))
+
+    // Start getting suggestions from ES
+    const split = input.split('=', 2)
     let quantitySet = quantitiesSuggestable
     if (split.length === 2) {
       const quantityName = split[0].trim()
       const quantityFullname = filterFullnames[quantityName]
       if (quantitiesSuggestable.has(quantityName)) {
         quantitySet = new Set([quantityName])
-        value = split[1].trim()
+        input = split[1].trim()
       } else if (quantitiesSuggestable.has(quantityFullname)) {
         quantitySet = new Set([quantityFullname])
-        value = split[1].trim()
+        input = split[1].trim()
       }
     }
     setSuggestionNames(quantitySet)
-    setSuggestionInput(value)
-  }, [quantitiesSuggestable, filterFullnames])
+    setSuggestionInput(input)
+  }, [quantitiesSuggestable, filterFullnames, getSuggestionsMatch, clearSuggestions])
 
   return <Paper className={clsx(className, styles.root)}>
     <InputText
       value={inputValue || null}
       onChange={handleInputChange}
-      onSelect={handleSelect}
-      onAccept={handleSubmit}
+      onSelect={handleAccept}
+      onAccept={handleAccept}
+      onHighlight={handleHighlight}
       suggestions={keys}
-      ListboxComponent={ListboxMetainfo}
+      disableAcceptOnBlur
+      autoHighlight={inputValue?.trim() === suggestions[keys[0]]?.input?.trim()}
+      ListboxComponent={ListboxSuggestion}
       TextFieldProps={{
         variant: 'outlined',
         placeholder: 'Type your query or keyword here',
@@ -354,21 +430,32 @@ const SearchBar = React.memo(({
         size: "medium"
       }}
       InputProps={{
-        classes: {
-          notchedOutline: styles.notchedOutline
-        },
-        startAdornment: <Tooltip title="Add filter">
-          <IconButton onClick={() => handleSubmit(inputValue)} className={styles.iconButton} aria-label="search">
-            <SearchIcon />
-          </IconButton>
-        </Tooltip>
+        startAdornment: <SearchIcon className={styles.iconButton} color="action" />,
+        endAdornment: <Tooltip title="Search bar syntax help">
+          <HelpButton
+            IconProps={{fontSize: 'small'}}
+            maxWidth="md"
+            size="small"
+            heading="Search bar help"
+            text={`
+The search bar provides a fast way to start formulating queries.
+Once you start typing a keyword or a query, suggestions for queries
+and metainfo names are given based on your search history and the
+available data. This search bar supports the following syntaxes:
+
+${formatReadmeList}`}
+          />
+        </Tooltip>,
+        inputRef: inputRef
       }}
-      groupBy={(key) => options?.[key]?.group}
-      renderGroup={renderGroup}
       getOptionLabel={option => option}
       filterOptions={(options) => options}
       loading={loading}
-      renderOption={(id) => <MetainfoOption id={id} options={options} />}
+      renderOption={(id) => <Suggestion
+        suggestion={suggestions[id]}
+        onDelete={() => removeSuggestion(suggestions[id].key)}
+        tooltip={suggestions[id].type === SuggestionType.Name ? filterData[suggestions[id].input]?.description : undefined}
+      />}
     />
   </Paper>
 })
@@ -382,5 +469,62 @@ SearchBar.propTypes = {
   })),
   className: PropTypes.string
 }
+
+/**
+ * Custom virtualized list component for displaying searchbar suggestions.
+ */
+const OuterElementContext = createContext({})
+export const ListboxSuggestion = React.forwardRef((props, ref) => {
+  const { children, ...other } = props
+  const itemSize = 48
+  const headerSize = 40
+  const itemData = React.Children.toArray(children)
+  const itemCount = itemData.length
+
+  // Calculate size of child element.
+  const getChildSize = (child) => {
+    return React.isValidElement(child) && child.type === ListSubheader
+      ? headerSize
+      : itemSize
+  }
+
+  // Calculates the height of the suggestion box
+  const getHeight = () => {
+    return itemCount > 8
+      ? 8 * itemSize
+      : itemData.map(getChildSize).reduce((a, b) => a + b, 0)
+  }
+
+  const gridRef = useResetCache(itemCount)
+
+  return <div ref={ref}>
+    <OuterElementContext.Provider value={other}>
+      <List disablePadding>
+        <VariableSizeList
+          itemData={itemData}
+          height={getHeight() + 2 * LISTBOX_PADDING}
+          width="100%"
+          ref={gridRef}
+          outerElementType={OuterElementType}
+          innerElementType="ul"
+          itemSize={(index) => getChildSize(itemData[index])}
+          overscanCount={5}
+          itemCount={itemCount}
+        >
+          {renderRow}
+        </VariableSizeList>
+      </List>
+    </OuterElementContext.Provider>
+  </div>
+})
+
+ListboxSuggestion.propTypes = {
+  children: PropTypes.node
+}
+
+const OuterElementType = React.forwardRef((props, ref) => {
+  const outerProps = useContext(OuterElementContext)
+  return <div ref={ref} {...props} {...outerProps} />
+})
 
 export default SearchBar

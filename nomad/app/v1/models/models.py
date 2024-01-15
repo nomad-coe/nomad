@@ -897,8 +897,13 @@ class MetadataBasedPagination(Pagination):
         None,
         description=strip(
             """
-            The results are ordered by the values of this field. If omitted, default
-            ordering is applied.
+            The results are ordered by the values of this field. You can order
+            by any indexed scalar value, or one following two special fields:
+
+             - `_score`: Sorts by relevance score.
+             - `_doc`: Use when sorting does not matter, gives the best performance.
+
+            If omitted, default ordering is applied.
         """
         ),
     )

@@ -17,6 +17,7 @@
  */
 import React from 'react'
 import { ui } from '../config'
+import { cloneDeep } from 'lodash'
 import { withLoginRequired } from './api'
 import { SearchContext } from './search/SearchContext'
 import SearchPage from './search/SearchPage'
@@ -71,14 +72,17 @@ DOI, they will be redirected to a NOMAD view that shows the dataset and allows i
 Once you assigned a DOI to a dataset, no entries can be removed or added to the dataset.
 `
 
-const context = ui?.apps?.options?.entries
+// Use the same context as in the global entries search, but with free-text
+// query enabled
+const context = cloneDeep(ui?.apps?.options?.entries)
+context.search_syntaxes.exclude = undefined
+
 const initialFiltersLocked = {
   'visibility': 'user'
 }
 const UserdataPage = React.memo(() => {
   return <SearchContext
     resource={context?.resource}
-    initialSchemas={context?.schemas}
     initialPagination={context?.pagination}
     initialColumns={context?.columns}
     initialRows={context?.rows}
@@ -86,6 +90,7 @@ const UserdataPage = React.memo(() => {
     initialFilters={context?.filters}
     initialFiltersLocked={initialFiltersLocked}
     initialDashboard={context?.dashboard}
+    initialSearchSyntaxes={context?.search_syntaxes}
   >
     <SearchPage/>
   </SearchContext>

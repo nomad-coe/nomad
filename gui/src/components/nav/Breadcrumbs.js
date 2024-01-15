@@ -86,9 +86,7 @@ const Breadcrumbs = React.memo(function Breadcrumbs() {
             {title}
             {route.help && (
               <Tooltip title={route?.help?.title || ""}>
-                <span>
-                  <HelpButton className={styles.help} size="small" IconProps={{fontSize: 'small'}} {...route.help} />
-                </span>
+                <HelpButton className={styles.help} size="small" IconProps={{fontSize: 'small'}} heading={route?.help?.title} content={route?.help?.content} />
               </Tooltip>
             )}
           </Box>

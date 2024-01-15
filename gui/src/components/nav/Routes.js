@@ -197,7 +197,6 @@ const searchRoutes = Object.values(ui?.apps?.options || {})
       render: (props) => (
         <SearchContext
           resource={context.resource}
-          initialSchemas={context?.schemas}
           initialPagination={context.pagination}
           initialColumns={context.columns}
           initialRows={context.rows}
@@ -205,6 +204,8 @@ const searchRoutes = Object.values(ui?.apps?.options || {})
           initialFilters={context?.filters}
           initialFiltersLocked={context.filters_locked}
           initialDashboard={context?.dashboard}
+          initialSearchSyntaxes={context?.search_syntaxes}
+          id={context?.path}
         >
           <SearchPage/>
         </SearchContext>

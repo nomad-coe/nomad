@@ -112,8 +112,7 @@ export const WidgetScatterPlot = React.memo((
   const setWidget = useSetWidget(id)
   const pagination = useMemo(() => ({
     page_size: size,
-    order: 'asc',
-    order_by: 'entry_id'
+    order: 'asc'
   }), [size])
   const required = useMemo(() => {
     const include = ['entry_id']

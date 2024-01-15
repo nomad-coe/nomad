@@ -32,7 +32,6 @@ test.each([
   render(
     <SearchContext
         resource={context.resource}
-        initialSchemas={context?.schemas}
         initialPagination={context.pagination}
         initialColumns={context.columns}
         initialRows={context.rows}
@@ -40,6 +39,7 @@ test.each([
         initialFiltersLocked={context.filters_locked}
         initialDashboard={context?.dashboard}
         initialFilterValues={{[quantity]: input}}
+        initialSearchSyntaxes={context?.search_syntaxes}
     >
       <FilterSummary quantities={new Set([quantity])}/>
     </SearchContext>

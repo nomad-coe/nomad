@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -17,7 +18,6 @@
  */
 import React from 'react'
 import PropTypes from 'prop-types'
-// import remark from 'remark'
 import { withStyles, Link } from '@material-ui/core'
 import { Link as RouterLink } from 'react-router-dom'
 import extend from '@babel/runtime/helpers/extends'
@@ -101,20 +101,12 @@ const styles = theme => {
         marginBottom: theme.spacing(1)
       },
       '& ul': {
-        paddingLeft: 0,
+        paddingLeft: theme.spacing(4),
         '& li': {
-          listStyleType: 'none',
-          fontSize: 'inherit',
-          paddingLeft: theme.spacing(4),
-          '&:before': {
-            content: '\'■\'',
-            fontSize: 'x-large',
-            marginLeft: -theme.spacing(1) * 4,
-            paddingRight: theme.spacing(4) - 14
-          }
+          listStyleType: 'square',
+          fontSize: 'inherit'
         }
       },
-
       '& h1, & h2, & h3, & h4': {
         '& code': {
           fontSize: 'inherit',

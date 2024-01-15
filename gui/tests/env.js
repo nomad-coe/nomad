@@ -714,6 +714,11 @@ window.nomadEnv = {
               "entry_name",
               "combine"
             ]
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
           }
         },
         "calculations": {
@@ -1191,6 +1196,11 @@ window.nomadEnv = {
           },
           "filters_locked": {
             "quantities": "results.method.simulation.program_name"
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
           }
         },
         "materials": {
@@ -1371,6 +1381,11 @@ window.nomadEnv = {
             "exclude": [
               "mainfile",
               "entry_name"
+            ]
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
             ]
           }
         },
@@ -1657,6 +1672,11 @@ window.nomadEnv = {
           },
           "filters_locked": {
             "results.method.method_name": "EELS"
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
           }
         },
         "solarcells": {
@@ -2311,6 +2331,11 @@ window.nomadEnv = {
           },
           "filters_locked": {
             "sections": "nomad.datamodel.results.SolarCell"
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
           }
         },
         "heterogeneouscatalyst": {
@@ -3250,6 +3275,11 @@ window.nomadEnv = {
           },
           "filters_locked": {
             "quantities": "results.properties.catalytic"
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
           }
         },
         "mofs": {
@@ -3659,6 +3689,11 @@ window.nomadEnv = {
           },
           "filters_locked": {
             "results.material.topology.label": "MOF"
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
           }
         }
       }
