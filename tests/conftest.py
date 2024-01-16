@@ -514,6 +514,10 @@ test_user_groups = {
     ),
 }
 
+group_label_id_mapping = {
+    label: group['group_id'] for label, group in test_user_groups.items()
+}
+
 
 @pytest.fixture(scope='session')
 def user_owner_group():
@@ -537,6 +541,19 @@ def _user_groups():
         user_groups[label] = user_group
 
     return user_groups
+
+
+def convert_group_labels_to_ids(raw):
+    if isinstance(raw, str):
+        return group_label_id_mapping.get(raw, raw)
+
+    if isinstance(raw, list):
+        return [convert_group_labels_to_ids(label) for label in raw]
+
+    if isinstance(raw, dict):
+        return {key: convert_group_labels_to_ids(label) for key, label in raw.items()}
+
+    return raw
 
 
 @pytest.fixture(scope='module')
@@ -1336,6 +1353,25 @@ def example_data_groups(
 def upload_no_group(mongo_function, test_user):
     data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='id_no_group')
+    data.save()
+
+    yield data
+
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def upload_coauthor_other_and_mixed_group(
+    mongo_function,
+    test_user,
+    other_owner_group,
+    mixed_group,
+):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(
+        upload_id='id_coauthor_ogroup_mgroup',
+        coauthor_groups=[other_owner_group.group_id, mixed_group.group_id],
+    )
     data.save()
 
     yield data

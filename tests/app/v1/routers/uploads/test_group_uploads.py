@@ -1,6 +1,7 @@
 import pytest
 
 from nomad.processing.data import Upload
+from tests.conftest import convert_group_labels_to_ids
 from ..common import assert_response, perform_get, perform_post
 from .common import assert_upload
 
@@ -178,7 +179,7 @@ def test_add_groups_to_upload(
     new_group_ids = [user_groups_module[label].group_id for label in new_groups]
 
     url = f'uploads/{upload_id}/edit'
-    metadata = {group_quantity: new_group_ids}
+    metadata = {group_quantity: convert_group_labels_to_ids(new_groups)}
     edit_request = dict(metadata=metadata)
     response = perform_post(client, url, user_auth, json=edit_request)
 
@@ -189,3 +190,46 @@ def test_add_groups_to_upload(
     upload = Upload.get(upload_id)
     upload.block_until_complete()
     assert getattr(upload, group_quantity) == new_group_ids
+
+
+@pytest.mark.parametrize(
+    'user, action, expected_groups, expected_status_code',
+    [
+        pytest.param('test_user', [], [], 200, id='test-user-empty'),
+        pytest.param('test_user', {'set': []}, [], 200, id='test-user-set-empty'),
+        pytest.param(
+            'test_user',
+            {'remove': 'mixed_group'},
+            ['other_owner_group'],
+            200,
+            id='test-user-remove-other',
+        ),
+        pytest.param('other_test_user', [], None, 422, id='other-user-fail'),
+    ],
+)
+def test_remove_groups_from_upload(
+    client,
+    user_groups_module,
+    proc_infra,
+    upload_coauthor_other_and_mixed_group,
+    test_auth_dict,
+    user,
+    action,
+    expected_groups,
+    expected_status_code,
+):
+    user_auth, __token = test_auth_dict[user]
+    upload_id = list(upload_coauthor_other_and_mixed_group.uploads)[0]
+
+    url = f'uploads/{upload_id}/edit'
+    metadata = {'coauthor_groups': convert_group_labels_to_ids(action)}
+    edit_request = dict(metadata=metadata)
+    response = perform_post(client, url, user_auth, json=edit_request)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code != 200:
+        return
+
+    upload = Upload.get(upload_id)
+    upload.block_until_complete()
+    assert upload.coauthor_groups == convert_group_labels_to_ids(expected_groups)
