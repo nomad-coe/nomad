@@ -91,7 +91,9 @@ gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/gui
 if not os.path.exists(gui_folder):
     os.makedirs(gui_folder)
 
-configured_gui_folder = os.path.join(gui_folder, '../.gui_configured')
+configured_gui_folder = os.path.join(
+    config.fs.working_directory, 'run', 'gui_configured'
+)
 if os.path.exists(configured_gui_folder):
     gui_folder = configured_gui_folder
 
