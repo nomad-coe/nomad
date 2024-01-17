@@ -74678,7 +74678,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
                 "name": "thermostat_type",
-                "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |\n\n| `\"velocity_rescaling_woodcock\"` | L. V. Woodcock,\n[Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |",
+                "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |\n\n| `\"velocity_rescaling_woodcock\"` | L. V. Woodcock,\n[Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |\n\n| `\"langevin_leap_frog\"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande\n[Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -74690,7 +74690,8 @@ window.nomadArtifacts = {
                     "nose_hoover",
                     "velocity_rescaling",
                     "velocity_rescaling_langevin",
-                    "velocity_rescaling_woodcock"
+                    "velocity_rescaling_woodcock",
+                    "langevin_leap_frog"
                   ]
                 },
                 "shape": []
@@ -75071,7 +75072,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "integrator_type",
-                "description": "Name of the integrator.\n\nAllowed values are:\n\n| Integrator Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"leap_frog\"`          | R.W. Hockney, S.P. Goel, and J. Eastwood,\n[J. Comp. Phys. **14**, 148 (1974)](https://doi.org/10.1016/0021-9991(74)90010-2) |\n\n| `\"velocity_verlet\"` | W.C. Swope, H.C. Andersen, P.H. Berens, and K.R. Wilson,\n[J. Chem. Phys. **76**, 637 (1982)](https://doi.org/10.1063/1.442716) |\n\n| `\"rRESPA_multitimescale\"` | M. Tuckerman, B. J. Berne, and G. J. Martyna\n[J. Chem. Phys. **97**, 1990 (1992)](https://doi.org/10.1063/1.463137) |",
+                "description": "Name of the integrator.\n\nAllowed values are:\n\n| Integrator Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"leap_frog\"`          | R.W. Hockney, S.P. Goel, and J. Eastwood,\n[J. Comp. Phys. **14**, 148 (1974)](https://doi.org/10.1016/0021-9991(74)90010-2) |\n\n| `\"velocity_verlet\"` | W.C. Swope, H.C. Andersen, P.H. Berens, and K.R. Wilson,\n[J. Chem. Phys. **76**, 637 (1982)](https://doi.org/10.1063/1.442716) |\n\n| `\"rRESPA_multitimescale\"` | M. Tuckerman, B. J. Berne, and G. J. Martyna\n[J. Chem. Phys. **97**, 1990 (1992)](https://doi.org/10.1063/1.463137) |\n\n| `\"langevin_leap_frog\"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande\n[Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -75081,7 +75082,8 @@ window.nomadArtifacts = {
                     "langevin_schneider",
                     "leap_frog",
                     "rRESPA_multitimescale",
-                    "velocity_verlet"
+                    "velocity_verlet",
+                    "langevin_leap_frog"
                   ]
                 },
                 "shape": []
@@ -75183,11 +75185,59 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 3,
             "m_parent_sub_section": "section_definitions",
-            "name": "EnsemblePropertyValues",
-            "description": "Generic section containing information regarding the values of an ensemble property.",
+            "name": "Property",
+            "description": "Generic parent section for all property types.",
             "base_sections": [
               "/packages/16/section_definitions/0"
             ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "name": "type",
+                "description": "Describes if the observable is calculated at the molecular or atomic level.",
+                "type": {
+                  "type_kind": "Enum",
+                  "type_data": [
+                    "molecular",
+                    "atomic"
+                  ]
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "label",
+                "description": "Name or description of the property.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "error_type",
+                "description": "Describes the type of error reported for this observable.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 4,
+            "m_parent_sub_section": "section_definitions",
+            "name": "PropertyValues",
+            "description": "Generic parent section for information regarding the values of a property.",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -75205,6 +75255,32 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
+                "name": "errors",
+                "description": "Error associated with the determination of the property.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ]
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 5,
+            "m_parent_sub_section": "section_definitions",
+            "name": "EnsemblePropertyValues",
+            "description": "Generic section containing information regarding the values of an ensemble property.",
+            "base_sections": [
+              "/packages/47/section_definitions/4"
+            ],
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
                 "name": "n_bins",
                 "description": "Number of bins.",
                 "type": {
@@ -75215,7 +75291,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
+                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "frame_start",
                 "description": "Trajectory frame number where the ensemble averaging starts.",
@@ -75227,7 +75303,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "frame_end",
                 "description": "Trajectory frame number where the ensemble averaging ends.",
@@ -75236,17 +75312,69 @@ window.nomadArtifacts = {
                   "type_data": "int"
                 },
                 "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "bins_magnitude",
+                "description": "Values of the variable along which the property is calculated.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_bins"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "name": "bins_unit",
+                "description": "Unit of the given bins, using UnitRegistry() notation.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "name": "value_magnitude",
+                "description": "Values of the property.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_bins"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 6,
+                "m_parent_sub_section": "quantities",
+                "name": "value_unit",
+                "description": "Unit of the property, using UnitRegistry() notation.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 4,
+            "m_parent_index": 6,
             "m_parent_sub_section": "section_definitions",
             "name": "RadialDistributionFunctionValues",
             "description": "Section containing information regarding the values of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/47/section_definitions/3"
+              "/packages/47/section_definitions/5"
             ],
             "quantities": [
               {
@@ -75282,32 +75410,17 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 5,
+            "m_parent_index": 7,
             "m_parent_sub_section": "section_definitions",
             "name": "EnsembleProperty",
             "description": "Generic section containing information about a calculation of any static observable from a trajectory (i.e., from an ensemble average).",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/47/section_definitions/3"
             ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "type",
-                "description": "Describes if the observable is calculated at the molecular or atomic level.",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "molecular",
-                    "atomic"
-                  ]
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "n_smooth",
                 "description": "Number of bins over which the running average was computed for\nthe observable `values'.",
@@ -75319,19 +75432,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "error_type",
-                "description": "Describes the type of error reported for this observable.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
+                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "n_variables",
                 "description": "Number of variables along which the property is determined.",
@@ -75343,7 +75444,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "variables_name",
                 "description": "Name/description of the independent variables along which the observable is defined.",
@@ -75355,16 +75456,26 @@ window.nomadArtifacts = {
                   "n_variables"
                 ]
               }
+            ],
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "ensemble_property_values",
+                "sub_section": "/packages/47/section_definitions/5",
+                "repeats": true
+              }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 6,
+            "m_parent_index": 8,
             "m_parent_sub_section": "section_definitions",
             "name": "RadialDistributionFunction",
             "description": "Section containing information about the calculation of radial distribution functions (rdfs).",
             "base_sections": [
-              "/packages/47/section_definitions/5"
+              "/packages/47/section_definitions/7"
             ],
             "sub_sections": [
               {
@@ -75372,63 +75483,24 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_function_values",
-                "sub_section": "/packages/47/section_definitions/4",
+                "sub_section": "/packages/47/section_definitions/6",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 7,
+            "m_parent_index": 9,
             "m_parent_sub_section": "section_definitions",
             "name": "TrajectoryProperty",
             "description": "Generic section containing information about a calculation of any observable defined and stored at each individual frame of a trajectory.",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/47/section_definitions/3"
             ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "type",
-                "description": "Describes if the observable is calculated at the molecular or atomic level.",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "molecular",
-                    "atomic"
-                  ]
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "quantities",
-                "name": "error_type",
-                "description": "Describes the type of error reported for this observable.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "label",
-                "description": "Describes the atoms or molecule types involved in determining the property.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "n_frames",
                 "description": "Number of frames for which the observable is stored.",
@@ -75440,7 +75512,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
+                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "frames",
                 "description": "Frames for which the observable is stored.",
@@ -75454,7 +75526,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
+                "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "times",
                 "description": "Times for which the observable is stored.",
@@ -75469,7 +75541,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "value",
                 "description": "Values of the property.",
@@ -75483,7 +75555,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
+                "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "errors",
                 "description": "Error associated with the determination of the property.",
@@ -75499,12 +75571,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 8,
+            "m_parent_index": 10,
             "m_parent_sub_section": "section_definitions",
             "name": "RadiusOfGyration",
             "description": "Section containing information about the calculation of radius of gyration (Rg).",
             "base_sections": [
-              "/packages/47/section_definitions/7"
+              "/packages/47/section_definitions/9"
             ],
             "quantities": [
               {
@@ -75540,12 +75612,12 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 9,
+            "m_parent_index": 11,
             "m_parent_sub_section": "section_definitions",
             "name": "DiffusionConstantValues",
             "description": "Section containing information regarding the diffusion constants.",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/47/section_definitions/4"
             ],
             "quantities": [
               {
@@ -75572,48 +75644,22 @@ window.nomadArtifacts = {
                   "type_data": "str"
                 },
                 "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "errors",
-                "description": "Error associated with the determination of the diffusion constant.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ]
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 10,
+            "m_parent_index": 12,
             "m_parent_sub_section": "section_definitions",
             "name": "CorrelationFunctionValues",
             "description": "Generic section containing information regarding the values of a correlation function.",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/47/section_definitions/4"
             ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "label",
-                "description": "Describes the atoms or molecule types involved in determining the property.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "n_times",
                 "description": "Number of times windows for the calculation of the correlation function.",
@@ -75622,17 +75668,58 @@ window.nomadArtifacts = {
                   "type_data": "int"
                 },
                 "shape": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "name": "times",
+                "description": "Time windows used for the calculation of the correlation function.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_times"
+                ],
+                "unit": "second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "name": "value_magnitude",
+                "description": "Values of the property.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "n_times"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "name": "value_unit",
+                "description": "Unit of the property, using UnitRegistry() notation.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": []
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 11,
+            "m_parent_index": 13,
             "m_parent_sub_section": "section_definitions",
             "name": "MeanSquaredDisplacementValues",
             "description": "Section containing information regarding the values of a mean squared displacements (msds).",
             "base_sections": [
-              "/packages/47/section_definitions/10"
+              "/packages/47/section_definitions/12"
             ],
             "quantities": [
               {
@@ -75655,7 +75742,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "value",
-                "description": "Msd values.",
+                "description": "Mean squared displacement values.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -75686,39 +75773,24 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "diffusion_constant",
-                "sub_section": "/packages/47/section_definitions/9",
+                "sub_section": "/packages/47/section_definitions/11",
                 "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 12,
+            "m_parent_index": 14,
             "m_parent_sub_section": "section_definitions",
             "name": "CorrelationFunction",
             "description": "Generic section containing information about a calculation of any time correlation function from a trajectory.",
             "base_sections": [
-              "/packages/16/section_definitions/0"
+              "/packages/47/section_definitions/3"
             ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "name": "type",
-                "description": "Describes if the correlation function is calculated at the molecular or atomic level.",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "molecular",
-                    "atomic"
-                  ]
-                },
-                "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "direction",
                 "description": "Describes the direction in which the correlation function was calculated.",
@@ -75735,29 +75807,27 @@ window.nomadArtifacts = {
                   ]
                 },
                 "shape": []
-              },
+              }
+            ],
+            "sub_sections": [
               {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "name": "error_type",
-                "description": "Describes the type of error reported for this correlation function.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "correlation_function_values",
+                "sub_section": "/packages/47/section_definitions/12",
+                "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 13,
+            "m_parent_index": 15,
             "m_parent_sub_section": "section_definitions",
             "name": "MeanSquaredDisplacement",
             "description": "Section containing information about a calculation of any mean squared displacements (msds).",
             "base_sections": [
-              "/packages/47/section_definitions/12"
+              "/packages/47/section_definitions/14"
             ],
             "sub_sections": [
               {
@@ -75765,14 +75835,14 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacement_values",
-                "sub_section": "/packages/47/section_definitions/11",
+                "sub_section": "/packages/47/section_definitions/13",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 14,
+            "m_parent_index": 16,
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamicsResults",
             "base_sections": [
@@ -75824,30 +75894,46 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "radial_distribution_functions",
-                "sub_section": "/packages/47/section_definitions/6",
+                "sub_section": "/packages/47/section_definitions/8",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 1,
                 "m_parent_sub_section": "sub_sections",
-                "name": "radius_of_gyration",
-                "sub_section": "/packages/47/section_definitions/8",
+                "name": "ensemble_properties",
+                "sub_section": "/packages/47/section_definitions/7",
                 "repeats": true
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
+                "name": "correlation_functions",
+                "sub_section": "/packages/47/section_definitions/14",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "sub_sections",
+                "name": "radius_of_gyration",
+                "sub_section": "/packages/47/section_definitions/10",
+                "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "sub_sections",
                 "name": "mean_squared_displacements",
-                "sub_section": "/packages/47/section_definitions/13",
+                "sub_section": "/packages/47/section_definitions/15",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 15,
+            "m_parent_index": 17,
             "m_parent_sub_section": "section_definitions",
             "name": "MolecularDynamics",
             "base_sections": [
@@ -75869,7 +75955,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/18/category_definitions/0"
                 ],
-                "sub_section": "/packages/47/section_definitions/14"
+                "sub_section": "/packages/47/section_definitions/16"
               }
             ]
           }

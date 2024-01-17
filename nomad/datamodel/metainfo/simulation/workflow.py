@@ -1221,6 +1221,7 @@ class ThermostatParameters(MSection):
             'velocity_rescaling',
             'velocity_rescaling_langevin',
             'velocity_rescaling_woodcock',
+            'langevin_leap_frog',
         ),
         shape=[],
         description="""
@@ -1263,6 +1264,9 @@ class ThermostatParameters(MSection):
 
         | `"velocity_rescaling_woodcock"` | L. V. Woodcock,
         [Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |
+
+        | `"langevin_leap_frog"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande
+        [Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |
         """,
     )
 
@@ -1573,6 +1577,7 @@ class MolecularDynamicsMethod(SimulationWorkflowMethod):
             'leap_frog',
             'rRESPA_multitimescale',
             'velocity_verlet',
+            'langevin_leap_frog',
         ),
         shape=[],
         description="""
@@ -1599,6 +1604,9 @@ class MolecularDynamicsMethod(SimulationWorkflowMethod):
 
         | `"rRESPA_multitimescale"` | M. Tuckerman, B. J. Berne, and G. J. Martyna
         [J. Chem. Phys. **97**, 1990 (1992)](https://doi.org/10.1063/1.463137) |
+
+        | `"langevin_leap_frog"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande
+        [Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |
         """,
     )
 
@@ -1658,9 +1666,41 @@ class MolecularDynamicsMethod(SimulationWorkflowMethod):
     barostat_parameters = SubSection(sub_section=BarostatParameters.m_def, repeats=True)
 
 
-class EnsemblePropertyValues(MSection):
+class Property(ArchiveSection):
     """
-    Generic section containing information regarding the values of an ensemble property.
+    Generic parent section for all property types.
+    """
+
+    m_def = Section(validate=False)
+
+    type = Quantity(
+        type=MEnum('molecular', 'atomic'),
+        shape=[],
+        description="""
+        Describes if the observable is calculated at the molecular or atomic level.
+        """,
+    )
+
+    label = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        Name or description of the property.
+        """,
+    )
+
+    error_type = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        Describes the type of error reported for this observable.
+        """,
+    )
+
+
+class PropertyValues(MSection):
+    """
+    Generic parent section for information regarding the values of a property.
     """
 
     m_def = Section(validate=False)
@@ -1672,6 +1712,22 @@ class EnsemblePropertyValues(MSection):
         Describes the atoms or molecule types involved in determining the property.
         """,
     )
+
+    errors = Quantity(
+        type=np.float64,
+        shape=['*'],
+        description="""
+        Error associated with the determination of the property.
+        """,
+    )
+
+
+class EnsemblePropertyValues(PropertyValues):
+    """
+    Generic section containing information regarding the values of an ensemble property.
+    """
+
+    m_def = Section(validate=False)
 
     n_bins = Quantity(
         type=int,
@@ -1694,6 +1750,38 @@ class EnsemblePropertyValues(MSection):
         shape=[],
         description="""
         Trajectory frame number where the ensemble averaging ends.
+        """,
+    )
+
+    bins_magnitude = Quantity(
+        type=np.float64,
+        shape=['n_bins'],
+        description="""
+        Values of the variable along which the property is calculated.
+        """,
+    )
+
+    bins_unit = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        Unit of the given bins, using UnitRegistry() notation.
+        """,
+    )
+
+    value_magnitude = Quantity(
+        type=np.float64,
+        shape=['n_bins'],
+        description="""
+        Values of the property.
+        """,
+    )
+
+    value_unit = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        Unit of the property, using UnitRegistry() notation.
         """,
     )
 
@@ -1724,7 +1812,7 @@ class RadialDistributionFunctionValues(EnsemblePropertyValues):
     )
 
 
-class EnsembleProperty(ArchiveSection):
+class EnsembleProperty(Property):
     """
     Generic section containing information about a calculation of any static observable
     from a trajectory (i.e., from an ensemble average).
@@ -1732,28 +1820,12 @@ class EnsembleProperty(ArchiveSection):
 
     m_def = Section(validate=False)
 
-    type = Quantity(
-        type=MEnum('molecular', 'atomic'),
-        shape=[],
-        description="""
-        Describes if the observable is calculated at the molecular or atomic level.
-        """,
-    )
-
     n_smooth = Quantity(
         type=int,
         shape=[],
         description="""
         Number of bins over which the running average was computed for
         the observable `values'.
-        """,
-    )
-
-    error_type = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the type of error reported for this observable.
         """,
     )
 
@@ -1771,6 +1843,10 @@ class EnsembleProperty(ArchiveSection):
         description="""
         Name/description of the independent variables along which the observable is defined.
         """,
+    )
+
+    ensemble_property_values = SubSection(
+        sub_section=EnsemblePropertyValues.m_def, repeats=True
     )
 
 
@@ -1817,37 +1893,13 @@ class RadialDistributionFunction(EnsembleProperty):
                 )[i_pair]
 
 
-class TrajectoryProperty(ArchiveSection):
+class TrajectoryProperty(Property):
     """
     Generic section containing information about a calculation of any observable
     defined and stored at each individual frame of a trajectory.
     """
 
     m_def = Section(validate=False)
-
-    type = Quantity(
-        type=MEnum('molecular', 'atomic'),
-        shape=[],
-        description="""
-        Describes if the observable is calculated at the molecular or atomic level.
-        """,
-    )
-
-    error_type = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the type of error reported for this observable.
-        """,
-    )
-
-    label = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the atoms or molecule types involved in determining the property.
-        """,
-    )
 
     n_frames = Quantity(
         type=int,
@@ -1930,7 +1982,7 @@ class RadiusOfGyration(TrajectoryProperty):
             self.value = self._rg_results.get('value')
 
 
-class DiffusionConstantValues(MSection):
+class DiffusionConstantValues(PropertyValues):
     """
     Section containing information regarding the diffusion constants.
     """
@@ -1954,35 +2006,44 @@ class DiffusionConstantValues(MSection):
         """,
     )
 
-    errors = Quantity(
-        type=np.float64,
-        shape=['*'],
-        description="""
-        Error associated with the determination of the diffusion constant.
-        """,
-    )
 
-
-class CorrelationFunctionValues(MSection):
+class CorrelationFunctionValues(PropertyValues):
     """
     Generic section containing information regarding the values of a correlation function.
     """
 
     m_def = Section(validate=False)
 
-    label = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the atoms or molecule types involved in determining the property.
-        """,
-    )
-
     n_times = Quantity(
         type=int,
         shape=[],
         description="""
         Number of times windows for the calculation of the correlation function.
+        """,
+    )
+
+    times = Quantity(
+        type=np.float64,
+        shape=['n_times'],
+        unit='s',
+        description="""
+        Time windows used for the calculation of the correlation function.
+        """,
+    )
+
+    value_magnitude = Quantity(
+        type=np.float64,
+        shape=['n_times'],
+        description="""
+        Values of the property.
+        """,
+    )
+
+    value_unit = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        Unit of the property, using UnitRegistry() notation.
         """,
     )
 
@@ -2008,7 +2069,7 @@ class MeanSquaredDisplacementValues(CorrelationFunctionValues):
         shape=['n_times'],
         unit='m^2',
         description="""
-        Msd values.
+        Mean squared displacement values.
         """,
     )
 
@@ -2025,21 +2086,13 @@ class MeanSquaredDisplacementValues(CorrelationFunctionValues):
     )
 
 
-class CorrelationFunction(ArchiveSection):
+class CorrelationFunction(Property):
     """
     Generic section containing information about a calculation of any time correlation
     function from a trajectory.
     """
 
     m_def = Section(validate=False)
-
-    type = Quantity(
-        type=MEnum('molecular', 'atomic'),
-        shape=[],
-        description="""
-        Describes if the correlation function is calculated at the molecular or atomic level.
-        """,
-    )
 
     direction = Quantity(
         type=MEnum('x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'),
@@ -2049,12 +2102,8 @@ class CorrelationFunction(ArchiveSection):
         """,
     )
 
-    error_type = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the type of error reported for this correlation function.
-        """,
+    correlation_function_values = SubSection(
+        sub_section=CorrelationFunctionValues.m_def, repeats=True
     )
 
 
@@ -2132,6 +2181,10 @@ class MolecularDynamicsResults(ThermodynamicsResults):
         Reference to the system of each step in the trajectory.
         """,
     )
+
+    ensemble_properties = SubSection(sub_section=EnsembleProperty, repeats=True)
+
+    correlation_functions = SubSection(sub_section=CorrelationFunction, repeats=True)
 
     radial_distribution_functions = SubSection(
         sub_section=RadialDistributionFunction, repeats=True

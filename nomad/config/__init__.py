@@ -389,6 +389,13 @@ plugins = Plugins(
                 r'\s*\*\s*GENERAL UTILITY LATTICE PROGRAM\s*\*\s*'
             ),
         ),
+        'parsers/h5md': Parser(
+            python_package='atomisticparsers.h5md',
+            mainfile_name_re=(r'^.*\.(h5|hdf5)$'),
+            mainfile_mime_re=r'(application/x-hdf)',
+            mainfile_binary_header_re=rb'^\x89HDF',
+            mainfile_contents_dict={'__has_all_keys': ['h5md']},
+        ),
         'parsers/lammps': Parser(
             python_package='atomisticparsers.lammps',
             mainfile_contents_re=r'^LAMMPS\s+\(.+\)',
