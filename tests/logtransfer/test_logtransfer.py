@@ -9,6 +9,8 @@ import logging
 from nomad.utils.structlogging import LogstashFormatter
 from nomad import config
 
+logtransfer.enable_log_print = False
+
 
 def standard_test_log_record(msg='testmsg') -> bytes:
     record = LogRecord(
@@ -102,9 +104,9 @@ def test_logstash_submit_multiple_logs(
 
     is_successful = False
     while not is_successful:
-        # The logfile may also contain a subset of the messages that were sent at this point
-        # leading to an AssertionError. This loop frequently checks if at some all asserts are True and
-        # then terminates
+        # The logfile may also contain a subset of the messages that were sent
+        # at this point leading to an AssertionError. This loop frequently
+        # checks if at some all asserts are True and then terminates
         if not logtransfer.is_empty_logfile():
             with open(logtransfer.get_log_filepath(), 'rb') as f:
                 file_content = f.read()
@@ -130,7 +132,8 @@ def test_logstash_rollover_time(logtransfer_rollover_time):
     ret1 = logtransfer_rollover_time.send(log1)
     assert ret1 > 0
 
-    # this sleep is needed to trigger the rollover after some time interval (check the fixture for the actual setting)
+    # this sleep is needed to trigger the rollover after some time interval
+    # (check the fixture for the actual setting)
     time.sleep(0.15)
 
     log2 = standard_test_log_record(msg=testlog[1]) + b'\n'
@@ -139,8 +142,8 @@ def test_logstash_rollover_time(logtransfer_rollover_time):
 
     is_successful_assert = False
     while not is_successful_assert:
-        # finish the test as soon as all asserts are passed (this can vary depending on when the server has processed
-        # the log records)
+        # finish the test as soon as all asserts are passed (this can vary
+        # depending on when the server has processed the log records)
         try:
             rolled_log_filepath = logtransfer.get_log_filepath() + '.1'
             assert not logtransfer.is_empty_logfile()
@@ -149,7 +152,6 @@ def test_logstash_rollover_time(logtransfer_rollover_time):
             with open(logtransfer.get_log_filepath(), 'rb') as f:
                 # check active logfile
                 file_content = f.read()
-                # print(f"file_content:\n{file_content}")
                 assert testlog[0].encode() not in file_content
                 assert testlog[1].encode() in file_content
 
@@ -207,9 +209,8 @@ def test_logstash_rollover_space(logtransfer_rollover_space):
         if len(logtransfer.get_all_rotated_logfiles()) > 2:
             break
         else:
-            time.sleep(
-                0.01
-            )  # slow down logging a bit, so that server can perform rollovers
+            # slow down logging a bit, so that server can perform rollovers
+            time.sleep(0.01)
 
     expected_logs = b''.join(expected_logs)
     assert_equal_content_logfiles(expected_logs)
@@ -242,13 +243,10 @@ def test_logtransfer_to_federation_backend(
     with central_logstash_mock as server:
         # server is closed after context manager exits
         ret = logtransfer_rollover_time.send(logstash_line)
-        # print(f"sent logstash line {logstash_line} with ret={ret}")
         server.handle_request()
 
     # only one message was sent
     assert len(central_logstash_mock.received_content) == 1
-
-    # print(f'central_logstash_mock.received_content[0]={central_logstash_mock.received_content[0]}')
 
     # transform to json (also validates that both are valid)
     sent_json = json.loads(logstash_line.rstrip())
@@ -258,7 +256,8 @@ def test_logtransfer_to_federation_backend(
     assert 'ip_address' not in sent_json.keys()
     assert 'ip_address' in received_json.keys()
 
-    # remove key and convert back to string to compare that both logs have identical key/values
+    # remove key and convert back to string to compare that both logs have
+    # identical key/values
     received_json.pop('ip_address')
     assert json.dumps(sent_json, sort_keys=True) == json.dumps(
         received_json, sort_keys=True
