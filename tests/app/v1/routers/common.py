@@ -1407,8 +1407,6 @@ def assert_aggregation_response(
         http_method='post',
     )
 
-    print(json.dumps(response_json, indent=2))
-
     if response_json is None:
         return
 
