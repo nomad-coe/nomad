@@ -10,12 +10,10 @@ central NOMAD installation.
 
 !!! note
 
-    **Register your oasis**
-
-    If you installed (or even just plan to install) a NOMAD Oasis, please take
-    the time to register your Oasis with FAIRmat. This will help us to assist
-    you in an problems and keep you updated on new releases. You can register
-    by filling out this [simple form](https://www.fairmat-nfdi.eu/fairmat/oasis_registration){:target="_blank"}.
+    **Register your Oasis**
+    If you installed (or even just plan to install) a NOMAD Oasis, please
+    [register your Oasis with FAIRmat](https://www.fairmat-nfdi.eu/fairmat/oasis_registration) 
+    and help us to assist you in the future.
 
 ## Quick-start
 
@@ -80,10 +78,10 @@ RAM and CPU for running tools like jupyter, if you opt to use NOMAD NORTH.
 
 ### Sharing data through the logtransfer service and data privacy notice
 
-The NOMAD includes a `logtransfer` service. When enabled this service automatically collects
+NOMAD includes a `logtransfer` service. When enabled this service automatically collects
 and transfers non-personalized log-data to us. Currently, this service is experimental
 and requires opt-in. However, in upcoming versions of NOMAD Oasis, we might change to out-out.
-See the instructions in the configuration below on how to enable/disable the `logtransfer`.
+See the instructions in the configuration below on how to enable/disable `logtransfer`.
 
 The service collects log-data and aggregated statistics, such as the number of users or the
 number of uploaded datasets. In any case this data does not personally identify any users or

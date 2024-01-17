@@ -54,14 +54,41 @@ def app(with_gui: bool, **kwargs):
 
 
 @run.command(
-    help='Run server that collects and submits logs to the central Nomad instance.'
+    help='Run service to collect and submits logs to the central Nomad instance.'
 )
 def logtransfer():
     config.meta.service = 'logtransfer'
 
     from nomad.logtransfer import start_logtransfer_service
+    from nomad.statistics_logger import start_statistics_logger_process
 
-    start_logtransfer_service()
+    if not config.logstash.enabled:
+        raise RuntimeError(
+            'To run the logtransfer service it is required that '
+            f'logstash formatting is enabled (found {config.logstash.enabled=}).'
+        )
+
+    is_logtransfer_enabled = config.logtransfer.enable_logtransfer
+    is_statistics_logger_enabled = config.logtransfer.enable_statistics
+
+    if not is_logtransfer_enabled and is_statistics_logger_enabled:
+        raise ValueError(
+            f'If {config.logtransfer.enable_statistics=} then the logstash '
+            f'service must also be enabled (Got: {config.logtransfer.enable_logtransfer=})'
+        )
+
+    if config.logtransfer.enable_statistics:
+        statistics_process = start_statistics_logger_process()
+    else:
+        statistics_process = None
+
+    if config.logtransfer.enable_logtransfer:
+        start_logtransfer_service()
+
+    if config.logtransfer.enable_statistics:
+        if statistics_process.is_alive():
+            statistics_process.kill()
+        statistics_process.join()
 
 
 def run_app(

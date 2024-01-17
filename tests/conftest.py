@@ -24,6 +24,7 @@ import time
 from datetime import datetime, timezone
 import shutil
 import os
+import socket
 import elasticsearch.exceptions
 import json
 import logging
@@ -1330,14 +1331,24 @@ def central_logstash_mock():
     class TCPServerStore(socketserver.TCPServer):
         received_content = []
 
+        def set_request_timeout(self, timeout):
+            # Note acts timeout is on the LogstashCentralHandler socket
+            # this seems to behave differently to self.timeout and is
+            # particularly useful to interrupt blocking "handle_request()"
+            self.RequestHandlerClass.timeout = timeout
+
     class LogstashCentralHandler(socketserver.StreamRequestHandler):
         def handle(self):
-            # print("OPENING SOCKET TO LogstashCentralHandler")
             while True:
-                line = self.rfile.readline()
-                # print(f"received line {line}")
+                try:
+                    line = self.rfile.readline()
+                    # print(f'received {line=}')
+                except socket.timeout:
+                    # print(f'server timed out')
+                    line = b''  # if time out, close connection
+
                 if line == b'':
-                    # print("received closing for LogstashCentralHandler")
+                    # print(f'received closing for LogstashCentralHandler')
                     break
 
                 line = line.strip()

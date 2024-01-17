@@ -15,7 +15,7 @@ meta:
   maintainer_email: 'me@my-oasis.org'
 
 logstash:
-  enable: false
+  enabled: false
 
 mongo:
     db_name: nomad_oasis_v1

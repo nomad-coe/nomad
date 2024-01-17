@@ -501,16 +501,20 @@ class Logstash(NomadSettings):
 
 
 class Logtransfer(NomadSettings):
-    """
-    Configuration of logtransfer server.
+    """Configuration of logtransfer and statistics service.
 
     Note that other configurations are also used within logtransfer
 
     * class Logstash (Configs: enabled, host, level, tcp_port) such that logs are send to the logstash proxy
-    * class Oasis (Config: central_nomad_api_url) address to which so send the logs
-    * class FS (Config: tmp) path where collected logfiles are stored.
+    * class Oasis (Config: central_nomad_api_url) address to which the logs are sent to
+    * class FS (Config: tmp) path where collected logfiles are stored until they are transferred
     """
 
+    # for logtransfer, see nomad/logtransfer.py
+    enable_logtransfer: bool = Field(
+        False,
+        description='If enabled this starts process that frequently generates logs with statistics.',
+    )
     submit_interval: int = Field(
         60 * 60 * 24,
         description='Time interval in seconds after which logs are transferred.',
@@ -530,6 +534,15 @@ class Logtransfer(NomadSettings):
     raise_unexpected_exceptions: bool = Field(
         False,
         description='Whether to keep the server alive if an unexpected exception is raised. Set to True for testing.',
+    )
+    # for statistics (which are submitted to logstash/logtransfer), see nomad/statistics.py
+    enable_statistics: bool = Field(
+        True,
+        description='If enabled this starts a process that frequently generates logs with statistics.',
+    )
+    statistics_interval: int = Field(
+        60 * 60 * 24,
+        description='Time interval in seconds in which statistics are logged.',
     )
 
 
