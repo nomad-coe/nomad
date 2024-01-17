@@ -24,9 +24,9 @@ import json
 from ase import Atoms
 from ase.data import chemical_symbols
 import numpy as np
-from matid.clustering import Clusterer, Cluster, Classification  # pylint: disable=import-error
-from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer  # pylint: disable=import-error
-from matid.classifications import (
+from matid.clustering import SBC, Cluster
+from matid.symmetry.symmetryanalyzer import SymmetryAnalyzer
+from matid.classification.classifications import (
     Class0D,
     Atom,
     Class1D,
@@ -34,7 +34,7 @@ from matid.classifications import (
     Material2D,
     Surface,
     Class3D,
-)  # pylint: disable=import-error
+)
 
 from nomad import utils
 from nomad import config
@@ -342,53 +342,61 @@ class TopologyNormalizer:
             self._topology_bulk(original, topology)
         elif material.structural_type == '1D':
             self._topology_1d(original, topology)
-        elif cell is None or cell.volume == 0:
-            pass
         # Continue creating topology if system size is not too large
         elif n_atoms <= config.normalize.clustering_size_limit:
             # Add all meaningful clusters to the topology
-            clusterer = Clusterer()
-            clusters = clusterer.get_clusters(atoms, pos_tol=0.8)
-            for cluster in clusters:
-                subsystem = self._create_subsystem(cluster)
-                if not subsystem:
-                    continue
-                structural_type = subsystem.structural_type
-                # If the found cell has many basis atoms, it is more likely that
-                # some of the symmetries were not correctly found than the cell
-                # actually being very complicated. Thus we ignore these clusters to
-                # minimize false-positive and to limit the time spent on symmetry
-                # calculation.
-                cell = cluster.cell()
-                if len(cell) > 6:
-                    self.logger.info(f'cell with many atoms ({len(cell)}) was ignored')
-                    continue
-                try:
-                    conventional_cell = self._create_conv_cell_system(
-                        cluster, structural_type
-                    )
-                except Exception as e:
-                    self.logger.error(
-                        'conventional cell information could not be created',
-                        exc_info=e,
-                        error=str(e),
-                    )
-                    continue
-                # We only accept the subsystem if the material id exists in the top
-                # 50k materials with most entries attached to them. This ensures
-                # that the material_id link points to valid materials and that we
-                # don't report anything too weird. The top 50k materials are
-                # pre-stored in a pickle file that has been created by using ES
-                # terms aggregation.
-                if conventional_cell.material_id in top_50k_material_ids:
-                    add_system(subsystem, topology, original)
-                    add_system_info(subsystem, topology)
-                    add_system(conventional_cell, topology, subsystem)
-                    add_system_info(conventional_cell, topology)
-                else:
-                    self.logger.info(
-                        f'material_id {conventional_cell.material_id} could not be verified'
-                    )
+            sbc = SBC()
+            try:
+                clusters = sbc.get_clusters(atoms, pos_tol=0.8)
+            except Exception as e:
+                self.logger.warning(
+                    'issue in matid clustering',
+                    exc_info=e,
+                    error=str(e),
+                )
+            else:
+                for cluster in clusters:
+                    subsystem = self._create_subsystem(cluster)
+                    if not subsystem:
+                        continue
+                    structural_type = subsystem.structural_type
+                    # If the found cell has many basis atoms, it is more likely that
+                    # some of the symmetries were not correctly found than the cell
+                    # actually being very complicated. Thus we ignore these clusters to
+                    # minimize false-positive and to limit the time spent on symmetry
+                    # calculation.
+                    cell = cluster.get_cell()
+                    if len(cell) > 8:
+                        self.logger.info(
+                            f'cell with many atoms ({len(cell)}) was ignored'
+                        )
+                        continue
+                    try:
+                        conventional_cell = self._create_conv_cell_system(
+                            cluster, structural_type
+                        )
+                    except Exception as e:
+                        self.logger.error(
+                            'conventional cell information could not be created',
+                            exc_info=e,
+                            error=str(e),
+                        )
+                        continue
+                    # We only accept the subsystem if the material id exists in the top
+                    # 50k materials with most entries attached to them. This ensures
+                    # that the material_id link points to valid materials and that we
+                    # don't report anything too weird. The top 50k materials are
+                    # pre-stored in a pickle file that has been created by using ES
+                    # terms aggregation.
+                    if conventional_cell.material_id in top_50k_material_ids:
+                        add_system(subsystem, topology, original)
+                        add_system_info(subsystem, topology)
+                        add_system(conventional_cell, topology, subsystem)
+                        add_system_info(conventional_cell, topology)
+                    else:
+                        self.logger.info(
+                            f'material_id {conventional_cell.material_id} could not be verified'
+                        )
 
         return list(topology.values())
 
@@ -480,25 +488,28 @@ class TopologyNormalizer:
         Creates a new subsystem as detected by MatID.
         """
         try:
-            dimensionality = cluster.dimensionality()
-            classification = cluster.classification()
+            dimensionality = cluster.get_dimensionality()
+            cell = cluster.get_cell()
+            n_repeated_directions = sum(cell.get_pbc())
         except Exception as e:
             self.logger.error(
-                'matid system classification failed', exc_info=e, error=str(e)
+                'matid cluster classification failed', exc_info=e, error=str(e)
             )
             return None
-        structural_type_map = {
-            Classification.Class3D: 'bulk',
-            Classification.Surface: 'surface',
-            Classification.Material2D: '2D',
-        }
-        structural_type = structural_type_map.get(classification)
+        structural_type = None
+        building_block = None
+        if dimensionality == 3:
+            structural_type = 'bulk'
+        elif dimensionality == 2:
+            if n_repeated_directions == 2:
+                structural_type = '2D'
+                building_block = '2D material'
+            elif n_repeated_directions == 3:
+                structural_type = 'surface'
+                building_block = 'surface'
         if not structural_type:
             return None
-        building_block_map = {
-            Classification.Surface: 'surface',
-            Classification.Material2D: '2D material',
-        }
+
         subsystem = System(
             method='matid',
             label='subsystem',
@@ -506,9 +517,10 @@ class TopologyNormalizer:
             system_relation=Relation(type='subsystem'),
             indices=[list(cluster.indices)],
         )
-        subsystem.structural_type = structural_type
+
         subsystem.dimensionality = f'{dimensionality}D'
-        subsystem.building_block = building_block_map.get(classification)
+        subsystem.structural_type = structural_type
+        subsystem.building_block = building_block
 
         return subsystem
 
@@ -533,8 +545,9 @@ class TopologyNormalizer:
         """
         Creates the subsystem with the symmetry information of the conventional cell
         """
-        cell = cluster.cell()
-        symm = SymmetryAnalyzer(cell)
+        cell = cluster.get_cell()
+        # A big tolerance is used here to allow deviations from exact symmetry
+        symm = SymmetryAnalyzer(cell, 1.0)
         conv_system = symm.get_conventional_system()
         subsystem.atoms = nomad_atoms_from_ase_atoms(conv_system)
         spg_number = symm.get_space_group_number()
@@ -551,7 +564,7 @@ class TopologyNormalizer:
         """
         Creates the subsystem with the symmetry information of the conventional cell.
         """
-        cell = cluster.cell()
+        cell = cluster.get_cell()
         conv_atoms, _, wyckoff_sets, spg_number = structures_2d(cell)
         subsystem.cell = cell_from_ase_atoms(conv_atoms)
         subsystem.atoms = nomad_atoms_from_ase_atoms(conv_atoms)

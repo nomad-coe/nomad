@@ -157,6 +157,7 @@ structure_name_map = {
     'Face&ndash;Centered Cubic (Cu, A1) Structure': 'fcc',
     'Diamond (A4) Structure': 'diamond',
     'Body&ndash;Centered Cubic (W, A2) Structure': 'bcc',
+    'Rutile (TiO<sub>2</sub>, C4) Structure': 'rutile',
 }
 
 

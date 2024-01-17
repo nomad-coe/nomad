@@ -600,7 +600,7 @@ class Normalize(NomadSettings):
         """,
     )
     clustering_size_limit = Field(
-        300,
+        600,
         description="""
             The system size limit for running the system clustering. For very
             large systems the clustering will get too expensive.
@@ -609,12 +609,12 @@ class Normalize(NomadSettings):
     symmetry_tolerance = Field(
         0.1,
         description="""
-            Symmetry tolerance controls the precision used by spglib in order to find
-            symmetries. The atoms are allowed to move 1/2*symmetry_tolerance from
-            their symmetry positions in order for spglib to still detect symmetries.
-            The unit is angstroms. The value of 0.1 is used e.g. by Materials Project
-            according to
-            https://pymatgen.org/pymatgen.symmetry.analyzer.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
+            Symmetry tolerance controls the precision used by spglib in order to
+            find symmetries. The atoms are allowed to move this much from their
+            symmetry positions in order for spglib to still detect symmetries.
+            The unit is angstroms. The value of 0.1 is used e.g. by Materials
+            Project according to
+            https://pymatgen.org/pymatgen.symmetry.html#pymatgen.symmetry.analyzer.SpacegroupAnalyzer
         """,
     )
     prototype_symmetry_tolerance = Field(
@@ -638,7 +638,6 @@ class Normalize(NomadSettings):
             cluster. Used in detecting system type.
         """,
     )
-
     angle_rounding = Field(
         float(10.0),
         description="""

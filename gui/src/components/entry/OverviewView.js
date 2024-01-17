@@ -112,7 +112,19 @@ const required = {
       electronic: {
         greens_functions_electronic: 'include-resolved',
         dos_electronic: 'include-resolved',
-        dos_electronic_new: 'include-resolved',
+        // We explicitly ask for everything except the projected DOS: retrieving
+        // the projected DOS can get very expensive and ATM we don't visualize
+        // them.
+        dos_electronic_new: {
+          data: {
+            energies: 'include-resolved',
+            total: 'include-resolved',
+            energy_fermi: '*',
+            energy_ref: '*',
+            spin_channel: '*',
+            band_gap: 'include-resolved'
+          }
+        },
         band_structure_electronic: 'include-resolved',
         band_gap: '*'
       },

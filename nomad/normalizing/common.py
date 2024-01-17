@@ -434,9 +434,7 @@ def material_id_1d(conv_atoms: Atoms) -> str:
     # Calculate distance part. Notice that the minimum image convention
     # must be used. Without it, differently oriented atoms in the same cell
     # may be detected as the same material.
-    pos = conv_atoms.get_positions()
-    cell = conv_atoms.get_cell()
-    cmat = 10 - matid.geometry.get_distance_matrix(pos, pos, cell, pbc=True, mic=True)
+    cmat = 10 - conv_atoms.get_all_distances(mic=True, vector=False)
     cmat = np.clip(cmat, a_min=0, a_max=None)
     np.fill_diagonal(cmat, 0)
     cmat = qiqj * cmat

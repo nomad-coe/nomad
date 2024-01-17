@@ -12,7 +12,6 @@ set -x # echo on
 pip-compile --resolver=backtracking --quiet --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt.tmp \
-    dependencies/matid/pyproject.toml \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/atomistic/pyproject.toml \
     dependencies/parsers/database/pyproject.toml \
@@ -28,7 +27,6 @@ pip-compile --resolver=backtracking --quiet --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt.tmp \
     requirements.txt \
-    dependencies/matid/pyproject.toml \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/atomistic/pyproject.toml \
     dependencies/parsers/database/pyproject.toml \

@@ -602,8 +602,7 @@ def _check_config():
         raise AssertionError(
             'The AFLOW prototype information is outdated due to changed tolerance '
             'for symmetry detection. Please update the AFLOW prototype information '
-            "by running the CLI command 'nomad admin ops prototype-update "
-            "--matches-only'."
+            "by running the CLI command 'nomad admin ops prototypes-update --matches-only'"
         )
 
     if normalize.springer_db_path and not os.path.exists(normalize.springer_db_path):

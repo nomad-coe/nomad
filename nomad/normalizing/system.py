@@ -23,8 +23,15 @@ from ase import Atoms
 import numpy as np
 import json
 import re
-from matid import SymmetryAnalyzer, Classifier  # pylint: disable=import-error
-from matid.classifications import Class0D, Atom, Class1D, Material2D, Surface, Class3D  # pylint: disable=import-error
+from matid import SymmetryAnalyzer, Classifier
+from matid.classification.classifications import (
+    Class0D,
+    Atom,
+    Class1D,
+    Material2D,
+    Surface,
+    Class3D,
+)
 
 from nomad import atomutils
 from nomad.atomutils import Formula

@@ -20,7 +20,7 @@ from typing import Union, Dict, List
 from nptyping import NDArray
 
 import ase.data
-from matid.classifications import (
+from matid.classification.classifications import (
     Class0D,
     Atom,
     Class1D,
@@ -28,7 +28,7 @@ from matid.classifications import (
     Material2D,
     Surface,
     Class3D,
-)  # pylint: disable=import-error
+)
 
 from nomad import atomutils
 from nomad.atomutils import Formula
