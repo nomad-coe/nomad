@@ -2840,18 +2840,7 @@ def test_post_upload_edit(
         assert_response(response, expected_status_code)
     else:
         assert_response(response, 200)
-        assert_metadata_edited(
-            user,
-            upload_id,
-            query,
-            metadata,
-            entries,
-            entries_key,
-            verify_only,
-            expected_metadata,
-            affected_upload_ids,
-            edit_start,
-        )
+        assert_metadata_edited(user, expected_metadata, affected_upload_ids, edit_start)
 
 
 @pytest.mark.parametrize(
@@ -3552,18 +3541,7 @@ def test_post_upload_action_lift_embargo(
     response = perform_post_upload_action(client, user_auth, upload_id, 'lift-embargo')
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_metadata_edited(
-            user,
-            upload_id,
-            None,
-            None,
-            None,
-            None,
-            False,
-            {'embargo_length': 0},
-            [upload_id],
-            None,
-        )
+        assert_metadata_edited(user, {'embargo_length': 0}, [upload_id])
 
 
 @pytest.mark.parametrize(

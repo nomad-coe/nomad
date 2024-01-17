@@ -92,31 +92,14 @@ def assert_edit_request(user, **kwargs):
     if expected_error_loc:
         assert expected_error_loc in error_locs
     if not expected_error_loc and not verify_only:
-        assert_metadata_edited(
-            user,
-            upload_id,
-            query,
-            metadata,
-            entries,
-            entries_key,
-            verify_only,
-            expected_metadata,
-            affected_upload_ids,
-            edit_start,
-        )
+        assert_metadata_edited(user, expected_metadata, affected_upload_ids, edit_start)
 
 
 def assert_metadata_edited(
     user,
-    upload_id,
-    query,
-    metadata,
-    entries,
-    entries_key,
-    verify_only,
     expected_metadata,
     affected_upload_ids,
-    edit_start,
+    edit_start=None,
 ):
     for upload_id in affected_upload_ids:
         upload = Upload.get(upload_id)

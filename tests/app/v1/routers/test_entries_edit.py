@@ -538,15 +538,4 @@ def test_post_entries_edit(
         assert_response(response, expected_status_code)
     else:
         assert_response(response, 200)
-        assert_metadata_edited(
-            user,
-            None,
-            query,
-            metadata,
-            entries,
-            entries_key,
-            verify_only,
-            expected_metadata,
-            affected_upload_ids,
-            edit_start,
-        )
+        assert_metadata_edited(user, expected_metadata, affected_upload_ids, edit_start)
