@@ -10,7 +10,6 @@ cd $project_dir
 pip-compile --resolver=backtracking --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
-    dependencies/matid/pyproject.toml \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/atomistic/pyproject.toml \
     dependencies/parsers/database/pyproject.toml \
@@ -24,7 +23,6 @@ pip-compile --resolver=backtracking --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
     requirements.txt \
-    dependencies/matid/pyproject.toml \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/atomistic/pyproject.toml \
     dependencies/parsers/database/pyproject.toml \

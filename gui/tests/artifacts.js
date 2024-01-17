@@ -1701,6 +1701,7 @@ window.nomadArtifacts = {
           "hcp",
           "perovskite",
           "rock salt",
+          "rutile",
           "simple cubic",
           "wurtzite",
           "zincblende"
@@ -2661,6 +2662,7 @@ window.nomadArtifacts = {
           "hcp",
           "perovskite",
           "rock salt",
+          "rutile",
           "simple cubic",
           "wurtzite",
           "zincblende"
@@ -15426,6 +15428,7 @@ window.nomadArtifacts = {
                     "hcp",
                     "perovskite",
                     "rock salt",
+                    "rutile",
                     "simple cubic",
                     "wurtzite",
                     "zincblende"
@@ -15896,6 +15899,7 @@ window.nomadArtifacts = {
                     "hcp",
                     "perovskite",
                     "rock salt",
+                    "rutile",
                     "simple cubic",
                     "wurtzite",
                     "zincblende"

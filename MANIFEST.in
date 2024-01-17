@@ -8,8 +8,6 @@ graft nomad/app/static
 exclude nomad/app/static/gui/env.js
 exclude nomad/app/static/gui/artifact.js
 
-include dependencies/matid/README.md
-recursive-include dependencies/matid/matid *.py
 include dependencies/nomad-dos-fingerprints/README.md
 recursive-include dependencies/nomad-dos-fingerprints/nomad_dos_fingerprints *.py
 include dependencies/parsers/atomistic/README.md

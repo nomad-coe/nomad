@@ -49,7 +49,8 @@ dependencies = [
     'scikit-learn>=1.0.2',
     'toposort',
     'openpyxl>=3.0.0',
-    'networkx==2.6.3'
+    'networkx==2.6.3',
+    'matid>=2.0.0.dev2'
 ]
 
 [project.urls]
@@ -193,7 +194,6 @@ line-ending = "auto"
 [tool.setuptools.packages.find]
 where = [
     ".",
-    "dependencies/matid",
     "dependencies/nomad-dos-fingerprints",
     "dependencies/parsers/atomistic",
     "dependencies/parsers/database",
