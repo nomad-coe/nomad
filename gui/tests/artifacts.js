@@ -458,6 +458,19 @@ window.nomadArtifacts = {
       "aggregatable": false,
       "dynamic": false
     },
+    "writer_groups": {
+      "name": "writer_groups",
+      "description": "Groups with write access (= coauthor groups).",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "0..*"
+      ],
+      "aggregatable": true,
+      "dynamic": false
+    },
     "viewers.name": {
       "name": "name",
       "type": {
@@ -498,6 +511,19 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": false,
+      "dynamic": false
+    },
+    "viewer_groups": {
+      "name": "viewer_groups",
+      "description": "Groups with read access (= coauthor groups + reviewer groups).",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "0..*"
+      ],
+      "aggregatable": true,
       "dynamic": false
     },
     "datasets.dataset_id": {
@@ -28407,6 +28433,26 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
+                    "writer_groups"
+                  ]
+                },
+                "name": "writer_groups",
+                "description": "Groups with write access (= coauthor groups).",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "0..*"
+                ],
+                "virtual": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 41,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
                     "viewers"
                   ]
                 },
@@ -28423,7 +28469,27 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 41,
+                "m_parent_index": 42,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "viewer_groups"
+                  ]
+                },
+                "name": "viewer_groups",
+                "description": "Groups with read access (= coauthor groups + reviewer groups).",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "0..*"
+                ],
+                "virtual": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 43,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28447,7 +28513,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 42,
+                "m_parent_index": 44,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28466,7 +28532,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 43,
+                "m_parent_index": 45,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28483,7 +28549,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 44,
+                "m_parent_index": 46,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28503,7 +28569,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 45,
+                "m_parent_index": 47,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [

@@ -1702,15 +1702,24 @@ class Upload(Proc):
     @property
     def viewers(self) -> set[str]:
         rv = {self.main_author}
-        rv.update(
-            self.coauthors, self.reviewers, self.coauthor_groups, self.reviewer_groups
-        )
+        rv.update(self.coauthors, self.reviewers)
+        return rv
+
+    @property
+    def viewer_groups(self) -> set[str]:
+        rv = set(self.coauthor_groups)
+        rv.update(self.reviewer_groups)
         return rv
 
     @property
     def writers(self) -> set[str]:
         rv = {self.main_author}
-        rv.update(self.coauthors, self.coauthor_groups)
+        rv.update(self.coauthors)
+        return rv
+
+    @property
+    def writer_groups(self) -> set[str]:
+        rv = set(self.coauthor_groups)
         return rv
 
     def __init__(self, **kwargs):

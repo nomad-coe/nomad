@@ -147,18 +147,21 @@ class UploadProcData(ProcData):
     reviewer_groups: List[str] = Field(
         None, description=strip('A list of upload reviewer groups.')
     )
+    writers: List[str] = Field(
+        None, description=strip('All writer users (main author, upload coauthors).')
+    )
+    writer_groups: List[str] = Field(
+        None, description=strip('All writer groups (coauthor groups).')
+    )
     viewers: List[str] = Field(
         None,
         description=strip(
-            'All viewers (main author, upload coauthors, and reviewers) '
-            'and the corresponding groups'
+            'All viewer users (main author, upload coauthors, and reviewers)'
         ),
     )
-    writers: List[str] = Field(
+    viewer_groups: List[str] = Field(
         None,
-        description=strip(
-            'All writers (main author, upload coauthors)' 'and the corresponding groups'
-        ),
+        description=strip('All viewer groups (coauthor groups, reviewer groups).'),
     )
     published: bool = Field(False, description='If this upload is already published.')
     published_to: List[str] = Field(
@@ -2600,7 +2603,7 @@ def is_user_upload_viewer(upload: Upload, user: User):
         return True
 
     group_ids = user.get_group_ids()
-    if not set(group_ids).isdisjoint(upload.viewers):
+    if not set(group_ids).isdisjoint(upload.viewer_groups):
         return True
 
     return False
@@ -2614,7 +2617,7 @@ def is_user_upload_writer(upload: Upload, user: User):
         return True
 
     group_ids = user.get_group_ids()
-    if not set(group_ids).isdisjoint(upload.writers):
+    if not set(group_ids).isdisjoint(upload.writer_groups):
         return True
 
     return False
