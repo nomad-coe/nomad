@@ -817,6 +817,14 @@ class EntryMetadata(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
+    writer_groups = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='Groups with write access (= coauthor groups).',
+        derived=lambda entry: entry.coauthor_groups,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
     viewers = Quantity(
         type=user_reference,
         shape=['0..*'],
@@ -826,6 +834,14 @@ class EntryMetadata(MSection):
         )
         + entry.coauthors
         + entry.reviewers,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    viewer_groups = Quantity(
+        type=str,
+        shape=['0..*'],
+        description='Groups with read access (= coauthor groups + reviewer groups).',
+        derived=lambda entry: entry.coauthor_groups + entry.reviewer_groups,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
