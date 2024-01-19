@@ -1012,7 +1012,6 @@ class EntryMetadata(MSection):
             ):
                 # From each string dtype, we get a truncated sample to put into
                 # the keywords field, unless we are already storing too many unique values.
-                print(property_def.type)
                 if (
                     property_def.type in MTypes.str
                     or isinstance(property_def.type, MEnum)

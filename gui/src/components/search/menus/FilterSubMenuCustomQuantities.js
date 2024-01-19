@@ -143,11 +143,11 @@ EditQuantity.propTypes = {
 }
 
 const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
-  const {path, value} = filter
+  const {id, value} = filter
   const operator = filter.operator || 'search'
   const quantityDef = useMemo(() => {
-    return quantities.find(q => q.id === path)?._quantityDef
-  }, [path, quantities])
+    return quantities.find(q => q.id === id)?._quantityDef
+  }, [id, quantities])
 
   const options = useMemo(() => {
     return Object.fromEntries(quantities.map(quantity => {
@@ -173,10 +173,10 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
     })
   }, [filter, onChange])
 
-  const handlePathChange = useCallback((value) => {
+  const handleIdChange = useCallback((value) => {
     onChange({
       operator: 'search',
-      path: value
+      id: value
     })
   }, [onChange])
 
@@ -194,12 +194,12 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
       <Box marginBottom={1} width="100%">
         <InputMetainfo
           options={options}
-          value={path}
-          onChange={handlePathChange}
-          onSelect={handlePathChange}
+          value={id}
+          onChange={handleIdChange}
+          onSelect={handleIdChange}
           // TODO: There should be better error handling here. Errors for now
           // simply clear out the input.
-          onError={(error) => error && handlePathChange("")}
+          onError={(error) => error && handleIdChange("")}
           optional
         />
       </Box>
@@ -345,19 +345,19 @@ const FilterSubMenuCustomQuantities = React.memo(({
   }, [setAndFilters, setQuery])
 
   const searchEnabled = useMemo(() => {
-    return andFilters.every(f => f.path && !isNil(f.value))
+    return andFilters.every(f => f.id && !isNil(f.value))
   }, [andFilters])
 
   const handleSearchClicked = useCallback(() => {
     const query = {
       and: andFilters.map(filter => {
-        const {path, value, operator} = filter
-        const quantityDef = path && quantities.find(q => q.id === path)._quantityDef
+        const {id, value, operator} = filter
+        const quantityDef = id && quantities.find(q => q.id === id)._quantityDef
         const valueKey = getValueKey(quantityDef)
         const valueKeyWithOperator = operator === 'search' ? valueKey : `${valueKey}:${operator}`
         return {
           search_quantities: {
-            id: path,
+            id: id,
             [valueKeyWithOperator]: value
           }
         }
@@ -373,7 +373,7 @@ const FilterSubMenuCustomQuantities = React.memo(({
       const valueKeyWithOperator = valueKey.split(':')
       const operator = valueKeyWithOperator.length === 2 ? valueKeyWithOperator[1] : 'search'
       return {
-        path: searchQuantity.path,
+        id: searchQuantity.id,
         value: searchQuantity[Object.keys(searchQuantity)[1]],
         operator: operator
       }
