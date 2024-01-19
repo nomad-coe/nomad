@@ -36,8 +36,6 @@ For a general project overview visit the official project page [https://nomad-la
 - [install and use NOMAD as Python package (to use our APIs or parsers)](https://nomad-lab.eu/prod/v1/docs/pythonlib.html)
 - [install NOMAD Oasis](https://nomad-lab.eu/prod/v1/docs/oasis.html)
 
-Your current citation section is clear and provides both a human-readable citation and a BibTeX entry, which is great for accessibility and ease of use for different people. However, there are a few minor adjustments and improvements that could be made for clarity and professionalism. Here's a revised version:
-
 ## Citing NOMAD
 
 If you use this software in your research, for data sharing, or in your lab, we encourage you to cite the following [paper](https://doi.org/10.21105/joss.05388).
