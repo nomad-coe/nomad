@@ -444,7 +444,8 @@ class KeycloakUserManagement(UserManagement):
         from nomad import datamodel
 
         kwargs = {
-            key: value[0] for key, value in keycloak_user.get('attributes', {}).items()
+            key: None if len(value) == 0 else value[0]
+            for key, value in keycloak_user.get('attributes', {}).items()
         }
         oasis_admin = kwargs.pop('is_oasis_admin', None) is not None
         return datamodel.User(
