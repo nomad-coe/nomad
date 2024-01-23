@@ -61,21 +61,22 @@ ComparableValue = Union[StrictInt, StrictFloat, str, datetime.datetime]
 
 owner_documentation = strip(
     """
-The `owner` allows to limit the scope of the searched based on entry ownership.
-This is useful, if you only want to search among all publicly downloadable
-entries, or only among your own entries, etc.
+    The `owner` allows to limit the scope of the search based on entry ownership.
+    This is useful if you only want to search among all publicly downloadable
+    entries or only among your own entries, etc.
 
-These are the possible owner values and their meaning:
+    These are the possible owner values and their meaning:
 
-* `public`: Consider all entries that can be publicly downloaded, i.e. only published entries without embargo.
-* `user`: Only consider entries that belong to you.
-* `shared`: Only consider entries that belong to you or are shared with you.
-* `visible`: Consider all entries that are visible to you. This includes
-    entries with embargo or unpublished entries that belong to you or are
-    shared with you.
-* `staging`: Only search through unpublished entries.
-* `all`: Consider all entries.
-"""
+    * `admin`: No restriction. Only usable by an admin user.
+    * `all`: Published entries (with or without embargo), or entries that belong to you
+        or are shared with you.
+    * `public`: Published entries without embargo.
+    * `shared`: Entries that belong to you or are shared with you.
+    * `staging`: Unpublished entries that belong to you or are shared with you.
+    * `user`: Entries that belong to you.
+    * `visible`: Published entries without embargo, or unpublished entries that belong to
+        you or are shared with you.
+    """
 )
 
 
