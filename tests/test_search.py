@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Any, Union, Iterable
+from typing import List, Dict, Any, Sequence, Union, Iterable
 import pytest
 import json
 from datetime import datetime
@@ -32,7 +32,13 @@ from nomad.app.v1.models import (
 from nomad.datamodel.datamodel import EntryArchive, EntryData, EntryMetadata
 from nomad.metainfo.metainfo import Datetime, Quantity
 from nomad.metainfo.util import MEnum
-from nomad.search import quantity_values, search, update_by_query, refresh
+from nomad.search import (
+    AuthenticationRequiredError as ARE,
+    quantity_values,
+    search,
+    update_by_query,
+    refresh,
+)
 from nomad.metainfo.elasticsearch_extension import (
     entry_type,
     entry_index,
@@ -42,6 +48,9 @@ from nomad.metainfo.elasticsearch_extension import (
 )
 from nomad.utils.exampledata import ExampleData
 from tests.config import yaml_schema_name, python_schema_name
+
+
+other_groups = ['other_owner_group', 'mixed_group']
 
 
 def split(path):
@@ -168,6 +177,58 @@ def example_data(elastic_function, test_user):
         )
 
     data.save(with_files=False, with_mongo=False)
+
+
+@pytest.fixture(scope='class')
+def example_group_data(
+    elastic_module,
+    user_groups_module,
+    test_user,
+    other_test_user,
+):
+    def fill(
+        data: ExampleData,
+        id_label,
+        c_groups,
+        r_groups,
+        *,
+        embargo_length=None,
+        main_author=None,
+    ):
+        c_groups = [user_groups_module[x].group_id for x in c_groups]
+        r_groups = [user_groups_module[x].group_id for x in r_groups]
+        published = embargo_length is not None
+        if embargo_length is None:
+            embargo_length = 0
+        if main_author is None:
+            main_author = test_user
+
+        data.create_upload(
+            upload_id=f'uid_{id_label}',
+            coauthor_groups=c_groups,
+            reviewer_groups=r_groups,
+            published=published,
+            embargo_length=embargo_length,
+            main_author=main_author,
+        )
+        data.create_entry(upload_id=f'uid_{id_label}', entry_id=f'eid_{id_label}')
+
+    data = ExampleData(main_author=test_user)
+    fill(data, 'no_embargo', [], [], embargo_length=0)
+    fill(data, 'with_embargo', [], [], embargo_length=3)
+    fill(data, 'no_group', [], [])
+    fill(data, 'coauthor_user', ['user_owner_group'], [])
+    fill(data, 'reviewer_user', [], ['user_owner_group'])
+    fill(data, 'coauthor_other', ['other_owner_group'], [])
+    fill(data, 'reviewer_other', [], ['other_owner_group'])
+    fill(data, 'coauthor_mixed', ['mixed_group'], [])
+    fill(data, 'reviewer_mixed', [], ['mixed_group'])
+    fill(data, 'other_user', [], [], main_author=other_test_user)
+    data.save(with_files=False, with_mongo=False)
+
+    yield data
+
+    data.delete()
 
 
 @pytest.fixture()
@@ -298,6 +359,53 @@ def test_search_query(indices, example_data, api_query, total):
     api_query = json.loads(api_query)
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
+
+
+class TestsWithGroups:
+    @pytest.mark.parametrize(
+        'owner, user, exc_or_total',
+        [
+            pytest.param('admin', None, ARE, id='admin-none'),
+            pytest.param('admin', 'test_user', ARE, id='admin-user'),
+            pytest.param('admin', 'admin_user', 10, id='admin-admin'),
+            pytest.param('user', None, ARE, id='user-none'),
+            pytest.param('user', 'test_user', 9, id='user-user'),
+            pytest.param('user', 'other_test_user', 1, id='user-other'),
+            pytest.param('shared', None, ARE, id='shared-none'),
+            pytest.param('shared', 'test_user', 9, id='shared-user'),
+            pytest.param('shared', 'other_test_user', 5, id='shared'),
+            pytest.param('staging', None, ARE, id='staging-none'),
+            pytest.param('staging', 'test_user', 7, id='staging-user'),
+            pytest.param('staging', 'other_test_user', 5, id='staging-other'),
+            pytest.param('visible', None, 1, id='visible-none'),
+            pytest.param('visible', 'test_user', 9, id='visible-user'),
+            pytest.param('visible', 'other_test_user', 6, id='visible-other'),
+            pytest.param('public', None, 1, id='public-none'),
+            pytest.param('public', 'test_user', 1, id='public-user'),
+            pytest.param('public', 'other_test_user', 1, id='public-other'),
+            pytest.param('all', None, 2, id='all-none'),
+            pytest.param('all', 'test_user', 9, id='all-user'),
+            pytest.param('all', 'other_test_user', 7, id='all-other'),
+        ],
+    )
+    def test_search_query_group(
+        self,
+        test_users_dict,
+        example_group_data,
+        owner: str,
+        user: str,
+        exc_or_total: Union[int, Exception],
+    ):
+        user = test_users_dict.get(user)
+        user_id = user.user_id if user is not None else None
+
+        if not isinstance(exc_or_total, int):
+            with pytest.raises(exc_or_total):
+                search(owner=owner, user_id=user_id)
+            return
+
+        results = search(owner=owner, user_id=user_id)
+        assert results.pagination.total == exc_or_total
 
 
 def test_update_by_query(indices, example_data):

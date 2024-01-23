@@ -193,7 +193,7 @@ class User(Author):
         from nomad.groups import UserGroup
 
         groups = UserGroup.get_by_user_id(self.user_id)
-        group_ids = set(group.group_id for group in groups)
+        group_ids = [group.group_id for group in groups]
         return group_ids
 
 

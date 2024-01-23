@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
 from mongoengine import Document, StringField, ListField
 from mongoengine.queryset.visitor import Q
 
@@ -37,10 +37,14 @@ class UserGroup(Document):
     meta = {'indexes': ['group_name', 'owner', 'members']}
 
     @classmethod
-    def get_by_user_id(cls, user_id):
+    def get_by_user_id(cls, user_id: str):
         group_query = Q(owner=user_id) | Q(members=user_id)
         user_groups = cls.objects(group_query)
         return user_groups
+
+    @classmethod
+    def get_ids_by_user_id(cls, user_id: str) -> List[str]:
+        return [group.group_id for group in cls.get_by_user_id(user_id)]
 
 
 def create_user_group(

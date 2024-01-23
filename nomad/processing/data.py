@@ -392,10 +392,11 @@ class MetadataEditRequestHandler:
 
             is_admin = self.user.is_admin
             group_ids = self.user.get_group_ids()
-            ids = {self.user.user_id}.union(group_ids)
             for upload in self.affected_uploads:
                 is_main_author = self.user.user_id == upload.main_author
-                is_coauthor = upload.coauthors and not ids.isdisjoint(upload.writers)
+                is_coauthor = self.user.user_id in upload.coauthors or (
+                    not set(group_ids).isdisjoint(upload.writer_groups)
+                )
 
                 if self.required_auth_level == AuthLevel.coauthor:
                     has_access = is_admin or is_main_author or is_coauthor
