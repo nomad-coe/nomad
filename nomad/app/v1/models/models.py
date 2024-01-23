@@ -80,7 +80,7 @@ These are the possible owner values and their meaning:
 
 
 class Owner(str, enum.Enum):
-    owner_documentation
+    __doc__ = owner_documentation
 
     # There seems to be a slight bug in fast API. When it creates the example in OpenAPI
     # it will ignore any given default or example and simply take the first enum value.
