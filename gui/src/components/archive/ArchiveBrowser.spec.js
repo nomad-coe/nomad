@@ -17,11 +17,14 @@
  */
 import React from 'react'
 import { range } from 'lodash'
-import { screen, renderNoAPI } from '../conftest.spec'
+import { screen, renderNoAPI, render } from '../conftest.spec'
 import { expectPagination } from '../visualization/conftest.spec'
-import { PropertyValuesList } from './ArchiveBrowser'
+import { PropertyValuesList, Section } from './ArchiveBrowser'
 import { laneContext } from './Browser'
 import {waitFor} from "@testing-library/dom"
+import {Metainfo} from './metainfo'
+import {systemMetainfoUrl} from '../../utils'
+import {TestAdaptor} from './Browser.spec'
 
 test.each([
   [15, 10, 5],
@@ -75,5 +78,102 @@ test.each([
     await expectPagination(true, false, false, upPagination)
   } else {
     await waitFor(() => expect(screen.queryByTestId('propertyvalueslist-pagination-up')).not.toBeInTheDocument())
+  }
+})
+
+async function createMetainfo(data, parent, url = systemMetainfoUrl) {
+  data._url = url
+  data._metainfo = new Metainfo(parent, data, null, {}, {})
+  return await data._metainfo._result
+}
+
+const mockPackage = (properties) => {
+  const stringEditQuantity = (name) => (
+    {
+      name: name,
+      default: name,
+      m_annotations: {
+        eln: [
+          {
+            component: "StringEditQuantity"
+          }
+        ]
+      },
+      m_parent_sub_section: 'quantities'
+    }
+  )
+
+  return {
+  packages: [
+    {
+      name: 'testPackage',
+      section_definitions: [
+        {
+          name: 'TestSection',
+          m_annotations: {
+            eln: [
+              {
+                properties: properties
+              }
+            ]
+          },
+          quantities: ['value1', 'value2', 'value3'].map(stringEditQuantity)
+        }
+      ]
+    }
+  ]
+}
+}
+
+test.each([
+  [
+    'visible included',
+    {
+      visible: {
+        include: ['value2']
+      }
+    },
+    ['value2']
+  ],
+  [
+    'visible excluded',
+    {
+      visible: {
+        exclude: ['value2']
+      }
+    },
+    ['value1', 'value3']
+  ],
+  [
+    'visible included and excluded',
+    {
+      visible: {
+        include: ['value1', 'value3'],
+        exclude: ['value1']
+      }
+    },
+    ['value3']
+  ]
+])('test eln properties: %s', async (name, properties, expected) => {
+  const metainfo = await createMetainfo(mockPackage(properties))
+  const defsByName = await metainfo.getDefsByName()
+  const def = defsByName.TestSection[0]
+  const adaptor = new TestAdaptor('', 'Data')
+
+  render(
+    <laneContext.Provider value={{next: {}, adaptor: adaptor}}>
+      <Section
+        section={{}}
+        def={def}
+        sectionIsInEln={true}
+        sectionIsEditable={true}
+      />
+    </laneContext.Provider>
+  )
+
+  const numberFields = screen.getAllByRole('textbox')
+  expect(numberFields).toHaveLength(expected.length)
+  for (const [index, value] of expected.entries()) {
+    await waitFor(() => expect(numberFields[index].value).toEqual(value))
   }
 })

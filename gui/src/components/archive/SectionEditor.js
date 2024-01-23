@@ -78,7 +78,7 @@ const useSectionEditorStyles = makeStyles(theme => ({
 }))
 const SectionEditor = React.memo(function SectionEditor({sectionDef, section, onChange, showJson}) {
   const classes = useSectionEditorStyles()
-  const {handleArchiveChanged} = useEntryStore()
+  const {handleArchiveChanged} = useEntryStore() || {}
   const rootRef = useRef()
 
   const handleChange = useCallback((property, value) => {

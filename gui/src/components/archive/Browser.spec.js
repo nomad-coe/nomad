@@ -38,11 +38,12 @@ const browserTree = {
   'dir1/fail': {cb: checkTestLane}
 }
 
-class TestAdaptor extends Adaptor {
+export class TestAdaptor extends Adaptor {
   constructor(path, title) {
     super()
     this.path = path
     this.title = title
+    this.parsedObjUrl = {entryId: 'entryID1'}
   }
 
   itemAdaptor(key) {

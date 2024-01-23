@@ -55,7 +55,7 @@ import SectionEditor from './SectionEditor'
 import PlotlyFigure from './PlotlyFigure'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
-  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId, resolveNomadUrlNoThrow
+  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId, resolveNomadUrlNoThrow, getOptions
 } from '../../utils'
 import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/ArrowForward'
@@ -888,17 +888,15 @@ InheritingSections.propTypes = ({
 
 export function getAllVisibleProperties(sectionDef) {
   const properties = sectionDef?.m_annotations?.eln?.[0]?.properties
-  const visible = properties?.visible
   const hide = sectionDef?.m_annotations?.eln?.[0]?.hide || []
+  const allProperties = sectionDef._allProperties?.map(property => property.name)
+  const visible = getOptions(properties?.visible, allProperties)
+  const editable = getOptions(properties?.editable, allProperties)
   let filteredProperties = sectionDef._allProperties
-  if (visible) {
-    const visiblePropertyNames = visible?.include || []
-    filteredProperties = sectionDef._allProperties.filter(property => visiblePropertyNames.includes(property.name))
-  }
+  filteredProperties = filteredProperties.filter(property => visible.includes(property.name))
   filteredProperties = filteredProperties.filter(property => !hide.includes(property.name))
-  const editable = properties?.editable?.exclude || []
   const order = properties?.order || []
-  const visibleProperties = filteredProperties.map(property => ({...property, _isEditable: !editable.includes(property.name)}))
+  const visibleProperties = filteredProperties.map(property => ({...property, _isEditable: editable.includes(property.name)}))
   const reversedOrder = [...order].reverse()
   visibleProperties.sort((a, b) => reversedOrder.indexOf(b.name) - reversedOrder.indexOf(a.name) || a.m_parent_index - b.m_parent_index)
   const quantities = visibleProperties.filter(property => property.m_parent_sub_section === "quantities")
@@ -906,7 +904,7 @@ export function getAllVisibleProperties(sectionDef) {
   return [...quantities, ...sub_sections]
 }
 
-function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
+export function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
   const {handleArchiveChanged, uploadId, entryId} = useEntryStore() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
@@ -918,9 +916,15 @@ function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEl
     let parent = def?._parent
     let name = def?.name
     while (!editableExcluded && parent) {
-      editableExcluded = parent?.m_annotations?.eln?.[0]?.properties?.editable?.exclude.some(item => item.toLowerCase() === name.toLowerCase())
-      name = parent?.name
-      parent = parent?._parent
+      const properties = parent.m_annotations?.eln?.[0]?.properties
+      if (properties && parent._allProperties) {
+        const allProperties = parent._allProperties.map(property => property.name)
+        const editable = getOptions(properties?.editable, allProperties)
+        const excluded = allProperties.filter(propertyName => !editable.includes(propertyName))
+        editableExcluded = excluded.some(item => item.toLowerCase() === name.toLowerCase())
+      }
+      name = parent.name
+      parent = parent._parent
     }
     return sectionIsEditable && !editableExcluded
   }, [def, sectionIsEditable])
