@@ -1525,11 +1525,10 @@ export function parseOperator(fullName) {
  * Used to determine the final set of available option names from an object that
  * adheres to the include/exclude/options pattern.
  */
-export function getOptions(config) {
-  const include = config?.include || (config?.options ? Object.keys(config.options) : [])
+export function getOptions(config, options) {
+  const include = config?.include || (options || (config?.options ? Object.keys(config.options) : []))
   const exclude = config?.exclude || []
-  const options = include.filter((key) => !exclude?.includes(key))
-  return options
+  return include.filter((key) => !exclude?.includes(key))
 }
 
 /**
