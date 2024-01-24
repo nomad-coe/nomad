@@ -1,15 +1,14 @@
+{{- if .Values.nomad.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "nomad.fullname" . }}-proxy-config
+  name: {{ include "nomad.fullname" . }}-configmap-proxy
   labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy-config
-    helm.sh/chart: {{ include "nomad.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "nomad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proxy
 data:
   nginx.conf: |
-    {{ if .Values.north.enabled }}
+    {{- if .Values.nomad.config.north.enabled }}
     # top-level http config for websocket headers
     # If Upgrade is defined, Connection = upgrade
     # If Upgrade is empty, Connection = close
@@ -17,19 +16,19 @@ data:
         default upgrade;
         ''      close;
     }
-    {{ end }}
 
+    {{- end }}
     server {
       listen        80;
       server_name   www.example.com;
       proxy_set_header Host $host;
 
-      proxy_connect_timeout {{ .Values.proxy.timeout }};
-      proxy_read_timeout {{ .Values.proxy.timeout }};
+      proxy_connect_timeout {{ .Values.nomad.config.proxy.timeout }};
+      proxy_read_timeout {{ .Values.nomad.config.proxy.timeout }};
       proxy_pass_request_headers      on;
       underscores_in_headers          on;
 
-      {{ if .Values.gui.gzip }}
+      {{- if .Values.nomad.config.gui.gzip }}
       gzip_min_length     1000;
       gzip_buffers        4 8k;
       gzip_http_version   1.0;
@@ -45,35 +44,35 @@ data:
           application/javascript
           application/x-javascript
           application/json;
-      {{ end }}
+      {{- end }}
 
       location / {
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ {{ .Values.proxy.external.path }}\/?(gui)?$ {
-        rewrite ^ {{ .Values.proxy.external.path }}/gui/ permanent;
+      location ~ {{ .Values.nomad.config.proxy.external.path }}\/?(gui)?$ {
+        rewrite ^ {{ .Values.nomad.config.proxy.external.path }}/gui/ permanent;
       }
 
-      location {{ .Values.proxy.external.path }}/gui/ {
+      location {{ .Values.nomad.config.proxy.external.path }}/gui/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_index {
-        rewrite ^ {{ .Values.proxy.external.path }}/gui/index.html break;
+        rewrite ^ {{ .Values.nomad.config.proxy.external.path }}/gui/index.html break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location {{ .Values.proxy.external.path }}/docs/ {
+      location {{ .Values.nomad.config.proxy.external.path }}/docs/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index_docs;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_index_docs {
-        rewrite ^ {{ .Values.proxy.external.path }}/docs/index.html break;
+        rewrite ^ {{ .Values.nomad.config.proxy.external.path }}/docs/index.html break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
@@ -99,12 +98,12 @@ data:
 
       location ~ /api/v1/entries/edit {
         proxy_buffering off;
-        proxy_read_timeout {{ .Values.proxy.editTimeout }};
+        proxy_read_timeout {{ .Values.nomad.config.proxy.editTimeout }};
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      {{ if .Values.north.enabled }}
-      location {{ .Values.proxy.external.path }}/north/ {
+      {{- if .Values.nomad.config.north.enabled }}
+      location {{ .Values.nomad.config.proxy.external.path }}/north/ {
           client_max_body_size 500m;
           proxy_pass http://{{ include "jupyterhub.fullname" . }}-proxy-public;
 
@@ -120,69 +119,7 @@ data:
 
           proxy_buffering off;
       }
-      {{ end }}
+      {{- end }}
 
     }
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "nomad.fullname" . }}-proxy
-  labels:
-    app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy
-    helm.sh/chart: {{ include "nomad.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-spec:
-  replicas: {{ .Values.gui.replicas }}
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy
-      app.kubernetes.io/instance: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: {{ include "nomad.name" . }}-proxy
-        app.kubernetes.io/instance: {{ .Release.Name }}
-      {{ if .Values.roll }}
-      annotations:
-        rollme: {{ randAlphaNum 5 | quote }}
-      {{ end }}
-    spec:
-      containers:
-      - name: {{ include "nomad.name" . }}-proxy
-        image: "nginx:1.13.9-alpine"
-        command: ["nginx", "-g", "daemon off;"]
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - mountPath: /etc/nginx/conf.d
-          readOnly: true
-          name: nginx-conf
-        - mountPath: /var/log/nginx
-          name: log
-        livenessProbe:
-          httpGet:
-            path: "{{ .Values.proxy.external.path }}/alive"
-            port: 80
-          initialDelaySeconds: 60
-          periodSeconds: 60
-          timeoutSeconds: {{ .Values.proxy.timeout }}
-        readinessProbe:
-          httpGet:
-            path: "{{ .Values.proxy.external.path }}/alive"
-            port: 80
-          initialDelaySeconds: 60
-          periodSeconds: 30
-          timeoutSeconds: 10
-      nodeSelector:
-        nomadtype: public
-      volumes:
-      - name: nginx-conf
-        configMap:
-          name: {{ include "nomad.fullname" . }}-proxy-config
-          items:
-          - key: nginx.conf
-            path: default.conf
-      - name: log
-        emptyDir: {}
+{{- end}}

@@ -1,0 +1,201 @@
+mongodb:
+  enabled: false
+
+elasticsearch:
+  enabled: false
+
+nomad:
+  enabled: true
+  config:
+    version:
+      isBeta: false
+      usesBetaData: false
+
+    proxy:
+      external:
+        host: "cloud.nomad-lab.eu"
+        path: "/prod/v1"
+
+    gui:
+      debug: false
+      encyclopediaBase: "https://nomad-lab.eu/prod/rae/encyclopedia/#"
+      aitoolkitEnabled: false
+
+    elastic:
+      host: elasticsearch-master.nomad-infrastructure.svc.cluster.local
+      port: 9200
+
+    mongo:
+      host: nomad-infrastructure-mongodb-0.nomad-infrastructure-mongodb-headless.nomad-infrastructure.svc.cluster.local,nomad-infrastructure-mongodb-1.nomad-infrastructure-mongodb-headless.nomad-infrastructure.svc.cluster.local,nomad-infrastructure-mongodb-0.nomad-infrastructure-mongodb-headless.nomad-infrastructure.svc.cluster.local/?replicaSet=rs0
+
+    logstash:
+      enabled: true
+      host: eck-stack-eck-logstash-ls-logs.nomad-system.svc.cluster.local
+
+    dbname: nomad_prod_v1
+
+    uploadurl: "https://cloud.nomad-lab.eu/prod/v1/api/uploads"
+
+    client:
+      passwordSecret: "nomad-keycloak-password"
+
+    keycloak:
+      serverUrl: "https://cloud.nomad-lab.eu/fairdi/keycloak/auth/"
+      serverExternalUrl: "https://cloud.nomad-lab.eu/fairdi/keycloak/auth/"
+      passwordSecret: "nomad-keycloak-password"
+      realmName: "fairdi_nomad_prod"
+      clientId: "nomad_public"
+      admin_user_id: "82efac55-6187-408c-8027-b98580c0e1c5"
+
+    volumes:
+      prefixSize: 1
+      public: /nomad/prod/fs/public
+      staging: /nomad/prod/fs/staging
+      north_home: /nomad/prod/fs/north/users
+      tmp: /nomad/prod/fs/tmp
+      nomad: /nomad
+      archiveVersionSuffix: v1
+
+    mail:
+      enabled: true
+      host: "mailrelay.mpcdf.mpg.de"
+      port: 25
+      from: "support@nomad-lab.eu"
+
+    datacite:
+      enabled: true
+      secret: "nomad-datacite"
+
+    north:
+      enabled: true
+      hubServiceApiTokenSecret: "nomad-hub-service-api-token"
+
+  image:
+    tag: "cloud"
+    pullPolicy: "Always"
+
+  volumeMounts:
+    - mountPath: /app/run
+      name: nomad-gui-configured
+
+  volumes:
+    - name: nomad-gui-configured
+      emptyDir: {}
+
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-production"
+      nginx.ingress.kubernetes.io/proxy-body-size: "32g"
+      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+      nginx.ingress.kubernetes.io/limit-rps: "10"
+      nginx.ingress.kubernetes.io/denylist-source-range: "141.35.40.36/32, 141.35.40.52/32"
+    hosts:
+      - host: cloud.nomad-lab.eu
+        paths:
+          - path: /prod/v1/
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: cloud-nomad-lab-eu-tls
+        hosts:
+          - cloud.nomad-lab.eu
+
+  proxy:
+    nodeSelector:
+      environment: prod
+      "nomad-lab.eu/app": ""
+
+  app:
+    replicaCount: 4
+    nodeSelector:
+      environment: prod
+      "nomad-lab.eu/app": ""
+    resources:
+      limits:
+        memory: "8Gi"
+      requests:
+        memory: "1Gi"
+    podSecurityContext:
+      runAsUser: 25249
+      runAsGroup: 11320
+      fsGroup: 11320
+
+  worker:
+    replicaCount: 1
+    processes: 12
+    nodeSelector:
+      environment: prod
+      "nomad-lab.eu/worker": ""
+    podSecurityContext:
+      runAsUser: 25249
+      runAsGroup: 11320
+      fsGroup: 11320
+    # affinity:
+    #   podAntiAffinity:
+    #     requiredDuringSchedulingIgnoredDuringExecution:
+    #     - topologyKey: kubernetes.io/hostname
+    #       labelSelector:
+    #         matchLabels:
+    #           app.kubernetes.io/component: worker
+    #           app.kubernetes.io/instance: nomad-staging
+    resources:
+      limits:
+        memory: "32Gi"
+      requests:
+        memory: "8Gi"
+
+rabbitmq:
+  nodeSelector:
+    environment: prod
+    "nomad-lab.eu/db": ""
+
+jupyterhub:
+  fullnameOverride: "nomad-prod-north"
+  proxy:
+    chp:
+      nodeSelector:
+        environment: prod
+        "nomad-lab.eu/app": ""
+  hub:
+    containerSecurityContext:
+      runAsUser: 25249
+      runAsGroup: 11320
+    baseUrl: "/prod/v1/north"
+    nodeSelector:
+      environment: prod
+      "nomad-lab.eu/app": ""
+    db:
+      type: sqlite-pvc
+      pvc:
+        storageClassName: csi-sc-cinderplugin
+    config:
+      GenericOAuthenticator:
+        client_id: nomad_public
+        oauth_callback_url: https://cloud.nomad-lab.eu/prod/v1/north/hub/oauth_callback
+        authorize_url: https://cloud.nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+        token_url: https://cloud.nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+        userdata_url: https://cloud.nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+  singleuser:
+    podNameTemplate: "nomad-prod-north-{username}--{servername}"
+    uid: 1000
+    fsGid: 11320
+    # gid: 11320  for some reason this is not in the chart. It exists on the KubeSpawner,
+    # but there is not pass though config like for uid and fsGid. Therefore, we
+    # need the extraPodConfig to override the securityContext created by KubeSpawner.
+    extraPodConfig:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 11320
+        fsGroup: 11320
+    nodeSelector:
+        environment: prod
+        "nomad-lab.eu/worker-north": ""
+  prePuller:
+    hook:
+      nodeSelector:
+        environment: prod
+        "nomad-lab.eu/worker-north": ""

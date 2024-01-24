@@ -1,2 +1,2 @@
-charts/
-Chart.lock
+# Chart dependencies
+**/charts/*.tgz

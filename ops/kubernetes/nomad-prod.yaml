@@ -1,0 +1,53 @@
+nomad:
+  config:
+    proxy:
+      external:
+        path: "/prod/v1"
+
+    dbname: nomad_prod_v1
+
+    uploadurl: "https://cloud.nomad-lab.eu/prod/v1/api/uploads"
+
+    mail:
+      enabled: true
+
+    datacite:
+      enabled: true
+
+    north:
+      enabled: true
+
+  image:
+    tag: "cloud"
+
+  ingress:
+    annotations:
+      nginx.ingress.kubernetes.io/limit-rps: "10"
+      nginx.ingress.kubernetes.io/denylist-source-range: "141.35.40.36/32, 141.35.40.52/32"
+    hosts:
+      - host: cloud.nomad-lab.eu
+        paths:
+          - path: /prod/v1/
+            pathType: ImplementationSpecific
+
+  app:
+    replicaCount: 18
+
+  worker:
+    replicaCount: 1
+    processes: 12
+    resources:
+      limits:
+        memory: "32Gi"
+      requests:
+        memory: "8Gi"
+
+jupyterhub:
+  fullnameOverride: "nomad-prod-north"
+  hub:
+    baseUrl: "/prod/v1/north"
+    config:
+      GenericOAuthenticator:
+        oauth_callback_url: https://cloud.nomad-lab.eu/prod/v1/north/hub/oauth_callback
+  singleuser:
+    podNameTemplate: "nomad-prod-north-{username}--{servername}"
