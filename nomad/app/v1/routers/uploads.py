@@ -2003,6 +2003,11 @@ async def post_upload_action_publish(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail='The upload must be published on the OASIS first.',
             )
+        if not user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Only admin of OASIS can publish to the central NOMAD.',
+            )
         # Everything looks ok, try to publish it to the central NOMAD!
         upload.publish_externally(embargo_length=embargo_length)
     else:

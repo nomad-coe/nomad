@@ -95,12 +95,42 @@ DropButton.propTypes = {
   onDrop: PropTypes.func
 }
 
+function EmbargoSelect({embargo, onChange}) {
+  return <FormControl style={{width: '100%'}}>
+    <InputLabel shrink htmlFor="embargo-label-placeholder">
+      Embargo period
+    </InputLabel>
+    <Select
+      value={embargo}
+      onChange={event => onChange(event.target.value)}
+      input={<Input name="embargo" id="embargo-label-placeholder"/>}
+      displayEmpty
+      name="embargo"
+    >
+      <MenuItem value={0}>
+        <em>No embargo</em>
+      </MenuItem>
+      <MenuItem value={3}>3</MenuItem>
+      <MenuItem value={6}>6</MenuItem>
+      <MenuItem value={12}>12</MenuItem>
+      <MenuItem value={24}>24</MenuItem>
+      <MenuItem value={36}>36</MenuItem>
+    </Select>
+    <FormHelperText>{embargo > 0 ? 'months before the data becomes public' : 'publish without embargo'}</FormHelperText>
+  </FormControl>
+}
+
+EmbargoSelect.propTypes = {
+  embargo: PropTypes.number,
+  onChange: PropTypes.func
+}
+
 function PublishUpload({upload, onPublish}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
     setOpenConfirmDialog(false)
-    onPublish({embargo_length: embargo})
+    onPublish({embargo_length: embargo, to_central_nomad: false})
   }
 
   if (upload.published) {
@@ -145,29 +175,7 @@ function PublishUpload({upload, onPublish}) {
     <Box marginTop={2}>
       <Grid container direction="row" spacing={2}>
         <Grid item style={{width: 300}}>
-          <FormControl style={{width: '100%'}}>
-            <InputLabel shrink htmlFor="embargo-label-placeholder">
-              Embargo period
-            </InputLabel>
-            <Select
-              value={embargo}
-              onChange={event => setEmbargo(event.target.value)}
-              input={<Input name="embargo" id="embargo-label-placeholder" />}
-              displayEmpty
-              name="embargo"
-              // className={classes.selectEmpty}
-            >
-              <MenuItem value={0}>
-                <em>No embargo</em>
-              </MenuItem>
-              <MenuItem value={3}>3</MenuItem>
-              <MenuItem value={6}>6</MenuItem>
-              <MenuItem value={12}>12</MenuItem>
-              <MenuItem value={24}>24</MenuItem>
-              <MenuItem value={36}>36</MenuItem>
-            </Select>
-            <FormHelperText>{embargo > 0 ? 'months before the data becomes public' : 'publish without embargo'}</FormHelperText>
-          </FormControl>
+          <EmbargoSelect embargo={embargo} onChange={setEmbargo}/>
         </Grid>
         <Grid item>
           <Box marginTop={2} >
@@ -189,6 +197,79 @@ function PublishUpload({upload, onPublish}) {
 PublishUpload.propTypes = {
   upload: PropTypes.object,
   onPublish: PropTypes.func
+}
+
+function PublishUploadExternally({upload, onPublish, isPublished}) {
+  const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const handlePublish = () => {
+    setOpenConfirmDialog(false)
+    onPublish({embargo_length: embargo, to_central_nomad: true})
+  }
+
+  if (upload?.published_to?.find(server => server === 'https://nomad-lab.eu/prod/v1/api')) {
+    return <Markdown>{`
+      This upload has already been published to central NOMAD.
+    `}</Markdown>
+  }
+
+  const buttonLabel = 'Publish to Central NOMAD'
+
+  return <React.Fragment>
+    <Dialog
+      open={openConfirmDialog}
+      onClose={() => setOpenConfirmDialog(false)}
+    >
+      <DialogTitle>Confirm that you want to publish the upload to central NOMAD</DialogTitle>
+      <DialogContent>
+        <DialogContentText>
+          You are about to publish this upload to central NOMAD.
+        </DialogContentText>
+        <DialogContentText>
+          Please note that this upload will be published under the pre-configured account of this OASIS, which may or
+          may not be your current account.
+        </DialogContentText>
+        <DialogContentText>
+          The upload will be published to the central NOMAD with the chosen embargo period. Please check the central
+          NOMAD for the status of the upload.
+          If this upload is already published, this action has no effect.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpenConfirmDialog(false)} autoFocus>Cancel</Button>
+        <Button onClick={handlePublish}>{buttonLabel}</Button>
+      </DialogActions>
+    </Dialog>
+    <Typography>
+      After publishing locally on this OASIS. You can choose to publish this upload to the central NOMAD.
+    </Typography>
+    <Box marginTop={2}>
+      <Grid container direction="row" spacing={2}>
+        <Grid item style={{width: 300}}>
+          <EmbargoSelect embargo={embargo} onChange={setEmbargo}/>
+        </Grid>
+        <Grid item>
+          <Box marginTop={2}>
+            <Button
+              style={{height: 32, minWith: 100}}
+              size="small" variant="contained"
+              onClick={() => setOpenConfirmDialog(true)} color="primary"
+              disabled={!isPublished}
+              data-testid='publish-upload-externally-button'
+            >
+              {buttonLabel}
+            </Button>
+          </Box>
+        </Grid>
+      </Grid>
+    </Box>
+  </React.Fragment>
+}
+
+PublishUploadExternally.propTypes = {
+  upload: PropTypes.object,
+  onPublish: PropTypes.func,
+  isPublished: PropTypes.bool
 }
 
 function ProcessingStatus({data}) {
@@ -310,8 +391,8 @@ function UploadOverview(props) {
       .catch(raiseError)
   }
 
-  const handlePublish = ({embargo_length}) => {
-    api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}`)
+  const handlePublish = ({embargo_length, to_central_nomad}) => {
+    api.post(`/uploads/${uploadId}/action/publish?embargo_length=${embargo_length}&to_central_nomad=${to_central_nomad}`)
       .then(results => updateUpload({upload: results.data}))
       .catch(raiseError)
   }
@@ -504,15 +585,12 @@ function UploadOverview(props) {
                 <Button onClick={handleLiftEmbargo}>Lift Embargo</Button>
               </DialogActions>
             </Dialog>
-            {oasis && (
-              <Box marginTop={2}>
-                <Typography>
-                  In future versions of NOMAD, you will be able to create a readonly archived
-                  version of your upload, make it available throughout this Oasis, and publish
-                  the data or metadata to the <Link href="https://nomad-lab.eu">central NOMAD services</Link>.
-                </Typography>
-              </Box>
-            )}
+          </StepContent>
+        </Step>}
+        {(isAuthenticated && isWriter && oasis) && <Step expanded={!isEmpty} active={false}>
+          <StepLabel>Publish to central NOMAD</StepLabel>
+          <StepContent>
+            <PublishUploadExternally upload={upload} onPublish={handlePublish} isPublished={isPublished}/>
           </StepContent>
         </Step>}
       </Stepper>

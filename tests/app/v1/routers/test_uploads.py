@@ -3302,7 +3302,7 @@ def test_post_upload_action_publish_to_central_nomad(
     query_args['to_central_nomad'] = True
     embargo_length = query_args.get('embargo_length')
     expected_status_code = 200
-    user = 'test_user'
+    user = 'admin_user'
     user_auth, __token = test_auth_dict[user]
     old_upload = Upload.get(upload_id)
 
