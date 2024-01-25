@@ -37,7 +37,7 @@ export class SearchSuggestion {
  * Enum for types of suggestions. In TypeScript this would be an Enum.
  */
 export const SuggestionType = {
-  Freetext: 'free-text',
+  Freetext: 'free_text',
   Equality: 'equality',
   RangeHalfBounded: 'range_half_bounded',
   RangeBounded: 'range_bounded',
