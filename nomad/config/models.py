@@ -255,6 +255,15 @@ class Services(NomadSettings):
         `nomad-lab.eu`.
     """,
     )
+    optimade_enabled = Field(
+        True, description="""If true, the app will serve the optimade API."""
+    )
+    dcat_enabled = Field(
+        True, description="""If true the app will serve the DCAT API."""
+    )
+    h5grove_enabled = Field(
+        True, description="""If true the app will serve the h5grove API."""
+    )
 
     console_log_level = Field(
         logging.WARNING,

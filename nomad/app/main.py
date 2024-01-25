@@ -38,9 +38,6 @@ from pydantic import BaseModel
 
 from nomad import config, infrastructure
 from .v1.main import app as v1_app
-from .dcat.main import app as dcat_app
-from .optimade import optimade_app
-from .h5grove_app import app as h5grove_app
 
 from nomad.cli.dev import get_gui_artifacts_js
 from nomad.cli.dev import get_gui_config
@@ -71,14 +68,25 @@ class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI()
 
-if config.oasis.allowed_users is not None:
-    optimade_app.add_middleware(OasisAuthenticationMiddleware)
-
 app_base = config.services.api_base_path
 app.mount(f'{app_base}/api/v1', v1_app)
-app.mount(f'{app_base}/dcat', dcat_app)
-app.mount(f'{app_base}/optimade', optimade_app)
-app.mount(f'{app_base}/h5grove', h5grove_app)
+
+if config.services.optimade_enabled:
+    from .optimade import optimade_app
+
+    app.mount(f'{app_base}/optimade', optimade_app)
+    if config.oasis.allowed_users is not None:
+        optimade_app.add_middleware(OasisAuthenticationMiddleware)
+
+if config.services.dcat_enabled:
+    from .dcat.main import app as dcat_app
+
+    app.mount(f'{app_base}/dcat', dcat_app)
+
+if config.services.h5grove_enabled:
+    from .h5grove_app import app as h5grove_app
+
+    app.mount(f'{app_base}/h5grove', h5grove_app)
 
 if config.resources.enabled:
     from .resources.main import app as resources_app
