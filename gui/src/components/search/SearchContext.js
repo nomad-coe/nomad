@@ -556,10 +556,7 @@ export const SearchContextRaw = React.memo(({
 
     const paginationState = atom({
       key: `pagination_${contextID}`,
-      default: {
-        ...initialPagination,
-        order_by: '_score'
-      }
+      default: initialPagination
     })
 
     const guiLocked = parseQueries(initialFiltersLocked, initialFilterData, initialFilterAbbreviations.filterFullnames)
