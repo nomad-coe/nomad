@@ -392,9 +392,9 @@ class TestsWithGroups:
         self,
         test_users_dict,
         example_group_data,
-        owner: str,
-        user: str,
-        exc_or_total: Union[int, Exception],
+        owner,
+        user,
+        exc_or_total,
     ):
         user = test_users_dict.get(user)
         user_id = user.user_id if user is not None else None
