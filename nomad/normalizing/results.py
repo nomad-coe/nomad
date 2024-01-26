@@ -676,8 +676,8 @@ class ResultsNormalizer(Normalizer):
             energies = thermo_prop.vibrational_free_energy_at_constant_volume
             if valid_array(temperatures) and valid_array(energies):
                 energy_free = EnergyFreeHelmholtz()
-                energy_free.energies = energies
-                energy_free.temperatures = temperatures
+                energy_free.energies = thermo_prop
+                energy_free.temperatures = thermo_prop
                 return energy_free
 
         return None
@@ -702,8 +702,8 @@ class ResultsNormalizer(Normalizer):
             heat_capacities = thermo_prop.heat_capacity_c_v
             if valid_array(temperatures) and valid_array(heat_capacities):
                 heat_cap = HeatCapacityConstantVolume()
-                heat_cap.heat_capacities = heat_capacities
-                heat_cap.temperatures = temperatures
+                heat_cap.heat_capacities = thermo_prop
+                heat_cap.temperatures = thermo_prop
                 return heat_cap
 
         return None
@@ -723,7 +723,7 @@ class ResultsNormalizer(Normalizer):
                         geo_opt.system_optimized = (
                             workflow.results.calculation_result_ref.system_ref
                         )
-                    geo_opt.energies = workflow.results.energies
+                    geo_opt.energies = workflow.results
                     geo_opt.final_energy_difference = (
                         workflow.results.final_energy_difference
                     )
@@ -1220,8 +1220,8 @@ class ResultsNormalizer(Normalizer):
             ev_curves.append(
                 EnergyVolumeCurve(
                     type='raw',
-                    volumes=workflow.results.volumes,
-                    energies_raw=workflow.results.energies,
+                    volumes=workflow.results,
+                    energies_raw=workflow.results,
                 )
             )
         else:
@@ -1238,8 +1238,8 @@ class ResultsNormalizer(Normalizer):
                 ev_curves.append(
                     EnergyVolumeCurve(
                         type=function_name,
-                        volumes=workflow.results.volumes,
-                        energies_fit=energies_fitted,
+                        volumes=workflow.results,
+                        energies_fit=fit,
                     )
                 )
 

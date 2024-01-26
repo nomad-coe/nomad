@@ -23,7 +23,7 @@ from elasticsearch_dsl import Text
 
 from ase.data import chemical_symbols
 
-from nomad import config
+from nomad import config, utils
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.simulation.system import Atoms, System as SystemRun
 from nomad.datamodel.metainfo.simulation.method import CoreHole as CoreHoleRun
@@ -74,6 +74,13 @@ from nomad.datamodel.metainfo.simulation.method import (
     BasisSet,
     BasisSetContainer,
 )  # noqa
+
+try:
+    import simulationworkflowschema
+except Exception:
+    logger = utils.get_logger(__name__)
+    logger.error('Error importing simulation workflow schema.')
+    simulationworkflowschema = None
 
 
 unavailable = 'unavailable'
@@ -2166,36 +2173,13 @@ class MolecularDynamics(MSection):
         Methodology for molecular dynamics.
         """,
     )
-    time_step = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='s',
-        description="""
-        The timestep at which the numerical integration is performed.
-        """,
+    time_step = (
+        simulationworkflowschema.MolecularDynamicsMethod.integration_timestep.m_copy()
     )
-
     time_step.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
-    ensemble_type = Quantity(
-        type=MEnum('NVE', 'NVT', 'NPT', 'NPH'),
-        shape=[],
-        description="""
-        The type of thermodynamic ensemble that was simulated.
 
-        Allowed values are:
-
-        | Thermodynamic Ensemble          | Description                               |
-
-        | ---------------------- | ----------------------------------------- |
-
-        | `"NVE"`           | Constant number of particles, volume, and energy |
-
-        | `"NVT"`           | Constant number of particles, volume, and temperature |
-
-        | `"NPT"`           | Constant number of particles, pressure, and temperature |
-
-        | `"NPH"`           | Constant number of particles, pressure, and enthalpy |
-        """,
+    ensemble_type = (
+        simulationworkflowschema.MolecularDynamicsMethod.thermodynamic_ensemble.m_copy()
     )
     ensemble_type.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
 
@@ -2550,18 +2534,15 @@ class HeatCapacityConstantVolume(MSection):
         """
     )
     heat_capacities = Quantity(
-        type=np.float64,
-        shape=['n_values'],
-        unit='joule / kelvin',
+        type=simulationworkflowschema.ThermodynamicsResults.heat_capacity_c_v,
+        shape=[],
         description="""
         Specific heat capacity values at constant volume.
         """,
     )
 
     temperatures = Quantity(
-        type=np.float64,
-        shape=['n_values'],
-        unit='kelvin',
+        type=simulationworkflowschema.ThermodynamicsResults.temperature,
         description="""
         The temperatures at which heat capacities are calculated.
         """,
@@ -2576,17 +2557,14 @@ class EnergyFreeHelmholtz(MSection):
         """
     )
     energies = Quantity(
-        type=np.float64,
-        shape=['n_values'],
-        unit='joule',
+        type=simulationworkflowschema.ThermodynamicsResults.vibrational_free_energy_at_constant_volume,
+        shape=[],
         description="""
         The Helmholtz free energies per atom at constant volume.
         """,
     )
     temperatures = Quantity(
-        type=np.float64,
-        shape=['n_values'],
-        unit='kelvin',
+        type=simulationworkflowschema.ThermodynamicsResults.temperature,
         description="""
         The temperatures at which Helmholtz free energies are calculated.
         """,
@@ -2635,29 +2613,12 @@ class EnergyVolumeCurve(MSection):
             Elasticsearch(suggestion='default'),
         ],
     )
-    volumes = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='m ** 3',
-        description="""
-        Array of volumes per atom for which the energies are evaluated.
-        """,
-    )
+    volumes = Quantity(type=simulationworkflowschema.EquationOfStateResults.volumes)
     energies_raw = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='joule',
-        description="""
-        Array of energies corresponding to each volume.
-        """,
+        type=simulationworkflowschema.EquationOfStateResults.energies
     )
     energies_fit = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='joule',
-        description="""
-        Array of the fitted energies corresponding to each volume.
-        """,
+        type=simulationworkflowschema.equation_of_state.EOSFit.fitted_energies
     )
 
 
@@ -2737,9 +2698,7 @@ class GeometryOptimization(MSection):
         """,
     )
     energies = Quantity(
-        type=np.float64,
-        unit='joule',
-        shape=['*'],
+        type=simulationworkflowschema.GeometryOptimizationResults.energies,
         description="""
         List of energy_total values gathered from the single configuration
         calculations that are a part of the optimization trajectory.
@@ -2751,81 +2710,24 @@ class GeometryOptimization(MSection):
         Contains the optimized geometry that is the result of a geometry optimization.
         """,
     )
-    type = Quantity(
-        type=MEnum('static', 'atomic', 'cell_shape', 'cell_volume'),
-        shape=[],
-        description="""
-        The type of geometry optimization, which denotes what is being optimized.
-
-        Allowed values are:
-
-        | Type                   | Description                               |
-
-        | ---------------------- | ----------------------------------------- |
-
-        | `"static"`             | no optimization |
-
-        | `"atomic"`             | the atomic coordinates alone are updated |
-
-        | `"cell_volume"`         | `"atomic"` + cell lattice paramters are updated isotropically |
-
-        | `"cell_shape"`        | `"cell_volume"` but without the isotropic constraint: all cell parameters are updated |
-
-        """,
-    )
-    convergence_tolerance_energy_difference = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='joule',
-        description="""
-        The input energy difference tolerance criterion.
-        """,
-    )
+    type = simulationworkflowschema.GeometryOptimization.name.m_copy()
+    convergence_tolerance_energy_difference = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
     convergence_tolerance_energy_difference.m_annotations[
         'elasticsearch'
     ] = Elasticsearch(material_entry_type)
-    convergence_tolerance_force_maximum = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='newton',
-        description="""
-        The input maximum net force tolerance criterion.
-        """,
-    )
+    convergence_tolerance_force_maximum = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
     convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
         material_entry_type
     )
-    final_force_maximum = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='newton',
-        description="""
-        The maximum net force in the last optimization step.
-        """,
-    )
+    final_force_maximum = simulationworkflowschema.GeometryOptimizationResults.final_force_maximum.m_copy()
     final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
         material_entry_type
     )
-    final_energy_difference = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='joule',
-        description="""
-        The difference in the energy_total between the last two steps during
-        optimization.
-        """,
-    )
+    final_energy_difference = simulationworkflowschema.GeometryOptimizationResults.final_energy_difference.m_copy()
     final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(
         material_entry_type
     )
-    final_displacement_maximum = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='meter',
-        description="""
-        The maximum displacement in the last optimization step with respect to previous.
-        """,
-    )
+    final_displacement_maximum = simulationworkflowschema.GeometryOptimizationResults.final_displacement_maximum.m_copy()
     final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(
         material_entry_type
     )
@@ -3025,65 +2927,21 @@ class RadialDistributionFunction(MDPropertySection):
         Radial distribution function.
         """,
     )
-    type = Quantity(
-        type=MEnum('molecular', 'atomic'),
-        shape=[],
-        description="""
-        Describes if the observable is calculated at the molecular or atomic level.
-        """,
-    )
+    type = simulationworkflowschema.molecular_dynamics.RadialDistributionFunction.type.m_copy()
     type.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default'),
     ]
-    label = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the atoms or molecule types involved in determining the property.
-        """,
-    )
+    label = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.label.m_copy()
     label.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default'),
     ]
-    bins = Quantity(
-        type=np.float64,
-        shape=['n_bins'],
-        unit='m',
-        description="""
-        Distances along which the rdf was calculated.
-        """,
-    )
-    n_bins = Quantity(
-        type=int,
-        shape=[],
-        description="""
-        Number of bins.
-        """,
-    )
-    value = Quantity(
-        type=np.float64,
-        shape=['n_bins'],
-        description="""
-        Values of the property.
-        """,
-    )
-    frame_start = Quantity(
-        type=int,
-        shape=[],
-        description="""
-        Trajectory frame number where the ensemble averaging starts.
-        """,
-    )
-
-    frame_end = Quantity(
-        type=int,
-        shape=[],
-        description="""
-        Trajectory frame number where the ensemble averaging ends.
-        """,
-    )
+    bins = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.bins.m_copy()
+    n_bins = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.n_bins.m_copy()
+    value = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.value.m_copy()
+    frame_start = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.frame_start.m_copy()
+    frame_end = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.frame_end.m_copy()
 
 
 class DiffractionPattern(MSection):
@@ -3157,97 +3015,26 @@ class MeanSquaredDisplacement(MDPropertySection):
         Mean Squared Displacements.
         """,
     )
-    type = Quantity(
-        type=MEnum('molecular', 'atomic'),
-        shape=[],
-        description="""
-        Describes if the correlation function is calculated at the molecular or atomic level.
-        """,
-    )
+    type = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.type.m_copy()
     type.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default'),
     ]
-    direction = Quantity(
-        type=MEnum('x', 'y', 'z', 'xy', 'yz', 'xz', 'xyz'),
-        shape=[],
-        description="""
-        Describes the direction in which the correlation function was calculated.
-        """,
-    )
-    error_type = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the type of error reported for this correlation function.
-        """,
-    )
-    label = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the atoms or molecule types involved in determining the property.
-        """,
-    )
+    direction = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.direction.m_copy()
+    error_type = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.error_type.m_copy()
+    label = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.label.m_copy()
     label.m_annotations['elasticsearch'] = [
         Elasticsearch(material_entry_type),
         Elasticsearch(suggestion='default'),
     ]
-    n_times = Quantity(
-        type=int,
-        shape=[],
-        description="""
-        Number of times windows for the calculation of the correlation function.
-        """,
-    )
-    times = Quantity(
-        type=np.float64,
-        shape=['n_times'],
-        unit='s',
-        description="""
-        Time windows used for the calculation of the msds.
-        """,
-    )
-    value = Quantity(
-        type=np.float64,
-        shape=['n_times'],
-        unit='m^2',
-        description="""
-        Msd values.
-        """,
-    )
-    errors = Quantity(
-        type=np.float64,
-        shape=['*'],
-        description="""
-        Error associated with the determination of the msds.
-        """,
-    )
+    n_times = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.n_times.m_copy()
+    times = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.times.m_copy()
+    value = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.value.m_copy()
+    errors = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.errors.m_copy()
 
-    diffusion_constant_value = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='m^2/s',
-        description="""
-        Values of the diffusion constants.
-        """,
-    )
-
-    diffusion_constant_error_type = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Describes the type of error reported for this observable.
-        """,
-    )
-
-    diffusion_constant_errors = Quantity(
-        type=np.float64,
-        shape=['*'],
-        description="""
-        Error associated with the determination of the diffusion constant.
-        """,
-    )
+    diffusion_constant_value = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.value.m_copy()
+    diffusion_constant_error_type = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.error_type.m_copy()
+    diffusion_constant_errors = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.errors.m_copy()
 
 
 class DynamicalProperties(MSection):

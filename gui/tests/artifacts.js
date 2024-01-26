@@ -3611,7 +3611,7 @@ window.nomadArtifacts = {
     },
     "results.properties.dynamical.mean_squared_displacement.type": {
       "name": "type",
-      "description": "Describes if the correlation function is calculated at the molecular or atomic level.",
+      "description": "Describes if the observable is calculated at the molecular or atomic level.",
       "type": {
         "type_kind": "Enum",
         "type_data": [
@@ -19596,13 +19596,10 @@ window.nomadArtifacts = {
                 "name": "heat_capacities",
                 "description": "Specific heat capacity values at constant volume.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/52/section_definitions/2/quantities/5"
                 },
-                "shape": [
-                  "n_values"
-                ],
-                "unit": "joule / kelvin"
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -19611,13 +19608,9 @@ window.nomadArtifacts = {
                 "name": "temperatures",
                 "description": "The temperatures at which heat capacities are calculated.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_values"
-                ],
-                "unit": "kelvin"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/52/section_definitions/2/quantities/1"
+                }
               }
             ]
           },
@@ -19635,13 +19628,10 @@ window.nomadArtifacts = {
                 "name": "energies",
                 "description": "The Helmholtz free energies per atom at constant volume.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/52/section_definitions/2/quantities/7"
                 },
-                "shape": [
-                  "n_values"
-                ],
-                "unit": "joule"
+                "shape": []
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -19650,13 +19640,9 @@ window.nomadArtifacts = {
                 "name": "temperatures",
                 "description": "The temperatures at which Helmholtz free energies are calculated.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "n_values"
-                ],
-                "unit": "kelvin"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/52/section_definitions/2/quantities/1"
+                }
               }
             ]
           },
@@ -19740,45 +19726,30 @@ window.nomadArtifacts = {
                 "m_parent_index": 1,
                 "m_parent_sub_section": "quantities",
                 "name": "volumes",
-                "description": "Array of volumes per atom for which the energies are evaluated.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "meter ** 3"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/42/section_definitions/2/quantities/1"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "energies_raw",
-                "description": "Array of energies corresponding to each volume.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "joule"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/42/section_definitions/2/quantities/2"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "name": "energies_fit",
-                "description": "Array of the fitted energies corresponding to each volume.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "joule"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/42/section_definitions/1/quantities/1"
+                }
               }
             ]
           },
@@ -19913,13 +19884,9 @@ window.nomadArtifacts = {
                 "name": "energies",
                 "description": "List of energy_total values gathered from the single configuration\ncalculations that are a part of the optimization trajectory.",
                 "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "joule"
+                  "type_kind": "quantity_reference",
+                  "type_data": "/packages/44/section_definitions/1/quantities/1"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -19936,18 +19903,19 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
-                "name": "type",
-                "description": "The type of geometry optimization, which denotes what is being optimized.\n\nAllowed values are:\n\n| Type                   | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"static\"`             | no optimization |\n\n| `\"atomic\"`             | the atomic coordinates alone are updated |\n\n| `\"cell_volume\"`         | `\"atomic\"` + cell lattice paramters are updated isotropically |\n\n| `\"cell_shape\"`        | `\"cell_volume\"` but without the isotropic constraint: all cell parameters are updated |",
-                "type": {
-                  "type_kind": "Enum",
-                  "type_data": [
-                    "static",
-                    "atomic",
-                    "cell_shape",
-                    "cell_volume"
+                "m_annotations": {
+                  "eln": [
+                    {
+                      "component": "StringEditQuantity"
+                    }
                   ]
                 },
-                "shape": []
+                "name": "type",
+                "description": "A name of the task. Will be used as a label for the input or output in workflow representations.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                }
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -20468,8 +20436,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.structural.radial_distribution_function.type",
-                    "results.properties.structural.radial_distribution_function.type__suggestion"
+                    "results.properties.dynamical.mean_squared_displacement.type",
+                    "results.properties.dynamical.mean_squared_displacement.type__suggestion"
                   ]
                 },
                 "name": "type",
@@ -20489,8 +20457,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.structural.radial_distribution_function.label",
-                    "results.properties.structural.radial_distribution_function.label__suggestion"
+                    "results.properties.dynamical.mean_squared_displacement.label",
+                    "results.properties.dynamical.mean_squared_displacement.label__suggestion"
                   ]
                 },
                 "name": "label",
@@ -20710,7 +20678,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "type",
-                "description": "Describes if the correlation function is calculated at the molecular or atomic level.",
+                "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
                   "type_kind": "Enum",
                   "type_data": [
@@ -20745,7 +20713,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
                 "name": "error_type",
-                "description": "Describes the type of error reported for this correlation function.",
+                "description": "Describes the type of error reported for this observable.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -20802,7 +20770,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 6,
                 "m_parent_sub_section": "quantities",
                 "name": "value",
-                "description": "Msd values.",
+                "description": "Mean squared displacement values.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -20856,7 +20824,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "quantities",
                 "name": "diffusion_constant_errors",
-                "description": "Error associated with the determination of the diffusion constant.",
+                "description": "Error associated with the determination of the property.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -74133,6 +74101,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.geometry_optimization.convergence_tolerance_energy_difference"
+                  ]
+                },
                 "name": "convergence_tolerance_energy_difference",
                 "description": "The input energy difference tolerance criterion.",
                 "type": {
@@ -74146,6 +74119,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.geometry_optimization.convergence_tolerance_force_maximum"
+                  ]
+                },
                 "name": "convergence_tolerance_force_maximum",
                 "description": "The input maximum net force tolerance criterion.",
                 "type": {
@@ -74261,6 +74239,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.geometry_optimization.final_energy_difference"
+                  ]
+                },
                 "name": "final_energy_difference",
                 "description": "The difference in the energy_total between the last two steps during\noptimization.",
                 "type": {
@@ -74274,6 +74257,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.geometry_optimization.final_force_maximum"
+                  ]
+                },
                 "name": "final_force_maximum",
                 "description": "The maximum net force in the last optimization step.",
                 "type": {
@@ -74287,6 +74275,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 5,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.geometry_optimization.final_displacement_maximum"
+                  ]
+                },
                 "name": "final_displacement_maximum",
                 "description": "The maximum displacement in the last optimization step with respect to previous.",
                 "type": {
@@ -75054,6 +75047,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.ensemble_type"
+                  ]
+                },
                 "name": "thermodynamic_ensemble",
                 "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
                 "type": {
@@ -75092,6 +75090,11 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 2,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.thermodynamic.trajectory.provenance.molecular_dynamics.time_step"
+                  ]
+                },
                 "name": "integration_timestep",
                 "description": "The timestep at which the numerical integration is performed.",
                 "type": {
@@ -75195,6 +75198,12 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.dynamical.mean_squared_displacement.type",
+                    "results.properties.dynamical.mean_squared_displacement.type__suggestion"
+                  ]
+                },
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
@@ -75243,6 +75252,12 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 0,
                 "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.dynamical.mean_squared_displacement.label",
+                    "results.properties.dynamical.mean_squared_displacement.label__suggestion"
+                  ]
+                },
                 "name": "label",
                 "description": "Describes the atoms or molecule types involved in determining the property.",
                 "type": {

@@ -75,6 +75,7 @@ const suggestionsInitial = [
 ]
 describe('suggestions: history', function() {
   beforeAll(() => {
+    window.localStorage.removeItem('nomad-searchcontext-entries')
     window.localStorage.setItem(
       'nomad-searchcontext-entries',
       JSON.stringify(suggestionsInitial)
