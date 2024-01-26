@@ -19,7 +19,7 @@
 from typing import List, Optional, Set
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic.main import BaseModel
+from pydantic import BaseModel, Field
 
 from nomad.datamodel import User as UserDataModel
 from nomad.groups import (
@@ -35,17 +35,26 @@ from ..models import User
 router = APIRouter()
 default_tag = 'groups'
 
+group_name_description = 'Name of the group.'
+group_members_description = 'User ids of the group members.'
+
 
 class UserGroupEdit(BaseModel):
-    group_name: Optional[str] = None
-    members: Optional[Set[str]] = None
+    group_name: Optional[str] = Field(default=None, description=group_name_description)
+    members: Optional[Set[str]] = Field(
+        default=None, description=group_members_description
+    )
 
 
 class UserGroup(BaseModel):
-    group_id: str
-    group_name: str = 'Default Group Name'
-    owner: str
-    members: Set[str] = set()
+    group_id: str = Field(description='Unique id of the group.')
+    group_name: str = Field(
+        default='Default Group Name', description=group_name_description
+    )
+    owner: str = Field(description='User id of the group owner.')
+    members: Set[str] = Field(
+        default_factory=set, description=group_members_description
+    )
 
     class Config:
         orm_mode = True
@@ -84,7 +93,10 @@ def check_user_may_edit_user_group(user: User, user_group: MongoUserGroup):
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=strip(f"Not authorized to edit user group '{user_group.group_id}'."),
+        detail=strip(
+            f"Not authorized to edit user group '{user_group.group_id}'."
+            ' Only group owners and admins are allowed to edit a group.'
+        ),
     )
 
 
