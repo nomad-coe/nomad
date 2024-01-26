@@ -313,9 +313,10 @@ class Proc(Document):
     @classmethod
     def create(cls, **kwargs):
         """Factory method that must be used instead of regular constructor."""
-        assert (
-            'process_status' not in kwargs
-        ), """ do not set the status manually, its managed """
+        if 'process_status' in kwargs:
+            assert (
+                kwargs['process_status'] == ProcessStatus.PENDING
+            ), 'do not set the status manually, its managed'
 
         self = cls(**kwargs)
         self.process_status = ProcessStatus.READY

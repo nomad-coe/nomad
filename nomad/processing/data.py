@@ -2057,6 +2057,7 @@ class Upload(Proc):
                         mainfile_key=mainfile_key,
                         parser_name=parser.name,
                         upload_id=self.upload_id,
+                        process_status=ProcessStatus.PENDING,
                     )
                     # Apply entry level metadata from files, if provided
                     entry_metadata = metadata_handler.get_entry_mongo_metadata(
