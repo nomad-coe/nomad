@@ -40,7 +40,13 @@ group_members_description = 'User ids of the group members.'
 
 
 class UserGroupEdit(BaseModel):
-    group_name: Optional[str] = Field(default=None, description=group_name_description)
+    group_name: Optional[str] = Field(
+        default=None,
+        description=group_name_description,
+        min_length=3,
+        max_length=32,
+        regex=r'^[a-zA-Z0-9][a-zA-Z0-9 \.\_\-]+[a-zA-Z0-9]$',
+    )
     members: Optional[Set[str]] = Field(
         default=None, description=group_members_description
     )

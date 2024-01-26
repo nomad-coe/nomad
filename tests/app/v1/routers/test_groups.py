@@ -116,12 +116,15 @@ def test_create_group(
 
 
 @pytest.mark.parametrize(
-    'user_label, expected_status_code',
+    'user_label, variation, expected_status_code',
     [
-        pytest.param('test_user', 200, id='test-user'),
-        pytest.param('other_test_user', 401, id='other-test-user'),
-        pytest.param('invalid', 401, id='invalid-user'),
-        pytest.param(None, 401, id='guest-user'),
+        pytest.param(None, {}, 401, id='guest-fails'),
+        pytest.param('invalid', {}, 401, id='faker-fails'),
+        pytest.param('other_test_user', {}, 401, id='other-fails'),
+        pytest.param('test_user', {}, 200, id='edit-ok'),
+        pytest.param('test_user', {'group_name': 'GG'}, 422, id='short-name-fails'),
+        pytest.param('test_user', {'group_name': 'G' * 33}, 422, id='long-name-fails'),
+        pytest.param('test_user', {'group_name': 'G!G'}, 422, id='special-chars-fails'),
     ],
 )
 def test_update_user_group(
@@ -132,10 +135,12 @@ def test_update_user_group(
     user_groups_function,
     user_owner_group,
     new_group,
+    variation,
     expected_status_code,
 ):
     user_auth, __token = test_auth_dict[user_label]
     group_before = get_user_group(user_owner_group.group_id)
+    new_group.update(variation)
 
     response = perform_post(
         client,
