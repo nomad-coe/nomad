@@ -42,6 +42,7 @@ nav:
       - Develop and publish plugins: howto/customization/plugins_dev.md
       - Write a parser: howto/customization/parsers.md
       - Write a normalizer: howto/customization/normalizers.md
+      - Work with units: howto/customization/units.md
     - Development:
       - Get started: howto/develop/setup.md
       - Navigate the code: howto/develop/code.md
