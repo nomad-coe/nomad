@@ -624,24 +624,26 @@ def _owner_es_query(
     user_id: str = None,
     doc_type: DocumentType = entry_type,
 ):
-    def tquery(ttype='term', **kwargs):
+    def query(query_type='term', **kwargs):
         prefix = '' if doc_type == entry_type else 'entries.'
-        return Q(ttype, **{(prefix + field): value for field, value in kwargs.items()})
+        return Q(
+            query_type, **{(prefix + field): value for field, value in kwargs.items()}
+        )
 
     def viewers_query(user_id: str) -> Q:
         user_group_ids = UserGroup.get_ids_by_user_id(user_id)
-        q = tquery(viewers__user_id=user_id)
-        q |= tquery('terms', viewer_groups=user_group_ids)
+        q = query(viewers__user_id=user_id)
+        q |= query('terms', viewer_groups=user_group_ids)
         return q
 
     if owner == 'all':
-        q = tquery(published=True)
+        q = query(published=True)
         if user_id is not None:
             q |= viewers_query(user_id)
     elif owner == 'public':
-        q = tquery(published=True) & tquery(with_embargo=False)
+        q = query(published=True) & query(with_embargo=False)
     elif owner == 'visible':
-        q = tquery(published=True) & tquery(with_embargo=False)
+        q = query(published=True) & query(with_embargo=False)
         if user_id is not None:
             q |= viewers_query(user_id)
     elif owner == 'shared':
@@ -657,13 +659,13 @@ def _owner_es_query(
                 'Authentication required for owner value user.'
             )
 
-        q = tquery(main_author__user_id=user_id)
+        q = query(main_author__user_id=user_id)
     elif owner == 'staging':
         if user_id is None:
             raise AuthenticationRequiredError(
                 'Authentication required for owner value user'
             )
-        q = tquery(published=False) & viewers_query(user_id)
+        q = query(published=False) & viewers_query(user_id)
     elif owner == 'admin':
         if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
             raise AuthenticationRequiredError(
