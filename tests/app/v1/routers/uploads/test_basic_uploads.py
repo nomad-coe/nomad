@@ -24,8 +24,9 @@ import time
 import zipfile
 from datetime import datetime
 from typing import List, Dict, Any, Iterable
-from tests.utils import build_url, set_upload_entry_metadata
+from tests.app.v1.routers.uploads.common import assert_upload
 
+from tests.utils import build_url, set_upload_entry_metadata
 from tests.test_files import (
     example_file_mainfile_different_atoms,
     example_file_vasp_with_binary,
@@ -41,7 +42,11 @@ from tests.processing.test_edit_metadata import (
     all_coauthor_metadata,
     all_admin_metadata,
 )
-from tests.app.v1.routers.common import assert_response, assert_browser_download_headers
+from tests.app.v1.routers.common import (
+    assert_response,
+    assert_browser_download_headers,
+    perform_get,
+)
 from nomad import config, files, infrastructure
 from nomad.config.models import BundleImportSettings
 from nomad.processing import Upload, Entry, ProcessStatus
@@ -49,30 +54,17 @@ from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.bundles import BundleExporter
 from nomad.datamodel import EntryMetadata
 
-from .test_entries import assert_archive_response
+from ..test_entries import assert_archive_response
 
 """
 These are the tests for all API operations below ``uploads``. The tests are organized
-using the following type of methods: fixtures, ``perfrom_*_test``, ``assert_*``, and
+using the following type of methods: fixtures, ``perform_*``, ``assert_*``, and
 ``test_*``. While some ``test_*`` methods test individual API operations, some
 test methods will test multiple API operations that use common aspects like
 supporting queries, pagination, or the owner parameter. The test methods will use
-``perform_*_test`` methods as an parameter. Similarely, the ``assert_*`` methods allow
+``perform_*`` methods as a parameter. Similarly, the ``assert_*`` methods allow
 to assert for certain aspects in the responses.
 """
-
-
-def perform_get(
-    client, base_url, user_auth=None, accept='application/json', **query_args
-):
-    headers = {}
-    if accept:
-        headers['Accept'] = accept
-    if user_auth:
-        headers.update(user_auth)
-
-    response = client.get(build_url(base_url, query_args), headers=headers)
-    return response
 
 
 def perform_post_put_file(
@@ -263,29 +255,6 @@ def assert_expected_mainfiles(upload_id, expected_mainfiles):
                 assert entry.process_status == ProcessStatus.SUCCESS
             else:
                 assert entry.process_status == ProcessStatus.FAILURE
-
-
-def assert_upload(response_json, **kwargs):
-    data = response_json['data']
-    assert 'upload_id' in response_json
-    assert 'upload_id' in data
-    assert 'upload_create_time' in data
-    assert 'main_author' in data
-    assert 'coauthors' in data
-    assert 'reviewers' in data
-    assert 'viewers' in data
-    assert 'writers' in data
-    assert 'published' in data
-    assert 'with_embargo' in data
-    assert 'embargo_length' in data
-    assert 'license' in data
-    assert (data['embargo_length'] > 0) == data['with_embargo']
-    if data['published']:
-        assert 'publish_time' in data
-
-    for key, value in kwargs.items():
-        assert data.get(key, None) == value
-    return data
 
 
 def assert_upload_does_not_exist(client, upload_id: str, user_auth):
@@ -736,7 +705,6 @@ def test_get_upload(
     client,
     mongo_module,
     test_auth_dict,
-    example_data,
     user,
     upload_id,
     expected_status_code,
@@ -2872,18 +2840,7 @@ def test_post_upload_edit(
         assert_response(response, expected_status_code)
     else:
         assert_response(response, 200)
-        assert_metadata_edited(
-            user,
-            upload_id,
-            query,
-            metadata,
-            entries,
-            entries_key,
-            verify_only,
-            expected_metadata,
-            affected_upload_ids,
-            edit_start,
-        )
+        assert_metadata_edited(user, expected_metadata, affected_upload_ids, edit_start)
 
 
 @pytest.mark.parametrize(
@@ -3584,18 +3541,7 @@ def test_post_upload_action_lift_embargo(
     response = perform_post_upload_action(client, user_auth, upload_id, 'lift-embargo')
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_metadata_edited(
-            user,
-            upload_id,
-            None,
-            None,
-            None,
-            None,
-            False,
-            {'embargo_length': 0},
-            [upload_id],
-            None,
-        )
+        assert_metadata_edited(user, {'embargo_length': 0}, [upload_id])
 
 
 @pytest.mark.parametrize(

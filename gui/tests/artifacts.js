@@ -458,6 +458,19 @@ window.nomadArtifacts = {
       "aggregatable": false,
       "dynamic": false
     },
+    "writer_groups": {
+      "name": "writer_groups",
+      "description": "Groups with write access (= coauthor groups).",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "0..*"
+      ],
+      "aggregatable": true,
+      "dynamic": false
+    },
     "viewers.name": {
       "name": "name",
       "type": {
@@ -498,6 +511,19 @@ window.nomadArtifacts = {
         "0..*"
       ],
       "aggregatable": false,
+      "dynamic": false
+    },
+    "viewer_groups": {
+      "name": "viewer_groups",
+      "description": "Groups with read access (= coauthor groups + reviewer groups).",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "0..*"
+      ],
+      "aggregatable": true,
       "dynamic": false
     },
     "datasets.dataset_id": {
@@ -28290,6 +28316,25 @@ window.nomadArtifacts = {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
                 "m_parent_index": 34,
                 "m_parent_sub_section": "quantities",
+                "name": "coauthor_groups",
+                "description": "A list of co-author groups for the whole upload, cf. `coauthors`.",
+                "categories": [
+                  "/packages/14/category_definitions/1",
+                  "/packages/14/category_definitions/0"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "0..*"
+                ],
+                "default": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 35,
+                "m_parent_sub_section": "quantities",
                 "name": "entry_coauthors",
                 "description": "A user provided list of co-authors specific for this entry. This is a legacy field,\nfor new uploads, coauthors should be specified on the upload level only.",
                 "categories": [
@@ -28306,7 +28351,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 35,
+                "m_parent_index": 36,
                 "m_parent_sub_section": "quantities",
                 "name": "reviewers",
                 "description": "A user provided list of reviewers. Reviewers can see the whole upload, also if\nit is unpublished or embargoed",
@@ -28325,7 +28370,26 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 36,
+                "m_parent_index": 37,
+                "m_parent_sub_section": "quantities",
+                "name": "reviewer_groups",
+                "description": "A list of reviewer groups, cf. `reviewers`.",
+                "categories": [
+                  "/packages/14/category_definitions/1",
+                  "/packages/14/category_definitions/0"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "0..*"
+                ],
+                "default": []
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 38,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28345,7 +28409,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 37,
+                "m_parent_index": 39,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28365,7 +28429,27 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 38,
+                "m_parent_index": 40,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "writer_groups"
+                  ]
+                },
+                "name": "writer_groups",
+                "description": "Groups with write access (= coauthor groups).",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "0..*"
+                ],
+                "virtual": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 41,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28385,7 +28469,27 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 39,
+                "m_parent_index": 42,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "viewer_groups"
+                  ]
+                },
+                "name": "viewer_groups",
+                "description": "Groups with read access (= coauthor groups + reviewer groups).",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "0..*"
+                ],
+                "virtual": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 43,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28409,7 +28513,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 40,
+                "m_parent_index": 44,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28428,7 +28532,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 41,
+                "m_parent_index": 45,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28445,7 +28549,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 42,
+                "m_parent_index": 46,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
@@ -28465,7 +28569,7 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 43,
+                "m_parent_index": 47,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [

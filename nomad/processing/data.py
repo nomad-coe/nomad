@@ -85,6 +85,7 @@ from nomad.files import (
     create_tmp_dir,
     is_safe_relative_path,
 )
+from nomad.groups import UserGroup, get_user_ids_by_group_ids
 from nomad.processing.base import (
     Proc,
     process,
@@ -388,19 +389,24 @@ class MetadataEditRequestHandler:
                 if self.edit_request_obj.query:
                     return self._error('No matching entries found', 'query')
                 return self._error('No matching upload found', 'upload_id')
+
+            is_admin = self.user.is_admin
+            group_ids = self.user.get_group_ids()
             for upload in self.affected_uploads:
-                # Check permissions
-                coauthor = upload.coauthors and self.user.user_id in upload.coauthors
-                main_author = self.user.user_id == upload.main_author
-                admin = self.user.is_admin
+                is_main_author = self.user.user_id == upload.main_author
+                is_coauthor = self.user.user_id in upload.coauthors or (
+                    not set(group_ids).isdisjoint(upload.writer_groups)
+                )
+
                 if self.required_auth_level == AuthLevel.coauthor:
-                    has_access = coauthor or main_author or admin
+                    has_access = is_admin or is_main_author or is_coauthor
                 elif self.required_auth_level == AuthLevel.main_author:
-                    has_access = main_author or admin
+                    has_access = is_admin or is_main_author
                 elif self.required_auth_level == AuthLevel.admin:
-                    has_access = admin
+                    has_access = is_admin
                 else:
                     assert False, 'Invalid required_auth_level'  # Should not happen
+
                 if not has_access:
                     for loc in self.required_auth_level_locs:
                         self._error(
@@ -409,9 +415,14 @@ class MetadataEditRequestHandler:
                             loc,
                         )
                     return
+
                 # Other checks
                 if embargo_length is not None:
-                    if upload.published and not admin and embargo_length != 0:
+                    if (
+                        upload.published
+                        and not self.user.is_admin
+                        and embargo_length != 0
+                    ):
                         self._error(
                             f'Upload {upload.upload_id} is published, embargo can only be lifted',
                             ('metadata', 'embargo_length'),
@@ -1641,8 +1652,10 @@ class Upload(Proc):
         external_db: the repository or external database where the original data resides
         main_author: The id of the main author of this upload (normally its creator).
         coauthors: A list of upload coauthors.
+        coauthor_groups: A list of coauthor groups, cf. `coauthors`.
         reviewers: A user provided list of reviewers. Reviewers can see the whole upload,
             also if it is unpublished or embargoed.
+        reviewer_groups: A list of reviewer groups, cf. `reviewers`.
         publish_time: Datetime when the upload was initially published on this NOMAD deployment.
         last_update: Datetime of the last modifying process run (publish, processing, upload).
 
@@ -1660,7 +1673,9 @@ class Upload(Proc):
     external_db = StringField()
     main_author = StringField(required=True)
     coauthors = ListField(StringField())
+    coauthor_groups = ListField(StringField())
     reviewers = ListField(StringField())
+    reviewer_groups = ListField(StringField())
     last_update = DateTimeField()
     publish_time = DateTimeField()
     embargo_length = IntField(default=0, required=True)
@@ -1686,17 +1701,27 @@ class Upload(Proc):
     }
 
     @property
-    def viewers(self):
-        # It is possible to set a user as both coauthor and reviewer, need to ensure no duplicates
-        rv = [self.main_author] + self.coauthors
-        for user_id in self.reviewers:
-            if user_id not in rv:
-                rv.append(user_id)
+    def viewers(self) -> set[str]:
+        rv = {self.main_author}
+        rv.update(self.coauthors, self.reviewers)
         return rv
 
     @property
-    def writers(self):
-        return [self.main_author] + self.coauthors
+    def viewer_groups(self) -> set[str]:
+        rv = set(self.coauthor_groups)
+        rv.update(self.reviewer_groups)
+        return rv
+
+    @property
+    def writers(self) -> set[str]:
+        rv = {self.main_author}
+        rv.update(self.coauthors)
+        return rv
+
+    @property
+    def writer_groups(self) -> set[str]:
+        rv = set(self.coauthor_groups)
+        return rv
 
     def __init__(self, **kwargs):
         kwargs.setdefault('upload_create_time', datetime.utcnow())

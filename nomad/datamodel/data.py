@@ -188,6 +188,14 @@ class User(Author):
         assert self.user_id is not None
         return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
 
+    @cached(cache=TTLCache(maxsize=2048, ttl=60))
+    def get_group_ids(self):
+        from nomad.groups import UserGroup
+
+        groups = UserGroup.get_by_user_id(self.user_id)
+        group_ids = [group.group_id for group in groups]
+        return group_ids
+
 
 class UserReference(Reference):
     """

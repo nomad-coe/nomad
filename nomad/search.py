@@ -44,6 +44,7 @@ from typing import (
     Generator,
     Callable,
     Optional,
+    Sequence,
 )
 import sys
 import re
@@ -67,6 +68,7 @@ from nomad.datamodel import (
     user_reference,
     author_reference,
 )
+from nomad.groups import UserGroup
 from nomad.metainfo import Quantity, Datetime, Package
 from nomad.app.v1.models.models import (
     AggregationPagination,
@@ -618,42 +620,52 @@ def _es_to_entry_dict(
 
 
 def _owner_es_query(
-    owner: str, user_id: str = None, doc_type: DocumentType = entry_type
+    owner: str,
+    user_id: str = None,
+    doc_type: DocumentType = entry_type,
 ):
-    def term_query(**kwargs):
+    def query(query_type='term', **kwargs):
         prefix = '' if doc_type == entry_type else 'entries.'
-        return Q('term', **{(prefix + field): value for field, value in kwargs.items()})
+        return Q(
+            query_type, **{(prefix + field): value for field, value in kwargs.items()}
+        )
+
+    def viewers_query(user_id: str) -> Q:
+        user_group_ids = UserGroup.get_ids_by_user_id(user_id)
+        q = query(viewers__user_id=user_id)
+        q |= query('terms', viewer_groups=user_group_ids)
+        return q
 
     if owner == 'all':
-        q = term_query(published=True)
+        q = query(published=True)
         if user_id is not None:
-            q = q | term_query(viewers__user_id=user_id)
+            q |= viewers_query(user_id)
     elif owner == 'public':
-        q = term_query(published=True) & term_query(with_embargo=False)
+        q = query(published=True) & query(with_embargo=False)
     elif owner == 'visible':
-        q = term_query(published=True) & term_query(with_embargo=False)
+        q = query(published=True) & query(with_embargo=False)
         if user_id is not None:
-            q = q | term_query(viewers__user_id=user_id)
+            q |= viewers_query(user_id)
     elif owner == 'shared':
         if user_id is None:
             raise AuthenticationRequiredError(
                 'Authentication required for owner value shared.'
             )
 
-        q = term_query(viewers__user_id=user_id)
+        q = viewers_query(user_id)
     elif owner == 'user':
         if user_id is None:
             raise AuthenticationRequiredError(
                 'Authentication required for owner value user.'
             )
 
-        q = term_query(main_author__user_id=user_id)
+        q = query(main_author__user_id=user_id)
     elif owner == 'staging':
         if user_id is None:
             raise AuthenticationRequiredError(
                 'Authentication required for owner value user'
             )
-        q = term_query(published=False) & term_query(viewers__user_id=user_id)
+        q = query(published=False) & viewers_query(user_id)
     elif owner == 'admin':
         if user_id is None or not datamodel.User.get(user_id=user_id).is_admin:
             raise AuthenticationRequiredError(

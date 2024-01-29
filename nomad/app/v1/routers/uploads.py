@@ -140,15 +140,28 @@ class UploadProcData(ProcData):
     )
     main_author: str = Field(None, description=strip('The main author of the upload.'))
     coauthors: List[str] = Field(None, description=strip('A list of upload coauthors.'))
-    reviewers: List[str] = Field(
-        None, description=strip('A user provided list of reviewers.')
+    coauthor_groups: List[str] = Field(
+        None, description=strip('A list of upload coauthor groups.')
+    )
+    reviewers: List[str] = Field(None, description=strip('A list of upload reviewers.'))
+    reviewer_groups: List[str] = Field(
+        None, description=strip('A list of upload reviewer groups.')
+    )
+    writers: List[str] = Field(
+        None, description=strip('All writer users (main author, upload coauthors).')
+    )
+    writer_groups: List[str] = Field(
+        None, description=strip('All writer groups (coauthor groups).')
     )
     viewers: List[str] = Field(
         None,
-        description=strip('All viewers (main author, upload coauthors, and reviewers)'),
+        description=strip(
+            'All viewer users (main author, upload coauthors, and reviewers)'
+        ),
     )
-    writers: List[str] = Field(
-        None, description=strip('All writers (main author, upload coauthors)')
+    viewer_groups: List[str] = Field(
+        None,
+        description=strip('All viewer groups (coauthor groups, reviewer groups).'),
     )
     published: bool = Field(False, description='If this upload is already published.')
     published_to: List[str] = Field(
@@ -707,21 +720,7 @@ async def get_uploads(
     """
     # Build query
     mongo_query = Q()
-
-    user_id = str(user.user_id)
-    if not roles:
-        role_query = (
-            Q(main_author=user_id) | Q(reviewers=user_id) | Q(coauthors=user_id)
-        )
-    else:
-        role_query = Q()
-        if UploadRole.main_author in roles:
-            role_query |= Q(main_author=user_id)
-        if UploadRole.coauthor in roles:
-            role_query |= Q(coauthors=user_id)
-        if UploadRole.reviewer in roles:
-            role_query |= Q(reviewers=user_id)
-    mongo_query &= role_query
+    mongo_query &= get_role_query(roles, user)
 
     if query.upload_id:
         mongo_query &= Q(upload_id__in=query.upload_id)
@@ -2576,19 +2575,68 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
+def get_role_query(roles: List[UploadRole], user: User) -> Q:
+    """
+    Create MongoDB filter query for user with given roles (default: all roles)
+    """
+    if not roles:
+        roles = list(UploadRole)
+
+    group_ids = user.get_group_ids()
+
+    role_query = Q()
+    if UploadRole.main_author in roles:
+        role_query |= Q(main_author=user.user_id)
+    if UploadRole.coauthor in roles:
+        role_query |= Q(coauthors=user.user_id) | Q(coauthor_groups__in=group_ids)
+    if UploadRole.reviewer in roles:
+        role_query |= Q(reviewers=user.user_id) | Q(reviewer_groups__in=group_ids)
+
+    return role_query
+
+
+def is_user_upload_viewer(upload: Upload, user: User):
+    if user.is_admin:
+        return True
+
+    if user.user_id in upload.viewers:
+        return True
+
+    group_ids = user.get_group_ids()
+    if not set(group_ids).isdisjoint(upload.viewer_groups):
+        return True
+
+    return False
+
+
+def is_user_upload_writer(upload: Upload, user: User):
+    if user.is_admin:
+        return True
+
+    if user.user_id in upload.writers:
+        return True
+
+    group_ids = user.get_group_ids()
+    if not set(group_ids).isdisjoint(upload.writer_groups):
+        return True
+
+    return False
+
+
 def get_upload_with_read_access(
     upload_id: str, user: User, include_others: bool = False
 ) -> Upload:
     """
-    Determines if the specified user has read access to the specified upload. If so, the
-    corresponding Upload object is returned. If the upload does not exist, or the user has
-    no read access to it, a HTTPException is raised.
+    Determines if the user has read access to the upload. If so, the corresponding Upload
+    object is returned. If the upload does not exist, or the user has no read access to
+    it, an HTTPException is raised.
 
     Arguments:
         upload_id: The id of the requested upload.
         user: The authenticated user, if any.
-        include_others: If uploads owned by others should be included. Access to the uploads
-            of other users is only granted if the upload is published and not under embargo.
+        include_others: If uploads owned by others should be included. Access to the
+        uploads of other users is only granted if the upload is published and not under
+        embargo.
     """
     mongodb_query = _query_mongodb(upload_id=upload_id)
     upload = mongodb_query.first()
@@ -2600,36 +2648,11 @@ def get_upload_with_read_access(
             The specified upload_id was not found."""
             ),
         )
-    if user and (user.is_admin or (str(user.user_id) in upload.viewers)):
-        # Ok, the user a viewer, or we have an admin user
+
+    if user and is_user_upload_viewer(upload, user):
         return upload
-    elif include_others:
-        if not upload.published:
-            if user:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=strip(
-                        """
-                    You do not have access to the specified upload."""
-                    ),
-                )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
-                You need to log in to access the specified upload."""
-                ),
-            )
-        if upload.published and upload.with_embargo:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
-                You do not have access to the specified upload - published with embargo."""
-                ),
-            )
-        return upload
-    else:
+
+    if not include_others:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=strip(
@@ -2637,6 +2660,34 @@ def get_upload_with_read_access(
             You do not have access to the specified upload."""
             ),
         )
+
+    if not upload.published:
+        if user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=strip(
+                    """
+                You do not have access to the specified upload."""
+                ),
+            )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=strip(
+                """
+            You need to log in to access the specified upload."""
+            ),
+        )
+
+    if upload.with_embargo:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=strip(
+                """
+            You do not have access to the specified upload - published with embargo."""
+            ),
+        )
+
+    return upload
 
 
 def _get_upload_with_write_access(
@@ -2648,9 +2699,9 @@ def _get_upload_with_write_access(
     only_main_author: bool = False,
 ) -> Upload:
     """
-    Determines if the specified user has write access to the specified upload. If so, the
-    corresponding Upload object is returned. If the upload does not exist, or the user has
-    no write access to it, a HTTPException is raised.
+    Determines if the user has write access to the upload. If so, the corresponding Upload
+    object is returned. If the upload does not exist, or the user has no write access to
+    it, an HTTPException is raised.
     """
     if not user:
         raise HTTPException(
@@ -2660,6 +2711,7 @@ def _get_upload_with_write_access(
             User authentication required to access uploads."""
             ),
         )
+
     mongodb_query = _query_mongodb(upload_id=upload_id)
     if not mongodb_query.count():
         raise HTTPException(
@@ -2670,48 +2722,54 @@ def _get_upload_with_write_access(
             ),
         )
     upload = mongodb_query.first()
-    if not user.is_admin and upload.main_author != str(user.user_id):
-        if not upload.coauthors or str(user.user_id) not in upload.coauthors:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
+
+    if not is_user_upload_writer(upload, user):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=strip(
+                """
                 You do not have write access to the specified upload."""
-                ),
-            )
-        if only_main_author:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
-                Only main author has permissions for this operation."""
-                ),
-            )
-    if upload.published:
-        is_failed_import = (
-            upload.current_process.startswith('import_bundle')
-            and upload.process_status == ProcessStatus.FAILURE
+            ),
         )
-        if not include_published:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
-                Upload is already published, operation not possible."""
-                ),
-            )
-        if (
-            published_requires_admin
-            and not user.is_admin
-            and not (is_failed_import and include_failed_imports)
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
-                Upload is already published, only admins can perform this operation."""
-                ),
-            )
+
+    if only_main_author and not user.is_admin and upload.main_author != user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=strip(
+                """
+            Only main author has permissions for this operation."""
+            ),
+        )
+
+    if not upload.published:
+        return upload
+
+    if not include_published:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=strip(
+                """
+            Upload is already published, operation not possible."""
+            ),
+        )
+
+    is_failed_import = (
+        upload.current_process.startswith('import_bundle')
+        and upload.process_status == ProcessStatus.FAILURE
+    )
+    if (
+        published_requires_admin
+        and not user.is_admin
+        and not (is_failed_import and include_failed_imports)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=strip(
+                """
+            Upload is already published, only admins can perform this operation."""
+            ),
+        )
+
     return upload
 
 

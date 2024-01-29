@@ -40,6 +40,7 @@ from .routers import (
     systems,
     federation,
     graph,
+    groups,
 )
 
 logger = utils.get_logger(__name__)
@@ -125,3 +126,4 @@ if config.north.enabled:
     app.include_router(north.router, prefix='/north')
 app.include_router(systems.router, prefix='/systems')
 app.include_router(graph.router, prefix='/graph')
+app.include_router(groups.router, prefix='/groups')
