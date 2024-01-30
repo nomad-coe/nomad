@@ -439,7 +439,7 @@ class TableData(ArchiveSection):
                 ref_entry_name: str = child_section.m_def.more.get(
                     'label_quantity', None
                 )
-                filename = f'{ref_entry_name}_{index}.{child_section.m_def.name}.archive.{file_type}'
+                filename = f'{getattr(child_section, ref_entry_name, None)}_{index}.{child_section.m_def.name}.archive.{file_type}'
             else:
                 filename = f'{mainfile_name}_{index}.{child_section.m_def.name}.archive.{file_type}'
 
