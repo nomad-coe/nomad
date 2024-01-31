@@ -35,6 +35,7 @@ from nomad.metainfo import (
     MetainfoError,
     Context,
     MProxy,
+    Section,
 )
 from nomad.datamodel import EntryArchive, ClientContext
 from nomad.archive.storage import TOCPacker, _decode, _entries_per_block, to_json
@@ -51,7 +52,6 @@ from nomad.archive import (
     RequiredReader,
 )
 from nomad.utils.exampledata import ExampleData
-from tests.normalizing.conftest import simulationworkflowschema, SCHEMA_IMPORT_ERROR
 
 
 def create_example_uuid(index: int = 0):
@@ -367,6 +367,7 @@ def json_dict():
     },
     "run": [
         {
+            "m_def": "runschema.run.Run",
             "system": [
                 {
                     "atoms": {
@@ -1050,7 +1051,10 @@ def test_required_reader_with_remote_reference(
             assert_dict(ref_result, inplace_result)
     else:
         assert ref_result.endswith(f'/archive/{entry_id}#/workflow2')
-
+        # TODO include m_def in reader output?
+        for ref_archive in results.get('m_ref_archives').values():
+            for run in ref_archive.get('run', []):
+                run['m_def'] = 'runschema.run.Run'
         archive_obj = EntryArchive.m_from_dict(results, m_context=ClientContext())
         assert isinstance(archive_obj.workflow2.tasks[0].task, MProxy)
 

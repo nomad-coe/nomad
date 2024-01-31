@@ -31,10 +31,7 @@ from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
 from nomad.datamodel.metainfo.workflow import Workflow
-from nomad.datamodel.metainfo.simulation.system import (
-    System,
-    Symmetry as SystemSymmetry,
-)
+from nomad.datamodel.data import ArchiveSection
 from nomad.normalizing.common import structures_2d
 from nomad.datamodel.results import (
     BandGap,
@@ -98,6 +95,7 @@ def isint(value: Any) -> bool:
 
 class ResultsNormalizer(Normalizer):
     domain = None
+    normalizer_level = 3
 
     def normalize(self, logger=None) -> None:
         # Setup logger
@@ -947,7 +945,9 @@ class ResultsNormalizer(Normalizer):
 
         return msds
 
-    def properties(self, repr_system: System, repr_symmetry: SystemSymmetry) -> tuple:
+    def properties(
+        self, repr_system: ArchiveSection, repr_symmetry: ArchiveSection
+    ) -> tuple:
         """Returns a populated Properties subsection."""
         properties = Properties()
 

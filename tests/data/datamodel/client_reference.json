@@ -1,6 +1,7 @@
 {
     "run": [
         {
+            "m_def": "runschema.run.Run",
             "calculation": [
                 {
                     "system_ref": "/run/0/system/0",

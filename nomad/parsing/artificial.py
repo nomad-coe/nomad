@@ -31,9 +31,7 @@ import os
 import signal
 
 from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import Electronic, XCFunctional, DFT
-from nomad.datamodel.metainfo.simulation.system import Atoms
+from nomad.datamodel.metainfo import runschema
 
 from .parser import Parser, MatchingParser
 
@@ -43,13 +41,12 @@ class EmptyParser(MatchingParser):
     Implementation that produces an empty code_run
     """
 
-    name = 'parsers/empty'
-
     def parse(
         self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
     ) -> None:
-        run = archive.m_create(Run)
-        run.program = Program(name=self.code_name)
+        run = runschema.run.Run()
+        archive.run.append(run)
+        run.program = runschema.run.Program(name=self.code_name)
 
 
 class TemplateParser(Parser):
@@ -227,6 +224,9 @@ class GenerateRandomParser(TemplateParser):
 
         run = archive.run[0]
 
+        if not runschema:
+            return
+
         for system in run.system:
             atoms = []
             atom_positions = []
@@ -239,16 +239,18 @@ class GenerateRandomParser(TemplateParser):
                     atoms.append(atom)
                     atom_positions.append([0.0, 0.0, 0.0])
 
-            system.atoms = Atoms(labels=atoms, positions=atom_positions)
+            system.atoms = runschema.system.Atoms(
+                labels=atoms, positions=atom_positions
+            )
 
         run.program_basis_set_type = random.choice(GenerateRandomParser.basis_set_types)
 
         for method in run.method:
-            method.electronic = Electronic(
+            method.electronic = runschema.method.Electronic(
                 method=random.choice(GenerateRandomParser.electronic_structure_methods)
             )
-            method.dft = DFT(
-                xc_functional=XCFunctional(
+            method.dft = runschema.method.DFT(
+                xc_functional=runschema.method.XCFunctional(
                     name=random.choice(GenerateRandomParser.XC_functional_names)
                 )
             )

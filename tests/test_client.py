@@ -24,7 +24,7 @@ import pytest
 from nomad.app.main import app
 from nomad.client.archive import ArchiveQuery
 from nomad.datamodel import EntryArchive, User
-from nomad.datamodel.metainfo.simulation.run import Run
+from nomad.datamodel.metainfo import runschema, SCHEMA_IMPORT_ERROR
 from nomad.metainfo import MSection, SubSection
 from tests.conftest import test_users
 from tests.processing import test_data as test_processing
@@ -112,12 +112,13 @@ def test_async_query_basic(async_api_v1, published_wo_user_metadata):
     assert_results(async_query.download())
 
 
+@pytest.mark.skipif(runschema is None, reason=SCHEMA_IMPORT_ERROR)
 @pytest.mark.parametrize(
     'q_required,sub_sections',
     [
         ({'run': '*'}, [EntryArchive.run]),
-        ({'run': {'system': '*'}}, [EntryArchive.run, Run.system]),
-        ({'run[0]': {'system': '*'}}, [EntryArchive.run, Run.system]),
+        ({'run': {'system': '*'}}, [EntryArchive.run, runschema.run.Run.system]),
+        ({'run[0]': {'system': '*'}}, [EntryArchive.run, runschema.run.Run.system]),
     ],
 )
 def test_async_query_required(

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-from nomad.datamodel.data import EntryData, ArchiveSection
+from nomad.datamodel.data import ArchiveSection
 from . import Normalizer
 
 

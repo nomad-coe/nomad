@@ -7,13 +7,9 @@ from nomad.parsing.file_parser import (
     Quantity,
     ParsePattern,
     XMLParser,
-    BasicParser,
     FileParser,
 )
-from nomad.datamodel.metainfo.simulation.system import Atoms
-from nomad.datamodel import EntryArchive
-from nomad.datamodel.metainfo.simulation.run import Run
-from nomad.datamodel.metainfo.simulation.calculation import Calculation
+from nomad.datamodel.metainfo.system import Atoms
 
 
 class TestFileParser:
@@ -71,15 +67,6 @@ class TestFileParser:
         text_parser.mainfile = 'tests/data/parsers/vasp_outcar/OUTCAR'
         assert text_parser.energy[1] == 1.70437998
         assert text_parser.get('energy', unit='eV')[1].magnitude == 1.70437998
-
-    def test_write_to_archive(self, parser):
-        for create_section in [True, False]:
-            archive = EntryArchive()
-            if create_section:
-                archive.m_create(Run).m_create(Calculation)
-            archive = parser.write_to_archive(archive)
-            assert archive.run[0].clean_end
-            assert archive.run[0].calculation[0].time_calculation.magnitude == 2.0
 
 
 class TestTextParser:
@@ -481,31 +468,3 @@ class TestXMLParser:
             parser.get('structure[1]/crystal[1]/varray[1]/v[1]')
             == np.array([4.00419668, 0.0, 0.0])
         ).all()
-
-
-class TestBasicParser:
-    @pytest.fixture(scope='class')
-    def onetep_parser(self):
-        re_f = r'\-*\d+\.\d+E*\-*\+*\d+'
-        return BasicParser(
-            'ONETEP',
-            units_mapping=dict(energy=ureg.hartree, length=ureg.bohr),
-            auxilliary_files=r'([\w\-]+\.dat)',
-            program_version=r'Version\s*([\d\.]+)',
-            lattice_vectors=r'\%block lattice_cart\s*([\s\S]+?)\%endblock lattice_cart',
-            atom_labels_atom_positions=rf'\%block positions\_abs\s*(\w+\s+{re_f}\s+{re_f}\s+{re_f}[\s\S]+?)\%endblock positions\_abs',
-            XC_functional=r'xc\_functional\s*\:\s*(\w+)',
-            energy_total=rf'Total energy\s*=\s*({re_f})\s*Eh',
-        )
-
-    def test_onetep_parser(self, onetep_parser):
-        archive = EntryArchive()
-        onetep_parser.parse(
-            'tests/data/parsers/onetep/fluor/12-difluoroethane.out', archive, None
-        )
-
-        assert archive.run[0].program.version == '4.5.3.32'
-        assert len(archive.run[0].calculation) == 4
-        sec_system = archive.run[0].system[0]
-        assert sec_system.atoms.labels[7] == 'H'
-        assert np.shape(sec_system.atoms.positions) == (8, 3)

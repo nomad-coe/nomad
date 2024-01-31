@@ -77,7 +77,7 @@ definitions:
             eln:
               component: StringEditQuantity
         section:
-          type: nomad.datamodel.metainfo.simulation.calculation.BandStructure
+          type: runschema.calculation.BandStructure
           m_annotations:
             eln:
               component: ReferenceEditQuantity

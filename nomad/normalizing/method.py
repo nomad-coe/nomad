@@ -22,17 +22,15 @@ import re
 import numpy as np
 from typing import List, Tuple, Union, Optional
 
-from nomad.datamodel import EntryArchive
+from nomad.datamodel import EntryArchive, ArchiveSection
 from nomad.metainfo import MSection
 from nomad.units import ureg
 from nomad.metainfo import Section
 from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
 from nomad import config
-from nomad.datamodel.metainfo.simulation.method import KMesh, Method as MethodRun
 from nomad.datamodel.results import (
     Method,
-    Electronic,
     Simulation,
     HubbardKanamoriModel,
     DFT,
@@ -230,11 +228,9 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
                 if core_method is not None:
                     if sec_method.electronic:
                         electronic = core_method.electronic
-                        electronic = (
-                            electronic
-                            if electronic
-                            else core_method.m_create(Electronic)
-                        )
+                        if not electronic:
+                            electronic = sec_method.electronic.m_def.section_cls()
+                            core_method.electronic = electronic
                         core_method.electronic.method = sec_method.electronic.method
                     repr_method = core_method
                     method_name = get_method_name(repr_method)
@@ -380,7 +376,12 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
                         pass  # this is a quick workaround: k_mesh.grid should be symmetry reduced
         else:
             if self.run.m_xpath('calculation[-1].eigenvalues[-1].kpoints') is not None:
-                k_mesh = self.run.method[-1].m_create(KMesh)
+                k_mesh = (
+                    self.run.method[-1]
+                    .m_def.all_sub_sections['k_mesh']
+                    .sub_section.section_cls()
+                )
+                self.run.method[-1].k_mesh = k_mesh
                 k_mesh.points = self.run.calculation[-1].eigenvalues[-1].kpoints
                 k_mesh.n_points = (
                     len(k_mesh.points) if not k_mesh.n_points else k_mesh.n_points
@@ -501,8 +502,8 @@ class ElectronicMethod(ABC):
         self,
         logger,
         entry_archive: EntryArchive = None,
-        methods: List[MethodRun] = [None],
-        repr_method: MethodRun = None,
+        methods: List[ArchiveSection] = [None],
+        repr_method: ArchiveSection = None,
         repr_system: MSection = None,
         method: Method = None,
         method_def: dict = {},
@@ -511,7 +512,7 @@ class ElectronicMethod(ABC):
             mandatory_keys=[None], optional_keys=[None], forbidden_values=[None]
         ),
         functional_long_name: str = '',
-        xs_method: MethodRun = None,
+        xs_method: ArchiveSection = None,
     ) -> None:
         self._logger = logger
         self._entry_archive = entry_archive
@@ -578,7 +579,7 @@ class DFTMethod(ElectronicMethod):
         )
         return simulation
 
-    def basis_set_type(self, repr_method: MethodRun) -> Optional[str]:
+    def basis_set_type(self, repr_method: ArchiveSection) -> Optional[str]:
         name = None
         for em in repr_method.electrons_representation or []:
             if em.scope:
@@ -633,7 +634,7 @@ class DFTMethod(ElectronicMethod):
         return name
 
     def hubbard_kanamori_model(
-        self, methods: List[MethodRun]
+        self, methods: List[ArchiveSection]
     ) -> List[HubbardKanamoriModel]:
         """Generate a list of normalized HubbardKanamoriModel for `results.method`"""
         hubbard_kanamori_models = []

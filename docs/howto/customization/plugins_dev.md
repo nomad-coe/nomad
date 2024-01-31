@@ -291,9 +291,9 @@ prefix. This is done with the
 
 ```py
 from nomad.metainfo import Section
-from nomad.datamodel.metainfo.simulation import Method
+from nomad.datamodel.metainfo.workflow import Workflow
 
-class MyCodeRun(Method)
+class MyCodeRun(Workflow)
     m_def = Section(extends_base_section=True)
     x_mycode_execution_mode = Quantity(
         type=MEnum('hpc', 'parallel', 'single'), description='...')

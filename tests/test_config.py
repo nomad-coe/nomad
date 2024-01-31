@@ -212,7 +212,7 @@ def test_plugin_polymorphism():
             schema:
                 plugin_type: schema
                 name: test
-                python_package: nomad.datamodel.metainfo.simulation
+                python_package: runschema
     """
         ),
     )

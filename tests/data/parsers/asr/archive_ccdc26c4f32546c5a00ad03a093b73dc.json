@@ -1,6 +1,7 @@
 {
     "run": [
         {
+            "m_def": "runschema.run.Run",
             "x_asr_resources": {
                 "x_asr_execution_start": 1632436989.9594831,
                 "x_asr_execution_end": 1632437000.5300207,

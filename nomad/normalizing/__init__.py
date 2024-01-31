@@ -36,29 +36,55 @@ There is one ABC for all normalizer:
     :members:
 """
 
-from typing import List, Type
 import importlib
+from typing import Any, Iterator
+from collections import UserList
+from .normalizer import Normalizer
 
 from nomad import config
 
-from .normalizer import Normalizer
 
-
-normalizers: List[Type[Normalizer]] = []
-
-
-def add_normalizer(class_name: str):
+def import_normalizer(class_name: str):
     try:
         package, cls = class_name.rsplit('.', 1)
-        normalizer = getattr(importlib.import_module(package), cls)
-        normalizers.append(normalizer)
+        return getattr(importlib.import_module(package), cls)
     except Exception as e:
         raise ImportError(f'Cannot import normalizer {class_name}', e)
 
 
+class SortedNormalizers(UserList):
+    def __iter__(self) -> Iterator:
+        self.sort(key=lambda x: x.normalizer_level)
+        return super().__iter__()
+
+
+class NormalizerInterface:
+    def __init__(self, path: str) -> None:
+        self._path = path
+        self._cls = None
+
+    @property
+    def normalizer_class(self):
+        if self._cls is None:
+            self._cls = import_normalizer(self._path)
+        return self._cls
+
+    def normalize(self, logger=None):
+        self.normalizer_class.normalize(logger)
+
+    def __call__(self, *args: Any) -> Any:
+        return self.normalizer_class(*args)
+
+    def __getattr__(self, name: str):
+        return getattr(self.normalizer_class, name, None)
+
+
+normalizers = SortedNormalizers([])
+
+
 for plugin_name, plugin in config.plugins.options.items():
     if isinstance(plugin, config.Normalizer) and config.plugins.filter(plugin_name):
-        add_normalizer(plugin.normalizer_class_name)
+        normalizers.append(NormalizerInterface(plugin.normalizer_class_name))
 
 for normalizer in config.normalize.normalizers.filtered_values():
-    add_normalizer(normalizer)
+    normalizers.append(NormalizerInterface(normalizer))

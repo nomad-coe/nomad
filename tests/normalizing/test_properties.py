@@ -28,9 +28,8 @@ from .conftest import (
     add_template_band_structure,
     get_template_band_structure,
     run_normalize,
-    simulationworkflowschema,
-    SCHEMA_IMPORT_ERROR,
 )
+from nomad.datamodel.metainfo import simulationworkflowschema, SCHEMA_IMPORT_ERROR
 
 
 def test_eels(eels):

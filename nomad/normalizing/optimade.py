@@ -27,10 +27,26 @@ from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.units import ureg
 from nomad.datamodel import OptimadeEntry, Species, EntryMetadata
-from nomad.datamodel.metainfo.simulation.system import Atoms, System
 
 
 species_re = re.compile(r'^([A-Z][a-z]?)(\d*)$')
+atom_label_re = re.compile(
+    '|'.join(sorted(ase.data.chemical_symbols, key=lambda x: len(x), reverse=True))
+)
+
+
+def normalized_atom_labels(atom_labels):
+    """
+    Normalizes the given atom labels: they either are labels right away, or contain
+    additional numbers (to distinguish same species but different labels, see meta-info),
+    or we replace them with ase placeholder atom for unknown elements 'X'.
+    """
+    return [
+        ase.data.chemical_symbols[0] if match is None else match.group(0)
+        for match in [
+            re.search(atom_label_re, atom_label) for atom_label in atom_labels
+        ]
+    ]
 
 
 # TODO this should be the default and not necessary
@@ -113,13 +129,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             except KeyError:
                 return default
 
-        from nomad.normalizing.system import normalized_atom_labels
-
         system = self.section_run.system[-1] if self.section_run.system else None
         if system is None:
             return optimade
 
-        nomad_species = get_value(Atoms.labels, source=system.atoms)
+        atoms_cls = system.m_def.all_sub_sections['atoms'].sub_section.section_cls
+        nomad_species = get_value(atoms_cls.labels, source=system.atoms)
         nomad_species = [] if nomad_species is None else nomad_species
 
         # elements
@@ -139,7 +154,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         ]
 
         # formulas
-        original_formula = get_value(System.chemical_composition_hill, source=system)
+        system_cls = self.section_run.m_def.all_sub_sections[
+            'system'
+        ].sub_section.section_cls
+        original_formula = get_value(
+            system_cls.chemical_composition_hill, source=system
+        )
         if original_formula is not None:
             formula = Formula(original_formula)
             optimade.chemical_formula_reduced = formula.format('reduced')
@@ -151,12 +171,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         optimade.nsites = len(nomad_species)
         optimade.species_at_sites = nomad_species
         optimade.lattice_vectors = get_value(
-            Atoms.lattice_vectors, numpy=True, unit=ureg.m, source=system.atoms
+            atoms_cls.lattice_vectors, numpy=True, unit=ureg.m, source=system.atoms
         )
         optimade.cartesian_site_positions = get_value(
-            Atoms.positions, numpy=True, unit=ureg.m, source=system.atoms
+            atoms_cls.positions, numpy=True, unit=ureg.m, source=system.atoms
         )
-        pbc = get_value(Atoms.periodic, source=system.atoms)
+        pbc = get_value(atoms_cls.periodic, source=system.atoms)
         if pbc is not None:
             optimade.dimension_types = [1 if value else 0 for value in pbc]
 

@@ -28,8 +28,8 @@ from nomad.units import ureg
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.results import Results, Material, System
-from nomad.datamodel.metainfo.simulation.run import Run
-from nomad.datamodel.metainfo.simulation.system import System as SystemRun, Atoms
+from nomad.datamodel.metainfo import runschema
+from nomad.datamodel.metainfo.system import Atoms
 from nomad.utils.exampledata import ExampleData
 from nomad.app.v1.routers.systems import format_map, FormatFeature, WrapModeEnum
 
@@ -74,35 +74,51 @@ def assert_atoms(
     assert np.array_equal(a.get_chemical_symbols(), b.get_chemical_symbols())
 
 
-atoms_with_cell = Atoms(
-    n_atoms=2,
-    labels=['C', 'H'],
-    species=[6, 1],
-    positions=np.array([[0, 0, 0], [1, 1, 1]]) * ureg.angstrom,
-    lattice_vectors=np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]) * ureg.angstrom,
-    periodic=[True, True, True],
+atoms_with_cell = (
+    runschema.system.Atoms(
+        n_atoms=2,
+        labels=['C', 'H'],
+        species=[6, 1],
+        positions=np.array([[0, 0, 0], [1, 1, 1]]) * ureg.angstrom,
+        lattice_vectors=np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]) * ureg.angstrom,
+        periodic=[True, True, True],
+    )
+    if runschema
+    else None
 )
 
-atoms_without_cell = Atoms(
-    n_atoms=2,
-    labels=['N', 'O'],
-    species=[7, 8],
-    positions=np.array([[0, 0, 0], [1, 1, 1]]) * ureg.angstrom,
+atoms_without_cell = (
+    runschema.system.Atoms(
+        n_atoms=2,
+        labels=['N', 'O'],
+        species=[7, 8],
+        positions=np.array([[0, 0, 0], [1, 1, 1]]) * ureg.angstrom,
+    )
+    if runschema
+    else None
 )
 
-atoms_missing_positions = Atoms(
-    n_atoms=2,
-    labels=['N', 'O'],
-    species=[7, 8],
+atoms_missing_positions = (
+    runschema.system.Atoms(
+        n_atoms=2,
+        labels=['N', 'O'],
+        species=[7, 8],
+    )
+    if runschema
+    else None
 )
 
-atoms_wrap_mode = Atoms(
-    n_atoms=2,
-    labels=['C', 'H'],
-    species=[6, 1],
-    positions=np.array([[-15, -15, -15], [17, 17, 17]]) * ureg.angstrom,
-    lattice_vectors=np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]) * ureg.angstrom,
-    periodic=[True, True, True],
+atoms_wrap_mode = (
+    runschema.system.Atoms(
+        n_atoms=2,
+        labels=['C', 'H'],
+        species=[6, 1],
+        positions=np.array([[-15, -15, -15], [17, 17, 17]]) * ureg.angstrom,
+        lattice_vectors=np.array([[5, 0, 0], [0, 5, 0], [0, 0, 5]]) * ureg.angstrom,
+        periodic=[True, True, True],
+    )
+    if runschema
+    else None
 )
 
 atoms_wrap_mode_no_pbc = atoms_wrap_mode.m_copy()
@@ -115,15 +131,28 @@ def example_data_systems(elastic_module, mongo_module, test_user):
     upload_id = 'systems_upload'
 
     data.create_upload(upload_id=upload_id, published=True)
+    archive = EntryArchive()
+    if runschema:
+        archive.run.append(
+            runschema.run.Run(
+                system=[
+                    runschema.system.System(atoms=atoms_with_cell),
+                    runschema.system.System(atoms=atoms_missing_positions),
+                    runschema.system.System(atoms=atoms_without_cell),
+                    runschema.system.System(atoms=atoms_wrap_mode),
+                    runschema.system.System(atoms=atoms_wrap_mode_no_pbc),
+                ]
+            )
+        )
     archive = EntryArchive(
         run=[
-            Run(
+            runschema.run.Run(
                 system=[
-                    SystemRun(atoms=atoms_with_cell),
-                    SystemRun(atoms=atoms_missing_positions),
-                    SystemRun(atoms=atoms_without_cell),
-                    SystemRun(atoms=atoms_wrap_mode),
-                    SystemRun(atoms=atoms_wrap_mode_no_pbc),
+                    runschema.system.System(atoms=atoms_with_cell),
+                    runschema.system.System(atoms=atoms_missing_positions),
+                    runschema.system.System(atoms=atoms_without_cell),
+                    runschema.system.System(atoms=atoms_wrap_mode),
+                    runschema.system.System(atoms=atoms_wrap_mode_no_pbc),
                 ]
             )
         ]
@@ -131,7 +160,7 @@ def example_data_systems(elastic_module, mongo_module, test_user):
     archive.results = Results(
         material=Material(
             topology=[
-                System(atoms=atoms_without_cell),
+                System(atoms=Atoms.m_from_dict(atoms_without_cell.m_to_dict())),
                 System(atoms_ref=archive.run[0].system[0].atoms),
                 System(atoms_ref=archive.run[0].system[0].atoms, indices=[0]),
                 System(atoms_ref=archive.run[0].system[0].atoms, indices=[[0]]),

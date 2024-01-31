@@ -7,20 +7,20 @@ query = ArchiveQuery(
         'results.material.elements': ['Ti', 'O'],
         'results.properties.geometry_optimization': {
             'final_energy_difference:lt': 1e-22,
-        }
+        },
     },
     required={
+        'run': '*',
         'workflow2': {
             'results': {
                 'calculation_result_ref': {
                     'energy': '*',
-                    'system_ref': {
-                        'chemical_composition_reduced': '*'
-                    }
+                    'system_ref': {'chemical_composition_reduced': '*'},
                 }
             }
-        }
-    })
+        },
+    },
+)
 
 for result in query.download(100):
     calc = None

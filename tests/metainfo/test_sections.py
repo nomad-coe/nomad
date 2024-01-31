@@ -235,10 +235,7 @@ def test_path():
     assert SubSection._used_sections[ChildSection.m_def] == [EntryArchive.child]
     assert ChildSection.m_def.path == 'child'
 
-    from nomad.datamodel.metainfo.simulation.calculation import Calculation, Energy
-    from nomad.datamodel.metainfo.simulation.system import System
-    from nomad.datamodel import EntryArchive  # pylint: disable=unused-import
+    from nomad.datamodel.metainfo.workflow import Workflow, Task
 
-    assert Calculation.m_def.path == 'run.calculation'
-    assert System.m_def.path == 'run.system'
-    assert Energy.m_def.path == '__no_archive_path__'
+    assert Workflow.m_def.path == 'workflow2'
+    assert Task.m_def.path == '__no_archive_path__'
