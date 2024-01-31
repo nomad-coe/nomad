@@ -54,7 +54,7 @@ def unknown_workflow_archive():
         pytest.param(
             'unknown_material_archive',
             'LAMMPS MolecularDynamics',
-            'LAMMPS MolecularDynamics simulation',
+            'X LAMMPS MolecularDynamics simulation',
             id='Unknown material',
         ),
         pytest.param(

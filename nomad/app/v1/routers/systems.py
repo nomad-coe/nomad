@@ -35,7 +35,7 @@ from nomad.normalizing.common import (
     ase_atoms_from_nomad_atoms,
     mda_universe_from_nomad_atoms,
 )
-from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
+from nomad.datamodel.metainfo.system import Atoms as NOMADAtoms
 from .entries import answer_entry_archive_request
 
 from .auth import create_user_dependency

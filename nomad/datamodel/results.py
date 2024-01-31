@@ -17,7 +17,7 @@
 #
 
 from logging import Logger
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 import numpy as np
 from elasticsearch_dsl import Text
 
@@ -25,7 +25,6 @@ from ase.data import chemical_symbols
 
 from nomad import config, utils
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
-from nomad.datamodel.metainfo.simulation.system import Atoms, System as SystemRun
 from nomad.datamodel.metainfo.simulation.method import CoreHole as CoreHoleRun
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
@@ -42,46 +41,20 @@ from nomad.metainfo import (
     MEnum,
     Package,
     Datetime,
+    Reference,
 )
-from nomad.metainfo.metainfo import derived
-
-m_package = Package()
-
+from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.optimade import Species as OptimadeSpecies  # noqa
-from nomad.datamodel.metainfo.simulation.calculation import (
-    RadiusOfGyration as RgCalculation,
-    RadiusOfGyrationValues,
-    Dos,
-    BandStructure as BandStructureCalculation,
-    GreensFunctions as GreensFunctionsCalculation,
-    BandEnergies,
-    DosValues,
-    BandGapDeprecated as CalcBandGapDeprecated,
-    BandGap as CalcBandGap,
-    Calculation,
-    ElectronicStructureProvenance,
-)  # noqa
-from nomad.datamodel.metainfo.simulation.method import (
-    Scf,
-    Electronic,
-    Smearing,
-    ExcitedStateMethodology as XSMethod,
-    GW as GWMethod,
-    BSE as BSEMethod,
-    HubbardKanamoriModel as HubbardKanamori,
-    AtomParameters,
-    DMFT as DMFTMethod,
-    BasisSet,
-    BasisSetContainer,
-)  # noqa
 
 try:
+    import runschema
     import simulationworkflowschema
-except Exception:
+except Exception as e:
     logger = utils.get_logger(__name__)
-    logger.error('Error importing simulation workflow schema.')
-    simulationworkflowschema = None
+    logger.error('Error importing simulation schemas.')
+    runschema, simulationworkflowschema = None, None
 
+m_package = Package()
 
 unavailable = 'unavailable'
 not_processed = 'not processed'
@@ -240,44 +213,74 @@ def available_properties(root: MSection) -> List[str]:
 
 tokenizer_formula = get_tokenizer(r'[A-Z][a-z]?\d*')
 
-
-class BandGapDeprecated(CalcBandGapDeprecated):
-    label = Quantity(
-        type=str,
-        description="""
-        Label to identify the band gap data, e.g. method employed.
-        """,
-    )
-    index = CalcBandGapDeprecated.index.m_copy()
-    index.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    value = CalcBandGapDeprecated.value.m_copy()
-    value.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    type = CalcBandGapDeprecated.type.m_copy()
-    type.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-
-    label = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        Temporary label for GUI generating GUI artifacts.
-        Can be left unpopulated.
-        """,
-    )
-
-
-class BandGap(CalcBandGap):
-    label = Quantity(
+_band_gap_quantities = dict(
+    label=Quantity(
         type=str,
         description="""
         Label to identify the band gap data, e.g. the method employed.
         """,
     )
-    index = CalcBandGap.index.m_copy()
-    index.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    value = CalcBandGap.value.m_copy()
-    value.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    type = CalcBandGap.type.m_copy()
-    type.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+)
+
+
+if TYPE_CHECKING:
+
+    class BandGapDeprecated(PropertySection):
+        pass
+
+else:
+    BandGapDeprecated = type(
+        'BandGapDeprecated',
+        (runschema.calculation.BandGapDeprecated if runschema else PropertySection,),
+        {
+            **_band_gap_quantities,
+            **(
+                dict(
+                    index=runschema.calculation.BandGapDeprecated.index.m_copy(
+                        a_elasticsearch=[Elasticsearch(material_entry_type)]
+                    ),
+                    value=runschema.calculation.BandGapDeprecated.value.m_copy(
+                        a_elasticsearch=[Elasticsearch(material_entry_type)]
+                    ),
+                    type=runschema.calculation.BandGapDeprecated.type.m_copy(
+                        a_elasticsearch=[Elasticsearch(material_entry_type)]
+                    ),
+                )
+                if runschema
+                else {}
+            ),
+        },
+    )
+
+
+if TYPE_CHECKING:
+
+    class BandGap(PropertySection):
+        pass
+
+else:
+    BandGap = type(
+        'BandGap',
+        (runschema.calculation.BandGap if runschema else PropertySection,),
+        {
+            **_band_gap_quantities,
+            **(
+                dict(
+                    index=runschema.calculation.BandGap.index.m_copy(
+                        a_elasticsearch=[Elasticsearch(material_entry_type)]
+                    ),
+                    value=runschema.calculation.BandGap.value.m_copy(
+                        a_elasticsearch=[Elasticsearch(material_entry_type)]
+                    ),
+                    type=runschema.calculation.BandGap.type.m_copy(
+                        a_elasticsearch=[Elasticsearch(material_entry_type)]
+                    ),
+                )
+                if runschema
+                else {}
+            ),
+        },
+    )
 
 
 class ElementalComposition(MSection):
@@ -1325,21 +1328,22 @@ class System(MSection):
         """,
         a_elasticsearch=Elasticsearch(material_type),
     )
-    atoms = SubSection(
-        description="""
-        The atomistic structure that is associated with this
-        system.
-        """,
-        sub_section=Atoms.m_def,
-        repeats=False,
-    )
-    atoms_ref = Quantity(
-        type=Atoms,
-        description="""
-        Reference to an atomistic structure that is associated with this
-        system.
-        """,
-    )
+    if runschema:
+        atoms = SubSection(
+            description="""
+            The atomistic structure that is associated with this
+            system.
+            """,
+            sub_section=runschema.system.Atoms,
+            repeats=False,
+        )
+        atoms_ref = Quantity(
+            type=Reference(runschema.system.Atoms),
+            description="""
+            Reference to an atomistic structure that is associated with this
+            system.
+            """,
+        )
     n_atoms = Quantity(
         type=int,
         shape=[],
@@ -1689,15 +1693,20 @@ class HubbardKanamoriModel(MSection):
 
     m_def = Section(validate=False)
 
-    atom_label = AtomParameters.label.m_copy()
-    orbital = HubbardKanamori.orbital.m_copy()
-    u_effective = HubbardKanamori.u_effective.m_copy()
-    u_effective.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    u = HubbardKanamori.u.m_copy()
-    u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    j = HubbardKanamori.j.m_copy()
-    j.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
-    double_counting_correction = HubbardKanamori.double_counting_correction.m_copy()
+    if runschema:
+        atom_label = runschema.method.AtomParameters.label.m_copy()
+        orbital = runschema.method.HubbardKanamoriModel.orbital.m_copy()
+        u_effective = runschema.method.HubbardKanamoriModel.u_effective.m_copy()
+        u_effective.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type)
+        ]
+        u = runschema.method.HubbardKanamoriModel.u.m_copy()
+        u.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+        j = runschema.method.HubbardKanamoriModel.j.m_copy()
+        j.m_annotations['elasticsearch'] = [Elasticsearch(material_entry_type)]
+        double_counting_correction = (
+            runschema.method.HubbardKanamoriModel.double_counting_correction.m_copy()
+        )
 
 
 class DFT(MSection):
@@ -1733,31 +1742,36 @@ class DFT(MSection):
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
-    scf_threshold_energy_change = Scf.threshold_energy_change.m_copy()
-    scf_threshold_energy_change.m_annotations['elasticsearch'] = Elasticsearch(
-        material_entry_type
-    )
-    van_der_Waals_method = Electronic.van_der_waals_method.m_copy()
-    van_der_Waals_method.description = 'The used van der Waals method.'
-    van_der_Waals_method.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
+    if runschema:
+        scf_threshold_energy_change = (
+            runschema.method.Scf.threshold_energy_change.m_copy()
+        )
+        scf_threshold_energy_change.m_annotations['elasticsearch'] = Elasticsearch(
+            material_entry_type
+        )
+        van_der_Waals_method = runschema.method.Electronic.van_der_waals_method.m_copy()
+        van_der_Waals_method.description = 'The used van der Waals method.'
+        van_der_Waals_method.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
 
-    relativity_method = Electronic.relativity_method.m_copy()
-    relativity_method.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
+        relativity_method = runschema.method.Electronic.relativity_method.m_copy()
+        relativity_method.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
 
-    smearing_kind = Smearing.kind.m_copy()
-    smearing_kind.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
+        smearing_kind = runschema.method.Smearing.kind.m_copy()
+        smearing_kind.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
 
-    smearing_width = Smearing.width.m_copy()
-    smearing_width.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+        smearing_width = runschema.method.Smearing.width.m_copy()
+        smearing_width.m_annotations['elasticsearch'] = Elasticsearch(
+            material_entry_type
+        )
 
     jacobs_ladder = Quantity(
         type=MEnum(list(xc_treatments.values()) + [unavailable, not_processed]),
@@ -1836,12 +1850,13 @@ class ExcitedStateMethodology(MSection):
         Methodology for a Excited-State calculation.
         """
     )
-    type = XSMethod.type.m_copy(
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ]
-    )
+    if runschema:
+        type = runschema.method.ExcitedStateMethodology.type.m_copy(
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ],
+        )
     basis_set_type = Quantity(
         type=MEnum(basis_set_types),
         description='The used basis set functions.',
@@ -1874,12 +1889,13 @@ class GW(ExcitedStateMethodology):
         Methodology for a GW calculation.
         """
     )
-    type = GWMethod.type.m_copy(
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ]
-    )
+    if runschema:
+        type = runschema.method.GW.type.m_copy(
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ]
+        )
 
 
 class BSE(ExcitedStateMethodology):
@@ -1888,28 +1904,29 @@ class BSE(ExcitedStateMethodology):
         Methodology for a BSE calculation.
         """
     )
-    type = BSEMethod.type.m_copy(
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ]
-    )
-    solver = BSEMethod.solver.m_copy(
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ]
-    )
-    gw_type = Quantity(
-        type=MEnum(
-            GWMethod.type.type._list
-        ),  # TODO solve conflict between BSE.gw_type and GW.type when using GWMethod.type.m_copy()
-        description=GWMethod.type.description,
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ],
-    )
+    if runschema:
+        type = runschema.method.BSE.type.m_copy(
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ],
+        )
+        solver = runschema.method.BSE.solver.m_copy(
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ],
+        )
+        gw_type = Quantity(
+            type=MEnum(
+                runschema.method.GW.type.type._list
+            ),  # TODO solve conflict between BSE.gw_type and GW.type when using GWMethod.type.m_copy()
+            description=runschema.method.GW.type.description,
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ],
+        )
 
 
 class DMFT(MSection):
@@ -1918,23 +1935,30 @@ class DMFT(MSection):
         Methodology for a DMFT calculation.
         """
     )
-    impurity_solver_type = DMFTMethod.impurity_solver.m_copy(
-        a_elasticsearch=[
+    if runschema:
+        impurity_solver_type = runschema.method.DMFT.impurity_solver.m_copy(
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ],
+        )
+        inverse_temperature = runschema.method.DMFT.inverse_temperature.m_copy(
+            a_elasticsearch=[Elasticsearch(material_entry_type)],
+        )
+        magnetic_state = runschema.method.DMFT.magnetic_state.m_copy()
+        magnetic_state.description = (
+            'Magnetic state in which the DMFT calculation is done.'
+        )
+        magnetic_state.m_annotations['elasticsearch'] = [
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default'),
         ]
-    )
-    inverse_temperature = DMFTMethod.inverse_temperature.m_copy(
-        a_elasticsearch=[Elasticsearch(material_entry_type)]
-    )
-    magnetic_state = DMFTMethod.magnetic_state.m_copy()
-    magnetic_state.description = 'Magnetic state in which the DMFT calculation is done.'
-    magnetic_state.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    u = HubbardKanamori.u.m_copy(a_elasticsearch=[Elasticsearch(material_entry_type)])
-    jh = HubbardKanamori.jh.m_copy(a_elasticsearch=[Elasticsearch(material_entry_type)])
+        u = runschema.method.HubbardKanamoriModel.u.m_copy(
+            a_elasticsearch=[Elasticsearch(material_entry_type)]
+        )
+        jh = runschema.method.HubbardKanamoriModel.jh.m_copy(
+            a_elasticsearch=[Elasticsearch(material_entry_type)]
+        )
     analytical_continuation = Quantity(
         type=MEnum('Pade', 'MaxEnt', 'SVD', ''),
         shape=[],
@@ -1991,25 +2015,26 @@ class Precision(MSection):
         """,
         a_elasticsearch=[Elasticsearch(material_entry_type)],
     )
-    native_tier = BasisSetContainer.native_tier.m_copy(
-        a_elasticsearch=[Elasticsearch(material_entry_type)]
-    )
-    basis_set = BasisSetContainer.type.m_copy(
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ]
-    )
-    planewave_cutoff = BasisSet.cutoff.m_copy(
-        a_elasticsearch=[  # TODO: set better names?
-            Elasticsearch(material_entry_type)
-        ]
-    )
-    apw_cutoff = BasisSet.cutoff_fractional.m_copy(
-        a_elasticsearch=[  # TODO: set better names?
-            Elasticsearch(material_entry_type)
-        ]
-    )
+    if runschema:
+        native_tier = runschema.method.BasisSetContainer.native_tier.m_copy(
+            a_elasticsearch=[Elasticsearch(material_entry_type)]
+        )
+        basis_set = runschema.method.BasisSetContainer.type.m_copy(
+            a_elasticsearch=[
+                Elasticsearch(material_entry_type),
+                Elasticsearch(suggestion='default'),
+            ],
+        )
+        planewave_cutoff = runschema.method.BasisSet.cutoff.m_copy(
+            a_elasticsearch=[  # TODO: set better names?
+                Elasticsearch(material_entry_type)
+            ],
+        )
+        apw_cutoff = runschema.method.BasisSet.cutoff_fractional.m_copy(
+            a_elasticsearch=[  # TODO: set better names?
+                Elasticsearch(material_entry_type)
+            ],
+        )
 
 
 class Simulation(MSection):
@@ -2173,15 +2198,14 @@ class MolecularDynamics(MSection):
         Methodology for molecular dynamics.
         """,
     )
-    time_step = (
-        simulationworkflowschema.MolecularDynamicsMethod.integration_timestep.m_copy()
-    )
-    time_step.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+    if simulationworkflowschema:
+        time_step = simulationworkflowschema.MolecularDynamicsMethod.integration_timestep.m_copy()
+        time_step.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
 
-    ensemble_type = (
-        simulationworkflowschema.MolecularDynamicsMethod.thermodynamic_ensemble.m_copy()
-    )
-    ensemble_type.m_annotations['elasticsearch'] = Elasticsearch(material_entry_type)
+        ensemble_type = simulationworkflowschema.MolecularDynamicsMethod.thermodynamic_ensemble.m_copy()
+        ensemble_type.m_annotations['elasticsearch'] = Elasticsearch(
+            material_entry_type
+        )
 
 
 class MDProvenance(ProvenanceTracker):
@@ -2211,20 +2235,21 @@ class DOS(MSection):
         OLD VERSION: it will eventually be deprecated, please, don't use it!
         """,
     )
-    energies = Quantity(
-        type=Dos.energies,
-        description="""
-        Array containing the set of discrete energy values for the density of
-        states (DOS).
-        """,
-    )
-    total = Quantity(
-        type=DosValues,
-        shape=['*'],
-        description="""
-        Density of states (DOS) values for the entire system and all species.
-        """,
-    )
+    if runschema:
+        energies = Quantity(
+            type=runschema.calculation.Dos.energies,
+            description="""
+            Array containing the set of discrete energy values for the density of
+            states (DOS).
+            """,
+        )
+        total = Quantity(
+            type=runschema.calculation.DosValues,
+            shape=['*'],
+            description="""
+            Density of states (DOS) values for the entire system and all species.
+            """,
+        )
 
 
 class DOSElectronic(DOS):
@@ -2276,42 +2301,43 @@ class DOSNew(MSection):
         atom.
         """,
     )
-    energies = Quantity(
-        type=Dos.energies,
-        description="""
-        Total DOS values for the entire system and all species.
-        """,
-    )
-    total = Quantity(
-        type=DosValues,
-        description="""
-        Total DOS values for the entire system and all species.
-        """,
-    )
-    species_projected = Quantity(
-        type=DosValues,
-        shape=['*'],
-        description="""
-        Projected DOS values per species.
-        """,
-    )
-    atom_projected = Quantity(
-        type=DosValues,
-        shape=['*'],
-        description="""
-        Projected DOS values per atom.
-        """,
-    )
-    orbital_projected = Quantity(
-        type=DosValues,
-        shape=['*'],
-        description="""
-        Projected DOS values per orbital and per atom.
-        """,
-    )
-    spin_channel = Dos.spin_channel.m_copy()
-    energy_fermi = Dos.energy_fermi.m_copy()
-    energy_ref = Dos.energy_ref.m_copy()
+    if runschema:
+        energies = Quantity(
+            type=runschema.calculation.Dos.energies,
+            description="""
+            Total DOS values for the entire system and all species.
+            """,
+        )
+        total = Quantity(
+            type=runschema.calculation.DosValues,
+            description="""
+            Total DOS values for the entire system and all species.
+            """,
+        )
+        species_projected = Quantity(
+            type=runschema.calculation.DosValues,
+            shape=['*'],
+            description="""
+            Projected DOS values per species.
+            """,
+        )
+        atom_projected = Quantity(
+            type=runschema.calculation.DosValues,
+            shape=['*'],
+            description="""
+            Projected DOS values per atom.
+            """,
+        )
+        orbital_projected = Quantity(
+            type=runschema.calculation.DosValues,
+            shape=['*'],
+            description="""
+            Projected DOS values per orbital and per atom.
+            """,
+        )
+        spin_channel = runschema.calculation.Dos.spin_channel.m_copy()
+        energy_fermi = runschema.calculation.Dos.energy_fermi.m_copy()
+        energy_ref = runschema.calculation.Dos.energy_ref.m_copy()
     band_gap = SubSection(
         sub_section=BandGapDeprecated.m_def,
         repeats=True,
@@ -2372,22 +2398,23 @@ class BandStructure(MSection):
         Label to identify the bandstructure data, e.g. the method employed.
         """,
     )
-    reciprocal_cell = Quantity(
-        type=BandStructureCalculation.reciprocal_cell,
-        description="""
-        The reciprocal cell within which the band structure is calculated.
-        """,
-    )
-    segment = Quantity(
-        type=BandEnergies,
-        shape=['*'],
-        description="""
-        Collection of linear path segments in the reciprocal space. The
-        segments are represented as third-order tensors: one dimension for the
-        spin channels, one for the sequence of reciprocal space points for the
-        segment, and one for the sequence of eigenvalues at a given point.
-        """,
-    )
+    if runschema:
+        reciprocal_cell = Quantity(
+            type=runschema.calculation.BandStructure.reciprocal_cell,
+            description="""
+            The reciprocal cell within which the band structure is calculated.
+            """,
+        )
+        segment = Quantity(
+            type=runschema.calculation.BandEnergies,
+            shape=['*'],
+            description="""
+            Collection of linear path segments in the reciprocal space. The
+            segments are represented as third-order tensors: one dimension for the
+            spin channels, one for the sequence of reciprocal space points for the
+            segment, and one for the sequence of eigenvalues at a given point.
+            """,
+        )
     path_standard = Quantity(
         type=str,
         shape=[],
@@ -2443,87 +2470,88 @@ class GreensFunctionsElectronic(MSection):
         Base class for Green's functions information.
         """,
     )
-    type = GreensFunctionsCalculation.type.m_copy()
-    label = Quantity(
-        type=str,
-        description="""
-        Label to identify the Greens functions data, e.g. the method employed.
-        """,
-    )
-    tau = Quantity(
-        type=GreensFunctionsCalculation.tau,
-        description="""
-        Array containing the set of discrete imaginary times.
-        """,
-    )
-    matsubara_freq = Quantity(
-        type=GreensFunctionsCalculation.matsubara_freq,
-        description="""
-        Array containing the set of discrete imaginary (Matsubara) frequencies.
-        """,
-    )
-    frequencies = Quantity(
-        type=GreensFunctionsCalculation.frequencies,
-        description="""
-        Array containing the set of discrete real frequencies.
-        """,
-    )
-    greens_function_tau = Quantity(
-        type=GreensFunctionsCalculation.greens_function_tau,
-        description="""
-        Green's functions values in imaginary times.
-        """,
-    )
-    greens_function_iw = Quantity(
-        type=GreensFunctionsCalculation.greens_function_iw,
-        description="""
-        Green's functions values in imaginary (Matsubara) frequencies.
-        """,
-    )
-    self_energy_iw = Quantity(
-        type=GreensFunctionsCalculation.self_energy_iw,
-        description="""
-        Self-energy values in imaginary (Matsubara) frequencies.
-        """,
-    )
-    greens_function_freq = Quantity(
-        type=GreensFunctionsCalculation.greens_function_freq,
-        description="""
-        Green's function values in real frequencies.
-        """,
-    )
-    self_energy_freq = Quantity(
-        type=GreensFunctionsCalculation.self_energy_freq,
-        description="""
-        Self-energy values in real frequencies.
-        """,
-    )
-    hybridization_function_freq = Quantity(
-        type=GreensFunctionsCalculation.hybridization_function_freq,
-        description="""
-        Hybridization function values in real frequencies.
-        """,
-    )
-    orbital_occupations = Quantity(
-        type=GreensFunctionsCalculation.orbital_occupations,
-        description="""
-        Orbital occupation per correlated atom in the unit cell and per spin.
-        """,
-    )
-    quasiparticle_weights = Quantity(
-        type=GreensFunctionsCalculation.quasiparticle_weights,
-        description="""
-        Quasiparticle weights of each orbital per site and spin. Calculated from:
-            Z = inv(1.0 - d [Re Sigma] / dw at w=0)
-        it takes values ∈ [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.
-        """,
-    )
-    chemical_potential = Quantity(
-        type=GreensFunctionsCalculation.chemical_potential,
-        description="""
-        Chemical potential.
-        """,
-    )
+    if runschema:
+        type = runschema.calculation.GreensFunctions.type.m_copy()
+        label = Quantity(
+            type=str,
+            description="""
+            Label to identify the Greens functions data, e.g. the method employed.
+            """,
+        )
+        tau = Quantity(
+            type=runschema.calculation.GreensFunctions.tau,
+            description="""
+            Array containing the set of discrete imaginary times.
+            """,
+        )
+        matsubara_freq = Quantity(
+            type=runschema.calculation.GreensFunctions.matsubara_freq,
+            description="""
+            Array containing the set of discrete imaginary (Matsubara) frequencies.
+            """,
+        )
+        frequencies = Quantity(
+            type=runschema.calculation.GreensFunctions.frequencies,
+            description="""
+            Array containing the set of discrete real frequencies.
+            """,
+        )
+        greens_function_tau = Quantity(
+            type=runschema.calculation.GreensFunctions.greens_function_tau,
+            description="""
+            Green's functions values in imaginary times.
+            """,
+        )
+        greens_function_iw = Quantity(
+            type=runschema.calculation.GreensFunctions.greens_function_iw,
+            description="""
+            Green's functions values in imaginary (Matsubara) frequencies.
+            """,
+        )
+        self_energy_iw = Quantity(
+            type=runschema.calculation.GreensFunctions.self_energy_iw,
+            description="""
+            Self-energy values in imaginary (Matsubara) frequencies.
+            """,
+        )
+        greens_function_freq = Quantity(
+            type=runschema.calculation.GreensFunctions.greens_function_freq,
+            description="""
+            Green's function values in real frequencies.
+            """,
+        )
+        self_energy_freq = Quantity(
+            type=runschema.calculation.GreensFunctions.self_energy_freq,
+            description="""
+            Self-energy values in real frequencies.
+            """,
+        )
+        hybridization_function_freq = Quantity(
+            type=runschema.calculation.GreensFunctions.hybridization_function_freq,
+            description="""
+            Hybridization function values in real frequencies.
+            """,
+        )
+        orbital_occupations = Quantity(
+            type=runschema.calculation.GreensFunctions.orbital_occupations,
+            description="""
+            Orbital occupation per correlated atom in the unit cell and per spin.
+            """,
+        )
+        quasiparticle_weights = Quantity(
+            type=runschema.calculation.GreensFunctions.quasiparticle_weights,
+            description="""
+            Quasiparticle weights of each orbital per site and spin. Calculated from:
+                Z = inv(1.0 - d [Re Sigma] / dw at w=0)
+            it takes values ∈ [0.0, 1.0], being Z=1 non-correlated, and Z=0 in a Mott state.
+            """,
+        )
+        chemical_potential = Quantity(
+            type=runschema.calculation.GreensFunctions.chemical_potential,
+            description="""
+            Chemical potential.
+            """,
+        )
 
 
 class HeatCapacityConstantVolume(MSection):
@@ -2533,20 +2561,21 @@ class HeatCapacityConstantVolume(MSection):
         volume) heat capacity at different temperatures.
         """
     )
-    heat_capacities = Quantity(
-        type=simulationworkflowschema.ThermodynamicsResults.heat_capacity_c_v,
-        shape=[],
-        description="""
-        Specific heat capacity values at constant volume.
-        """,
-    )
+    if simulationworkflowschema:
+        heat_capacities = Quantity(
+            type=simulationworkflowschema.ThermodynamicsResults.heat_capacity_c_v,
+            shape=[],
+            description="""
+            Specific heat capacity values at constant volume.
+            """,
+        )
 
-    temperatures = Quantity(
-        type=simulationworkflowschema.ThermodynamicsResults.temperature,
-        description="""
-        The temperatures at which heat capacities are calculated.
-        """,
-    )
+        temperatures = Quantity(
+            type=simulationworkflowschema.ThermodynamicsResults.temperature,
+            description="""
+            The temperatures at which heat capacities are calculated.
+            """,
+        )
 
 
 class EnergyFreeHelmholtz(MSection):
@@ -2556,19 +2585,20 @@ class EnergyFreeHelmholtz(MSection):
         volume and at different temperatures.
         """
     )
-    energies = Quantity(
-        type=simulationworkflowschema.ThermodynamicsResults.vibrational_free_energy_at_constant_volume,
-        shape=[],
-        description="""
-        The Helmholtz free energies per atom at constant volume.
-        """,
-    )
-    temperatures = Quantity(
-        type=simulationworkflowschema.ThermodynamicsResults.temperature,
-        description="""
-        The temperatures at which Helmholtz free energies are calculated.
-        """,
-    )
+    if simulationworkflowschema:
+        energies = Quantity(
+            type=simulationworkflowschema.ThermodynamicsResults.vibrational_free_energy_at_constant_volume,
+            shape=[],
+            description="""
+            The Helmholtz free energies per atom at constant volume.
+            """,
+        )
+        temperatures = Quantity(
+            type=simulationworkflowschema.ThermodynamicsResults.temperature,
+            description="""
+            The temperatures at which Helmholtz free energies are calculated.
+            """,
+        )
 
 
 class VibrationalProperties(MSection):
@@ -2613,13 +2643,14 @@ class EnergyVolumeCurve(MSection):
             Elasticsearch(suggestion='default'),
         ],
     )
-    volumes = Quantity(type=simulationworkflowschema.EquationOfStateResults.volumes)
-    energies_raw = Quantity(
-        type=simulationworkflowschema.EquationOfStateResults.energies
-    )
-    energies_fit = Quantity(
-        type=simulationworkflowschema.equation_of_state.EOSFit.fitted_energies
-    )
+    if simulationworkflowschema:
+        volumes = Quantity(type=simulationworkflowschema.EquationOfStateResults.volumes)
+        energies_raw = Quantity(
+            type=simulationworkflowschema.EquationOfStateResults.energies
+        )
+        energies_fit = Quantity(
+            type=simulationworkflowschema.equation_of_state.EOSFit.fitted_energies
+        )
 
 
 class BulkModulus(MSection):
@@ -2689,48 +2720,50 @@ class GeometryOptimization(MSection):
         Geometry optimization results and settings.
         """,
     )
-    trajectory = Quantity(
-        type=Calculation,
-        shape=['0..*'],
-        description="""
-        List of references to each section_single_configuration_calculation in
-        the optimization trajectory.
-        """,
-    )
-    energies = Quantity(
-        type=simulationworkflowschema.GeometryOptimizationResults.energies,
-        description="""
-        List of energy_total values gathered from the single configuration
-        calculations that are a part of the optimization trajectory.
-        """,
-    )
-    system_optimized = Quantity(
-        type=SystemRun,
-        description="""
-        Contains the optimized geometry that is the result of a geometry optimization.
-        """,
-    )
-    type = simulationworkflowschema.GeometryOptimization.name.m_copy()
-    convergence_tolerance_energy_difference = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
-    convergence_tolerance_energy_difference.m_annotations[
-        'elasticsearch'
-    ] = Elasticsearch(material_entry_type)
-    convergence_tolerance_force_maximum = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
-    convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
-        material_entry_type
-    )
-    final_force_maximum = simulationworkflowschema.GeometryOptimizationResults.final_force_maximum.m_copy()
-    final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
-        material_entry_type
-    )
-    final_energy_difference = simulationworkflowschema.GeometryOptimizationResults.final_energy_difference.m_copy()
-    final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(
-        material_entry_type
-    )
-    final_displacement_maximum = simulationworkflowschema.GeometryOptimizationResults.final_displacement_maximum.m_copy()
-    final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(
-        material_entry_type
-    )
+    if runschema:
+        trajectory = Quantity(
+            type=runschema.calculation.Calculation,
+            shape=['0..*'],
+            description="""
+            List of references to each section_single_configuration_calculation in
+            the optimization trajectory.
+            """,
+        )
+        system_optimized = Quantity(
+            type=runschema.system.System,
+            description="""
+            Contains the optimized geometry that is the result of a geometry optimization.
+            """,
+        )
+    if simulationworkflowschema:
+        energies = Quantity(
+            type=simulationworkflowschema.GeometryOptimizationResults.energies,
+            description="""
+            List of energy_total values gathered from the single configuration
+            calculations that are a part of the optimization trajectory.
+            """,
+        )
+        type = simulationworkflowschema.GeometryOptimization.name.m_copy()
+        convergence_tolerance_energy_difference = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
+        convergence_tolerance_energy_difference.m_annotations[
+            'elasticsearch'
+        ] = Elasticsearch(material_entry_type)
+        convergence_tolerance_force_maximum = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
+        convergence_tolerance_force_maximum.m_annotations[
+            'elasticsearch'
+        ] = Elasticsearch(material_entry_type)
+        final_force_maximum = simulationworkflowschema.GeometryOptimizationResults.final_force_maximum.m_copy()
+        final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
+            material_entry_type
+        )
+        final_energy_difference = simulationworkflowschema.GeometryOptimizationResults.final_energy_difference.m_copy()
+        final_energy_difference.m_annotations['elasticsearch'] = Elasticsearch(
+            material_entry_type
+        )
+        final_displacement_maximum = simulationworkflowschema.GeometryOptimizationResults.final_displacement_maximum.m_copy()
+        final_displacement_maximum.m_annotations['elasticsearch'] = Elasticsearch(
+            material_entry_type
+        )
 
 
 class MechanicalProperties(MSection):
@@ -2907,18 +2940,22 @@ class RadiusOfGyration(QuantityDynamic, MDPropertySection):
         Contains Radius of Gyration values as a trajectory.
         """,
     )
-    kind = RgCalculation.kind.m_copy()
-    kind.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    label = RadiusOfGyrationValues.label.m_copy()
-    label.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    atomsgroup_ref = RadiusOfGyrationValues.atomsgroup_ref.m_copy()
-    value = RadiusOfGyrationValues.value.m_copy()
+    if runschema:
+        kind = runschema.calculation.RadiusOfGyration.kind.m_copy()
+        kind.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
+        label = runschema.calculation.RadiusOfGyrationValues.label.m_copy()
+        label.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
+
+        atomsgroup_ref = (
+            runschema.calculation.RadiusOfGyrationValues.atomsgroup_ref.m_copy()
+        )
+        value = runschema.calculation.RadiusOfGyrationValues.value.m_copy()
 
 
 class RadialDistributionFunction(MDPropertySection):
@@ -2927,21 +2964,22 @@ class RadialDistributionFunction(MDPropertySection):
         Radial distribution function.
         """,
     )
-    type = simulationworkflowschema.molecular_dynamics.RadialDistributionFunction.type.m_copy()
-    type.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    label = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.label.m_copy()
-    label.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    bins = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.bins.m_copy()
-    n_bins = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.n_bins.m_copy()
-    value = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.value.m_copy()
-    frame_start = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.frame_start.m_copy()
-    frame_end = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.frame_end.m_copy()
+    if simulationworkflowschema:
+        type = simulationworkflowschema.molecular_dynamics.RadialDistributionFunction.type.m_copy()
+        type.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
+        label = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.label.m_copy()
+        label.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
+        bins = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.bins.m_copy()
+        n_bins = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.n_bins.m_copy()
+        value = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.value.m_copy()
+        frame_start = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.frame_start.m_copy()
+        frame_end = simulationworkflowschema.molecular_dynamics.RadialDistributionFunctionValues.frame_end.m_copy()
 
 
 class DiffractionPattern(MSection):
@@ -3015,26 +3053,27 @@ class MeanSquaredDisplacement(MDPropertySection):
         Mean Squared Displacements.
         """,
     )
-    type = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.type.m_copy()
-    type.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    direction = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.direction.m_copy()
-    error_type = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.error_type.m_copy()
-    label = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.label.m_copy()
-    label.m_annotations['elasticsearch'] = [
-        Elasticsearch(material_entry_type),
-        Elasticsearch(suggestion='default'),
-    ]
-    n_times = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.n_times.m_copy()
-    times = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.times.m_copy()
-    value = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.value.m_copy()
-    errors = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.errors.m_copy()
+    if simulationworkflowschema:
+        type = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.type.m_copy()
+        type.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
+        direction = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.direction.m_copy()
+        error_type = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacement.error_type.m_copy()
+        label = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.label.m_copy()
+        label.m_annotations['elasticsearch'] = [
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ]
+        n_times = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.n_times.m_copy()
+        times = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.times.m_copy()
+        value = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.value.m_copy()
+        errors = simulationworkflowschema.molecular_dynamics.MeanSquaredDisplacementValues.errors.m_copy()
 
-    diffusion_constant_value = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.value.m_copy()
-    diffusion_constant_error_type = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.error_type.m_copy()
-    diffusion_constant_errors = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.errors.m_copy()
+        diffusion_constant_value = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.value.m_copy()
+        diffusion_constant_error_type = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.error_type.m_copy()
+        diffusion_constant_errors = simulationworkflowschema.molecular_dynamics.DiffusionConstantValues.errors.m_copy()
 
 
 class DynamicalProperties(MSection):
@@ -3623,9 +3662,11 @@ class SpectraProvenance(ProvenanceTracker):
     eels = SubSection(
         sub_section=EELSMethodology.m_def,
     )
-    electronic_structure = SubSection(
-        sub_section=ElectronicStructureProvenance.m_def, repeats=True
-    )
+    if runschema:
+        electronic_structure = SubSection(
+            sub_section=runschema.calculation.ElectronicStructureProvenance.m_def,
+            repeats=True,
+        )
 
 
 class Spectra(MSection):

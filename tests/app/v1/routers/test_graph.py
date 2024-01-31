@@ -20,9 +20,10 @@ import pytest
 
 from nomad.graph.graph_reader import EntryReader, Token
 from nomad.datamodel import EntryArchive
+from nomad.metainfo import Section, Quantity
 from nomad.utils.exampledata import ExampleData
 from tests.archive.test_archive import assert_dict
-from tests.normalizing.conftest import simulationworkflowschema, SCHEMA_IMPORT_ERROR
+from nomad.datamodel.metainfo import simulationworkflowschema, SCHEMA_IMPORT_ERROR
 
 # try:
 #     from rich.pretty import pprint
@@ -176,6 +177,7 @@ def example_archive():
         },
         'run': [
             {
+                'm_def': 'runschema.run.Run',
                 'system': [
                     {
                         'atoms': {'labels': ['He']},
@@ -209,6 +211,7 @@ def example_archive():
             'results': {'calculation_result_ref': '/run/0/calculation/1'},
         },
     }
+
     archive = EntryArchive.m_from_dict(json_dict)
     assert archive.run is not None
     assert len(archive.run) == 1
@@ -503,14 +506,14 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
                                     'mainfile.json': {
                                         'm_is': 'File',
                                         'path': 'test_content/id_unpublished_1/mainfile.json',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                     'path': 'test_content/id_unpublished_1',
-                                    'size': 3265,
+                                    'size': 3305,
                                 },
                                 'm_is': 'Directory',
                                 'path': 'test_content',
-                                'size': 3265,
+                                'size': 3305,
                             },
                         }
                     }

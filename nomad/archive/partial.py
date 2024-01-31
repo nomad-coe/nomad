@@ -101,7 +101,7 @@ def create_partial_archive(archive: EntryArchive) -> Dict:
 
         parent_dict = add(section.m_parent, placeholder=True)
         if placeholder:
-            result = {}
+            result = {'m_def': section.m_def.definition_reference(section)}
         else:
             result = section.m_to_dict(include=partial)
 

@@ -31,6 +31,29 @@ from .eln.labfolder import m_package
 from .eln.openbis import m_package
 from .plot import m_package
 
+
+class SchemaInterface:
+    def __init__(self, path) -> None:
+        self._module = None
+        self._path = path
+
+    @property
+    def module(self):
+        if self._module is None:
+            self._module = importlib.import_module(self._path)
+        return self._module
+
+    def __getattr__(self, name: str):
+        return getattr(self.module, name, None)
+
+
+simulationworkflowschema, runschema = None, None
 for plugin in config.plugins.filtered_values():
     if isinstance(plugin, Schema):
-        importlib.import_module(plugin.python_package)
+        module = SchemaInterface(plugin.python_package)
+        if plugin.name == 'simulationworkflowschema':
+            simulationworkflowschema = module
+        elif plugin.name == 'runschema':
+            runschema = module
+
+SCHEMA_IMPORT_ERROR = 'Schema not defined.'

@@ -29,7 +29,7 @@ from nomad import config
 from nomad.units import ureg
 from nomad.utils import get_logger
 from nomad.normalizing import normalizers
-from nomad.metainfo import SubSection, Quantity, Reference
+from nomad.metainfo import SubSection, Quantity
 from nomad.datamodel import EntryArchive, ArchiveSection
 from nomad.datamodel.results import (
     Relation,
@@ -40,48 +40,7 @@ from nomad.datamodel.results import (
 )
 from nomad.datamodel.optimade import Species
 from nomad.normalizing.common import cell_from_ase_atoms, nomad_atoms_from_ase_atoms
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.method import (
-    CoreHole,
-    Method,
-    BasisSetContainer,
-    BasisSet,
-    Electronic,
-    DFT,
-    XCFunctional,
-    Functional,
-    Electronic,
-    Smearing,
-    Scf,
-    GW,
-    Photon,
-    BSE,
-    DMFT,
-    AtomParameters,
-    TB,
-    Wannier,
-    LatticeModelHamiltonian,
-    HubbardKanamoriModel,
-)
-from nomad.datamodel.metainfo.simulation.system import (
-    AtomsGroup,
-    System,
-    Atoms as NOMADAtoms,
-)
-from nomad.datamodel.metainfo.simulation.calculation import (
-    Calculation,
-    Energy,
-    EnergyEntry,
-    Dos,
-    DosValues,
-    BandStructure,
-    BandEnergies,
-    RadiusOfGyration,
-    RadiusOfGyrationValues,
-    GreensFunctions,
-    Spectra,
-    ElectronicStructureProvenance,
-)
+from nomad.datamodel.metainfo.simulation.method import CoreHole
 from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.datamodel.metainfo.workflow import Link, TaskReference
 from nomad.datamodel.metainfo.measurements import (
@@ -102,15 +61,11 @@ from tests.parsing.test_parsing import parsed_template_example  # pylint: disabl
 from tests.parsing.test_parsing import parsed_example  # pylint: disable=unused-import
 from tests.parsing.test_parsing import parse_file
 from tests.test_files import create_test_upload_files
-
-
-simulationworkflowschema = None
-for plugin in config.plugins.filtered_values():
-    if isinstance(plugin, config.Schema) and plugin.name == 'simulationworkflowschema':
-        simulationworkflowschema = importlib.import_module(plugin.python_package)
-
-
-SCHEMA_IMPORT_ERROR = 'Schema not defined.'
+from nomad.datamodel.metainfo import (
+    simulationworkflowschema,
+    runschema,
+    SCHEMA_IMPORT_ERROR,
+)
 
 
 def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
@@ -154,31 +109,35 @@ def normalized_template_example(parsed_template_example) -> EntryArchive:
 def get_template_computation() -> EntryArchive:
     """Returns a basic archive template for a computational calculation"""
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='VASP', version='4.6.35')
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(
-        lattice_vectors=[
-            [5.76372622e-10, 0.0, 0.0],
-            [0.0, 5.76372622e-10, 0.0],
-            [0.0, 0.0, 4.0755698899999997e-10],
-        ],
-        positions=[
-            [2.88186311e-10, 0.0, 2.0377849449999999e-10],
-            [0.0, 2.88186311e-10, 2.0377849449999999e-10],
-            [0.0, 0.0, 0.0],
-            [2.88186311e-10, 2.88186311e-10, 0.0],
-        ],
-        labels=['Br', 'K', 'Si', 'Si'],
-        periodic=[True, True, True],
-    )
-    scc = run.m_create(Calculation)
-    scc.system_ref = system
-    scc.energy = Energy(
-        free=EnergyEntry(value=-1.5936767191492225e-18),
-        total=EnergyEntry(value=-1.5935696296699573e-18),
-        total_t0=EnergyEntry(value=-3.2126683561907e-22),
-    )
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = runschema.run.Program(name='VASP', version='4.6.35')
+        system = runschema.system.System()
+        run.system.append(system)
+        system.atoms = runschema.system.Atoms(
+            lattice_vectors=[
+                [5.76372622e-10, 0.0, 0.0],
+                [0.0, 5.76372622e-10, 0.0],
+                [0.0, 0.0, 4.0755698899999997e-10],
+            ],
+            positions=[
+                [2.88186311e-10, 0.0, 2.0377849449999999e-10],
+                [0.0, 2.88186311e-10, 2.0377849449999999e-10],
+                [0.0, 0.0, 0.0],
+                [2.88186311e-10, 2.88186311e-10, 0.0],
+            ],
+            labels=['Br', 'K', 'Si', 'Si'],
+            periodic=[True, True, True],
+        )
+        scc = runschema.calculation.Calculation()
+        run.calculation.append(scc)
+        scc.system_ref = system
+        scc.energy = runschema.calculation.Energy(
+            free=runschema.calculation.EnergyEntry(value=-1.5936767191492225e-18),
+            total=runschema.calculation.EnergyEntry(value=-1.5935696296699573e-18),
+            total_t0=runschema.calculation.EnergyEntry(value=-3.2126683561907e-22),
+        )
     return template
 
 
@@ -186,24 +145,28 @@ def get_template_dft() -> EntryArchive:
     """Returns a basic archive template for a DFT calculation."""
     template = get_template_computation()
     run = template.run[-1]
-    method = run.m_create(Method)
-    method.electrons_representation = [
-        BasisSetContainer(
-            type='plane waves',
-            scope=['wavefunction'],
-            basis_set=[
-                BasisSet(
-                    type='plane waves',
-                    scope=['valence'],
-                )
-            ],
+    if runschema:
+        method = runschema.method.Method()
+        run.method.append(method)
+        method.electrons_representation = [
+            runschema.method.BasisSetContainer(
+                type='plane waves',
+                scope=['wavefunction'],
+                basis_set=[
+                    runschema.method.BasisSet(
+                        type='plane waves',
+                        scope=['valence'],
+                    )
+                ],
+            )
+        ]
+        method.electronic = runschema.method.Electronic(method='DFT')
+        xc_functional = runschema.method.XCFunctional(
+            exchange=[runschema.method.Functional(name='GGA_X_PBE')]
         )
-    ]
-    method.electronic = Electronic(method='DFT')
-    xc_functional = XCFunctional(exchange=[Functional(name='GGA_X_PBE')])
-    method.dft = DFT(xc_functional=xc_functional)
-    scc = run.calculation[-1]
-    scc.method_ref = method
+        method.dft = runschema.method.DFT(xc_functional=xc_functional)
+        scc = run.calculation[-1]
+        scc.method_ref = method
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.GeometryOptimization()
     return template
@@ -212,17 +175,19 @@ def get_template_dft() -> EntryArchive:
 def get_template_excited(type: str) -> EntryArchive:
     """Returns a basic archive template for a ExcitedState calculation."""
     template = get_template_computation()
-    run = template.run[-1]
-    method = run.m_create(Method)
-    if type == 'GW':
-        method.gw = GW(type='G0W0')
-    elif type == 'Photon':
-        photon = Photon(multipole_type='dipole')
-        method.m_add_sub_section(Method.photon, photon)
-    elif type == 'BSE':
-        method.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
-    scc = run.calculation[-1]
-    scc.method_ref = method
+    if runschema:
+        run = template.run[-1]
+        method = runschema.method.Method()
+        run.method.append(method)
+        if type == 'GW':
+            method.gw = runschema.method.GW(type='G0W0')
+        elif type == 'Photon':
+            photon = runschema.method.Photon(multipole_type='dipole')
+            method.photon.append(photon)
+        elif type == 'BSE':
+            method.bse = runschema.method.BSE(type='Singlet', solver='Lanczos-Haydock')
+        scc = run.calculation[-1]
+        scc.method_ref = method
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
@@ -232,22 +197,23 @@ def get_template_tb_wannier() -> EntryArchive:
     """Returns a basic archive template for a TB calculation."""
     template = get_template_computation()
     run = template.run[-1]
-    run.program = Program(name='Wannier90', version='3.1.0')
-    method = run.m_create(Method)
-    method_tb = method.m_create(TB)
+    run.program = runschema.run.Program(name='Wannier90', version='3.1.0')
+    method = runschema.method.Method()
+    run.method.append(method)
+    method_tb = runschema.method.TB()
+    method.tb = method_tb
     method_tb.name = 'Wannier'
-    method_tb.wannier = Wannier(is_maximally_localized=False)
+    method_tb.wannier = runschema.method.Wannier(is_maximally_localized=False)
     system = run.system[-1]
-    system.m_add_sub_section(
-        System.atoms_group,
-        AtomsGroup(
+    system.atoms_group.append(
+        runschema.system.AtomsGroup(
             label='projection',
             type='active_orbitals',
             index=0,
             is_molecule=False,
             n_atoms=1,
             atom_indices=np.array([0]),
-        ),
+        )
     )
     scc = run.calculation[-1]
     scc.method_ref = method
@@ -268,14 +234,16 @@ def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArch
     """
     # instantiate skeleton
     template = get_template_computation()  # assumes BrKSi2
-    template.run[-1].method.append(Method())
+    template.run[-1].method.append(runschema.method.Method())
     method, system = template.run[-1].method[-1], template.run[-1].system[-1]
     elements = system.atoms.labels
 
     # set atom_parameters and core_holes
     list_terms = {'j_quantum_number', 'mj_quantum_number'}
     for active_index, atom_index in enumerate(atom_indices):
-        method.atom_parameters.append(AtomParameters(label=elements[atom_index]))
+        method.atom_parameters.append(
+            runschema.method.AtomParameters(label=elements[atom_index])
+        )
         core_hole = CoreHole()
         for k, v in kwargs.items():
             try:
@@ -292,7 +260,7 @@ def get_template_active_orbitals(atom_indices: list[int], **kwargs) -> EntryArch
                 pass
         method.atom_parameters[-1].core_hole = core_hole
         system.atoms_group.append(
-            AtomsGroup(
+            runschema.system.AtomsGroup(
                 label='core-hole',
                 type='active_orbitals',
                 n_atoms=1,
@@ -368,25 +336,29 @@ def check_template_active_orbitals(template: EntryArchive, **kwargs) -> dict[str
 def get_template_dmft() -> EntryArchive:
     """Returns a basic archive template for a DMFT calculation."""
     template = get_template_computation()
-    run = template.run[-1]
-    run.program = Program(name='w2dynamics')
-    input_method = run.m_create(Method)
-    input_model = input_method.m_create(LatticeModelHamiltonian)
-    input_model.hubbard_kanamori_model.append(
-        HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19)
-    )
-    method_dmft = run.m_create(Method)
-    method_dmft.dmft = DMFT(
-        impurity_solver='CT-HYB',
-        n_impurities=1,
-        n_electrons=[1.0],
-        n_correlated_orbitals=[3.0],
-        inverse_temperature=60.0,
-        magnetic_state='paramagnetic',
-    )
-    method_dmft.starting_method_ref = input_method
-    scc = run.calculation[-1]
-    scc.method_ref = method_dmft
+    if runschema:
+        run = template.run[-1]
+        run.program = runschema.run.Program(name='w2dynamics')
+        input_method = runschema.method.Method()
+        run.method.append(input_method)
+        input_model = runschema.method.LatticeModelHamiltonian()
+        input_method.lattice_model_hamiltonian.append(input_model)
+        input_model.hubbard_kanamori_model.append(
+            runschema.method.HubbardKanamoriModel(orbital='d', u=4.0e-19, jh=0.6e-19)
+        )
+        method_dmft = runschema.method.Method()
+        run.method.append(method_dmft)
+        method_dmft.dmft = runschema.method.DMFT(
+            impurity_solver='CT-HYB',
+            n_impurities=1,
+            n_electrons=[1.0],
+            n_correlated_orbitals=[3.0],
+            inverse_temperature=60.0,
+            magnetic_state='paramagnetic',
+        )
+        method_dmft.starting_method_ref = input_method
+        scc = run.calculation[-1]
+        scc.method_ref = method_dmft
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
@@ -396,11 +368,13 @@ def get_template_maxent() -> EntryArchive:
     """Returns a basic archive template for a MaxEnt analytical continuation calculation."""
     # TODO update when MaxEnt methodology is defined
     template = get_template_computation()
-    run = template.run[-1]
-    run.program = Program(name='w2dynamics')
-    method = run.m_create(Method)
-    scc = run.calculation[-1]
-    scc.method_ref = method
+    if runschema:
+        run = template.run[-1]
+        run.program = runschema.run.Program(name='w2dynamics')
+        method = runschema.method.Method()
+        run.method.append(method)
+        scc = run.calculation[-1]
+        scc.method_ref = method
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.SinglePoint()
     return template
@@ -437,32 +411,36 @@ def get_template_eels() -> EntryArchive:
 
 def get_template_for_structure(atoms: Atoms) -> EntryArchive:
     template = get_template_dft()
-    template.run[0].calculation[0].system_ref = None
-    template.run[0].calculation[0].eigenvalues.append(BandEnergies())
-    template.run[0].calculation[0].eigenvalues[0].kpoints = [[0, 0, 0]]
-    template.run[0].system = None
+    if runschema:
+        template.run[0].calculation[0].system_ref = None
+        template.run[0].calculation[0].eigenvalues.append(
+            runschema.calculation.BandEnergies()
+        )
+        template.run[0].calculation[0].eigenvalues[0].kpoints = [[0, 0, 0]]
+        template.run[0].system = []
 
-    # Fill structural information
-    # system = template.run[0].m_create(System)
-    # system.atom_positions = atoms.get_positions() * 1E-10
-    # system.atom_labels = atoms.get_chemical_symbols()
-    # system.simulation_cell = atoms.get_cell() * 1E-10
-    # system.configuration_periodic_dimensions = atoms.get_pbc()
-    system = get_section_system(atoms)
-    template.run[0].m_add_sub_section(Run.system, system)
+        # Fill structural information
+        # system = template.run[0].m_create(System)
+        # system.atom_positions = atoms.get_positions() * 1E-10
+        # system.atom_labels = atoms.get_chemical_symbols()
+        # system.simulation_cell = atoms.get_cell() * 1E-10
+        # system.configuration_periodic_dimensions = atoms.get_pbc()
+        system = get_section_system(atoms)
+        template.run[0].system.append(system)
 
     return run_normalize(template)
 
 
 def get_section_system(atoms: Atoms):
-    system = System()
-    system.atoms = NOMADAtoms(
-        positions=atoms.get_positions() * 1e-10,
-        labels=atoms.get_chemical_symbols(),
-        lattice_vectors=atoms.get_cell() * 1e-10,
-        periodic=atoms.get_pbc(),
-    )
-    return system
+    if runschema:
+        system = runschema.system.System()
+        system.atoms = runschema.system.Atoms(
+            positions=atoms.get_positions() * 1e-10,
+            labels=atoms.get_chemical_symbols(),
+            lattice_vectors=atoms.get_cell() * 1e-10,
+            periodic=atoms.get_pbc(),
+        )
+        return system
 
 
 def add_template_dos(
@@ -488,34 +466,34 @@ def add_template_dos(
     """
     if len(fill) > 1 and type != 'electronic':
         raise ValueError('Cannot create spin polarized DOS for non-electronic data.')
-    scc = template.run[0].calculation[0]
-    dos_type = (
-        Calculation.dos_electronic if type == 'electronic' else Calculation.dos_phonon
-    )
-    energies = np.linspace(-5, 5, n_values)
-    for i, range_list in enumerate(fill):
-        dos = scc.m_create(Dos, dos_type)
-        dos.spin_channel = i if (len(fill) == 2 and type == 'electronic') else None
-        dos.energies = energies * ureg.electron_volt
-        dos_total = dos.m_create(DosValues, Dos.total)
-        dos_value = np.zeros(n_values)
-        for r in range_list:
-            idx_bottom = (np.abs(energies - r[0])).argmin()
-            idx_top = (np.abs(energies - r[1])).argmin()
-            dos_value[idx_bottom:idx_top] = 1
-        dos_total.value = dos_value
+    if runschema:
+        scc = template.run[0].calculation[0]
+        energies = np.linspace(-5, 5, n_values)
+        for i, range_list in enumerate(fill):
+            dos = runschema.calculation.Dos()
+            scc[f'dos_{type if type == "electronic" else "phonon"}'].append(dos)
+            dos.spin_channel = i if (len(fill) == 2 and type == 'electronic') else None
+            dos.energies = energies * ureg.electron_volt
+            dos_total = runschema.calculation.DosValues()
+            dos.total.append(dos_total)
+            dos_value = np.zeros(n_values)
+            for r in range_list:
+                idx_bottom = (np.abs(energies - r[0])).argmin()
+                idx_top = (np.abs(energies - r[1])).argmin()
+                dos_value[idx_bottom:idx_top] = 1
+            dos_total.value = dos_value
 
-    if energy_reference_fermi is not None:
-        energy_reference_fermi *= ureg.electron_volt
-    if energy_reference_highest_occupied is not None:
-        energy_reference_highest_occupied *= ureg.electron_volt
-    if energy_reference_lowest_unoccupied is not None:
-        energy_reference_lowest_unoccupied *= ureg.electron_volt
-    scc.energy = Energy(
-        fermi=energy_reference_fermi,
-        highest_occupied=energy_reference_highest_occupied,
-        lowest_unoccupied=energy_reference_lowest_unoccupied,
-    )
+        if energy_reference_fermi is not None:
+            energy_reference_fermi *= ureg.electron_volt
+        if energy_reference_highest_occupied is not None:
+            energy_reference_highest_occupied *= ureg.electron_volt
+        if energy_reference_lowest_unoccupied is not None:
+            energy_reference_lowest_unoccupied *= ureg.electron_volt
+        scc.energy = runschema.calculation.Energy(
+            fermi=energy_reference_fermi,
+            highest_occupied=energy_reference_highest_occupied,
+            lowest_unoccupied=energy_reference_lowest_unoccupied,
+        )
     return template
 
 
@@ -567,7 +545,8 @@ def add_template_band_structure(
         template.run[0].system[0].atoms = None
     scc = template.run[0].calculation[0]
     if type == 'electronic':
-        bs = scc.m_create(BandStructure, Calculation.band_structure_electronic)
+        bs = runschema.calculation.BandStructure()
+        scc.band_structure_electronic.append(bs)
         n_spin_channels = len(band_gaps)
         fermi: List[float] = []
         highest: List[float] = []
@@ -581,13 +560,14 @@ def add_template_band_structure(
                 fermi.append(1 * 1.60218e-19)
 
         if has_references:
-            scc.energy = Energy(fermi=fermi[0])
+            scc.energy = runschema.calculation.Energy(fermi=fermi[0])
             if len(highest) > 0:
                 scc.energy.highest_occupied = highest[0]
             if len(lowest) > 0:
                 scc.energy.lowest_unoccupied = lowest[0]
     else:
-        bs = scc.m_create(BandStructure, Calculation.band_structure_phonon)
+        bs = runschema.calculation.BandStructure()
+        scc.band_structure_phonon.append(bs)
         n_spin_channels = 1
     n_segments = 2
     full_space = np.linspace(0, 2 * np.pi, 200)
@@ -601,7 +581,8 @@ def add_template_band_structure(
     for i_seg in range(n_segments):
         krange = space[i_seg]
         n_points = len(krange)
-        seg = bs.m_create(BandEnergies)
+        seg = runschema.calculation.BandEnergies()
+        bs.segment.append(seg)
         energies = np.zeros((n_spin_channels, n_points, 2))
         k_points = np.zeros((n_points, 3))
         k_points[:, 0] = np.linspace(0, 1, n_points)
@@ -646,23 +627,25 @@ def get_template_band_structure(
 
 def add_template_greens_functions(template: EntryArchive) -> EntryArchive:
     """Used to create a test data for Greens functions."""
-    scc = template.run[0].calculation[0]
-    sec_gfs = scc.m_create(GreensFunctions)
-    sec_gfs.matsubara_freq = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
-    sec_gfs.tau = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
-    n_atoms = 1
-    n_spin = 2
-    n_orbitals = 3
-    n_iw = len(sec_gfs.matsubara_freq)
-    self_energy_iw = [
-        [
-            [[w * 1j + o + s + a for w in range(n_iw)] for o in range(n_orbitals)]
-            for s in range(n_spin)
+    if runschema:
+        scc = template.run[0].calculation[0]
+        sec_gfs = runschema.calculation.GreensFunctions()
+        scc.greens_functions.append(sec_gfs)
+        sec_gfs.matsubara_freq = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+        sec_gfs.tau = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+        n_atoms = 1
+        n_spin = 2
+        n_orbitals = 3
+        n_iw = len(sec_gfs.matsubara_freq)
+        self_energy_iw = [
+            [
+                [[w * 1j + o + s + a for w in range(n_iw)] for o in range(n_orbitals)]
+                for s in range(n_spin)
+            ]
+            for a in range(n_atoms)
         ]
-        for a in range(n_atoms)
-    ]
-    sec_gfs.self_energy_iw = self_energy_iw
-    sec_gfs.greens_function_tau = self_energy_iw
+        sec_gfs.self_energy_iw = self_energy_iw
+        sec_gfs.greens_function_tau = self_energy_iw
     return template
 
 
@@ -698,9 +681,11 @@ def get_template_gw_workflow() -> EntryArchive:
     ]
     # GW workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = archive_dft.run[-1].program
-    run.system = archive_dft.run[-1].system
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = archive_dft.run[-1].program
+        run.system = archive_dft.run[-1].system
     if simulationworkflowschema:
         workflow = simulationworkflowschema.GW()
         workflow.name = 'GW'
@@ -758,9 +743,11 @@ def get_template_dmft_workflow() -> EntryArchive:
     ]
     # DMFT workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = archive_dmft.run[-1].program
-    run.system = archive_tb.run[-1].system
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = archive_dmft.run[-1].program
+        run.system = archive_tb.run[-1].system
     if simulationworkflowschema:
         workflow = simulationworkflowschema.DMFT()
         workflow.name = 'DMFT'
@@ -823,12 +810,15 @@ def get_template_maxent_workflow() -> EntryArchive:
     ]
     # DMFT workflow entry (no need of creating Method)
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = archive_dmft.run[-1].program
-    run.system = archive_dmft.run[-1].system
-    scc = run.m_create(Calculation)
-    scc.system_ref = run.system[-1]
-    template = add_template_dos(template)
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = archive_dmft.run[-1].program
+        run.system = archive_dmft.run[-1].system
+        scc = runschema.calculation.Calculation()
+        run.calculation.append(scc)
+        scc.system_ref = run.system[-1]
+        template = add_template_dos(template)
     if simulationworkflowschema:
         workflow = simulationworkflowschema.MaxEnt()
         workflow.name = 'MaxEnt'
@@ -867,34 +857,31 @@ def get_template_bse_workflow() -> EntryArchive:
     archive_photon_1 = get_template_excited(type='Photon')
     archive_photon_2 = get_template_excited(type='Photon')
     n_energies = 11
-    spectra_1 = Spectra(
-        type='XAS',
-        n_energies=n_energies,
-        excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
-        intensities=np.linspace(100, 200, n_energies),
-        intensities_units='F/m',
-    )
-    provenance_1 = ElectronicStructureProvenance(
-        label='photon', methodology=archive_photon_1.run[-1].method[-1]
-    )
-    spectra_1.m_add_sub_section(Spectra.provenance, provenance_1)
-    archive_photon_1.run[-1].calculation[-1].m_add_sub_section(
-        Calculation.spectra, spectra_1
-    )
-    spectra_2 = Spectra(
-        type='XAS',
-        n_energies=n_energies,
-        excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
-        intensities=np.linspace(200, 300, n_energies),
-        intensities_units='F/m',
-    )
-    provenance_2 = ElectronicStructureProvenance(
-        label='photon', methodology=archive_photon_2.run[-1].method[-1]
-    )
-    spectra_2.m_add_sub_section(Spectra.provenance, provenance_2)
-    archive_photon_2.run[-1].calculation[-1].m_add_sub_section(
-        Calculation.spectra, spectra_2
-    )
+    if runschema:
+        spectra_1 = runschema.calculation.Spectra(
+            type='XAS',
+            n_energies=n_energies,
+            excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
+            intensities=np.linspace(100, 200, n_energies),
+            intensities_units='F/m',
+        )
+        provenance_1 = runschema.calculation.ElectronicStructureProvenance(
+            label='photon', methodology=archive_photon_1.run[-1].method[-1]
+        )
+        spectra_1.provenance.append(provenance_1)
+        archive_photon_1.run[-1].calculation[-1].spectra.append(spectra_1)
+        spectra_2 = runschema.calculation.Spectra(
+            type='XAS',
+            n_energies=n_energies,
+            excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
+            intensities=np.linspace(200, 300, n_energies),
+            intensities_units='F/m',
+        )
+        provenance_2 = runschema.calculation.ElectronicStructureProvenance(
+            label='photon', methodology=archive_photon_2.run[-1].method[-1]
+        )
+        spectra_2.provenance.append(provenance_2)
+        archive_photon_2.run[-1].calculation[-1].spectra.append(spectra_2)
     # Normalizing SinglePoint archives BEFORE defining the BSE workflow entry
     run_normalize(archive_photon_1)
     run_normalize(archive_photon_2)
@@ -923,11 +910,14 @@ def get_template_bse_workflow() -> EntryArchive:
     ]
     # BSE workflow entry (no need of creating Calculation). We need to define BSE method.
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = archive_photon_1.run[-1].program
-    run.system = archive_photon_1.run[-1].system
-    method = run.m_create(Method)
-    method.bse = BSE(type='Singlet', solver='Lanczos-Haydock')
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = archive_photon_1.run[-1].program
+        run.system = archive_photon_1.run[-1].system
+        method = runschema.method.Method()
+        run.method.append(method)
+        method.bse = runschema.method.BSE(type='Singlet', solver='Lanczos-Haydock')
     if simulationworkflowschema:
         workflow = simulationworkflowschema.PhotonPolarization()
         workflow.name = 'BSE'
@@ -1008,9 +998,11 @@ def get_template_xs_workflow() -> EntryArchive:
     ]
     # XS (BSE) workflow entry (no need of creating Method nor Calculation)
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = archive_dft.run[-1].program
-    run.system = archive_dft.run[-1].system
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = archive_dft.run[-1].program
+        run.system = archive_dft.run[-1].system
     if simulationworkflowschema:
         workflow = simulationworkflowschema.XS()
         workflow.name = 'XS'
@@ -1040,41 +1032,51 @@ def set_dft_values(xc_functional_names: list) -> EntryArchive:
     """"""
     template = get_template_dft()
     template.run[0].method = None
-    run = template.run[0]
-    method_dft = run.m_create(Method)
-    method_dft.electrons_representation = [
-        BasisSetContainer(
-            type='plane waves',
-            scope=['wavefunction'],
-            basis_set=[
-                BasisSet(
-                    type='plane waves',
-                    scope=['valence'],
-                    cutoff=500,
-                )
-            ],
+    if runschema:
+        run = template.run[0]
+        method_dft = runschema.method.Method()
+        run.method.append(method_dft)
+        method_dft.electrons_representation = [
+            runschema.method.BasisSetContainer(
+                type='plane waves',
+                scope=['wavefunction'],
+                basis_set=[
+                    runschema.method.BasisSet(
+                        type='plane waves',
+                        scope=['valence'],
+                        cutoff=500,
+                    )
+                ],
+            )
+        ]
+        method_dft.dft = runschema.method.DFT()
+        method_dft.electronic = runschema.method.Electronic(
+            method='DFT',
+            smearing=runschema.method.Smearing(kind='gaussian', width=1e-20),
+            n_spin_channels=2,
+            van_der_waals_method='G06',
+            relativity_method='scalar_relativistic',
         )
-    ]
-    method_dft.dft = DFT()
-    method_dft.electronic = Electronic(
-        method='DFT',
-        smearing=Smearing(kind='gaussian', width=1e-20),
-        n_spin_channels=2,
-        van_der_waals_method='G06',
-        relativity_method='scalar_relativistic',
-    )
-    method_dft.scf = Scf(threshold_energy_change=1e-24)
-    method_dft.dft.xc_functional = XCFunctional()
-    xc = method_dft.dft.xc_functional
-    for xc_functional_name in xc_functional_names:
-        if re.search('^HYB_', xc_functional_name):
-            xc.hybrid.append(Functional(name=xc_functional_name, weight=1.0))
-            continue
-        if re.search('_X?C_', xc_functional_name):
-            xc.correlation.append(Functional(name=xc_functional_name, weight=1.0))
-        if re.search('_XC?_', xc_functional_name):
-            xc.exchange.append(Functional(name=xc_functional_name, weight=1.0))
-        xc.correlation.append(Functional(name=xc_functional_name, weight=1.0))
+        method_dft.scf = runschema.method.Scf(threshold_energy_change=1e-24)
+        method_dft.dft.xc_functional = runschema.method.XCFunctional()
+        xc = method_dft.dft.xc_functional
+        for xc_functional_name in xc_functional_names:
+            if re.search('^HYB_', xc_functional_name):
+                xc.hybrid.append(
+                    runschema.method.Functional(name=xc_functional_name, weight=1.0)
+                )
+                continue
+            if re.search('_X?C_', xc_functional_name):
+                xc.correlation.append(
+                    runschema.method.Functional(name=xc_functional_name, weight=1.0)
+                )
+            if re.search('_XC?_', xc_functional_name):
+                xc.exchange.append(
+                    runschema.method.Functional(name=xc_functional_name, weight=1.0)
+                )
+            xc.correlation.append(
+                runschema.method.Functional(name=xc_functional_name, weight=1.0)
+            )
     return template
 
 
@@ -1090,50 +1092,55 @@ def dft_method_referenced() -> EntryArchive:
     """DFT calculation with two methods: one referencing the other."""
     template = get_template_dft()
     template.run[0].method = None
-    run = template.run[0]
-    method_dft = run.m_create(Method)
-    method_dft.electrons_representation = [
-        BasisSetContainer(
-            type='plane waves',
-            scope=['wavefunction'],
-            basis_set=[
-                BasisSet(
-                    type='plane waves',
-                    scope=['valence'],
-                )
-            ],
+    if runschema:
+        run = template.run[0]
+        method_dft = runschema.method.Method()
+        run.method.append(method_dft)
+        method_dft.electrons_representation = [
+            runschema.method.BasisSetContainer(
+                type='plane waves',
+                scope=['wavefunction'],
+                basis_set=[
+                    runschema.method.BasisSet(
+                        type='plane waves',
+                        scope=['valence'],
+                    )
+                ],
+            )
+        ]
+        method_dft.electronic = runschema.method.Electronic(
+            smearing=runschema.method.Smearing(kind='gaussian', width=1e-20),
+            n_spin_channels=2,
+            van_der_waals_method='G06',
+            relativity_method='scalar_relativistic',
         )
-    ]
-    method_dft.electronic = Electronic(
-        smearing=Smearing(kind='gaussian', width=1e-20),
-        n_spin_channels=2,
-        van_der_waals_method='G06',
-        relativity_method='scalar_relativistic',
-    )
-    method_dft.scf = Scf(threshold_energy_change=1e-24)
-    method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(
-        Functional(name='GGA_C_PBE', weight=1.0)
-    )
-    method_dft.dft.xc_functional.exchange.append(
-        Functional(name='GGA_X_PBE', weight=1.0)
-    )
-    method_ref = run.m_create(Method)
-    method_ref.electrons_representation = [
-        BasisSetContainer(
-            type='plane waves',
-            scope=['wavefunction'],
-            basis_set=[
-                BasisSet(
-                    type='plane waves',
-                    scope=['valence'],
-                )
-            ],
+        method_dft.scf = runschema.method.Scf(threshold_energy_change=1e-24)
+        method_dft.dft = runschema.method.DFT(
+            xc_functional=runschema.method.XCFunctional()
         )
-    ]
-    method_ref.electronic = Electronic(method='DFT')
-    method_ref.core_method_ref = method_dft
-    run.calculation[0].method_ref = method_ref
+        method_dft.dft.xc_functional.correlation.append(
+            runschema.method.Functional(name='GGA_C_PBE', weight=1.0)
+        )
+        method_dft.dft.xc_functional.exchange.append(
+            runschema.method.Functional(name='GGA_X_PBE', weight=1.0)
+        )
+        method_ref = runschema.method.Method()
+        run.method.append(method_ref)
+        method_ref.electrons_representation = [
+            runschema.method.BasisSetContainer(
+                type='plane waves',
+                scope=['wavefunction'],
+                basis_set=[
+                    runschema.method.BasisSet(
+                        type='plane waves',
+                        scope=['valence'],
+                    )
+                ],
+            )
+        ]
+        method_ref.electronic = runschema.method.Electronic(method='DFT')
+        method_ref.core_method_ref = method_dft
+        run.calculation[0].method_ref = method_ref
     return run_normalize(template)
 
 
@@ -1141,7 +1148,9 @@ def dft_method_referenced() -> EntryArchive:
 def dft_exact_exchange() -> EntryArchive:
     """Add exact exchange explicitely to a PBE calculation."""
     template = set_dft_values(['GGA_C_PBE', 'GGA_X_PBE'])
-    template.run[0].method[0].dft.xc_functional.hybrid.append(Functional())
+    template.run[0].method[0].dft.xc_functional.hybrid.append(
+        runschema.method.Functional()
+    )
     template.run[0].method[0].dft.xc_functional.hybrid[0].parameters = {
         'exact_exchange_mixing_factor': 0.25
     }
@@ -1226,39 +1235,45 @@ def dft_plus_u() -> EntryArchive:
     """DFT+U calculation with a Hubbard model."""
     template = get_template_dft()
     template.run[0].method = None
-    run = template.run[0]
-    method_dft = run.m_create(Method)
-    method_dft.electrons_representation = [
-        BasisSetContainer(
-            type='plane waves',
-            scope=['wavefunction'],
-            basis_set=[
-                BasisSet(
-                    type='plane waves',
-                    scope=['valence'],
-                )
-            ],
+    if runschema:
+        run = template.run[0]
+        method_dft = runschema.method.Method()
+        run.method.append(method_dft)
+        method_dft.electrons_representation = [
+            runschema.method.BasisSetContainer(
+                type='plane waves',
+                scope=['wavefunction'],
+                basis_set=[
+                    runschema.method.BasisSet(
+                        type='plane waves',
+                        scope=['valence'],
+                    )
+                ],
+            )
+        ]
+        method_dft.electronic = runschema.method.Electronic(
+            method='DFT+U',
+            smearing=runschema.method.Smearing(kind='gaussian', width=1e-20),
+            n_spin_channels=2,
+            van_der_waals_method='G06',
+            relativity_method='scalar_relativistic',
         )
-    ]
-    method_dft.electronic = Electronic(
-        method='DFT+U',
-        smearing=Smearing(kind='gaussian', width=1e-20),
-        n_spin_channels=2,
-        van_der_waals_method='G06',
-        relativity_method='scalar_relativistic',
-    )
-    method_dft.scf = Scf(threshold_energy_change=1e-24)
-    method_dft.dft = DFT(xc_functional=XCFunctional())
-    method_dft.dft.xc_functional.correlation.append(
-        Functional(name='GGA_C_PBE', weight=1.0)
-    )
-    method_dft.dft.xc_functional.exchange.append(
-        Functional(name='GGA_X_PBE', weight=1.0)
-    )
-    method_dft.atom_parameters.append(AtomParameters(label='Ti'))
-    method_dft.atom_parameters[0].hubbard_kanamori_model = HubbardKanamoriModel(
-        orbital='3d', u=4.5e-19, j=1.0e-19, double_counting_correction='Dudarev'
-    )
+        method_dft.scf = runschema.method.Scf(threshold_energy_change=1e-24)
+        method_dft.dft = runschema.method.DFT(
+            xc_functional=runschema.method.XCFunctional()
+        )
+        method_dft.dft.xc_functional.correlation.append(
+            runschema.method.Functional(name='GGA_C_PBE', weight=1.0)
+        )
+        method_dft.dft.xc_functional.exchange.append(
+            runschema.method.Functional(name='GGA_X_PBE', weight=1.0)
+        )
+        method_dft.atom_parameters.append(runschema.method.AtomParameters(label='Ti'))
+        method_dft.atom_parameters[
+            0
+        ].hubbard_kanamori_model = runschema.method.HubbardKanamoriModel(
+            orbital='3d', u=4.5e-19, j=1.0e-19, double_counting_correction='Dudarev'
+        )
     return run_normalize(template)
 
 
@@ -1394,47 +1409,66 @@ def one_d() -> EntryArchive:
 @pytest.fixture(scope='session')
 def organic_formula() -> EntryArchive:
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='VASP', version='4.6.35')
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(labels=['C', 'H', 'Cl', 'Cl', 'Cl'])
-    run.calculation.extend([Calculation(), Calculation()])
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = runschema.run.Program(name='VASP', version='4.6.35')
+        system = runschema.system.System()
+        run.system.append(system)
+        system.atoms = runschema.system.Atoms(labels=['C', 'H', 'Cl', 'Cl', 'Cl'])
+        run.calculation.extend(
+            [runschema.calculation.Calculation(), runschema.calculation.Calculation()]
+        )
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def organic_carbonyl_formula() -> EntryArchive:
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='VASP', version='4.6.35')
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(labels=['C', 'Ag', 'O'])
-    run.calculation.extend([Calculation(), Calculation()])
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = runschema.run.Program(name='VASP', version='4.6.35')
+        system = runschema.system.System()
+        run.system.append(system)
+        system.atoms = runschema.system.Atoms(labels=['C', 'Ag', 'O'])
+        run.calculation.extend(
+            [runschema.calculation.Calculation(), runschema.calculation.Calculation()]
+        )
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def inorganic_carbonyl_formula() -> EntryArchive:
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='VASP', version='4.6.35')
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(
-        labels=['Fe', 'C', 'C', 'C', 'C', 'C', 'O', 'O', 'O', 'O', 'O']
-    )
-    run.calculation.extend([Calculation(), Calculation()])
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = runschema.run.Program(name='VASP', version='4.6.35')
+        system = runschema.system.System()
+        run.system.append(system)
+        system.atoms = runschema.system.Atoms(
+            labels=['Fe', 'C', 'C', 'C', 'C', 'C', 'O', 'O', 'O', 'O', 'O']
+        )
+        run.calculation.extend(
+            [runschema.calculation.Calculation(), runschema.calculation.Calculation()]
+        )
     return run_normalize(template)
 
 
 @pytest.fixture(scope='session')
 def inorganic_special_formula() -> EntryArchive:
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(name='VASP', version='4.6.35')
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(labels=['C', 'H', 'K', 'O', 'O', 'O'])
-    calculation = run.m_create(Calculation)
-    calculation.system_ref = system
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = runschema.run.Program(name='VASP', version='4.6.35')
+        system = runschema.system.System()
+        run.system.append(system)
+        system.atoms = runschema.system.Atoms(labels=['C', 'H', 'K', 'O', 'O', 'O'])
+        calculation = runschema.calculation.Calculation()
+        run.calculation.append(calculation)
+        calculation.system_ref = system
     return run_normalize(template)
 
 
@@ -1450,12 +1484,16 @@ def predefined_formula_descriptive() -> EntryArchive:
 @pytest.fixture(scope='session')
 def unknown_program() -> EntryArchive:
     template = EntryArchive()
-    run = template.m_create(Run)
-    run.program = Program(version='4.6.35')
-    system = run.m_create(System)
-    system.atoms = NOMADAtoms(labels=['Si'])
-    calculation = run.m_create(Calculation)
-    calculation.system_ref = system
+    if runschema:
+        run = runschema.run.Run()
+        template.run.append(run)
+        run.program = runschema.run.Program(version='4.6.35')
+        system = runschema.system.System()
+        run.system.append(system)
+        system.atoms = runschema.system.Atoms(labels=['Si'])
+        calculation = runschema.calculation.Calculation()
+        run.calculation.append(calculation)
+        calculation.system_ref = system
     return run_normalize(template)
 
 
@@ -1506,26 +1544,31 @@ def geometry_optimization() -> EntryArchive:
     template = get_template_dft()
     template.run[0].system = None
     template.run[0].calculation = None
-    run = template.run[0]
-    atoms1 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
-    atoms2 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
-    atoms2.translate([0.01, 0, 0])
-    sys1 = get_section_system(atoms1)
-    sys2 = get_section_system(atoms2)
-    scc1 = run.m_create(Calculation)
-    scc2 = run.m_create(Calculation)
-    scc1.energy = Energy(
-        total=EnergyEntry(value=1e-19), total_t0=EnergyEntry(value=1e-19)
-    )
-    scc2.energy = Energy(
-        total=EnergyEntry(value=0.5e-19), total_t0=EnergyEntry(value=0.5e-19)
-    )
-    scc1.system_ref = sys1
-    scc2.system_ref = sys2
-    scc1.method_ref = run.method[0]
-    scc2.method_ref = run.method[0]
-    run.m_add_sub_section(Run.system, sys1)
-    run.m_add_sub_section(Run.system, sys2)
+    if runschema:
+        run = template.run[0]
+        atoms1 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
+        atoms2 = ase.build.bulk('Si', 'diamond', cubic=True, a=5.431)
+        atoms2.translate([0.01, 0, 0])
+        sys1 = get_section_system(atoms1)
+        sys2 = get_section_system(atoms2)
+        scc1 = runschema.calculation.Calculation()
+        scc2 = runschema.calculation.Calculation()
+        scc1.energy = runschema.calculation.Energy(
+            total=runschema.calculation.EnergyEntry(value=1e-19),
+            total_t0=runschema.calculation.EnergyEntry(value=1e-19),
+        )
+        scc2.energy = runschema.calculation.Energy(
+            total=runschema.calculation.EnergyEntry(value=0.5e-19),
+            total_t0=runschema.calculation.EnergyEntry(value=0.5e-19),
+        )
+        scc1.system_ref = sys1
+        scc2.system_ref = sys2
+        scc1.method_ref = run.method[0]
+        scc2.method_ref = run.method[0]
+        run.system.append(sys1)
+        run.system.append(sys2)
+        run.calculation.append(scc1)
+        run.calculation.append(scc2)
 
     if simulationworkflowschema:
         template.workflow2 = simulationworkflowschema.GeometryOptimization(
@@ -1546,35 +1589,36 @@ def geometry_optimization() -> EntryArchive:
 def molecular_dynamics() -> EntryArchive:
     """Molecular dynamics calculation."""
     template = get_template_dft()
-    run = template.run[0]
+    if runschema:
+        run = template.run[0]
 
-    # Create calculations
-    n_steps = 10
-    calcs = []
-    for step in range(n_steps):
-        system = System()
-        run.m_add_sub_section(Run.system, system)
-        calc = Calculation()
-        calc.system_ref = system
-        calc.time = step
-        calc.step = step
-        calc.volume = step
-        calc.pressure = step
-        calc.temperature = step
-        calc.energy = Energy(
-            potential=EnergyEntry(value=step),
-        )
-        rg_values = RadiusOfGyrationValues(
-            value=step, label='MOL', atomsgroup_ref=system
-        )
-        calc.radius_of_gyration = [
-            RadiusOfGyration(
-                kind='molecular',
-                radius_of_gyration_values=[rg_values],
+        # Create calculations
+        n_steps = 10
+        calcs = []
+        for step in range(n_steps):
+            system = runschema.system.System()
+            run.system.append(system)
+            calc = runschema.calculation.Calculation()
+            calc.system_ref = system
+            calc.time = step
+            calc.step = step
+            calc.volume = step
+            calc.pressure = step
+            calc.temperature = step
+            calc.energy = runschema.calculation.Energy(
+                potential=runschema.calculation.EnergyEntry(value=step),
             )
-        ]
-        calcs.append(calc)
-        run.m_add_sub_section(Run.calculation, calc)
+            rg_values = runschema.calculation.RadiusOfGyrationValues(
+                value=step, label='MOL', atomsgroup_ref=system
+            )
+            calc.radius_of_gyration = [
+                runschema.calculation.RadiusOfGyration(
+                    kind='molecular',
+                    radius_of_gyration_values=[rg_values],
+                )
+            ]
+            calcs.append(calc)
+            run.calculation.append(calc)
 
     class RadialDistributionFunctionValues(ArchiveSection):
         bins = Quantity(type=np.float64, shape=['*'])
@@ -1677,70 +1721,71 @@ def molecular_dynamics() -> EntryArchive:
 
 def get_template_topology(pbc=False) -> EntryArchive:
     template = get_template_dft()
-    run = template.run[0]
-    del run.system[0]
+    if runschema:
+        run = template.run[0]
+        del run.system[0]
 
-    # System
-    water1 = ase.build.molecule('H2O')
-    water2 = ase.build.molecule('H2O')
-    water2.translate([5, 0, 0])
-    sys = water1 + water2
-    sys.set_cell([10, 10, 10])
-    sys.set_pbc(pbc)
-    system = get_section_system(sys)
-    run.m_add_sub_section(Run.system, system)
+        # System
+        water1 = ase.build.molecule('H2O')
+        water2 = ase.build.molecule('H2O')
+        water2.translate([5, 0, 0])
+        sys = water1 + water2
+        sys.set_cell([10, 10, 10])
+        sys.set_pbc(pbc)
+        system = get_section_system(sys)
+        run.system.append(system)
 
-    # Topology
-    molecule_group = AtomsGroup(
-        label='MOL_GROUP',
-        type='molecule_group',
-        index=0,
-        composition_formula='H(4)O(2)',
-        n_atoms=6,
-        atom_indices=[0, 1, 2, 3, 4, 5],
-    )
-    system.m_add_sub_section(System.atoms_group, molecule_group)
-    molecule1 = AtomsGroup(
-        label='MOL',
-        type='molecule',
-        index=0,
-        composition_formula='H(2)O(1)',
-        n_atoms=3,
-        atom_indices=[0, 1, 2],
-    )
-    molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule1)
-    molecule2 = AtomsGroup(
-        label='MOL',
-        type='molecule',
-        index=0,
-        composition_formula='H(2)O(1)',
-        n_atoms=3,
-        atom_indices=[3, 4, 5],
-    )
-    molecule_group.m_add_sub_section(AtomsGroup.atoms_group, molecule2)
-    monomer_group = AtomsGroup(
-        label='MON_GROUP',
-        type='monomer_group',
-        index=0,
-        composition_formula='H(2)',
-        n_atoms=2,
-        atom_indices=[1, 2],
-    )
-    molecule1.m_add_sub_section(AtomsGroup.atoms_group, monomer_group)
-    monomer = AtomsGroup(
-        label='MON',
-        type='monomer',
-        index=0,
-        composition_formula='H(2)',
-        n_atoms=2,
-        atom_indices=[1, 2],
-    )
-    monomer_group.m_add_sub_section(AtomsGroup.atoms_group, monomer)
+        # Topology
+        molecule_group = runschema.system.AtomsGroup(
+            label='MOL_GROUP',
+            type='molecule_group',
+            index=0,
+            composition_formula='H(4)O(2)',
+            n_atoms=6,
+            atom_indices=[0, 1, 2, 3, 4, 5],
+        )
+        system.atoms_group.append(molecule_group)
+        molecule1 = runschema.system.AtomsGroup(
+            label='MOL',
+            type='molecule',
+            index=0,
+            composition_formula='H(2)O(1)',
+            n_atoms=3,
+            atom_indices=[0, 1, 2],
+        )
+        molecule_group.atoms_group.append(molecule1)
+        molecule2 = runschema.system.AtomsGroup(
+            label='MOL',
+            type='molecule',
+            index=0,
+            composition_formula='H(2)O(1)',
+            n_atoms=3,
+            atom_indices=[3, 4, 5],
+        )
+        molecule_group.atoms_group.append(molecule2)
+        monomer_group = runschema.system.AtomsGroup(
+            label='MON_GROUP',
+            type='monomer_group',
+            index=0,
+            composition_formula='H(2)',
+            n_atoms=2,
+            atom_indices=[1, 2],
+        )
+        molecule1.atoms_group.append(monomer_group)
+        monomer = runschema.system.AtomsGroup(
+            label='MON',
+            type='monomer',
+            index=0,
+            composition_formula='H(2)',
+            n_atoms=2,
+            atom_indices=[1, 2],
+        )
+        monomer_group.atoms_group.append(monomer)
 
-    # Calculation
-    calc = Calculation()
-    calc.system_ref = system
-    run.m_add_sub_section(Run.calculation, calc)
+        # Calculation
+        calc = runschema.calculation.Calculation()
+        calc.system_ref = system
+        run.calculation.append(calc)
 
     return run_normalize(template)
 
@@ -1992,7 +2037,7 @@ def create_system(
     system_relation: Relation,
     indices: List[int] = None,
     material_id: str = None,
-    atoms: NOMADAtoms = None,
+    atoms: ArchiveSection = None,
     cell: Cell = None,
     symmetry: Symmetry = None,
 ) -> ResultSystem:
@@ -2267,42 +2312,43 @@ def graphene_topology() -> List[ResultSystem]:
         indices=[i for i in range(32)],
     )
 
-    atoms_c_conv = NOMADAtoms()
-    atoms_c_conv.periodic = [True, True, False]
-    atoms_c_conv.lattice_vectors = [
-        [2.4677241413662866, 0.0, 0.0],
-        [-1.2338620706831433, 2.1371117959553457, 0.0],
-        [0.0, 0.0, 1],
-    ] * ureg.angstrom
-    atoms_c_conv.positions = [
-        [1.2338620706831433, 0.712370598651782, 0.5],
-        [-2.7636130944313266e-16, 1.4247411973035641, 0.5],
-    ] * ureg.angstrom
-    atoms_c_conv.labels = ['C', 'C']
-    species = Species()
-    species.name = 'C'
-    species.chemical_symbols = ['C']
-    species.concentration = [1.0]
-    cell = Cell(
-        a=2.470 * ureg.angstrom,
-        b=2.470 * ureg.angstrom,
-        gamma=2.0943951023931957 * ureg.rad,
-    )
-    convsystem = create_system(
-        label='conventional cell',
-        structural_type='2D',
-        dimensionality='2D',
-        building_block='2D material',
-        elements=['C'],
-        formula_hill='C2',
-        formula_reduced='C2',
-        formula_anonymous='A2',
-        system_relation=Relation(type='conventional_cell'),
-        material_id='jdP9AhZIFuYhubLWkm2FPtEV5IZA',
-        atoms=atoms_c_conv,
-        cell=cell,
-        symmetry=None,
-    )
+    if runschema:
+        atoms_c_conv = runschema.system.Atoms()
+        atoms_c_conv.periodic = [True, True, False]
+        atoms_c_conv.lattice_vectors = [
+            [2.4677241413662866, 0.0, 0.0],
+            [-1.2338620706831433, 2.1371117959553457, 0.0],
+            [0.0, 0.0, 1],
+        ] * ureg.angstrom
+        atoms_c_conv.positions = [
+            [1.2338620706831433, 0.712370598651782, 0.5],
+            [-2.7636130944313266e-16, 1.4247411973035641, 0.5],
+        ] * ureg.angstrom
+        atoms_c_conv.labels = ['C', 'C']
+        species = Species()
+        species.name = 'C'
+        species.chemical_symbols = ['C']
+        species.concentration = [1.0]
+        cell = Cell(
+            a=2.470 * ureg.angstrom,
+            b=2.470 * ureg.angstrom,
+            gamma=2.0943951023931957 * ureg.rad,
+        )
+        convsystem = create_system(
+            label='conventional cell',
+            structural_type='2D',
+            dimensionality='2D',
+            building_block='2D material',
+            elements=['C'],
+            formula_hill='C2',
+            formula_reduced='C2',
+            formula_anonymous='A2',
+            system_relation=Relation(type='conventional_cell'),
+            material_id='jdP9AhZIFuYhubLWkm2FPtEV5IZA',
+            atoms=atoms_c_conv,
+            cell=cell,
+            symmetry=None,
+        )
     return [subsystem, convsystem]
 
 
@@ -2344,43 +2390,44 @@ def boron_nitride_topology() -> List[ResultSystem]:
         indices=[i for i in range(32)],
     )
 
-    atoms = NOMADAtoms()
-    atoms.periodic = [True, True, False]
-    atoms.lattice_vectors = [
-        [2.510266994011973, 0.0, 0.0],
-        [-1.2551334970059864, 2.1739549870959678, 0.0],
-        [0.0, 0.0, 1],
-    ] * ureg.angstrom
-    atoms.labels = ['B', 'N']
-    atoms.species = [5, 7]
-    species_B = Species()
-    species_B.name = 'B'
-    species_B.chemical_symbols = ['B']
-    species_B.concentration = [1.0]
-    species_N = Species()
-    species_N.name = 'N'
-    species_N.chemical_symbols = ['N']
-    species_N.concentration = [1.0]
-    cell = Cell(
-        a=2.513 * ureg.angstrom,
-        b=2.513 * ureg.angstrom,
-        gamma=2.0943951023931957 * ureg.rad,
-    )
-    convsystem = create_system(
-        label='conventional cell',
-        structural_type='2D',
-        dimensionality='2D',
-        building_block='2D material',
-        elements=['B', 'N'],
-        formula_hill='BN',
-        formula_reduced='BN',
-        formula_anonymous='AB',
-        system_relation=Relation(type='conventional_cell'),
-        material_id='RxRsol0dp1vDkU7-pE3v2exglkpM',
-        atoms=atoms,
-        cell=cell,
-        symmetry=None,
-    )
+    if runschema:
+        atoms = runschema.system.Atoms()
+        atoms.periodic = [True, True, False]
+        atoms.lattice_vectors = [
+            [2.510266994011973, 0.0, 0.0],
+            [-1.2551334970059864, 2.1739549870959678, 0.0],
+            [0.0, 0.0, 1],
+        ] * ureg.angstrom
+        atoms.labels = ['B', 'N']
+        atoms.species = [5, 7]
+        species_B = Species()
+        species_B.name = 'B'
+        species_B.chemical_symbols = ['B']
+        species_B.concentration = [1.0]
+        species_N = Species()
+        species_N.name = 'N'
+        species_N.chemical_symbols = ['N']
+        species_N.concentration = [1.0]
+        cell = Cell(
+            a=2.513 * ureg.angstrom,
+            b=2.513 * ureg.angstrom,
+            gamma=2.0943951023931957 * ureg.rad,
+        )
+        convsystem = create_system(
+            label='conventional cell',
+            structural_type='2D',
+            dimensionality='2D',
+            building_block='2D material',
+            elements=['B', 'N'],
+            formula_hill='BN',
+            formula_reduced='BN',
+            formula_anonymous='AB',
+            system_relation=Relation(type='conventional_cell'),
+            material_id='RxRsol0dp1vDkU7-pE3v2exglkpM',
+            atoms=atoms,
+            cell=cell,
+            symmetry=None,
+        )
     return [subsystem, convsystem]
 
 
@@ -2421,48 +2468,49 @@ def mos2_topology() -> List[ResultSystem]:
         indices=[i for i in range(48)],
     )
 
-    atoms = NOMADAtoms()
-    atoms.periodic = [True, True, False]
-    atoms.lattice_vectors = [
-        [3.253646631826119, 0.0, 0.0],
-        [-1.6268233159130596, 2.8177406380990937, 0.0],
-        [0.0, 0.0, 3.124912396241947],
-    ] * ureg.angstrom
-    atoms.positions = [
-        [0.0, 0.0, 1.562456198120974],
-        [1.626823332181293, 0.9392468699738958, 3.124912396241947],
-        [1.626823332181293, 0.9392468699738958, 0.0],
-    ] * ureg.angstrom
-    atoms.labels = ['Mo', 'S', 'S']
-    atoms.species = [42, 16, 16]
-    species_Mo = Species()
-    species_Mo.name = 'Mo'
-    species_Mo.chemical_symbols = ['Mo']
-    species_Mo.concentration = [1.0]
-    species_S = Species()
-    species_S.name = 'S'
-    species_S.chemical_symbols = ['S']
-    species_S.concentration = [1.0]
-    cell = Cell(
-        a=3.22 * ureg.angstrom,
-        b=3.22 * ureg.angstrom,
-        gamma=2.0943951023931957 * ureg.rad,
-    )
-    convsystem = create_system(
-        label='conventional cell',
-        structural_type='2D',
-        dimensionality='2D',
-        building_block='2D material',
-        elements=['Mo', 'S'],
-        formula_hill='MoS2',
-        formula_reduced='MoS2',
-        formula_anonymous='A2B',
-        system_relation=Relation(type='conventional_cell'),
-        material_id='KV4aYm-S1VJOH-SKeXXuG8JkTiGF',
-        atoms=atoms,
-        cell=cell,
-        symmetry=None,
-    )
+    if runschema:
+        atoms = runschema.system.Atoms()
+        atoms.periodic = [True, True, False]
+        atoms.lattice_vectors = [
+            [3.253646631826119, 0.0, 0.0],
+            [-1.6268233159130596, 2.8177406380990937, 0.0],
+            [0.0, 0.0, 3.124912396241947],
+        ] * ureg.angstrom
+        atoms.positions = [
+            [0.0, 0.0, 1.562456198120974],
+            [1.626823332181293, 0.9392468699738958, 3.124912396241947],
+            [1.626823332181293, 0.9392468699738958, 0.0],
+        ] * ureg.angstrom
+        atoms.labels = ['Mo', 'S', 'S']
+        atoms.species = [42, 16, 16]
+        species_Mo = Species()
+        species_Mo.name = 'Mo'
+        species_Mo.chemical_symbols = ['Mo']
+        species_Mo.concentration = [1.0]
+        species_S = Species()
+        species_S.name = 'S'
+        species_S.chemical_symbols = ['S']
+        species_S.concentration = [1.0]
+        cell = Cell(
+            a=3.22 * ureg.angstrom,
+            b=3.22 * ureg.angstrom,
+            gamma=2.0943951023931957 * ureg.rad,
+        )
+        convsystem = create_system(
+            label='conventional cell',
+            structural_type='2D',
+            dimensionality='2D',
+            building_block='2D material',
+            elements=['Mo', 'S'],
+            formula_hill='MoS2',
+            formula_reduced='MoS2',
+            formula_anonymous='A2B',
+            system_relation=Relation(type='conventional_cell'),
+            material_id='KV4aYm-S1VJOH-SKeXXuG8JkTiGF',
+            atoms=atoms,
+            cell=cell,
+            symmetry=None,
+        )
     return [subsystem, convsystem]
 
 

@@ -205,6 +205,7 @@ def archive_dft_bulk():
         },
     }
     run = {
+        'm_def': 'runschema.run.Run',
         'program': {'name': program_name, 'version': program_version},
         'method': [
             {

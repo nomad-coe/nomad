@@ -7,7 +7,7 @@ definitions:
           type: float
           unit: eV
         final_calculation:
-          type: nomad.datamodel.metainfo.simulation.calculation.Calculation
+          type: runschema.calculation.Calculation
 workflow2:
   m_def: GeometryOptimizationWorkflow
   final_calculation: '#/run/0/calculation/-1'
@@ -36,7 +36,8 @@ workflow2:
         - section: '#/run/0/system/3'
         - section: '#/run/0/calculation/2'
 run:
-  - program:
+  - m_def: runschema.run.Run
+    program:
       name: 'VASP'
     system: [{}, {}, {}]
     calculation: [{}, {}, {}]

@@ -202,7 +202,7 @@ Depending on where references are used, they might take a different serialized f
 |---|---|
 |`#/data/periodic_table/elements/0`|Reference to a section within the sub-section hierarchy of the same archive.|
 |`Element`|Reference to a *section definition* in the same archive. Can only be used to target *section definitions*.|
-|`nomad.datamodel.metainfo.simulation.Run`|Reference to a *section definition* that was written in Python and is part of the NOMAD code. Can only be used to target *section definitions*.|
+|`nomad.datamodel.metainfo.workflow`|Reference to a *section definition* that was written in Python and is part of the NOMAD code. Can only be used to target *section definitions*.|
 |`../upload/raw/data.archive.yaml#/data`|Reference to a section in a different `.archive.yaml` file of the same upload.|
 |`../upload/archive/mainfile/data.archive.yaml#/data`|Reference to a section in a processed archive given by entry *mainfile*.|
 |`../upload/archive/zxhS43h2kqHsVDqMboiP9cULrS_v#/data`|Reference to a section in a processed archive given by entry-id.|
@@ -300,8 +300,6 @@ EntryArchive:
       section: nomad.metainfo.Package
     data:
       section: EntryData
-    run:
-      section: nomad.datamodel.metainfo.simulation.Run
     # ... many more
 EntryData:
   # empty
@@ -330,7 +328,7 @@ Here are a few other built-in section definitions and packages of definitions:
 |nomad.datamodel.ArchiveSection|Allows to put `normalize` functions into your section definitions.|
 |nomad.datamodel.metainfo.eln.*|A package of section definitions to inherit commonly used quantities for ELNs. These quantities are indexed and allow specialization to utilize the NOMAD search.|
 |nomad.parsing.tabular.TableData|Allows to inherit parsing of references .csv and .xls files.|
-|nomad.datamodel.metainfo.simulation.*|A package of section definitions use by NOMAD's electronic structure code parsers to produce simulator "run" based data|
+|nomad.datamodel.metainfo.workflow.*|A package of section definitions use by NOMAD to define workflows|
 |nomad.metainfo.*|A package that contains all *definitions* of *definitions*, e.g. NOMAD's "schema language". Here you find *definitions* for what a sections, quantity, sub-sections, etc. is.|
 
 

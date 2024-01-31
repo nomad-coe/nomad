@@ -28,7 +28,7 @@ from nomad import atomutils
 from nomad import config
 from nomad.utils import hash
 from nomad.units import ureg
-from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
+from nomad.datamodel.metainfo.system import Atoms as NOMADAtoms
 from nomad.datamodel.optimade import Species
 from nomad.datamodel.results import (
     Cell,

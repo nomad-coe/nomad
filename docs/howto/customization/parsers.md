@@ -53,7 +53,8 @@ class ExampleParser:
         # Log a hello world, just to get us started. TODO remove from an actual parser.
         logger.info('Hello World')
 
-        run = archive.m_create(Run)
+        run = Run()
+        archive.run.append(run)
         run.program = Program(name='EXAMPLE')
 ```
 

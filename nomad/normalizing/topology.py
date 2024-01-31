@@ -48,7 +48,6 @@ from nomad.datamodel.results import (
     Relation,
     structure_name_map,
 )
-from nomad.datamodel.metainfo.simulation.system import Atoms as NOMADAtoms
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.normalizing.common import (
     cell_from_ase_atoms,
@@ -79,9 +78,7 @@ def get_topology_id(index: int) -> str:
     return f'results/material/topology/{index}'
 
 
-def get_topology_original(
-    atoms: NOMADAtoms = None, archive: EntryArchive = None
-) -> System:
+def get_topology_original(atoms=None, archive: EntryArchive = None) -> System:
     """
     Creates a new topology item for the original structure.
     """
@@ -233,6 +230,7 @@ class TopologyNormalizer:
 
         topology: Dict[str, System] = {}
         original = get_topology_original(atoms, self.entry_archive)
+        original.atoms_ref = atoms
         add_system(original, topology)
         label_to_indices: Dict[str, list] = defaultdict(list)
 
@@ -328,6 +326,7 @@ class TopologyNormalizer:
         # Create topology for the original system
         topology: Dict[str, System] = {}
         original = get_topology_original(nomad_atoms, self.entry_archive)
+        original.atoms_ref = nomad_atoms
         add_system(original, topology)
         add_system_info(original, topology)
 
@@ -628,7 +627,7 @@ class TopologyNormalizer:
             return []
         atom_params = getattr(methods[-1], 'atom_parameters', [])
         active_orbitals_run = [
-            param.core_hole for param in atom_params if getattr(param, 'core_hole')
+            param.core_hole for param in atom_params if hasattr(param, 'core_hole')
         ]
         if (
             len(active_orbitals_run) > 1

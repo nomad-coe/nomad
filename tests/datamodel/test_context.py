@@ -30,6 +30,7 @@ from nomad.datamodel import Context
 from nomad.datamodel.context import ServerContext, ClientContext, parse_path
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.processing import Upload, Entry, ProcessStatus
+from nomad.datamodel.metainfo import runschema, SCHEMA_IMPORT_ERROR
 
 
 @pytest.fixture(scope='module')
@@ -81,7 +82,7 @@ def test_normalize_reference(context, url, result):
     'source, target_archive, target_path, result',
     [
         pytest.param(
-            """{ "run": [{ "system": [{}] }]}""",
+            """{ "run": [{"m_def": "runschema.run.Run", "system": [{}] }]}""",
             None,
             '/run/0/system/0',
             '#/run/0/system/0',
@@ -89,14 +90,14 @@ def test_normalize_reference(context, url, result):
         ),
         pytest.param(
             """{ "metadata": { "upload_id": "source", "entry_id": "source" }}""",
-            """{ "metadata": { "upload_id": "source", "entry_id": "target" }, "run": [{ "system": [{}] }]}""",
+            """{ "metadata": { "upload_id": "source", "entry_id": "target" }, "run": [{"m_def": "runschema.run.Run", "system": [{}] }]}""",
             '/run/0/system/0',
             '../upload/archive/target#/run/0/system/0',
             id='intra-upload',
         ),
         pytest.param(
             """{ "metadata": { "upload_id": "source", "entry_id": "source" }}""",
-            """{ "metadata": { "upload_id": "target", "entry_id": "target" }, "run": [{ "system": [{}] }]}""",
+            """{ "metadata": { "upload_id": "target", "entry_id": "target" }, "run": [{"m_def": "runschema.run.Run", "system": [{}] }]}""",
             '/run/0/system/0',
             '../uploads/target/archive/target#/run/0/system/0',
             id='intra-oasis',
@@ -478,6 +479,7 @@ def test_server_external_schema(upload1_contents, upload2_contents, raw_files_fu
         assert results == content
 
 
+@pytest.mark.skipfi(runschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_client_custom_schema(api_v1, published_wo_user_metadata):
     url = 'http://testserver/api/v1'
     test_path = 'tests/data/datamodel/'
@@ -508,8 +510,7 @@ def test_client_custom_schema(api_v1, published_wo_user_metadata):
     parser.parse(mainfile=full_path, archive=archive)
 
     assert isinstance(
-        archive.run[0].calculation[0].system_ref.atoms,
-        nomad.datamodel.metainfo.simulation.system.Atoms,
+        archive.run[0].calculation[0].system_ref.atoms, runschema.system.Atoms
     )
 
     results = archive.m_to_dict()

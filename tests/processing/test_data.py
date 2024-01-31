@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 
-from nomad.datamodel.datamodel import EntryArchive
 from typing import Generator, Tuple, Dict
 import pytest
 import os.path
@@ -34,10 +33,11 @@ from nomad.parsing.parser import Parser
 from nomad.parsing import parsers
 from nomad.datamodel import ServerContext
 from nomad.datamodel.data import EntryData
-from nomad.metainfo import Package, Quantity, Reference
+from nomad.metainfo import Package, Quantity, Reference, SubSection
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.search import search, refresh as search_refresh
 from nomad.utils.exampledata import ExampleData
+from nomad.datamodel.datamodel import EntryArchive, EntryData, ArchiveSection
 
 from tests.test_search import assert_search_upload
 from tests.test_files import (
@@ -94,6 +94,19 @@ class TestBatch(EntryData):
                 archive.m_context.process_updated_raw_file(file_name)
             sample_refs.append(f'../upload/archive/mainfile/{file_name}#data')
         self.sample_refs = sample_refs
+
+
+class TestSection(ArchiveSection):
+    pass
+
+
+class TestReferenceSection(ArchiveSection):
+    reference = Quantity(type=Reference(TestSection))
+
+
+class TestData(EntryData):
+    test_section = SubSection(sub_section=TestSection, repeats=True)
+    reference_section = SubSection(sub_section=TestReferenceSection)
 
 
 m_package.__init_metainfo__()
@@ -1170,10 +1183,12 @@ def test_skip_matching(proc_infra, test_user):
 @pytest.mark.parametrize(
     'url,normalized_url',
     [
-        pytest.param('../upload/archive/test_id#/run/0/method/0', None, id='entry-id'),
         pytest.param(
-            '../upload/archive/mainfile/my/test/file#/run/0/method/0',
-            '../upload/archive/test_id#/run/0/method/0',
+            '../upload/archive/test_id#/data/test_section/0', None, id='entry-id'
+        ),
+        pytest.param(
+            '../upload/archive/mainfile/my/test/file#/data/test_section/0',
+            '../upload/archive/test_id#/data/test_section/0',
             id='mainfile',
         ),
     ],
@@ -1185,14 +1200,12 @@ def test_upload_context(
         'nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id'
     )
 
-    from nomad.datamodel.metainfo import simulation
-
     data = ExampleData(main_author=test_user)
     data.create_upload(upload_id='test_id', published=True)
 
-    referenced_archive = EntryArchive()
-    referenced_archive.run.append(simulation.Run())
-    referenced_archive.run[0].method.append(simulation.method.Method())
+    referenced_archive = EntryArchive(data=TestData())
+    referenced_archive.data.test_section.append(TestSection())
+
     data.create_entry(
         upload_id='test_id',
         entry_id='test_id',
@@ -1208,15 +1221,13 @@ def test_upload_context(
     context = ServerContext(upload=upload)
     test_archive = EntryArchive(m_context=context)
 
-    test_archive.run.append(simulation.Run())
-    calculation = simulation.calculation.Calculation()
-    test_archive.run[0].calculation.append(calculation)
-
-    assert calculation.m_root().m_context is not None
-    calculation.method_ref = url
+    section_reference = TestReferenceSection()
+    test_archive.data = TestData(reference_section=section_reference)
+    assert section_reference.m_root().m_context is not None
+    section_reference.reference = url
     assert (
-        calculation.m_to_dict()['method_ref'] == normalized_url
+        section_reference.m_to_dict()['reference'] == normalized_url
         if normalized_url
         else url
     )
-    assert calculation.method_ref.m_root().metadata.entry_id == 'test_id'
+    assert section_reference.reference.m_root().metadata.entry_id == 'test_id'

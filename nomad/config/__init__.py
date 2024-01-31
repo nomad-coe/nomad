@@ -39,6 +39,7 @@ import yaml
 import warnings
 from typing import List, Any, Union, get_type_hints
 from pydantic import parse_obj_as, BaseModel
+import importlib
 
 from .models import (
     NomadSettings,
@@ -557,10 +558,22 @@ plugins = Plugins(
         'normalizers/simulation/workflow': Normalizer(
             python_package='simulationworkflownormalizer'
         ),
+        'normalizers/simulation/dos': Normalizer(python_package='dosnormalizer'),
+        'normalizers/simulation/band_structure': Normalizer(
+            python_package='bandstructurenormalizer'
+        ),
+        'normalizers/simulation/system': Normalizer(python_package='systemnormalizer'),
+        'normalizers/simulation/soap': Normalizer(python_package='soapnormalizer'),
+        'normalizers/simulation/spectra': Normalizer(
+            python_package='spectranormalizer'
+        ),
         'schema/simulation/workflow': Schema(
             name='simulationworkflowschema',
             key='simulationworkflowschema',
             python_package='simulationworkflowschema',
+        ),
+        'schema/simulation/run': Schema(
+            name='runschema', key='runschema', python_package='runschema'
         ),
         'schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database': Schema(
             name='perovskite_solar_cell_database',

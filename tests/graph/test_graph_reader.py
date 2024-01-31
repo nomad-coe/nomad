@@ -932,32 +932,32 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
                 'mainfile_for_id_02': {
                     'path': 'mainfile_for_id_02',
                     'm_is': 'File',
-                    'size': 3233,
+                    'size': 3273,
                 },
                 'mainfile_for_id_03': {
                     'path': 'mainfile_for_id_03',
                     'm_is': 'File',
-                    'size': 3233,
+                    'size': 3273,
                 },
                 'mainfile_for_id_04': {
                     'path': 'mainfile_for_id_04',
                     'm_is': 'File',
-                    'size': 3233,
+                    'size': 3273,
                 },
                 'mainfile_for_id_05': {
                     'path': 'mainfile_for_id_05',
                     'm_is': 'File',
-                    'size': 3233,
+                    'size': 3273,
                 },
                 'mainfile_for_id_06': {
                     'path': 'mainfile_for_id_06',
                     'm_is': 'File',
-                    'size': 3233,
+                    'size': 3273,
                 },
                 'mainfile_for_id_01': {
                     'path': 'mainfile_for_id_01',
                     'm_is': 'File',
-                    'size': 3233,
+                    'size': 3273,
                     Token.ENTRY: {
                         'process_running': False,
                         'current_process': None,
@@ -1642,32 +1642,32 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_01': {
                 'path': 'mainfile_for_id_01',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_02': {
                 'path': 'mainfile_for_id_02',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_03': {
                 'path': 'mainfile_for_id_03',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_04': {
                 'path': 'mainfile_for_id_04',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_05': {
                 'path': 'mainfile_for_id_05',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_06': {
                 'path': 'mainfile_for_id_06',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
         },
     )
@@ -1688,7 +1688,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_01': {
                 'path': 'mainfile_for_id_01',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1708,7 +1708,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_02': {
                 'path': 'mainfile_for_id_02',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1728,7 +1728,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_03': {
                 'path': 'mainfile_for_id_03',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1748,7 +1748,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_04': {
                 'path': 'mainfile_for_id_04',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1768,7 +1768,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_05': {
                 'path': 'mainfile_for_id_05',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1788,7 +1788,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_06': {
                 'path': 'mainfile_for_id_06',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1829,32 +1829,32 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_02': {
                 'path': 'mainfile_for_id_02',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_03': {
                 'path': 'mainfile_for_id_03',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_04': {
                 'path': 'mainfile_for_id_04',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_05': {
                 'path': 'mainfile_for_id_05',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_06': {
                 'path': 'mainfile_for_id_06',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_01': {
                 'path': 'mainfile_for_id_01',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'process_running': False,
                     'current_process': None,
@@ -1903,32 +1903,32 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_02': {
                 'path': 'mainfile_for_id_02',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_03': {
                 'path': 'mainfile_for_id_03',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_04': {
                 'path': 'mainfile_for_id_04',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_05': {
                 'path': 'mainfile_for_id_05',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_06': {
                 'path': 'mainfile_for_id_06',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_01': {
                 'path': 'mainfile_for_id_01',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'upload_id': {
                         'process_running': False,
@@ -1992,32 +1992,32 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
             'mainfile_for_id_02': {
                 'path': 'mainfile_for_id_02',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_03': {
                 'path': 'mainfile_for_id_03',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_04': {
                 'path': 'mainfile_for_id_04',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_05': {
                 'path': 'mainfile_for_id_05',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_06': {
                 'path': 'mainfile_for_id_06',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
             },
             'mainfile_for_id_01': {
                 'path': 'mainfile_for_id_01',
                 'm_is': 'File',
-                'size': 3233,
+                'size': 3273,
                 Token.ENTRY: {
                     'upload_id': {
                         'process_running': False,
@@ -2517,32 +2517,32 @@ def test_general_reader_search(json_dict, example_data_with_reference, test_user
                                     'mainfile_for_id_01': {
                                         'm_is': 'File',
                                         'path': 'mainfile_for_id_01',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                     'mainfile_for_id_02': {
                                         'm_is': 'File',
                                         'path': 'mainfile_for_id_02',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                     'mainfile_for_id_03': {
                                         'm_is': 'File',
                                         'path': 'mainfile_for_id_03',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                     'mainfile_for_id_04': {
                                         'm_is': 'File',
                                         'path': 'mainfile_for_id_04',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                     'mainfile_for_id_05': {
                                         'm_is': 'File',
                                         'path': 'mainfile_for_id_05',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                     'mainfile_for_id_06': {
                                         'm_is': 'File',
                                         'path': 'mainfile_for_id_06',
-                                        'size': 3233,
+                                        'size': 3273,
                                     },
                                 }
                             }
@@ -2801,6 +2801,7 @@ def json_dict():
         },
         'run': [
             {
+                'm_def': 'runschema.run.Run',
                 'system': [
                     {
                         'atoms': {'labels': ['He']},

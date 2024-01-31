@@ -192,17 +192,23 @@ def dos_electronic():
                     'electronic': {
                         'dos_electronic': [
                             {
-                                'energies': '/run/0/calculation/0/dos_electronic/0/energies',
+                                'energies': [0, 1e-19],
                                 'total': [
-                                    '/run/0/calculation/0/dos_electronic/0/total/0'
+                                    {
+                                        'energies': '/run/0/calculation/0/dos_electronic/0/energies',
+                                        'total': [
+                                            '/run/0/calculation/0/dos_electronic/0/total/0'
+                                        ],
+                                        'band_gap': [{'energy_highest_occupied': 0}],
+                                    }
                                 ],
-                                'band_gap': [{'energy_highest_occupied': 0}],
                             }
                         ],
                     },
                 },
             },
             run={
+                'm_def': 'runschema.run.Run',
                 'calculation': [
                     {
                         'dos_electronic': [
@@ -221,7 +227,7 @@ def dos_electronic():
                             }
                         ],
                     }
-                ]
+                ],
             },
         ),
     )
@@ -332,13 +338,14 @@ def trajectory():
                 },
             },
             run={
+                'm_def': 'runschema.run.Run',
                 'calculation': [
                     {
                         'pressure': 0,
                         'temperature': 0,
                         'volume': 0,
                     }
-                ]
+                ],
             },
             workflow={
                 'm_def': 'simulationworkflowschema.MolecularDynamics',
@@ -388,6 +395,7 @@ def dos_phonon():
                 },
             },
             run={
+                'm_def': 'runschema.run.Run',
                 'calculation': [
                     {
                         'dos_phonon': [
@@ -399,7 +407,7 @@ def dos_phonon():
                             }
                         ],
                     }
-                ]
+                ],
             },
             workflow={
                 'm_def': 'simulationworkflowschema.Phonon',

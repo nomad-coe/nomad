@@ -60,7 +60,6 @@ m_package = Package()
 from .results import Results  # noqa
 from .data import EntryData, ArchiveSection, User, user_reference, author_reference  # noqa
 from .optimade import OptimadeEntry  # noqa
-from .metainfo.simulation.run import Run  # noqa
 from .metainfo.simulation.legacy_workflows import Workflow as LegacySimulationWorkflow  # noqa
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.measurements import Measurement  # noqa
@@ -1147,7 +1146,7 @@ class EntryArchive(ArchiveSection):
         derived=lambda entry: entry.metadata.entry_id,
     )
 
-    run = SubSection(sub_section=Run, repeats=True)
+    run = SubSection(sub_section=ArchiveSection, repeats=True)
     measurement = SubSection(sub_section=Measurement, repeats=True)
 
     data = SubSection(sub_section=EntryData)

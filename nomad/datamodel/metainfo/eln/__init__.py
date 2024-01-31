@@ -45,8 +45,6 @@ from perovskite_solar_cell_database.schema_sections.utils import (
     add_band_gap,
 )
 
-from nomad.datamodel.metainfo.simulation.system import System as SystemTheory, Atoms
-from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.eln.nexus_data_converter import (
     NexusDataConverter,
     ElnYamlConverter,
@@ -994,9 +992,16 @@ class ElnWithStructureFile(ArchiveSection):
         if self.structure_file:
             from ase.io import read
             from nomad.normalizing.results import ResultsNormalizer
-            from nomad.normalizing.system import SystemNormalizer
+            from nomad.normalizing import normalizers
+
+            system_normalizer_cls = None
+            for normalizer in normalizers:
+                if normalizer.__name__ == 'SystemNormalizer':
+                    system_normalizer_cls = normalizer
+                    break
+
             from nomad.normalizing.optimade import OptimadeNormalizer
-            from nomad.datamodel.metainfo.simulation.run import Program
+            from nomad.datamodel.metainfo import runschema
 
             with archive.m_context.raw_file(self.structure_file) as f:
                 try:
@@ -1004,10 +1009,10 @@ class ElnWithStructureFile(ArchiveSection):
                 except Exception as e:
                     raise ValueError('could not read structure file') from e
 
-                run = Run()
-                archive.run = [run]
-                system = SystemTheory()
-                system.atoms = Atoms()
+                run = runschema.run.Run()
+                archive.run.append(run)
+                system = runschema.system.System()
+                system.atoms = runschema.system.Atoms()
                 try:
                     system.atoms.lattice_vectors = structure.get_cell() * ureg.angstrom
                 except Exception as e:
@@ -1026,11 +1031,12 @@ class ElnWithStructureFile(ArchiveSection):
                     system.atoms.periodic = [True, True, True]
                 system.atoms.species = structure.get_atomic_numbers()
                 archive.run[0].system = [system]
-                program = Program()
+                program = runschema.run.Program()
                 archive.run[0].program = program
                 archive.run[0].program.name = 'Structure File Importer'
-                system_normalizer = SystemNormalizer(archive)
-                system_normalizer.normalize()
+                if system_normalizer_cls:
+                    system_normalizer = system_normalizer_cls(archive)
+                    system_normalizer.normalize()
                 optimade_normalizer = OptimadeNormalizer(archive)
                 optimade_normalizer.normalize()
                 results_normalizer = ResultsNormalizer(archive)

@@ -23,10 +23,9 @@ import os
 from nomad import search, files
 from nomad.datamodel import EntryMetadata, EntryArchive, Results
 from nomad.datamodel.metainfo.workflow import Workflow
-from nomad.datamodel.metainfo.simulation.run import Run, Program
-from nomad.datamodel.metainfo.simulation.system import System, Atoms
 from nomad.processing.data import mongo_upload_metadata
 from nomad.normalizing import normalizers
+from nomad.datamodel.metainfo import runschema
 
 
 class ExampleData:
@@ -315,8 +314,8 @@ class ExampleData:
             assert isinstance(section_results, Results)
             entry_archive.m_add_sub_section(EntryArchive.results, section_results)
 
-        if len(entry_archive.run) == 0:
-            entry_archive.m_create(Run)
+        if len(entry_archive.run) == 0 and runschema:
+            entry_archive.run.append(runschema.run.Run())
 
         if archive is not None:
             entry_archive.m_update(**archive)
@@ -367,10 +366,11 @@ class ExampleData:
         atom_labels = ['H' for i in range(0, h)] + ['O' for i in range(0, o)] + extra
 
         archive = EntryArchive()
-        run = archive.m_create(Run)
-        run.m_create(Program, name='VASP')
-        run.m_create(System).m_create(
-            Atoms,
+        run = runschema.run.Run()
+        archive.run.append(run)
+        run.m_create(runschema.run.Program, name='VASP')
+        run.m_create(runschema.system.System).m_create(
+            runschema.system.Atoms,
             labels=atom_labels,
             positions=[test_vector for i in range(0, len(atom_labels))],
             lattice_vectors=[test_vector, test_vector, test_vector],
@@ -423,7 +423,7 @@ def create_entry_archive(
         entry_results = Results.m_from_dict(results)
         entry.m_add_sub_section(EntryArchive.results, entry_results)
     if run:
-        entry_run = Run.m_from_dict(run)
+        entry_run = runschema.run.Run.m_from_dict(run)
         entry.m_add_sub_section(EntryArchive.run, entry_run)
     if workflow:
         entry_workflow = Workflow.m_from_dict(workflow)

@@ -35,6 +35,9 @@ class Normalizer(metaclass=ABCMeta):
 
     domain = 'dft'
     """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
+    normalizer_level = 0
+    """ Specifies the order of normalization with respect to other normalizers. Lower level
+    is executed first."""
 
     def __init__(self, entry_archive: EntryArchive) -> None:
         self.entry_archive = entry_archive

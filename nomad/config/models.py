@@ -572,21 +572,13 @@ class Normalize(NomadSettings):
     normalizers: Options = Field(
         Options(
             include=[
-                'SystemNormalizer',
                 'OptimadeNormalizer',
-                'DosNormalizer',
-                'BandStructureNormalizer',
                 'ResultsNormalizer',
                 'MetainfoNormalizer',
             ],
             options=dict(
-                SystemNormalizer='nomad.normalizing.system.SystemNormalizer',
-                SOAPNormalizer='nomad.normalizing.soap.SoapNormalizer',
                 PorosityNormalizer='nomad.normalizing.porosity.PorosityNormalizer',
                 OptimadeNormalizer='nomad.normalizing.optimade.OptimadeNormalizer',
-                DosNormalizer='nomad.normalizing.dos.DosNormalizer',
-                BandStructureNormalizer='nomad.normalizing.band_structure.BandStructureNormalizer',
-                SpectraNormalizer='nomad.normalizing.spectra.SpectraNormalizer',
                 ResultsNormalizer='nomad.normalizing.results.ResultsNormalizer',
                 MetainfoNormalizer='nomad.normalizing.metainfo.MetainfoNormalizer',
             ),

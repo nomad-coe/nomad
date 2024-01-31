@@ -58,8 +58,8 @@ but should help you to navigate the codebase:
 - `config`: NOMAD is configured through the `nomad.yaml` file. This contains all the
   ([Pydantic](https://docs.pydantic.dev/){:target="_blank"}) models and default config parameters.
 
-- `datamodel`: The built-in schemas (e.g. `nomad.datamodel.metainfo.simulation` used by
-  all the theory parsers). The base sections and section for the shared entry structure.
+- `datamodel`: The built-in schemas (e.g. `nomad.datamodel.metainfo.workflow` used to construct
+  workflows). The base sections and section for the shared entry structure.
   See also the docs on the [datamodel](../../explanation/data.md) and
   [processing](../../explanation/basics.md).
 
