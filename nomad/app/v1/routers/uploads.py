@@ -107,7 +107,8 @@ class ProcData(BaseModel):
         description='Name of the current or last completed process'
     )
     process_status: str = Field(
-        description='The status of the current or last completed process'
+        ProcessStatus.READY,
+        description='The status of the current or last completed process',
     )
     last_status_message: Optional[str] = Field(
         description='A short, human readable message from the current process, with '
