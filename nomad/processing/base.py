@@ -249,7 +249,7 @@ class Proc(Document):
     last_status_message = StringField(default=None)
 
     current_process = StringField(default=None)
-    process_status = StringField(default=None)
+    process_status = StringField(default=ProcessStatus.READY)
 
     worker_hostname = StringField(default=None)
     celery_task_id = StringField(default=None)
