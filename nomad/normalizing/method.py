@@ -81,6 +81,8 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
 
         def get_method_name(section_method):
             method_name = config.services.unavailable_value
+            if section_method.label:
+                return section_method.label
             if section_method.electronic and section_method.electronic.method:
                 method_name = section_method.electronic.method
             else:
@@ -163,13 +165,18 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
 
         # workflow_name
         if self.entry_archive.workflow2:
-            method.workflow_name = self.entry_archive.workflow2.m_def.name
+            workflow_name = (
+                self.entry_archive.workflow2.name
+                if self.entry_archive.workflow2.name
+                else self.entry_archive.workflow2.m_def.name
+            )
+            method.workflow_name = workflow_name
         # if the entry is a GW or XS workflow, keep method_name as DFT+XS
-        if method.workflow_name in ['GW', 'XS']:
+        if method.workflow_name in ['DFT+GW', 'XS']:
             gs_task = self.entry_archive.workflow2.tasks[0]  # Ground-state task
             xs_task = self.entry_archive.workflow2.tasks[
                 -1
-            ]  # Excited-state (GW, XS) task
+            ]  # Excited-state (GW or XS) task
             # Trying to resolve the gs_method and the representative method (repr_method)
             gs_method = None
             for input in gs_task.task.tasks[-1].inputs:
@@ -203,18 +210,18 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
                 method_name = f'{get_method_name(repr_method)}+GW'
             elif xs_method.bse:
                 method_name = f'{get_method_name(repr_method)}+BSE'
-        elif method.workflow_name == 'DMFT':
+        elif method.workflow_name in ['DFT+TB+DMFT', 'DFT+DMFT', 'TB+DMFT']:
             repr_method = (
                 self.entry_archive.workflow2.method.dmft_method_ref
             )  # DMFT method
             repr_method = repr_method.m_parent
-            method_name = 'TB+DMFT'
-        elif method.workflow_name == 'MaxEnt':
+            method_name = method.workflow_name
+        elif method.workflow_name == 'DMFT+MaxEnt':
             repr_method = (
                 self.entry_archive.workflow2.method.dmft_method_ref
             )  # DMFT method
             repr_method = repr_method.m_parent
-            method_name = 'DMFT+MaxEnt'
+            method_name = method.workflow_name
         # if only one method is specified, use it directly
         elif n_methods == 1:
             repr_method = methods[0]
@@ -280,12 +287,12 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
         except (IndexError, AttributeError):
             pass
 
-        if 'DFT' in self.method_name:
+        if self.method_name in ['DFT', 'NMR']:
             functional_long_name = functional_long_name_from_method()
             settings_basis_set = get_basis_set()
 
         # Fill electronic method metainfo
-        if self.method_name in ['DFT', 'DFT+U']:
+        if self.method_name in ['DFT', 'DFT+U', 'NMR']:
             simulation = DFTMethod(
                 self.logger,
                 entry_archive=self.entry_archive,
@@ -330,9 +337,11 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
             ).simulation()
         elif self.method_name in [
             'DMFT',
+            'DFT+TB+DMFT',
+            'DFT+DMFT',
             'TB+DMFT',
             'DMFT+MaxEnt',
-        ]:  # TODO extend for 'DFT+DMFT', 'DFT+TB+DMFT'
+        ]:
             simulation = DMFTMethod(
                 self.logger,
                 repr_method=self.repr_method,
@@ -537,7 +546,7 @@ class DFTMethod(ElectronicMethod):
 
     def simulation(self) -> Simulation:
         simulation = Simulation()
-        self._method.method_name = 'DFT'
+        self._method.method_name = 'DFT' if self._method_name != 'NMR' else 'NMR'
         dft = DFT()
         dft.basis_set_type = self.basis_set_type(self._repr_method)
         self._method.method_id = self.method_id_dft(

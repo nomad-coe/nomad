@@ -249,6 +249,11 @@ plugins = Plugins(
             mainfile_name_re=(r'^.*\.(gpw2|gpw)$'),
             mainfile_mime_re=r'application/(x-tar|octet-stream)',
         ),
+        'parsers/magres': Parser(
+            python_package='electronicparsers.magres',
+            mainfile_name_re=(r'^.*\.magres'),
+            mainfile_contents_re=(r'\$magres-abinitio-v(\d\.)+'),
+        ),
         'parsers/molcas': Parser(
             python_package='electronicparsers.molcas',
             mainfile_contents_re=r'M O L C A S',
