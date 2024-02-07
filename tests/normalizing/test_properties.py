@@ -27,6 +27,9 @@ from .conftest import (
     get_template_dos,
     add_template_band_structure,
     get_template_band_structure,
+    add_template_magnetic_shielding,
+    add_template_spin_spin_coupling,
+    add_template_magnetic_susceptibility,
     run_normalize,
 )
 from nomad.datamodel.metainfo import simulationworkflowschema, SCHEMA_IMPORT_ERROR
@@ -299,6 +302,45 @@ def test_band_structure_electronic():
     assert band_gaps[1].type == gap_type
     assert bs.segment[0].energies.shape == (2, 100, 2)
     assert bs.segment[0].kpoints.shape == (100, 3)
+
+
+def test_magnetic_properties():
+    archive = get_template_dft()
+    archive = add_template_magnetic_shielding(archive, n_atoms=2)
+    archive = add_template_spin_spin_coupling(archive, n_atoms=2)
+    archive = add_template_magnetic_susceptibility(archive)
+    archive = run_normalize(archive)
+    assert archive.results.properties.magnetic
+    magnetic_properties = archive.results.properties.magnetic
+    # Magnetic shielding testing
+    assert magnetic_properties.magnetic_shielding
+    magnetic_shielding = magnetic_properties.magnetic_shielding
+    assert len(magnetic_shielding) == 1
+    assert magnetic_shielding[0].value.shape == (2, 3, 3)
+    assert (
+        magnetic_shielding[0].value[0].magnitude
+        == [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    ).all()
+    assert magnetic_shielding[0].value[1].magnitude == pytest.approx(
+        2.0 * magnetic_shielding[0].value[0].magnitude
+    )
+    # Spin spin coupling
+    assert magnetic_properties.spin_spin_coupling
+    spin_spin_coupling = magnetic_properties.spin_spin_coupling
+    assert len(spin_spin_coupling) == 1
+    assert spin_spin_coupling[0].source == 'simulation'
+    assert spin_spin_coupling[0].contribution == 'total'
+    assert spin_spin_coupling[0].value.shape == (2, 2, 3, 3)
+    # Magnetic susceptibility
+    assert magnetic_properties.magnetic_susceptibility
+    magnetic_susceptibility = magnetic_properties.magnetic_susceptibility
+    assert len(magnetic_susceptibility) == 1
+    assert magnetic_susceptibility[0].source == 'simulation'
+    assert magnetic_susceptibility[0].scale_dimension == 'macroscopic'
+    assert (
+        magnetic_susceptibility[0].value
+        == [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    ).all()
 
 
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
