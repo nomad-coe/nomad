@@ -37,14 +37,23 @@ class UserGroup(Document):
     meta = {'indexes': ['group_name', 'owner', 'members']}
 
     @classmethod
-    def get_by_user_id(cls, user_id: str):
+    def get_by_user_id(cls, user_id: Optional[str]):
+        """
+        Returns UserGroup objects where user_id is owner or member, or None.
+        Does not include special group 'all' because it has no UserGroup object.
+        """
         group_query = Q(owner=user_id) | Q(members=user_id)
         user_groups = cls.objects(group_query)
         return user_groups
 
     @classmethod
-    def get_ids_by_user_id(cls, user_id: str) -> List[str]:
-        return [group.group_id for group in cls.get_by_user_id(user_id)]
+    def get_ids_by_user_id(cls, user_id: Optional[str]) -> List[str]:
+        """Returns ids of all user groups where user_id is owner or member.
+        Does include special group 'all', even if user_id is missing or not a user."""
+        group_ids = ['all']
+        if user_id is not None:
+            group_ids.extend(group.group_id for group in cls.get_by_user_id(user_id))
+        return group_ids
 
 
 def create_user_group(

@@ -192,9 +192,7 @@ class User(Author):
     def get_group_ids(self):
         from nomad.groups import UserGroup
 
-        groups = UserGroup.get_by_user_id(self.user_id)
-        group_ids = [group.group_id for group in groups]
-        return group_ids
+        return UserGroup.get_ids_by_user_id(self.user_id)
 
 
 class UserReference(Reference):

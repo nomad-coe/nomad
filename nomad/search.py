@@ -626,39 +626,44 @@ def _owner_es_query(
 ):
     def query(query_type='term', **kwargs):
         prefix = '' if doc_type == entry_type else 'entries.'
-        return Q(
-            query_type, **{(prefix + field): value for field, value in kwargs.items()}
-        )
+        query_dict = {(prefix + field): value for field, value in kwargs.items()}
+        return Q(query_type, **query_dict)
 
-    def viewers_query(user_id: str) -> Q:
-        user_group_ids = UserGroup.get_ids_by_user_id(user_id)
-        q = query(viewers__user_id=user_id)
-        q |= query('terms', viewer_groups=user_group_ids)
+    def viewers_query(user_id: Optional[str], *, force_groups: bool = False) -> Q:
+        """Filter for user viewers and group viewers.
+
+        force_groups: If true, add group filter even if user_id is None."""
+
+        q = Q('match_none')
+
+        if user_id is not None:
+            q |= query(viewers__user_id=user_id)
+
+        if user_id is not None or force_groups:
+            user_group_ids = UserGroup.get_ids_by_user_id(user_id)
+            q |= query('terms', viewer_groups=user_group_ids)
+
         return q
 
     if owner == 'all':
         q = query(published=True)
-        if user_id is not None:
-            q |= viewers_query(user_id)
+        q |= viewers_query(user_id, force_groups=True)
     elif owner == 'public':
         q = query(published=True) & query(with_embargo=False)
     elif owner == 'visible':
         q = query(published=True) & query(with_embargo=False)
-        if user_id is not None:
-            q |= viewers_query(user_id)
+        q |= viewers_query(user_id, force_groups=True)
     elif owner == 'shared':
         if user_id is None:
             raise AuthenticationRequiredError(
                 'Authentication required for owner value shared.'
             )
-
         q = viewers_query(user_id)
     elif owner == 'user':
         if user_id is None:
             raise AuthenticationRequiredError(
                 'Authentication required for owner value user.'
             )
-
         q = query(main_author__user_id=user_id)
     elif owner == 'staging':
         if user_id is None:
@@ -679,7 +684,8 @@ def _owner_es_query(
 
     if q is not None:
         return q
-    return Q()
+
+    return Q('match_all')
 
 
 class QueryValidationError(Exception):
