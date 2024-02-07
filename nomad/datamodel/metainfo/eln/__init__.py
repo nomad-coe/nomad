@@ -1638,7 +1638,7 @@ class SolarCellEQE(PlotSection):
 
     def normalize(self, archive, logger):
         super(SolarCellEQE, self).normalize(archive, logger)
-        from perovskite_solar_cell_database.eqe_parser import EQEAnalyzer
+        from perovskite_solar_cell_database.data_tools.eqe_parser import EQEAnalyzer
 
         if self.eqe_data_file:
             with archive.m_context.raw_file(self.eqe_data_file) as f:
