@@ -97,60 +97,100 @@ def test_get_group_upload(
 
 
 @pytest.mark.parametrize(
-    'user, expected_status_code, group_quantity, new_groups',
+    'upload_fixture, user, metadata, expected_status_code, expected_groups',
     [
         pytest.param(
+            'upload_no_group',
             'test_user',
+            {'coauthor_groups': 'other_owner_group'},
             200,
-            'coauthor_groups',
             ['other_owner_group'],
             id='coauthor-other-group',
         ),
         pytest.param(
+            'upload_no_group',
             'test_user',
+            {
+                'coauthor_groups': [
+                    'user_owner_group',
+                    'other_owner_group',
+                    'mixed_group',
+                ]
+            },
             200,
-            'coauthor_groups',
             ['user_owner_group', 'other_owner_group', 'mixed_group'],
             id='coauthor-multiple-groups',
         ),
         pytest.param(
+            'upload_no_group',
             'test_user',
+            {'reviewer_groups': ['other_owner_group', 'other_owner_group']},
             200,
-            'reviewer_groups',
+            ['other_owner_group'],
+            id='reviewer-other-double',
+        ),
+        pytest.param(
+            'upload_coauthor_other_and_mixed_group',
+            'test_user',
+            {'coauthor_groups': {'add': 'other_owner_group'}},
+            200,
+            ['other_owner_group', 'mixed_group'],
+            id='coauthor-add-existing',
+        ),
+        pytest.param(
+            'upload_no_group',
+            'test_user',
+            {'reviewer_groups': ['other_owner_group']},
+            200,
             ['other_owner_group'],
             id='reviewer-other-group',
         ),
-        pytest.param('test_user', 200, 'reviewer_groups', ['all'], id='reviewer-all'),
         pytest.param(
-            'test_user', 422, 'coauthor_groups', ['all'], id='coauthor-all-fails'
+            'upload_no_group',
+            'test_user',
+            {'reviewer_groups': ['all']},
+            200,
+            ['all'],
+            id='reviewer-all',
         ),
         pytest.param(
-            'other_test_user',
+            'upload_no_group',
+            'test_user',
+            {'coauthor_groups': ['all']},
             422,
-            'reviewer_groups',
-            ['other_owner_group'],
-            id='other-user-reviewer-other-group-fails',
+            [],
+            id='coauthor-all-fails',
+        ),
+        pytest.param(
+            'upload_no_group',
+            'other_test_user',
+            {'reviewer_groups': ['other_owner_group']},
+            422,
+            [],
+            id='other-user-fails',
         ),
     ],
 )
 def test_add_groups_to_upload(
+    request,
     client,
     user_groups_module,
     proc_infra,
     convert_group_labels_to_ids,
-    upload_no_group,
+    upload_fixture,
     test_auth_dict,
     user,
     expected_status_code,
-    group_quantity,
-    new_groups,
+    metadata,
+    expected_groups,
 ):
     user_auth, __token = test_auth_dict[user]
-    upload_id = list(upload_no_group.uploads)[0]
-    new_group_ids = convert_group_labels_to_ids(new_groups)
+    upload_fixture = request.getfixturevalue(upload_fixture)
+    upload_id = list(upload_fixture.uploads)[0]
+    group_quantity = list(metadata)[0]
 
     url = f'uploads/{upload_id}/edit'
-    metadata = {group_quantity: new_group_ids}
+    metadata = convert_group_labels_to_ids(metadata)
     edit_request = dict(metadata=metadata)
     response = perform_post(client, url, user_auth, json=edit_request)
 
@@ -158,25 +198,34 @@ def test_add_groups_to_upload(
     upload = Upload.get(upload_id)
     upload.block_until_complete()
 
-    if expected_status_code == 200:
-        assert getattr(upload, group_quantity) == new_group_ids
-    else:
-        assert getattr(upload, group_quantity) == []
+    group_ids = getattr(upload, group_quantity)
+    expected_ids = convert_group_labels_to_ids(expected_groups)
+    assert group_ids == expected_ids
 
 
 @pytest.mark.parametrize(
-    'user, action, expected_groups, expected_status_code',
+    'user, metadata, expected_status_code, expected_groups',
     [
-        pytest.param('test_user', [], [], 200, id='test-user-empty'),
-        pytest.param('test_user', {'set': []}, [], 200, id='test-user-set-empty'),
+        pytest.param(
+            'test_user', {'coauthor_groups': []}, 200, [], id='test-user-empty'
+        ),
         pytest.param(
             'test_user',
-            {'remove': 'mixed_group'},
-            ['other_owner_group'],
+            {'coauthor_groups': {'set': []}},
             200,
+            [],
+            id='test-user-set-empty',
+        ),
+        pytest.param(
+            'test_user',
+            {'coauthor_groups': {'remove': 'mixed_group'}},
+            200,
+            ['other_owner_group'],
             id='test-user-remove-other',
         ),
-        pytest.param('other_test_user', [], None, 422, id='other-user-fail'),
+        pytest.param(
+            'other_test_user', {'coauthor_groups': []}, 422, None, id='other-user-fail'
+        ),
     ],
 )
 def test_remove_groups_from_upload(
@@ -187,15 +236,15 @@ def test_remove_groups_from_upload(
     upload_coauthor_other_and_mixed_group,
     test_auth_dict,
     user,
-    action,
-    expected_groups,
+    metadata,
     expected_status_code,
+    expected_groups,
 ):
     user_auth, __token = test_auth_dict[user]
     upload_id = list(upload_coauthor_other_and_mixed_group.uploads)[0]
 
     url = f'uploads/{upload_id}/edit'
-    metadata = {'coauthor_groups': convert_group_labels_to_ids(action)}
+    metadata = convert_group_labels_to_ids(metadata)
     edit_request = dict(metadata=metadata)
     response = perform_post(client, url, user_auth, json=edit_request)
 
