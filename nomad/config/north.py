@@ -69,7 +69,7 @@ class NORTH(NomadSettings):
     Settings related to the operation of the NOMAD remote tools hub service *north*.
     """
 
-    enabled: Optional[str] = Field(
+    enabled: Optional[bool] = Field(
         True,
         description="""
         Enables or disables the NORTH API and UI views. This is independent of

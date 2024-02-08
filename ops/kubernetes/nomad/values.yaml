@@ -1,198 +1,382 @@
-## Default values for nomad@FAIRDI
-version:
-  isTest: false
-  isBeta: false
-  usesBetaData: false
-  officialUrl: "https://nomad-lab.eu/prod/v1/gui"
+# Default values for nomad.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+roll: false
+nameOverride: ""
+fullnameOverride: ""
 
-meta:
-  service: "app"
-  homepage: "https://nomad-lab.eu"
-  source_url: "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
-  maintainer_email: "markus.scheidgen@physik.hu-berlin.de"
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
 
-## Everything concerning the container images to be used
-image:
-  ## The kubernetes docker-registry secret that can be used to access the registry
-  #  with the container image in it.
-  #  It can be created via:
-  #    kubectl create secret docker-registry gitlab-mpcdf --docker-server=gitlab-registry.mpcdf.mpg.de --docker-username=<your-user-name > --docker-password=<yourpass> --docker-email=<email>
-  secret: gitlab-mpcdf
-
-  ## The docker container image name without tag
-  name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair
-  ## The docker container image tag
-  tag: latest
-  pullPolicy: IfNotPresent
-
-## Ingress can be unable to provide gui and api access through kubernetes ingress (only k8s 1.18+)
-ingress:
-  enabled: false
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/proxy-body-size: "32g"
-    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-  hosts:
-    - ""
-
-## Everything concerning the nomad app
-app:
-  replicas: 1
-  ## Number of gunicorn worker.
-  worker: 4
-  console_loglevel: INFO
-  logstash_loglevel: INFO
-  nomadNodeType: "public"
-
-## Everything concerning the nomad api
-api:
-  ## Secret used as cryptographic seed
-  secret: "defaultApiSecret"
-  ## Limit of unpublished uploads per user, except admin user
-  uploadLimit: 10
-
-## Everything concerning the nomad worker
-worker:
-  replicas: 1
-  # request and limit in GB, good prod sizes are 64, 420
-  memrequest: 8
-  memlimit: 32
-  maxTasksPerChild: 128
-  console_loglevel: ERROR
-  logstash_loglevel: INFO
-  ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
-  # task queue and spread calc processing task over worker instances. The "worker" routing
-  # will send all tasks related to an upload to the same worker
-  routing: "queue"
-  storage: "disk"
-  nomadNodeType: "worker"
-  timeout: 7200
-  acks_late: false
-
-## Everthing concerning the nomad gui
-gui:
-  replicas: 1
-  ## This variable is used in the GUI to show or hide additional information
-  debug: false
-  ## automatically gz based on header
-  gzip: true
-  ## configuration for the interface, menus, options, etc.
-  config: {}
-
-encyclopedia:
-  ## enable links to the 'new' encyclopedia
+nomad:
   enabled: true
+  image:
+    repository: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair
+    tag: "latest"
+    pullPolicy: Always
 
-## Everything concerning the nginx that serves the gui, proxies the api
-#  It is run via NodePort service
-proxy:
-  # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
-  nodePort:
-  nodeIP:
-  timeout: 120
-  editTimeout: 1800
-  external:
-    host: "nomad-lab.eu"
+  imagePullSecrets: []
+
+  # Default values for nomad.
+  # This is a YAML-formatted file.
+  # Declare variables to be passed into your templates.
+
+  # GLOBAL parameters
+  enabled: false
+
+  ## Default values for nomad@FAIRDI
+  config:
+    version:
+      label: "latest"
+      isTest: false
+      isBeta: false
+      usesBetaData: false
+      officialUrl: "https://nomad-lab.eu/prod/v1/gui"
+
+    meta:
+      service: "app"
+      homepage: "https://nomad-lab.eu"
+      source_url: "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
+      maintainer_email: "markus.scheidgen@physik.hu-berlin.de"
+
+    api:
+      ## Secret used as cryptographic seed
+      secret: "defaultApiSecret"
+      ## Limit of unpublished uploads per user, except admin user
+      uploadLimit: 10
+
+    app:
+      console_loglevel: INFO
+      logstash_loglevel: INFO
+
+    worker:
+      console_loglevel: ERROR
+      logstash_loglevel: INFO
+      ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
+      # task queue and spread calc processing task over worker instances. The "worker" routing
+      # will send all tasks related to an upload to the same worker
+      routing: "queue"
+      timeout: 7200
+      acks_late: false
+
+    mail:
+      enabled: false
+      host: "localhost"
+      port: 25
+      from: "support@nomad-lab.eu"
+
+    client:
+      username: admin
+
+    springerDbPath: /nomad/fairdi/db/data/springer.msg
+
+    reprocess:
+      rematchPublished: true
+      reprocessExistingEntries: true
+      useOriginalParser: false
+      addMatchedEntriesToPublished: false
+      deleteUnmatchedPublishedEntries: false
+      indexIndividualEntries: false
+
+    process:
+      reuseParser: true
+      indexMaterials: true
+      rfc3161_skip_published: false
+
+    datacite:
+      enabled: false
+      prefix: "10.17172"
+
+    ## A common name/prefix for all dbs and indices.
+    dbname: fairdi_nomad_latest
+
+    mongo:
+      host: ""
+      port: 27017
+
+    elastic:
+      host: ""
+      port: 9200
+      timeout: 60
+      bulkTimeout: 600
+      bulkSize: 1000
+      entriesPerMaterialCap: 1000
+
+    logstash:
+      enabled: true
+      port: 5000
+      host: ""
+
+    keycloak:
+      serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+      serverUrl: "https://nomad-lab.eu/keycloak/auth/"
+      realmName: "fairdi_nomad_test"
+      username: "admin"
+      clientId: "nomad_public"
+      guiClientId: "nomad_public"
+      admin_user_id: "00000000-0000-0000-0000-000000000000"
+
+    ## Everything concerning the data that is used by the service
+    volumes:
+      prefixSize: 1
+      public: /nomad/fairdi/latest/fs/public
+      staging: /nomad/fairdi/latest/fs/staging
+      north_home: /nomad/fairdi/latest/fs/north/users
+      tmp: /nomad/fairdi/latest/fs/tmp
+      nomad: /nomad
+
+    services:
+      aitoolkit:
+        ## enable aitoolkit references
+        enabled: false
+
+    north:
+      enabled: false
+      hubServiceApiToken: "secret-token"
+
+    gui:
+      ## This variable is used in the GUI to show or hide additional information
+      debug: false
+      ## automatically gz based on header
+      gzip: true
+
+    proxy:
+      # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
+      timeout: 120
+      editTimeout: 1800
+      external:
+        host: "nomad-lab.eu"
+        port: 80
+        path: "/fairdi/nomad/latest"
+        https: true
+
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    hosts:
+      - host: chart-example.local
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
+
+  # Additional volumes on the output Deployment definition.
+  volumes: []
+  # - name: foo
+  #   secret:
+  #     secretName: mysecret
+  #     optional: false
+
+  # Additional volumeMounts on the output Deployment definition.
+  volumeMounts: []
+  # - name: foo
+  #   mountPath: "/etc/foo"
+  #   readOnly: true
+
+  # APPLICATION SPECIFIC parameters
+  service:
+    type: ClusterIP
     port: 80
-    path: "/fairdi/nomad/latest"
-    https: true
 
-## configuration of the chart dependency for rabbitmq
+  # TODO: Do we really need this? different app could bave their own ingress config. Eventually prozy is just another nginx ssrver
+  ## Everything concerning the nginx that serves the gui, proxies the api
+  #  It is run via NodePort service
+  proxy:
+    replicaCount: 1
+    # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
+
+    image:
+      repository: nginx
+      # Overrides the image tag whose default is the chart appVersion.
+      tag: 1.13.9-alpine
+      pullPolicy: IfNotPresent
+
+    command: ["nginx"]
+    args: ["-g", "daemon off;"]
+
+    imagePullSecrets: []
+
+    service:
+      type: ClusterIP
+      port: 80
+
+    podSecurityContext: {}
+      # fsGroup: 2000
+
+    securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
+
+    resources: {}
+      # We usually recommend not to specify default resources and to leave this as a conscious
+      # choice for the user. This also increases chances charts run on environments with little
+      # resources, such as Minikube. If you do want to specify resources, uncomment the following
+      # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+    # Additional volumes on the output Deployment definition.
+    volumes: []
+    # - name: foo
+    #   secret:
+    #     secretName: mysecret
+    #     optional: false
+
+    # Additional volumeMounts on the output Deployment definition.
+    volumeMounts: []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+    podAnnotations: {}
+    podLabels: {}
+
+  ## Everything concerning the nomad app
+  app:
+    replicaCount: 1
+
+    # options: {}
+    service:
+      type: ClusterIP
+      port: 8000
+
+    podSecurityContext: {}
+      # fsGroup: 2000
+
+    securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
+
+    resources: {}
+      # We usually recommend not to specify default resources and to leave this as a conscious
+      # choice for the user. This also increases chances charts run on environments with little
+      # resources, such as Minikube. If you do want to specify resources, uncomment the following
+      # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+    # Additional volumes on the output Deployment definition.
+    volumes: []
+    # - name: foo
+    #   secret:
+    #     secretName: mysecret
+    #     optional: false
+
+    # Additional volumeMounts on the output Deployment definition.
+    volumeMounts: []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+    podAnnotations: {}
+    podLabels: {}
+
+  ## Everything concerning the nomad worker
+  worker:
+    replicaCount: 1
+
+    maxTasksPerChild: 128
+    # storage: "disk"
+
+    podSecurityContext: {}
+      # fsGroup: 2000
+
+    securityContext: {}
+      # capabilities:
+      #   drop:
+      #   - ALL
+      # readOnlyRootFilesystem: true
+      # runAsNonRoot: true
+      # runAsUser: 1000
+
+    # request and limit in GB, good prod sizes are 64, 420
+    resources: {}
+      # We usually recommend not to specify default resources and to leave this as a conscious
+      # choice for the user. This also increases chances charts run on environments with little
+      # resources, such as Minikube. If you do want to specify resources, uncomment the following
+      # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+      # limits:
+      #   cpu: 100m
+      #   memory: 128Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 128Mi
+
+    # Additional volumes on the output Deployment definition.
+    volumes: []
+    # - name: foo
+    #   secret:
+    #     secretName: mysecret
+    #     optional: false
+
+    # Additional volumeMounts on the output Deployment definition.
+    volumeMounts: []
+    # - name: foo
+    #   mountPath: "/etc/foo"
+    #   readOnly: true
+
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+    podAnnotations: {}
+    podLabels: {}
+
+  ## Everthing concerning the nomad gui
+  gui:
+    ## This variable is used in the GUI to show or hide additional information
+    debug: false
+    ## automatically gz based on header
+    gzip: true
+    ## configuration for the interface, menus, options, etc.
+    config: {}
+
 rabbitmq:
   persistence:
     enabled: false
-  nodeSelector:
-    nomadtype: public
   image.pullSecrets: nil
   auth:
     username: rabbitmq
     password: rabbitmq
     erlangCookie: SWQOKODSQALRPCLNMEQG
-
-## A common name/prefix for all dbs and indices.
-dbname: fairdi_nomad_latest
-
-## Databases that are not run within the cluster.
-#  To run databases in the cluster, use the nomad-full helm chart.
-
-mongo:
-  host: nomad-flink-01.esc
-  port: 27017
-
-elastic:
-  host: nomad-flink-01.esc
-  port: 9200
-  timeout: 60
-  bulkTimeout: 600
-  bulkSize: 1000
-  entriesPerMaterialCap: 1000
-
-logstash:
-  enabled: true
-  port: 5000
-  host: nomad-flink-01.esc
-
-kibana:
-  port: 5601
-  host: nomad-flink-01.esc
-
-mail:
-  enabled: false
-  host: "localhost"
-  port: 25
-  from: "support@nomad-lab.eu"
-
-client:
-  username: admin
-
-keycloak:
-  serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-  serverUrl: "https://nomad-lab.eu/keycloak/auth/"
-  realmName: "fairdi_nomad_test"
-  username: "admin"
-  clientId: "nomad_public"
-  guiClientId: "nomad_public"
-  admin_user_id: "00000000-0000-0000-0000-000000000000"
-
-## Everything concerning the data that is used by the service
-volumes:
-  prefixSize: 1
-  public: /nomad/fairdi/latest/fs/public
-  staging: /nomad/fairdi/latest/fs/staging
-  north_home: /nomad/fairdi/latest/fs/north/users
-  tmp: /nomad/fairdi/latest/fs/tmp
-  nomad: /nomad
-
-springerDbPath: /nomad/fairdi/db/data/springer.msg
-
-reprocess:
-  rematchPublished: true
-  reprocessExistingEntries: true
-  useOriginalParser: false
-  addMatchedEntriesToPublished: false
-  deleteUnmatchedPublishedEntries: false
-  indexIndividualEntries: false
-
-process:
-  reuseParser: true
-  indexMaterials: true
-  rfc3161_skip_published: false
-
-datacite:
-  enabled: false
-  prefix: "10.17172"
-
-services:
-  aitoolkit:
-    ## enable aitoolkit references
-    enabled: false
-
-north:
-  enabled: false
-  hubServiceApiToken: "secret-token"
 
 jupyterhub:
   debug:
@@ -305,12 +489,12 @@ jupyterhub:
 
         c.Spawner.pre_spawn_hook = pre_spawn_hook
 
-
   cull:
     enabled: true
     timeout: 3600
     every: 600
     removeNamedServers: true
+
   prePuller:
     hook:
       enabled: true
@@ -318,6 +502,7 @@ jupyterhub:
         pullPolicy: "Always"
     continuous:
       enabled: false
+
   scheduling:
     userScheduler:
       enabled: false
@@ -326,3 +511,9 @@ jupyterhub:
     userPlaceholder:
       enabled: false
       replicas: 0
+
+mongodb:
+  enabled: true
+
+elasticsearch:
+  enabled: true

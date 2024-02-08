@@ -101,6 +101,7 @@ def run_app(
     config.meta.service = 'app'
 
     if with_gui:
+        import os
         import os.path
         import glob
         import shutil
@@ -108,7 +109,11 @@ def run_app(
         gui_folder = os.path.abspath(
             os.path.join(os.path.dirname(__file__), '../../app/static/gui')
         )
-        run_gui_folder = os.path.join(gui_folder, '../.gui_configured')
+        run_gui_folder = os.path.join(
+            config.fs.working_directory, 'run', 'gui_configured'
+        )
+        if not os.path.exists(run_gui_folder):
+            os.makedirs(run_gui_folder)
 
         # copy
         shutil.rmtree(run_gui_folder, ignore_errors=True)

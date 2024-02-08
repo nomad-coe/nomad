@@ -43,6 +43,9 @@ gui/public/env.js
 # Ignore built gui and docs artufacts
 nomad/app/static/
 
+# Ignore files created at nomad runtime
+run/
+
 nomad/normalizing/data/*.db
 nomad/normalizing/data/*.msg
 

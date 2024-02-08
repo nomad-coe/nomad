@@ -12,7 +12,7 @@ central NOMAD installation.
 
     **Register your Oasis**
     If you installed (or even just plan to install) a NOMAD Oasis, please
-    [register your Oasis with FAIRmat](https://www.fairmat-nfdi.eu/fairmat/oasis_registration) 
+    [register your Oasis with FAIRmat](https://www.fairmat-nfdi.eu/fairmat/oasis_registration)
     and help us to assist you in the future.
 
 ## Quick-start
@@ -507,5 +507,27 @@ This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.
 
 !!! warning "Attention"
 
-    This is not yet documented.
+    This is just preliminary documentation and many details are missing.
 
+There is a NOMAD [Helm](https://helm.sh/) chart. First we need to add the
+NOMAD Helm chart repository:
+
+```sh
+helm repo add nomad https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/helm/latest
+```
+
+New we need a minimal `values.yaml` that configures the individual kubernetes resources
+created by our Helm chart:
+
+```yaml
+--8<-- "ops/kubernetes/example-values.yaml"
+```
+
+The `jupyterhub`, `mongodb`, `elasticsearch`, `rabbitmq` follow the respective official
+Helm charts configuration.
+
+Run the Helm chart and install NOMAD:
+
+```
+helm update --install nomad nomad/nomad -f values.yaml
+```

@@ -36,6 +36,9 @@ bundles
 examples/workdir/
 examples/data/uploads/*.zip
 
+# Ignore files created at nomad runtime
+run/
+
 # Side effect of running Jupyterhub locally
 jupyterhub_cookie_secret
 jupyterhub.sqlite
