@@ -27,11 +27,15 @@ nomad:
       enabled: true
 
   image:
-    tag: "cloud"
+    tag: "prod"
 
   ingress:
     hosts:
       - host: cloud.nomad-lab.eu
+        paths:
+          - path: /prod/v1/staging/
+            pathType: ImplementationSpecific
+      - host: nomad-lab.eu
         paths:
           - path: /prod/v1/staging/
             pathType: ImplementationSpecific
@@ -54,6 +58,6 @@ jupyterhub:
     baseUrl: "/prod/v1/staging/north"
     config:
       GenericOAuthenticator:
-        oauth_callback_url: https://cloud.nomad-lab.eu/prod/v1/staging/north/hub/oauth_callback
+        oauth_callback_url: https://nomad-lab.eu/prod/v1/staging/north/hub/oauth_callback
   singleuser:
     podNameTemplate: "nomad-prod-staging-north-{username}--{servername}"

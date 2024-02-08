@@ -6,7 +6,7 @@ nomad:
 
     dbname: nomad_prod_v1
 
-    uploadurl: "https://cloud.nomad-lab.eu/prod/v1/api/uploads"
+    uploadurl: "https://nomad-lab.eu/prod/v1/api/uploads"
 
     mail:
       enabled: true
@@ -18,14 +18,18 @@ nomad:
       enabled: true
 
   image:
-    tag: "cloud"
+    tag: "prod"
 
   ingress:
     annotations:
-      nginx.ingress.kubernetes.io/limit-rps: "10"
+      nginx.ingress.kubernetes.io/limit-rps: "25"
       nginx.ingress.kubernetes.io/denylist-source-range: "141.35.40.36/32, 141.35.40.52/32"
     hosts:
       - host: cloud.nomad-lab.eu
+        paths:
+          - path: /prod/v1/
+            pathType: ImplementationSpecific
+      - host: nomad-lab.eu
         paths:
           - path: /prod/v1/
             pathType: ImplementationSpecific
@@ -48,6 +52,6 @@ jupyterhub:
     baseUrl: "/prod/v1/north"
     config:
       GenericOAuthenticator:
-        oauth_callback_url: https://cloud.nomad-lab.eu/prod/v1/north/hub/oauth_callback
+        oauth_callback_url: https://nomad-lab.eu/prod/v1/north/hub/oauth_callback
   singleuser:
     podNameTemplate: "nomad-prod-north-{username}--{servername}"

@@ -13,7 +13,7 @@ nomad:
 
     proxy:
       external:
-        host: "cloud.nomad-lab.eu"
+        host: "nomad-lab.eu"
         path: "/prod/v1"
 
     gui:
@@ -34,14 +34,14 @@ nomad:
 
     dbname: nomad_prod_v1
 
-    uploadurl: "https://cloud.nomad-lab.eu/prod/v1/api/uploads"
+    uploadurl: "https://nomad-lab.eu/prod/v1/api/uploads"
 
     client:
       passwordSecret: "nomad-keycloak-password"
 
     keycloak:
-      serverUrl: "https://cloud.nomad-lab.eu/fairdi/keycloak/auth/"
-      serverExternalUrl: "https://cloud.nomad-lab.eu/fairdi/keycloak/auth/"
+      serverUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
+      serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
       passwordSecret: "nomad-keycloak-password"
       realmName: "fairdi_nomad_prod"
       clientId: "nomad_public"
@@ -71,7 +71,7 @@ nomad:
       hubServiceApiTokenSecret: "nomad-hub-service-api-token"
 
   image:
-    tag: "cloud"
+    tag: "prod"
     pullPolicy: "Always"
 
   volumeMounts:
@@ -92,10 +92,14 @@ nomad:
       nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
       nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
       nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-      nginx.ingress.kubernetes.io/limit-rps: "10"
+      nginx.ingress.kubernetes.io/limit-rps: "25"
       nginx.ingress.kubernetes.io/denylist-source-range: "141.35.40.36/32, 141.35.40.52/32"
     hosts:
       - host: cloud.nomad-lab.eu
+        paths:
+          - path: /prod/v1/
+            pathType: ImplementationSpecific
+      - host: nomad-lab.eu
         paths:
           - path: /prod/v1/
             pathType: ImplementationSpecific
@@ -103,6 +107,9 @@ nomad:
       - secretName: cloud-nomad-lab-eu-tls
         hosts:
           - cloud.nomad-lab.eu
+      - secretName: nomad-lab-eu-tls
+        hosts:
+          - nomad-lab.eu
 
   proxy:
     nodeSelector:
@@ -175,10 +182,10 @@ jupyterhub:
     config:
       GenericOAuthenticator:
         client_id: nomad_public
-        oauth_callback_url: https://cloud.nomad-lab.eu/prod/v1/north/hub/oauth_callback
-        authorize_url: https://cloud.nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
-        token_url: https://cloud.nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
-        userdata_url: https://cloud.nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
+        oauth_callback_url: https://nomad-lab.eu/prod/v1/north/hub/oauth_callback
+        authorize_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/auth
+        token_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/token
+        userdata_url: https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod/protocol/openid-connect/userinfo
   singleuser:
     podNameTemplate: "nomad-prod-north-{username}--{servername}"
     uid: 1000
