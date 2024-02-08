@@ -50,10 +50,11 @@ class SchemaInterface:
 simulationworkflowschema, runschema = None, None
 for plugin in config.plugins.filtered_values():
     if isinstance(plugin, Schema):
-        module = SchemaInterface(plugin.python_package)
         if plugin.name == 'simulationworkflowschema':
-            simulationworkflowschema = module
+            simulationworkflowschema = SchemaInterface(plugin.python_package)
         elif plugin.name == 'runschema':
-            runschema = module
+            runschema = SchemaInterface(plugin.python_package)
+        else:
+            importlib.import_module(plugin.python_package)
 
 SCHEMA_IMPORT_ERROR = 'Schema not defined.'
