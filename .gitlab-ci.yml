@@ -18,8 +18,15 @@ image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
 # if: $CI_COMMIT_BRANCH
 # A branch pipeline, but there is no merge request open for the branch, run the branch pipeline.
 
+default:
+  tags:
+    # Necessary to select the right CI runner
+    - cloud
+
 variables:
   DOCKER_TAG: ${CI_COMMIT_REF_SLUG}
+  DOCKER_HOST: tcp://docker-dind:2375
+  DOCKER_TLS_CERTDIR: ""
 
 workflow:
   rules:
@@ -79,6 +86,12 @@ build:
     expire_in: 1 hour
   rules:
     - when: on_success
+
+build helm chart:
+  stage: build
+  script:
+    - helm package -u ops/kubernetes/nomad -d ops/kubernetes
+    - 'curl --request POST --user gitlab-ci-token:$CI_JOB_TOKEN --form "chart=@ops/kubernetes/nomad-1.0.0.tgz" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/latest/charts"'
 
 python linting:
   stage: test
@@ -180,7 +193,7 @@ python tests:
     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
     NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
   before_script:
-    - sleep 5
+    - sleep 10
     - curl http://elastic:9200/_cat/health
     - cd /app
   script:
@@ -244,55 +257,33 @@ gui tests:
       when: never
     - when: on_success
 
-deploy dev:
+deploy prod:
   stage: deploy
   environment:
-    name: dev/$CI_COMMIT_REF_NAME
-    deployment_tier: development
-    url: https://nomad-lab.eu/dev/rae/${CI_ENVIRONMENT_SLUG}
-    auto_stop_in: 7 days
-    on_stop: stop deploy dev
+    name: staging
+    deployment_tier: production
+    url: https://nomad-lab.eu/prod/v1
   before_script:
     - mkdir ~/.kube/
-    - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
-    - echo ${CI_ENVIRONMENT_SLUG}
-    - echo "https://nomad-lab.eu/dev/rae/${CI_ENVIRONMENT_SLUG}"
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
   script:
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:prod
+    - docker push ${CI_REGISTRY_IMAGE}:prod
     - helm dependency update ops/kubernetes/nomad
-    - helm upgrade ${CI_ENVIRONMENT_SLUG} ops/kubernetes/nomad
+    - helm upgrade nomad-prod ops/kubernetes/nomad
       --install
-      --namespace nomad
-      --values ops/kubernetes/deployments/dev-values.yaml
-      --set proxy.external.path=/dev/rae/${CI_ENVIRONMENT_SLUG}
-      --set jupyterhub.hub.baseUrl=/dev/rae/${CI_ENVIRONMENT_SLUG}/north
-      --set jupyterhub.fullnameOverride=${CI_ENVIRONMENT_SLUG}-north
-      --set jupyterhub.singleuser.podNameTemplate="${CI_ENVIRONMENT_SLUG}-north-{username}--{servername}"
-      --set jupyterhub.hub.config.GenericOAuthenticator.oauth_callback_url=https://nomad-lab.eu/dev/rae/${CI_ENVIRONMENT_SLUG}/north/hub/oauth_callback
-      --set image.tag=${DOCKER_TAG}
+      --namespace nomad-prod
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod.yaml
+      --set nomad.image.tag=prod
       --set roll=true
       --timeout=15m
       --wait
-      --cleanup-on-fail
-  needs:
-    - job: build
-  rules:
-    - when: manual
-      allow_failure: true
-
-stop deploy dev:
-  stage: deploy
-  variables:
-    GIT_STRATEGY: none
-  environment:
-    name: dev/$CI_COMMIT_REF_NAME
-    action: stop
-  before_script:
-    - mkdir ~/.kube/
-    - echo ${CI_K8S_CONFIG} | base64 -d > ~/.kube/config
-  script:
-    - helm uninstall ${CI_ENVIRONMENT_SLUG} --namespace nomad
-  needs:
-    - job: build
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      nomad client -n https://nomad-lab.eu/prod/v1/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
     - when: manual
       allow_failure: true
@@ -305,84 +296,25 @@ deploy prod staging:
     url: https://nomad-lab.eu/prod/v1/staging
   before_script:
     - mkdir ~/.kube/
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
     - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
   script:
     - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
     - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:staging
     - docker push ${CI_REGISTRY_IMAGE}:staging
     - helm dependency update ops/kubernetes/nomad
-    - helm upgrade nomad-staging-v1 ops/kubernetes/nomad
+    - helm upgrade nomad-prod-staging ops/kubernetes/nomad
       --install
-      --values ops/kubernetes/deployments/prod-staging-values.yaml
-      --set image.tag=staging
+      --namespace nomad-prod-staging
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod-staging.yaml
+      --set nomad.image.tag=staging
       --set roll=true
       --timeout=15m
       --wait
     - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       nomad client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
-  rules:
-    - when: manual
-      allow_failure: true
-
-deploy prod test:
-  stage: deploy
-  environment:
-    name: test
-    deployment_tier: production
-    url: https://nomad-lab.eu/prod/v1/test
-  before_script:
-    - mkdir ~/.kube/
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
-  script:
-    - helm dependency update ops/kubernetes/nomad
-    - helm upgrade nomad-test-v1 ops/kubernetes/nomad
-      --install
-      --values ops/kubernetes/deployments/prod-test-values.yaml
-      --set image.tag=${DOCKER_TAG}
-      --set roll=true
-      --timeout=15m
-      --wait
-    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-      nomad client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
-  rules:
-    - when: manual
-      allow_failure: true
-
-deploy prod util:
-  stage: deploy
-  before_script:
-    - mkdir ~/.kube/
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
-  script:
-    - helm dependency update ops/kubernetes/nomad
-    - helm upgrade nomad-util-v1 ops/kubernetes/nomad
-      --install
-      --values ops/kubernetes/deployments/prod-util-values.yaml
-      --set image.tag=${DOCKER_TAG}
-      --set roll=true
-      --timeout=15m
-      --wait
-  rules:
-    - when: manual
-      allow_failure: true
-
-deploy prod process:
-  stage: deploy
-  before_script:
-    - mkdir ~/.kube/
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
-  script:
-    - helm dependency update ops/kubernetes/nomad
-    - helm upgrade nomad-process-v1 ops/kubernetes/nomad
-      --install
-      --values ops/kubernetes/deployments/prod-process-values.yaml
-      --set image.tag=${DOCKER_TAG}
-      --set roll=true
-      --timeout=15m
-      --wait
   rules:
     - when: manual
       allow_failure: true
@@ -395,22 +327,58 @@ deploy prod develop:
     url: https://nomad-lab.eu/prod/v1/develop
   before_script:
     - mkdir ~/.kube/
-    - echo ${CI_K8S_PROD_CONFIG} | base64 -d > ~/.kube/config
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
   script:
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:develop
+    - docker push ${CI_REGISTRY_IMAGE}:develop
     - helm dependency update ops/kubernetes/nomad
-    - helm upgrade nomad-develop-v1 ops/kubernetes/nomad
+    - helm upgrade nomad-prod-develop ops/kubernetes/nomad
       --install
-      --namespace default
-      --values ops/kubernetes/deployments/prod-develop-values.yaml
-      --set image.tag=${DOCKER_TAG}
+      --namespace nomad-prod-develop
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod-develop.yaml
+      --set nomad.image.tag=develop
       --set roll=true
       --timeout=15m
       --wait
     - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
-    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
       nomad client -n https://nomad-lab.eu/prod/v1/develop/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
     - if: $CI_COMMIT_BRANCH == "develop" && $NIGHTLY
+    - when: manual
+      allow_failure: true
+
+deploy prod test:
+  stage: deploy
+  environment:
+    name: test
+    deployment_tier: production
+    url: https://nomad-lab.eu/prod/v1/test
+  before_script:
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+  script:
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:test
+    - docker push ${CI_REGISTRY_IMAGE}:test
+    - helm dependency update ops/kubernetes/nomad
+    - helm upgrade nomad-prod-test ops/kubernetes/nomad
+      --install
+      --namespace nomad-prod-test
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod-test.yaml
+      --set nomad.image.tag=test
+      --set roll=true
+      --timeout=15m
+      --wait
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      nomad client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
+  rules:
     - when: manual
       allow_failure: true
 

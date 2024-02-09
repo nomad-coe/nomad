@@ -73,6 +73,11 @@ from nomad.datamodel.results import (
     EELSMethodology,
     SpectraProvenance,
     Spectra,
+    MagneticProperties,
+    MagneticShielding,
+    MagneticSusceptibility,
+    ElectricFieldGradient,
+    SpinSpinCoupling,
 )
 
 re_label = re.compile('^([a-zA-Z][a-zA-Z]?)[^a-zA-Z]*')
@@ -467,6 +472,36 @@ class ResultsNormalizer(Normalizer):
             gfs_root.append(gfs_results)
         return gfs_root
 
+    def resolve_electric_field_gradient(
+        self, path: list[str]
+    ) -> Union[List[ElectricFieldGradient], None]:
+        """Returns a section containing the references for the Electric Field Gradient.
+        This section is then stored under `archive.results.properties.electronic`.
+
+        This section is populated only when there is a non empty array of
+        `electric_field_gradient.value`.
+
+        Args:
+            path (list[str]): the path to the electric field gradient section to be extracted
+            from the self.entry_archive.
+
+        Returns:
+            List[ElectricFieldGradient]: the mapped Electric Field Gradient.
+        """
+        stored_data = traverse_reversed(self.entry_archive, path)
+        if not stored_data:
+            return None
+        mapped_data: List[ElectricFieldGradient] = []
+        for data in stored_data:
+            contribution = data.contribution
+            value = data.value
+            if valid_array(value):
+                results_data = ElectricFieldGradient(
+                    contribution=contribution, value=data
+                )
+                mapped_data.insert(0, results_data)
+        return mapped_data
+
     def resolve_spectra(self, path: list[str]) -> Union[List[Spectra], None]:
         """Returns a section containing the references for a Spectra. This section is then
         stored under `archive.results.properties.spectroscopic`.
@@ -502,6 +537,97 @@ class ResultsNormalizer(Normalizer):
                     spectra_root.insert(0, spectra_results)
         return spectra_root
 
+    def resolve_magnetic_shielding(
+        self, path: list[str]
+    ) -> Union[List[MagneticShielding], None]:
+        """Returns a section containing the references for the (atomic) Magnetic Shielding.
+        This section is then stored under `archive.results.properties.magnetic`.
+
+        This section is populated only when there is a non empty array of
+        `magnetic_shielding.value`.
+
+        Args:
+            path (list[str]): the path to the magnetic shielding section to be extracted
+            from the self.entry_archive.
+
+        Returns:
+            List[MagneticShielding]: the mapped Magnetic Shielding.
+        """
+        stored_data = traverse_reversed(self.entry_archive, path)
+        if not stored_data:
+            return None
+        mapped_data: List[MagneticShielding] = []
+        for data in stored_data:
+            value = data.value
+            if valid_array(value):
+                results_data = MagneticShielding(value=data)
+                mapped_data.insert(0, results_data)
+        return mapped_data
+
+    def resolve_spin_spin_coupling(
+        self, path: list[str]
+    ) -> Union[List[SpinSpinCoupling], None]:
+        """Returns a section containing the references for the Spin Spin Coupling.
+        This section is then stored under `archive.results.properties.magnetic`.
+
+        This section is populated only when there is a non empty array of
+        `spin_spin_coupling.value`.
+
+        Args:
+            path (list[str]): the path to the spin-spin coupling section to be extracted
+            from the self.entry_archive.
+
+        Returns:
+            List[SpinSpinCoupling]: the mapped Spin Spin Coupling.
+        """
+        stored_data = traverse_reversed(self.entry_archive, path)
+        if not stored_data:
+            return None
+        mapped_data: List[SpinSpinCoupling] = []
+        for data in stored_data:
+            contribution = data.contribution
+            value = data.value
+            reduced_value = data.reduced_value
+            if valid_array(value) or valid_array(reduced_value):
+                results_data = SpinSpinCoupling(
+                    source='simulation',
+                    contribution=contribution,
+                    value=data if valid_array(value) else None,
+                    reduced_value=data if valid_array(reduced_value) else None,
+                )
+                mapped_data.insert(0, results_data)
+        return mapped_data
+
+    def resolve_magnetic_susceptibility(
+        self, path: list[str]
+    ) -> Union[List[MagneticSusceptibility], None]:
+        """Returns a section containing the references for the Magnetic Susceptibility.
+        This section is then stored under `archive.results.properties.magnetic`.
+
+        This section is populated only when there is a non empty array of
+        `magnetic_susceptibility.value`.
+
+        Args:
+            path (list[str]): the path to the magnetic susceptibility section to be extracted
+            from the self.entry_archive.
+
+        Returns:
+            List[MagneticSusceptibility]: the mapped Magnetic Susceptibility.
+        """
+        stored_data = traverse_reversed(self.entry_archive, path)
+        if not stored_data:
+            return None
+        mapped_data: List[MagneticSusceptibility] = []
+        for data in stored_data:
+            scale_dimension = data.scale_dimension
+            value = data.value
+            if valid_array(value):
+                results_data = MagneticSusceptibility(
+                    source='simulation', scale_dimension=scale_dimension, value=data
+                )
+                mapped_data.insert(0, results_data)
+        return mapped_data
+
     def _resolve_workflow_gs_properties(
         self, methods: list[str], properties: list[str]
     ) -> None:
@@ -523,7 +649,7 @@ class ResultsNormalizer(Normalizer):
             for prop in properties:
                 property_list = self.electronic_properties.get(prop)
                 method_property_resolved = getattr(self, f'resolve_{prop}')(
-                    ['workflow2', 'results', f'{prop}_{method}']
+                    ['workflow2', 'results', f'{method}_outputs', prop]
                 )
                 for item in method_property_resolved:
                     item.label = name
@@ -557,7 +683,7 @@ class ResultsNormalizer(Normalizer):
             GreensFunctionsElectronic
         ] = self.electronic_properties.get('greens_functions')  # type: ignore
         gfs_electronic_dmft = self.resolve_greens_functions(
-            ['workflow2', 'results', 'greens_functions_dmft']
+            ['workflow2', 'results', 'dmft_outputs', 'greens_functions']
         )
         for item in gfs_electronic_dmft:
             item.label = 'DMFT'
@@ -577,7 +703,12 @@ class ResultsNormalizer(Normalizer):
         for method in ['dmft', 'maxent']:
             name = 'MaxEnt' if method == 'maxent' else method.upper()
             gfs = self.resolve_greens_functions(
-                ['workflow2', 'results', f'greens_functions_{method}']
+                [
+                    'workflow2',
+                    'results',
+                    f'{method}_outputs',
+                    'greens_functions',
+                ]
             )
             for item in gfs:
                 item.label = name
@@ -980,6 +1111,7 @@ class ResultsNormalizer(Normalizer):
                 List[DOSElectronic],
                 List[DOSElectronicNew],
                 List[GreensFunctionsElectronic],
+                List[ElectricFieldGradient],
             ],
         ]
         electronic_properties: ElectronicPropertyTypes = {
@@ -994,6 +1126,9 @@ class ResultsNormalizer(Normalizer):
             'greens_functions': self.resolve_greens_functions(
                 ['run', 'calculation', 'greens_functions']
             ),
+            'electric_field_gradient': self.resolve_electric_field_gradient(
+                ['run', 'calculation', 'electric_field_gradient']
+            ),
         }
         self.electronic_properties = electronic_properties
         #   spectroscopic properties list
@@ -1001,16 +1136,16 @@ class ResultsNormalizer(Normalizer):
         # Resolving GW, XS workflow properties
         workflow = self.entry_archive.workflow2
         if workflow:
-            workflow_name = workflow.m_def.name
-            if workflow_name == 'GW':
+            workflow_name = workflow.name if workflow.name else workflow.m_def.name
+            if workflow_name == 'DFT+GW':
                 self.get_gw_workflow_properties()
-            elif workflow_name == 'TB':
+            elif workflow_name == 'FirstPrinciples+TB':
                 self.get_tb_workflow_properties()
-            elif workflow_name == 'DMFT':
+            elif workflow_name in ['DFT+TB+DMFT', 'DFT+DMFT', 'TB+DMFT']:
                 self.get_dmft_workflow_properties()
-            elif workflow_name == 'MaxEnt':
+            elif workflow_name == 'DMFT+MaxEnt':
                 self.get_maxent_workflow_properties()
-            elif workflow_name == 'PhotonPolarization':
+            elif workflow_name in ['PhotonPolarization', 'BSE']:
                 spectra = self.resolve_spectra(
                     ['workflow2', 'results', 'spectrum_polarization']
                 )
@@ -1034,6 +1169,26 @@ class ResultsNormalizer(Normalizer):
             spectroscopic = SpectroscopicProperties()
             spectroscopic.spectra = spectra
             properties.spectroscopic = spectroscopic
+
+        # Magnetic
+        magnetic_shielding = self.resolve_magnetic_shielding(
+            ['run', 'calculation', 'magnetic_shielding']
+        )
+        spin_spin_coupling = self.resolve_spin_spin_coupling(
+            ['run', 'calculation', 'spin_spin_coupling']
+        )
+        magnetic_susceptibility = self.resolve_magnetic_susceptibility(
+            ['run', 'calculation', 'magnetic_susceptibility']
+        )
+        if magnetic_shielding or spin_spin_coupling or magnetic_susceptibility:
+            magnetic = MagneticProperties()
+            if magnetic_shielding:
+                magnetic.magnetic_shielding = magnetic_shielding
+            if spin_spin_coupling:
+                magnetic.spin_spin_coupling = spin_spin_coupling
+            if magnetic_susceptibility:
+                magnetic.magnetic_susceptibility = magnetic_susceptibility
+            properties.magnetic = magnetic
 
         # Vibrational
         bs_phonon = self.band_structure_phonon()

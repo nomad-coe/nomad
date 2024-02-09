@@ -188,6 +188,10 @@ def available_properties(root: MSection) -> List[str]:
         'electronic.dos_electronic': 'dos_electronic',
         'electronic.dos_electronic_new': 'dos_electronic_new',
         'electronic.greens_functions_electronic': 'greens_functions_electronic',
+        'electronic.electric_field_gradient': 'electric_field_gradient',
+        'magnetic.magnetic_shielding': 'magnetic_shielding',
+        'magnetic.spin_spin_coupling': 'spin_spin_coupling',
+        'magnetic.magnetic_susceptibility': 'magnetic_susceptibility',
         'vibrational.dos_phonon': 'dos_phonon',
         'vibrational.band_structure_phonon': 'band_structure_phonon',
         'vibrational.energy_free_helmholtz': 'energy_free_helmholtz',
@@ -280,6 +284,25 @@ else:
                 else {}
             ),
         },
+    )
+
+
+class SourceInformation(MSection):
+    m_def = Section(
+        description="""
+        Base class used to easy identification of a property obtained from an experimental
+        setup or from performing a computational simulation.
+        """,
+    )
+    source = Quantity(
+        type=MEnum('experiment', 'simulation'),
+        description="""
+        Identifier for the source of the data: 'experiment' or 'simulation'.
+        """,
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
 
@@ -2171,6 +2194,7 @@ class Method(MSection):
             'EELS',
             'XPS',
             'XRD',
+            'NMR',
             config.services.unavailable_value,
         ),
         description="""
@@ -2785,6 +2809,18 @@ class MechanicalProperties(MSection):
     )
 
 
+class ElectricFieldGradient(MSection):
+    m_def = Section(
+        description="""
+        Base class for the electric field gradient information. This section is relevant
+        for NMR and describes the potential generated my the nuclei in the system.
+        """,
+    )
+    if runschema:
+        contribution = runschema.calculation.ElectricFieldGradient.contribution.m_copy()
+        value = Quantity(type=runschema.calculation.ElectricFieldGradient.value)
+
+
 class ElectronicProperties(MSection):
     m_def = Section(
         description="""
@@ -2803,6 +2839,61 @@ class ElectronicProperties(MSection):
     )
     greens_functions_electronic = SubSection(
         sub_section=GreensFunctionsElectronic.m_def, repeats=True
+    )
+    electric_field_gradient = SubSection(
+        sub_section=ElectricFieldGradient.m_def,
+        repeats=True,
+    )
+
+
+class MagneticShielding(MSection):
+    m_def = Section(
+        description="""
+        Base class for the atomic magnetic shielding information.
+        """,
+    )
+    if runschema:
+        value = Quantity(type=runschema.calculation.MagneticShielding.value)
+
+
+class SpinSpinCoupling(SourceInformation):
+    m_def = Section(
+        description="""
+        Base class for the spin-spin coupling information.
+        """,
+    )
+    if runschema:
+        contribution = runschema.calculation.SpinSpinCoupling.contribution.m_copy()
+        value = Quantity(type=runschema.calculation.SpinSpinCoupling.value)
+        reduced_value = Quantity(
+            type=runschema.calculation.SpinSpinCoupling.reduced_value
+        )
+
+
+class MagneticSusceptibility(SourceInformation):
+    m_def = Section(
+        description="""
+        Base class for the magnetic susceptibility information.
+        """,
+    )
+    if runschema:
+        scale_dimension = (
+            runschema.calculation.MagneticSusceptibility.scale_dimension.m_copy()
+        )
+        value = Quantity(type=runschema.calculation.MagneticSusceptibility.value)
+
+
+class MagneticProperties(MSection):
+    m_def = Section(
+        description="""
+        Magnetic properties.
+        """,
+    )
+    magnetic_shielding = SubSection(sub_section=MagneticShielding.m_def, repeats=True)
+    spin_spin_coupling = SubSection(sub_section=SpinSpinCoupling.m_def, repeats=True)
+    magnetic_susceptibility = SubSection(
+        sub_section=MagneticSusceptibility.m_def,
+        repeats=True,
     )
 
 
@@ -3694,7 +3785,7 @@ class Spectra(MSection):
             Elasticsearch(suggestion='default'),
         ],
     )
-    label = Quantity(
+    label = Quantity(  # TODO fix Spectra to inherit from SourceInformation
         type=MEnum('computation', 'experiment'),
         description="""
         Identifier for the source of the spectra data, either 'computation' or 'experiment'.
@@ -3761,6 +3852,7 @@ class Properties(MSection):
     structures = SubSection(sub_section=Structures.m_def, repeats=False)
     vibrational = SubSection(sub_section=VibrationalProperties.m_def, repeats=False)
     electronic = SubSection(sub_section=ElectronicProperties.m_def, repeats=False)
+    magnetic = SubSection(sub_section=MagneticProperties.m_def, repeats=False)
     optoelectronic = SubSection(
         sub_section=OptoelectronicProperties.m_def, repeats=False
     )

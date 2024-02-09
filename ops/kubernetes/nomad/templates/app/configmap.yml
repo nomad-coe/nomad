@@ -1,0 +1,40 @@
+{{- if .Values.nomad.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nomad.fullname" . }}-configmap-app-uvicorn-log-config
+  labels:
+    {{- include "nomad.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+data:
+  uvicorn.log.conf: |
+    [loggers]
+    keys=root
+
+    [handlers]
+    keys=console, logstash
+
+    [formatters]
+    keys=generic, logstash
+
+    [logger_root]
+    level=INFO
+    handlers=console, logstash
+
+    [handler_console]
+    class=StreamHandler
+    formatter=generic
+    args=(sys.stdout, )
+
+    [handler_logstash]
+    class=nomad.utils.structlogging.LogstashHandler
+    formatter=logstash
+
+    [formatter_generic]
+    format=%(asctime)s [%(process)d] [%(levelname)s] %(message)s
+    datefmt=%Y-%m-%d %H:%M:%S
+    class=logging.Formatter
+
+    [formatter_logstash]
+    class=nomad.utils.structlogging.LogstashFormatter
+{{- end }}

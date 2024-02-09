@@ -649,382 +649,61 @@ def add_template_greens_functions(template: EntryArchive) -> EntryArchive:
     return template
 
 
-def get_template_gw_workflow() -> EntryArchive:
-    """Returns a basic archive template for a GW workflow entry, composed of two main tasks:
-    DFT GeometryOptimization and GW SinglePoint."""
-    # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
-    archive_dft = get_template_dft()
-    archive_gw = get_template_excited(type='GW')
-    archive_dft = add_template_band_structure(archive_dft)
-    archive_gw = add_template_band_structure(archive_gw)
-    archive_dft = add_template_dos(archive_dft)
-    archive_gw = add_template_dos(archive_gw)
-    # Normalizing SinglePoint archives
-    run_normalize(archive_dft)
-    run_normalize(archive_gw)
-    # Defining DFT and GW tasks for later the GW workflow
-    task_dft = TaskReference(task=archive_dft.workflow2)
-    task_dft.name = 'DFT'
-    task_dft.inputs = [
-        Link(name='Input structure', section=archive_dft.run[-1].system[-1])
-    ]
-    task_dft.outputs = [
-        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
-    ]
-    task_gw = TaskReference(task=archive_gw.workflow2)
-    task_gw.name = 'GW'
-    task_gw.inputs = [
-        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
-    ]
-    task_gw.outputs = [
-        Link(name='Output GW calculation', section=archive_gw.run[-1].calculation[-1])
-    ]
-    # GW workflow entry (no need of creating Method nor Calculation)
-    template = EntryArchive()
+def add_template_magnetic_shielding(
+    template: EntryArchive, n_atoms: int = 1
+) -> EntryArchive:
     if runschema:
-        run = runschema.run.Run()
-        template.run.append(run)
-        run.program = archive_dft.run[-1].program
-        run.system = archive_dft.run[-1].system
-    if simulationworkflowschema:
-        workflow = simulationworkflowschema.GW()
-        workflow.name = 'GW'
-        workflow_method = simulationworkflowschema.GWMethod(
-            gw_method_ref=archive_gw.run[-1].method[-1].gw,
-            starting_point=archive_dft.run[-1].method[-1].dft.xc_functional,
-            electrons_representation=archive_dft.run[-1]
-            .method[-1]
-            .electrons_representation[-1],
-        )
-        workflow.m_add_sub_section(simulationworkflowschema.GW.method, workflow_method)
-        workflow.m_add_sub_section(
-            simulationworkflowschema.GW.inputs,
-            Link(name='Input structure', section=archive_dft.run[-1].system[-1]),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.GW.outputs,
-            Link(
-                name='Output GW calculation', section=archive_gw.run[-1].calculation[-1]
-            ),
-        )
-        workflow.m_add_sub_section(simulationworkflowschema.GW.tasks, task_dft)
-        workflow.m_add_sub_section(simulationworkflowschema.GW.tasks, task_gw)
-        template.workflow2 = workflow
+        scc = template.run[0].calculation[0]
+        sec_magnetic_shielding = runschema.calculation.MagneticShielding()
+        scc.magnetic_shielding.append(sec_magnetic_shielding)
+
+        # Populate the section
+        identity_matrix = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        value = []
+        for i in range(n_atoms):
+            val = [
+                [(i + 1) * elem for elem in sub_list] for sub_list in identity_matrix
+            ]
+            value.append(val)
+        sec_magnetic_shielding.value = value
     return template
 
 
-def get_template_dmft_workflow() -> EntryArchive:
-    # Defining Projection and DMFT SinglePoint archives and adding band_structure and greens_functions to them.
-    archive_tb = get_template_tb_wannier()
-    archive_dmft = get_template_dmft()
-    archive_tb = add_template_band_structure(archive_tb)
-    archive_dmft = add_template_greens_functions(archive_dmft)
-    # Normalizing SinglePoint archives BEFORE defining the DMFT workflow entry
-    run_normalize(archive_tb)
-    run_normalize(archive_dmft)
-    # Defining Projection and DMFT tasks for later the DMFT workflow
-    task_proj = TaskReference(task=archive_tb.workflow2)
-    task_proj.name = 'Projection'
-    task_proj.inputs = [
-        Link(name='Input structure', section=archive_tb.run[-1].system[-1])
-    ]
-    task_proj.outputs = [
-        Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])
-    ]
-    task_dmft = TaskReference(task=archive_dmft.workflow2)
-    task_dmft.name = 'DMFT'
-    task_dmft.inputs = [
-        Link(name='Output TB calculation', section=archive_tb.run[-1].calculation[-1])
-    ]
-    task_dmft.outputs = [
-        Link(
-            name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]
-        )
-    ]
-    # DMFT workflow entry (no need of creating Method nor Calculation)
-    template = EntryArchive()
+def add_template_spin_spin_coupling(
+    template: EntryArchive, n_atoms: int = 1
+) -> EntryArchive:
     if runschema:
-        run = runschema.run.Run()
-        template.run.append(run)
-        run.program = archive_dmft.run[-1].program
-        run.system = archive_tb.run[-1].system
-    if simulationworkflowschema:
-        workflow = simulationworkflowschema.DMFT()
-        workflow.name = 'DMFT'
-        workflow_method = simulationworkflowschema.DMFTMethod(
-            tb_method_ref=archive_tb.run[-1].method[-1].tb,
-            dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.DMFT.method, workflow_method
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.DMFT.inputs,
-            Link(name='Input structure', section=archive_tb.run[-1].system[-1]),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.DMFT.outputs,
-            Link(
-                name='Output DMFT calculation',
-                section=archive_dmft.run[-1].calculation[-1],
-            ),
-        )
-        workflow.m_add_sub_section(simulationworkflowschema.DMFT.tasks, task_proj)
-        workflow.m_add_sub_section(simulationworkflowschema.DMFT.tasks, task_dmft)
-        template.workflow2 = workflow
-    return template
+        scc = template.run[0].calculation[0]
+        sec_iss_coupling = runschema.calculation.SpinSpinCoupling()
+        scc.spin_spin_coupling.append(sec_iss_coupling)
 
-
-def get_template_maxent_workflow() -> EntryArchive:
-    # Defining Projection and DMFT SinglePoint archives and adding band_structure and greens_functions to them.
-    archive_dmft = get_template_dmft()
-    archive_maxent = get_template_maxent()
-    archive_dmft = add_template_greens_functions(archive_dmft)
-    archive_maxent = add_template_greens_functions(archive_maxent)
-    # Normalizing SinglePoint archives BEFORE defining the DMFT workflow entry
-    run_normalize(archive_dmft)
-    run_normalize(archive_maxent)
-    # Defining Projection and DMFT tasks for later the DMFT workflow
-    task_dmft = TaskReference(task=archive_dmft.workflow2)
-    task_dmft.name = 'DMFT'
-    task_dmft.inputs = [
-        Link(name='Input structure', section=archive_dmft.run[-1].system[-1])
-    ]
-    task_dmft.outputs = [
-        Link(
-            name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]
-        )
-    ]
-    task_maxent = TaskReference(task=archive_dmft.workflow2)
-    task_maxent.name = 'MaxEnt Sigma'
-    task_maxent.inputs = [
-        Link(
-            name='Output DMFT calculation', section=archive_dmft.run[-1].calculation[-1]
-        )
-    ]
-    task_maxent.outputs = [
-        Link(
-            name='Output MaxEnt Sigma calculation',
-            section=archive_maxent.run[-1].calculation[-1],
-        )
-    ]
-    # DMFT workflow entry (no need of creating Method)
-    template = EntryArchive()
-    if runschema:
-        run = runschema.run.Run()
-        template.run.append(run)
-        run.program = archive_dmft.run[-1].program
-        run.system = archive_dmft.run[-1].system
-        scc = runschema.calculation.Calculation()
-        run.calculation.append(scc)
-        scc.system_ref = run.system[-1]
-        template = add_template_dos(template)
-    if simulationworkflowschema:
-        workflow = simulationworkflowschema.MaxEnt()
-        workflow.name = 'MaxEnt'
-        workflow_method = simulationworkflowschema.MaxEntMethod(
-            dmft_method_ref=archive_dmft.run[-1].method[-1].dmft,
-            maxent_method_ref=archive_maxent.run[-1].method[-1],
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.MaxEnt.method, workflow_method
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.MaxEnt.inputs,
-            Link(name='Input structure', section=archive_dmft.run[-1].system[-1]),
-        )
-        outputs = [
-            Link(
-                name='Output MaxEnt Sigma calculation',
-                section=archive_dmft.run[-1].calculation[-1],
-            ),
-            Link(
-                name='Output MaxEnt calculation',
-                section=template.run[-1].calculation[-1],
-            ),
+        # Populate the section
+        sec_iss_coupling.contribution = 'total'
+        identity_matrix = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        value = [
+            [
+                [
+                    [(i + 1) * (j + 1) * elem for elem in sub_list]
+                    for sub_list in identity_matrix
+                ]
+                for i in range(n_atoms)
+            ]
+            for j in range(n_atoms)
         ]
-        workflow.outputs = outputs
-        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.tasks, task_dmft)
-        workflow.m_add_sub_section(simulationworkflowschema.MaxEnt.tasks, task_maxent)
-        template.workflow2 = workflow
+        sec_iss_coupling.value = value
     return template
 
 
-def get_template_bse_workflow() -> EntryArchive:
-    """Returns a basic archive template for a BSE workflow entry, composed of two tasks:
-    PhotonPolarization SinglePoint number 1 and PhotonPolarization SinglePoint number 2."""
-    # Adding two spectras for both photon polarizations
-    archive_photon_1 = get_template_excited(type='Photon')
-    archive_photon_2 = get_template_excited(type='Photon')
-    n_energies = 11
+def add_template_magnetic_susceptibility(template: EntryArchive) -> EntryArchive:
     if runschema:
-        spectra_1 = runschema.calculation.Spectra(
-            type='XAS',
-            n_energies=n_energies,
-            excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
-            intensities=np.linspace(100, 200, n_energies),
-            intensities_units='F/m',
-        )
-        provenance_1 = runschema.calculation.ElectronicStructureProvenance(
-            label='photon', methodology=archive_photon_1.run[-1].method[-1]
-        )
-        spectra_1.provenance.append(provenance_1)
-        archive_photon_1.run[-1].calculation[-1].spectra.append(spectra_1)
-        spectra_2 = runschema.calculation.Spectra(
-            type='XAS',
-            n_energies=n_energies,
-            excitation_energies=np.linspace(0, 10, n_energies) * ureg.eV,
-            intensities=np.linspace(200, 300, n_energies),
-            intensities_units='F/m',
-        )
-        provenance_2 = runschema.calculation.ElectronicStructureProvenance(
-            label='photon', methodology=archive_photon_2.run[-1].method[-1]
-        )
-        spectra_2.provenance.append(provenance_2)
-        archive_photon_2.run[-1].calculation[-1].spectra.append(spectra_2)
-    # Normalizing SinglePoint archives BEFORE defining the BSE workflow entry
-    run_normalize(archive_photon_1)
-    run_normalize(archive_photon_2)
-    # Defining Photon1 and Photon2 tasks for later the BSE workflow
-    task_photon_1 = TaskReference(task=archive_photon_1.workflow2)
-    task_photon_1.name = 'Photon 1'
-    task_photon_1.inputs = [
-        Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])
-    ]
-    task_photon_1.outputs = [
-        Link(
-            name='Output polarization 1',
-            section=archive_photon_1.run[-1].calculation[-1],
-        )
-    ]
-    task_photon_2 = TaskReference(task=archive_photon_2.workflow2)
-    task_photon_2.name = 'Photon 2'
-    task_photon_2.inputs = [
-        Link(name='Input structure', section=archive_photon_1.run[-1].system[-1])
-    ]
-    task_photon_2.outputs = [
-        Link(
-            name='Output polarization 2',
-            section=archive_photon_2.run[-1].calculation[-1],
-        )
-    ]
-    # BSE workflow entry (no need of creating Calculation). We need to define BSE method.
-    template = EntryArchive()
-    if runschema:
-        run = runschema.run.Run()
-        template.run.append(run)
-        run.program = archive_photon_1.run[-1].program
-        run.system = archive_photon_1.run[-1].system
-        method = runschema.method.Method()
-        run.method.append(method)
-        method.bse = runschema.method.BSE(type='Singlet', solver='Lanczos-Haydock')
-    if simulationworkflowschema:
-        workflow = simulationworkflowschema.PhotonPolarization()
-        workflow.name = 'BSE'
-        workflow_method = simulationworkflowschema.PhotonPolarizationMethod(
-            bse_method_ref=template.run[-1].method[-1].bse
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.method, workflow_method
-        )
-        spectras = [spectra_1, spectra_2]
-        workflow_results = simulationworkflowschema.PhotonPolarizationResults(
-            n_polarizations=2, spectrum_polarization=spectras
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.results, workflow_results
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.inputs,
-            Link(name='Input structure', section=archive_photon_1.run[-1].system[-1]),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.inputs,
-            Link(name='Input BSE methodology', section=template.run[-1].method[-1]),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.outputs,
-            Link(
-                name='Output polarization 1',
-                section=archive_photon_1.run[-1].calculation[-1],
-            ),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.outputs,
-            Link(
-                name='Output polarization 2',
-                section=archive_photon_2.run[-1].calculation[-1],
-            ),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.tasks, task_photon_1
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.PhotonPolarization.tasks, task_photon_2
-        )
-        template.workflow2 = workflow
-    return template
+        scc = template.run[0].calculation[0]
+        sec_magn_susceptibility = runschema.calculation.MagneticSusceptibility()
+        scc.magnetic_susceptibility.append(sec_magn_susceptibility)
 
-
-def get_template_xs_workflow() -> EntryArchive:
-    """Returns a basic archive template for a XS workflow entry, composed of two main tasks:
-    DFT GeometryOptimization and BSE workflow. The BSE workflow archive contains one
-    PhotonPolarization SinglePoint task."""
-    # Defining DFT and GW SinglePoint archives and adding band_structure and dos to them.
-    archive_dft = get_template_dft()
-    archive_dft = add_template_band_structure(archive_dft)
-    archive_dft = add_template_dos(archive_dft)
-    archive_bse = get_template_bse_workflow()
-    # Normalizing SinglePoint archives BEFORE defining the XS workflow entry
-    run_normalize(archive_dft)
-    run_normalize(archive_bse)
-    # Defining DFT and BSE tasks for later the BS workflow
-    task_dft = TaskReference(task=archive_dft.workflow2)
-    task_dft.name = 'DFT'
-    task_dft.inputs = [
-        Link(name='Input structure', section=archive_dft.run[-1].system[-1])
-    ]
-    task_dft.outputs = [
-        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
-    ]
-    task_bse = TaskReference(task=archive_bse.workflow2)
-    task_bse.name = 'BSE 1'
-    task_bse.inputs = [
-        Link(name='Output DFT calculation', section=archive_dft.run[-1].calculation[-1])
-    ]
-    task_bse.outputs = [
-        Link(name='Polarization 1', section=archive_bse.workflow2.outputs[0].section),
-        Link(name='Polarization 2', section=archive_bse.workflow2.outputs[1].section),
-    ]
-    # XS (BSE) workflow entry (no need of creating Method nor Calculation)
-    template = EntryArchive()
-    if runschema:
-        run = runschema.run.Run()
-        template.run.append(run)
-        run.program = archive_dft.run[-1].program
-        run.system = archive_dft.run[-1].system
-    if simulationworkflowschema:
-        workflow = simulationworkflowschema.XS()
-        workflow.name = 'XS'
-        workflow.m_add_sub_section(
-            simulationworkflowschema.XS.inputs,
-            Link(name='Input structure', section=archive_dft.run[-1].system[-1]),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.XS.outputs,
-            Link(
-                name='Polarization 1', section=archive_bse.workflow2.outputs[0].section
-            ),
-        )
-        workflow.m_add_sub_section(
-            simulationworkflowschema.XS.outputs,
-            Link(
-                name='Polarization 2', section=archive_bse.workflow2.outputs[1].section
-            ),
-        )
-        workflow.m_add_sub_section(simulationworkflowschema.XS.tasks, task_dft)
-        workflow.m_add_sub_section(simulationworkflowschema.XS.tasks, task_bse)
-        template.workflow2 = workflow
+        # Populate the section
+        sec_magn_susceptibility.scale_dimension = 'macroscopic'
+        value = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        sec_magn_susceptibility.value = value
     return template
 
 
@@ -1501,41 +1180,6 @@ def unknown_program() -> EntryArchive:
 def single_point() -> EntryArchive:
     """Single point calculation."""
     template = get_template_dft()
-    return run_normalize(template)
-
-
-@pytest.fixture(scope='session')
-def gw_workflow() -> EntryArchive:
-    """GW workflow (DFT+GW) EntryArchive."""
-    template = get_template_gw_workflow()
-    return run_normalize(template)
-
-
-@pytest.fixture(scope='session')
-def dmft_workflow() -> EntryArchive:
-    """DMFT workflow (Projection+DMFT) EntryArchive."""
-    template = get_template_dmft_workflow()
-    return run_normalize(template)
-
-
-@pytest.fixture(scope='session')
-def maxent_workflow() -> EntryArchive:
-    """MaxEnt workflow (DMFT+MaxEnt Sigma) EntryArchive."""
-    template = get_template_maxent_workflow()
-    return run_normalize(template)
-
-
-@pytest.fixture(scope='session')
-def bse_workflow() -> EntryArchive:
-    """BSE workflow (Photon1+Photon2) EntryArchive"""
-    template = get_template_bse_workflow()
-    return run_normalize(template)
-
-
-@pytest.fixture(scope='session')
-def xs_workflow() -> EntryArchive:
-    """XS workflow (DFT+BSEworkflow) EntryArchive."""
-    template = get_template_xs_workflow()
     return run_normalize(template)
 
 
