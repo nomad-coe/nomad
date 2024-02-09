@@ -30,7 +30,7 @@ def unknown_material_archive():
 
 @pytest.fixture(scope='session')
 def unknown_workflow_archive():
-    directory = 'tests/data/datamodel/metainfo/eln/perovskite_database'
+    directory = 'tests/data/plugins/perovskite_solar_cell_database'
     mainfile = 'example.archive.json'
     archive = run_processing(directory, mainfile)
     return archive
