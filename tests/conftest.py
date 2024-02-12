@@ -514,9 +514,24 @@ test_user_groups = {
     ),
 }
 
-group_label_id_mapping = {
-    label: group['group_id'] for label, group in test_user_groups.items()
-}
+
+@pytest.fixture(scope='session')
+def convert_group_labels_to_ids():
+    mapping = {label: group['group_id'] for label, group in test_user_groups.items()}
+
+    def convert(raw):
+        if isinstance(raw, str):
+            return mapping.get(raw, raw)
+
+        if isinstance(raw, list):
+            return [convert(v) for v in raw]
+
+        if isinstance(raw, dict):
+            return {k: convert(v) for k, v in raw.items()}
+
+        return raw
+
+    return convert
 
 
 @pytest.fixture(scope='session')
@@ -541,19 +556,6 @@ def _user_groups():
         user_groups[label] = user_group
 
     return user_groups
-
-
-def convert_group_labels_to_ids(raw):
-    if isinstance(raw, str):
-        return group_label_id_mapping.get(raw, raw)
-
-    if isinstance(raw, list):
-        return [convert_group_labels_to_ids(label) for label in raw]
-
-    if isinstance(raw, dict):
-        return {key: convert_group_labels_to_ids(label) for key, label in raw.items()}
-
-    return raw
 
 
 @pytest.fixture(scope='module')
@@ -1316,37 +1318,43 @@ def example_data_writeable(mongo_function, test_user, normalized):
     data.delete()
 
 
+@pytest.fixture('module')
+def fill_group_data(convert_group_labels_to_ids):
+    def fill(data: ExampleData, id_label, c_groups, r_groups, **kwargs):
+        upload_id = f'id_{id_label}'
+        entry_id = f'{upload_id}_1'
+
+        d = kwargs.copy()
+        d['upload_id'] = upload_id
+        d['coauthor_groups'] = convert_group_labels_to_ids(c_groups)
+        d['reviewer_groups'] = convert_group_labels_to_ids(r_groups)
+        d.setdefault('published', d.get('embargo_length') is not None)
+        if d.get('embargo_length') is None:
+            d['embargo_length'] = 0
+
+        data.create_upload(**d)
+        data.create_entry(upload_id=upload_id, entry_id=entry_id)
+
+    return fill
+
+
 @pytest.fixture(scope='module')
 def example_data_groups(
-    mongo_module, user_groups_module, test_user, other_owner_group, mixed_group
+    elastic_module, mongo_module, user_groups_module, test_user, fill_group_data
 ):
     data = ExampleData(main_author=test_user)
-
-    data.create_upload(
-        upload_id='id_no_group',
-    )
-
-    data.create_upload(
-        upload_id='id_coauthor_other_group',
-        coauthor_groups=[other_owner_group.group_id],
-    )
-
-    data.create_upload(
-        upload_id='id_reviewer_other_group',
-        reviewer_groups=[other_owner_group.group_id],
-    )
-
-    data.create_upload(
-        upload_id='id_coauthor_mixed_group',
-        coauthor_groups=[mixed_group.group_id],
-    )
-
-    data.create_upload(
-        upload_id='id_reviewer_mixed_group',
-        reviewer_groups=[mixed_group.group_id],
-    )
+    fill_group_data(data, 'no_group', [], [])
+    fill_group_data(data, 'coauthor_other', ['other_owner_group'], [])
+    fill_group_data(data, 'reviewer_other', [], ['other_owner_group'])
+    fill_group_data(data, 'coauthor_mixed', ['mixed_group'], [])
+    fill_group_data(data, 'reviewer_mixed', [], ['mixed_group'])
+    fill_group_data(data, 'reviewer_all', [], ['all'])
 
     data.save(with_files=False)
+
+    yield data
+
+    data.delete()
 
 
 @pytest.fixture(scope='function')

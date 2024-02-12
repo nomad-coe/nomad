@@ -646,6 +646,10 @@ class MetadataEditRequestHandler:
                 assert 0 <= value <= 36, 'Value should be between 0 and 36'
             if definition.name == 'references':
                 assert validators.url(value), 'Please enter a valid URL ...'
+            if definition.name == 'coauthor_groups':
+                assert (
+                    value != 'all'
+                ), "Special group 'all' is invalid for field coauthor_groups."
             return None if value == '' else value
         elif definition.type == metainfo.Datetime:
             if value is not None:

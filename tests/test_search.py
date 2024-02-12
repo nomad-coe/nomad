@@ -181,49 +181,20 @@ def example_data(elastic_function, test_user):
 
 @pytest.fixture(scope='class')
 def example_group_data(
-    elastic_module,
-    user_groups_module,
-    test_user,
-    other_test_user,
+    elastic_module, user_groups_module, test_user, other_test_user, fill_group_data
 ):
-    def fill(
-        data: ExampleData,
-        id_label,
-        c_groups,
-        r_groups,
-        *,
-        embargo_length=None,
-        main_author=None,
-    ):
-        c_groups = [user_groups_module[x].group_id for x in c_groups]
-        r_groups = [user_groups_module[x].group_id for x in r_groups]
-        published = embargo_length is not None
-        if embargo_length is None:
-            embargo_length = 0
-        if main_author is None:
-            main_author = test_user
-
-        data.create_upload(
-            upload_id=f'uid_{id_label}',
-            coauthor_groups=c_groups,
-            reviewer_groups=r_groups,
-            published=published,
-            embargo_length=embargo_length,
-            main_author=main_author,
-        )
-        data.create_entry(upload_id=f'uid_{id_label}', entry_id=f'eid_{id_label}')
-
     data = ExampleData(main_author=test_user)
-    fill(data, 'no_embargo', [], [], embargo_length=0)
-    fill(data, 'with_embargo', [], [], embargo_length=3)
-    fill(data, 'no_group', [], [])
-    fill(data, 'coauthor_user', ['user_owner_group'], [])
-    fill(data, 'reviewer_user', [], ['user_owner_group'])
-    fill(data, 'coauthor_other', ['other_owner_group'], [])
-    fill(data, 'reviewer_other', [], ['other_owner_group'])
-    fill(data, 'coauthor_mixed', ['mixed_group'], [])
-    fill(data, 'reviewer_mixed', [], ['mixed_group'])
-    fill(data, 'other_user', [], [], main_author=other_test_user)
+    fill_group_data(data, 'no_embargo', [], [], embargo_length=0)
+    fill_group_data(data, 'with_embargo', [], [], embargo_length=3)
+    fill_group_data(data, 'no_group', [], [])
+    fill_group_data(data, 'coauthor_user', ['user_owner_group'], [])
+    fill_group_data(data, 'reviewer_user', [], ['user_owner_group'])
+    fill_group_data(data, 'coauthor_other', ['other_owner_group'], [])
+    fill_group_data(data, 'reviewer_other', [], ['other_owner_group'])
+    fill_group_data(data, 'coauthor_mixed', ['mixed_group'], [])
+    fill_group_data(data, 'reviewer_mixed', [], ['mixed_group'])
+    fill_group_data(data, 'reviewer_all', [], ['all'])
+    fill_group_data(data, 'other_user', [], [], main_author=other_test_user)
     data.save(with_files=False, with_mongo=False)
 
     yield data
@@ -237,7 +208,7 @@ def example_text_search_data(mongo_module, elastic_function, test_user):
     data.create_upload(upload_id='test_upload_text_search', published=True)
     data.create_entry(
         upload_id='test_upload_text_search',
-        entry_id=f'test_entry_text_search',
+        entry_id='test_entry_text_search',
         mainfile='test_content/test_embargo_entry/mainfile.json',
         text_search_contents=['this is a test keyword'],
     )
@@ -367,25 +338,25 @@ class TestsWithGroups:
         [
             pytest.param('admin', None, ARE, id='admin-none'),
             pytest.param('admin', 'test_user', ARE, id='admin-user'),
-            pytest.param('admin', 'admin_user', 10, id='admin-admin'),
+            pytest.param('admin', 'admin_user', 11, id='admin-admin'),
             pytest.param('user', None, ARE, id='user-none'),
-            pytest.param('user', 'test_user', 9, id='user-user'),
+            pytest.param('user', 'test_user', 10, id='user-user'),
             pytest.param('user', 'other_test_user', 1, id='user-other'),
             pytest.param('shared', None, ARE, id='shared-none'),
-            pytest.param('shared', 'test_user', 9, id='shared-user'),
-            pytest.param('shared', 'other_test_user', 5, id='shared'),
+            pytest.param('shared', 'test_user', 10, id='shared-user'),
+            pytest.param('shared', 'other_test_user', 6, id='shared'),
             pytest.param('staging', None, ARE, id='staging-none'),
-            pytest.param('staging', 'test_user', 7, id='staging-user'),
-            pytest.param('staging', 'other_test_user', 5, id='staging-other'),
-            pytest.param('visible', None, 1, id='visible-none'),
-            pytest.param('visible', 'test_user', 9, id='visible-user'),
-            pytest.param('visible', 'other_test_user', 6, id='visible-other'),
+            pytest.param('staging', 'test_user', 8, id='staging-user'),
+            pytest.param('staging', 'other_test_user', 6, id='staging-other'),
+            pytest.param('visible', None, 2, id='visible-none'),
+            pytest.param('visible', 'test_user', 10, id='visible-user'),
+            pytest.param('visible', 'other_test_user', 7, id='visible-other'),
             pytest.param('public', None, 1, id='public-none'),
             pytest.param('public', 'test_user', 1, id='public-user'),
             pytest.param('public', 'other_test_user', 1, id='public-other'),
-            pytest.param('all', None, 2, id='all-none'),
-            pytest.param('all', 'test_user', 9, id='all-user'),
-            pytest.param('all', 'other_test_user', 7, id='all-other'),
+            pytest.param('all', None, 3, id='all-none'),
+            pytest.param('all', 'test_user', 10, id='all-user'),
+            pytest.param('all', 'other_test_user', 8, id='all-other'),
         ],
     )
     def test_search_query_group(
