@@ -1,0 +1,13 @@
+data:
+  m_def: nomad.datamodel.metainfo.downloads.Downloads
+  mainfiles:
+    - TiTe2/TiTe2_0deg.nxs
+    - TiTe2/TiTe2_60deg.nxs
+    - mpes.archive.json
+  downloads:
+    - url: https://zenodo.org/records/7573825/files/MoTe2.h5?download=1
+      output: MoTe2.h5
+    - url: https://zenodo.org/records/5541490/files/TiTe2_0deg.nxs?download=1
+      output: TiTe2/TiTe2_0deg.nxs
+    - url: https://zenodo.org/records/5541490/files/TiTe2_60deg.nxs?download=1
+      output: TiTe2/TiTe2_60deg.nxs

@@ -1,0 +1,84 @@
+{
+    "data": {
+        "m_def": "../upload/raw/mpes.scheme.archive.yml#/definitions/section_definitions/0",
+        "output": "WSe2_eln.yaml",
+        "title": "Valence Band Dynamics - 800 nm linear s-polarized pump, 0.6 mJ/cm2 absorbed fluence",
+        "User": {
+            "name": "Julian Maklar",
+            "role": "Principal Investigator",
+            "affiliation": "Fritz Haber Institute of the Max Planck Society",
+            "address": "Faradayweg 4-6, 14915 Berlin",
+            "email": "maklar@fhi-berlin.mpg.de"
+        },
+        "Instrument": {
+            "energy_resolution": 2.2430472876e-20,
+            "momentum_resolution": 800000000,
+            "temporal_resolution": 3.5e-14,
+            "Manipulator": {
+                "sample_temperature": 26.85
+            },
+            "Analyzer": {
+                "slow_axes": "delay",
+                "spatial_resolution": 0.00001,
+                "energy_resolution": 1.7623942974e-17,
+                "momentum_resolution": 800000000
+            },
+            "Source": {
+                "Probe": {
+                    "frequency": 500000,
+                    "photon_energy": 3.47672329578e-18
+                },
+                "Pump": {
+                    "frequency": 500000,
+                    "photon_energy": 2.4833737827e-19
+                }
+            },
+            "Beam": {
+                "Probe": {
+                    "incident_energy": 3.4767232957799996e-18,
+                    "incident_energy_spread": 1.7623942974e-20,
+                    "pulse_duration": 2.0000000000000003e-14,
+                    "incident_polarization": [
+                        1,
+                        1,
+                        0,
+                        0
+                    ],
+                    "extent": [
+                        0.00007999999999999999,
+                        0.00007999999999999999
+                    ]
+                },
+                "Pump": {
+                    "incident_energy": 2.4833737826999997e-19,
+                    "incident_energy_spread": 1.2817413071999999e-20,
+                    "pulse_duration": 3.5e-14,
+                    "incident_polarization": [
+                        1,
+                        -1,
+                        0,
+                        0
+                    ],
+                    "extent": [
+                        0.00022999999999999998,
+                        0.000265
+                    ],
+                    "incident_wavelength": 8e-7,
+                    "average_power": 0.3,
+                    "pulse_energy": 6e-7,
+                    "fluence": 1.5
+                }
+            }
+        },
+        "Sample": {
+            "preparation_date": "2019-01-13T09:00:00+00:00",
+            "sample_history": "Cleaved",
+            "chemical_formula": "WSe2",
+            "description": "Sample",
+            "name": "WSe2 Single Crystal",
+            "temperature": 26.85,
+            "gas_pressure": 5e-14
+        }
+    },
+    "m_ref_archives": {}
+}

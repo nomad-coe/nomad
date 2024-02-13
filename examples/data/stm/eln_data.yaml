@@ -1,0 +1,38 @@
+Instrument:
+  hardware:
+    name: Nanonis
+  lock_in:
+    lock_in_data_flip_number: -1.0
+    modulation_amplitude:
+      unit: V
+      value: 0.005
+    modulation_frequency:
+      unit: Hz
+      value: 973.0
+    status: 'OFF'
+  piezo_config:
+    active_calib: LHe
+  sample_bias:
+    bias:
+      unit: V
+      value: 0.005
+    bias_calibration: 1.0
+    bias_offset:
+      unit: V
+      value: '0'
+  software:
+    rt_release: '10771'
+    ui_release: '10771'
+    vendor: nanonis
+    version: Generic 5e
+  stm_head_temp:
+    unit: K
+    value: 5.04866
+collection_identifier: TiSe2_2303a_annealing_300C_5min_evaporate_Pyrene_1_
+definition: NXsts
+entry_identifier: TiSe2_2303a_annealing_300C_5min_evaporate_Pyrene_1_0070
+experiment_description: A new TiSe2, annealed at 300 C for 5 min, then cool down to
+  RT, evaporate the Pyrene on RT, 2.2 E -7, totally 10 s.
+experiment_identifier: C:\Users\SPM-PEEM\Desktop\DATA_Nanonis\20220711_CreaTec_Service_Benchmarks_LHe\Nanonis-Session-PMD100-HVHU_CreaTec_Service_PalmaLabBerlin220711
+experiment_type: stm
+type: background

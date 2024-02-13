@@ -1,0 +1,401 @@
+{
+  "/@default": "entry",
+  "/ENTRY[entry]/@default": "data",
+  "/ENTRY[entry]/definition": "NXmpes",
+  "/ENTRY[entry]/definition/@version": "None",
+  "/ENTRY[entry]/title": "@attrs:metadata/entry_title",
+  "/ENTRY[entry]/start_time": "@attrs:metadata/timing/acquisition_start",
+  "/ENTRY[entry]/experiment_institution": "Fritz Haber Institute - Max Planck Society",
+  "/ENTRY[entry]/experiment_facility": "Time Resolved ARPES",
+  "/ENTRY[entry]/experiment_laboratory": "Clean Room 4",
+  "/ENTRY[entry]/entry_identifier": "@attrs:metadata/entry_identifier",
+  "/ENTRY[entry]/end_time": "@attrs:metadata/timing/acquisition_stop",
+  "/ENTRY[entry]/duration": "@attrs:metadata/timing/acquisition_duration",
+  "/ENTRY[entry]/duration/@units": "s",
+  "/ENTRY[entry]/collection_time": "@attrs:metadata/timing/collection_time",
+  "/ENTRY[entry]/collection_time/@units": "s",
+  "/ENTRY[entry]/USER[user]": {
+    "name": "@attrs:metadata/user0/name",
+    "role": "@attrs:metadata/user0/role",
+    "affiliation": "@attrs:metadata/user0/affiliation",
+    "address": "@attrs:metadata/user0/address",
+    "email": "@attrs:metadata/user0/email"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]": {
+    "name": "Time-of-flight momentum microscope equipped delay line detector, at the endstation of the high rep-rate HHG source at FHI",
+    "name/@short_name": "TR-ARPES @ FHI",
+    "energy_resolution": {
+      "resolution": 140.0,
+      "resolution/@units": "meV",
+      "physical_quantity": "energy",
+      "type": "estimated"
+    },
+    "RESOLUTION[temporal_resolution]": {
+      "resolution": 35.0,
+      "resolution/@units": "fs",
+      "physical_quantity": "time",
+      "type": "estimated"
+    },
+    "RESOLUTION[momentum_resolution]": {
+      "resolution": "@attrs:metadata/instrument/analyzer/momentum_resolution",
+      "resolution/@units": "1/angstrom",
+      "physical_quantity": "momentum",
+      "type": "estimated"
+    },
+    "pressure_gauge": {
+      "name": "sample_chamber_pressure",
+      "measurement": "pressure",
+      "value": "@attrs:metadata/file/trARPES:XGS600:PressureAC:P_RD",
+      "value/@units": "mbar"
+    },
+    "ELECTRONANALYSER[electronanalyser]": {
+      "description": "SPECS Metis 1000 Momentum Microscope",
+      "device_information": {
+        "vendor": "SPECS GmbH",
+        "model": "Metis 1000 Momentum Microscope"
+      },
+      "fast_axes": [
+        "kx",
+        "ky",
+        "E"
+      ],
+      "slow_axes": "@attrs:metadata/instrument/analyzer/slow_axes",
+      "energy_resolution": {
+        "resolution": 110.0,
+        "resolution/@units": "meV",
+        "physical_quantity": "energy",
+        "type": "estimated"
+      },
+      "momentum_resolution": {
+        "resolution": "@attrs:metadata/instrument/analyzer/momentum_resolution",
+        "resolution/@units": "1/angstrom",
+        "physical_quantity": "momentum",
+        "type": "estimated"
+      },
+      "spatial_resolution": {
+        "resolution": "@attrs:metadata/instrument/analyzer/spatial_resolution",
+        "resolution/@units": "µm",
+        "physical_quantity": "length",
+        "type": "estimated"
+      },
+      "depends_on": "/entry/instrument/electronanalyser/transformations/trans_z",
+      "TRANSFORMATIONS[transformations]": {
+        "AXISNAME[trans_z]": 4.0,
+        "AXISNAME[trans_z]/@depends_on": "rot_y",
+        "AXISNAME[trans_z]/@transformation_type": "translation",
+        "AXISNAME[trans_z]/@units": "mm",
+        "AXISNAME[trans_z]/@vector": [
+          0,
+          0,
+          1
+        ],
+        "AXISNAME[rot_y]": -115.0,
+        "AXISNAME[rot_y]/@depends_on": ".",
+        "AXISNAME[rot_y]/@transformation_type": "rotation",
+        "AXISNAME[rot_y]/@units": "degrees",
+        "AXISNAME[rot_y]/@vector": [
+          0,
+          1,
+          0
+        ]
+      }
+    }
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/ELECTRONANALYSER[electronanalyser]/COLLECTIONCOLUMN[collectioncolumn]": {
+    "projection": "@attrs:metadata/instrument/analyzer/projection",
+    "scheme": "momentum dispersive",
+    "lens_mode": "@attrs:metadata/instrument/analyzer/lens_mode",
+    "extractor_voltage": "@attrs:metadata/file/KTOF:Lens:Extr:V",
+    "extractor_voltage/@units": "V",
+    "extractor_current": "@attrs:metadata/file/KTOF:Lens:Extr:I",
+    "extractor_current/@units": "µA",
+    "working_distance": 4.0,
+    "working_distance/@units": "mm",
+    "LENS_EM[lens_*{A,B,C,D,E,F,G,H,I,UCA,UFA,Foc}]": {
+      "name": "*",
+      "voltage": "@attrs:metadata/file/KTOF:Lens:*:V",
+      "voltage/@units": "V"
+    },
+    "field_aperture": {
+      "shape": "@attrs:metadata/instrument/analyzer/fa_shape",
+      "size": "@attrs:metadata/instrument/analyzer/fa_size",
+      "size/@units": "µm",
+      "POSITIONER[fa_m1]": {
+        "value": "@attrs:metadata/file/KTOF:Apertures:m1.RBV",
+        "value/@units": "mm"
+      },
+      "POSITIONER[fa_m2]": {
+        "value": "@attrs:metadata/file/KTOF:Apertures:m2.RBV",
+        "value/@units": "mm"
+      }
+    },
+    "contrast_aperture": {
+      "shape": "@attrs:metadata/instrument/analyzer/ca_shape",
+      "size": "@attrs:metadata/instrument/analyzer/ca_size",
+      "size/@units": "µm",
+      "POSITIONER[ca_m3]": {
+        "value": "@attrs:metadata/file/KTOF:Apertures:m3.RBV",
+        "value/@units": "mm"
+      }
+    }
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/ELECTRONANALYSER[electronanalyser]/ENERGYDISPERSION[energydispersion]": {
+    "pass_energy": "@attrs:metadata/file/KTOF:Lens:TOF:V",
+    "pass_energy/@units": "eV",
+    "scheme": "tof",
+    "tof_distance": 0.9,
+    "tof_distance/@units": "m"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/ELECTRONANALYSER[electronanalyser]/DETECTOR[detector]": {
+    "amplifier_type": "MCP",
+    "detector_type": "DLD",
+    "sensor_pixels": [
+      1800,
+      1800
+    ],
+    "amplifier_bias": "@attrs:metadata/file/KTOF:Lens:MCPfront:V",
+    "amplifier_bias/@units": "V",
+    "amplifier_voltage": "@attrs:metadata/file/KTOF:Lens:MCPback:V",
+    "amplifier_voltage/@units": "V",
+    "detector_voltage": "@attrs:metadata/file/KTOF:Lens:UDLD:V",
+    "detector_voltage/@units": "V"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/source_TYPE[source_probe]": {
+    "name": "HHG @ TR-ARPES @ FHI",
+    "probe": "photon",
+    "type": "HHG laser",
+    "mode": "Single Bunch",
+    "frequency": "@attrs:metadata/instrument/beam/probe/frequency",
+    "frequency/@units": "kHz",
+    "associated_beam": "@link:/entry/instrument/beam_probe"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/beam_TYPE[beam_probe]": {
+    "distance": 0.0,
+    "distance/@units": "mm",
+    "incident_energy": "@attrs:metadata/instrument/beam/probe/incident_energy",
+    "incident_energy/@units": "eV",
+    "incident_energy_spread": "@attrs:metadata/instrument/beam/probe/incident_energy_spread",
+    "incident_energy_spread/@units": "eV",
+    "pulse_duration": "@attrs:metadata/instrument/beam/probe/pulse_duration",
+    "pulse_duration/@units": "fs",
+    "incident_polarization": "@attrs:metadata/instrument/beam/probe/incident_polarization",
+    "incident_polarization/@units": "V^2/mm^2",
+    "extent": "@attrs:metadata/instrument/beam/probe/extent",
+    "extent/@units": "µm",
+    "associated_source": "@link:/entry/instrument/source_probe"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/source_TYPE[source_pump]": {
+    "name": "OPCPA @ TR-ARPES @ FHI",
+    "probe": "visible light",
+    "type": "Optical Laser",
+    "mode": "Single Bunch",
+    "frequency": "@attrs:metadata/instrument/beam/pump/frequency",
+    "frequency/@units": "kHz",
+    "associated_beam": "@link:/entry/instrument/beam_pump"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/beam_TYPE[beam_pump]": {
+    "distance": 0.0,
+    "distance/@units": "mm",
+    "incident_energy": "@attrs:metadata/instrument/beam/pump/incident_energy",
+    "incident_energy/@units": "eV",
+    "incident_energy_spread": "@attrs:metadata/instrument/beam/pump/incident_energy_spread",
+    "incident_energy_spread/@units": "eV",
+    "incident_wavelength": "@attrs:metadata/instrument/beam/pump/incident_wavelength",
+    "incident_wavelength/@units": "nm",
+    "pulse_duration": "@attrs:metadata/instrument/beam/pump/pulse_duration",
+    "pulse_duration/@units": "fs",
+    "incident_polarization": "@attrs:metadata/instrument/beam/pump/incident_polarization",
+    "incident_polarization/@units": "V^2/mm^2",
+    "pulse_energy": "@attrs:metadata/instrument/beam/pump/pulse_energy",
+    "pulse_energy/@units": "µJ",
+    "average_power": "@attrs:metadata/instrument/beam/pump/average_power",
+    "average_power/@units": "mW",
+    "extent": "@attrs:metadata/instrument/beam/pump/extent",
+    "extent/@units": "µm",
+    "fluence": "@attrs:metadata/instrument/beam/pump/fluence",
+    "fluence/@units": "mJ/cm^2",
+    "associated_source": "@link:/entry/instrument/source_pump"
+  },
+  "/ENTRY[entry]/INSTRUMENT[instrument]/MANIPULATOR[manipulator]": {
+    "temperature_sensor": {
+      "name": "sample_temperature",
+      "measurement": "temperature",
+      "value": "@attrs:metadata/file/trARPES:Carving:TEMP_RBV",
+      "value/@units": "K"
+    },
+    "sample_bias_voltmeter": {
+      "name": "sample_bias",
+      "measurement": "voltage",
+      "value": "@attrs:metadata/file/KTOF:Lens:Sample:V",
+      "value/@units": "V"
+    },
+    "depends_on": "/entry/instrument/manipulator/transformations/trans_z",
+    "TRANSFORMATIONS[transformations]": {
+      "AXISNAME[trans_z]": -0.32,
+      "AXISNAME[trans_z]/@depends_on": "rot_z",
+      "AXISNAME[trans_z]/@transformation_type": "translation",
+      "AXISNAME[trans_z]/@units": "m",
+      "AXISNAME[trans_z]/@vector": [
+        0,
+        0,
+        1
+      ],
+      "AXISNAME[rot_z]/@depends_on": "rot_x",
+      "AXISNAME[rot_z]": -25.0,
+      "AXISNAME[rot_z]/@transformation_type": "rotation",
+      "AXISNAME[rot_z]/@units": "degrees",
+      "AXISNAME[rot_z]/@vector": [
+        0,
+        0,
+        1
+      ],
+      "AXISNAME[rot_x]/@depends_on": ".",
+      "AXISNAME[rot_x]": -90.0,
+      "AXISNAME[rot_x]/@transformation_type": "rotation",
+      "AXISNAME[rot_x]/@units": "degrees",
+      "AXISNAME[rot_x]/@vector": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  "/ENTRY[entry]/SAMPLE[sample]": {
+    "preparation_date": "@attrs:metadata/sample/preparation_date",
+    "sample_history/notes/type": "text/plain",
+    "sample_history/notes/description": "@attrs:metadata/sample/sample_history",
+    "description": "@attrs:metadata/sample/chemical_formula",
+    "name": "@attrs:metadata/sample/chemical_formula",
+    "situation": "vacuum",
+    "SUBSTANCE[substance]/molecular_formula_hill": "@attrs:metadata/sample/chemical_formula",
+    "temperature": {
+      "temperature_sensor": "@link:/entry/instrument/manipulator/temperature_sensor"
+    },
+    "gas_pressure": {
+      "pressure_gauge": "@link:/entry/instrument/pressure_gauge"
+    },
+    "bias": {
+      "voltmeter": "@link:/entry/instrument/manipulator/sample_bias_voltmeter"
+    },
+    "depends_on": "/entry/sample/transformations/corrected_phi",
+    "TRANSFORMATIONS[transformations]": {
+      "AXISNAME[corrected_phi]/@depends_on": "rot_omg",
+      "AXISNAME[corrected_phi]": 90.0,
+      "AXISNAME[corrected_phi]/@units": "degrees",
+      "AXISNAME[corrected_phi]/@transformation_type": "rotation",
+      "AXISNAME[corrected_phi]/@vector": [
+        0,
+        1,
+        0
+      ],
+      "AXISNAME[rot_omg]/@depends_on": "rot_phi",
+      "AXISNAME[rot_omg]": "@attrs:metadata/file/trARPES:Carving:OMG.RBV",
+      "AXISNAME[rot_omg]/@units": "degrees",
+      "AXISNAME[rot_omg]/@transformation_type": "rotation",
+      "AXISNAME[rot_omg]/@vector": [
+        1,
+        0,
+        0
+      ],
+      "AXISNAME[rot_phi]/@depends_on": "rot_tht",
+      "AXISNAME[rot_phi]": "@attrs:metadata/file/trARPES:Carving:PHI.RBV",
+      "AXISNAME[rot_phi]/@units": "degrees",
+      "AXISNAME[rot_phi]/@transformation_type": "rotation",
+      "AXISNAME[rot_phi]/@vector": [
+        0,
+        1,
+        0
+      ],
+      "AXISNAME[rot_tht]/@depends_on": "trans_z",
+      "AXISNAME[rot_tht]": "@attrs:metadata/file/trARPES:Carving:THT.RBV",
+      "AXISNAME[rot_tht]/@units": "degrees",
+      "AXISNAME[rot_tht]/@transformation_type": "rotation",
+      "AXISNAME[rot_tht]/@vector": [
+        0,
+        0,
+        1
+      ],
+      "AXISNAME[trans_z]/@depends_on": "trans_y",
+      "AXISNAME[trans_z]": "@attrs:metadata/file/trARPES:Carving:TRZ.RBV",
+      "AXISNAME[trans_z]/@units": "mm",
+      "AXISNAME[trans_z]/@transformation_type": "translation",
+      "AXISNAME[trans_z]/@vector": [
+        0,
+        0,
+        1
+      ],
+      "AXISNAME[trans_y]/@depends_on": "trans_x",
+      "AXISNAME[trans_y]": "@attrs:metadata/file/trARPES:Carving:TRY.RBV",
+      "AXISNAME[trans_y]/@units": "mm",
+      "AXISNAME[trans_y]/@transformation_type": "translation",
+      "AXISNAME[trans_y]/@vector": [
+        0,
+        1,
+        0
+      ],
+      "AXISNAME[trans_x]/@depends_on": "/entry/instrument/manipulator/transformations/trans_z",
+      "AXISNAME[trans_x]": "@attrs:metadata/file/trARPES:Carving:TRX.RBV",
+      "AXISNAME[trans_x]/@units": "mm",
+      "AXISNAME[trans_x]/@transformation_type": "translation",
+      "AXISNAME[trans_x]/@vector": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  "/ENTRY[entry]/PROCESS[process]/DISTORTION[distortion]": {
+    "symmetry": "@attrs:metadata/momentum_correction/rotsym",
+    "original_centre": "@attrs:metadata/momentum_correction/pcent",
+    "original_points": "@attrs:metadata/momentum_correction/pouter",
+    "cdeform_field": "@attrs:metadata/momentum_correction/cdeform_field",
+    "rdeform_field": "@attrs:metadata/momentum_correction/rdeform_field"
+  },
+  "/ENTRY[entry]/PROCESS[process]/REGISTRATION[registration]": {
+    "depends_on": "/entry/process/registration/tranformations/rot_z",
+    "TRANSFORMATIONS[tranformations]": {
+      "AXISNAME[trans_x]": "@attrs:metadata/momentum_correction/adjust_params/xtrans",
+      "AXISNAME[trans_x]/@transformation_type": "translation",
+      "AXISNAME[trans_x]/@units": "pixels",
+      "AXISNAME[trans_x]/@vector": "@attrs:metadata/momentum_correction/adjust_params/x_vector",
+      "AXISNAME[trans_x]/@depends_on": ".",
+      "AXISNAME[trans_y]": "@attrs:metadata/momentum_correction/adjust_params/ytrans",
+      "AXISNAME[trans_y]/@units": "pixels",
+      "AXISNAME[trans_y]/@transformation_type": "translation",
+      "AXISNAME[trans_y]/@vector": "@attrs:metadata/momentum_correction/adjust_params/y_vector",
+      "AXISNAME[trans_y]/@depends_on": "trans_x",
+      "AXISNAME[rot_z]": "@attrs:metadata/momentum_correction/adjust_params/angle",
+      "AXISNAME[rot_z]/@units": "degrees",
+      "AXISNAME[rot_z]/@transformation_type": "rotation",
+      "AXISNAME[rot_z]/@offset": "@attrs:metadata/momentum_correction/adjust_params/offset",
+      "AXISNAME[rot_z]/@vector": "@attrs:metadata/momentum_correction/adjust_params/rotation_vector",
+      "AXISNAME[rot_z]/@depends_on": "trans_y"
+    }
+  },
+  "/ENTRY[entry]/PROCESS[process]/energy_calibration": {
+    "coefficients": "@attrs:metadata/energy_correction/calibration/coefficients",
+    "fit_function": "@attrs:metadata/energy_correction/calibration/fit_function",
+    "original_axis": "@attrs:metadata/energy_correction/tof",
+    "calibrated_axis": "@attrs:metadata/energy_correction/calibration/axis"
+  },
+  "/ENTRY[entry]/PROCESS[process]/CALIBRATION[kx_calibration]": {
+    "scaling": "@attrs:metadata/momentum_correction/calibration/scale_kx",
+    "offset": "@attrs:metadata/momentum_correction/offset_kx",
+    "calibrated_axis": "@attrs:metadata/momentum_correction/calibration/axis_kx"
+  },
+  "/ENTRY[entry]/PROCESS[process]/CALIBRATION[ky_calibration]": {
+    "scaling": "@attrs:metadata/momentum_correction/calibration/scale_ky",
+    "offset": "@attrs:metadata/momentum_correction/offset_ky",
+    "calibrated_axis": "@attrs:metadata/momentum_correction/calibration/axis_ky"
+  },
+  "/ENTRY[entry]/data": {
+    "@axes": "@data:dims",
+    "AXISNAME_indices[@*_indices]": "@data:*.index",
+    "@signal": "data",
+    "data": "@data:data",
+    "data/@units": "counts",
+    "AXISNAME[*]": "@data:*.data",
+    "AXISNAME[*]/@units": "@data:*.unit",
+    "energy/@type": "binding"
+  }
+}

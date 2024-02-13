@@ -187,7 +187,7 @@ class NORTH(NomadSettings):
                 'mpes': NORTHTool(
                     short_description='An example for analyzing mpes data.',
                     description='This example presents the capabilities of the NOMAD platform to store and standardize multi photoemission spectroscopy (MPES) experimental data. It contains three major examples:\n\n- Taking a pre-binned file, here stored in a h5 file, and converting it into the standardized MPES NeXus format. There exists a [NeXus application definition for MPES](https://manual.nexusformat.org/classes/contributed_definitions/NXmpes.html#nxmpes) which details the internal structure of such a file.\n- Binning of raw data (see [here](https://www.nature.com/articles/s41597-020-00769-8) for additional resources) into a h5 file and consecutively generating a NeXus file from it.\n- An analysis example using data in the NeXus format and employing the [pyARPES](https://github.com/chstan/arpes) analysis tool to reproduce the main findings of [this paper](https://arxiv.org/pdf/2107.07158.pdf).',
-                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/mpes-webtop',
+                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/north/mpes/webtop',
                     privileged=True,
                     mount_path='/config',
                     file_extensions=['ipynb', 'nxs', 'h5', 'hdf5'],
@@ -200,8 +200,8 @@ class NORTH(NomadSettings):
                 ),
                 'xps': NORTHTool(
                     short_description='An example for analyzing XPS data.',
-                    description='Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS xml files into NeXus.',
-                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/xps-jupyter',
+                    description='Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS SLE files into NeXus.',
+                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps/jupyter',
                     path_prefix='lab/tree',
                     icon='jupyter_logo.svg',
                     mount_path='/home/jovyan',
@@ -210,6 +210,10 @@ class NORTH(NomadSettings):
                         NORTHToolMaintainer(
                             name='Florian Dobener',
                             email='florian.dobener@physik.hu-berlin.de',
+                        ),
+                        NORTHToolMaintainer(
+                            name='Lukas Pielsticker',
+                            email='lukas.pielsticker@cec.mpg.de',
                         ),
                         NORTHToolMaintainer(
                             name='Rubel Mozumder',

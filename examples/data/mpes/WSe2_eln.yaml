@@ -1,0 +1,113 @@
+Instrument:
+  Analyzer:
+    energy_resolution:
+      unit: eV
+      value: 110.00000000000001
+    momentum_resolution:
+      unit: 1 / Å
+      value: 0.08
+    slow_axes: delay
+    spatial_resolution:
+      unit: µm
+      value: 10.0
+  Beam:
+    Probe:
+      extent:
+        unit: µm
+        value:
+        - 80.0
+        - 80.0
+      incident_energy:
+        unit: eV
+        value: 21.7
+      incident_energy_spread:
+        unit: eV
+        value: 0.11
+      incident_polarization:
+      - 1.0
+      - 1.0
+      - 0.0
+      - 0.0
+      pulse_duration:
+        unit: fs
+        value: 20.0
+    Pump:
+      average_power:
+        unit: mW
+        value: 300.0
+      extent:
+        unit: µm
+        value:
+        - 229.99999999999997
+        - 265.0
+      fluence:
+        unit: mJ / cm ** 2
+        value: 0.15000000000000002
+      incident_energy:
+        unit: eV
+        value: 1.5499999999999998
+      incident_energy_spread:
+        unit: eV
+        value: 0.08
+      incident_polarization:
+      - 1.0
+      - -1.0
+      - 0.0
+      - 0.0
+      incident_wavelength:
+        unit: nm
+        value: 799.9999999999999
+      pulse_duration:
+        unit: fs
+        value: 35.0
+      pulse_energy:
+        unit: µJ
+        value: 0.6
+  Manipulator:
+    sample_temperature:
+      unit: K
+      value: 300.0
+  Source:
+    Probe:
+      frequency:
+        unit: kHz
+        value: 500.0
+      photon_energy:
+        unit: eV
+        value: 21.700000000000003
+    Pump:
+      frequency:
+        unit: kHz
+        value: 500.0
+      photon_energy:
+        unit: eV
+        value: 1.5500000000000003
+  energy_resolution:
+    unit: meV
+    value: 140.0
+  momentum_resolution:
+    unit: 1 / Å
+    value: 0.08
+  temporal_resolution:
+    unit: fs
+    value: 35.0
+Sample:
+  chemical_formula: WSe2
+  description: Sample
+  gas_pressure:
+    unit: mbar
+    value: 5.000000000000001e-11
+  name: WSe2 Single Crystal
+  preparation_date: '2019-01-13T09:00:00+00:00'
+  sample_history: Cleaved
+  temperature:
+    unit: K
+    value: 300.0
+User:
+  address: Faradayweg 4-6, 14915 Berlin
+  affiliation: Fritz Haber Institute of the Max Planck Society
+  email: maklar@fhi-berlin.mpg.de
+  name: Julian Maklar
+  role: Principal Investigator
+title: Valence Band Dynamics - 800 nm linear s-polarized pump, 0.6 mJ/cm2 absorbed
+  fluence
