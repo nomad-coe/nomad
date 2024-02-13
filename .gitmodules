@@ -8,9 +8,6 @@
 	path = dependencies/parsers/eelsdb
 	url = https://github.com/nomad-coe/nomad-parser-eelsdb.git
 	branch = master
-[submodule "dependencies/nomad-remote-tools-hub"]
-	path = dependencies/nomad-remote-tools-hub
-	url = https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub.git
 [submodule "dependencies/parsers/nexus"]
 	path = dependencies/parsers/nexus
 	url = https://github.com/FAIRmat-NFDI/pynxtools.git

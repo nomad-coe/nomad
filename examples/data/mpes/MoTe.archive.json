@@ -1,0 +1,13 @@
+{
+    "data": {
+        "m_def": "nomad.datamodel.metainfo.eln.nexus_data_converter.NexusDataConverter",
+        "input_files": [
+            "MoTe2.h5",
+            "config_file.json"
+        ],
+        "reader": "mpes",
+        "nxdl": "NXmpes",
+        "output": "MoTe2.mpes.nxs"
+    },
+    "m_ref_archives": {}
+}

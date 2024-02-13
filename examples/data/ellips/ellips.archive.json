@@ -1,0 +1,92 @@
+{
+    "data": {
+        "m_def": "../upload/raw/ellips.scheme.archive.yml#/definitions/section_definitions/0",
+        "reader": "ellips",
+        "nxdl": "NXellipsometry.nxdl",
+        "input_files": [
+            "test-data.data",
+            "eln_data.yaml"
+        ],
+        "output": "SiO2onSi.ellips.nxs",
+        "filename": "test-data.dat",
+        "skip": 3,
+        "sep": "\\t",
+        "colnames": [
+            "type",
+            "wavelength",
+            "angle_of_incidence",
+            "Psi",
+            "Delta",
+            "err.Psi",
+            "err.Delta"
+        ],
+        "derived_parameter_type": "depolarization",
+        "definition": "NXellipsometry",
+        "definition/@version": "0.0.2",
+        "definition/@url": "https://github.com/FAIRmat-NFDI/nexus_definitions/blob/fairmat/contributed_definitions/NXellipsometry.nxdl.xml",
+        "experiment_identifier": "exp-ID",
+        "experiment_description": "RC2 scan on 2nm SiO2 on Si in air",
+        "experiment_type": "NIR-Vis-UV spectroscopic ellipsometry",
+        "plot_name": "Psi and Delta",
+        "start_time": "2022-01-27T03:35:00+00:00",
+        "User": {
+            "name": "Name Surname",
+            "affiliation": "Humboldt-Universität zu Berlin",
+            "address": "Zum Großen Windkanal 2, 12489 Berlin, Germany",
+            "email": "surname.name@physik.hu-berlin.de"
+        },
+        "Instrument": {
+            "model": "RC2",
+            "model/@version": "0.0.1",
+            "company": "J. A. Woollam Co.",
+            "software": "CompleteEASE",
+            "software/version": "6.37",
+            "software/@url": "https://www.jawoollam.com/ellipsometry-software/completeease",
+            "ellipsometer_type": "dual compensator",
+            "rotating_element_type": "compensator (source side)",
+            "calibration_status": "no calibration",
+            "angle_of_incidence/@unit": "degree",
+            "Beam_path": {
+                "light_source": {
+                    "source_type": "arc lamp"
+                },
+                "Detector": {
+                    "detector_type": "CCD spectrometer",
+                    "count_time": 1
+                },
+                "focussing_probes": {
+                    "data_correction": false,
+                    "angular_spread": 0.2
+                },
+                "rotating_element": {
+                    "revolutions": 50
+                }
+            },
+            "Sample_stage": {
+                "stage_type": "manual stage",
+                "environment_conditions": {
+                    "medium": "air"
+                }
+            }
+        },
+        "Sample": {
+            "atom_types": "Si, O",
+            "chemical_formula": "SiO2",
+            "layer_structure": "2nm SiO2 on Si",
+            "sample_name": "2nm SiO2 on Si",
+            "sample_history": "Commercially purchased sample",
+            "sample_type": "multi layer",
+            "substrate": "Si",
+            "backside_roughness": false
+        },
+        "Data": {
+            "data_software": "WVASE",
+            "data_software/version": "3.882",
+            "data_software/@url": "https://www.jawoollam.com/ellipsometry-software/wvase",
+            "data_identifier": 1,
+            "data_type": "Psi/Delta",
+            "spectrum_type": "wavelength",
+            "spectrum_unit": "angstrom"
+        }
+    }
+}

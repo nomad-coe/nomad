@@ -1,0 +1,72 @@
+Data:
+  data_identifier: 1
+  data_software: WVASE
+  data_software/@url: https://www.jawoollam.com/ellipsometry-software/wvase
+  data_software/version: '3.882'
+  data_type: Psi/Delta
+  spectrum_type: wavelength
+  spectrum_unit: angstrom
+Instrument:
+  Beam_path:
+    Detector:
+      count_time:
+        unit: s
+        value: 1.0
+      detector_type: CCD spectrometer
+    focussing_probes:
+      angular_spread:
+        unit: rad
+        value: 0.2
+      data_correction: false
+    light_source:
+      source_type: arc lamp
+    rotating_element:
+      revolutions: 50.0
+  Sample_stage:
+    environment_conditions:
+      medium: air
+    stage_type: manual stage
+  angle_of_incidence/@unit: degree
+  calibration_status: no calibration
+  company: J. A. Woollam Co.
+  ellipsometer_type: dual compensator
+  model: RC2
+  model/@version: 0.0.1
+  rotating_element_type: compensator (source side)
+  software: CompleteEASE
+  software/@url: https://www.jawoollam.com/ellipsometry-software/completeease
+  software/version: '6.37'
+Sample:
+  atom_types: Si, O
+  backside_roughness: false
+  chemical_formula: SiO2
+  layer_structure: 2nm SiO2 on Si
+  sample_history: Commercially purchased sample
+  sample_name: 2nm SiO2 on Si
+  sample_type: multi layer
+  substrate: Si
+User:
+  address: Zum Großen Windkanal 2, 12489 Berlin, Germany
+  affiliation: Humboldt-Universität zu Berlin
+  email: surname.name@physik.hu-berlin.de
+  name: Name Surname
+colnames:
+- type
+- wavelength
+- angle_of_incidence
+- Psi
+- Delta
+- err.Psi
+- err.Delta
+definition: NXellipsometry
+definition/@url: https://github.com/FAIRmat-NFDI/nexus_definitions/blob/fairmat/contributed_definitions/NXellipsometry.nxdl.xml
+definition/@version: 0.0.2
+derived_parameter_type: depolarization
+experiment_description: RC2 scan on 2nm SiO2 on Si in air
+experiment_identifier: exp-ID
+experiment_type: NIR-Vis-UV spectroscopic ellipsometry
+filename: test-data.dat
+plot_name: Psi and Delta
+sep: \t
+skip: 3
+start_time: '2022-01-27T03:35:00+00:00'

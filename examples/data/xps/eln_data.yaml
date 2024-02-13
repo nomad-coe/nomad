@@ -1,0 +1,165 @@
+definition:
+  value: NXmpes
+  version: 1.0
+title: EX439_S718_Au in 25 mbar O2
+start_time: 2022-04-08T11:47:02.0200Z
+end_time: 2022-04-08T14:52:26.0400Z
+entry_identifier: EX439
+experiment_institution: Max Planck Institute for Chemical Energy Conversion
+experiment_facility: Surface and Interface Analysis Group
+experiment_laboratory: Near-Ambient Pressure XPS Lab
+program_name: SpecsLabProdigy
+user:
+  name: Lukas Pielsticker
+  affiliation: Max Planck Institute for Chemical Energy Conversion
+  address: Lukas Pielsticker
+  orcid: 0000-0001-9361-8333
+  email: lukas.pielsticker@cec.mpg.de
+instrument:
+  device_information:
+    vendor: SPECS GmbH
+    model: Custom NAP-XPS instrument
+    identifier: null
+  energy_resolution:
+    type: calibrated
+    resolution:
+      value: 0.2
+      unit: eV
+  source_probe:
+    type: Fixed Tube X-ray
+    probe: photon
+    device_information:
+      vendor: SPECS GmbH
+      model: µFOCUS 500
+      identifier: null
+  beam_probe:
+    distance:
+      value: 0.0
+      unit: mm
+  analyser:
+    description: hemispherical
+    device_information:
+      vendor: SPECS GmbH
+      model: PHOIBOS 150 NAP
+      identifier: null
+    collectioncolumn:
+      scheme: angular dispersive
+      device_information:
+        vendor: SPECS GmbH
+        model: PHOIBOS 150 NAP
+        identifier: null
+    energydispersion:
+      scheme: hemispherical
+      diameter:
+        unit: mm
+        value: 150
+      device_information:
+        vendor: SPECS GmbH
+        model: PHOIBOS 150
+        identifier: null
+    detector:
+      amplifier_type: channeltron
+      detector_type: Multi-anode
+      device_information:
+        vendor: Surface Concept GmbH
+        model: 1D-DLD detector
+        identifier: null
+  manipulator:
+    device_information:
+      vendor: SPECS GmbH
+      model: 5-axis manipulator
+      identifier: null
+    temperature_sensor:
+      name: type K thermocouple
+      measurement: temperature
+      attached_to: sample
+      type: type K thermocouple
+      value:
+        value: 298.0
+        unit: K
+    sample_heater:
+      name: Coherent Compact Evolution IR Diode LASER (DILAS)
+      physical_quantity: temperature
+      type: IR diode laser
+      heater_power:
+        value: 0.0
+        unit: W
+      pid:
+        setpoint:
+          value: 298.0
+          unit: K
+    cryostat:
+      name: null
+      physical_quantity: null
+      type: null
+      pid:
+        setpoint: null
+    drain_current_amperemeter:
+      name: Amperemeter 1.0
+      measurement: current
+      type: wire
+      value:
+        value: 0.1
+        unit: nA
+    sample_bias_voltmeter:
+      name: XPS sample voltmeter
+      measurement: voltage
+      attached_to: sample
+      type: oscilloscope
+      value:
+        value: 0.0
+        unit: V
+    sample_bias_potentiostat:
+      name: XPS sample potentiostat
+      physical_quantity: voltage
+      type: potentiostat
+      pid:
+        setpoint:
+          value: 0.0
+          unit: V
+  pressure_gauge:
+    name: Atmion
+    measurement: pressure
+    type: hot-filament ionization gauge
+    value:
+      value: 0.000000001
+      unit: mbar
+    value_log:
+      value:
+        value: null
+        unit: null
+  flood_gun:
+    name: FG 22/35
+    physical_quantity: current
+    type: low energy electron source
+    current:
+      value: 0.0
+      unit: A
+    current_log:
+      value:
+        value: null
+        unit: null
+sample:
+  name: Polycristalline Au foil
+  sample_id: S718
+  atom_types: Au
+  physical_form: foil
+  situation: vacuum
+  substance:
+    name: Au
+    molecular_mass:
+      value: 196.96657
+      unit: g/mol
+    cas_number: 7440-57-5
+    molecular_formula_hill: Au
+  sample_history:
+    sample_preparation:
+      start_time: 2022-04-08T11:25:00.200Z
+      end_time: 2022-04-08T11:45:00.200Z
+      description: sputter cleaned with Ar ions for 20 min
+      method: Ar sputtering
+    PHYSICAL_PROCESS[sample_loading]:
+      start_time: 2022-04-08T11:02:00.0200Z
+      end_time: 2022-04-08T11:03:00.0200Z
+      description: loaded in the endstation and transferred to analysis chamber
+      method: vacuum transfer

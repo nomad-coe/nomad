@@ -1,0 +1,340 @@
+definitions:
+  name: "Ellips ELN Example"
+  sections:
+    Ellips:
+      base_sections:
+        - "nomad.datamodel.metainfo.eln.NexusDataConverter"
+        - "nomad.datamodel.data.EntryData"
+      m_annotations:
+        template:
+          reader: ellips
+          nxdl: NXellipsometry.nxdl
+        eln:
+          hide: []
+      quantities:
+        filename:
+          type: str
+          description: Name of the data file
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        skip:
+          type: int
+          description: |
+            Enter how many rows should be skipped, i.e. the number
+            of lines in the header of the data file.
+          m_annotations:
+            eln:
+              minValue: 0
+              component: NumberEditQuantity
+        sep:
+          type: str
+          description: Enter the separator between the columns (e.g. '\t')
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        colnames:
+          type: str
+          description: "Names of the columns in the data file."
+          shape: ["*"]
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        derived_parameter_type:
+          type: str
+          description: |
+            Type of parameters that were derived from the
+            measured data, e.g. depolarization.
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        definition:
+          type: str
+          description: |
+            Name of the application definition (NXellipsometry).
+            All other meta data below are described in the
+            [NXellipsometry application definition]
+            (https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html).
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        definition/@version:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        definition/@url:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        experiment_identifier:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        experiment_description:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        experiment_type:
+          type: str
+          m_annotations:
+            eln:
+              component: StringEditQuantity
+        plot_name:
+          type: str
+          description: "Name of the default plot"
+          m_annotations:
+            eln:
+              minValue: 0
+              component: StringEditQuantity
+        start_time:
+          type: Datetime
+          m_annotations:
+            eln:
+              component: DateTimeEditQuantity
+      sub_sections:
+        User:
+          section:
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              name:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              affiliation:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              address:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              email:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+        Instrument:
+          section:
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              model:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              model/@version:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              company:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              software:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              software/version:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              software/@url: 
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              ellipsometer_type:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              rotating_element_type:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              calibration_status:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              angle_of_incidence/@unit:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+            sub_sections:
+              Beam_path:
+                section:
+                  sub_sections:
+                    light_source:
+                      section:
+                        quantities:
+                          source_type:
+                            type: str
+                            m_annotations:
+                              eln:
+                                component: StringEditQuantity
+                    Detector:
+                      section:
+                        quantities:
+                          detector_type:
+                            type: str
+                            m_annotations:
+                              eln:
+                                component: StringEditQuantity
+                          count_time:
+                            type: np.float64
+                            unit: second
+                            m_annotations:
+                              eln:
+                                component: NumberEditQuantity
+                                minValue: 0
+                                defaultDisplayUnit: "s"
+                    focussing_probes:
+                      section:
+                        quantities:
+                          data_correction:
+                            type: bool
+                            m_annotations:
+                              eln:
+                                component: BoolEditQuantity
+                          angular_spread:
+                            type: np.float64
+                            unit: radian
+                            m_annotations:
+                              eln:
+                                component: NumberEditQuantity
+                                defaultDisplayUnit: "rad"
+                    rotating_element:
+                      section:
+                        quantities:
+                          revolutions:
+                            type: np.float64
+                            m_annotations:
+                              eln:
+                                component: NumberEditQuantity
+              Sample_stage:
+                section:
+                  quantities:
+                    stage_type:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity
+                  sub_sections:
+                    environment_conditions:
+                      section:
+                        quantities:
+                          medium:
+                            type: str
+                            m_annotations:
+                              eln:
+                                component: StringEditQuantity
+        Sample:
+          section:
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              atom_types:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              backside_roughness:
+                type: bool
+                m_annotations:
+                  eln:
+                    component: BoolEditQuantity
+              chemical_formula:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              
+              layer_structure:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              sample_name:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              sample_history:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              sample_type:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              substrate:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+        Data:
+          section:
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              data_software:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              data_software/version:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              data_software/@url:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              data_identifier:
+                type: int
+                m_annotations:
+                  eln:
+                    component: NumberEditQuantity
+              data_type:
+                type: str
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              spectrum_type:
+                type: str
+                description: |
+                  Type of the spectral values (x-axis of the data),
+                  e.g. wavelength, energy etc.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              spectrum_unit:
+                type: str
+                description: "Unit of the spectral values (x-axis of the data)"
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
