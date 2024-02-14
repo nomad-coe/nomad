@@ -21,6 +21,7 @@ recursive-include dependencies/parsers/electronic/electronicparsers *.py *.json 
 include dependencies/parsers/nexus/README.md
 recursive-include dependencies/parsers/nexus/pynxtools *.py
 include dependencies/parsers/nexus/pynxtools/dataconverter/readers/hall/enum_map.json
+include dependencies/parsers/nexus/pynxtools/nexus-version.txt
 recursive-include dependencies/parsers/nexus/pynxtools/definitions *.xml *.xsd
 include dependencies/parsers/workflow/README.md
 recursive-include dependencies/parsers/workflow/workflowparsers *.py nomad_plugin.yaml
