@@ -625,29 +625,22 @@ class TopologyNormalizer:
         methods = self.entry_archive.run[-1].method
         if not methods:
             return []
-        atom_params = getattr(methods[-1], 'atom_parameters', [])
-        active_orbitals_run = [
-            param.core_hole for param in atom_params if hasattr(param, 'core_hole')
-        ]
-        if (
-            len(active_orbitals_run) > 1
-        ):  # FIXME: currently only one set of active orbitals is supported, remove for multiple
-            self.logger.warn(
-                """Multiple sets of active orbitals found.
-                Currently, the topology only supports 1, so only the first set is used."""
-            )
+
         # Map the active orbitals to the topology
         active_orbitals_results: list[CoreHole] = []
-        for active_orbitals in active_orbitals_run:
-            active_orbitals.normalize(None, None)
-            active_orbitals_new = CoreHole()
-            for quantity_name in active_orbitals.quantities:
-                setattr(
-                    active_orbitals_new,
-                    quantity_name,
-                    getattr(active_orbitals, quantity_name),
-                )
-            active_orbitals_new.normalize(None, None)
-            active_orbitals_results.append(active_orbitals_new)
-            break  # FIXME: currently only one set of active orbitals is supported, remove for multiple
+        for param in getattr(methods[-1], 'atom_parameters', []):
+            if (active_orbitals := getattr(param, 'core_hole')) is not None:
+                active_orbitals.normalize(
+                    EntryArchive(), None
+                )  # leave out `archive` and `logger`, to keep normalization local
+                active_orbitals_new = CoreHole()
+                for quantity_name in active_orbitals.quantities:
+                    setattr(
+                        active_orbitals_new,
+                        quantity_name,
+                        getattr(active_orbitals, quantity_name),
+                    )
+                active_orbitals_new.normalize(None, None)
+                active_orbitals_results.append(active_orbitals_new)
+                break  # FIXME: currently only one set of active orbitals is supported, remove for multiple
         return active_orbitals_results
