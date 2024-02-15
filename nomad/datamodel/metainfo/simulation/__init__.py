@@ -33,6 +33,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from nomad.utils import get_logger
 from nomad.metainfo import Environment
 from .run import Run
 from .calculation import Calculation
@@ -42,6 +43,8 @@ from . import run
 from . import method
 from . import calculation
 from . import system
+
+get_logger(__name__).warning('Schema is deprecated, use plugins.')
 
 m_env = Environment()
 m_env.m_add_sub_section(Environment.packages, run.m_package)

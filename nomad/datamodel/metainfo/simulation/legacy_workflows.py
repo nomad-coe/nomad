@@ -16,6 +16,10 @@
 # limitations under the License.
 #
 
+# DO NOT ANYMORE USE OR EXTEND THE SCHEMA.
+# Only for purpose of compatibility. Use simulation workflow schema plugin.
+# https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git
+
 import numpy as np
 from nptyping import NDArray
 from nomad.metainfo import (
