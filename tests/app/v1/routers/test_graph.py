@@ -506,14 +506,14 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
                                     'mainfile.json': {
                                         'm_is': 'File',
                                         'path': 'test_content/id_unpublished_1/mainfile.json',
-                                        'size': 3273,
+                                        'size': 3227,
                                     },
                                     'path': 'test_content/id_unpublished_1',
-                                    'size': 3305,
+                                    'size': 3259,
                                 },
                                 'm_is': 'Directory',
                                 'path': 'test_content',
-                                'size': 3305,
+                                'size': 3259,
                             },
                         }
                     }

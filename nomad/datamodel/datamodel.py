@@ -64,6 +64,7 @@ from .metainfo.simulation.legacy_workflows import Workflow as LegacySimulationWo
 from .metainfo.workflow import Workflow  # noqa
 from .metainfo.measurements import Measurement  # noqa
 from .metainfo.tabulartree import TabularTree  # noqa
+from nomad.datamodel.metainfo import runschema  # noqa
 
 
 class AuthLevel(int, Enum):
@@ -1146,7 +1147,8 @@ class EntryArchive(ArchiveSection):
         derived=lambda entry: entry.metadata.entry_id,
     )
 
-    run = SubSection(sub_section=ArchiveSection, repeats=True)
+    if runschema:
+        run = SubSection(sub_section=runschema.run.Run, repeats=True)
     measurement = SubSection(sub_section=Measurement, repeats=True)
 
     data = SubSection(sub_section=EntryData)

@@ -42,9 +42,13 @@ from . import run
 from . import method
 from . import calculation
 from . import system
+from . import workflow
+from . import legacy_workflows
 
 m_env = Environment()
 m_env.m_add_sub_section(Environment.packages, run.m_package)
 m_env.m_add_sub_section(Environment.packages, method.m_package)
 m_env.m_add_sub_section(Environment.packages, calculation.m_package)
 m_env.m_add_sub_section(Environment.packages, system.m_package)
+m_env.m_add_sub_section(Environment.packages, workflow.m_package)  # noqa
+m_env.m_add_sub_section(Environment.packages, legacy_workflows.m_package)  # noqa

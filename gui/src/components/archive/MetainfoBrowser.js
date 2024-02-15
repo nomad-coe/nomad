@@ -79,7 +79,7 @@ function defCompare(a, b) {
 export const metainfoConfigState = atom({
   key: 'metainfoConfig',
   default: {
-    'packagePrefix': 'nomad'
+    'packagePrefix': 'all'
   }
 })
 
@@ -179,7 +179,7 @@ const MetainfoConfigForm = React.memo(function MetainfoConfigForm(props) {
         <Autocomplete
           className={styles.sourceBar}
           value={config.packagePrefix}
-          options={globalMetainfo ? Object.keys(globalMetainfo.getPackagePrefixes()) : []}
+          options={globalMetainfo ? ['all', ...Object.keys(globalMetainfo.getPackagePrefixes())] : []}
           getOptionLabel={option => option.replace(/parser/g, '')}
           onChange={(_, value) => setConfig({...config, packagePrefix: value})}
           renderInput={(params) => <TextField
@@ -463,13 +463,13 @@ function SectionDefContent({def, inheritingSections}) {
     if (def._package.name.startsWith('nexus')) {
       return true
     }
-    if (metainfoConfig.packagePrefix) {
+    if (metainfoConfig.packagePrefix !== 'all') {
       return def._package.name.startsWith(metainfoConfig.packagePrefix)
     }
-    if (config.showCodeSpecific) {
-      return true
+    if (def.name.startsWith('x_')) {
+      return config.showCodeSpecific
     }
-    return false
+    return true
   }
 
   return <React.Fragment>
