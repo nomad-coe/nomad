@@ -20,6 +20,7 @@ import numpy as np
 from collections import defaultdict
 import pytest
 from nomad.client.processing import normalize
+from nomad.datamodel.metainfo import runschema
 
 from nomad.units import ureg
 from tests.normalizing.conftest import (  # pylint: disable=unused-import
@@ -43,6 +44,7 @@ from tests.normalizing.conftest import (  # pylint: disable=unused-import
     stacked_graphene_boron_nitride_topology,
     get_template_active_orbitals,
     check_template_active_orbitals,
+    get_template_computation,
 )
 
 
@@ -530,3 +532,55 @@ def test_topology_core_hole(settings):
         mj_quantum_number=settings.get('mj'),
     )
     assert all(evaluation.values())
+
+
+@pytest.mark.parametrize(
+    'atom_labels, atom_parameters, expected_mass_density',
+    [
+        pytest.param(
+            ['Br', 'K', 'Si', 'Si'],
+            [('Si', 0.0), ('K', 0.0), ('Br', 0.0)],
+            2148.4338041312812,
+            id='test the calculation of mass_density via the default route, i.e., using masses based on atomic masses, even when masses via atom parameters (compuational model) is available',
+        ),
+        pytest.param(
+            ['XBr', 'XK', 'XSi', 'XSi'],
+            [
+                ('XSi', 280.0855 * ureg.amu),
+                ('XK', 390.0983 * ureg.amu),
+                ('XBr', 790.904 * ureg.amu),
+            ],
+            21354.827342813187,
+            id='test the calculation of mass_density for the case of unknown elements, with the masses in atom_parameters are stored as a dict',
+        ),
+        pytest.param(
+            ['XBr', 'XK', 'XSi', 'XSi'],
+            [
+                (None, 790.904 * ureg.amu),
+                (None, 390.0983 * ureg.amu),
+                (None, 280.0855 * ureg.amu),
+                (None, 280.0855 * ureg.amu),
+            ],
+            21354.827342813187,
+            id='test the calculation of mass_density for the case of unknown elements, with the masses in atom_parameters are stored as a list',
+        ),
+    ],
+)
+def test_mass_density(atom_labels, atom_parameters, expected_mass_density):
+    """Checks the mass_density is calculated correctly with different mass sources."""
+    template = get_template_computation()
+    run = template.run[-1]
+    system = run.system[-1]
+    if runschema:
+        method = runschema.method.Method()
+        run.method.append(method)
+        method.atom_parameters = [
+            runschema.method.AtomParameters(label=param[0], mass=param[1])
+            for param in atom_parameters
+        ]
+        system.atoms.labels = atom_labels
+        run_normalize(template)
+        cell = template.results.material.topology[-1].cell
+        assert cell.mass_density.magnitude == pytest.approx(
+            expected_mass_density, abs=0, rel=1e-6
+        )

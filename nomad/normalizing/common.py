@@ -16,8 +16,9 @@
 # limitations under the License.
 #
 import numpy as np
+from math import isnan
 from ase import Atoms
-from typing import List, Set, Any, Optional
+from typing import List, Set, Any, Optional, Dict, Union
 from nptyping import NDArray
 import MDAnalysis as mda
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
@@ -128,7 +129,11 @@ def lattice_parameters_from_array(lattice_vectors: NDArray[Any]) -> LatticeParam
     return params
 
 
-def cell_from_ase_atoms(atoms: Atoms) -> Cell:
+def cell_from_ase_atoms(
+    atoms: Atoms,
+    masses: Union[List[float], Dict[Any, Any]] = None,
+    atom_labels: List[str] = None,
+) -> Cell:
     """Extracts Cell metainfo from the given ASE Atoms.
     Undefined angle values are not stored.
 
@@ -152,8 +157,12 @@ def cell_from_ase_atoms(atoms: Atoms) -> Cell:
 
     volume = atoms.cell.volume * ureg.angstrom**3
     cell.volume = volume
-    mass = atomutils.get_summed_atomic_mass(atoms.get_atomic_numbers()) * ureg.kg
-    cell.mass_density = None if volume == 0 else mass / volume
+    atomic_numbers = atoms.get_atomic_numbers() if not masses else None
+    mass = atomutils.get_summed_mass(
+        atomic_numbers=atomic_numbers, masses=masses, atom_labels=atom_labels
+    )
+    mass = mass * ureg.kg if mass else None
+    cell.mass_density = None if (volume == 0 or mass is None) else mass / volume
     number_of_atoms = len(atoms)
     cell.atomic_density = None if volume == 0 else number_of_atoms / volume
 
