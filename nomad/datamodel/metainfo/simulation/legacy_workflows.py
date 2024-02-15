@@ -30,6 +30,7 @@ from nomad.metainfo import (
     SubSection,
     SectionProxy,
     Reference,
+    Package,
     derived,
 )
 from nomad.datamodel.metainfo.simulation.calculation import (
@@ -40,6 +41,9 @@ from nomad.datamodel.metainfo.simulation.calculation import (
 from nomad.datamodel.metainfo.simulation.run import Run
 from nomad.datamodel.metainfo.simulation.system import System, Atoms, AtomsGroup
 from nomad.datamodel.metainfo.common import FastAccess
+
+
+m_package = Package()
 
 
 class Interface(MSection):
@@ -2470,3 +2474,6 @@ class Workflow(MSection):
     interface = SubSection(sub_section=Interface.m_def, repeats=False)
 
     thermodynamics = SubSection(sub_section=Thermodynamics.m_def, repeats=False)
+
+
+m_package.__init_metainfo__()

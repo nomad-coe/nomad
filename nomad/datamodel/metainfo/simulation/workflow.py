@@ -36,6 +36,7 @@ from nomad.metainfo import (
     Quantity,
     MEnum,
     Reference,
+    Package,
     derived,
 )
 from nomad.datamodel.metainfo.common import FastAccess
@@ -75,6 +76,9 @@ from nomad.atomutils import (
 
 # TODO remove this after reprocessing with the new schema defined in
 # simulationworkflowschema plug in https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git
+
+
+m_package = Package()
 
 
 def resolve_difference(values):
@@ -3889,3 +3893,6 @@ class ChemicalReaction(SimulationWorkflow):
                 outputs=self.outputs,
             )
         )
+
+
+m_package.__init_metainfo__()

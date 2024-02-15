@@ -1525,7 +1525,7 @@ def test_get_upload_raw_path(
             None,
             {
                 'name': 'mainfile.json',
-                'size': 3273,
+                'size': 3227,
                 'entry_id': 'id_01',
                 'parser_name': 'parsers/vasp',
             },
