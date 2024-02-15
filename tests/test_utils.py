@@ -19,12 +19,20 @@
 import time
 import json
 import pytest
+import pandas as pd
 
 from nomad import utils
 from nomad.metainfo.metainfo import MSection, Quantity, SubSection
 from nomad import files
 from nomad.processing import Upload
-from nomad.utils import structlogging, flatten_dict, rebuild_dict, deep_get
+from nomad.utils import (
+    structlogging,
+    flatten_dict,
+    rebuild_dict,
+    deep_get,
+    dict_to_dataframe,
+    dataframe_to_dict,
+)
 
 
 def test_decode_handle_id():
@@ -175,3 +183,61 @@ def test_deep_get(data, path, value, exception):
             deep_get(data, *path) == value
     else:
         assert deep_get(data, *path) == value
+
+
+class TestDictDataFrameConverter:
+    @pytest.mark.parametrize(
+        'input_dict, expected_df, keys_to_filter',
+        [
+            pytest.param(
+                {'a': {'b': 1, 'c': {'d': 2}}},
+                pd.DataFrame({'a.b': [1], 'a.c.d': [2]}),
+                None,
+                id='dict',
+            ),
+            pytest.param(
+                [{'a': 1, 'b': {'c': 2}}, {'a': 3, 'b': {'c': 4}}],
+                pd.DataFrame({'a': [1, 3], 'b.c': [2, 4]}),
+                None,
+                id='list-dict',
+            ),
+            pytest.param(
+                {
+                    'a': {'x': 1, 'y': 2},
+                    'b': {'x': 3, 'y': 4},
+                    'c': {'x': 5, 'y': 6},
+                },
+                pd.DataFrame({'a.x': [1], 'c.y': [6]}),
+                ['a.x', 'c.y'],
+                id='dict_with_keys_to_filter',
+            ),
+        ],
+    )
+    def test_dict_to_dataframe(self, input_dict, expected_df, keys_to_filter):
+        result_df = dict_to_dataframe(input_dict, keys_to_filter=keys_to_filter)
+        pd.testing.assert_frame_equal(result_df, expected_df)
+
+    @pytest.mark.parametrize(
+        'input_dict, expected_df',
+        [
+            pytest.param(
+                {'a': {'b': 1, 'c': {'d': 2}}},
+                pd.DataFrame({'a.b': [1], 'a.c.d': [2]}),
+                id='dict',
+            ),
+            pytest.param(
+                [{'a': 1, 'b': {'c': 2}}, {'a': 3, 'b': {'c': 4}}],
+                pd.DataFrame({'a': [1, 3], 'b.c': [2, 4]}),
+                id='list-dict',
+            ),
+        ],
+    )
+    def test_dataframe_to_dict(self, input_dict, expected_df):
+        df = dict_to_dataframe(input_dict)
+        result_dict = dataframe_to_dict(df)
+        assert result_dict == input_dict
+
+    @pytest.mark.parametrize('invalid_input', ['invalid_input', 123, None])
+    def test_invalid_input_type(self, invalid_input):
+        with pytest.raises(ValueError, match='Input must be a dictionary'):
+            dict_to_dataframe(invalid_input)
