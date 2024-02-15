@@ -16,6 +16,10 @@
 # limitations under the License.
 #
 
+# DO NOT ANYMORE USE OR EXTEND THE SCHEMA.
+# Only for purpose of compatibility. Use run schema plugin.
+# https://github.com/nomad-coe/nomad-schema-plugin-run.git
+
 import numpy as np  # pylint: disable=unused-import
 from nomad.metainfo import (  # pylint: disable=unused-import
     MSection,

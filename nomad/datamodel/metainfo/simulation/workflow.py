@@ -15,6 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# DO NOT ANYMORE USE OR EXTEND THE SCHEMA.
+# Only for purpose of compatibility. Use simulation workflow schema plugin.
+# https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git
+
 from typing import List
 import numpy as np
 from ase import Atoms
