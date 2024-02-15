@@ -64,7 +64,6 @@ from nomad.constants import atomic_masses
 from nomad.units import ureg
 from nomad.metainfo import MSection
 
-
 valid_elements = set(ase.data.chemical_symbols[1:])
 
 if TYPE_CHECKING:
@@ -83,7 +82,110 @@ def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
     """
     # It is assumed that the atomic numbers are valid at this point.
     mass = np.sum(atomic_masses[atomic_numbers])
-    return mass
+    return mass if not math.isnan(mass) else None
+
+
+def get_summed_mass(atomic_numbers=None, masses=None, indices=None, atom_labels=None):
+    """Used to retrieve the mass of a system given a list or a
+    dictionary containing the mass information.
+    """
+    indices = indices.tolist() if isinstance(indices, np.ndarray) else indices
+    if atomic_numbers is not None:
+        atomic_numbers = atomic_numbers[indices] if indices else atomic_numbers
+        mass = np.sum(atomic_masses[atomic_numbers])
+        return mass if not math.isnan(mass) else None
+    elif masses:
+        try:
+            if isinstance(masses, dict) and atom_labels is not None:
+                atom_labels = atom_labels[indices] if indices else atom_labels
+                return sum(masses[label] for label in atom_labels)
+            else:
+                masses = masses[indices] if indices else masses
+                return sum(masses)
+        except Exception:
+            return None
+    else:
+        return None
+
+
+def get_masses_from_computational_model(
+    archive, repr_system: System = None, method_index: int = -1
+) -> Union[List[float], Dict[str, float]]:
+    """
+    Gets the masses based on the masses provided in atom parameters
+    of the computational model. Only returns the mass list in case
+    that the atomic masses are not available, e.g., when the elements/species
+    are unknown.
+
+    Args:
+        archive: the archive containing the computational model
+        repr_system: the representative system sub-section of the archive
+
+    Returns:
+        List of the masses according to the list of atoms.
+    """
+
+    def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+        return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+    sec_method = None
+    try:
+        sec_run = archive.run[-1]
+        sec_method = (
+            sec_run.method[method_index] if sec_run.get('method') is not None else None
+        )
+    except IndexError:
+        logging.warning(
+            'Supplied indices or necessary sections do not exist in archive. Cannot get the atomic masses.'
+        )
+    model_atom_parameters = sec_method.get('atom_parameters') if sec_method else None
+    if not model_atom_parameters:
+        return []
+
+    atoms = repr_system.get('atoms') if repr_system else None
+    if not atoms:
+        return []
+
+    atomic_numbers = (
+        atoms.species if atoms.species is not None else atoms.atomic_numbers
+    )
+    if (
+        get_summed_atomic_mass(atomic_numbers) is not None
+    ):  # defaults to atomic masses when available
+        return []
+    atom_labels = atoms.get('labels')
+
+    masses = [params.get('mass') for params in model_atom_parameters]
+    if any([mass is None for mass in masses]):
+        return []
+    if any([math.isnan(mass) for mass in masses]):
+        return []
+
+    if atom_labels is None:
+        return masses
+
+    if len(atom_labels) != len(
+        masses
+    ):  # atom params likely corresponds to a dictionary based on labels
+        mass_labels = [params.get('label') for params in model_atom_parameters]
+        if mass_labels is not None:
+            if any(
+                [label not in atom_labels for label in mass_labels]
+            ):  # cannot perform the mapping between atom_params and atoms with mis-matched labels
+                return []
+            else:
+                return {label: mass for label, mass in zip(mass_labels, masses)}
+        else:  # cannot perform the mapping between atom_params and atoms without labels
+            return []
+    else:  # direct correspondence between atom_parameters list and atoms list
+        # try to create a dictionary based on atom labels
+        mass_dict = {label: mass for label, mass in zip(atom_labels, masses)}
+        for label, mass in zip(atom_labels, masses):
+            if label in mass_dict and not isclose(
+                mass, mass_dict[label]
+            ):  # mass uniqueness is not based on the atom labels, use full list instead
+                return masses
+        return mass_dict
 
 
 def get_volume(basis: NDArray[Any]) -> float:
@@ -1285,7 +1387,10 @@ def create_empty_universe(
 
 
 def archive_to_universe(
-    archive, system_index: int = 0, method_index: int = -1, model_index: int = -1
+    archive,
+    system_index: int = 0,
+    method_index: int = -1,
+    model_index: int = -1,
 ) -> MDAnalysis.Universe:
     """Extract the topology from a provided run section of an archive entry
 
