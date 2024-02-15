@@ -28,6 +28,7 @@ from keycloak import KeycloakOpenID
 
 from nomad import config, metainfo as mi
 from nomad.datamodel import EntryArchive, ClientContext
+from nomad.utils import dict_to_dataframe
 
 
 class RunThread(threading.Thread):
@@ -175,6 +176,7 @@ class ArchiveQuery:
 
         # local data storage
         self._entries: list[tuple[str, str]] = []
+        self._entries_dict: list[Dict] = []
         self._current_after: str = self._after
         self._current_results: int = 0
 
@@ -448,7 +450,11 @@ class ArchiveQuery:
             # if not sufficient fetched entries, fetch first
             self.fetch(number - pending_size)
 
-        return run_async(self._download_async, number)
+        async_query = run_async(self._download_async, number)
+        self._entries_dict = [
+            aq.m_to_dict(resolve_references=True) for aq in async_query
+        ]
+        return async_query
 
     async def async_fetch(self, number: int = 0) -> int:
         """
@@ -481,3 +487,8 @@ class ArchiveQuery:
 
     def entry_list(self) -> list[tuple[str, str]]:
         return self._entries
+
+    def entries_to_dataframe(self, keys_to_filter=None):
+        if not keys_to_filter:
+            keys_to_filter = []
+        return dict_to_dataframe(self._entries_dict, keys_to_filter=keys_to_filter)

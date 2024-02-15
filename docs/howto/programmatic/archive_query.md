@@ -83,6 +83,21 @@ while True:
 There is no retry mechanism in the download process.
 If any entries fail to be downloaded due to server error, it is kept in the list otherwise removed.
 
+### Pandas Dataframe
+
+You can also convert the <b>downloaded<b> results to pandas dataframe directly by calling `entries_to_dataframe` method
+on the `query` object. In order to filter the final dataframe to contain only specific keys/column_names, you can
+use the option `keys_to_filter` with a list of relevant keys. For example:
+
+```python
+results = query.entries_to_dataframe(keys_to_filter=[])
+```
+
+The option `from_query` can be used to control the formatting of the dataframe(s). By setting this option to `False`,
+all entries with their entire contents are flattened and returned in one single (and potentially huge) dataframe,
+and by setting it to `True`, it returns a python dictionary with each key denoting a separate distinct nested path
+in the `required` and each value specifying the corresponding dataframe.
+
 ### Asynchronous Interface
 
 Some applications, such as Jupyter Notebook, may run a global/top level event loop. To query data in those environments,
@@ -183,6 +198,46 @@ You will see the following message in the terminal.
 Fetching remote uploads...
 10 entries are qualified and added to the download list.
 Downloading 5 entries...  [####################################]  100%
+```
+
+Now that we have downloaded a few entries, we can convert them into pandas dataframe.
+
+```python
+dataframes = query.entries_to_dataframe(keys_to_filter=['workflow2.results.calculation_result_ref'])
+print(dataframes)
+```
+
+By setting `keys_to_filter` to `['workflow2.results.calculation_result_ref']`, we create a dataframe representing the
+content that exists in the response tree under the section `calculation_result_ref`. Below, you can see the final
+dataframe printed in the Python console. You can also try setting this option to an empty list
+(or simply removing the option) to see the results containing the entire response tree in dataframe format. Furthermore,
+since we have converted our data into a pandas dataframe, we can proceed to export CSV files, obtain statistics,
+create plots, and more.
+
+```text
+    energy.fermi  ...  system_ref.chemical_composition_reduced
+0            NaN  ...                                     O3Ti
+1            NaN  ...                                   LiO3Ti
+2            NaN  ...                                     O3Ti
+3            NaN  ...                                     O3Ti
+4            NaN  ...                                   LiO3Ti
+5            NaN  ...                                     O3Ti
+6            NaN  ...                                  Cu44OTi
+7  -1.602177e-18  ...                                  O51Ti26
+8  -1.602177e-18  ...                                  O51Ti26
+9            NaN  ...                                     O3Ti
+10 -1.602177e-18  ...                                  O51Ti26
+11 -1.602177e-18  ...                                  O51Ti26
+12 -1.602177e-18  ...                                  O51Ti26
+13           NaN  ...                                     O3Ti
+14           NaN  ...                                    KO3Ti
+15           NaN  ...                                    KO3Ti
+16           NaN  ...                                     O3Ti
+17           NaN  ...                                   AlO3Ti
+18           NaN  ...                                   O3TiZn
+
+[19 rows x 7 columns]
+
 ```
 
 ## Argument List

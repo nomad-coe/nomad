@@ -57,6 +57,7 @@ import orjson
 import os
 import unicodedata
 import re
+import pandas as pd
 
 from nomad import config
 
@@ -821,3 +822,219 @@ def extract_section(root: Any, path: List[str], full_list: bool = False):
         except Exception:
             return
     return root
+
+
+def dataframe_to_dict(df, sep='.'):
+    """
+    Reconstruct dictionary (JSON object) data from a pandas DataFrame.
+
+    Args:
+        df: Pandas DataFrame object.
+        sep: String used to separate the keys.
+    Returns:
+        result: Reconstructed nested JSON object or list of Dict objects.
+    """
+
+    def is_integer(s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+
+    def insert_value(main_dict, keys, value, parent_key=None, parent_dict=None):
+        for index, key in enumerate(keys):
+            if is_integer(key):  # List
+                key = int(key)
+                if not isinstance(main_dict, list):
+                    main_dict = [main_dict] if main_dict else []
+                    if parent_dict is not None and parent_key is not None:
+                        parent_dict[parent_key] = main_dict
+                while len(main_dict) <= key:
+                    main_dict.append({} if index < len(keys) - 1 else None)
+                if index == len(keys) - 1:
+                    main_dict[key] = value
+                else:
+                    parent_key, parent_dict = key, main_dict
+                    main_dict = main_dict[key]
+            else:  # Dictionary
+                if not isinstance(main_dict, dict):
+                    dct = {key: main_dict} if main_dict else {}
+                    if parent_dict is not None and parent_key is not None:
+                        parent_dict[parent_key] = main_dict
+                if key not in main_dict:
+                    main_dict[key] = {} if index < len(keys) - 1 else value
+                if index == len(keys) - 1:
+                    main_dict[key] = value
+                else:
+                    parent_key, parent_dict = key, main_dict
+                    main_dict = main_dict[key]
+
+    result = []
+    for index, row in df.iterrows():
+        current_result = {}
+        for col, value in row.items():
+            keys = [int(k) if is_integer(k) else k for k in col.split(sep)]
+            insert_value(current_result, keys, value)
+        result.append(current_result)
+
+    if len(result) == 1:
+        return result[0]
+    else:
+        return result
+
+
+def dict_to_dataframe(
+    dict_data, max_depth=None, sep='.', sort_by='alphabetical', keys_to_filter=None
+):
+    """
+    Convert a nested Dict object or a list of Dict objects into a Pandas DataFrame.
+
+    Args:
+        dict_data: Nested Dict object or a list of Dict objects.
+        max_depth: The maximum depth level in the Dict structure to flatten.
+        sep: String used to separate the keys.
+        sort_by: A character denoting the separator between keys.
+        keys_to_filter: A list of strings targeting specific columns of the dataframe to be filtered. For example a value ['a.b'] filters the dataframe columns that only starts with 'a.b'.
+
+    Returns:
+        result: Pandas DataFrame with flattened and sorted data.
+    """
+
+    if not keys_to_filter:
+        keys_to_filter = []
+
+    def flatten_dict(
+        nested_dict, parent_key='', current_depth=0, df=None, col_name=None
+    ):
+        """
+        Flattens a nested Dict structure into a flat dictionary with a maximum depth.
+
+        Args:
+            nested_dict: The nested Dict structure (dict or list).
+            parent_key: The base key for the current level in the Dict structure.
+            current_depth: The current depth level in the Dict structure.
+            df: DataFrame to which the flattened dictionary will be added.
+            col_name: Name of the column in the DataFrame where the flattened dictionary will be added.
+
+        Returns:
+            items: A flat dictionary with keys combined.
+        """
+        items = {}
+        if max_depth is not None and current_depth > max_depth:
+            items[parent_key] = nested_dict
+            return items
+
+        if isinstance(nested_dict, list):
+            all_dicts = all(isinstance(item, dict) for item in nested_dict)
+            if all_dicts:
+                for index, element in enumerate(nested_dict):
+                    items.update(
+                        flatten_dict(
+                            element,
+                            f'{parent_key}{sep}{index}' if parent_key else str(index),
+                            current_depth + 1,
+                            df=df,
+                            col_name=col_name,
+                        )
+                    )
+            else:
+                if df is not None and col_name is not None:
+                    df.at[parent_key, col_name] = nested_dict
+                else:
+                    items[parent_key] = nested_dict
+        elif isinstance(nested_dict, dict):
+            for key, value in nested_dict.items():
+                new_key = f'{parent_key}{sep}{key}' if parent_key else key
+                if isinstance(value, (dict, list)):
+                    items.update(
+                        flatten_dict(value, new_key, current_depth + 1, df, col_name)
+                    )
+                else:
+                    items[new_key] = value
+        else:
+            items[parent_key] = nested_dict
+
+        if df is not None and col_name is not None:
+            return df.transpose()
+        else:
+            return items
+
+    def filter_df_columns_by_prefix(df, prefixes=None, sep='.'):
+        """
+        Filters a pandas dataframe by columns given a list of prefixes.
+
+        Args:
+            df: Pandas dataframe object containing the data.
+            sep: String used to separate the keys.
+            prefixes: List of prefixes indicating the column names to be filtered. for example ['a.b'] filters all columns in the dataframe that starts with 'a.b'.
+
+        Returns:
+            result: Pandas DataFrame with filtered data that is sorted alphabetically.
+        """
+
+        if not prefixes:
+            prefixes = []
+
+        if not prefixes:
+            return df
+
+        filtered_columns = []
+        for prefix in prefixes:
+            filtered_columns.extend(
+                [col for col in df.columns if col.startswith(prefix)]
+            )
+
+        result = df[filtered_columns].copy()
+
+        for prefix in prefixes:
+            prefix_columns = [col for col in filtered_columns if col.startswith(prefix)]
+            numeric_columns = [
+                col for col in prefix_columns if col.split(sep)[-1].isdigit()
+            ]
+
+            for col in prefix_columns:
+                if col in numeric_columns:
+                    if col.split(sep)[-1][0].isdigit():
+                        new_col_name = prefix.split('.')[-1]
+                        new_values = result[numeric_columns].values.tolist()
+                        result[new_col_name] = new_values
+                        result = result.drop(columns=numeric_columns)
+                        break
+
+            result.columns = [col.split(prefix + sep)[-1] for col in result.columns]
+        result = result.reindex(
+            sorted(result.columns), axis=1
+        )  # Sorting alphabetically
+        return result
+
+    def flatten_data(data):
+        if isinstance(data, dict):
+            # Single Dict object
+            flattened_data = flatten_dict(data)
+            result = pd.DataFrame([flattened_data])
+        elif isinstance(data, list):
+            # List of Dict objects
+            flattened_data = [flatten_dict(item) for item in data]
+            result = pd.DataFrame(flattened_data)
+        else:
+            raise ValueError(
+                'Input must be a dictionary (JSON object) or a list of dictionaries (JSON objects)'
+            )
+
+        if sort_by == 'alphabetical':
+            result = result.reindex(sorted(result.columns), axis=1)
+        elif isinstance(sort_by, list):
+            result = result.reindex(columns=sort_by)
+
+        return result
+
+    df = flatten_data(dict_data)
+
+    if not keys_to_filter:
+        return df
+
+    else:
+        filtered_df = filter_df_columns_by_prefix(df, keys_to_filter)
+        filtered_dict = dataframe_to_dict(filtered_df)
+        return pd.json_normalize(filtered_dict, errors='ignore')
