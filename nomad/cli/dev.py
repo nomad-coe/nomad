@@ -75,9 +75,10 @@ def gui_qa(skip_tests: bool):
 
 
 def get_gui_artifacts_js() -> str:
+    from nomad.datamodel import all_metainfo_packages
     from nomad.parsing.parsers import code_metadata
 
-    all_metainfo_packages = _all_metainfo_packages()
+    all_metainfo_packages = all_metainfo_packages()
     unit_list_json, prefixes_json = _generate_units_json(all_metainfo_packages)
     code_metadata = json.loads(json.dumps(code_metadata, sort_keys=True))
 
@@ -108,46 +109,10 @@ def _generate_metainfo(all_metainfo_packages):
 
 @dev.command(help='Generates a JSON with all metainfo.')
 def metainfo():
-    export = _all_metainfo_packages()
+    from nomad.datamodel import all_metainfo_packages
+
+    export = all_metainfo_packages()
     print(json.dumps(_generate_metainfo(export), indent=2))
-
-
-_all_metainfo_environment = None
-
-
-def _all_metainfo_packages():
-    from nomad.metainfo import Package, Environment
-    from nomad.datamodel import EntryArchive
-
-    # TODO similar to before, due to lazyloading, we need to explicily access
-    # parsers to actually import all parsers and indirectly all metainfo
-    # packages
-    from nomad.parsing.parsers import import_all_parsers
-
-    import_all_parsers()
-
-    # Create the ES mapping to populate ES annotations with search keys.
-    from nomad.search import entry_type
-
-    if not entry_type.mapping:
-        entry_type.create_mapping(EntryArchive.m_def)
-
-    # TODO we call __init_metainfo__() for all packages where this has been forgotten
-    # by the package author. Ideally this would not be necessary and we fix the
-    # actual package definitions.
-    for module_key in sorted(list(sys.modules)):
-        pkg: Package = getattr(sys.modules[module_key], 'm_package', None)
-        if pkg is not None and isinstance(pkg, Package):
-            if pkg.name not in Package.registry:
-                pkg.__init_metainfo__()
-
-    global _all_metainfo_environment
-    if not _all_metainfo_environment:
-        _all_metainfo_environment = Environment()
-        for package in Package.registry.values():
-            _all_metainfo_environment.m_add_sub_section(Environment.packages, package)
-
-    return _all_metainfo_environment
 
 
 def _generate_search_quantities():
@@ -225,7 +190,7 @@ def _generate_search_quantities():
 
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
-    _all_metainfo_packages()
+    all_metainfo_packages()
     print(json.dumps(_generate_search_quantities(), indent=2))
 
 

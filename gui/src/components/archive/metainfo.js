@@ -526,6 +526,9 @@ export class Metainfo {
     }
     const packageName = pkg.name || '*'
     this._packageDefs[packageName] = pkg
+    for (const alias of pkg?.aliases || []) {
+      this._packageDefs[alias] = pkg
+    }
     await this._addDef(pkg)
 
     pkg._pkgParentData = pkgParentData

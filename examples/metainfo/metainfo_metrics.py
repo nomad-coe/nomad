@@ -3,7 +3,7 @@
 # per package
 
 from nomad.metainfo import Section, Property, Quantity, Package
-from nomad.cli.dev import _all_metainfo_packages
+from nomad.datamodel import all_metainfo_packages
 
 all_sections = 0
 all_properties = 0
@@ -12,7 +12,7 @@ sections = dict()
 properties = dict()
 quantities = dict()
 definitions = set()
-metainfo = _all_metainfo_packages()
+metainfo = all_metainfo_packages()
 
 for definition, _, _, _ in metainfo.m_traverse():
     if definition in definitions:
@@ -37,6 +37,8 @@ for definition, _, _, _ in metainfo.m_traverse():
 
 
 for package in sections.keys():
-    print(f'{package.name}: {sections[package]}, {properties.get(package, 0)}, {quantities.get(package, 0)}')
+    print(
+        f'{package.name}: {sections[package]}, {properties.get(package, 0)}, {quantities.get(package, 0)}'
+    )
 
 print(f'SUM: {all_sections}, {all_properties}, {all_quantities}')
