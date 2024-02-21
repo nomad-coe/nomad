@@ -696,6 +696,36 @@ def process(
     )
 
 
+@uploads.command(help='Publish selected uploads.')
+@click.argument('UPLOADS', nargs=-1)
+@click.option(
+    '--parallel',
+    default=1,
+    type=int,
+    help='Use the given amount of parallel processes. Default is 1.',
+)
+@click.option(
+    '--embargo-length',
+    default=None,
+    type=int,
+    help='Use an embargo length (months) for the publication.',
+)
+@click.pass_context
+def publish(
+    ctx,
+    uploads,
+    parallel: int,
+    embargo_length: int,
+):
+    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+    _run_processing(
+        uploads,
+        parallel,
+        lambda upload: upload.publish_upload(embargo_length=embargo_length),
+        'publishing',
+    )
+
+
 @uploads.command(help='Repack selected uploads.')
 @click.argument('UPLOADS', nargs=-1)
 @click.pass_context

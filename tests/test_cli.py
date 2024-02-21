@@ -259,6 +259,25 @@ class TestAdminUploads:
         entry.reload()
         assert entry.nomad_version == 'test_version'
 
+    def test_publish(self, non_empty_processed, monkeypatch):
+        monkeypatch.setattr('nomad.config.meta.version', 'test_version')
+        upload_id = non_empty_processed.upload_id
+        upload = Upload.objects(upload_id=upload_id).first()
+        assert upload.publish_time is None
+        assert upload.embargo_length == 0
+
+        result = invoke_cli(
+            cli,
+            ['admin', 'uploads', 'publish', '--embargo-length', '2', upload_id],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert 'publishing' in result.stdout
+        upload.reload()
+        assert upload.publish_time is not None
+        assert upload.embargo_length == 2
+
     def test_re_pack(self, published, monkeypatch):
         upload_id = published.upload_id
         entry = Entry.objects(upload_id=upload_id).first()
