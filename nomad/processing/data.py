@@ -1065,6 +1065,11 @@ class Entry(Proc):
                         tsa_server=config.rfc3161_timestamp.server,
                         timestamp=rfc3161ng.get_timestamp(token),
                     )
+                else:
+                    self.get_logger().info(
+                        f'RFC3161 timestamp could not be obtained'
+                        f' as the server {config.rfc3161_timestamp.server} cannot be reached.'
+                    )
             elif has_existing_timestamp:
                 # entry is unchanged
                 entry_metadata.entry_timestamp = RFC3161Timestamp(

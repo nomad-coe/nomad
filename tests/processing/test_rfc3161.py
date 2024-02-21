@@ -41,17 +41,18 @@ from nomad.processing.data import get_rfc3161_token, Entry
             True,
             id='freetsa.org/tsr',
         ),
-        # The digicert server cannot be reached: the affected tests are skipped temporarily
-        # pytest.param(
-        #     'http://timestamp.digicert.com/',
-        #     'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',
-        #     True,
-        #     id='timestamp.digicert.com-correct-cert'),
-        # pytest.param(
-        #     'http://timestamp.digicert.com/',
-        #     'https://freetsa.org/files/tsa.crt',
-        #     False,
-        #     id='timestamp.digicert.com-wrong-cert'),
+        pytest.param(
+            'http://timestamp.digicert.com/',
+            'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',
+            True,
+            id='timestamp.digicert.com-correct-cert',
+        ),
+        pytest.param(
+            'http://timestamp.digicert.com/',
+            'https://freetsa.org/files/tsa.crt',
+            False,
+            id='timestamp.digicert.com-wrong-cert',
+        ),
     ],
 )
 def test_rfc3161ng_timestamp(server, cert, result, monkeysession):
@@ -61,8 +62,9 @@ def test_rfc3161ng_timestamp(server, cert, result, monkeysession):
     monkeysession.setattr('requests.post', httpx.post)
 
     token = get_rfc3161_token('test_hash', server=server, cert=cert)
-    assert (token is not None) is result
-    if result:
+    if token is not None:
+        assert result
+
         rfc3161ng_time = rfc3161ng.get_timestamp(token)
         assert rfc3161ng_time < datetime.timedelta(seconds=5) + datetime.datetime.now()
         metadata = RFC3161Timestamp()

@@ -751,7 +751,7 @@ class Reprocess(NomadSettings):
 
 class RFC3161Timestamp(NomadSettings):
     server = Field(
-        'http://time.certum.pl/', description='The rfc3161ng timestamping host.'
+        'http://zeitstempel.dfn.de', description='The rfc3161ng timestamping host.'
     )
     cert: str = Field(
         None,
