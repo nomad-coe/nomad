@@ -85,7 +85,6 @@ from nomad.files import (
     create_tmp_dir,
     is_safe_relative_path,
 )
-from nomad.groups import UserGroup, get_user_ids_by_group_ids
 from nomad.processing.base import (
     Proc,
     process,

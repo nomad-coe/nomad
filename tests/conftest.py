@@ -490,34 +490,36 @@ def test_user_group_uuid(handle: Any):
     return str(handle).rjust(22, 'G')
 
 
-test_user_groups = {
-    'admin_owner_group': dict(
-        group_name='Admin Owner Group',
-        owner=test_user_uuid(0),
-        group_id=test_user_group_uuid(0),
-    ),
-    'user_owner_group': dict(
-        group_name='Test Owner Group',
-        owner=test_user_uuid(1),
-        group_id=test_user_group_uuid(1),
-    ),
-    'other_owner_group': dict(
-        group_name='Other Owner Group',
-        owner=test_user_uuid(2),
-        group_id=test_user_group_uuid(2),
-    ),
-    'mixed_group': dict(
-        group_name='Mixed Group',
-        owner=test_user_uuid(0),
-        members=[test_user_uuid(1), test_user_uuid(2)],
-        group_id=test_user_group_uuid(3),
-    ),
-}
+@pytest.fixture(scope='session')
+def test_user_groups_dict():
+    def old_group(group_id, group_name, owner, members):
+        return dict(
+            group_id=test_user_group_uuid(group_id),
+            group_name=group_name,
+            owner=test_user_uuid(owner),
+            members=[test_user_uuid(member) for member in members],
+        )
+
+    def new_group(group_name, members):
+        return dict(
+            group_name=group_name,
+            members=[test_user_uuid(member) for member in members],
+        )
+
+    return {
+        'admin_owner_group': old_group(0, 'Admin Owner Group', 0, []),
+        'user_owner_group': old_group(1, 'User Owner Group', 1, []),
+        'other_owner_group': old_group(2, 'Other Owner Group', 2, []),
+        'mixed_group': old_group(3, 'Mixed Group', 0, [1, 2]),
+        'new_group': new_group('New Group', [0, 2]),
+    }
 
 
 @pytest.fixture(scope='session')
-def convert_group_labels_to_ids():
-    mapping = {label: group['group_id'] for label, group in test_user_groups.items()}
+def convert_group_labels_to_ids(test_user_groups_dict):
+    mapping = {
+        label: group['group_id'] for label, group in test_user_groups_dict.items()
+    }
 
     def convert(raw):
         if isinstance(raw, str):
@@ -535,37 +537,47 @@ def convert_group_labels_to_ids():
 
 
 @pytest.fixture(scope='session')
-def user_owner_group():
-    return UserGroup(**test_user_groups['user_owner_group'])
+def user_owner_group(test_user_groups_dict):
+    return UserGroup(**test_user_groups_dict['user_owner_group'])
 
 
 @pytest.fixture(scope='session')
-def other_owner_group():
-    return UserGroup(**test_user_groups['other_owner_group'])
+def other_owner_group(test_user_groups_dict):
+    return UserGroup(**test_user_groups_dict['other_owner_group'])
 
 
 @pytest.fixture(scope='session')
-def mixed_group():
-    return UserGroup(**test_user_groups['mixed_group'])
+def mixed_group(test_user_groups_dict):
+    return UserGroup(**test_user_groups_dict['mixed_group'])
 
 
-def _user_groups():
-    user_groups = {}
-    for label, group in test_user_groups.items():
-        user_group = create_user_group(**group)
-        user_groups[label] = user_group
+@pytest.fixture(scope='session')
+def create_user_groups(test_user_groups_dict):
+    def create():
+        user_groups = {}
+        for label in [
+            'admin_owner_group',
+            'user_owner_group',
+            'other_owner_group',
+            'mixed_group',
+        ]:
+            group = test_user_groups_dict[label]
+            user_group = create_user_group(**group)
+            user_groups[label] = user_group
 
-    return user_groups
+        return user_groups
+
+    return create
 
 
 @pytest.fixture(scope='module')
-def user_groups_module(mongo_module):
-    return _user_groups()
+def user_groups_module(mongo_module, create_user_groups):
+    return create_user_groups()
 
 
 @pytest.fixture(scope='function')
-def user_groups_function(mongo_function):
-    return _user_groups()
+def user_groups_function(mongo_function, create_user_groups):
+    return create_user_groups()
 
 
 @pytest.fixture(scope='function')
