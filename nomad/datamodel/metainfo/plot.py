@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 from nomad.datamodel.data import ArchiveSection
-from nomad.metainfo import Quantity, SubSection, Package, MSection, JSON
+from nomad.metainfo import Quantity, SubSection, Package, MSection, JSON, Section
 import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
@@ -148,6 +148,7 @@ class PlotlyFigureQuantity(Quantity):
 
 
 class PlotlyFigure(Figure):
+    m_def = Section(label_quantity='label')
     figure = PlotlyFigureQuantity(
         type=JSON, description='Contains the JSON serialization for a plotly figure.'
     )

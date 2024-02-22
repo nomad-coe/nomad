@@ -200,6 +200,7 @@ const Plot = React.memo(forwardRef(({
   // Set the final layout. It is a combination of a default layout, the layout
   // set by the user and some properties of the curretly used layout.
   const finalLayout = useMemo(() => {
+    const withTitle = layout?.title?.text || layout?.template?.title?.text || layout?.annotations?.some(item => item?.text)
     const defaultLayout = {
       dragmode: 'pan',
       hovermode: false,
@@ -210,7 +211,7 @@ const Plot = React.memo(forwardRef(({
       margin: {
         l: theme.spacing(4),
         r: theme.spacing(1.5),
-        t: theme.spacing(layout?.title?.text ? 5 : 1),
+        t: theme.spacing(withTitle ? 5 : 1),
         b: theme.spacing(6)
       },
       title: {

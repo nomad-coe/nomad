@@ -174,7 +174,15 @@ class CustomSection(PlotSection, EntryData):
 
         heatmap = go.Heatmap(z=heatmap_data, showscale=False, connectgaps=True, zsmooth='best')
         figure3 = go.Figure(data=heatmap)
-        self.figures.append(PlotlyFigure(label='figure 3', index=0, figure=figure3.to_plotly_json()))
+        figure_json = figure3.to_plotly_json()
+        figure_json['config'] = {'staticPlot': True}
+        self.figures.append(PlotlyFigure(label='figure 3', index=0, figure=figure_json)
+```
+
+To customize the plot configuration in python one can add the config to the generated json by to_plotly_json().
+
+```
+figure_json['config'] = {'staticPlot': True}
 ```
 
 In YAML schemas, plots can be defined by using the PlotSection as a base class,
@@ -183,4 +191,89 @@ and additionally utilizing different flavours of plot annotations. The different
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotlyGraphObjectAnnotation', heading='### PlotlyGraphObjectAnnotation') }}
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotlyExpressAnnotation', heading='### PlotlyExpressAnnotation') }}
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotlySubplotsAnnotation', heading='### PlotlySubplotsAnnotation') }}
+
+### plot annotations in python
+For simple plots in Python schema one could use the annotations without normalizer:
+
+```python
+from nomad.datamodel.metainfo.plot import PlotSection
+from nomad.metainfo import Quantity, Section
+from nomad.datamodel.data import EntryData
+
+class CustomSection(PlotSection, EntryData):
+    m_def = Section(
+        a_plotly_graph_object=[
+            {
+                'label': 'graph object 1',
+                'data': {'x': '#time', 'y': '#chamber_pressure'},
+                'layout': {
+                    'title': {
+                        'text': 'Plot in section level'
+                    },
+                    'xaxis': {
+                        'title': {
+                            'text': 'x data'
+                        }
+                    },
+                    'yaxis': {
+                        'title': {
+                            'text': 'y data'
+                        }
+                    }
+                }
+            }, {
+                'label': 'graph object 2',
+                'data': {'x': '#time', 'y': '#substrate_temperature'}
+            }
+        ],
+        a_plotly_express={
+            'label': 'fig 2',
+            'index': 2,
+            'method': 'scatter',
+            'x': '#substrate_temperature',
+            'y': '#chamber_pressure',
+            'color': '#chamber_pressure'
+        },
+        a_plotly_subplots={
+            'label': 'fig 1',
+            'index': 1,
+            'parameters': {'rows': 2, 'cols': 2},
+            'layout': {
+                'title': {
+                    'text': 'All plots'
+                }
+            },
+            'plotly_express': [
+                {
+                    'method': 'scatter',
+                    'x': '#time',
+                    'y': '#chamber_pressure',
+                    'color': '#chamber_pressure'
+                },
+                {
+                    'method': 'scatter',
+                    'x': '#time',
+                    'y': '#substrate_temperature',
+                    'color': '#substrate_temperature'
+                },
+                {
+                    'method': 'scatter',
+                    'x': '#substrate_temperature',
+                    'y': '#chamber_pressure',
+                    'color': '#chamber_pressure'
+                },
+                {
+                    'method': 'scatter',
+                    'x': '#substrate_temperature',
+                    'y': '#chamber_pressure',
+                    'color': '#substrate_temperature'
+                }
+            ]
+        }
+    )
+    time = Quantity(type=float, shape=['*'], unit='s', a_eln=dict(component='NumberEditQuantity'))
+    substrate_temperature = Quantity(type=float, shape=['*'], unit='K', a_eln=dict(component='NumberEditQuantity'))
+    chamber_pressure = Quantity(type=float, shape=['*'], unit='Pa', a_eln=dict(component='NumberEditQuantity'))
+```
+
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.PlotAnnotation', heading='### PlotAnnotation (Deprecated)') }}
