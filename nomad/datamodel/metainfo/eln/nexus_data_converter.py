@@ -9,14 +9,9 @@ from nomad.metainfo import Package, Quantity, MEnum
 from nomad.units import ureg
 
 from typing import Optional
-from pynxtools.dataconverter.writer import Writer
-from pynxtools.dataconverter.convert import (
-    get_nxdl_root_and_path,
-    get_names_of_all_readers,
-    convert,
-)  # pylint: disable=import-error
+from pynxtools.dataconverter import writer as pynxtools_writer
+from pynxtools.dataconverter import convert as pynxtools_converter
 from pynxtools.nexus.nexus import get_app_defs_names  # pylint: disable=import-error
-
 
 m_package = Package(name='nexus_data_converter')
 
@@ -84,14 +79,14 @@ def populate_nexus_subsection(
         Exception: could not trigger processing from NexusParser
         Exception: could not trigger processing from NexusParser
     """
-    _, nxdl_f_path = get_nxdl_root_and_path(app_def)
+    _, nxdl_f_path = pynxtools_converter.get_nxdl_root_and_path(app_def)
 
     # Writing nxs file, parse and populate NeXus subsection:
     if output_file_path:
         archive.data.output = os.path.join(
             archive.m_context.raw_path(), output_file_path
         )
-        Writer(
+        pynxtools_writer.Writer(
             data=template, nxdl_f_path=nxdl_f_path, output_path=archive.data.output
         ).write()
         try:
@@ -126,7 +121,7 @@ def populate_nexus_subsection(
             'No output NeXus file is found and data is being written temporary file.'
         )
         try:
-            Writer(
+            pynxtools_writer.Writer(
                 data=template, nxdl_f_path=nxdl_f_path, output_path=output_file
             ).write()
 
@@ -161,7 +156,7 @@ class ElnYamlConverter(EntryData):
 
 class NexusDataConverter(EntryData):
     reader = Quantity(
-        type=MEnum(get_names_of_all_readers()),
+        type=MEnum(pynxtools_converter.get_names_of_all_readers()),
         description='The reader needed to run the Nexus converter.',
         a_eln=dict(component='AutocompleteEditQuantity'),
     )
@@ -212,7 +207,9 @@ class NexusDataConverter(EntryData):
             'output': os.path.join(raw_path, archive.data.output),
         }
         try:
-            convert(**converter_params)
+            pynxtools_converter.logger = logger
+            pynxtools_converter.helpers.logger = logger
+            pynxtools_converter.convert(**converter_params)
         except Exception as e:
             logger.error(
                 'could not convert to nxs', mainfile=archive.data.output, exc_info=e
