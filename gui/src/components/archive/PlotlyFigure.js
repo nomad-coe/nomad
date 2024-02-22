@@ -232,7 +232,7 @@ const PlotlyFigure = React.memo(function PlotlyFigure({plot, section, sectionDef
     return plotlyGraphObj
   }, [plot, section, sectionDef, units])
 
-  return <Box minWidth={500} height={500}>
+  return <Box minWidth={500} height={plotlyGraphObj?.layout?.height || plotlyGraphObj?.layout?.template?.layout?.height || 500}>
     <Plot
       data={plotlyGraphObj.data}
       layout={plotlyGraphObj.layout}
