@@ -228,7 +228,6 @@ class SectionProxy(MProxy):
                 m_proxy_value=m_proxy_value, m_proxy_type=SectionReference, **kwargs
             )
 
-    # TODO recursive proxy stuff
     def _resolve_name(self, name: str, context: Definition) -> Definition:
         if context is None:
             return None
@@ -803,11 +802,20 @@ class _SectionReference(Reference):
                 return f'{section_name}@{value.definition_id}'
             return section_name
 
-        # First we try to use a potentially available Python name to serialize
-        if isinstance(value, Section):
-            pkg: MSection = value.m_root()
-            if isinstance(pkg, Package) and pkg.name not in [None, '*']:
-                return f'{pkg.name}.{value.name}'
+        value_root = value.m_root()
+        if value_root is not section.m_root():
+            # For inter package references, we try to use a potentially available Python
+            # name to serialize.
+            if isinstance(value, Section):
+                pkg: MSection = value.m_root()
+                if isinstance(pkg, Package) and pkg.name not in [None, '*']:
+                    qualified_name = value.qualified_name()
+                    if qualified_name != f'{pkg.name}.{value.name}':
+                        raise MetainfoReferenceError(
+                            'References to other packages for nested definitions are not '
+                            'supported.'
+                        )
+                    return qualified_name
 
         # Default back to URL
         return _append_definition_id(super().serialize(section, quantity_def, value))

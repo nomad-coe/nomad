@@ -171,6 +171,14 @@ def test_inner_sections():
         class InnerSection(MSection):
             pass
 
+    class OtherSection(MSection):
+        sub_section = SubSection(sub_section=OuterSection.InnerSection)
+        reference = Quantity(type=OuterSection.InnerSection)
+
+    m_package = Package(
+        name=__name__, section_definitions=[OuterSection.m_def, OtherSection.m_def]
+    )
+
     assert (
         OuterSection.m_def.qualified_name() + '.InnerSection'
         == OuterSection.InnerSection.m_def.qualified_name()
@@ -182,6 +190,14 @@ def test_inner_sections():
     assert (
         OuterSection.InnerSection.m_def.m_parent_sub_section
         == Section.inner_section_definitions
+    )
+
+    serialized_json = m_package.m_to_dict()
+    deserialized_pkg = Package.m_from_dict(serialized_json)
+    deserialized_pkg.__init_metainfo__()
+    assert (
+        deserialized_pkg.section_definitions[0].inner_section_definitions[0].name
+        == 'InnerSection'
     )
 
 
