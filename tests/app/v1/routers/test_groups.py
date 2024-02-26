@@ -121,6 +121,15 @@ def test_get_group_invalid(
         ),
         pytest.param('invalid', 'new_group', None, 401, id='invalid-user'),
         pytest.param(None, 'new_group', None, 401, id='guest-user'),
+        pytest.param('test_user', 'short_name', None, 422, id='short-name-fails'),
+        pytest.param('test_user', 'long_name', None, 422, id='long-name-fails'),
+        pytest.param(
+            'test_user',
+            'double_member',
+            'double_member_ref',
+            201,
+            id='double-member-skipped',
+        ),
     ],
 )
 def test_create_group(
@@ -144,21 +153,29 @@ def test_create_group(
         return
 
     response_group = UserGroup.parse_raw(response.content)
-    assert_group(response_group, new_group, new_group.keys())
     group = get_user_group(response_group.group_id)
     assert_group(group, response_group)
+    ref_group = test_user_groups_dict[ref_group_label]
+    assert_group(group, ref_group, ref_group.keys())
 
 
 @pytest.mark.parametrize(
-    'user_label, variation, expected_status_code',
+    'user_label, group_edit_label, ref_group_label, expected_status_code',
     [
-        pytest.param(None, {}, 401, id='guest-fails'),
-        pytest.param('invalid', {}, 401, id='faker-fails'),
-        pytest.param('other_test_user', {}, 401, id='other-fails'),
-        pytest.param('test_user', {}, 200, id='edit-ok'),
-        pytest.param('test_user', {'group_name': 'GG'}, 422, id='short-name-fails'),
-        pytest.param('test_user', {'group_name': 'G' * 33}, 422, id='long-name-fails'),
-        pytest.param('test_user', {'group_name': 'G!G'}, 422, id='special-chars-fails'),
+        pytest.param(None, 'new_group', None, 401, id='guest-fails'),
+        pytest.param('invalid', 'new_group', None, 401, id='faker-fails'),
+        pytest.param('other_test_user', 'new_group', None, 401, id='other-fails'),
+        pytest.param('test_user', 'new_group', 'new_group', 200, id='edit-ok'),
+        pytest.param('test_user', 'short_name', None, 422, id='short-name-fails'),
+        pytest.param('test_user', 'long_name', None, 422, id='long-name-fails'),
+        pytest.param('test_user', 'special_char', None, 422, id='special-chars-fails'),
+        pytest.param(
+            'test_user',
+            'double_member',
+            'double_member_ref',
+            200,
+            id='double-member-skipped',
+        ),
     ],
 )
 def test_update_user_group(
@@ -169,13 +186,13 @@ def test_update_user_group(
     user_groups_function,
     user_owner_group,
     user_label,
-    variation,
+    group_edit_label,
+    ref_group_label,
     expected_status_code,
 ):
     user_auth, _ = test_auth_dict[user_label]
     group_before = get_user_group(user_owner_group.group_id)
-    group_edit = test_user_groups_dict['new_group']
-    group_edit.update(variation)
+    group_edit = test_user_groups_dict[group_edit_label]
 
     url = f'{base_url}/{group_before.group_id}/edit'
     response = perform_post(client, url, user_auth, json=group_edit)
@@ -186,10 +203,10 @@ def test_update_user_group(
         assert_group(group_after, group_before)
         return
 
-    keys = group_edit.keys()
-    assert_group(group_after, group_edit, keys)
-    keys = group_after._fields - group_edit.keys()
-    assert_group(group_after, group_before, keys)
+    response_group = UserGroup.parse_raw(response.content)
+    assert_group(group_after, response_group)
+    ref_group = test_user_groups_dict[ref_group_label]
+    assert_group(group_after, ref_group, ref_group.keys())
 
 
 @pytest.mark.parametrize(

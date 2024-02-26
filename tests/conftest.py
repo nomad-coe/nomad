@@ -512,6 +512,11 @@ def test_user_groups_dict():
         'other_owner_group': old_group(2, 'Other Owner Group', 2, []),
         'mixed_group': old_group(3, 'Mixed Group', 0, [1, 2]),
         'new_group': new_group('New Group', [0, 2]),
+        'short_name': new_group('GG', []),
+        'long_name': new_group('G' * 33, []),
+        'double_member': new_group('Double Member', [0, 2, 0]),
+        'double_member_ref': new_group('Double Member', [0, 2]),
+        'special_char': new_group('G!G', []),
     }
 
 
