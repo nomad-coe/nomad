@@ -1140,7 +1140,7 @@ function SubSection({subSectionDef, section, editable}) {
   const history = useHistory()
   const [open, setOpen] = useState(false)
 
-  const {label, getItemLabel} = useMemo(() => {
+  const {itemKey, label, getItemLabel} = useMemo(() => {
     const sectionDef = subSectionDef.sub_section
     let itemLabelKey = getItemLabelKey(sectionDef)
     let labelQuantity = itemLabelKey && sectionDef._properties[itemLabelKey]
@@ -1161,6 +1161,7 @@ function SubSection({subSectionDef, section, editable}) {
       return null
     }
     return {
+      itemKey: subSectionDef.name,
       label: formatSubSectionName(subSectionDef.name),
       getItemLabel: getItemLabel
     }
@@ -1202,7 +1203,7 @@ function SubSection({subSectionDef, section, editable}) {
 
   if (showList) {
     return <PropertyValuesList
-      label={label || 'list'} actions={actions}
+      label={itemKey || 'list'} actions={actions}
       values={values.map(getItemLabel)}
       open={open}
       onClick={handleClick}

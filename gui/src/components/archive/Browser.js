@@ -27,6 +27,7 @@ import { useDataStore } from '../DataStore'
 import { useApi } from '../api'
 import NavigateIcon from '@material-ui/icons/ArrowRight'
 import H5Web from '../visualization/H5Web'
+import {capitalize} from "lodash"
 
 function escapeBadPathChars(s) {
   return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
@@ -37,8 +38,7 @@ function unescapeBadPathChars(s) {
 }
 
 export function formatSubSectionName(name) {
-  // return name.startsWith('section_') ? name.slice(8) : name
-  return name
+  return capitalize(name.replace(/_/g, ' '))
 }
 
 /**
