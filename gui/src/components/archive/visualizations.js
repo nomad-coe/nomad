@@ -39,7 +39,7 @@ export function Number({value, exp, variant, unit, ...props}) {
       html = value.toString()
     }
   }
-  return <Typography {...props} variant={variant} >{html}{unit && <span>&nbsp;{unit}</span>}</Typography>
+  return <Typography {...props} variant={variant} data-testid="scientific-number-with-unit">{html}{unit && <span>&nbsp;{unit}</span>}</Typography>
 }
 Number.propTypes = ({
   value: PropTypes.any,

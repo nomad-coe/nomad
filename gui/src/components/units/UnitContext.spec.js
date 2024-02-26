@@ -23,7 +23,7 @@ import { UnitProvider, useUnitContext } from './UnitContext'
 const wrapper = ({ children }) => <UnitProvider
   initialUnitSystems={{
     SI: {units: {'length': {'definition': 'meter'}}},
-    AU: {units: {'length': {'definition': 'meter'}}}
+    AU: {units: {'length': {'definition': 'ang'}}}
   }}
   initialSelected='SI'
 >
@@ -54,4 +54,82 @@ test('updating units works', () => {
     result.current.setUnits(old => ({...old, length: {definition: 'mm'}}))
   })
   expect(result.current.units.length.definition).toBe('mm')
+})
+
+test('switching between scopes', () => {
+  const { result, rerender } = renderHook(
+    ({ scopeKey, defaultUnitSystem }) => useUnitContext(scopeKey, defaultUnitSystem),
+    {
+      wrapper: wrapper,
+      initialProps: {
+        scopeKey: 'schemaId',
+        defaultUnitSystem: 'AU'
+      }
+    }
+  )
+  // In first render of a schema the default unit system should appear
+  expect(result.current.selected).toBe('AU')
+  expect(result.current.units.length.definition).toBe('ang')
+  // In schema the scope `Schema` should be selected as default
+  expect(result.current.scope).toBe('Schema')
+
+  // Go to another scope i.e. search
+  rerender({
+    scopeKey: undefined,
+    defaultUnitSystem: undefined
+  })
+  expect(result.current.selected).toBe('SI')
+  expect(result.current.units.length.definition).toBe('meter')
+  expect(result.current.scope).toBe(undefined)
+
+  // Change in schema scope
+  rerender({
+    scopeKey: 'schemaId',
+    defaultUnitSystem: 'AU'
+  })
+  act(() => {
+    result.current.setSelected('SI')
+  })
+  expect(result.current.selected).toBe('SI')
+  expect(result.current.units.length.definition).toBe('meter')
+  act(() => {
+    result.current.setUnits(old => ({...old, length: {definition: 'mm'}}))
+  })
+  expect(result.current.units.length.definition).toBe('mm')
+
+  // Change in global scope
+  rerender({
+    scopeKey: undefined,
+    defaultUnitSystem: undefined
+  })
+  expect(result.current.selected).toBe('SI')
+  act(() => {
+    result.current.setSelected('AU')
+  })
+  expect(result.current.selected).toBe('AU')
+  expect(result.current.units.length.definition).toBe('ang')
+  expect(result.current.scope).toBe(undefined)
+
+  // Test the last units in schema scope
+  rerender({
+    scopeKey: 'schemaId',
+    defaultUnitSystem: 'AU'
+  })
+  expect(result.current.selected).toBe('SI')
+  expect(result.current.units.length.definition).toBe('mm')
+  expect(result.current.scope).toBe('Schema')
+  act(() => {
+    result.current.setScope('Global')
+  })
+  expect(result.current.scope).toBe('Global')
+  expect(result.current.selected).toBe('AU')
+  expect(result.current.units.length.definition).toBe('ang')
+
+  // Test the last units in global scope
+  rerender({
+    scopeKey: undefined,
+    defaultUnitSystem: undefined
+  })
+  expect(result.current.selected).toBe('AU')
+  expect(result.current.units.length.definition).toBe('ang')
 })

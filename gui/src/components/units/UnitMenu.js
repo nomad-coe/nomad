@@ -16,7 +16,9 @@
  * limitations under the License.
  */
 import React, { useCallback, useState, useMemo } from 'react'
-import { Box, Button, Menu, FormLabel, makeStyles, Typography } from '@material-ui/core'
+import {
+  Box, Button, Menu, FormLabel, makeStyles, Typography, Select, MenuItem, InputLabel, FormControl
+} from '@material-ui/core'
 import SettingsIcon from '@material-ui/icons/Settings'
 import ReplayIcon from '@material-ui/icons/Replay'
 import PropTypes from 'prop-types'
@@ -47,7 +49,7 @@ const UnitMenu = React.memo(({
   onUnitChange,
   onSystemChange
 }) => {
-  const {units, dimensionMap, reset} = useUnitContext()
+  const {units, dimensionMap, reset, scope, setScope} = useUnitContext()
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
   const styles = useStyles()
@@ -149,6 +151,17 @@ const UnitMenu = React.memo(({
             <ReplayIcon fontSize="small"/>
           </Action>
         </Actions>
+        <Box mt={1} />
+        <FormControl variant="filled" fullWidth disabled={!scope}>
+          <InputLabel>Scope</InputLabel>
+          <Select
+            value={scope || 'Global'}
+            onChange={(event) => setScope(event.target.value)}
+          >
+            <MenuItem value={'Global'}>Global</MenuItem>
+            <MenuItem value={'Schema'}>Schema</MenuItem>
+          </Select>
+        </FormControl>
         <Box mt={1} />
         <FormLabel component="legend">Select unit system</FormLabel>
         <UnitSystemSelect onChange={onSystemChange}/>

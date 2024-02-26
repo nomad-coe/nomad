@@ -36,7 +36,7 @@ import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
 import { Quantity as Q } from '../units/Quantity'
-import { useUnitContext } from '../units/UnitContext'
+import {useUnitContext} from '../units/UnitContext'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
@@ -61,7 +61,7 @@ import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/ArrowForward'
 import ReloadIcon from '@material-ui/icons/Replay'
 import UploadIcon from '@material-ui/icons/CloudUpload'
-import { apiBase } from '../../config'
+import {apiBase} from '../../config'
 import { Alert } from '@material-ui/lab'
 import { complex, format } from 'mathjs'
 import ReactJson from 'react-json-view'
@@ -648,8 +648,8 @@ const convertComplexArray = (real, imag) => {
     : format(complex(real, imag), {notation: 'auto', precision: 4, lowerExp: -999, upperExp: 999})
 }
 
-function QuantityItemPreview({value, def}) {
-  const {units} = useUnitContext()
+export function QuantityItemPreview({value, def}) {
+  const {units, unitSystems, isReset} = useUnitContext()
   if (isReference(def)) {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -709,7 +709,19 @@ function QuantityItemPreview({value, def}) {
 
     let finalUnit
     if (def.unit) {
-      const a = new Q(finalValue, def.unit).toSystem(units)
+      let a
+      const section_default_unit_system = def?._parent?.m_annotations?.display?.[0]?.unit_system
+      const quantity_default_unit = def?.m_annotations?.display?.[0]?.unit
+      if (isReset && (section_default_unit_system || quantity_default_unit)) {
+        if (section_default_unit_system && unitSystems[section_default_unit_system]) {
+          a = new Q(finalValue, def.unit).toSystem(unitSystems[section_default_unit_system].units)
+        }
+        if (quantity_default_unit) {
+          a = new Q(finalValue, def.unit).to(quantity_default_unit)
+        }
+      } else {
+        a = new Q(finalValue, def.unit).toSystem(units)
+      }
       finalValue = a.value()
       finalUnit = a.label()
     }
@@ -910,6 +922,7 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
   const [showJson, setShowJson] = useState(false)
   const lane = useContext(laneContext)
   const history = useHistory()
+  useUnitContext(def._package.name, def?._package?.m_annotations?.display?.[0]?.unit_system)
 
   const isEditable = useMemo(() => {
     let editableExcluded = false
