@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import React, { useState, useMemo, useContext, useCallback } from 'react'
+import React, {useState, useMemo, useContext, useCallback, useEffect} from 'react'
 import PropTypes from 'prop-types'
 import { isNil, isFunction, startCase, toLower, cloneDeep } from 'lodash'
 import { Unit as UnitMathJS, createUnit } from 'mathjs'
@@ -107,33 +107,76 @@ export function getUnits(dimension) {
 export const unitContext = React.createContext()
 export const UnitProvider = React.memo(({initialUnitSystems, initialSelected, children}) => {
   const resetUnitSystems = useState(cloneDeep(initialUnitSystems))[0]
+  const [isReset, setIsReset] = useState(true)
   const [unitSystems, setUnitSystems] = useState(cloneDeep(initialUnitSystems))
-  const [selected, setSelected] = useState(initialSelected)
+  const [selectedSystem, setSelectedSystem] = useState(initialSelected)
+  const [currentScope, setCurrentScope] = useState()
+  const [scopes, setScopes] = useState({})
+  const [scope, setScope] = useState()
 
   const reset = useCallback(() => {
     setUnitSystems(cloneDeep(resetUnitSystems))
-  }, [resetUnitSystems])
+    setIsReset(true)
+    if (currentScope && scopes?.[currentScope]?.system) {
+      setSelectedSystem(scopes[currentScope].system)
+    }
+  }, [currentScope, scopes, resetUnitSystems])
+
+  const setScopeInfo = useCallback((scopeKey, unit) => {
+    if (!(scopeKey in scopes)) {
+      scopes[scopeKey] = {system: unit || initialSelected, unitSystems: unitSystems}
+      setScopes({...scopes})
+    }
+    setCurrentScope(scopeKey)
+  }, [scopes, initialSelected, unitSystems])
+
+  useEffect(() => {
+    if (currentScope in scopes) {
+      setSelectedSystem(scopes[currentScope].system)
+      setUnitSystems(scopes[currentScope].unitSystems)
+    }
+  }, [currentScope, scopes])
+
+  const setSelected = useCallback((unitSystem) => {
+    setIsReset(false)
+    setSelectedSystem(unitSystem)
+    setScopes(scopes => {
+      scopes[currentScope].system = unitSystem
+      return {...scopes}
+    })
+  }, [currentScope])
+
+  const setUnits = useCallback((value) => {
+    setIsReset(false)
+    setUnitSystems(old => {
+      const newSystems = {...old}
+      newSystems[selectedSystem].units = isFunction(value)
+        ? value(newSystems[selectedSystem].units)
+        : value
+      setScopes(scopes => {
+        scopes[currentScope].unitSystems = newSystems
+        return {...scopes}
+      })
+      return newSystems
+    })
+  }, [currentScope, selectedSystem])
 
   const values = useMemo(() => {
     return {
-      units: unitSystems[selected].units,
-      setUnits: (value) => {
-        setUnitSystems(old => {
-          const newSystems = {...old}
-          newSystems[selected].units = isFunction(value)
-            ? value(newSystems[selected].units)
-            : value
-          return newSystems
-        })
-      },
+      units: unitSystems[selectedSystem].units,
+      setUnits: setUnits,
       unitSystems,
       unitMap,
       dimensionMap,
-      selected,
+      selected: selectedSystem,
       setSelected,
-      reset
+      reset,
+      isReset,
+      setScopeInfo,
+      scope,
+      setScope
     }
-  }, [unitSystems, selected, reset])
+  }, [unitSystems, selectedSystem, setUnits, setSelected, reset, isReset, setScopeInfo, scope, setScope])
 
   return <unitContext.Provider value={values}>
     {children}
@@ -152,6 +195,21 @@ UnitProvider.propTypes = {
  * @returns Object containing the currently set units for each dimension (e.g.
  * {energy: 'joule'})
  */
-export const useUnitContext = () => {
-  return useContext(unitContext)
+export const useUnitContext = (scopeKey, defaultUnitSystem) => {
+  const context = useContext(unitContext)
+  const {setScopeInfo, scope, setScope, ...others} = context
+
+  useEffect(() => {
+    setScope(!scopeKey ? scopeKey : 'Schema')
+  }, [scopeKey, setScope])
+
+  useEffect(() => {
+    if (scopeKey && scope === 'Schema') {
+      setScopeInfo(scopeKey, defaultUnitSystem)
+    } else {
+      setScopeInfo('Global')
+    }
+  }, [scopeKey, scope, setScopeInfo, defaultUnitSystem])
+
+  return {...others, scope, setScope}
 }

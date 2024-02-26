@@ -104,8 +104,8 @@ class Filter(BaseModel):
     )
 
 
-class SectionProperties(BaseModel):
-    """A filter defined by an include list or and exclude list of the quantities and subsections."""
+class DisplayAnnotation(BaseModel):
+    """The display settings defined by an include list or an exclude list of the quantities and subsections."""
 
     visible: Optional[Filter] = Field(
         1,
@@ -123,11 +123,66 @@ class SectionProperties(BaseModel):
         """
         ),
     )
+
+
+class QuantityDisplayAnnotation(DisplayAnnotation):
+    """The display settings for quantities."""
+
+    display_unit: Optional[str] = Field(
+        None,
+        description=strip(
+            """
+            To determine the default display unit for quantity.
+        """
+        ),
+    )
+
+
+class SectionDisplayAnnotation(DisplayAnnotation):
+    """The display settings for sections and packages."""
+
+    display_unit_system: Optional[str] = Field(
+        None,
+        description=strip(
+            """
+            To determine the default display unit system for section.
+        """
+        ),
+    )
     order: Optional[List[str]] = Field(
         None,
         description=strip(
             """
             To customize the order of the quantities and subsections.
+        """
+        ),
+    )
+
+
+class SectionProperties(BaseModel):
+    """The display settings for quantities and subsections. (Deprecated)"""
+
+    visible: Optional[Filter] = Field(
+        1,
+        description=strip(
+            """
+            Defines the visible quantities and subsections. (Deprecated)
+        """
+        ),
+    )
+    editable: Optional[Filter] = Field(
+        None,
+        description=strip(
+            """
+            Defines the editable quantities and subsections. (Deprecated)
+        """
+        ),
+    )
+    order: Optional[List[str]] = Field(
+        None,
+        description=strip(
+            """
+            To customize the order of the quantities and subsections. (Deprecated)
         """
         ),
     )

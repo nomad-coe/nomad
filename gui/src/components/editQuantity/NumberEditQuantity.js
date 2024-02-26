@@ -24,7 +24,7 @@ import {Unit} from '../units/Unit'
 import {useUnitContext, getUnits} from '../units/UnitContext'
 import {debounce, isNil} from 'lodash'
 import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
-import {useErrors} from '../errors'
+import {useDisplayUnit} from "../units/useDisplayUnit"
 
 export const NumberField = React.memo((props) => {
   const {onChange, onInputChange, dimension, value, dataType, minValue, unit, maxValue, displayUnit, convertInPlace, debounceTime, ...otherProps} = props
@@ -205,35 +205,19 @@ NumberField.propTypes = {
 
 export const NumberEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, ...otherProps} = props
-  const {units} = useUnitContext()
-  const {raiseError} = useErrors()
+  const {units, isReset} = useUnitContext()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
   const dimension = defaultUnit && defaultUnit.dimension(false)
   const [checked, setChecked] = useState(true)
   const [displayedValue, setDisplayedValue] = useState(true)
-  const {defaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
+  const {defaultDisplayUnit: deprecatedDefaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
+  const {displayUnit: defaultDisplayUnitObj} = useDisplayUnit(undefined, quantityDef)
 
-  // Try to parse defaultDisplayUnit
-  const defaultDisplayUnitObj = useMemo(() => {
-    let defaultDisplayUnitObj
-    if (defaultDisplayUnit) {
-      try {
-        defaultDisplayUnitObj = new Unit(defaultDisplayUnit)
-      } catch (e) {
-        raiseError(`The provided defaultDisplayUnit for ${quantityDef.name} field is not valid.`)
-      }
-      if (defaultDisplayUnitObj.dimension(false) !== dimension) {
-        raiseError(`The provided defaultDisplayUnit for ${quantityDef.name} has incorrect dimensionality for this field.`)
-      }
-    }
-    return defaultDisplayUnitObj
-  }, [defaultDisplayUnit, dimension, quantityDef.name, raiseError])
+  const [unit, setUnit] = useState(defaultDisplayUnitObj)
 
-  const [unit, setUnit] = useState(
-    defaultDisplayUnitObj ||
-    (units[dimension]?.definition && new Unit(units[dimension]?.definition)) ||
-    defaultUnit
-  )
+  useEffect(() => {
+    setUnit(isReset ? defaultDisplayUnitObj : new Unit(defaultUnit).toSystem(units))
+  }, [defaultDisplayUnitObj, defaultUnit, dimension, isReset, units])
 
   // Get a list of unit options for this field
   const options = useMemo(() => {

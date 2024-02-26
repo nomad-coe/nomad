@@ -52,6 +52,7 @@ import ReferenceUsingCard from "./properties/ReferenceCard"
 import SampleHistoryUsingCard from "./properties/SampleHistoryCard"
 import { useEntryStore, useEntryContext, useIndex } from './EntryContext'
 import DeleteEntriesButton from '../uploads/DeleteEntriesButton'
+import {useUnitContext} from "../units/UnitContext"
 
 function MetadataSection({title, children}) {
   return <Box marginTop={2} marginBottom={2}>
@@ -143,6 +144,8 @@ const OverviewView = React.memo(() => {
   const { cards } = useEntryContext()
   const { data: index, response: indexApiData } = useIndex()
   const { url, exists, editable, archive: archiveTmp, archiveApiData } = useEntryStore(required)
+  const [sections, setSections] = useState([])
+  useUnitContext(sections?.[0]?.sectionDef?._package?.name, sections?.[0]?.sectionDef?._package?.m_annotations?.display?.[0]?.unit_system)
 
   // The archive is accepted only once it is synced with the index. Notice that
   // we need to get the entry_id from data.entry_id, as some older entries will
@@ -152,7 +155,6 @@ const OverviewView = React.memo(() => {
     : undefined
 
   const classes = useStyles()
-  const [sections, setSections] = useState([])
   const {raiseError} = useErrors()
   const m_def = archive?.data?.m_def_id ? `${archive.data.m_def}@${archive.data.m_def_id}` : archive?.data?.m_def
   const dataMetainfoDefUrl = url && resolveNomadUrlNoThrow(m_def, url)
@@ -179,7 +181,9 @@ const OverviewView = React.memo(() => {
       })
       return sections
     }
-    getSections().then(setSections).catch(raiseError)
+    getSections().then((sections) => {
+      setSections(sections)
+    }).catch(raiseError)
   }, [archive, dataMetainfoDef, setSections, raiseError])
 
   // Determine the cards to show
