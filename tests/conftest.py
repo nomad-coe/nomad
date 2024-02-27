@@ -523,7 +523,7 @@ def test_user_groups_dict():
 @pytest.fixture(scope='session')
 def convert_group_labels_to_ids(test_user_groups_dict):
     mapping = {
-        label: group['group_id'] for label, group in test_user_groups_dict.items()
+        label: group.get('group_id') for label, group in test_user_groups_dict.items()
     }
 
     def convert(raw):
