@@ -40,7 +40,7 @@ import { StringEditQuantity } from '../../editQuantity/StringEditQuantity'
 import { EnumEditQuantity } from '../../editQuantity/EnumEditQuantity'
 import { DateTimeEditQuantity, DateEditQuantity } from '../../editQuantity/DateTimeEditQuantity'
 import { editQuantityComponents } from '../../editQuantity/EditQuantity'
-import { InputMetainfo } from '../../search/input/InputMetainfo'
+import { InputMetainfoControlled } from '../../search/input/InputMetainfo'
 import { DType, getDatatype, rsplit, parseQuantityName } from '../../../utils'
 import { InputTextField } from '../input/InputText'
 
@@ -192,7 +192,7 @@ const QuantityFilter = React.memo(({quantities, filter, onChange}) => {
   return (<React.Fragment>
     <Box display="flex" flexWrap="wrap" flexDirection="row" alignItems="flex-start" marginTop={1}>
       <Box marginBottom={1} width="100%">
-        <InputMetainfo
+        <InputMetainfoControlled
           options={options}
           value={id}
           onChange={handleIdChange}

@@ -89,7 +89,7 @@ export const NumberField = React.memo((props) => {
     }
 
     // Try to parse the quantity. Value is required, unit is optional.
-    const {unit: parsedUnit, value, valueString, error} = parseQuantity(input, true, false, dimension)
+    const {unit: parsedUnit, value, valueString, error} = parseQuantity(input, dimension, true, false)
     previousNumberPart.current = valueString
     if (parsedUnit) {
       previousUnitLabel.current = parsedUnit.label()
@@ -207,7 +207,7 @@ export const NumberEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, ...otherProps} = props
   const {units, isReset} = useUnitContext()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
-  const dimension = defaultUnit && defaultUnit.dimension(false)
+  const dimension = defaultUnit && defaultUnit.dimension()
   const [checked, setChecked] = useState(true)
   const [displayedValue, setDisplayedValue] = useState(true)
   const {defaultDisplayUnit: deprecatedDefaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
@@ -300,7 +300,7 @@ export const UnitSelect = React.memo(({options, unit, onChange, dimension, disab
 
   // Validate input and submit unit if valid
   const submit = useCallback((val) => {
-    const {unit, error} = parseQuantity(val, false, true, dimension)
+    const {unit, error} = parseQuantity(val, dimension, false, true)
     if (error) {
       setError(error)
     } else {

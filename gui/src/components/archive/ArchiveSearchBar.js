@@ -22,7 +22,7 @@ import clsx from 'clsx'
 import { Paper, Tooltip, IconButton } from '@material-ui/core'
 import SearchIcon from '@material-ui/icons/Search'
 import { useStyles } from '../search/SearchBar'
-import { InputMetainfo } from '../search/input/InputMetainfo'
+import { InputMetainfoControlled } from '../search/input/InputMetainfo'
 
 /**
  * This component shows a search bar with autocomplete functionality.
@@ -43,7 +43,7 @@ const ArchiveSearchBar = React.memo(({options, group, onChange, className}) => {
   }, [options, onChange])
 
   return <Paper className={clsx(className, styles.root)}>
-    <InputMetainfo
+    <InputMetainfoControlled
       value={value}
       onChange={setValue}
       onSelect={handleSelect}

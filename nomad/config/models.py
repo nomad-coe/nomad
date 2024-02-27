@@ -1300,12 +1300,12 @@ class SearchSyntaxes(StrictSettings):
 class Layout(StrictSettings):
     """Defines widget size and grid positioning for different breakpoints."""
 
-    minH: int = Field(description='Minimum height in grid units.')
-    minW: int = Field(description='Minimum width in grid units.')
     h: int = Field(description='Height in grid units')
     w: int = Field(description='Width in grid units.')
     x: int = Field(description='Horizontal start location in the grid.')
     y: int = Field(description='Vertical start location in the grid.')
+    minH: Optional[int] = Field(3, description='Minimum height in grid units.')
+    minW: Optional[int] = Field(3, description='Minimum width in grid units.')
 
 
 class ScaleEnum(str, Enum):
@@ -1321,6 +1321,31 @@ class BreakpointEnum(str, Enum):
     LG = 'lg'
     XL = 'xl'
     XXL = 'xxl'
+
+
+class Axis(StrictSettings):
+    """Configuration for a plot axis."""
+
+    title: Optional[str] = Field(description="""Custom title to show for the axis.""")
+    unit: Optional[str] = Field(
+        description="""Custom unit used for displaying the values."""
+    )
+    quantity: str = Field(
+        description="""
+        Path of the targeted quantity. Note that you can most of the features
+        JMESPath syntax here to further specify a selection of values. This
+        becomes especially useful when dealing with repeated sections or
+        statistical values.
+        """
+    )
+
+
+class Markers(StrictSettings):
+    """Configuration for plot markers."""
+
+    color: Optional[Axis] = Field(
+        description='Configures the information source and display options for the marker colors.'
+    )
 
 
 class Widget(StrictSettings):
@@ -1366,7 +1391,7 @@ class WidgetHistogram(Widget):
         description="""
         Maximum number of histogram bins. Notice that the actual number of bins
         may be smaller if there are fewer data items available.
-    """
+        """
     )
 
 
@@ -1386,19 +1411,48 @@ class WidgetScatterPlot(Widget):
     type: Literal['scatterplot'] = Field(
         description='Set as `scatterplot` to get this widget type.'
     )
-    x: str = Field(description='X-axis quantity.')
-    y: str = Field(description='Y-axis quantity.')
-    color: Optional[str] = Field(description='Quantity used for coloring points.')
+    x: Union[Axis, str] = Field(
+        description='Configures the information source and display options for the x-axis.'
+    )
+    y: Union[Axis, str] = Field(
+        description='Configures the information source and display options for the y-axis.'
+    )
+    markers: Optional[Markers] = Field(
+        description='Configures the information source and display options for the markers.'
+    )
+    color: Optional[str] = Field(
+        description="""
+        Quantity used for coloring points. Note that this field is deprecated
+        and `markers` should be used instead.
+        """
+    )
     size: int = Field(
         1000,
         description="""
-        Maximum number of data points to fetch. Notice that the actual number may be less.
+        Maximum number of entries to fetch. Notice that the actual number may be
+        more of less, depending on how many entries exist and how many of the
+        requested values each entry contains.
         """,
     )
     autorange: bool = Field(
         True,
         description='Whether to automatically set the range according to the data limits.',
     )
+
+    @root_validator(pre=True)
+    def backwards_compatibility(cls, values):
+        """Ensures backwards compatibility of x, y, and color."""
+        color = values.get('color')
+        if color is not None:
+            values['markers'] = {'color': {'quantity': color}}
+            del values['color']
+        x = values.get('x')
+        if isinstance(x, str):
+            values['x'] = {'quantity': x}
+        y = values.get('y')
+        if isinstance(y, str):
+            values['y'] = {'quantity': y}
+        return values
 
 
 # The 'discriminated union' feature of Pydantic is used here:
@@ -2527,9 +2581,17 @@ class UI(StrictSettings):
                                     'type': 'scatterplot',
                                     'autorange': True,
                                     'size': 1000,
-                                    'color': 'results.properties.optoelectronic.solar_cell.short_circuit_current_density',
-                                    'y': 'results.properties.optoelectronic.solar_cell.efficiency',
-                                    'x': 'results.properties.optoelectronic.solar_cell.open_circuit_voltage',
+                                    'x': {
+                                        'quantity': 'results.properties.optoelectronic.solar_cell.open_circuit_voltage'
+                                    },
+                                    'y': {
+                                        'quantity': 'results.properties.optoelectronic.solar_cell.efficiency'
+                                    },
+                                    'markers': {
+                                        'color': {
+                                            'quantity': 'results.properties.optoelectronic.solar_cell.short_circuit_current_density'
+                                        }
+                                    },
                                     'layout': {
                                         'xxl': {
                                             'minH': 3,
@@ -2577,9 +2639,17 @@ class UI(StrictSettings):
                                     'type': 'scatterplot',
                                     'autorange': True,
                                     'size': 1000,
-                                    'color': 'results.properties.optoelectronic.solar_cell.device_architecture',
-                                    'y': 'results.properties.optoelectronic.solar_cell.efficiency',
-                                    'x': 'results.properties.optoelectronic.solar_cell.open_circuit_voltage',
+                                    'y': {
+                                        'quantity': 'results.properties.optoelectronic.solar_cell.efficiency'
+                                    },
+                                    'x': {
+                                        'quantity': 'results.properties.optoelectronic.solar_cell.open_circuit_voltage',
+                                    },
+                                    'markers': {
+                                        'color': {
+                                            'quantity': 'results.properties.optoelectronic.solar_cell.device_architecture',
+                                        }
+                                    },
                                     'layout': {
                                         'xxl': {
                                             'minH': 3,

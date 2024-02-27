@@ -18,7 +18,7 @@
 import React, { useCallback, useMemo } from 'react'
 import clsx from 'clsx'
 import PropTypes from 'prop-types'
-import { cloneDeep } from 'lodash'
+import { cloneDeep, isNil } from 'lodash'
 import { object, string, number } from 'yup'
 import { makeStyles } from '@material-ui/core/styles'
 import { Edit } from '@material-ui/icons'
@@ -88,7 +88,7 @@ export const schemaLayout = object({
     'is-integer-or-infinity',
     // eslint-disable-next-line no-template-curly-in-string
     '${path} is not a valid integer number',
-    (value, context) => Number.isInteger(value) || value === Infinity
+    (value, context) => Number.isInteger(value) || value === Infinity || isNil(value)
   ),
   y: number().integer(),
   w: number().integer(),
@@ -108,6 +108,19 @@ export const schemaWidget = object({
   id: string().strip(),
   editing: string().strip(),
   visible: string().strip()
+})
+export const schemaAxis = object({
+  quantity: string().required(),
+  unit: string().nullable(),
+  title: string().nullable()
+})
+export const schemaAxisOptional = object({
+  quantity: string().nullable(),
+  unit: string().nullable(),
+  title: string().nullable()
+})
+export const schemaMarkers = object({
+  color: schemaAxisOptional
 })
 
 /**

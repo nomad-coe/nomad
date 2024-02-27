@@ -381,6 +381,7 @@ class DocumentType:
         section_def: Section,
         prefix: str = None,
         auto_include_subsections: bool = False,
+        repeats: bool = False,
     ):
         mappings: Dict[str, Any] = {}
 
@@ -415,6 +416,7 @@ class DocumentType:
                     reference_mapping = self._create_mapping_recursive(
                         cast(Section, quantity_def.type.target_section_def),
                         prefix=qualified_name,
+                        repeats=repeats,
                     )
                     if len(reference_mapping['properties']) > 0:
                         mappings[quantity_def.name] = reference_mapping
@@ -429,7 +431,7 @@ class DocumentType:
                         mapping.update(**elasticsearch_annotation.mapping)
 
                 self.indexed_properties.add(quantity_def)
-                self._register(elasticsearch_annotation, prefix)
+                self._register(elasticsearch_annotation, prefix, repeats)
 
         for sub_section_def in section_def.all_sub_sections.values():
             annotation = sub_section_def.m_get_annotations(Elasticsearch)
@@ -456,6 +458,7 @@ class DocumentType:
                 sub_section_def.sub_section,
                 prefix=qualified_name,
                 auto_include_subsections=continue_with_auto_include_subsections,
+                repeats=repeats or sub_section_def.repeats,
             )
 
             nested = annotation is not None and annotation.nested
@@ -512,21 +515,22 @@ class DocumentType:
         # creating the dynamic quantities, this is the only way to prevent
         # infinite recursion, but it should be made possible in the GUI + search
         # API to query arbitrarily deep into the data structure.
-        def get_all_quantities(m_def, prefix=None, branch=None):
+        def get_all_quantities(m_def, prefix=None, branch=None, repeats=False):
             if branch is None:
                 branch = set()
             for quantity_name, quantity in m_def.all_quantities.items():
                 quantity_name = f'{prefix}.{quantity_name}' if prefix else quantity_name
-                yield quantity, quantity_name
+                yield quantity, quantity_name, repeats
             for sub_section_def in m_def.all_sub_sections.values():
                 if sub_section_def in branch:
                     continue
                 new_branch = set(branch)
                 new_branch.add(sub_section_def)
                 name = sub_section_def.name
+                repeats = sub_section_def.repeats
                 full_name = f'{prefix}.{name}' if prefix else name
                 for item in get_all_quantities(
-                    sub_section_def.sub_section, full_name, new_branch
+                    sub_section_def.sub_section, full_name, new_branch, repeats
                 ):
                     yield item
 
@@ -544,7 +548,7 @@ class DocumentType:
                         section.section_cls, EntryData
                     ):
                         schema_name = section.qualified_name()
-                        for quantity_def, path in get_all_quantities(section):
+                        for quantity_def, path, repeats in get_all_quantities(section):
                             annotation = create_dynamic_quantity_annotation(
                                 quantity_def
                             )
@@ -552,13 +556,15 @@ class DocumentType:
                                 continue
                             full_name = f'data.{path}{schema_separator}{schema_name}'
                             search_quantity = SearchQuantity(
-                                annotation, qualified_name=full_name
+                                annotation, qualified_name=full_name, repeats=repeats
                             )
                             quantities_dynamic[full_name] = search_quantity
         self.quantities.update(quantities_dynamic)
 
-    def _register(self, annotation, prefix):
-        search_quantity = SearchQuantity(annotation=annotation, prefix=prefix)
+    def _register(self, annotation, prefix, repeats):
+        search_quantity = SearchQuantity(
+            annotation=annotation, prefix=prefix, repeats=repeats
+        )
         name = search_quantity.qualified_name
 
         assert (
@@ -1016,6 +1022,7 @@ class SearchQuantity:
     a qualified name that pin points its place in the sub-section hierarchy.
 
     Attributes:
+        annotation: The ES annotation that this search quantity is based on
         qualified_field:
             The full qualified name of the resulting elasticsearch field in the entry
             document type. This will be the quantity name (plus additional
@@ -1026,11 +1033,15 @@ class SearchQuantity:
         qualified_name:
             Same name as qualified_field. This will be used to address the search
             property in our APIs.
-        definition: The metainfo quantity definition that this search quantity is based on
+        repeats: Whether this quantity is inside at least one repeatable section
     """
 
     def __init__(
-        self, annotation: Elasticsearch, prefix: str = None, qualified_name: str = None
+        self,
+        annotation: Elasticsearch,
+        prefix: str = None,
+        qualified_name: str = None,
+        repeats: bool = False,
     ):
         """
         Args:
@@ -1056,6 +1067,7 @@ class SearchQuantity:
 
         self.qualified_field = qualified_field
         self.qualified_name = qualified_field
+        self.repeats = repeats
 
         if annotation.dynamic:
             self.qualified_name = qualified_name

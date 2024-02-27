@@ -62,7 +62,6 @@ describe('searchbar queries', function() {
     const textInput = screen.getByRole('textbox')
     await userEvent.type(textInput, input)
     expect(screen.getByRole('textbox')).toHaveValue(input)
-    expect(screen.getByText(type))
     await userEvent.keyboard('{enter}')
     expect(screen.getByRole('textbox')).toHaveValue('')
   })

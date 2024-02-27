@@ -957,44 +957,44 @@ window.nomadEnv = {
                 "type": "periodictable",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 13,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 11,
                     "w": 14,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 11,
                     "w": 14,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.elements",
@@ -1004,44 +1004,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 6,
                     "x": 30,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 24,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 5,
                     "x": 19,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 12,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.symmetry.space_group_symbol",
@@ -1052,44 +1052,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 6,
                     "x": 19,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 11,
                     "w": 5,
                     "x": 19,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 5,
                     "x": 19,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.structural_type",
@@ -1100,44 +1100,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 6,
                     "x": 13,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 11,
                     "w": 5,
                     "x": 14,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 5,
                     "x": 14,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.method.simulation.program_name",
@@ -1148,44 +1148,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 5,
                     "x": 25,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 24,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 5,
                     "x": 14,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 6,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.symmetry.crystal_system",
@@ -1892,44 +1892,44 @@ window.nomadEnv = {
                 "type": "periodictable",
                 "layout": {
                   "xxl": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 13,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "xl": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "lg": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "md": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "sm": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 16
+                    "y": 16,
+                    "minH": 8,
+                    "minW": 12
                   }
                 },
                 "quantity": "results.material.elements",
@@ -1939,49 +1939,57 @@ window.nomadEnv = {
                 "type": "scatterplot",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 12,
                     "x": 24,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 9,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 12,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 9,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
-                "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-                "y": "results.properties.optoelectronic.solar_cell.efficiency",
-                "color": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                "x": {
+                  "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+                },
+                "y": {
+                  "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+                  }
+                },
                 "size": 1000,
                 "autorange": true
               },
@@ -1989,49 +1997,57 @@ window.nomadEnv = {
                 "type": "scatterplot",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 11,
                     "x": 13,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 9,
                     "x": 21,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 12,
                     "x": 0,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 9,
                     "x": 9,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
-                "x": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-                "y": "results.properties.optoelectronic.solar_cell.efficiency",
-                "color": "results.properties.optoelectronic.solar_cell.device_architecture",
+                "x": {
+                  "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+                },
+                "y": {
+                  "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.optoelectronic.solar_cell.device_architecture"
+                  }
+                },
                 "size": 1000,
                 "autorange": true
               },
@@ -2039,44 +2055,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 14,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 14,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 4
+                    "y": 4,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 4,
                     "x": 0,
-                    "y": 10
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
@@ -2087,44 +2103,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 11
+                    "y": 11,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 12
+                    "y": 12,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 8,
                     "x": 10,
-                    "y": 17
+                    "y": 17,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 8,
                     "x": 4,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
@@ -2137,44 +2153,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 8,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 8,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 18,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 4,
                     "x": 0,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
@@ -2185,44 +2201,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 11
+                    "y": 11,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 10,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 4,
-                    "y": 10
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
@@ -2235,44 +2251,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 20,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 5,
                     "x": 25,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 18,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 5,
                     "x": 0,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 4,
                     "x": 4,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
@@ -2283,44 +2299,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 26,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 5,
                     "x": 20,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 12,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 5,
                     "x": 5,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 4,
                     "x": 8,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
@@ -2538,44 +2554,44 @@ window.nomadEnv = {
                 "type": "periodictable",
                 "layout": {
                   "xxl": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 5
+                    "y": 5,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "xl": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 5
+                    "y": 5,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "lg": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 6
+                    "y": 6,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "md": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 5
+                    "y": 5,
+                    "minH": 8,
+                    "minW": 12
                   },
                   "sm": {
-                    "minH": 8,
-                    "minW": 12,
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 5
+                    "y": 5,
+                    "minH": 8,
+                    "minW": 12
                   }
                 },
                 "quantity": "results.material.elements",
@@ -2585,44 +2601,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 4,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reactants.name",
@@ -2633,44 +2649,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 4,
                     "x": 8,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reaction_name",
@@ -2681,44 +2697,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 12,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 6,
                     "x": 6,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 4,
                     "x": 4,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.products.name",
@@ -2729,44 +2745,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 5
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 4,
                     "x": 8,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method",
@@ -2777,44 +2793,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 10
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 4,
                     "x": 8,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type",
@@ -2825,44 +2841,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.test_temperatures",
@@ -2875,44 +2891,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 17
+                    "y": 17,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 18
+                    "y": 18,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 9,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 22
+                    "y": 22,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.gas_hourly_space_velocity",
@@ -2925,44 +2941,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 9,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 9,
-                    "y": 13
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reactants.gas_concentration_in",
@@ -2975,44 +2991,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 9,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 17
+                    "y": 17,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.pressure",
@@ -3025,44 +3041,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 19
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 21
+                    "y": 21,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 26
+                    "y": 26,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 22
+                    "y": 22,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 33
+                    "y": 33,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.products.selectivity",
@@ -3075,44 +3091,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 22
+                    "y": 22,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 25
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 22
+                    "y": 22,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 19
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 30
+                    "y": 30,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reactants.conversion",
@@ -3125,44 +3141,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 8,
-                    "y": 25
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 29
+                    "y": 29,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 30
+                    "y": 30,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 25
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 36
+                    "y": 36,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.rates.reaction_rate",
@@ -3175,49 +3191,57 @@ window.nomadEnv = {
                 "type": "scatterplot",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 10,
                     "x": 8,
-                    "y": 19
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 9,
                     "x": 9,
-                    "y": 21
+                    "y": 21,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 9,
                     "x": 9,
-                    "y": 22
+                    "y": 22,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 9,
                     "x": 9,
-                    "y": 19
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 8,
                     "x": 9,
-                    "y": 25
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
-                "x": "results.properties.catalytic.reactivity.reactants.conversion",
-                "y": "results.properties.catalytic.reactivity.products.selectivity",
-                "color": "results.properties.catalytic.catalyst_characterization.surface_area",
+                "x": {
+                  "quantity": "results.properties.catalytic.reactivity.reactants.conversion"
+                },
+                "y": {
+                  "quantity": "results.properties.catalytic.reactivity.products.selectivity"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                  }
+                },
                 "size": 1000,
                 "autorange": true
               },
@@ -3225,44 +3249,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 25
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 29
+                    "y": 29,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 34
+                    "y": 34,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 28
+                    "y": 28,
+                    "minH": 3,
+                    "minW": 8
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 8,
                     "h": 3,
                     "w": 8,
                     "x": 0,
-                    "y": 39
+                    "y": 39,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.catalyst_characterization.surface_area",
@@ -3394,44 +3418,44 @@ window.nomadEnv = {
                 "type": "periodictable",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 10,
                     "w": 25,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 19,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 15,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 11,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 9,
                     "x": 0,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.elements",
@@ -3441,44 +3465,44 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 10,
                     "w": 11,
                     "x": 25,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 11,
                     "x": 19,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 9,
                     "w": 9,
                     "x": 15,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 8,
                     "w": 7,
                     "x": 11,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 3,
                     "x": 9,
-                    "y": 0
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.topology.sbu_type",
@@ -3489,44 +3513,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 19,
                     "x": 0,
-                    "y": 10
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 15,
                     "x": 0,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 12,
                     "x": 0,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 6,
                     "x": 0,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.topology.pore_limiting_diameter",
@@ -3539,44 +3563,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 17,
                     "x": 19,
-                    "y": 10
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 15,
                     "x": 0,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 12,
                     "x": 0,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 8
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 6,
                     "x": 6,
-                    "y": 6
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.topology.largest_cavity_diameter",
@@ -3589,44 +3613,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 19,
                     "x": 0,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 15,
                     "x": 15,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 12,
                     "x": 11,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 12
+                    "y": 12,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 6,
                     "x": 0,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.topology.accessible_surface_area",
@@ -3639,44 +3663,44 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "xxl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 6,
                     "w": 17,
                     "x": 19,
-                    "y": 16
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "xl": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 15,
                     "x": 15,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "lg": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 5,
                     "w": 12,
                     "x": 11,
-                    "y": 14
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "md": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 4,
                     "w": 9,
                     "x": 9,
-                    "y": 12
+                    "y": 12,
+                    "minH": 3,
+                    "minW": 3
                   },
                   "sm": {
-                    "minH": 3,
-                    "minW": 3,
                     "h": 3,
                     "w": 6,
                     "x": 6,
-                    "y": 9
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.topology.void_fraction",

@@ -16,7 +16,8 @@
  * limitations under the License.
  */
 
-import { Quantity } from './Quantity'
+import { Unit } from './Unit'
+import { Quantity, parseQuantity } from './Quantity'
 import { dimensionMap } from './UnitContext'
 
 test('conversion works both ways for each compatible unit', async () => {
@@ -120,4 +121,24 @@ test.each([
     valueB = valueB[0]
   }
   expect(valueA).toBeCloseTo(10 * valueB)
+})
+
+test.each([
+  ['number only', '100', undefined, true, false, {valueString: '100', value: 100}],
+  ['unit only', 'joule', null, false, true, {valueString: undefined, value: undefined, unit: new Unit('joule')}],
+  ['number and unit with dimension', '100 joule', 'energy', true, true, {valueString: '100', value: 100, unit: new Unit('joule')}],
+  ['number and unit without dimension', '100 joule', null, true, true, {valueString: '100', value: 100, unit: new Unit('joule')}],
+  ['incorrect dimension', '100 joule', 'length', true, true, {valueString: '100', value: 100, unit: new Unit('joule'), error: 'Unit "joule" is incompatible with dimension "length"'}],
+  ['missing unit', '100', 'length', true, true, {valueString: '100', value: 100, unit: undefined, error: 'Unit is required'}],
+  ['missing value', 'joule', 'energy', true, true, {valueString: undefined, value: undefined, unit: new Unit('joule'), error: 'Enter a valid numerical value'}],
+  ['mixing number and quantity #1', '1 / joule', 'energy^-1', false, false, {valueString: '1', value: 1, unit: new Unit('1 / joule')}],
+  ['mixing number and quantity #2', '100 / joule', 'energy^-1', false, false, {valueString: '100', value: 100, unit: new Unit('1 / joule')}]
+
+]
+)('test parseQuantity: %s', async (name, input, dimension, requireValue, requireUnit, expected) => {
+  const result = parseQuantity(input, dimension, requireValue, requireUnit)
+  expect(result.valueString === expected.valueString).toBe(true)
+  expect(result.value === expected.value).toBe(true)
+  expect(result.unit?.label() === expected.unit?.label()).toBe(true)
+  expect(result.error === expected.error).toBe(true)
 })

@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event'
 import { SearchContext } from './SearchContext'
 import { defaultFilterData } from './FilterRegistry'
 import { format } from 'date-fns'
-import { DType } from '../../utils'
+import { DType, parseJMESPath } from '../../utils'
 import { Unit } from '../units/Unit'
 import { ui } from '../../config'
 import { menuMap } from './menus/FilterMainMenu'
@@ -75,8 +75,8 @@ export async function expectFilterTitle(quantity, label, description, unit, disa
     )
     if (finalUnit) finalLabel = `${finalLabel} (${finalUnit})`
   }
-  await root.findByText(finalLabel)
-  expect(root.getByTooltip(finalDescription)).toBeInTheDocument()
+  await root.findAllByText(finalLabel)
+  expect(root.getAllByTooltip(finalDescription)[0]).toBeInTheDocument()
 }
 
 /**
@@ -144,10 +144,22 @@ export async function expectWidgetTerms(widget, loaded, items, prompt, root = sc
  * @param {object} widget The widget setup
  * @param {bool} loaded Whether the data is already loaded
  */
-export async function expectWidgetScatterPlot(widget, loaded, root = screen) {
+export async function expectWidgetScatterPlot(widget, loaded, colorTitle, legend, root = screen) {
     // Test immediately displayed elements
-    await expectFilterTitle(widget.x)
-    await expectFilterTitle(widget.y)
+    const {quantity: x} = parseJMESPath(widget.x.quantity)
+    const {quantity: y} = parseJMESPath(widget.y.quantity)
+    await expectFilterTitle(x)
+    await expectFilterTitle(y)
+    if (colorTitle) {
+      if (colorTitle.quantity) {
+        await expectFilterTitle(colorTitle.quantity)
+      } else {
+        await expectFilterTitle(undefined, colorTitle.title, colorTitle.unit)
+      }
+    }
+    for (const label of legend || []) {
+      root.getByText(label)
+    }
 
     // Check that placeholder disappears
     if (!loaded) {

@@ -18,15 +18,10 @@
 import React, {useState, useEffect, useMemo, useCallback, forwardRef} from 'react'
 import PropTypes from 'prop-types'
 import { makeStyles, useTheme } from '@material-ui/core'
-import { getDeep, hasWebGLSupport, parseQuantityName } from '../../utils'
-import { Quantity } from '../units/Quantity'
-import { Unit } from '../units/Unit'
-import { useUnitContext } from '../units/UnitContext'
+import { hasWebGLSupport } from '../../utils'
 import * as d3 from 'd3'
-import { isArray, isNil } from 'lodash'
 import FilterTitle from '../search/FilterTitle'
 import Plot from './Plot'
-import { useSearchContext } from '../search/SearchContext'
 import { useHistory } from 'react-router-dom'
 import { getUrl } from '../nav/Routes'
 
@@ -93,12 +88,9 @@ const PlotScatter = React.memo(forwardRef((
 {
   data,
   title,
-  x,
-  y,
-  color,
-  unitX,
-  unitY,
-  unitColor,
+  xAxis,
+  yAxis,
+  colorAxis,
   discrete,
   autorange,
   dragmode,
@@ -110,8 +102,6 @@ const PlotScatter = React.memo(forwardRef((
   const styles = useStyles()
   const theme = useTheme()
   const [finalData, setFinalData] = useState(!data ? data : undefined)
-  const {units} = useUnitContext()
-  const { filterData } = useSearchContext()
   const history = useHistory()
 
   // Side effect that runs when the data that is displayed should change. By
@@ -124,12 +114,7 @@ const PlotScatter = React.memo(forwardRef((
       return
     }
 
-    // TODO: The API should support an "exists" query that could be used to
-    // return hits that actually have the requested values. This way we would
-    // get a better match for the query size and we would not need to manually
-    // validate and check the results.
-
-    const hoverTemplate = (xLabel, yLabel, colorLabel, xUnit, yUnit, colorUnit, discrete) => {
+    const hoverTemplate = (xLabel, yLabel, colorLabel, xUnit, yUnit, colorUnit) => {
       let template = `<b>Click to go to entry page</b>` +
         `<br>` +
         `${xLabel || ''}: %{x} ${xUnit === 'dimensionless' ? '' : xUnit}<br>` +
@@ -142,44 +127,27 @@ const PlotScatter = React.memo(forwardRef((
       return template
     }
 
-    const values = data
-      .map((d) => ({
-        x: getDeep(d, parseQuantityName(x).path),
-        y: getDeep(d, parseQuantityName(y).path),
-        color: color && getDeep(d, parseQuantityName(color).path),
-        entry_id: d.entry_id
-      }))
-      // We filter out points that don't have x, y values. Also for continuous
-      // coloring the color property needs to be defined.
-      .filter((d) => !isNil(d.x) && !isNil(d.y) && (discrete || !color || !isNil(d.color)))
-
     // If dealing with a quantized color, each group is separated into it's own
     // trace which has a legend as well.
-    const unitXObj = new Unit(unitX)
-    const unitYObj = new Unit(unitY)
-    const unitColorObj = new Unit(unitColor)
     const traces = []
-    if (color && discrete) {
-      const colorArray = []
-      values.forEach((d) => {
-        if (isNil(d.color)) {
-          d.color = 'undefined'
-        } else if (isArray(d.color)) {
-          d.color = d.color.sort().join(", ")
-        }
-        colorArray.push(d.color)
-      })
-      const options = [...new Set(colorArray)]
+    if (colorAxis?.quantity && discrete) {
+      const options = [...new Set(data.color)]
       const nOptions = options.length
       const scale = d3.scaleSequential([0, 1], d3.interpolateTurbo)
       const offset = 0.1
       for (const option of options) {
-        const optionValues = values.filter((d) => d.color === option)
-        const xArray = optionValues.map((d) => new Quantity(d.x, unitXObj).toSystem(units).value())
-        const yArray = optionValues.map((d) => new Quantity(d.y, unitYObj).toSystem(units).value())
-        const unitLabelX = optionValues[0] ? new Quantity(optionValues[0].x, unitXObj).toSystem(units).label() : ''
-        const unitLabelY = optionValues[0] ? new Quantity(optionValues[0].y, unitYObj).toSystem(units).label() : ''
-        const entryIdArray = optionValues.map((d) => d.entry_id)
+        const xArray = []
+        const yArray = []
+        const colorArray = []
+        const entryIdArray = []
+        for (let i = 0; i < data.color.length; ++i) {
+          if (data.color[i] === option) {
+            xArray.push(data.x[i])
+            yArray.push(data.y[i])
+            colorArray.push(data.color[i])
+            entryIdArray.push(data.id[i])
+          }
+        }
         traces.push({
           x: xArray,
           y: yArray,
@@ -191,13 +159,12 @@ const PlotScatter = React.memo(forwardRef((
           textposition: 'top center',
           showlegend: true,
           hovertemplate: hoverTemplate(
-            filterData[x]?.label,
-            filterData[y]?.label,
-            filterData[color]?.label,
-            unitLabelX,
-            unitLabelY,
-            '',
-            true
+            xAxis.title,
+            yAxis.title,
+            colorAxis.title,
+            xAxis.unit,
+            yAxis.unit,
+            ''
           ),
           marker: {
             size: 8,
@@ -210,37 +177,29 @@ const PlotScatter = React.memo(forwardRef((
         })
       }
     // When dealing with a continuous color, display a colormap
-    } else if (color && !discrete) {
-      const xArray = values.map((d) => new Quantity(d.x, unitXObj).toSystem(units).value())
-      const yArray = values.map((d) => new Quantity(d.y, unitYObj).toSystem(units).value())
-      const colors = values.map((d) => new Quantity(d.color, unitColorObj).toSystem(units).value())
-      const entryIdArray = values.map((d) => d.entry_id)
-      const unitLabelX = values[0] ? new Quantity(values[0].x, unitXObj).toSystem(units).label() : ''
-      const unitLabelY = values[0] ? new Quantity(values[0].y, unitYObj).toSystem(units).label() : ''
-      const unitLabelColors = values[0] ? new Quantity(values[0].color, unitColorObj).toSystem(units).label() : ''
+    } else if (colorAxis?.quantity && !discrete) {
       traces.push({
-        x: xArray,
-        y: yArray,
-        color: colors,
-        text: colors,
-        entry_id: entryIdArray,
-        name: "Test",
+        x: data.x,
+        y: data.y,
+        color: data.color,
+        text: data.color,
+        entry_id: data.id,
         mode: 'markers',
         type: 'scattergl',
         textposition: 'top center',
         showlegend: false,
         hoverinfo: "text",
         hovertemplate: hoverTemplate(
-          filterData[x]?.label,
-          filterData[y]?.label,
-          filterData[color]?.label,
-          unitLabelX,
-          unitLabelY,
-          unitLabelColors
+          xAxis.title,
+          yAxis.title,
+          colorAxis.title,
+          xAxis.unit,
+          yAxis.unit,
+          colorAxis.unit
         ),
         marker: {
           size: 8,
-          color: colors,
+          color: data.color,
           colorscale: 'YlGnBu',
           line: {
             color: theme.palette.grey[800],
@@ -259,26 +218,21 @@ const PlotScatter = React.memo(forwardRef((
     // When color is not set, all points are displayed in a single plot with
     // primary theme color.
     } else {
-      const xArray = values.map((d) => new Quantity(d.x, unitXObj).toSystem(units).value())
-      const yArray = values.map((d) => new Quantity(d.y, unitYObj).toSystem(units).value())
-      const entryIdArray = values.map((d) => d.entry_id)
-      const unitLabelX = values[0] ? new Quantity(values[0].x, unitXObj).toSystem(units).label() : ''
-      const unitLabelY = values[0] ? new Quantity(values[0].y, unitYObj).toSystem(units).label() : ''
       traces.push({
-        x: xArray,
-        y: yArray,
-        entry_id: entryIdArray,
+        x: data.x,
+        y: data.y,
+        entry_id: data.id,
         mode: 'markers',
         type: 'scattergl',
         textposition: 'top center',
         showlegend: false,
         hoverinfo: "text",
         hovertemplate: hoverTemplate(
-          filterData[x]?.label,
-          filterData[y]?.label,
+          xAxis.title,
+          yAxis.title,
           '',
-          unitLabelX,
-          unitLabelY,
+          xAxis.unit,
+          yAxis.unit,
           ''
         ),
         marker: {
@@ -292,7 +246,7 @@ const PlotScatter = React.memo(forwardRef((
       })
     }
     setFinalData(traces)
-  }, [data, x, y, color, discrete, theme, units, unitX, unitY, unitColor, filterData])
+  }, [colorAxis?.quantity, colorAxis?.title, colorAxis?.unit, data, discrete, theme, xAxis.title, xAxis.unit, yAxis.title, yAxis.unit])
 
   const layout = useMemo(() => {
     return {
@@ -356,7 +310,13 @@ const PlotScatter = React.memo(forwardRef((
 
   return <div className={styles.root}>
     <div className={styles.yaxis}>
-      <FilterTitle quantity={y} variant="caption" rotation="up"/>
+      <FilterTitle
+        quantity={yAxis.quantity}
+        label={yAxis.title}
+        unit={yAxis.unit}
+        variant="caption"
+        rotation="up"
+      />
     </div>
     <div className={styles.plot}>
       <Plot
@@ -376,13 +336,20 @@ const PlotScatter = React.memo(forwardRef((
     </div>
     <div className={styles.square} />
     <div className={styles.xaxis}>
-      <FilterTitle quantity={x} variant="caption"/>
+      <FilterTitle
+        quantity={xAxis.quantity}
+        label={xAxis.title}
+        unit={xAxis.unit}
+        variant="caption"
+      />
     </div>
-    {!discrete && color &&
+    {!discrete && colorAxis &&
       <div className={styles.color}>
         <FilterTitle
           rotation="down"
-          quantity={color}
+          quantity={colorAxis.quantity}
+          unit={colorAxis.unit}
+          label={colorAxis.title}
           description=""
           variant="caption"
         />
@@ -392,14 +359,11 @@ const PlotScatter = React.memo(forwardRef((
 }))
 
 PlotScatter.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.object),
+  data: PropTypes.object,
   title: PropTypes.string,
-  x: PropTypes.string,
-  y: PropTypes.string,
-  color: PropTypes.string,
-  unitX: PropTypes.string,
-  unitY: PropTypes.string,
-  unitColor: PropTypes.string,
+  xAxis: PropTypes.object, // Contains x-axis settings
+  yAxis: PropTypes.object, // Contains y-axis settings
+  colorAxis: PropTypes.object, // Contains colorbar settings
   discrete: PropTypes.bool,
   autorange: PropTypes.bool,
   dragmode: PropTypes.string,

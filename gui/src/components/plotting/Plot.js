@@ -481,6 +481,14 @@ const Plot = React.memo(forwardRef(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layoutSubject, fixedMargins, canvasNode, firstRender, data, finalConfig, finalLayout, sizeReady, canvasRef, onRelayout, onRelayouting, fixMargins, getLayout])
 
+  // If the callbacks change, we need to update them in the canvas as well.
+  // TODO: Do this for other callbacks as well.
+  useEffect(() => {
+    if (onSelected && canvasRef?.current?.on) {
+      canvasRef.current.on('plotly_selected', onSelected)
+    }
+  }, [onSelected, canvasRef])
+
   // For resetting the view.
   const handleReset = useCallback(() => {
     if (canvasRef?.current) {
