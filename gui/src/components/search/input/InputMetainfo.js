@@ -20,98 +20,29 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
-  useRef,
   useContext,
-  createContext
+  createContext,
+  useRef
 } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import { Tooltip, List, ListItemText, ListSubheader } from '@material-ui/core'
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline'
-import { getSchemaAbbreviation, getSuggestions } from '../../../utils'
+import { getSchemaAbbreviation, getSuggestions, parseJMESPath } from '../../../utils'
 import { useSearchContext } from '../SearchContext'
 import { VariableSizeList } from 'react-window'
 import { InputText } from './InputText'
 
 /**
- * A metainfo option shown as a suggestion.
+ * Wrapper around InputText that is specialized in showing metainfo options. The
+ * allowed options are controlled.
  */
-export const useMetainfoOptionStyles = makeStyles(theme => ({
-  optionText: {
-    flexGrow: 1,
-    overflowX: 'scroll',
-    '&::-webkit-scrollbar': {
-      display: 'none'
-    },
-    '-ms-overflow-style': 'none',
-    scrollbarWidth: 'none'
-  },
-  noWrap: {
-    whiteSpace: 'nowrap'
-  },
-  option: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'stretch',
-    // The description icon is hidden until the item is hovered. It is not
-    // removed from the document with "display: none" in order for the hover to
-    // not change the layout which may cause other elements to shift around.
-    '& .description': {
-      visibility: "hidden",
-      marginRight: theme.spacing(-0.5),
-      display: 'flex',
-      width: theme.spacing(5),
-      marginLeft: theme.spacing(1),
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    '&:hover .description': {
-      visibility: "visible"
-    }
-  }
-}))
-export const MetainfoOption = ({id, options}) => {
-  const styles = useMetainfoOptionStyles()
-  const option = options[id]
-  const primary = option.primary || option.definition?.quantity || option.key
-  const dtype = option.dtype || option.definition?.dtype
-  const schema = getSchemaAbbreviation(option.schema || option.definition?.schema)
-  const secondary = option.secondary || ((dtype || schema)
-    ? `${dtype} ${schema ? `| ${schema}` : ''}`
-    : null)
-  const description = option.description || option.definition?.description
-
-  return <div className={styles.option}>
-    <ListItemText
-      primary={primary}
-      secondary={secondary}
-      className={styles.optionText}
-      primaryTypographyProps={{className: styles.noWrap}}
-      secondaryTypographyProps={{className: styles.noWrap}}
-    />
-    {description &&
-      <Tooltip title={description || ''}>
-        <div className="description">
-          <HelpOutlineIcon fontSize="small" color="action"/>
-        </div>
-      </Tooltip>
-    }
-  </div>
-}
-
-MetainfoOption.propTypes = {
-  id: PropTypes.string,
-  options: PropTypes.object
-}
-
-/**
- * Wrapper around InputText that is specialized in showing metainfo options.
- */
-export const InputMetainfo = React.memo(({
+export const InputMetainfoControlled = React.memo(({
   label,
   value,
   options,
   error,
+  validate,
   onChange,
   onSelect,
   onAccept,
@@ -122,7 +53,9 @@ export const InputMetainfo = React.memo(({
   InputProps,
   PaperComponent,
   group,
-  loading
+  loading,
+  disableValidation,
+  disableValidateOnSelect
 }) => {
   // Predefine all option objects, all option paths and also pre-tokenize the
   // options for faster matching.
@@ -133,32 +66,35 @@ export const InputMetainfo = React.memo(({
     return { keys, keysSet, filter }
   }, [options])
 
+  const textProps = useMemo(() => {
+    return {
+      label,
+      ...TextFieldProps
+    }
+  }, [label, TextFieldProps])
+
   // Used to validate the input and raise errors
-  const validate = useCallback((value) => {
+  const validateFinal = useCallback((value) => {
+    if (disableValidation) {
+      return {valid: true, error: undefined}
+    }
     const empty = !value || value.length === 0
     if (optional && empty) {
       return {valid: true, error: undefined}
     } else if (empty) {
-      return {valid: false, error: 'Please specify a value.'}
+      return {valid: false, error: 'Please specify a value'}
+    }
+    if (validate) {
+      return validate(value)
     } else if (!(keysSet.has(value))) {
-      return {valid: false, error: 'Invalid value for this field.'}
+      return {valid: false, error: 'Invalid value for this field'}
     }
     return {valid: true, error: undefined}
-  }, [keysSet, optional])
+  }, [validate, keysSet, optional, disableValidation])
 
-  // Handles the final acceptance of a value
-  const handleAccept = useCallback((key) => {
-    const {valid, error} = validate(key)
-    if (valid) {
-      onAccept && onAccept(key, options[key])
-    } else {
-      onError && onError(error)
-    }
-  }, [validate, onError, onAccept, options])
-
-  // Handles the final acceptance of a value
+  // Handles the selectance of a suggested value
   const handleSelect = useCallback((key) => {
-    onSelect && onSelect(key, options[key])
+    onSelect?.(key, options[key])
   }, [onSelect, options])
 
   // Used to filter the shown options based on input
@@ -170,16 +106,15 @@ export const InputMetainfo = React.memo(({
 
   return <InputText
     value={value || null}
-    label={label}
     error={error}
     onChange={onChange}
     onSelect={handleSelect}
-    onAccept={handleAccept}
+    onAccept={onAccept}
     onBlur={onBlur}
     onError={onError}
     suggestions={keys}
     ListboxComponent={ListboxMetainfo}
-    TextFieldProps={TextFieldProps}
+    TextFieldProps={textProps}
     PaperComponent={PaperComponent}
     InputProps={InputProps}
     groupBy={group && ((key) => options?.[key]?.group)}
@@ -188,10 +123,12 @@ export const InputMetainfo = React.memo(({
     filterOptions={filterOptions}
     loading={loading}
     renderOption={(id) => <MetainfoOption id={id} options={options} />}
+    validate={validateFinal}
+    disableValidateOnSelect={disableValidateOnSelect}
   />
 })
 
-InputMetainfo.propTypes = {
+InputMetainfoControlled.propTypes = {
   label: PropTypes.string,
   value: PropTypes.string,
   options: PropTypes.objectOf(PropTypes.shape({
@@ -205,6 +142,7 @@ InputMetainfo.propTypes = {
     group: PropTypes.string // Optional group information
   })),
   error: PropTypes.string,
+  validate: PropTypes.func, // Optional custom validation function
   onChange: PropTypes.func,
   onSelect: PropTypes.func,
   onAccept: PropTypes.func,
@@ -215,79 +153,104 @@ InputMetainfo.propTypes = {
   TextFieldProps: PropTypes.object,
   InputProps: PropTypes.object,
   PaperComponent: PropTypes.any,
-  loading: PropTypes.bool
+  loading: PropTypes.bool,
+  disableValidation: PropTypes.bool,
+  disableValidateOnSelect: PropTypes.bool
 }
 
-InputMetainfo.defaultProps = {
-  TextFieldProps: {label: "quantity"}
+InputMetainfoControlled.defaultProps = {
+  label: "quantity"
 }
 
 /**
- * Wrapper around InputMetainfo which automatically shows suggestions and only
- * accepts metainfo that exist in the current search context.
+ * Wrapper around InputText that is specialized in showing metainfo options. The
+ * allowed options are uncontrolled: they are specified by the current
+ * SearchContext.
  */
-export const InputSearchMetainfo = React.memo(({
-  value,
-  label,
-  error,
-  onChange,
-  onSelect,
-  onAccept,
-  onError,
+export const InputMetainfo = React.memo(({
   dtypes,
   dtypesRepeatable,
-  optional,
-  disableNonAggregatable
+  disableNonAggregatable,
+  ...rest
 }) => {
   const { filterData } = useSearchContext()
 
   // Fetch the available metainfo names and create options that are compatible
   // with InputMetainfo.
-  const suggestions = useMemo(() => {
-    const suggestions = Object.fromEntries(
-      Object.entries(filterData)
-        .filter(([key, data]) => {
-          if (disableNonAggregatable && !data.aggregatable) return false
-          const dtype = data?.dtype
-          return data?.repeats
-            ? dtypesRepeatable?.has(dtype)
-            : dtypes?.has(dtype)
-        })
-        .map(([key, data]) => [key, {
-          key: key,
-          definition: data
-      }])
-    )
-    return suggestions
+  const options = useMemo(() => {
+    return getMetainfoOptions(filterData, dtypes, dtypesRepeatable, disableNonAggregatable)
   }, [filterData, dtypes, dtypesRepeatable, disableNonAggregatable])
 
-  return <InputMetainfo
-    options={suggestions}
-    value={value}
-    label={label}
-    error={error}
-    onChange={onChange}
-    onSelect={onSelect}
-    onAccept={onAccept}
-    onError={onError}
-    optional={optional}
+  return <InputMetainfoControlled
+    options={options}
+    {...rest}
   />
 })
 
-InputSearchMetainfo.propTypes = {
-  label: PropTypes.string,
-  value: PropTypes.string,
-  error: PropTypes.string,
-  onChange: PropTypes.func,
-  onSelect: PropTypes.func,
-  onAccept: PropTypes.func,
-  onError: PropTypes.func,
+InputMetainfo.propTypes = {
   /* List of allowed data types for non-repeatable quantities. */
   dtypes: PropTypes.object,
   /* List of allowed data types for repeatable quantities. */
   dtypesRepeatable: PropTypes.object,
-  /* Whether the value is optional */
-  optional: PropTypes.bool,
+  /* Whether non-aggregatable values are excluded */
+  disableNonAggregatable: PropTypes.bool
+}
+
+/**
+ * Wrapper around InputText which accepts JMESPath syntax for quantities. The
+ * allowed quantities are uncontrolled: they are specified by the current
+ * SearchContext.
+ */
+export const InputJMESPath = React.memo(React.forwardRef(({
+  dtypes,
+  dtypesRepeatable,
+  disableNonAggregatable,
+  ...rest
+}, ref) => {
+  const { filterData } = useSearchContext()
+
+  // Fetch the available metainfo names and create options that are compatible
+  // with InputMetainfo.
+  const [options, keysSet] = useMemo(() => {
+    const options = getMetainfoOptions(filterData, dtypes, dtypesRepeatable, disableNonAggregatable)
+    const keysSet = new Set(Object.keys(options))
+    return [options, keysSet]
+  }, [filterData, dtypes, dtypesRepeatable, disableNonAggregatable])
+
+  // Used to validate the JMESPath input
+  const validate = useCallback((value) => {
+    const {quantity, path, extras, error: errorParse, schema} = parseJMESPath(value)
+    if (errorParse) {
+      return {valid: false, error: 'Invalid JMESPath query, please check your syntax.'}
+    }
+    if (!(keysSet.has(quantity))) {
+      return {valid: false, error: `The quantity "${quantity}" is not available.`}
+    }
+    for (const extra of extras) {
+      if (!filterData[extra]) {
+        return {valid: false, error: `The quantity "${extra}" is not available.`}
+      }
+    }
+    if (filterData[quantity].repeats_section && quantity === path + schema) {
+      return {valid: false, error: `The quantity "${quantity}" is contained in at least one repeatable section. Please use JMESPath syntax to select one or more target sections.`}
+    }
+    return {valid: true, error: undefined}
+  }, [keysSet, filterData])
+
+  return <InputMetainfoControlled
+    options={options}
+    validate={validate}
+    disableValidateOnSelect
+    ref={ref}
+    {...rest}
+  />
+}))
+
+InputJMESPath.propTypes = {
+  /* List of allowed data types for non-repeatable quantities. */
+  dtypes: PropTypes.object,
+  /* List of allowed data types for repeatable quantities. */
+  dtypesRepeatable: PropTypes.object,
   /* Whether non-aggregatable values are excluded */
   disableNonAggregatable: PropTypes.bool
 }
@@ -375,4 +338,100 @@ export function renderRow({ data, index, style }) {
       top: style.top + LISTBOX_PADDING
     }
   })
+}
+
+/* A metainfo option shown as a suggestion.
+ */
+export const useMetainfoOptionStyles = makeStyles(theme => ({
+  optionText: {
+    flexGrow: 1,
+    overflowX: 'scroll',
+    '&::-webkit-scrollbar': {
+      display: 'none'
+    },
+    '-ms-overflow-style': 'none',
+    scrollbarWidth: 'none'
+  },
+  noWrap: {
+    whiteSpace: 'nowrap'
+  },
+  option: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'stretch',
+    // The description icon is hidden until the item is hovered. It is not
+    // removed from the document with "display: none" in order for the hover to
+    // not change the layout which may cause other elements to shift around.
+    '& .description': {
+      visibility: "hidden",
+      marginRight: theme.spacing(-0.5),
+      display: 'flex',
+      width: theme.spacing(5),
+      marginLeft: theme.spacing(1),
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    '&:hover .description': {
+      visibility: "visible"
+    }
+  }
+}))
+export const MetainfoOption = ({id, options}) => {
+  const styles = useMetainfoOptionStyles()
+  const option = options[id]
+  const primary = option.primary || option.definition?.quantity || option.key
+  const dtype = option.dtype || option.definition?.dtype
+  const schema = getSchemaAbbreviation(option.schema || option.definition?.schema)
+  const secondary = option.secondary || ((dtype || schema)
+    ? `${dtype} ${schema ? `| ${schema}` : ''}`
+    : null)
+  const description = option.description || option.definition?.description
+
+  return <div className={styles.option}>
+    <ListItemText
+      primary={primary}
+      secondary={secondary}
+      className={styles.optionText}
+      primaryTypographyProps={{className: styles.noWrap}}
+      secondaryTypographyProps={{className: styles.noWrap}}
+    />
+    {description &&
+      <Tooltip title={description || ''}>
+        <div className="description">
+          <HelpOutlineIcon fontSize="small" color="action"/>
+        </div>
+      </Tooltip>
+    }
+  </div>
+}
+
+MetainfoOption.propTypes = {
+  id: PropTypes.string,
+  options: PropTypes.object
+}
+
+/**
+ * Used to filter a set of filterData according to the given filtering options.
+ *
+ * @param {*} filterData The filterData to filter
+ * @param {*} dtypes Included data types as a set
+ * @param {*} dtypesRepeatable  Included repeatabel data types as a set
+ * @param {*} disableNonAggregatable  Whether to filter out non-aggregatable filters
+ * @returns Object containing the filtered filters
+ */
+function getMetainfoOptions(filterData, dtypes, dtypesRepeatable, disableNonAggregatable) {
+  return Object.fromEntries(
+    Object.entries(filterData)
+      .filter(([key, data]) => {
+        if (disableNonAggregatable && !data.aggregatable) return false
+        const dtype = data?.dtype
+        return data?.repeats
+          ? dtypesRepeatable?.has(dtype)
+          : dtypes?.has(dtype)
+      })
+      .map(([key, data]) => [key, {
+        key: key,
+        definition: data
+    }])
+  )
 }

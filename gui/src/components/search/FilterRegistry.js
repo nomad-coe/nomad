@@ -257,11 +257,23 @@ registerFilter(
   ]
 )
 registerFilter(
+  'results.material.elemental_composition',
+  idStructure,
+  nestedQuantity,
+  [
+    {name: 'element', ...termQuantity},
+    {name: 'atomic_fraction', ...numberHistogramQuantity},
+    {name: 'mass_fraction', ...numberHistogramQuantity}
+  ]
+)
+registerFilter(
   'results.material.topology.elemental_composition',
   idStructure,
   nestedQuantity,
   [
-    {name: 'element', ...termQuantity}
+    {name: 'element', ...termQuantity},
+    {name: 'atomic_fraction', ...numberHistogramQuantity},
+    {name: 'mass_fraction', ...numberHistogramQuantity}
   ]
 )
 registerFilter(
@@ -441,6 +453,16 @@ registerFilter(
     {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
   ]
 )
+registerFilter(
+  'results.properties.electronic.band_gap',
+  idElectronic,
+  nestedQuantity,
+  [
+    {name: 'type', ...termQuantity},
+    {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
+  ]
+)
+registerFilter('results.properties.electronic.band_gap.provenance.label', idElectronic, termQuantity)
 registerFilter(
   'results.properties.optoelectronic.solar_cell',
   idSolarCell,

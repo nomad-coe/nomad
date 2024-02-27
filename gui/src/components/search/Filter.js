@@ -125,20 +125,20 @@ export class Filter {
     this.quantity = params?.quantity || def?.quantity
     this.schema = params?.schema || def?.schema
 
-    function getRepeats(def) {
+    function getRepeatsSection(def) {
+      return isNil(def?.repeats)
+        ? false
+        : def.repeats
+    }
+    function getRepeatsQuantity(def) {
       if (!isEmpty(def?.shape)) return true
-      if (!isNil(def?.repeats)) {
-        return def.repeats
-      } else if (parent) {
-        return getRepeats(parent)
-      }
-      return false
+      return getRepeatsSection(def)
     }
 
     this.dtype = params?.dtype || getDatatype(def)
     this.description = params?.description || def?.description
     this.unit = params?.unit || def?.unit
-    this.dimension = def?.unit && new Unit(def?.unit).dimension()
+    this.dimension = def?.unit ? new Unit(def?.unit).dimension() : 'dimensionless'
     this.label = params?.label || formatLabel(this.name)
     let parentName
     if (parent) {
@@ -166,7 +166,9 @@ export class Filter {
     this.aggs = params?.aggs
     this.requestQuantity = params?.requestQuantity
     this.nested = params?.nested === undefined ? false : params?.nested
-    this.repeats = params?.repeats === undefined ? getRepeats(def) : params?.repeats
+    this.repeats = params?.repeats === undefined ? getRepeatsQuantity(def) : params?.repeats
+    this.repeats_section = getRepeatsSection(def)
+    this.scalar = isEmpty(def?.shape)
     this.global = params?.global === undefined ? false : params?.global
     this.section = !isNil(def?.nested)
     this.customSerialization = !!params?.serializerExact

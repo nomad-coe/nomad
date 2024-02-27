@@ -20,7 +20,18 @@ class MySection(MSection):
     name = Quantity(
         type=str,
         a_eln=ELNAnnotation(component=ELNComponentEnum.StringEditQuantity),
-        description='For testing subsection quantity.',
+        description='For testing subsection string quantity.',
+    )
+    count = Quantity(
+        type=int,
+        a_eln=ELNAnnotation(component=ELNComponentEnum.NumberEditQuantity),
+        description='For testing subsection integer quantity.',
+    )
+    frequency = Quantity(
+        type=float,
+        unit='1/s',
+        a_eln=ELNAnnotation(component=ELNComponentEnum.NumberEditQuantity),
+        description='For testing subsection floating point quantity.',
     )
 
 

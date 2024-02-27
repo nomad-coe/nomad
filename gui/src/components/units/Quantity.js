@@ -16,8 +16,9 @@
  * limitations under the License.
  */
 
-import {isNumber, isArray, isNil} from 'lodash'
-import {Unit} from './Unit'
+import {isNumber, isArray} from 'lodash'
+import {Unit, normalizeExpression} from './Unit'
+import { Unit as UnitMathJS } from 'mathjs'
 import {mapDeep} from '../../utils'
 
 /**
@@ -35,7 +36,7 @@ export class Quantity {
   constructor(value, unit, normalized = false) {
     this.unit = new Unit(unit)
     if (!isNumber(value) && !isArray(value)) {
-      throw Error('Please provide the the value as a number, or as a multidimensional array of numbers.')
+      throw Error('Please provide the value as a number, or as a multidimensional array of numbers.')
     }
 
     // This attribute stores the quantity value in 'normalized' form that is
@@ -76,7 +77,7 @@ export class Quantity {
     return this.unit.label()
   }
 
-  dimension(base) {
+  dimension(base = false) {
     return this.unit.dimension(base)
   }
 
@@ -96,7 +97,7 @@ export class Quantity {
    * Checks if the given Quantity is equal to this one.
    * @param {Quantity} quantity Quantity to compare to
    * @returns boolean Whether quantities are equal
-   */
+    */
   equal(quantity) {
     if (quantity instanceof Quantity) {
       return this.normalized_value === quantity.normalized_value && this.unit.equalBase(quantity.unit)
@@ -110,44 +111,77 @@ export class Quantity {
  * Convenience function for parsing value and unit information from a string.
  *
  * @param {string} input The input string to parse
- * @param {boolean} requireValue Whether a value is required.
- * @param {boolean} requireUnit Whether a unit is required.
- * @param {string} dimension Dimension for the unit. Nil value means a
- * dimensionless unit.
+ * @param {string} dimension Dimension for the unit. Defaults to 'dimensionless'
+ *    if not specified. If you want to disable dimension checks, use null.
+ * @param {boolean} requireValue Whether an explicit numeric value is required at the start of the input.
+ * @param {boolean} requireUnit Whether an explicit unit in the input is required at the end of the input.
  * @returns Object containing the following properties, if available:
  *  - value: Numerical value as a number
- *  - valueString: Numerical value as a string
+ *  - valueString: The original number input as a string. Note that this can only return
+ *    the number when it is used as a prefix, and does not work with numbers that are
+ *    part of a complex expression, e.g. 300 eV / 1000 K.
  *  - unit: Unit instance
- *  - unitString: Unit as a string
  *  - error: Error messsage
  */
-export function parseQuantity(input, requireValue = true, requireUnit = true, dimension = undefined) {
+export function parseQuantity(input, dimension = 'dimensionless', requireValue = false, requireUnit = false) {
   input = input.trim()
-  const valueString = input.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)?.[0]
-  if (requireValue && isNil(valueString)) {
-    return {error: 'Enter a valid numerical value'}
+  let error
+  let value
+  let valueString = input.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)?.[0]
+  const unitString = input.substring(valueString.length)?.trim() || ''
+
+  // Check value if required
+  if (valueString === '') {
+    valueString = undefined
+    value = undefined
+    if (requireValue) {
+       error = 'Enter a valid numerical value'
+    }
+  } else {
+    value = Number(valueString)
   }
-  const value = Number(valueString)
-  const unitString = input.substring(valueString.length).trim()
-  const dim = isNil(dimension) ? 'dimensionless' : dimension
-  if (unitString === '' && dim !== 'dimensionless' && requireUnit) {
-    return {value, valueString, unitString, error: 'Unit is required'}
+
+  // Check unit if required
+  if (requireUnit) {
+    if (unitString === '') {
+      return {valueString, value, error: 'Unit is required'}
+    }
   }
-  if (unitString === '' && !requireUnit) {
-    return {value, valueString, unitString}
-  }
-  if (dim === 'dimensionless' && unitString !== '') {
-    return {value, valueString, unitString, error: 'Enter a numerical value without units'}
-  }
-  let unit
+
+  // Try to parse with MathJS: it can extract the unit even when it is mixed
+  // with numbers
+  input = normalizeExpression(input)
+  let unitMathJS
   try {
-    unit = new Unit(dim === 'dimensionless' ? 'dimensionless' : input)
-  } catch {
-    return {valueString, value, unitString, error: `Unit "${unitString}" is not available`}
+    unitMathJS = UnitMathJS.parse(input, {allowNoUnits: true})
+  } catch (e) {
+    return {valueString, error: e.message}
   }
-  const inputDim = unit.dimension(false)
-  if (inputDim !== dimension) {
-    return {valueString, value, unitString, unit, error: `Unit "${unitString}" has incompatible dimension`}
+
+  let unit
+  unitMathJS.value = null
+  try {
+    unit = new Unit(unitMathJS)
+  } catch (e) {
+    error = e.msg
   }
-  return {value, valueString, unit, unitString}
+  if (error) {
+    return {valueString, value, unit, error}
+  }
+
+  // If unit is not required and it is dimensionless, return without new unit
+  if (!requireUnit && unit.dimension() === 'dimensionless') {
+    return {valueString, value}
+  }
+
+  // TODO: This check is not enough: the input may be compatible after the base
+  // units are compared.
+  if (dimension !== null) {
+    const inputDim = unit.dimension()
+    if (inputDim !== dimension) {
+      error = `Unit "${unit.label(false)}" is incompatible with dimension "${dimension}"`
+    }
+  }
+
+  return {value, valueString, unit, error}
 }

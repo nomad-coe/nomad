@@ -19,10 +19,12 @@ import {isNil, has, isString} from 'lodash'
 import {Unit as UnitMathJS} from 'mathjs'
 import {unitToAbbreviationMap} from './UnitContext'
 
+export const DIMENSIONLESS = 'dimensionless'
+
 /**
  * Helper class for persisting unit information.
  *
- * Builds upon the math.js Unit class system, but adds additional functionality,
+ * Builds upon the math.js Unit class, but adds additional functionality,
  * including:
  *  - Ability to convert to any unit system given as an argument
  *  - Abbreviated labels for dense formatting
@@ -33,7 +35,7 @@ export class Unit {
    */
   constructor(unit) {
     if (isString(unit)) {
-      unit = this.normalizeExpression(unit)
+      unit = normalizeExpression(unit)
       unit = new UnitMathJS(undefined, unit)
     } else if (unit instanceof Unit) {
       unit = unit.mathjsUnit.clone()
@@ -48,32 +50,13 @@ export class Unit {
   }
 
   /**
-   * Normalizes the given expression into a format that can be parsed by MathJS.
-   *
-   * This function will replace the Pint power symbol of '**' with the symbol
-   * '^' used by MathJS. In addition, we convert any 'delta'-units (see:
-   * https://pint.readthedocs.io/en/stable/nonmult.html) into their regular
-   * counterparts: MathJS will automatically ignore the offset when using
-   * non-multiplicative units in expressions.
-   *
-   * @param {str} expression Expression
-   * @returns string Expression in normalized form
-   */
-  normalizeExpression(expression) {
-    let normalized = expression.replace(/\*\*/g, '^')
-    normalized = normalized.replace(/delta_/g, '')
-    normalized = normalized.replace(/Δ/g, '')
-    return normalized
-  }
-
-  /**
    * Checks if the given unit has the same base dimensions as this one.
    * @param {str | Unit} unit Unit to compare to
    * @returns boolean Whether the units have the same base dimensions.
    */
   equalBase(unit) {
     if (isString(unit)) {
-      unit = this.normalizeExpression(unit)
+      unit = normalizeExpression(unit)
       unit = new Unit(unit)
     }
     return this.mathjsUnit.equalBase(unit.mathjsUnit)
@@ -101,7 +84,7 @@ export class Unit {
     let nDen = 0
 
     function getName(unit) {
-      if (unit.base.key === 'dimensionless') return ''
+      if (unit.base.key === DIMENSIONLESS) return ''
       return abbreviate
         ? unitToAbbreviationMap?.[unit.name] || unit.name
         : unit.name
@@ -207,7 +190,7 @@ export class Unit {
    * the original unit dimensions are used.
    * @returns The dimensionality as a string, e.g. 'time^2 energy mass^-2'
    */
-  dimension(base = true) {
+  dimension(base = false) {
     const dimensions = Object.keys(UnitMathJS.BASE_UNITS)
     const dimensionMap = Object.fromEntries(dimensions.map(name => [name, 0]))
 
@@ -227,9 +210,10 @@ export class Unit {
         }
       }
     }
-    return Object.entries(dimensionMap)
-      .filter(d => d[1] !== 0)
-      .map(d => `${d[0]}${((d[1] < 0 || d[1] > 1) && `^${d[1]}`) || ''}`).join(' ')
+    const dims = Object.entries(dimensionMap).filter(d => d[1] !== 0)
+    return dims.length > 0
+      ? dims.map(d => `${d[0]}${((d[1] < 0 || d[1] > 1) && `^${d[1]}`) || ''}`).join(' ')
+      : DIMENSIONLESS
   }
 
   /**
@@ -240,7 +224,7 @@ export class Unit {
    */
   to(unit) {
     if (isString(unit)) {
-      unit = this.normalizeExpression(unit)
+      unit = normalizeExpression(unit)
     } else if (unit instanceof Unit) {
       unit = unit.label()
     } else {
@@ -251,7 +235,7 @@ export class Unit {
     // to parse units like 1/<unit> as Math.js units which have values, and then
     // will raise an exception when converting between valueless and valued
     // unit. The workaround is to explicitly define a valueless unit.
-    unit = new UnitMathJS(undefined, unit)
+    unit = new UnitMathJS(undefined, unit === '' ? DIMENSIONLESS : unit)
     return new Unit(this.mathjsUnit.to(unit))
   }
 
@@ -361,4 +345,23 @@ export class Unit {
     ret.units = proposedUnitList
     return new Unit(ret)
   }
+}
+
+/**
+ * Normalizes the given expression into a format that can be parsed by MathJS.
+ *
+ * This function will replace the Pint power symbol of '**' with the symbol
+ * '^' used by MathJS. In addition, we convert any 'delta'-units (see:
+ * https://pint.readthedocs.io/en/stable/nonmult.html) into their regular
+ * counterparts: MathJS will automatically ignore the offset when using
+ * non-multiplicative units in expressions.
+ *
+ * @param {str} expression Expression
+ * @returns string Expression in normalized form
+ */
+export function normalizeExpression(expression) {
+  let normalized = expression.replace(/\*\*/g, '^')
+  normalized = normalized.replace(/delta_/g, '')
+  normalized = normalized.replace(/Δ/g, '')
+  return normalized
 }

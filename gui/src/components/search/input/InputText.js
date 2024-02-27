@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useCallback, useState, useMemo, useRef } from 'react'
+import React, { useCallback, useState, useMemo, useRef, useEffect } from 'react'
 import { makeStyles, useTheme } from '@material-ui/core/styles'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
@@ -119,7 +119,9 @@ export const InputText = React.memo(({
   InputProps,
   PaperComponent,
   disableClearable,
-  disableAcceptOnBlur
+  disableAcceptOnBlur,
+  validate,
+  disableValidateOnSelect
 }) => {
   const theme = useTheme()
   const styles = useInputTextStyles({classes: classes, theme: theme})
@@ -137,6 +139,36 @@ export const InputText = React.memo(({
     setOpen(false)
   }, [onChange, onError])
 
+  const handleAccept = useCallback((value) => {
+    const {valid, error, data} = validate ? validate(value) : {valid: true, error: undefined, data: undefined}
+    if (valid) {
+      onAccept?.(value && value.trim(), data)
+    } else {
+      onError?.(error)
+    }
+  }, [onAccept, validate, onError])
+
+  // Validate the initial value if it is non-empty.
+  useEffect(() => {
+    if (!(isNil(value) || value?.trim?.() === '')) {
+      handleAccept(value)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleSelect = useCallback((value) => {
+    if (disableValidateOnSelect) {
+      onSelect?.(value && value.trim())
+    } else {
+      const {valid, error, data} = validate ? validate(value) : {valid: true, error: undefined, data: undefined}
+      if (valid) {
+        onSelect?.(value && value.trim(), data)
+      } else {
+        onError?.(error)
+      }
+    }
+  }, [onSelect, disableValidateOnSelect, validate, onError])
+
   // Handle item highlighting: items can he highlighted with mouse or keyboard.
   const handleHighlight = useCallback((event, value, reason) => {
     onHighlight?.(value, reason)
@@ -146,8 +178,8 @@ export const InputText = React.memo(({
   // Handle blur
   const handleBlur = useCallback(() => {
     onBlur?.()
-    !disableAcceptOnBlur && onAccept?.(value)
-  }, [onBlur, onAccept, value, disableAcceptOnBlur])
+    !disableAcceptOnBlur && handleAccept(value)
+  }, [onBlur, handleAccept, value, disableAcceptOnBlur])
 
   // Handles special key presses
   const handleKeyDown = useCallback((event) => {
@@ -166,15 +198,15 @@ export const InputText = React.memo(({
     // or if menu is not open submit the value.
     if (event.key === 'Enter') {
       if (open && highlightRef.current) {
-        onSelect?.(getOptionLabel(highlightRef.current).trim())
+        handleSelect?.(getOptionLabel(highlightRef.current).trim())
       } else {
-        onAccept?.(value && value.trim())
+        handleAccept(value && value.trim())
       }
       event.stopPropagation()
       event.preventDefault()
       setOpen(false)
     }
-  }, [open, suggestions, onSelect, onAccept, value, getOptionLabel, clearInputValue, highlightRef])
+  }, [open, suggestions, handleSelect, handleAccept, value, getOptionLabel, clearInputValue, highlightRef])
 
   // Handle input events. Errors are cleaned in input change, regular typing
   // emits onChange, selection with mouse emits onSelect.
@@ -183,12 +215,12 @@ export const InputText = React.memo(({
     onError && onError(undefined)
     if (event) {
       if (reason === 'reset') {
-        onSelect?.(value)
+        handleSelect?.(value)
       } else {
         onChange?.(value)
       }
     }
-  }, [onChange, onSelect, onError])
+  }, [onChange, handleSelect, onError])
 
   return <div className={clsx(className, styles.root)}>
     <Autocomplete
@@ -303,6 +335,8 @@ InputText.propTypes = {
   disableClearable: PropTypes.bool,
   autoHighlight: PropTypes.bool,
   disableAcceptOnBlur: PropTypes.bool,
+  validate: PropTypes.func, // Function that can be used to validate the input
+  disableValidateOnSelect: PropTypes.bool, // Whether validation on selecting autocompletion value should be disabled
   suggestAllOnFocus: PropTypes.bool, // Whether to provide all suggestion values when input is focused
   showOpenSuggestions: PropTypes.bool, // Whether to show button for opening suggestions
   className: PropTypes.string,

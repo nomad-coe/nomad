@@ -29,6 +29,7 @@ import {
   DialogTitle,
   withStyles
 } from '@material-ui/core'
+import { isArray, cloneDeep } from 'lodash'
 import CodeIcon from '@material-ui/icons/Code'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 import ExpandLessIcon from '@material-ui/icons/ExpandLess'
@@ -37,13 +38,13 @@ import ReplayIcon from '@material-ui/icons/Replay'
 import WidgetGrid from './WidgetGrid'
 import { Actions, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
-import { WidgetScatterPlotEdit, schemaWidgetScatterPlot } from './WidgetScatterPlot'
+import { WidgetScatterPlotEdit, schemaWidgetScatterPlot } from './WidgetScatterPlotEdit'
 import { WidgetHistogramEdit, schemaWidgetHistogram } from './WidgetHistogram'
 import { WidgetTermsEdit, schemaWidgetTerms } from './WidgetTerms'
 import { WidgetPeriodicTableEdit, schemaWidgetPeriodicTable } from './WidgetPeriodicTable'
 import InputConfig from '../input/InputConfig'
+import { cleanse } from '../../../utils'
 import Markdown from '../../Markdown'
-import { isArray } from 'lodash'
 import { getWidgetsObject } from './Widget'
 import { ContentButton } from '../../buttons/SourceDialogButton'
 
@@ -252,7 +253,7 @@ const Dashboard = React.memo(() => {
     {widgets && Object.entries(widgets).map(([id, value]) => {
       if (!value.editing) return null
       const comp = {
-        scatterplot: <WidgetScatterPlotEdit key={id} {...value}/>,
+        scatterplot: <WidgetScatterPlotEdit key={id} widget={value}/>,
         periodictable: <WidgetPeriodicTableEdit key={id} {...value}/>,
         histogram: <WidgetHistogramEdit key={id} {...value}/>,
         terms: <WidgetTermsEdit key={id} {...value}/>
@@ -290,8 +291,7 @@ const schemas = {
  * A button that displays a dialog that can be used to modify the current
  * dashboard setup.
  */
-export const DashboardExportButton = React.memo((props) => {
-  const {tooltip, title, DialogProps, ButtonProps} = props
+export const DashboardExportButton = React.memo(({tooltip, title, DialogProps, ButtonProps}) => {
   const {useWidgetsState} = useSearchContext()
   const [widgets, setWidgets] = useWidgetsState()
   const [widgetExport, setWidgetExport] = useState()
@@ -302,11 +302,19 @@ export const DashboardExportButton = React.memo((props) => {
   // The widget export data. Only reacts if the menu is open.
   useEffect(() => {
     if (!open) return
+    // Work on a copy: data in Recoil is unmutable
+    const widgetsExport = cloneDeep(widgets)
+
     const exp = Object
-      .values(widgets)
+      .values(widgetsExport)
       .map((widget) => {
         const schema = schemas[widget.type]
         const casted = schema?.cast(widget, {stripUnknown: true})
+
+        // Remove undefined values. YUP cannot do this, and the YAML
+        // serialization will otherwise include these.
+        cleanse(casted)
+
         // Perform custom sort: type first, layout last
         const sorted = {}
         if (casted['type']) sorted['type'] = casted['type']

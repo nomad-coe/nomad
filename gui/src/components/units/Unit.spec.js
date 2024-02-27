@@ -63,15 +63,15 @@ test.each([
 })
 
 test.each([
-  ['dimensionless', 'dimensionless', 'dimensionless'],
-  ['single unit', 'meter', 'length'],
-  ['fixed order 1', 'meter * second', 'length time'],
-  ['fixed order 2', 'second * meter', 'length time'],
-  ['power', 'meter^3 * second^-1', 'length^3 time^-1'],
+  ['dimensionless', 'dimensionless', 'dimensionless', false],
+  ['single unit', 'meter', 'length', false],
+  ['fixed order 1', 'meter * second', 'length time', false],
+  ['fixed order 2', 'second * meter', 'length time', false],
+  ['power', 'meter^3 * second^-1', 'length^3 time^-1', false],
   ['in derived', 'joule', 'energy', false],
-  ['in base', 'joule', 'mass length^2 time^-2']
+  ['in base units', 'joule', 'mass length^2 time^-2', true]
 ]
-)('test getting dimension": %s', async (name, unit, dimension, base = true) => {
+)('test getting dimension": %s', async (name, unit, dimension, base) => {
   const a = new Unit(unit)
   expect(a.dimension(base)).toBe(dimension)
 })

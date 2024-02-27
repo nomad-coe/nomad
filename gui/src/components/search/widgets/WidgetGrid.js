@@ -291,7 +291,7 @@ const WidgetGrid = React.memo(({
     }
   }, [width])
 
-  // The layouts are stored when they are changed. This allows retaining the the
+  // The layouts are stored when they are changed. This allows retaining the
   // layout for each breakpoint individually. Notice that we need to feed in the
   // changed layout back to the component so that it works in a controlled
   // manner.

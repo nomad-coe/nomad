@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useState} from 'react'
+import React, {useCallback} from 'react'
 import PropTypes from 'prop-types'
 import {
   List,
@@ -26,14 +26,11 @@ import {
   DialogContent,
   DialogTitle,
   makeStyles,
-  withStyles,
-  Typography,
-  Accordion as MuiAccordion,
-  AccordionDetails as MuiAccordionDetails,
-  AccordionSummary as MuiAccordionSummary
+  MenuItem,
+  TextField,
+  Typography
 } from '@material-ui/core'
 import { useSearchContext } from '../SearchContext'
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
 
 /**
  * A dialog that is used to configure a widget.
@@ -47,39 +44,46 @@ export const WidgetEditDialog = React.memo(({id, title, open, visible, onAccept,
   const styles = useStyles()
   const { useRemoveWidget } = useSearchContext()
   const removeWidget = useRemoveWidget()
-    const handleClose = useCallback(() => {
-      // If the widget has not bee visualized, then closing the dialog deletes
-      // the widget completely.
-      onClose && onClose()
-      if (!visible) {
-        removeWidget(id)
-      }
-    }, [onClose, removeWidget, id, visible])
 
-    const handleAccept = useCallback(() => {
-      onAccept && onAccept()
-    }, [onAccept])
+  const handleClose = useCallback((event, reason) => {
+    // Do not close dialog on backdrop click: user may lose lot of filled info
+    // accidentally
+    if (reason === 'backdropClick') {
+      return
+    }
 
-    return <Dialog
-      fullWidth={true}
-      maxWidth="sm"
-      open={open}
-      classes={{paperWidthSm: styles.width}}
-      onClose={handleClose}
-    >
-      <DialogTitle>{title || ''}</DialogTitle>
-      <DialogContent>
-        {children}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} color="primary">
-          Cancel
-        </Button>
-        <Button disabled={!!error} onClick={handleAccept} color="primary">
-          Done
-        </Button>
-      </DialogActions>
-    </Dialog>
+    // If the widget has not bee visualized, then closing the dialog deletes
+    // the widget completely.
+    onClose && onClose()
+    if (!visible) {
+      removeWidget(id)
+    }
+  }, [id, onClose, removeWidget, visible])
+
+  const handleAccept = useCallback(() => {
+    onAccept && onAccept()
+  }, [onAccept])
+
+  return <Dialog
+    fullWidth={true}
+    maxWidth="sm"
+    open={open}
+    classes={{paperWidthSm: styles.width}}
+    onClose={handleClose}
+  >
+    <DialogTitle>{title || ''}</DialogTitle>
+    <DialogContent>
+      {children}
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={handleClose} color="primary">
+        Cancel
+      </Button>
+      <Button disabled={!!error} onClick={handleAccept} color="primary">
+        Done
+      </Button>
+    </DialogActions>
+  </Dialog>
 })
 
 WidgetEditDialog.propTypes = {
@@ -91,47 +95,12 @@ WidgetEditDialog.propTypes = {
   onAccept: PropTypes.func,
   error: PropTypes.bool,
   children: PropTypes.node
+
 }
 
 /**
  * A group of options in an edit dialog.
  */
-
-const Accordion = withStyles((theme) => ({
-  root: {
-    boxShadow: 'none',
-    margin: 0,
-    '&$expanded': {
-      margin: 0
-    }
-  },
-  expanded: {
-    margin: 0
-  }
-}))(MuiAccordion)
-
-const AccordionDetails = withStyles((theme) => ({
-  root: {
-    padding: theme.spacing(0)
-  }
-}))(MuiAccordionDetails)
-
-const AccordionSummary = withStyles((theme) => ({
-  root: {
-    minHeight: 24,
-    padding: 0,
-    '&$expanded': {
-      minHeight: 24
-    }
-  },
-  content: {
-    '&$expanded': {
-      margin: '0px 0'
-    }
-  },
-  expanded: {}
-}))(MuiAccordionSummary)
-
 const useEditGroupStyles = makeStyles((theme) => ({
   heading: {
     color: theme.palette.primary.main
@@ -142,23 +111,13 @@ const useEditGroupStyles = makeStyles((theme) => ({
 }))
 export const WidgetEditGroup = React.memo(({title, children}) => {
   const styles = useEditGroupStyles()
-  const [expanded, setExpanded] = useState(true)
 
-  return <Accordion expanded={expanded} onChange={() => { setExpanded(old => !old) }}>
-    <AccordionSummary
-        expandIcon={<ExpandMoreIcon />}
-        IconButtonProps={{
-          size: "small"
-        }}
-    >
-      <Typography variant="button" className={styles.heading}>{title}</Typography>
-    </AccordionSummary>
-    <AccordionDetails>
-      <List dense className={styles.list}>
-        {children}
-      </List>
-    </AccordionDetails>
-  </Accordion>
+  return <>
+    <Typography variant="button" className={styles.heading}>{title}</Typography>
+    <List dense className={styles.list}>
+      {children}
+    </List>
+  </>
 })
 
 WidgetEditGroup.propTypes = {
@@ -177,4 +136,31 @@ export const WidgetEditOption = React.memo(({children}) => {
 
 WidgetEditOption.propTypes = {
   children: PropTypes.node
+}
+
+/**
+ * Select (=dropdown) component for widget edit.
+ */
+export const WidgetEditSelect = React.memo(({label, disabled, options, value, onChange}) => {
+  return <TextField
+      select
+      fullWidth
+      label={label}
+      variant="filled"
+      value={value || ''}
+      onChange={onChange}
+      disabled={disabled}
+    >
+      {Object.entries(options).map(([key, value]) =>
+        <MenuItem value={value} key={key}>{key}</MenuItem>
+      )}
+    </TextField>
+})
+
+WidgetEditSelect.propTypes = {
+  label: PropTypes.string,
+  disabled: PropTypes.bool,
+  options: PropTypes.object,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  onChange: PropTypes.func
 }

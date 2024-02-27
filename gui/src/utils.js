@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -16,9 +17,10 @@
  * limitations under the License.
  */
 import minimatch from 'minimatch'
-import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase, isEmpty } from 'lodash'
+import { cloneDeep, merge, isSet, isNil, isArray, isString, isNumber, isPlainObject, startCase, isEmpty, keys } from 'lodash'
 import { Quantity } from './components/units/Quantity'
 import { format } from 'date-fns'
+import jmespath from 'jmespath'
 import { dateFormat, guiBase, apiBase, searchQuantities, parserMetadata, schemaSeparator, dtypeSeparator, yamlSchemaPrefix } from './config'
 const crypto = require('crypto')
 
@@ -98,6 +100,65 @@ export function traverseDeep(object, fullPath = false) {
 export function getDeep(data, path, separator = '.') {
     const segments = path.split(separator)
     return segments.reduce((current, segment) => current && current[segment], data)
+}
+
+/**
+ * Used to retrieve all found options from a nested and repeated structure using
+ * depth-first search.
+ *
+ * @param {object} data The data to traverse
+ * @param {str} path Path to traverse
+ * @return All found values at the given path. Empty list if nothing was found.
+ */
+export function getDeepAll(data, path, separator = '.') {
+  const segments = path.split(separator)
+  const values = []
+
+  function getRecursive(data, segments, values) {
+    let current = data
+    let i = 0
+    for (const segment of segments) {
+      i += 1
+      current = current[segment]
+      if (!current) break
+      if (isArray(current)) {
+        for (const item of current) {
+          getRecursive(item, segments.slice(i), values)
+        }
+      } else if (isPlainObject(current)) {
+        getRecursive(current, segments.slice(i + 1), values)
+      } else {
+        values.push(current)
+      }
+    }
+  }
+
+  getRecursive(data, segments, values)
+  return values
+}
+
+/**
+ * Used to set a value to a nested object. Will create the hierarchy on the go
+ * if it is missing.
+ *
+ * @param {object} data The data to traverse.
+ * @param {str} path Path to use
+ * @param {value} path Value to store
+ */
+export function setDeep(data, path, value, separator = '.') {
+  const segments = path.split(separator)
+  let current = data
+  for (let i = 0; i < segments.length; ++i) {
+    const segment = segments[i]
+    if (i === segments.length - 1) {
+      current[segment] = value
+    } else {
+      if (isNil(current[segment])) {
+        current[segment] = {}
+      }
+      current = current[segment]
+    }
+  }
 }
 
 /**
@@ -1554,4 +1615,122 @@ export function glob(path, include, exclude) {
     }
   }
   return match
+}
+
+/**
+ * Used to validate JMESPath.
+ * @param {str} input
+ * @returns
+ */
+export function validateJMESPath(input) {
+  return jmespath.compile(input)
+}
+
+/**
+ * Used to parse a JMESPath input.
+ * @param {str} input
+ * @returns
+ */
+export function parseJMESPath(input) {
+  // Remove possible schema+dtype specification
+  const regexp = /#[a-zA-Z0-9_.#]+/g
+  const match = regexp.exec(input)
+  let schema = ''
+  let path = input
+  if (match) {
+    schema = match[0]
+    path = input.slice(0, match.index) + input.slice(match.index + schema.length)
+  }
+
+  // Try to compile JMESPath call, report error
+  let error
+  let ast
+  try {
+    ast = validateJMESPath(path)
+  } catch (e) {
+    return {quantity: undefined, path: undefined, extras: undefined, error: e.message, schema: ''}
+  }
+
+  // Walk down depth-first the AST to extract the targeted quantity
+  function recurseAST(node) {
+    const type = node?.type
+    const name = node?.name
+    const children = node?.children
+    let field = []
+    let extras = []
+
+    if (children) {
+      const childFields = []
+      const childExtras = []
+      for (const child of children) {
+        const [fieldInner, extrasInner] = recurseAST(child)
+        childFields.push(fieldInner)
+        childExtras.push(extrasInner)
+      }
+      // In filter projections we save the filter field in extras
+      if (type === 'FilterProjection') {
+        for (const childField of childFields.slice(0, 2)) {
+          field = [...field, ...childField]
+        }
+        extras = [...extras, [...childFields[0], ...childFields[2]]]
+      // In *_by we save the referenced variable in extras
+      } else if (type === 'Function' && name === 'min_by') {
+        field = [...field, ...childFields[0]]
+        extras = [...extras, [...childFields[0], ...childFields[1]]]
+      // For other types we simply extend definitions and extras in the order
+      // they are defined in
+      } else {
+        for (const childField of childFields) {
+          field = [...field, ...childField]
+        }
+        for (const childExtra of childExtras) {
+          extras = [...extras, ...childExtra]
+        }
+      }
+    } else {
+      if (type === 'Field') {
+        return [[name], extras]
+      }
+    }
+    return [field, extras]
+  }
+
+  const [field, extrasList] = recurseAST(ast)
+  const quantity = field.join('.') + schema
+  const extras = extrasList.map(x => x.join('.') + schema)
+
+  return {quantity, extras, path, schema, error}
+}
+
+/**
+ * Cleans the given object/array recursively from undefined values and empty
+ * objects.
+ * @param {*} obj The input list or object to clean.
+ */
+export function cleanse(obj) {
+  // Clean array
+  if (isArray(obj)) {
+    for (const item of obj) {
+      cleanse(item)
+    }
+  // Clean object
+  } else {
+    for (const key of keys(obj)) {
+      // Get this value and its type
+      const value = obj[key]
+      const type = typeof value
+      if (isPlainObject(value)) {
+        cleanse(value)
+        if (isEmpty(value)) {
+          delete obj[key]
+        }
+      } else if (isArray(value)) {
+        for (const item of value) {
+          cleanse(item)
+        }
+      } else if (type === "undefined") {
+        delete obj[key]
+      }
+    }
+  }
 }

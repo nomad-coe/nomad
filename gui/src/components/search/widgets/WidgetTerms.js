@@ -30,7 +30,7 @@ import {
 } from '@material-ui/core'
 import { useResizeDetector } from 'react-resize-detector'
 import { useSearchContext } from '../SearchContext'
-import { InputSearchMetainfo } from '../input/InputMetainfo'
+import { InputMetainfo } from '../input/InputMetainfo'
 import { InputTextQuantity } from '../input/InputText'
 import InputItem, { inputItemHeight } from '../input/InputItem'
 import InputUnavailable from '../input/InputUnavailable'
@@ -306,7 +306,7 @@ export const WidgetTermsEdit = React.memo((props) => {
       >
       <WidgetEditGroup title="x axis">
         <WidgetEditOption>
-          <InputSearchMetainfo
+          <InputMetainfo
             label="quantity"
             value={settings.quantity}
             error={errors.quantity}

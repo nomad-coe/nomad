@@ -18,6 +18,7 @@
 
 import React, {useCallback, useEffect, useMemo, useRef, useContext, createContext} from 'react'
 import PropTypes from 'prop-types'
+import {isNil} from 'lodash'
 import {getSuggestions} from '../../utils'
 import {unitMap} from './UnitContext'
 import {parseQuantity} from './Quantity'
@@ -47,7 +48,7 @@ export const useInputStyles = makeStyles(theme => ({
     alignItems: 'stretch'
   }
 }))
-export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect, onError, onBlur, dimension, options, disabled, label, disableGroup}) => {
+export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect, onError, dimension, options, disabled, label, disableGroup, optional}) => {
   const styles = useInputStyles()
 
   // Predefine all option objects, all option paths and also pre-tokenize the
@@ -55,11 +56,12 @@ export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect
   const {keys, filter, finalOptions} = useMemo(() => {
     const finalOptions = {}
     Object.entries(unitMap)
-      .filter(([key, unit]) => unit.dimension === dimension)
+      .filter(([key, unit]) => dimension ? unit.dimension === dimension : true)
       .forEach(([key, unit]) => {
+        const unitAbbreviation = unit.abbreviation ? ` (${unit.abbreviation})` : ''
         finalOptions[key] = {
           key: key,
-          primary: `${unit.label} (${unit.abbreviation})`,
+          primary: `${unit.label}${unitAbbreviation}`,
           secondary: unit.aliases?.splice(1).join(', '),
           dimension: unit.dimension,
           unit: unit
@@ -70,31 +72,27 @@ export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect
     return {keys, filter, finalOptions}
   }, [dimension])
 
-  const handleChange = useCallback((value) => {
-    onChange?.(value)
-  }, [onChange])
-
-  const handleAccept = useCallback((key) => {
-    const {unit, unitString, error} = parseQuantity(key, false, true, dimension)
-    if (error) {
-      onError(error)
-    } else {
-      onAccept?.(unit, unitString)
+  const validate = useCallback((value) => {
+    if (isNil(value) || value?.trim?.() === '') {
+      if (optional) {
+        return {valid: true}
+      } else {
+        return {valid: false, error: 'Please specify a value'}
+      }
     }
-  }, [onAccept, onError, dimension])
+    const {error, unit} = parseQuantity(value, dimension, false, true)
+    return {valid: !error, error, data: unit}
+  }, [optional, dimension])
 
-  const handleError = useCallback((value) => {
-    onError?.(value)
-  }, [onError])
-
-  const handleSelect = useCallback((key) => {
-    const {unit, unitString, error} = parseQuantity(key, false, true, dimension)
+  // Revalidate input when dimension changes
+  useEffect(() => {
+    if (!value) return
+    const {error} = validate(value)
     if (error) {
-      onError(error)
-    } else {
-      onSelect?.(unit, unitString)
+      onError?.(error)
     }
-  }, [onSelect, onError, dimension])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dimension])
 
   // Used to filter the shown options based on input
   const filterOptions = useCallback((opt, { inputValue }) => {
@@ -107,13 +105,12 @@ export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect
     value={value}
     TextFieldProps={{label, disabled}}
     error={error}
-    onChange={handleChange}
-    onSelect={handleSelect}
-    onAccept={handleAccept}
-    onError={handleError}
-    onBlur={() => { onBlur(handleAccept) }}
+    onChange={onChange}
+    onSelect={onSelect}
+    onAccept={onAccept}
+    onError={onError}
+    validate={validate}
     disableClearable
-    disableAcceptOnBlur
     suggestAllOnFocus
     showOpenSuggestions
     suggestions={keys}
@@ -148,7 +145,8 @@ UnitInput.propTypes = {
   onBlur: PropTypes.func,
   onError: PropTypes.func,
   disabled: PropTypes.bool,
-  disableGroup: PropTypes.bool
+  disableGroup: PropTypes.bool,
+  optional: PropTypes.bool
 }
 
 export default UnitInput

@@ -177,12 +177,14 @@ def _generate_search_quantities():
                 'aliases',
                 'aggregatable',
                 'dynamic',
+                'repeats',
             ]
             metadict = search_quantity.definition.m_to_dict(with_meta=True)
             # UI needs to know whether the quantity can be used in
             # aggregations or not.
             metadict['aggregatable'] = search_quantity.aggregatable
             metadict['dynamic'] = search_quantity.dynamic
+            metadict['repeats'] = search_quantity.repeats
             if search_quantity.dynamic:
                 splitted = search_quantity.qualified_name.split(schema_separator, 1)
                 if len(splitted) == 2:

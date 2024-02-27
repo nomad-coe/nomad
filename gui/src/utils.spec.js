@@ -24,9 +24,11 @@ import {
   resolveNomadUrl,
   normalizeNomadUrl,
   refType,
-  refRelativeTo
+  refRelativeTo,
+  parseJMESPath
 } from './utils'
 import { apiBase, urlAbs } from './config'
+import { isEqual } from 'lodash'
 
 describe('titleCase', () => {
   it('runs on empty strings', () => {
@@ -556,4 +558,154 @@ test.each([
   ['non-http protocol', 'ssh://nomad-lab.eu/test', 'ssh://nomad-lab.eu/test', 'ssh://nomad-lab.eu']
 ])('absolute url creation: %s ', (id, input, output, base, protocol = undefined) => {
   expect(urlAbs(input, base, protocol)).toBe(output)
+})
+
+test.each([
+  [
+    'simple subexpression',
+    'results.material.n_elements',
+    {
+      quantity: 'results.material.n_elements',
+      path: 'results.material.n_elements',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'index expression',
+    'results.material.elements[0]',
+    {
+      quantity: 'results.material.elements',
+      path: 'results.material.elements[0]',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'slicing ',
+    'results.material.elements[0:5]',
+    {
+      quantity: 'results.material.elements',
+      path: 'results.material.elements[0:5]',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'list projection',
+    'results.properties.electronic.band_gap[*].value',
+    {
+      quantity: 'results.properties.electronic.band_gap.value',
+      path: 'results.properties.electronic.band_gap[*].value',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'flatten projection',
+    'results.properties[].electronic.band_gap[].value',
+    {
+      quantity: 'results.properties.electronic.band_gap.value',
+      path: 'results.properties[].electronic.band_gap[].value',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'function with one argument',
+    'min(results.properties.electronic.band_gap[*].value)',
+    {
+      quantity: 'results.properties.electronic.band_gap.value',
+      path: 'min(results.properties.electronic.band_gap[*].value)',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'function with two arguments',
+    'min_by(results.properties.electronic.band_gap[*], &value).type',
+    {
+      quantity: 'results.properties.electronic.band_gap.type',
+      path: 'min_by(results.properties.electronic.band_gap[*], &value).type',
+      extras: ['results.properties.electronic.band_gap.value'],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'filter projection',
+    "results.material.topology[?label=='original'].cell.a",
+    {
+      quantity: 'results.material.topology.cell.a',
+      path: "results.material.topology[?label=='original'].cell.a",
+      extras: ['results.material.topology.label'],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'pipe',
+    'results.properties.electronic.band_gap[*].value | min(@)',
+    {
+      quantity: 'results.properties.electronic.band_gap.value',
+      path: 'results.properties.electronic.band_gap[*].value | min(@)',
+      extras: [],
+      error: undefined,
+      schema: ''
+    }
+  ],
+  [
+    'schema name and dtype are handled correctly 1',
+    'min_by(results.properties.electronic.band_gap[*], &value).type#MySchema#int',
+    {
+      quantity: 'results.properties.electronic.band_gap.type#MySchema#int',
+      path: 'min_by(results.properties.electronic.band_gap[*], &value).type',
+      extras: ['results.properties.electronic.band_gap.value#MySchema#int'],
+      error: undefined,
+      schema: '#MySchema#int'
+    }
+  ],
+  [
+    'schema name and dtype are handled correctly 2',
+    'results.properties.electronic.band_gap[*].value#MySchema | min(@)',
+    {
+      quantity: 'results.properties.electronic.band_gap.value#MySchema',
+      path: 'results.properties.electronic.band_gap[*].value | min(@)',
+      extras: [],
+      error: undefined,
+      schema: '#MySchema'
+    }
+  ],
+  [
+    'syntax error',
+    'results.material.n_elements[*',
+    {
+      quantity: undefined,
+      path: undefined,
+      extras: undefined,
+      error: 'Expected Rbracket, got: EOF',
+      schema: ''
+    }
+  ]
+  // Object projection is not supported, as we cannot tell ES which properties
+  // to fetch. If the JMESPath query is made by the API, then this might work as
+  // well.
+  // [
+  //   'object projection',
+  //   'results.properties.electronic.*.type',
+  //   {
+  //     quantity: '?',
+  //     path: '?',
+  //     extras: [],
+  //     error: undefined
+  //   }
+  // ],
+])('parseJMESPath: %s ', (id, input, output) => {
+  expect(isEqual(parseJMESPath(input), output)).toBe(true)
 })

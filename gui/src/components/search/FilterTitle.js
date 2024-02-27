@@ -56,6 +56,7 @@ const FilterTitle = React.memo(({
   quantity,
   label,
   description,
+  unit,
   variant,
   full,
   TooltipProps,
@@ -78,14 +79,18 @@ const FilterTitle = React.memo(({
       ? filterData[quantity]?.labelFull
       : filterData[quantity]?.label)
     if (!disableUnit) {
-      const unit = filterData[quantity]?.unit
+      let finalUnit
       if (unit) {
-        const unitDef = new Unit(unit)
-        finalLabel = `${finalLabel} (${unitDef.toSystem(units).label()})`
+        finalUnit = new Unit(unit).label()
+      } else if (filterData[quantity]?.unit) {
+        finalUnit = new Unit(filterData[quantity].unit).toSystem(units).label()
+      }
+      if (finalUnit) {
+        finalLabel = `${finalLabel} (${finalUnit})`
       }
     }
     return finalLabel
-  }, [filterData, quantity, units, label, disableUnit, full])
+  }, [filterData, quantity, units, unit, label, disableUnit, full])
 
   // Determine the final description
   const finalDescription = description || filterData[quantity]?.description || ''
@@ -112,6 +117,7 @@ const FilterTitle = React.memo(({
 FilterTitle.propTypes = {
   quantity: PropTypes.string,
   label: PropTypes.string,
+  unit: PropTypes.string,
   description: PropTypes.string,
   variant: PropTypes.string,
   full: PropTypes.bool,

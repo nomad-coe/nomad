@@ -28,6 +28,7 @@
     "dompurify": "^3.0.1",
     "fetch": "^1.1.0",
     "html-to-react": "^1.3.3",
+    "jmespath": "^0.16.0",
     "keycloak-js": "^18.0.1",
     "lodash": "^4.17.15",
     "material-ui-chip-input": "^1.1.0",
@@ -95,13 +96,13 @@
     "eject": "craco eject"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.22.15",
     "@craco/craco": "^6.4.5",
     "@material-ui/codemod": "^4.5.0",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^14.2.0",
     "@welldone-software/why-did-you-render": "^7.0.1",
-    "@babel/eslint-parser": "^7.22.15",
     "craco-workbox": "^0.2.0",
     "eslint": "^7.11.0",
     "eslint-config-standard": "^17.0.0",

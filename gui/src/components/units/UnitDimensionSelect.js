@@ -38,7 +38,7 @@ const UnitDimensionSelect = React.memo(({label, dimension, onChange, disabled}) 
     setInputValue(unit?.definition)
   }, [unit, dimension])
 
-  const handleAccept = useCallback((unit, unitString) => {
+  const handleAccept = useCallback((unitString, unit) => {
     setUnits(old => {
       const newUnits = {
         ...old,
@@ -50,13 +50,9 @@ const UnitDimensionSelect = React.memo(({label, dimension, onChange, disabled}) 
     oldValue.current = unitString
   }, [dimension, onChange, setUnits])
 
-  const handleSelect = useCallback((unit, unitString) => {
-    handleAccept(unit, unit.label())
+  const handleSelect = useCallback((unitString, unit) => {
+    handleAccept(unit.label(), unit)
   }, [handleAccept])
-
-  const handleBlur = useCallback((onAccept) => {
-    onAccept(inputValue)
-  }, [inputValue])
 
   const handleChange = useCallback((value) => {
     oldValue.current = value
@@ -70,7 +66,6 @@ const UnitDimensionSelect = React.memo(({label, dimension, onChange, disabled}) 
       onChange={handleChange}
       onAccept={handleAccept}
       onSelect={handleSelect}
-      onBlur={handleBlur}
       onError={setError}
       dimension={dimension}
       error={error}
