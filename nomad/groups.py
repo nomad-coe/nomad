@@ -48,8 +48,10 @@ class UserGroup(Document):
 
     @classmethod
     def get_ids_by_user_id(cls, user_id: Optional[str]) -> List[str]:
-        """Returns ids of all user groups where user_id is owner or member.
-        Does include special group 'all', even if user_id is missing or not a user."""
+        """
+        Returns ids of all user groups where user_id is owner or member.
+        Does include special group 'all', even if user_id is missing or not a user.
+        """
         group_ids = ['all']
         if user_id is not None:
             group_ids.extend(group.group_id for group in cls.get_by_user_id(user_id))

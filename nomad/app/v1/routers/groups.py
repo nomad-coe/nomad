@@ -24,7 +24,7 @@ from pydantic import BaseModel, Field
 from nomad.datamodel import User as UserDataModel
 from nomad.groups import (
     UserGroup as MongoUserGroup,
-    create_user_group as _create_user_group,
+    create_user_group as create_mongo_user_group,
 )
 from nomad.utils import strip
 
@@ -58,8 +58,8 @@ class UserGroup(BaseModel):
         default='Default Group Name', description=group_name_description
     )
     owner: str = Field(description='User id of the group owner.')
-    members: Set[str] = Field(
-        default_factory=set, description=group_members_description
+    members: List[str] = Field(
+        default_factory=list, description=group_members_description
     )
 
     class Config:
@@ -147,7 +147,7 @@ async def create_user_group(
         check_user_ids(members)
     user_group_dict['owner'] = user.user_id
 
-    user_group = _create_user_group(**user_group_dict)
+    user_group = create_mongo_user_group(**user_group_dict)
     return user_group
 
 
