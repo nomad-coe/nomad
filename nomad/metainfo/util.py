@@ -33,6 +33,19 @@ import pandas as pd
 import pint
 import pytz
 
+# All platforms do not support 128 bit numbers
+float128_set = set()
+complex256_set = set()
+try:
+    float128_set.add(np.float128)
+except AttributeError:
+    pass
+try:
+    complex256_set.add(np.complex256)
+except AttributeError:
+    pass
+
+
 from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
@@ -79,14 +92,14 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
             f'due to possibility of loss of precision.'
         )
 
-        def __check_unix():
-            if os.name != 'nt' and _type in (np.float128, np.complex256):
+        def __check_128bit():
+            if _type in float128_set | complex256_set:
                 raise precision_error
 
         if complex_type in (np.complex128, complex):  # 64-bit complex
             if _type in (np.int64, np.uint64):
                 raise precision_error
-            __check_unix()
+            __check_128bit()
         elif complex_type == np.complex64:  # 32-bit complex
             if _type in (
                 int,
@@ -99,7 +112,7 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
                 np.complex128,
             ):
                 raise precision_error
-            __check_unix()
+            __check_128bit()
 
     if isinstance(value, pint.Quantity):
         scaled: np.ndarray = value.to(to_unit).magnitude if to_unit else value.magnitude
@@ -221,12 +234,8 @@ class MTypes:
     }
     int_python = {int}
     int = int_python | int_numpy
-    float_numpy = {np.float16, np.float32, np.float64} | (
-        set() if os.name == 'nt' else {np.float128}
-    )
-    complex_numpy = {np.complex64, np.complex128} | (
-        set() if os.name == 'nt' else {np.complex256}
-    )
+    float_numpy = {np.float16, np.float32, np.float64} | float128_set
+    complex_numpy = {np.complex64, np.complex128} | complex256_set
     float_python = {float}
     complex_python = {complex}
     float = float_python | float_numpy
