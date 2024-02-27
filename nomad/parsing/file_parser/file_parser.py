@@ -15,14 +15,15 @@
 from abc import ABC, abstractmethod
 import os
 import pint
-from typing import Any, Dict, Callable, IO, Union
+from typing import Any, Dict, Callable, IO, Union, List
 import gzip
 import bz2
 import lzma
 import tarfile
 
-from nomad.metainfo import MSection
+from nomad.metainfo import MSection, SubSection
 from nomad.utils import get_logger
+from nomad.datamodel import EntryArchive
 
 
 class FileParser(ABC):
@@ -52,7 +53,7 @@ class FileParser(ABC):
         self.logger = logger if logger is not None else get_logger(__name__)
         # a key is necessary for xml parsers, where parsing is done dynamically
         self._key: str = None
-        self._kwargs: Dict[str, Any] = dict()
+        self._kwargs: Dict[str, Any] = {}
         self._results: Dict[str, Any] = None
         self._file_handler: Any = None
 
@@ -156,7 +157,7 @@ class FileParser(ABC):
 
         self._key = key
         self._kwargs = kwargs
-        val = self.results.get(key, None)
+        val = self.results.get(key)
         if val is None:
             val = default
 
@@ -174,19 +175,6 @@ class FileParser(ABC):
                 val = pint.Quantity(val, unit)
 
         return val
-
-    def __getitem__(self, key):
-        if isinstance(key, str):
-            return self.get(key)
-        elif isinstance(key, int):
-            return self[int]
-
-    def __getattr__(self, key):
-        if self._results is None:
-            self._results = dict()
-            self.parse(key)
-
-        return self._results.get(key, None)
 
     def to_dict(self):
         """
@@ -214,6 +202,18 @@ class FileParser(ABC):
     def parse(self, quantity_key: str = None, **kwargs):
         pass
 
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return self.get(key)
+        elif isinstance(key, int):
+            return self[int]
+
+    def __getattr__(self, key):
+        if self._results is None:
+            self._results = {}
+            self.parse(key)
+        return self._results.get(key)
+
     def __repr__(self) -> str:
         results = list(self._results.keys()) if self._results else []
         string = f'{self.__class__.__name__}'
@@ -222,3 +222,68 @@ class FileParser(ABC):
         if results:
             string += f'--> {len(results)} parsed quantities ({", ".join(results[:5])}{", ..." if len(results) > 5 else ""})'
         return string
+
+
+class Parser(ABC):
+    mainfile: str = None
+    archive: EntryArchive = None
+    logger = None
+    child_archives = None
+
+    def get_mainfile_keys(
+        self, filename: str, decoded_buffer: str
+    ) -> Union[bool, List[str]]:
+        """
+        If child archives are necessary for the entry, a list of keys for the archives are
+        returned.
+        """
+        return True
+
+    # TODO replace with MSection.m_update_from_dict once it takes in type Quantity?
+    def parse_section(self, data: Dict[str, Any], root: MSection) -> None:
+        """
+        Write the quantities in data into an archive section.
+        """
+        for key, val in data.items():
+            if not hasattr(root, key):
+                continue
+
+            section = getattr(root.m_def.section_cls, key)
+            if isinstance(section, SubSection):
+                for val_n in [val] if isinstance(val, dict) else val:
+                    sub_section = section.sub_section.section_cls()
+                    root.m_add_sub_section(section, sub_section)
+                    self.parse_section(val_n, sub_section)
+                continue
+
+            root.m_set(root.m_get_quantity_definition(key), val)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts the parsed metadata into a dictionary following the nomad archive schema.
+        """
+        return {}
+
+    def write_to_archive(self) -> None:
+        """
+        Abstract method to write the parsed metadata from mainfile to archive. The parser
+        may directly write to the archive or convert to a dictionary following the archive
+        schema through the to_dict method which is then used to update the archive.
+        """
+        if self.archive is None:
+            return
+
+        self.archive.m_update_from_dict(self.to_dict())
+
+    def parse(
+        self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
+    ) -> None:
+        """
+        Main interface to the nomad parsing infrastructure.
+        """
+        self.mainfile = mainfile
+        self.archive = archive
+        self.logger = logger if logger else get_logger(__name__)
+        self.child_archives = child_archives
+
+        self.write_to_archive()
