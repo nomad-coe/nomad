@@ -193,9 +193,8 @@ python tests:
     NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
     NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
   before_script:
-    - sleep 10
-    - curl http://elastic:9200/_cat/health
     - cd /app
+    - scripts/check_elastic.sh
   script:
     - python -m pytest --cov=nomad --cov-report term --cov-report xml:coverage.xml --cov-config=.coveragerc -sv tests
   after_script:
