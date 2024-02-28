@@ -270,10 +270,21 @@ function FilePreviewText({uploadId, path}) {
           decompress: true,
           ignore_mime_type: true
         },
-        {transformResponse: []})
-        .then(contents => {
-          setContents(old => (old || '') + (contents || ''))
-          setHasMore(contents?.length === 16 * 1024)
+        {
+          transformResponse: [],
+          responseType: 'blob'
+        })
+        .then(content => {
+          // Note that the length of the string is not necessarily the number of
+          // bytes that were transferred. This is why we need to request a blob,
+          // get it's size, and then in a second step decode it as string for
+          // displaying.
+          const nBytes = content.size
+          setHasMore(nBytes === 16 * 1024)
+          return content.text()
+        })
+        .then(text => {
+          setContents(old => (old || '') + (text || ''))
         })
         .catch(error => {
           setLoadFailed(true)
