@@ -23,12 +23,9 @@ import sys
 
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Union, Set
+from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
-from toposort import toposort_flatten
-
-from pynxtools.nexus import nexus  # pylint: disable=import-error
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import (
     Attribute,
@@ -43,6 +40,9 @@ from nomad.metainfo import (
     SubSection,
 )
 from nomad.utils import get_logger, strip
+from toposort import toposort_flatten
+
+from pynxtools.nexus import nexus  # pylint: disable=import-error
 
 # __URL_REGEXP from
 # https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
@@ -673,6 +673,25 @@ def __create_package_from_nxdl_directories(nexus_section: Section) -> Package:
 
 nexus_metainfo_package: Optional[Package] = None  # pylint: disable=C0103
 
+import pickle
+import traceback
+
+
+def save_nexus_schema(suf):
+    nexus_metainfo_package
+    sch_dict = nexus_metainfo_package.m_to_dict()
+    filehandler = open('nexus.obj' + suf, 'wb')
+    pickle.dump(sch_dict, filehandler)
+    filehandler.close()
+
+
+def load_nexus_schema(suf):
+    global nexus_metainfo_package
+    file = open('nexus.obj' + suf, 'rb')
+    sch_dict = pickle.load(file)
+    file.close()
+    nexus_metainfo_package = Package().m_from_dict(sch_dict)
+
 
 def init_nexus_metainfo():
     """
@@ -687,7 +706,14 @@ def init_nexus_metainfo():
     # to include nexus in an EntryArchive.
     nexus_section = Section(validate=VALIDATE, name='NeXus')
 
-    nexus_metainfo_package = __create_package_from_nxdl_directories(nexus_section)
+    try:
+        load_nexus_schema('')
+    except Exception:
+        nexus_metainfo_package = __create_package_from_nxdl_directories(nexus_section)
+        try:
+            save_nexus_schema('')
+        except Exception:
+            pass
 
     EntryArchive.nexus = SubSection(name='nexus', section_def=nexus_section)
     EntryArchive.nexus.init_metainfo()
