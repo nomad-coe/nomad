@@ -384,7 +384,7 @@ export class SectionDefAdaptor extends MetainfoAdaptor {
       return metainfoAdaptorFactory(property)
     }
 
-    const attribute = this.def.attributes?.find(attr => attr.name === key)
+    const attribute = this.def._allAttributes?.find(attr => attr.name === key)
     if (attribute) {
       return metainfoAdaptorFactory(attribute)
     }
@@ -408,7 +408,7 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
     this.sectionDefAdaptor.cleanup()
   }
   async itemAdaptor(key) {
-    const attributeDef = this.def.attributes?.find(def => def.name === key)
+    const attributeDef = this.def._allAttributes?.find(def => def.name === key)
     if (attributeDef) {
       return metainfoAdaptorFactory(attributeDef)
     }
@@ -421,7 +421,7 @@ class SubSectionDefAdaptor extends MetainfoAdaptor {
 
 class QuantityDefAdaptor extends MetainfoAdaptor {
   itemAdaptor(key) {
-    const attributeDef = this.def.attributes?.find(def => def.name === key)
+    const attributeDef = this.def._allAttributes?.find(def => def.name === key)
     if (attributeDef) {
       return metainfoAdaptorFactory(attributeDef)
     }
@@ -697,14 +697,22 @@ AttributeDef.propTypes = ({
 })
 
 function Attributes({def}) {
-  if (!def.attributes?.length) {
+  if (!def._allAttributes?.length) {
     return null
   }
 
   return <Compartment title="attributes">
-     {def.attributes.map((attributeDef, index) => {
-        return <Item key={index} itemKey={attributeDef.name}>
-          <Typography>{attributeDef.more?.label || attributeDef.name}</Typography>
+     {def._allAttributes.map((attributeDef) => {
+        const key = attributeDef.name
+        const inherited = attributeDef._parent !== def
+        return <Item key={key} itemKey={attributeDef.name}>
+          <Typography component="span">
+            <Box fontWeight="bold" component="span">
+              {attributeDef.more?.label || attributeDef.name}
+            </Box>
+            {attributeDef._overwritten && <ItemChip label="overwritten" />}
+            {inherited && <ItemChip label="inherited" />}
+          </Typography>
         </Item>
       })}
   </Compartment>

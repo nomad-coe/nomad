@@ -24,15 +24,16 @@ import { useApi } from '../api'
 import { useDataStore } from '../DataStore'
 import {
   parseNomadUrl, resolveNomadUrl, resolveInternalRef, systemMetainfoUrl, createEntryUrl,
-  urlEncodePath, urlJoin, relativizeNomadUrl } from '../../utils'
+  urlEncodePath, urlJoin, relativizeNomadUrl
+} from '../../utils'
 import { apiBase } from '../../config'
 
 const metainfoContext = React.createContext()
 
-export const GlobalMetainfo = React.memo(function GlobalMetainfo({children}) {
+export const GlobalMetainfo = React.memo(function GlobalMetainfo({ children }) {
   const dataStore = useDataStore()
   const globalMetainfo = useMetainfo(systemMetainfoUrl)
-  const {api} = useApi()
+  const { api } = useApi()
   const [allCustomMetainfos, setAllCustomMetainfos] = useState()
 
   const fetchAllCustomMetainfos = useCallback(async (refresh, query) => {
@@ -101,7 +102,7 @@ export function useGlobalMetainfo() {
  */
 export function useMetainfo(url) {
   const dataStore = useDataStore()
-  const {raiseError} = useErrors()
+  const { raiseError } = useErrors()
   const [metainfo, setMetainfo] = useState()
 
   useEffect(() => {
@@ -122,7 +123,7 @@ export function useMetainfo(url) {
  */
 export function useMetainfoDef(url) {
   const dataStore = useDataStore()
-  const {raiseError} = useErrors()
+  const { raiseError } = useErrors()
   const [metainfoDef, setMetainfoDef] = useState(null)
 
   useEffect(() => {
@@ -414,6 +415,41 @@ export class Metainfo {
     return sectionDef
   }
 
+  async _createAllAttributes(sectionDef) {
+    const allSectionAttributes = {}
+    const allQuantityAttributes = {}
+    function createAddAttributes(inherited) {
+      return (sectionDef) => {
+        function createAddAttribute(m_def, allAttributes, inherited) {
+          return (attribute) => {
+            if (!inherited && allAttributes[attribute.name]) {
+              attribute._overwritten = true
+            }
+            attribute.m_def = m_def
+            allAttributes[attribute.name] = attribute
+          }
+        }
+        sectionDef.attributes?.forEach(createAddAttribute(AttributeMDef, allSectionAttributes, inherited))
+        sectionDef.quantities.forEach(quantitiy => {
+          allQuantityAttributes[quantitiy.name] = allQuantityAttributes[quantitiy.name] || {}
+          const quantityAttributes = allQuantityAttributes[quantitiy.name]
+          quantitiy.attributes?.forEach(createAddAttribute(
+            AttributeMDef, quantityAttributes, quantitiy._parent !== sectionDef))
+        })
+      }
+    }
+    sectionDef = await this._initSection(sectionDef)
+    const reversedBaseSections = [...sectionDef._allBaseSections].reverse()
+    reversedBaseSections.forEach(createAddAttributes(true))
+    createAddAttributes(false)(sectionDef)
+
+    sectionDef._allAttributes = Object.keys(allSectionAttributes).map(key => allSectionAttributes[key])
+    sectionDef.quantities.forEach(quantitiy => {
+      const allAttritbutes = allQuantityAttributes[quantitiy.name]
+      quantitiy._allAttributes = Object.keys(allAttritbutes).map(key => allAttritbutes[key])
+    })
+  }
+
   async _getAllProperties(sectionDef) {
     const results = {}
     function createAddProperties(inherited) {
@@ -421,7 +457,7 @@ export class Metainfo {
         function createAddProperty(m_def) {
           return (property) => {
             if (!inherited && results[property.name]) {
-                property._overwritten = true
+              property._overwritten = true
             }
             property.m_def = m_def
             results[property.name] = property
@@ -516,6 +552,8 @@ export class Metainfo {
     for (const property of sectionDef._allProperties) {
       sectionDef._properties[property.name] = property
     }
+
+    await this._createAllAttributes(sectionDef)
   }
 
   async _addPackage(pkg, unique_id, pkgParentData, parentProperty, parentIndex) {
@@ -721,7 +759,7 @@ export function removeSubSection(section, subSectionDef, index) {
  * is left out, we return an absolute url. You may also specify preferMainfile = true if you
  * want the url to use the mainfile rather than the entryId when possible (more humanly readable).
  */
- export function getUrlFromDefinition(definition, relativeTo = null, preferMainfile = false) {
+export function getUrlFromDefinition(definition, relativeTo = null, preferMainfile = false) {
   const pkg = definition.m_def === PackageMDef ? definition : definition._package
   const metainfo = pkg._pkgParentData._metainfo
   if (!metainfo._parsedUrl.entryId && relativeTo?.deploymentUrl === metainfo._parsedUrl.deploymentUrl) {
@@ -825,12 +863,12 @@ export function * getQuantities(definition, prefix, branch, repeats = false) {
   }
   if (definition._allProperties) {
     for (const def of definition._allProperties) {
-        const quantityName = prefix ? `${prefix}.${def.name}` : def.name
-        if (def.m_def === 'nomad.metainfo.metainfo.Quantity') {
-          yield [def, quantityName, repeats || !isEmpty(def.shape)]
-        } else {
-          yield * getQuantities(def, quantityName, new Set(branch), repeats || def.repeats)
-        }
+      const quantityName = prefix ? `${prefix}.${def.name}` : def.name
+      if (def.m_def === 'nomad.metainfo.metainfo.Quantity') {
+        yield [def, quantityName, repeats || !isEmpty(def.shape)]
+      } else {
+        yield * getQuantities(def, quantityName, new Set(branch), repeats || def.repeats)
+      }
     }
   }
   const sub_section_def = definition.sub_section
@@ -866,7 +904,7 @@ export function vicinityGraph(def) {
 
   function addNode(def, more, id) {
     id = id || (d => d._qualifiedName)
-    const {recursive, x, y, i} = more || {}
+    const { recursive, x, y, i } = more || {}
 
     const key = id(def)
     if (nodesMap[key]) {
@@ -891,7 +929,8 @@ export function vicinityGraph(def) {
             recursive: true,
             x: x - dx,
             y: y,
-            i: i + 1})
+            i: i + 1
+          })
           addEdge(node, parent, {})
         })
         const references = def.quantities.filter(quantity => quantity.type.type_kind === 'reference')
@@ -902,7 +941,7 @@ export function vicinityGraph(def) {
             const referencedSectionDef = resolveInternalRef(reference.type.type_data, metainfo)
             const referenced = addNode(
               referencedSectionDef,
-              {x: x + i * dx - layoutMiddle, y: y + dy, i: i},
+              { x: x + i * dx - layoutMiddle, y: y + dy, i: i },
               () => reference._qualifiedName)
             addEdge(node, referenced, reference)
           } catch (error) {
@@ -914,7 +953,8 @@ export function vicinityGraph(def) {
           recursive: true,
           x: x - dx,
           y: y,
-          i: i + 1})
+          i: i + 1
+        })
         addEdge(node, section, {})
       }
 
@@ -935,7 +975,7 @@ export function vicinityGraph(def) {
     return node
   }
 
-  addNode(def, {recursive: true, x: 0, y: 0, i: 0})
+  addNode(def, { recursive: true, x: 0, y: 0, i: 0 })
 
   return {
     nodes: nodes,
