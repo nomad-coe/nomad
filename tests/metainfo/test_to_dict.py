@@ -307,7 +307,7 @@ section_definitions:
 
 
 def test_schema_deserialization(schema_yaml):
-    schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
+    schema_dict = yaml.load(schema_yaml, yaml.SafeLoader)
     pkg = Package.m_from_dict(schema_dict)
     pkg.init_metainfo()
 
@@ -342,7 +342,7 @@ def test_schema_definition_id(schema_yaml):
     """
     Test if the definition id is correctly generated.
     """
-    schema_dict = yaml.load(schema_yaml, yaml.FullLoader)
+    schema_dict = yaml.load(schema_yaml, yaml.SafeLoader)
     pkg = Package.m_from_dict(schema_dict)
     pkg.init_metainfo()
 

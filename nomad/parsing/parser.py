@@ -252,7 +252,7 @@ class MatchingParser(Parser):
         logger = utils.get_logger(__name__)
         try:
             with open(metadata_file, 'r', encoding='UTF-8') as f:
-                parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+                parser_metadata = yaml.load(f, Loader=yaml.SafeLoader)
         except Exception as e:
             logger.warning('failed to read parser metadata', exc_info=e)
             raise
@@ -523,7 +523,7 @@ class ArchiveParser(MatchingParser):
             else:
                 import yaml
 
-                archive_data = yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                archive_data = yaml.load(f, Loader=yaml.SafeLoader)
         except Exception as e:
             if logger:
                 logger.error('Cannot parse archive json or yaml.', exc_info=e)

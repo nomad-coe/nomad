@@ -251,7 +251,7 @@ def define_env(env):
 
         with open(file_path, 'rt') as f:
             if file_path.endswith('.yaml'):
-                data = yaml.load(f, Loader=yaml.FullLoader)
+                data = yaml.load(f, Loader=yaml.SafeLoader)
             elif file_path.endswith('.json'):
                 data = json.load(f)
             else:
