@@ -289,7 +289,7 @@ def _generate_example_upload_metadata():
     import yaml
 
     with open('examples/data/uploads/example_uploads.yml') as infile:
-        return yaml.load(infile, Loader=yaml.FullLoader)
+        return yaml.load(infile, Loader=yaml.SafeLoader)
 
 
 @dev.command(
@@ -375,7 +375,7 @@ def update_parser_readmes(parser):
         # read local yaml metadata file
         with open(path, 'r') as metadata_f:
             try:
-                metadata = yaml.load(metadata_f, Loader=yaml.FullLoader)
+                metadata = yaml.load(metadata_f, Loader=yaml.SafeLoader)
             except Exception as e:
                 print(f'Error reading metadata.yaml: {e}')
                 metadata = None

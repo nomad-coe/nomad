@@ -786,7 +786,7 @@ def _apply_nomad_yaml():
 
     with open(config_file, 'r') as stream:
         try:
-            config_data = yaml.load(stream, Loader=getattr(yaml, 'FullLoader'))
+            config_data = yaml.load(stream, Loader=yaml.SafeLoader)
         except yaml.YAMLError as e:
             logger.error(f'cannot read nomad config: {e}')
             return

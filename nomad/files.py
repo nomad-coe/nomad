@@ -1170,7 +1170,7 @@ class StagingUploadFiles(UploadFiles):
                         if full_path.endswith('.json'):
                             return json.load(f)
                         elif full_path.endswith('.yaml') or full_path.endswith('.yml'):
-                            return yaml.load(f, Loader=getattr(yaml, 'FullLoader'))
+                            return yaml.load(f, Loader=yaml.SafeLoader)
                         else:
                             return {}
                 except Exception as e:

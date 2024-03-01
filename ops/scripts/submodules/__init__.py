@@ -70,8 +70,8 @@ def move_submodule_to_github(path: str):
         return
 
     origin = next(
-        line for line in sh('git remote -v').split('\n')
-        if line.startswith('origin'))
+        line for line in sh('git remote -v').split('\n') if line.startswith('origin')
+    )
 
     origin = re.split(r'\t| ', origin)[1]
     if 'github.com/nomad-coe' in origin:
@@ -95,19 +95,22 @@ def move_submodule_to_github(path: str):
         os.remove('LICENSE.txt')
     # 2. update copyright headers
     header_templ = os.path.join(os.path.dirname(__file__), 'apache-2.tmpl')
-    sh(f'licenseheaders -t {header_templ} -o "The NOMAD Authors" -u "https://nomad-lab.eu" -n NOMAD -x "*.yaml" "*.yml"')
+    sh(
+        f'licenseheaders -t {header_templ} -o "The NOMAD Authors" -u "https://nomad-lab.eu" -n NOMAD -x "*.yaml" "*.yml"'
+    )
     # 3. create an authors file
     authors_file = 'AUTHORS'
     authors = [
         re.split(r'\t| ', line.strip(), 1)[1]
-        for line in sh('git shortlog -sne').splitlines()]
+        for line in sh('git shortlog -sne').splitlines()
+    ]
 
     with open(authors_file, 'wt') as f:
         f.write('\n'.join(authors))
         f.write('\n')
     # 4. update the metadata
     with open('metadata.yaml', 'rt') as f:
-        parser_metadata = yaml.load(f, Loader=yaml.FullLoader)
+        parser_metadata = yaml.load(f, Loader=yaml.SafeLoader)
         title = parser_metadata['codeLabel']
         parser_metadata['parserGitUrl'] = github_url
         parser_metadata['preamble'] = ''
@@ -125,17 +128,21 @@ def move_submodule_to_github(path: str):
         'https://api.github.com/orgs/nomad-coe/repos',
         headers={
             'Accept': 'application/vnd.github.v3+json',
-            'Authorization': f'token {os.environ["GITHUB_TOKEN"]}'},
-        data=json.dumps({
-            'name': f'nomad-parser-{name}',
-            'description': f'This is a NOMAD parser for {title}. It will read {title} input and output files and provide all information in NOMAD\'s unified Metainfo based Archive format.',
-            'private': False,
-            'visibility': True,
-            'has_issues': True,
-            'has_projects': False,
-            'has_wiki': False,
-            'team_id': 4443059
-        }))
+            'Authorization': f'token {os.environ["GITHUB_TOKEN"]}',
+        },
+        data=json.dumps(
+            {
+                'name': f'nomad-parser-{name}',
+                'description': f"This is a NOMAD parser for {title}. It will read {title} input and output files and provide all information in NOMAD's unified Metainfo based Archive format.",
+                'private': False,
+                'visibility': True,
+                'has_issues': True,
+                'has_projects': False,
+                'has_wiki': False,
+                'team_id': 4443059,
+            }
+        ),
+    )
 
     if result.status_code >= 400:
         print('Could not create github repository: ', result.text)
@@ -148,10 +155,10 @@ def move_submodule_to_github(path: str):
         f'https://api.github.com/orgs/nomad-coe/teams/nomad-parser-developer/repos/nomad-coe/nomad-parser-{name}',
         headers={
             'Accept': 'application/vnd.github.v3+json',
-            'Authorization': f'token {os.environ["GITHUB_TOKEN"]}'},
-        data=json.dumps({
-            'permission': 'push'
-        }))
+            'Authorization': f'token {os.environ["GITHUB_TOKEN"]}',
+        },
+        data=json.dumps({'permission': 'push'}),
+    )
 
     if result.status_code >= 400:
         print('Could not set tream permission repository: ', result.text)

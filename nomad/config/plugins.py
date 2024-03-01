@@ -101,7 +101,7 @@ class PythonPluginBase(PluginBase):
         if os.path.exists(metadata_path):
             try:
                 with open(metadata_path, 'r', encoding='UTF-8') as f:
-                    metadata = yaml.load(f, Loader=yaml.FullLoader)
+                    metadata = yaml.load(f, Loader=yaml.SafeLoader)
             except Exception as e:
                 raise ValueError(
                     f'Cannot load plugin metadata file {metadata_path}.', e
