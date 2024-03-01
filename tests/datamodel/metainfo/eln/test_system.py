@@ -17,21 +17,18 @@
 #
 import os
 
-from nomad.datamodel.datamodel import EntryArchive
 from nomad.datamodel.context import ClientContext
-from nomad.utils.exampledata import ExampleData
-
-
-import pytest
-
-from tests.normalizing.conftest import run_processing, run_normalize
 from nomad.datamodel.data import User
+from nomad.datamodel.datamodel import EntryArchive
+from nomad.utils.exampledata import ExampleData
+from tests.normalizing.conftest import run_normalize
 
 
 def test_substance(raw_files_function, test_user, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_substance.archive.yaml'
     upload_id = 'test_upload_id'
+
     data = ExampleData(main_author=test_user)
     data.create_upload(upload_id=upload_id, published=False)
     context = ClientContext(local_dir=directory, upload_id=upload_id)
@@ -51,6 +48,8 @@ def test_substance(raw_files_function, test_user, mongo_function):
     # Check that the material results section was populated by the normalizer
     assert 'I' in test_archive.results.material.elements
     assert 'Pb' in test_archive.results.material.elements
+
+    os.unlink(os.path.join(directory, 'cas_10101-63-0_image.svg'))
 
 
 def test_ensemble(raw_files_function, test_user, mongo_function):
