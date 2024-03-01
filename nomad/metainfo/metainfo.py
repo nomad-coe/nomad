@@ -266,6 +266,11 @@ class SectionProxy(MProxy):
             package_name = '.'.join(python_name[:-1])
             section_name = python_name[-1]
 
+            # Resolve package alias or assume package_name
+            metainfo_package = Package.registry.get(package_name)
+            if metainfo_package:
+                package_name = metainfo_package.name
+
             try:
                 module = importlib.import_module(package_name)
                 cls = getattr(module, section_name)
@@ -3383,7 +3388,8 @@ class Definition(MSection):
 
         aliases: A list of alternative names. For quantities and subsections these
             can be used to access the respective property with a different name from
-            its containing section.
+            its containing section. Package aliases will be considered when resolving
+            Python references, e.g. in `m_def`.
 
         variable:
             A boolean that indicates this property as variable parts in its name.
@@ -4656,7 +4662,15 @@ class Package(Definition):
     def __init_metainfo__(self):
         super().__init_metainfo__()
 
-        Package.registry[self.name] = self
+        # register the package and all its aliases
+        if Package.registry.get(self.name, None) is not self:
+            for alias in self.aliases + [self.name]:
+                if alias in Package.registry and 'pytest' not in sys.modules:
+                    existing_package = Package.registry[alias]
+                    raise MetainfoError(
+                        f'Package {alias} is already registered for package {existing_package}.'
+                    )
+                Package.registry[alias] = self
 
         # access potential SectionProxies to resolve them
         for content in self.m_all_contents():

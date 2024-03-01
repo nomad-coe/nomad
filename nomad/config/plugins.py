@@ -66,6 +66,11 @@ class PythonPluginBase(PluginBase):
     def _add_metadata(cls, metadata: Dict[str, Any], values: Dict[str, Any]):
         values.update(metadata)
 
+    def import_python_package(self):
+        if not self.python_package:
+            raise ValueError('Python plugins must provide a python_package.')
+        importlib.import_module(self.python_package)
+
     @root_validator(pre=True)
     def load_metadata(cls, values: Dict[str, Any]):  # pylint: disable=no-self-argument
         python_package = values.get('python_package')
