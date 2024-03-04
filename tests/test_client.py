@@ -143,6 +143,7 @@ def test_async_query_parallel(async_api_v1, many_uploads, monkeypatch):
     async_query = ArchiveQuery(required=dict(run='*'))
 
     assert_results(async_query.download(), total=4)
+    assert_results(async_query.download(), total=0)
 
     async_query = ArchiveQuery(required=dict(run='*'), page_size=1)
 
