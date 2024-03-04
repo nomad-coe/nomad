@@ -1216,7 +1216,8 @@ function SubSection({subSectionDef, section, editable}) {
 
   if (showList) {
     return <PropertyValuesList
-      label={itemKey || 'list'} actions={actions}
+      itemKey={itemKey}
+      label={label || 'list'} actions={actions}
       values={values.map(getItemLabel)}
       open={open}
       onClick={handleClick}
@@ -1256,7 +1257,7 @@ function ReferenceValuesList({quantityDef}) {
 
   return <PropertyValuesList
     values={values}
-    label={quantityDef.name}
+    itemKey={quantityDef.name}
     open={open}
     onClick={handleClick}
   />
@@ -1303,13 +1304,13 @@ const usePropertyValuesListStyles = makeStyles(theme => ({
  * order to prevent issues with rendering.
  */
 export function PropertyValuesList(props) {
-  const {label, values, ...otherProps} = props
+  const {label, itemKey, values, ...otherProps} = props
   return <FoldableList
-    label={label || 'list'}
+    label={label || itemKey || 'list'}
     {...otherProps}
   >
     {values.map((value, index) => {
-      return <Item key={index} itemKey={`${label}/${index}`} length={values.length}>
+      return <Item key={index} itemKey={`${itemKey}/${index}`} length={values.length}>
         <Box display="grid" flexDirection="row" flexGrow={1}>
           <Box component="span" marginLeft={2}>
             {value && typeof value === 'object'
@@ -1324,7 +1325,8 @@ export function PropertyValuesList(props) {
 }
 
 PropertyValuesList.propTypes = ({
-  label: PropTypes.string.isRequired,
+  itemKey: PropTypes.string.isRequired,
+  label: PropTypes.string,
   values: PropTypes.arrayOf(PropTypes.object).isRequired,
   actions: PropTypes.node,
   /**
