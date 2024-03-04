@@ -778,7 +778,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
         <Typography noWrap variant="caption">
           ({def.shape.map((dimension, index) => <span key={index}>
             {index > 0 && <span>&nbsp;&times;&nbsp;</span>}{String(dimension)}
-          </span>)}&nbsp;)
+          </span>)})
         </Typography>
         {finalUnit && <Typography noWrap>{finalUnit}</Typography>}
       </Box>

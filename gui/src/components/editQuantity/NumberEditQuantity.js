@@ -216,7 +216,7 @@ export const NumberEditQuantity = React.memo((props) => {
   const [unit, setUnit] = useState(defaultDisplayUnitObj)
 
   useEffect(() => {
-    setUnit(isReset ? defaultDisplayUnitObj : new Unit(defaultUnit).toSystem(units))
+    setUnit(isReset ? defaultDisplayUnitObj : defaultUnit && new Unit(defaultUnit).toSystem(units))
   }, [defaultDisplayUnitObj, defaultUnit, dimension, isReset, units])
 
   // Get a list of unit options for this field
