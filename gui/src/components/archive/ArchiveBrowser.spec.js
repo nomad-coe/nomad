@@ -36,7 +36,7 @@ test.each([
 
   renderNoAPI(
     <laneContext.Provider value={{next: {}}}>
-      <PropertyValuesList label={label} values={values} nTop={nTop} nBottom={nBottom} open={true} />
+      <PropertyValuesList itemKey={label} values={values} nTop={nTop} nBottom={nBottom} open={true} />
     </laneContext.Provider>
   )
 
@@ -59,7 +59,7 @@ test.each([
 
   renderNoAPI(
     <laneContext.Provider value={{next: {}}}>
-      <PropertyValuesList label={label} values={values} nTop={nTop} nBottom={nBottom} open={true} />
+      <PropertyValuesList itemKey={label} values={values} nTop={nTop} nBottom={nBottom} open={true} />
     </laneContext.Provider>
   )
 
