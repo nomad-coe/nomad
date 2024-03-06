@@ -502,6 +502,10 @@ class ClientContext(Context):
         file_path = os.path.join(self.local_dir, path)
         return open(file_path, *args, **kwargs)
 
+    def raw_path_exists(self, path: str) -> bool:
+        file_path = os.path.join(self.local_dir, path)
+        return os.path.exists(file_path)
+
     def create_reference(
         self,
         section: MSection,
