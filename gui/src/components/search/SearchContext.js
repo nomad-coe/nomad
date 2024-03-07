@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /*
  * Copyright The NOMAD Authors.
  *
@@ -98,6 +97,16 @@ function parseQueryString(queryString) {
     : undefined
 }
 
+/**
+ * Removes keycloak-specific fragments from the given URL.
+*/
+function removeKeycloak(url) {
+  for (const pattern of ['#state=', '#iss=', '#error=']) {
+    url = url.split(pattern)[0]
+  }
+  return url
+}
+
 const RouteListener = React.memo(() => {
   const location = useLocation()
   const history = useHistory()
@@ -119,7 +128,7 @@ const RouteListener = React.memo(() => {
     // the syntax for data within custom schemas uses a hashtag. TODO: Keycloak
     // seems to use the hashtag for special purposes as well, which causes some
     // clashes when loading the page from scratch.
-    const queryString = location.search.slice(1) + location.hash.startsWith("#state=") ? '' : location.hash
+    const queryString = removeKeycloak(location.search.slice(1) + location.hash)
     // Empty query string preserves the old filters, as this will enable people
     // to preserve filters when changing apps. This causes minor
     // inconsistencies, but might be better for the UX.
@@ -143,13 +152,15 @@ export const withQueryString = (WrappedComponent) => {
     const firstRender = useRef(true)
     const valueRef = useRef()
 
+    // Extract URL query parameters, ignore keycloak authentication state
+    // parameters starting with '#iss='.
     useMemo(() => {
       if (firstRender.current) {
         const split = window.location.href.split('?')
-        const search = (split.length !== 1)
-          ? split.pop()
+        const search = (split.length > 1)
+          ? parseQueryString(removeKeycloak(split.slice(-1)[0]))
           : {}
-        valueRef.current = {...(initialFilterValues || {}), ...parseQueryString(search)}
+        valueRef.current = {...(initialFilterValues || {}), ...search}
         firstRender.current = false
       }
     }, [initialFilterValues])
