@@ -189,11 +189,12 @@ async def startup_event():
     GuiFiles.gui_artifacts_data = get_gui_artifacts_js()
     GuiFiles.gui_env_data = get_gui_config()
 
-    config_data = [
-        item.json() for item in config.__dict__.values() if isinstance(item, BaseModel)
-    ]
+    data = {
+        'artifacts': GuiFiles.gui_artifacts_data,
+        'gui_config': GuiFiles.gui_env_data,
+    }
     GuiFiles.gui_data_etag = hashlib.md5(
-        json.dumps(config_data).encode(), usedforsecurity=False
+        json.dumps(data).encode(), usedforsecurity=False
     ).hexdigest()
 
     infrastructure.setup()
