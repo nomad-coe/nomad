@@ -21,6 +21,7 @@ import { useSearchContext } from './SearchContext'
 import { Quantity } from '../units/Quantity'
 import { isEqualWith } from 'lodash'
 import { SearchSuggestion, SuggestionType } from './SearchSuggestion'
+import { WrapperDefault } from '../conftest.spec'
 
 describe('parseQuery', function() {
   test.each([
@@ -80,5 +81,31 @@ describe('suggestions', function() {
     const suggestions = JSON.parse(window.localStorage.getItem('nomad-searchcontext-entries')).map(x => new SearchSuggestion(x))
     expect(suggestions).toHaveLength(suggestionsInitial.length + 1)
     expect(suggestions[0].key).toBe(newSuggestion.key)
+  })
+})
+
+describe('reading query from URL', function() {
+  test.each([
+    ['no query parameters', '', {}],
+    ['query parameter', '?upload_id=testing', {upload_id: new Set(['testing'])}],
+    ['query parameter with keycloak iss', '?upload_id=testing#iss=https://nomad-lab.eu/fairdi/keycloak/auth/realms/fairdi_nomad_prod', {upload_id: new Set(['testing'])}],
+    ['query parameter with keycloak error', '?upload_id=testing#error=login_required', {upload_id: new Set(['testing'])}],
+    ['query parameter with keycloak state', '?upload_id=testing#state=here is a state', {upload_id: new Set(['testing'])}]
+  ])('%s', async (name, params, expected_query) => {
+    // Set window.location.href
+    // eslint-disable-next-line no-global-assign
+    window = Object.create(window)
+    const url = "http://testing.com" + params
+    Object.defineProperty(window, 'location', {
+      value: {href: url},
+      writable: true
+    })
+
+    // Call hooks to check that query is correctly read
+    const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: WrapperSearch })
+    const { result: resultUseQuery } = renderHook(() => resultUseSearchContext.current.useQuery(), { wrapper: WrapperDefault})
+    const query = resultUseQuery.current
+    console.log(query)
+    expect(query).toMatchObject(expected_query)
   })
 })
