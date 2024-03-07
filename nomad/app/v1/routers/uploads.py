@@ -2490,7 +2490,10 @@ async def _get_files_if_provided(
 
     # Forward the file path (if method == 0) or save the file(s)
     if method == 0:
-        upload_paths = [local_path]  # Use the provided path
+        tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
+        # copy provided path to a temp directory
+        shutil.copy(local_path, tmp_dir)
+        upload_paths = [os.path.join(tmp_dir, os.path.basename(local_path))]
         uploaded_bytes = os.path.getsize(local_path)
     else:
         tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
