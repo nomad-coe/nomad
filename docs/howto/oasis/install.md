@@ -531,3 +531,13 @@ Run the Helm chart and install NOMAD:
 ```
 helm update --install nomad nomad/nomad -f values.yaml
 ```
+
+## Troubleshooting
+
+Here are some common problems that may occur in an OASIS installation:
+
+- `jwt.exceptions.ImmatureSignatureError: The token is not yet valid (iat)`:
+    The authentication information from central authentication is contained in a special piece of signed information (JWT) that contains details about the signed in person. This information also contains a timestamp, which indicates a point in time at which the information was issued at, called `iat`. The above error indicates that the server looking at the token thinks that it has not been issued yet.
+
+    The underlying reason is a time difference between the two different servers (the one creating the JWT, and the one that is validating it) as these might very well be different physical machines. To fix this problem, you should ensure that the time on the servers is up to date (e.g. a network port on the server may be closed, preventing it from synchronizing the time). Note that the servers do not need to be on the same timezone, as internally everything is converted to UTC+0.
+
