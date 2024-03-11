@@ -11,11 +11,6 @@ nomad:
       isBeta: false
       usesBetaData: false
 
-    proxy:
-      external:
-        host: "nomad-lab.eu"
-        path: "/prod/v1"
-
     gui:
       debug: false
       encyclopediaBase: "https://nomad-lab.eu/prod/rae/encyclopedia/#"
@@ -84,34 +79,25 @@ nomad:
 
   ingress:
     enabled: true
+    limitConnections: 32
+    limitConnectionsApi: 8
     className: "nginx"
     annotations:
       cert-manager.io/cluster-issuer: "letsencrypt-production"
-      nginx.ingress.kubernetes.io/proxy-body-size: "32g"
-      nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
-      nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-      nginx.ingress.kubernetes.io/limit-rps: "25"
+      nginx.ingress.kubernetes.io/limit-rps: "32"
       nginx.ingress.kubernetes.io/denylist-source-range: "141.35.40.36/32, 141.35.40.52/32"
     hosts:
-      - host: cloud.nomad-lab.eu
-        paths:
-          - path: /prod/v1/
-            pathType: ImplementationSpecific
-      - host: nomad-lab.eu
-        paths:
-          - path: /prod/v1/
-            pathType: ImplementationSpecific
+      - nomad-lab.eu
     tls:
-      - secretName: cloud-nomad-lab-eu-tls
-        hosts:
-          - cloud.nomad-lab.eu
       - secretName: nomad-lab-eu-tls
         hosts:
           - nomad-lab.eu
 
   proxy:
+    timeout: 60
+    editTimeout: 60
+    host: "nomad-lab.eu"
+    path: "/prod/v1"
     nodeSelector:
       environment: prod
       "nomad-lab.eu/app": ""

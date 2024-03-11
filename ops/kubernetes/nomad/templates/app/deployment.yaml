@@ -56,18 +56,18 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: "{{ .Values.nomad.config.proxy.external.path }}/alive"
+              path: "{{ .Values.nomad.proxy.path }}/alive"
               port: 8000
-            initialDelaySeconds: 60
-            periodSeconds: 30
-            timeoutSeconds: 5
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: {{ add .Values.nomad.proxy.timeout 10}}
           readinessProbe:
             httpGet:
-              path: "{{ .Values.nomad.config.proxy.external.path }}/alive"
+              path: "{{ .Values.nomad.proxy.path }}/alive"
               port: 8000
-            initialDelaySeconds: 60
-            periodSeconds: 15
-            timeoutSeconds: 5
+            initialDelaySeconds: 90
+            periodSeconds: 3
+            timeoutSeconds: {{ add .Values.nomad.proxy.timeout 3 }}
           {{- with .Values.nomad.app.resources }}
           resources:
             {{- . | toYaml | nindent 12 }}

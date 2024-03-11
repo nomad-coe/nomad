@@ -103,7 +103,7 @@ def store_package_definition(package: Package, **kwargs):
         ).count()
         > 0
     ):
-        logger.info(f'Package {package.definition_id} already exists. Skipping.')
+        logger.info(f'Package already exists.', package_id={package.definition_id})
         return
 
     mongo_package = PackageDefinition(package, **kwargs)

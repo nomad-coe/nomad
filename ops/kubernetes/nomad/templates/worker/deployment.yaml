@@ -103,29 +103,23 @@ spec:
             {{- end }}
           command: ["python", "-m", "celery", "-A", "nomad.processing", "worker", "-n", "$(NOMAD_CELERY_NODE_NAME)" {{ if .Values.nomad.worker.processes }}, "-c", "{{ .Values.nomad.worker.processes }}"{{ end }}{{ if .Values.nomad.worker.maxTasksPerChild }}, "--max-tasks-per-child", "{{ .Values.nomad.worker.maxTasksPerChild }}"{{ end }}]
           livenessProbe:
-            # httpGet:
-            #   path: /
-            #   port: http
             exec:
               command:
               - bash
               - -c
               - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
             initialDelaySeconds: 30
-            periodSeconds: 30
-            timeoutSeconds: 30
+            periodSeconds: 120
+            timeoutSeconds: 60
           readinessProbe:
-            # httpGet:
-            #   path: /
-            #   port: http
             exec:
               command:
               - bash
               - -c
               - NOMAD_LOGSTASH_LEVEL=WARNING python -m celery -A nomad.processing status | grep "${NOMAD_CELERY_NODE_NAME}:.*OK"
-            initialDelaySeconds: 15
-            periodSeconds: 30
-            timeoutSeconds: 30
+            initialDelaySeconds: 30
+            periodSeconds: 120
+            timeoutSeconds: 60
       volumes:
       {{- with .Values.nomad.volumes }}
         {{- toYaml . | nindent 8 }}

@@ -255,7 +255,7 @@ async def start_tool(
         'external_mounts': external_mounts,
     }
 
-    logger.info('body of the post call', body=body)
+    logger.info('post tool start to jupyterhub', body=body)
 
     response = requests.post(url, json=body, headers=hub_api_headers)
 

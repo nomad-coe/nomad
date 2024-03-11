@@ -46,11 +46,11 @@ data:
       host: "{{ .Values.nomad.config.logstash.host }}"
       tcp_port: {{ .Values.nomad.config.logstash.port }}
     services:
-      api_host: "{{ .Values.nomad.config.proxy.external.host }}"
-      api_port: {{ .Values.nomad.config.proxy.external.port }}
-      api_base_path: "{{ .Values.nomad.config.proxy.external.path }}"
+      api_host: "{{ index .Values.nomad.ingress.hosts 0 }}"
+      api_port: {{ .Values.nomad.service.port }}
+      api_base_path: "{{ .Values.nomad.proxy.path }}"
       api_secret: "{{ .Values.nomad.config.api.secret }}"
-      https: {{ .Values.nomad.config.proxy.external.https }}
+      https: true
       upload_limit: {{ .Values.nomad.config.api.uploadLimit }}
       admin_user_id: {{ .Values.nomad.config.keycloak.admin_user_id }}
       aitoolkit_enabled: {{ .Values.nomad.config.services.aitoolkit.enabled }}
@@ -120,16 +120,16 @@ data:
     {{ end }}
     north:
       enabled: {{ .Values.nomad.config.north.enabled }}
-      hub_host: "{{ .Values.nomad.config.proxy.external.host }}"
-      hub_port: {{ .Values.nomad.config.proxy.external.port }}
+      hub_host: "{{ index .Values.nomad.ingress.hosts 0 }}"
+      hub_port: {{ .Values.nomad.service.port }}
       hub_service_api_token: "{{ .Values.nomad.config.north.hubServiceApiToken }}"
-    {{ if .Values.nomad.archive }}
-    archive: {{ .Values.nomad.archive | toYaml | nindent 6 }}
+    {{ if .Values.nomad.config.archive }}
+    archive: {{ .Values.nomad.config.archive | toYaml | nindent 6 }}
     {{ end }}
-    {{ if .Values.nomad.plugins }}
-    plugins: {{ .Values.nomad.plugins | toYaml | nindent 6 }}
+    {{ if .Values.nomad.config.plugins }}
+    plugins: {{ .Values.nomad.config.plugins | toYaml | nindent 6 }}
     {{ end }}
-    {{ if .Values.nomad.normalize }}
-    normalize: {{ .Values.nomad.normalize | toYaml | nindent 6 }}
+    {{ if .Values.nomad.config.normalize }}
+    normalize: {{ .Values.nomad.config.normalize | toYaml | nindent 6 }}
     {{ end }}
 {{- end }}
