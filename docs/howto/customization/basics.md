@@ -6,8 +6,7 @@ This guide explains how to write and upload NOMAD schemas in our `.archive.yaml`
 
 ## Example data
 
-Let's assume we want to describe chemical compositions via elements contained in a
-composition.
+Let's assume we want to describe chemical compositions using the elements they contain.
 The following structured data (in this example as a `.yaml` document) could describe the composition of water.
 ```yaml
 {{ yaml_snippet('examples/docs/basic_schema/data.archive.yaml:data', '', 'm_def') }}
@@ -88,7 +87,7 @@ This is a list of supported quantity types.
 
 ### Shape
 
-The shape of a quantitiy is a list of *dimensions*, where each *dimension* defines the
+The shape of a quantity is a list of *dimensions*, where each *dimension* defines the
 possible size of that *dimension*. The empty list (or no shape) describes a scalar value,
 a list with one *dimension* a list or vector, a list with two *dimensions* a matrix, etc.
 
