@@ -16,7 +16,7 @@ apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ $fullName }}-api
   labels:
     {{- include "nomad.labels" . | nindent 4 }}
   annotations:
@@ -24,7 +24,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "{{ .Values.nomad.proxy.timeout }}"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "{{ .Values.nomad.proxy.timeout }}"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{ .Values.nomad.proxy.connectionTimeout }}"
-    nginx.ingress.kubernetes.io/limit-connections: "{{ .Values.nomad.ingress.limitConnections }}"
+    nginx.ingress.kubernetes.io/limit-connections: "{{ .Values.nomad.ingress.limitConnectionsApi }}"
     {{- with .Values.nomad.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -47,7 +47,7 @@ spec:
     - host: {{ . | quote }}
       http:
         paths:
-          - path: {{ $path }}
+          - path: {{ trimSuffix "/" $path }}/api
             pathType: ImplementationSpecific
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}

@@ -2515,11 +2515,11 @@ async def _get_files_if_provided(
                         f.write(chunk)
                         if uploaded_bytes > next_log_at:
                             logger.info(
-                                'Large upload in progress - uploaded: '
-                                f'{uploaded_bytes // log_interval} {log_unit}'
+                                'large upload in progress',
+                                uploaded_bytes=uploaded_bytes,
                             )
                             next_log_at += log_interval
-                    logger.info(f'Uploaded {uploaded_bytes} bytes')
+                    logger.info(f'upload completed', uploaded_bytes={uploaded_bytes})
             except Exception as e:
                 if not (isinstance(e, RuntimeError) and 'Stream consumed' in str(e)):
                     if os.path.exists(tmp_dir):
@@ -2536,7 +2536,7 @@ async def _get_files_if_provided(
             shutil.rmtree(tmp_dir)
             return [], None
 
-    logger.info(f'received {len(upload_paths)} uploaded file(s)')
+    logger.info(f'received uploaded file(s)')
     if method == 2 and no_file_name_info_provided:
         # Only ok if uploaded file is a zip or a tar archive.
         ext = (

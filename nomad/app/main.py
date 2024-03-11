@@ -16,31 +16,21 @@
 # limitations under the License.
 #
 
-import re
-import os
 import hashlib
 import json
 
-from fastapi import FastAPI, Request, Response, status
+from fastapi import FastAPI, Response, status
 from fastapi.exception_handlers import (
     http_exception_handler as default_http_exception_handler,
 )
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.staticfiles import (
-    StaticFiles as StarletteStaticFiles,
-    NotModifiedResponse,
-)
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse
-from starlette.datastructures import Headers
 from pydantic import BaseModel
 
 from nomad import config, infrastructure
 from .v1.main import app as v1_app
-
-from nomad.cli.dev import get_gui_artifacts_js
-from nomad.cli.dev import get_gui_config
+from .static import app as static_files_app, GuiFiles
 
 
 class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
@@ -69,6 +59,18 @@ class OasisAuthenticationMiddleware(BaseHTTPMiddleware):
 app = FastAPI()
 
 app_base = config.services.api_base_path
+
+
+@app.get(f'{app_base}/alive')
+async def alive():
+    return 'I am, alive!'
+
+
+@app.get('/-/health', status_code=status.HTTP_200_OK)
+async def health():
+    return {'healthcheck': 'ok'}
+
+
 app.mount(f'{app_base}/api/v1', v1_app)
 
 if config.services.optimade_enabled:
@@ -93,111 +95,8 @@ if config.resources.enabled:
 
     app.mount(f'{app_base}/resources', resources_app)
 
-dist_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../dist'))
-docs_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/docs'))
-gui_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static/gui'))
-if not os.path.exists(gui_folder):
-    os.makedirs(gui_folder)
-
-configured_gui_folder = os.path.join(
-    config.fs.working_directory, 'run', 'gui_configured'
-)
-if os.path.exists(configured_gui_folder):
-    gui_folder = configured_gui_folder
-
-
-class StaticFiles(StarletteStaticFiles):
-    etag_re = r'^(W/)?"?([^"]*)"?$'
-
-    def is_not_modified(
-        self, response_headers: Headers, request_headers: Headers
-    ) -> bool:
-        # The starlette etag implementation is not considering the "..." and W/"..." etag
-        # RFC syntax used by browsers.
-        try:
-            if_none_match = request_headers['if-none-match']
-            match = re.match(StaticFiles.etag_re, if_none_match)
-            if_none_match = match.group(2)
-            etag = response_headers['etag']
-            if if_none_match == etag:
-                return True
-        except KeyError:
-            pass
-
-        return super().is_not_modified(response_headers, request_headers)
-
-
-class GuiFiles(StaticFiles):
-    gui_artifacts_data = None
-    gui_env_data = None
-    gui_data_etag = None
-
-    async def get_response(self, path: str, scope) -> Response:
-        if path not in ['env.js', 'artifacts.js']:
-            response = await super().get_response(path, scope)
-        else:
-            assert (
-                GuiFiles.gui_data_etag is not None
-            ), 'Etag for gui data was not initialized'
-            response = PlainTextResponse(
-                GuiFiles.gui_env_data
-                if path == 'env.js'
-                else GuiFiles.gui_artifacts_data,
-                media_type='application/javascript',
-                headers=dict(etag=GuiFiles.gui_data_etag),
-            )
-
-        request_headers = Headers(scope=scope)
-        if self.is_not_modified(response.headers, request_headers):
-            return NotModifiedResponse(response.headers)
-        return response
-
-
-app.mount(
-    f'{app_base}/dist',
-    StaticFiles(directory=dist_folder, check_dir=False),
-    name='dist',
-)
-app.mount(
-    f'{app_base}/docs', StaticFiles(directory=docs_folder, check_dir=False), name='docs'
-)
-app.mount(
-    f'{app_base}/gui', GuiFiles(directory=gui_folder, check_dir=False), name='gui'
-)
-
-
-@app.on_event('startup')
-async def startup_event():
-    from nomad.cli.dev import get_gui_artifacts_js
-    from nomad.cli.dev import get_gui_config
-    from nomad import infrastructure
-    from nomad.parsing.parsers import import_all_parsers
-    from nomad.metainfo.elasticsearch_extension import entry_type
-
-    import_all_parsers()
-
-    # each subprocess is supposed disconnect and
-    # connect again: https://jira.mongodb.org/browse/PYTHON-2090
-    try:
-        from mongoengine import disconnect
-
-        disconnect()
-    except Exception:
-        pass
-
-    entry_type.reload_quantities_dynamic()
-    GuiFiles.gui_artifacts_data = get_gui_artifacts_js()
-    GuiFiles.gui_env_data = get_gui_config()
-
-    data = {
-        'artifacts': GuiFiles.gui_artifacts_data,
-        'gui_config': GuiFiles.gui_env_data,
-    }
-    GuiFiles.gui_data_etag = hashlib.md5(
-        json.dumps(data).encode(), usedforsecurity=False
-    ).hexdigest()
-
-    infrastructure.setup()
+# Make sure to mount this last, as it is a catch-all routes that are not yet mounted.
+app.mount(app_base, static_files_app)
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -255,45 +154,35 @@ async def http_exception_handler(request, exc):
     )
 
 
-@app.get(f'{app_base}/alive')
-async def alive():
-    """Simple endpoint to utilize kubernetes liveness/readiness probing."""
-    return 'I am, alive!'
+@app.on_event('startup')
+async def startup_event():
+    from nomad.cli.dev import get_gui_artifacts_js
+    from nomad.cli.dev import get_gui_config
+    from nomad.parsing.parsers import import_all_parsers
+    from nomad import infrastructure
+    from nomad.metainfo.elasticsearch_extension import entry_type
 
+    import_all_parsers()
 
-@app.get('/-/health', status_code=status.HTTP_200_OK)
-async def health():
-    return {'healthcheck': 'ok'}
+    # each subprocess is supposed disconnect and
+    # connect again: https://jira.mongodb.org/browse/PYTHON-2090
+    try:
+        from mongoengine import disconnect
 
+        disconnect()
+    except Exception:
+        pass
 
-max_cache_ages = {
-    r'\.[a-f0-9]+\.chunk\.(js|css)$': 3600 * 24 * 7,
-    r'\.(html|js|css)$': config.services.html_resource_http_max_age,
-    r'\.(png|jpg|gif|jpeg|ico)$': config.services.image_resource_http_max_age,
-}
+    entry_type.reload_quantities_dynamic()
+    GuiFiles.gui_artifacts_data = get_gui_artifacts_js()
+    GuiFiles.gui_env_data = get_gui_config()
 
+    data = {
+        'artifacts': GuiFiles.gui_artifacts_data,
+        'gui_config': GuiFiles.gui_env_data,
+    }
+    GuiFiles.gui_data_etag = hashlib.md5(
+        json.dumps(data).encode(), usedforsecurity=False
+    ).hexdigest()
 
-@app.middleware('http')
-async def add_header(request: Request, call_next):
-    response = await call_next(request)
-
-    max_age = None
-    for key, value in max_cache_ages.items():
-        if re.search(key, str(request.url)):
-            max_age = value
-            break
-
-    if max_age is not None:
-        response.headers['Cache-Control'] = f'max-age={max_age}, must-revalidate'
-    else:
-        response.headers[
-            'Cache-Control'
-        ] = f'max-age=0, no-cache, no-store, must-revalidate'
-
-    # The etags that we and starlette produce do not follow the RFC, because they do not
-    # start with a " as the RFC specifies. Nginx considers them weak etags and will strip
-    # these if gzip is enabled.
-    if not response.headers.get('etag', '"').startswith('"'):
-        response.headers['etag'] = f'"{response.headers.get("etag")}"'
-
-    return response
+    infrastructure.setup()

@@ -38,7 +38,6 @@ import json
 import orjson
 from pydantic.main import create_model
 from starlette.responses import Response
-from joblib import Parallel, delayed, parallel_backend
 
 from nomad import files, config, utils, metainfo, processing as proc
 from nomad import datamodel
@@ -857,7 +856,7 @@ def _validate_required(required: ArchiveRequired, user) -> RequiredReader:
 def _read_entry_from_archive(entry: dict, uploads, required_reader: RequiredReader):
     entry_id, upload_id = entry['entry_id'], entry['upload_id']
 
-    # all other exceptions are handled by the caller `_read_entries_from_archive`
+    # all other exceptions are handled by the caller `_answer_entries_archive_request`
     try:
         upload_files = uploads.get_upload_files(upload_id)
 
@@ -872,27 +871,8 @@ def _read_entry_from_archive(entry: dict, uploads, required_reader: RequiredRead
         return None
 
 
-def _read_entries_from_archive(
-    entries: Union[list, dict], required: ArchiveRequired, user
-):
-    """
-    Takes pickleable arguments so that it can be offloaded to worker processes.
-
-    It is important to ensure the return values are also pickleable.
-    """
-    with _Uploads() as uploads:
-        required_reader = _validate_required(required, user)
-
-        if isinstance(entries, dict):
-            return _read_entry_from_archive(entries, uploads, required_reader)
-
-        return [
-            _read_entry_from_archive(entry, uploads, required_reader)
-            for entry in entries
-        ]
-
-
-def _answer_entries_archive_request(
+async def _answer_entries_archive_request(
+    request: Request,
     owner: Owner,
     query: Query,
     pagination: MetadataPagination,
@@ -928,27 +908,29 @@ def _answer_entries_archive_request(
         for entry in search_response.data
     ]
 
-    # fewer than config.archive.min_entries_per_process entries per process is not useful
-    # more than config.max_process_number processes is too much for the server
-    number: int = min(
-        int(math.ceil(len(entries) / config.archive.min_entries_per_process)),
-        config.archive.max_process_number,
-    )
+    required_reader = _validate_required(required, user)
+    response_data = []
+    if isinstance(entries, dict):
+        entries = [entries]
 
-    if number <= 1:
-        request_data: list = _read_entries_from_archive(entries, required, user)
-    else:
-        with parallel_backend('threading', n_jobs=number):
-            request_data = Parallel()(
-                delayed(_read_entries_from_archive)(i, required, user) for i in entries
-            )
+    with _Uploads() as uploads:
+        for entry in entries:
+            disconnected = await request.is_disconnected()
+            if disconnected:
+                logger.info('client disconnected', endpoint='entries/archive')
+                break
+
+            entry_archive = _read_entry_from_archive(entry, uploads, required_reader)
+            response_data.append(entry_archive)
+
+        logger.info('read all archives', endpoint='entries/archive')
 
     return EntriesArchiveResponse(
         owner=search_response.owner,
         query=search_response.query,
         pagination=search_response.pagination,
         required=required,
-        data=list(filter(None, request_data)),
+        data=list(filter(None, response_data)),
     )
 
 
@@ -977,7 +959,8 @@ async def post_entries_archive_query(
     data: EntriesArchive,
     user: User = Depends(create_user_dependency()),
 ):
-    return _answer_entries_archive_request(
+    return await _answer_entries_archive_request(
+        request=request,
         owner=data.owner,
         query=data.query,
         pagination=data.pagination,
@@ -1002,7 +985,8 @@ async def get_entries_archive_query(
     pagination: MetadataPagination = Depends(metadata_pagination_parameters),
     user: User = Depends(create_user_dependency()),
 ):
-    res = _answer_entries_archive_request(
+    res = await _answer_entries_archive_request(
+        request=request,
         owner=with_query.owner,
         query=with_query.query,
         pagination=pagination,

@@ -917,13 +917,6 @@ class Archive(NomadSettings):
         description='GPFS needs at least 256K to achieve decent performance.',
     )
     toc_depth = Field(6, description='Depths of table of contents in the archive.')
-    max_process_number = Field(
-        20,
-        description='Maximum number of processes can be assigned to process archive query.',
-    )
-    min_entries_per_process = Field(
-        20, description='Minimum number of entries per process.'
-    )
     use_new_writer = False  # todo: to be removed
     small_obj_optimization_threshold = Field(
         256 * 1024,

@@ -24,7 +24,9 @@ gui/public/artifacts.js
 !ops/docker-compose/nomad-oasis-with-keycloak/configs/nomad.yaml
 
 # Ignore built gui and docs artifacts
-nomad/app/static/
+nomad/app/static/.gui_configured
+nomad/app/static/docs
+nomad/app/static/gui
 
 nomad/normalizing/data/*.db
 nomad/normalizing/data/*.msg
@@ -81,6 +83,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+nexus.obj
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

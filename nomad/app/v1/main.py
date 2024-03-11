@@ -16,10 +16,12 @@
 # limitations under the License.
 #
 
-from typing import Any
+from typing import Any, cast
 from fastapi import FastAPI, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from fastapi.routing import APIRoute
 import traceback
 import orjson
 
@@ -90,10 +92,16 @@ async def redirect_to_docs(req: Request):
 app.add_route('/', redirect_to_docs, include_in_schema=False)
 
 
-@app.middleware('http')
-async def log_request_time(request: Request, call_next):
-    with utils.timer(logger, 'request handled', url=request.url.path):
-        return await call_next(request)
+class LoggingMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        with utils.timer(logger, 'request handled', path=scope.get('path')):
+            await self.app(scope, receive, send)
+
+
+app.add_middleware(LoggingMiddleware)
 
 
 @app.exception_handler(Exception)

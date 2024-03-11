@@ -6,10 +6,6 @@ nomad:
       usesBetaData: false
       officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
-    proxy:
-      external:
-        path: "/prod/v1/develop"
-
     gui:
       debug: true
 
@@ -29,16 +25,8 @@ nomad:
   image:
     tag: "prod"
 
-  ingress:
-    hosts:
-      - host: cloud.nomad-lab.eu
-        paths:
-          - path: /prod/v1/develop/
-            pathType: ImplementationSpecific
-      - host: nomad-lab.eu
-        paths:
-          - path: /prod/v1/develop/
-            pathType: ImplementationSpecific
+  proxy:
+    path: "/prod/v1/develop"
 
   app:
     replicaCount: 4

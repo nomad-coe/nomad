@@ -1,9 +1,5 @@
 nomad:
   config:
-    proxy:
-      external:
-        path: "/prod/v1"
-
     dbname: nomad_prod_v1
 
     uploadurl: "https://nomad-lab.eu/prod/v1/api/uploads"
@@ -20,19 +16,13 @@ nomad:
   image:
     tag: "prod"
 
+  proxy:
+    path: "/prod/v1"
+
   ingress:
     annotations:
       nginx.ingress.kubernetes.io/limit-rps: "25"
       nginx.ingress.kubernetes.io/denylist-source-range: "141.35.40.36/32, 141.35.40.52/32"
-    hosts:
-      - host: cloud.nomad-lab.eu
-        paths:
-          - path: /prod/v1/
-            pathType: ImplementationSpecific
-      - host: nomad-lab.eu
-        paths:
-          - path: /prod/v1/
-            pathType: ImplementationSpecific
 
   app:
     replicaCount: 18

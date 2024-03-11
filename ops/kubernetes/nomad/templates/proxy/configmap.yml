@@ -23,8 +23,8 @@ data:
       server_name   www.example.com;
       proxy_set_header Host $host;
 
-      proxy_connect_timeout {{ .Values.nomad.config.proxy.timeout }};
-      proxy_read_timeout {{ .Values.nomad.config.proxy.timeout }};
+      proxy_connect_timeout {{ .Values.nomad.proxy.connectionTimeout }};
+      proxy_read_timeout {{ .Values.nomad.proxy.timeout }};
       proxy_pass_request_headers      on;
       underscores_in_headers          on;
 
@@ -50,29 +50,29 @@ data:
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location ~ {{ .Values.nomad.config.proxy.external.path }}\/?(gui)?$ {
-        rewrite ^ {{ .Values.nomad.config.proxy.external.path }}/gui/ permanent;
+      location ~ {{ .Values.nomad.proxy.path }}\/?(gui)?$ {
+        rewrite ^ {{ .Values.nomad.proxy.path }}/gui/ permanent;
       }
 
-      location {{ .Values.nomad.config.proxy.external.path }}/gui/ {
+      location {{ .Values.nomad.proxy.path }}/gui/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_index {
-        rewrite ^ {{ .Values.nomad.config.proxy.external.path }}/gui/index.html break;
+        rewrite ^ {{ .Values.nomad.proxy.path }}/gui/index.html break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
-      location {{ .Values.nomad.config.proxy.external.path }}/docs/ {
+      location {{ .Values.nomad.proxy.path }}/docs/ {
         proxy_intercept_errors on;
         error_page 404 = @redirect_to_index_docs;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       location @redirect_to_index_docs {
-        rewrite ^ {{ .Values.nomad.config.proxy.external.path }}/docs/index.html break;
+        rewrite ^ {{ .Values.nomad.proxy.path }}/docs/index.html break;
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
@@ -98,12 +98,12 @@ data:
 
       location ~ /api/v1/entries/edit {
         proxy_buffering off;
-        proxy_read_timeout {{ .Values.nomad.config.proxy.editTimeout }};
+        proxy_read_timeout {{ .Values.nomad.proxy.editTimeout }};
         proxy_pass http://{{ include "nomad.fullname" . }}-app:8000;
       }
 
       {{- if .Values.nomad.config.north.enabled }}
-      location {{ .Values.nomad.config.proxy.external.path }}/north/ {
+      location {{ .Values.nomad.proxy.path }}/north/ {
           client_max_body_size 500m;
           proxy_pass http://{{ include "jupyterhub.fullname" . }}-proxy-public;
 
@@ -120,6 +120,5 @@ data:
           proxy_buffering off;
       }
       {{- end }}
-
     }
 {{- end}}

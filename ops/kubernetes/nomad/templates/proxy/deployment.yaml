@@ -60,16 +60,18 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
-              path: "{{ .Values.nomad.config.proxy.external.path }}/gui/index.html"
+              path: "{{ .Values.nomad.proxy.path }}/gui/index.html"
               port: http
-            initialDelaySeconds: 60
-            periodSeconds: 15
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: {{ add .Values.nomad.proxy.timeout 10 }}
           readinessProbe:
             httpGet:
-              path: "{{ .Values.nomad.config.proxy.external.path }}/gui/index.html"
+              path: "{{ .Values.nomad.proxy.path }}/gui/index.html"
               port: http
-            initialDelaySeconds: 60
+            initialDelaySeconds: 90
             periodSeconds: 3
+            timeoutSeconds: {{ add .Values.nomad.proxy.timeout 3}}
           {{- with .Values.nomad.proxy.resources }}
           resources:
             {{- . | toYaml | nindent 12 }}

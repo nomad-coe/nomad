@@ -6,10 +6,6 @@ nomad:
       usesBetaData: false
       officialUrl: "https://nomad-lab.eu/prod/v1/gui"
 
-    proxy:
-      external:
-        path: "/prod/v1/util"
-
     gui:
       debug: true
 
@@ -26,22 +22,24 @@ nomad:
     north:
       enabled: false
 
+    archive:
+      use_new_writer: true
+
   image:
     tag: "prod"
 
-  ingress:
-    hosts:
-      - host: nomad-lab.eu
-        paths:
-          - path: /prod/v1/util/
-            pathType: ImplementationSpecific
+  proxy:
+    path: "/prod/v1/util"
 
   app:
     replicaCount: 1
+    resources:
+      limits:
+        memory: "8Gi"
 
   worker:
-    replicaCount: 1
-    processes: 4
+    replicaCount: 2
+    processes: 8
     resources:
       limits:
         memory: "256Gi"

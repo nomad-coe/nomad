@@ -41,7 +41,9 @@ gui/public/env.js
 !examples/plugins/parser/nomad.yaml
 
 # Ignore built gui and docs artufacts
-nomad/app/static/
+nomad/app/static/.gui_configured
+nomad/app/static/docs
+nomad/app/static/gui
 
 # Ignore files created at nomad runtime
 run/

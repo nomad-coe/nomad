@@ -148,31 +148,17 @@ nomad:
       ## automatically gz based on header
       gzip: true
 
-    proxy:
-      # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
-      timeout: 120
-      editTimeout: 1800
-      external:
-        host: "nomad-lab.eu"
-        port: 80
-        path: "/fairdi/nomad/latest"
-        https: true
-
-
   ingress:
     enabled: false
+    limitConnections: 32
+    limitConnectionsApi: 8
+    hosts:
+      - nomad-lab.eu
     className: ""
     annotations:
       nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    hosts:
-      - host: chart-example.local
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
+      nginx.ingress.kubernetes.io/proxy-body-size: "32g"
     tls: []
-    #  - secretName: chart-example-tls
-    #    hosts:
-    #      - chart-example.local
 
   # Additional volumes on the output Deployment definition.
   volumes: []
@@ -196,6 +182,11 @@ nomad:
   ## Everything concerning the nginx that serves the gui, proxies the api
   #  It is run via NodePort service
   proxy:
+    path: "/fairdi/nomad/latest"
+    timeout: 60
+    editTimeout: 60
+    connectionTimeout: 10
+
     replicaCount: 1
     # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
 

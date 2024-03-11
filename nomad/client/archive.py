@@ -21,6 +21,8 @@ import asyncio
 from asyncio import Semaphore
 from itertools import islice
 from typing import Any, Union
+from math import floor
+from time import monotonic
 import threading
 
 from click import progressbar
@@ -116,6 +118,9 @@ class ArchiveQuery:
 
     Setting a high value for `semaphore` may cause the server to return 500, 502, 504 errors.
 
+    Use `max_requests_per_second` to control the number of requests per second in case the server
+    has a rate limit.
+
     Params:
         owner (str): ownership scope
         query (dict): query
@@ -131,6 +136,7 @@ class ArchiveQuery:
         retry (int): number of retry when fetching uploads, default: 4
         sleep_time (float): sleep time for retry, default: 4.
         semaphore (int): number of concurrent downloads, this depends on server settings, default: 4
+        max_requests_per_second (int): maximum requests per second, default: 999999
     """
 
     def __init__(
@@ -145,10 +151,11 @@ class ArchiveQuery:
         batch_size: int = 10,
         username: str = None,
         password: str = None,
-        retry: int = 4,
+        retry: int = 1,
         sleep_time: float = 4.0,
         from_api: bool = False,
-        semaphore: int = 4,
+        semaphore: int = 8,
+        max_requests_per_second: int = 20,
     ):
         self._owner: str = owner
         self._required = required if required else dict(run='*')
@@ -168,6 +175,10 @@ class ArchiveQuery:
         self._sleep_time: float = sleep_time if sleep_time > 0.0 else 4.0
         self._semaphore = min(10, semaphore) if semaphore > 0 else 4
         self._results_actual: int = 0
+        self._max_requests_per_second: int = max_requests_per_second
+
+        self._start_time: float = 0.0
+        self._accumulated_requests: int = 0
 
         from nomad.client import Auth
 
@@ -261,6 +272,15 @@ class ArchiveQuery:
             return min(self._results_actual, self._results_max)
 
         return self._results_max
+
+    @property
+    def _allowed_requests(self) -> float:
+        """
+        The number of requests allowed since the start of the download.
+        This is controlled by the maximum number of requests per second.
+        """
+        duration: float = monotonic() - self._start_time
+        return self._max_requests_per_second * duration
 
     async def _fetch_async(self, number: int) -> int:
         """
@@ -371,6 +391,9 @@ class ArchiveQuery:
 
         actual_number: int = min(number, len(self._entries))
 
+        self._start_time = monotonic()
+        self._accumulated_requests = 0
+
         def batched(iterable, chunk_size):
             iterator = iter(iterable)
             while chunk := list(islice(iterator, chunk_size)):
@@ -413,6 +436,11 @@ class ArchiveQuery:
         request = self._download_request(entry_ids)
 
         async with semaphore:
+            while self._accumulated_requests > self._allowed_requests:
+                await asyncio.sleep(0.1)
+
+            self._accumulated_requests += 1
+
             response = await session.post(
                 self._download_url, json=request, headers=self._auth.headers()
             )
