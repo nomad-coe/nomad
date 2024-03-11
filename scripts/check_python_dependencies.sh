@@ -22,18 +22,10 @@ pip-compile --resolver=backtracking --quiet --annotation-style=line \
 
 diff requirements.txt requirements.txt.tmp
 
-
 pip-compile --resolver=backtracking --quiet --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt.tmp \
     requirements.txt \
-    dependencies/nomad-dos-fingerprints/pyproject.toml \
-    dependencies/parsers/atomistic/pyproject.toml \
-    dependencies/parsers/database/pyproject.toml \
-    dependencies/parsers/eelsdb/pyproject.toml \
-    dependencies/parsers/electronic/pyproject.toml \
-    dependencies/parsers/nexus/pyproject.toml \
-    dependencies/parsers/workflow/pyproject.toml \
     pyproject.toml
 
 diff requirements-dev.txt requirements-dev.txt.tmp
