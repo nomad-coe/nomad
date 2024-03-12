@@ -20,6 +20,7 @@ import typing
 import click
 import json
 import os
+import os.path
 import traceback
 
 from nomad import config
@@ -811,6 +812,13 @@ def stop(ctx, uploads, entries: bool, kill: bool, no_celery: bool):
 @uploads.group(help='Check certain integrity criteria')
 @click.pass_context
 def integrity(ctx):
+    # there is only a staging or a public version of the upload, not both
+    # do (all) files exist (some raw files, some archive files)
+    # does the index exist
+    # do the number of indexed entries match the number of entries in mongo
+    # does nomad version in the the archive (metadata/nomad_version) match the indexed data (nomad_version)
+    # is the archive version suffix matching the preferred (first) configured archive_version_suffix
+    # does the archive use the new writer
     pass
 
 
@@ -1076,3 +1084,75 @@ def import_bundle(
             print(f'FAILED to import: {count_failed}')
             if not ignore_errors:
                 print('Aborted import after first failure.')
+
+
+def rename(path: str):
+    return path.replace('v1.msg', 'v1.2.msg')
+
+
+def only_v1(path: str):
+    if 'v1.2.msg' in path:
+        return True
+    if 'v1.msg' in path:
+        return not os.path.exists(path.replace('v1.msg', 'v1.2.msg'))
+
+    return False
+
+
+@uploads.command(help='Convert selected uploads to the new format.')
+@click.argument('UPLOADS', nargs=-1)
+@click.option(
+    '--overwrite',
+    '-o',
+    is_flag=True,
+    help='Overwrite existing target files.',
+)
+@click.option(
+    '--delete-old',
+    '-d',
+    is_flag=True,
+    help='Delete old archives once successfully converted.',
+)
+@click.option(
+    '--migrate',
+    is_flag=True,
+    help='Only convert v1 archive files to v1.2 archive files.',
+)
+@click.option(
+    '--force-repack',
+    is_flag=True,
+    help='Force repacking existing archives that are already in the new format',
+)
+@click.option(
+    '--parallel',
+    '-p',
+    type=int,
+    default=os.cpu_count(),
+    help='Number of processes to use for conversion. Default is os.cpu_count().',
+)
+@click.pass_context
+def convert_archive(
+    ctx, uploads, overwrite, delete_old, migrate, force_repack, parallel
+):
+    _, selected = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+
+    from nomad.archive.converter import convert_upload
+
+    if migrate:
+        convert_upload(
+            selected,
+            overwrite=overwrite,
+            delete_old=delete_old,
+            transform=rename,
+            if_include=only_v1,
+            processes=parallel,
+            force_repack=force_repack,
+        )
+    else:
+        convert_upload(
+            selected,
+            overwrite=overwrite,
+            delete_old=delete_old,
+            processes=parallel,
+            force_repack=force_repack,
+        )

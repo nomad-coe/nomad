@@ -23,7 +23,6 @@ import functools
 import re
 from typing import cast, Union, Dict, Tuple
 
-from cachetools.func import lru_cache
 from fastapi import HTTPException
 
 from nomad import utils
@@ -627,7 +626,6 @@ class RequiredReader:
 
         return result
 
-    @lru_cache(maxsize=32)
     def _retrieve_archive(self, kind: str, id_or_path: str, upload_id: str):
         """
         Retrieves the archive from the server using the stored user credentials.

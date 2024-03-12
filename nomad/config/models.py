@@ -452,7 +452,7 @@ class FS(NomadSettings):
     local_tmp = '/tmp'
     prefix_size = 2
     archive_version_suffix: Union[str, List[str]] = Field(
-        'v1',
+        'v1.2',
         description="""
         This allows to add an additional segment to the names of archive files and
         thereby allows different NOMAD installations to work with the same storage
@@ -909,17 +909,25 @@ class BundleImport(NomadSettings):
 
 class Archive(NomadSettings):
     block_size = Field(
-        256 * 1024,
+        1 * 2**20,
         description='In case of using blocked TOC, this is the size of each block.',
     )
     read_buffer_size = Field(
-        256 * 1024,
+        1 * 2**20,
         description='GPFS needs at least 256K to achieve decent performance.',
     )
-    toc_depth = Field(6, description='Depths of table of contents in the archive.')
-    use_new_writer = False  # todo: to be removed
+    copy_chunk_size = Field(
+        16 * 2**20,
+        description="""
+        The chunk size of every read of binary data.
+        It is used to copy data from one file to another.
+        A small value will result in more syscalls, a large value will result in higher peak memory usage.
+        """,
+    )
+    toc_depth = Field(10, description='Depths of table of contents in the archive.')
+    use_new_writer = True  # todo: to be removed
     small_obj_optimization_threshold = Field(
-        256 * 1024,
+        1 * 2**20,
         description="""
         For any child of lists/dicts whose encoded size is smaller than this value, no TOC will be generated.""",
     )
@@ -930,6 +938,18 @@ class Archive(NomadSettings):
         when a certain mount of children has been visited.
         This reduces the number of syscalls although data may be repeatedly read.
         Otherwise, always read children one by one. This may slow down the loading as more syscalls are needed.
+        """,
+    )
+    fast_loading_threshold = Field(
+        0.6,
+        description="""
+        If the fraction of children that have been visited is less than this threshold, fast loading will be used.
+        """,
+    )
+    trivial_size = Field(
+        20,
+        description="""
+        To identify numerical lists.
         """,
     )
 

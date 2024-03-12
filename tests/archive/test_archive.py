@@ -26,6 +26,7 @@ import json
 import yaml
 
 from nomad import utils, config
+from nomad.archive.converter import convert_archive
 from nomad.metainfo import (
     MSection,
     Quantity,
@@ -77,6 +78,7 @@ def example_entry():
             ],
         },
         'repo_entry': {'chemical_formula': 'H2'},
+        'large_list': [float(x) for x in range(200)],
     }
 
 
@@ -138,7 +140,10 @@ def test_short_uuids():
         assert to_json(archive['0']) == {'archive': 'test'}
 
 
-def test_write_file(raw_files_function, example_uuid):
+@pytest.mark.parametrize('new_writer', [True, False])
+def test_write_file(monkeypatch, raw_files_function, example_uuid, new_writer):
+    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
+
     path = os.path.join(config.fs.tmp, 'test.msg')
     write_archive(path, 1, [(example_uuid, {'archive': 'test'})])
     with read_archive(path) as archive:
@@ -146,7 +151,10 @@ def test_write_file(raw_files_function, example_uuid):
         assert to_json(archive[example_uuid]) == {'archive': 'test'}
 
 
-def test_write_archive_single(example_uuid, example_entry):
+@pytest.mark.parametrize('new_writer', [True, False])
+def test_write_archive_single(monkeypatch, example_uuid, example_entry, new_writer):
+    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
+
     f = BytesIO()
     write_archive(f, 1, [(example_uuid, example_entry)])
     packed_archive = f.getbuffer()
@@ -177,7 +185,10 @@ def test_write_archive_single(example_uuid, example_entry):
     assert _unpack(packed_archive, _decode(toc[example_uuid][1])) == example_entry
 
 
-def test_write_archive_multi(example_uuid, example_entry):
+@pytest.mark.parametrize('new_writer', [True, False])
+def test_write_archive_multi(monkeypatch, example_uuid, example_entry, new_writer):
+    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
+
     f = BytesIO()
     example_uuids = create_example_uuid(0), create_example_uuid(1)
     write_archive(
@@ -199,8 +210,13 @@ def test_write_archive_multi(example_uuid, example_entry):
     assert example_uuid in toc
 
 
+@pytest.mark.parametrize('new_writer', [True, False])
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
-def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
+def test_read_archive_single(
+    monkeypatch, example_uuid, example_entry, use_blocked_toc, new_writer
+):
+    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
+
     f = BytesIO()
     write_archive(f, 1, [(example_uuid, example_entry)])
     packed_archive = f.getbuffer()
@@ -223,8 +239,14 @@ def test_read_archive_single(example_uuid, example_entry, use_blocked_toc):
         data[example_uuid]['run']['system'][2]
 
 
+@pytest.mark.parametrize('new_writer', [True, False])
 @pytest.mark.parametrize('use_blocked_toc', [False, True])
-def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
+def test_read_archive_multi(
+    monkeypatch, example_uuid, example_entry, use_blocked_toc, new_writer
+):
+    monkeypatch.setattr('nomad.config.archive.use_new_writer', new_writer)
+    monkeypatch.setattr('nomad.config.archive.small_obj_optimization_threshold', 256)
+
     archive_size = _entries_per_block * 2 + 23
     f = BytesIO()
     write_archive(
@@ -246,6 +268,11 @@ def test_read_archive_multi(example_uuid, example_entry, use_blocked_toc):
 
         for i in range(0, archive_size):
             reader.get(create_example_uuid(i)) is not None
+
+        entry = reader[create_example_uuid(0)]
+
+        for i in range(200):
+            assert float(i) == entry['large_list'][i]
 
 
 test_query_example: Dict[Any, Any] = {
@@ -343,9 +370,28 @@ def test_keys(key):
     config.normalize.springer_db_path is None, reason='Springer DB path missing'
 )
 def test_read_springer():
-    springer = read_archive(config.normalize.springer_db_path)
-    with pytest.raises(KeyError):
-        springer['doesnotexist']
+    with read_archive(config.normalize.springer_db_path) as springer:
+        with pytest.raises(KeyError):
+            springer['doesnotexist']
+
+
+@pytest.mark.skipif(
+    config.normalize.springer_db_path is None, reason='Springer DB path missing'
+)
+def test_convert(tmp):
+    tmp_archive = os.path.join(tmp, 'springer.msg')
+
+    def rename(path):  # noqa
+        return tmp_archive
+
+    convert_archive(config.normalize.springer_db_path, transform=rename)
+
+    with read_archive(tmp_archive) as springer_new, read_archive(
+        config.normalize.springer_db_path
+    ) as springer_old:
+        for uuid, entry in springer_old.items():
+            assert uuid in springer_new
+            assert to_json(springer_new[uuid]) == to_json(entry)
 
 
 @pytest.fixture(scope='function')

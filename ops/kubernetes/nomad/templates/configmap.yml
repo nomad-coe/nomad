@@ -39,7 +39,7 @@ data:
       prefix_size: {{ .Values.nomad.config.volumes.prefixSize }}
       working_directory: /app
       {{ if .Values.nomad.config.volumes.archiveVersionSuffix }}
-      archive_version_suffix: "{{ .Values.nomad.config.volumes.archiveVersionSuffix }}"
+      archive_version_suffix: {{ .Values.nomad.config.volumes.archiveVersionSuffix | toYaml | nindent 6 }}
       {{ end }}
     logstash:
       enabled: {{ .Values.nomad.config.logstash.enabled }}

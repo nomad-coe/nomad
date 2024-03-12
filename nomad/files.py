@@ -72,6 +72,7 @@ import magic
 import zipfile
 
 from nomad import config, utils, datamodel
+from nomad.archive.storage import combine_archive
 from nomad.config.models import BundleImportSettings, BundleExportSettings
 from nomad.archive import write_archive, read_archive, ArchiveReader, to_json
 
@@ -1266,14 +1267,13 @@ class StagingUploadFiles(UploadFiles):
                 archive_file = self._archive_file_object(entry.entry_id)
                 if archive_file.exists():
                     with read_archive(archive_file.os_path) as archive:
-                        data = to_json(archive[entry.entry_id])
-                    yield entry.entry_id, data
+                        yield entry.entry_id, archive
                 else:
-                    yield entry.entry_id, {}
+                    yield entry.entry_id, None
 
         try:
             file_object = PublicUploadFiles._create_msg_file_object(target_dir, access)
-            write_archive(file_object.os_path, number_of_entries, create_iterator())
+            combine_archive(file_object.os_path, number_of_entries, create_iterator())
             # Remove the file with the opposite access, if it exists
             other_file_object = PublicUploadFiles._create_msg_file_object(
                 target_dir, other_access
