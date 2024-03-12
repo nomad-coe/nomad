@@ -15,17 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast
+from __future__ import annotations
+
+from typing import Iterable, Any, Tuple, Dict, BinaryIO, Union, List, cast, Generator
 from io import BytesIO, BufferedReader
 from collections.abc import Mapping, Sequence
 
-from memoization import cached
 import msgpack
 from msgpack.fallback import Packer, StringIO
 import struct
 import json
 
-from nomad import utils
+from nomad import utils, config
 from nomad.config import archive
 
 __packer = msgpack.Packer(autoreset=True, use_bin_type=True)
@@ -246,21 +247,36 @@ class ArchiveWriter:
     def _writeb(self, obj):
         return self._write(packb(obj))
 
-    def add(self, uuid: str, data: Any) -> None:
+    def _write_entry(self, uuid: str, toc: dict, packed: bytes | Generator):
         uuid = utils.adjust_uuid_size(uuid)
-
-        self._toc_packer.reset()
-        packed = self._toc_packer.pack(data)
-        toc = self._toc_packer.toc
 
         self._writeb(uuid)
         self._write_map_header(2)
         self._writeb('toc')
         toc_pos = self._writeb(toc)
         self._writeb('data')
-        data_pos = self._write(packed)
+
+        if isinstance(packed, bytes):
+            data_pos = self._write(packed)
+        elif isinstance(packed, Generator):
+            start = self._pos
+            for chunk in packed:
+                self._pos += self._f.write(chunk)
+            data_pos = start, self._pos
+        else:
+            raise ValueError('Invalid type for packed data.')
 
         self._toc[uuid] = (toc_pos, data_pos)
+
+    def add(self, uuid: str, data: Any) -> None:
+        self._toc_packer.reset()
+        packed = self._toc_packer.pack(data)
+        toc = self._toc_packer.toc
+
+        self._write_entry(uuid, toc, packed)
+
+    def add_raw(self, uuid: str, toc: dict, packed: Generator) -> None:
+        self._write_entry(uuid, toc, packed)
 
 
 class ArchiveItem:
@@ -277,7 +293,6 @@ class ArchiveItem:
         raw_data = self._direct_read(end - start, start + self._offset)
         return unpackb(raw_data)
 
-    @cached(thread_safe=False, max_size=512)
     def _child(self, child_toc_entry):
         if isinstance(child_toc_entry, dict):
             if child_toc_entry.get('toc', None):
@@ -334,7 +349,6 @@ class ArchiveDict(ArchiveItem, Mapping):
     def __len__(self):
         return self.to_json().__len__()
 
-    @cached(thread_safe=False)
     def to_json(self):
         # todo: potential bug here, what if children are ArchiveList or ArchiveDict?
         return self._read(self._toc_entry['pos'])
@@ -430,46 +444,65 @@ class ArchiveReader(ArchiveDict):
 
         return self._toc_block_info[i_block]
 
-    def __getitem__(self, key):
-        key = utils.adjust_uuid_size(key)
+    def _locate_position(self, key: str) -> tuple:
+        if not self._use_blocked_toc or self._toc_entry is not None:
+            positions = self._toc_entry[key]
+            return _decode(positions[0]), _decode(positions[1])
 
-        if self._use_blocked_toc and self._toc_entry is None:
-            if self._toc_number == 0:
-                raise KeyError(key)
+        if self._toc_number == 0:
+            raise KeyError(key)
+
+        positions = self._toc.get(key)
+        # TODO use hash algorithm instead of binary search
+        if positions is None:
+            r_start = 0
+            r_end = self._toc_number
+            i_entry = None
+            while r_start <= r_end:
+                m_entry = r_start + (r_end - r_start) // 2
+                if i_entry == m_entry:
+                    break
+
+                i_entry = m_entry
+
+                first, last = self._load_toc_block(i_entry)
+
+                if key < first:
+                    r_end = i_entry - 1
+                elif key > last:
+                    r_start = i_entry + 1
+                else:
+                    break
 
             positions = self._toc.get(key)
-            # TODO use hash algorithm instead of binary search
             if positions is None:
-                r_start = 0
-                r_end = self._toc_number
-                i_entry = None
-                while r_start <= r_end:
-                    m_entry = r_start + (r_end - r_start) // 2
-                    if i_entry == m_entry:
-                        break
+                raise KeyError(key)
 
-                    i_entry = m_entry
+        return positions
 
-                    first, last = self._load_toc_block(i_entry)
-
-                    if key < first:
-                        r_end = i_entry - 1
-                    elif key > last:
-                        r_start = i_entry + 1
-                    else:
-                        break
-
-                positions = self._toc.get(key)
-                if positions is None:
-                    raise KeyError(key)
-
-            toc_position, data_position = positions
-        else:
-            positions = self._toc_entry[key]
-            toc_position = _decode(positions[0])
-            data_position = _decode(positions[1])
+    def __getitem__(self, key):
+        toc_position, data_position = self._locate_position(utils.adjust_uuid_size(key))
 
         return ArchiveDict(self._read(toc_position), self._f, data_position[0])
+
+    def get_raw(self, key: str) -> tuple[dict, Generator]:
+        """
+        Get raw bytes of the data and the TOC of the entry.
+        This is used to read the data without decoding it.
+        This is used in combining individual entries into a single archive file.
+        """
+        toc_position, data_position = self._locate_position(utils.adjust_uuid_size(key))
+
+        def _iter(position: tuple[int, int]):
+            start, end = position
+            total_size = end - start
+            while total_size > 0:
+                size = min(total_size, config.archive.copy_chunk_size)
+                yield self._direct_read(size, start + self._offset)
+                start += size
+                total_size -= size
+
+        return self._read(toc_position), _iter(data_position)
 
     def __iter__(self):
         if self._toc_entry is None:
@@ -491,6 +524,33 @@ class ArchiveReader(ArchiveDict):
 
     def is_closed(self):
         return self._f.closed if isinstance(self._file_or_path, str) else True
+
+
+def combine_archive(path: str, n_entries: int, data: Iterable[Tuple[str, Any]]):
+    if archive.use_new_writer:
+        from .storage_v2 import (
+            ArchiveWriter as ArchiveWriterNew,
+            ArchiveReader as ArchiveReaderNew,
+        )
+
+        with ArchiveWriterNew(path, n_entries, toc_depth=archive.toc_depth) as writer:
+            for uuid, reader in data:
+                if not reader:
+                    writer.add(uuid, {})
+                elif isinstance(reader, ArchiveReaderNew):
+                    toc, data = reader.get_raw(uuid)
+                    writer.add_raw(uuid, toc, data)
+                else:
+                    # rare case, old reader new writer, toc is not compatible, has to repack
+                    writer.add(uuid, to_json(reader[uuid]))
+    else:
+        with ArchiveWriter(path, n_entries, entry_toc_depth=2) as writer:
+            for uuid, reader in data:
+                if not reader:
+                    writer.add(uuid, {})
+                else:
+                    toc, data = reader.get_raw(uuid)
+                    writer.add_raw(uuid, toc, data)
 
 
 def write_archive(
@@ -588,6 +648,14 @@ def read_archive(file_or_path: Union[str, BytesIO], **kwargs) -> ArchiveReader:
         ArchiveWriter as ArchiveWriterNew,
         ArchiveReader as ArchiveReaderNew,
     )
+
+    # todo: replace implementation to enable automatic conversion
+    # if isinstance(file_or_path, str):
+    #     from nomad.archive.converter import convert_archive
+    #
+    #     convert_archive(file_or_path, overwrite=True)
+    #
+    # return ArchiveReaderNew(file_or_path, **kwargs)
 
     if isinstance(file_or_path, str):
         with open(file_or_path, 'rb') as f:

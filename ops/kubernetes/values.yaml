@@ -49,7 +49,12 @@ nomad:
       north_home: /nomad/prod/fs/north/users
       tmp: /nomad/prod/fs/tmp
       nomad: /nomad
-      archiveVersionSuffix: v1
+      archiveVersionSuffix:
+        - v1.2
+        - v1
+
+    archive:
+      use_new_writer: true
 
     mail:
       enabled: true

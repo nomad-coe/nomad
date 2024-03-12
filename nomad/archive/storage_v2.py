@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import struct
 from io import BytesIO
+from typing import Generator
 
 import msgpack
+from bitarray import bitarray
+from msgpack import Unpacker
 
 from nomad import utils, config
 from nomad.archive import ArchiveError
@@ -91,7 +94,11 @@ class TOCPacker:
         self._toc_depth: int = toc_depth
         self._depth: int = 0
         self._buffer: BytesIO = None  # type: ignore
-        self._transform = transform or (lambda x: x)
+
+        def plain_forward(x):
+            return x
+
+        self._transform = transform or plain_forward
 
     @property
     def _pos(self):
@@ -123,28 +130,65 @@ class TOCPacker:
 
         self._depth += 1
 
+        def _simple_toc(_v) -> bool:
+            return (
+                2 == len(_v['pos'])
+                and isinstance(_v['pos'][0], int)
+                and isinstance(_v['pos'][1], int)
+                and _v['pos'][1] < _v['pos'][0] + config.archive.trivial_size
+            )
+
         obj_toc: dict | list
         all_small_obj: bool = False
-        threshold: int = config.archive.small_obj_optimization_threshold
         if isinstance(obj, dict):
             _pack_direct(_packer.pack_map_header(len(obj)))
             obj_toc = {}
             for k, v in self._transform(obj.items()):
                 _pack_raw(k)
                 obj_toc[k] = self._pack(v)
-            if all(v['pos'][1] < v['pos'][0] + threshold for v in obj_toc.values()):
+            if all(_simple_toc(v) for v in obj_toc.values()):
                 all_small_obj = True
         elif isinstance(obj, list):
             _pack_direct(_packer.pack_array_header(len(obj)))
             obj_toc = [self._pack(v) for v in obj]
-            if all(v['pos'][1] < v['pos'][0] + threshold for v in obj_toc):
+            if all(_simple_toc(v) for v in obj_toc):
                 all_small_obj = True
         else:
             raise ArchiveError(f'Expecting dict or list, got {obj.__class__}.')
 
         self._depth -= 1
 
-        if self._pos < start_pos + threshold or all_small_obj:
+        if self._pos < start_pos + config.archive.small_obj_optimization_threshold:
+            return {'pos': [start_pos, self._pos]}
+
+        if all_small_obj:
+            if isinstance(obj, dict) or 0 == len(obj):
+                return {'pos': [start_pos, self._pos]}
+
+            # identify numerical arrays, group elements into blocks
+            groups: list = []
+            group: list = []
+            accu_size: int = 0
+            for v in obj_toc:
+                group.append(v)
+                accu_size += v['pos'][1] - v['pos'][0]
+                if accu_size > config.archive.small_obj_optimization_threshold:
+                    groups.append(
+                        (
+                            len(group),
+                            group[0]['pos'][0],
+                            group[-1]['pos'][1],
+                        )
+                    )
+                    group = []
+                    accu_size = 0
+
+            if group:
+                groups.append((len(group), group[0]['pos'][0], group[-1]['pos'][1]))
+
+            if len(groups) > 1:
+                return {'pos': groups}
+
             return {'pos': [start_pos, self._pos]}
 
         return {'toc': obj_toc, 'pos': [start_pos, self._pos]}
@@ -228,25 +272,27 @@ class ArchiveWriter:
 
     def __enter__(self):
         if isinstance(self.file_or_path, str):
-            self._f = open(self.file_or_path, 'wb', buffering=config.archive.block_size)
+            self._f = open(
+                self.file_or_path, 'wb', buffering=config.archive.read_buffer_size
+            )
         elif isinstance(self.file_or_path, BytesIO):
             self._f = self.file_or_path
             self._f.seek(0)
         else:
             raise ValueError('not a file or path')
 
-        self._write(self.magic)
+        self._write_binary(self.magic)
         # write empty placeholder header
         self._write_map_header(3)
-        self._writeb('toc_pos')
-        self._writeb(Utility.encode(0, 0))
+        self._write('toc_pos')
+        self._write(Utility.encode(0, 0))
 
-        self._writeb('toc')
+        self._write('toc')
         start = self._write_map_header(self.n_entries)[0]
-        end = self._write(b'0' * Utility.toc_item_size * self.n_entries)[1]
+        end = self._write_binary(b'0' * Utility.toc_item_size * self.n_entries)[1]
         self._toc_position = start, end
 
-        self._writeb('data')
+        self._write('data')
         self._write_map_header(self.n_entries)
 
         return self
@@ -263,11 +309,11 @@ class ArchiveWriter:
         self._pos = self.magic_len
 
         self._write_map_header(3)
-        self._writeb('toc_pos')
-        self._writeb(Utility.encode(*self._toc_position))
+        self._write('toc_pos')
+        self._write(Utility.encode(*self._toc_position))
 
-        self._writeb('toc')
-        toc_position = self._writeb(
+        self._write('toc')
+        toc_position = self._write(
             {
                 uuid: [Utility.encode(*pos[0]), Utility.encode(*pos[1])]
                 for uuid, pos in sorted(self._toc.items())
@@ -284,30 +330,45 @@ class ArchiveWriter:
             self._f.close()
 
     def _write_map_header(self, n) -> tuple[int, int]:
-        return self._write(_packer.pack_map_header(n))
+        return self._write_binary(_packer.pack_map_header(n))
 
-    def _write(self, b: bytes) -> tuple[int, int]:
+    def _write_binary(self, b: bytes) -> tuple[int, int]:
         start = self._pos
         self._pos += self._f.write(b)
         return start, self._pos
 
     # noinspection SpellCheckingInspection
-    def _writeb(self, obj) -> tuple[int, int]:
-        return self._write(Utility.packb(obj))
+    def _write(self, obj) -> tuple[int, int]:
+        return self._write_binary(Utility.packb(obj))
 
-    def add(self, uuid: str, data):
+    def _write_entry(self, uuid: str, toc: dict, packed: bytes | Generator):
         uuid = utils.adjust_uuid_size(uuid)
 
-        packed, toc = self._toc_packer.pack(data)
-
-        self._writeb(uuid)
+        self._write(uuid)
         self._write_map_header(2)
-        self._writeb('toc')
-        toc_pos = self._writeb(toc)
-        self._writeb('data')
-        data_pos = self._write(packed)
+        self._write('toc')
+        toc_pos = self._write(toc)
+        self._write('data')
+
+        if isinstance(packed, bytes):
+            data_pos = self._write_binary(packed)
+        elif isinstance(packed, Generator):
+            start = self._pos
+            for part in packed:
+                self._write_binary(part)
+            data_pos = start, self._pos
+        else:
+            raise ValueError('Invalid type for packed data.')
 
         self._toc[uuid] = toc_pos, data_pos
+
+    def add(self, uuid: str, data):
+        packed, toc = self._toc_packer.pack(data)
+
+        self._write_entry(uuid, toc, packed)
+
+    def add_raw(self, uuid: str, toc: dict, packed: Generator):
+        self._write_entry(uuid, toc, packed)
 
 
 def to_json(v):
@@ -346,6 +407,9 @@ class ArchiveItem:
         # to record how many items have been accessed
         self._accessed_items: int = 0
 
+    def __len__(self):
+        raise NotImplementedError
+
     def __eq__(self, other):
         return self.to_json() == to_json(other)
 
@@ -360,9 +424,12 @@ class ArchiveItem:
         self._f.seek(offset)
         return self._f.read(size)
 
-    def _read(self, position: tuple[int, int]):
-        start, end = position
-        return Utility.unpackb(self._direct_read(end - start, start + self._offset))
+    # noinspection SpellCheckingInspection
+    def _readb(self, start: int, end: int):
+        return self._direct_read(end - start, start + self._offset)
+
+    def _read(self, start: int, end: int):
+        return Utility.unpackb(self._readb(start, end))
 
     def _child(self, toc: dict, offset: int = None):
         child_offset: int = offset or self._offset
@@ -370,11 +437,20 @@ class ArchiveItem:
         self._accessed_items += 1
 
         if (child_toc := toc.get('toc', None)) is None:
-            start, end = toc['pos']
-            if self._offset == 0:
-                start += offset
-                end += offset
-            return self._read((start, end))
+            child_pos: list = toc['pos']
+
+            if (
+                2 == len(child_pos)
+                and isinstance(child_pos[0], int)
+                and isinstance(child_pos[1], int)
+            ):
+                start, end = child_pos
+                if self._offset == 0:
+                    start += offset
+                    end += offset
+                return self._read(start, end)
+
+            return ArchiveList(toc, self._f, child_offset, counter=self._counter)
 
         if isinstance(child_toc, list):
             return ArchiveList(toc, self._f, child_offset, counter=self._counter)
@@ -384,12 +460,11 @@ class ArchiveItem:
 
         raise ArchiveError(f'Invalid TOC: {toc}')
 
-    def all(self):
-        """
-        Suitable for read all only once.
-        It will be overriden by reading and decoding the whole data at once.
-        """
-        return self.to_json()
+    @property
+    def _fast_loading(self):
+        return config.archive.fast_loading and self._accessed_items < (
+            config.archive.fast_loading_threshold * len(self)
+        )
 
     def to_json(self):
         """
@@ -409,26 +484,43 @@ class ArchiveList(ArchiveItem):
         counter: ArchiveReadCounter = None,
     ):
         super().__init__(f, offset, counter=counter)
-        self._toc: list = toc['toc']
-        self._pos: tuple = tuple(toc['pos'])
-        self._cache = [None] * self._toc.__len__()
-        self._full_cache: list = None  # type: ignore
+        self._toc: list = toc.get('toc', [])  # if empty, it's a list of small objects
+        self._pos: list = toc['pos']
+        self._cache = [None] * len(self)
         self._index: int = 0
+        self._mask: bitarray = bitarray(len(self))
+        self._mask.setall(0)
+        self._full_loaded: bool = False
 
     def __getitem__(self, index):
-        if self._full_cache is not None:
-            return self._full_cache[index]
-
         if isinstance(index, slice):
-            index_range = range(*index.indices(self._toc.__len__()))
+            index_range = range(*index.indices(len(self)))
         elif isinstance(index, int):
             index_range = [index]
         else:
             raise TypeError(f'Invalid type: {type(index)} for index {index}')
 
-        for i in index_range:
-            if self._cache[i] is None:
-                self._cache[i] = self._child(self._toc[i])
+        for item in index_range:
+            if 0 == self._mask[item]:
+                if self._toc:
+                    # has individual toc
+                    self._mask[item] = 1
+                    self._cache[item] = self._child(self._toc[item])
+                else:
+                    if item < 0:
+                        item += len(self)
+                    # grouped into blocks
+                    # load the corresponding block
+                    num_start, num_end = 0, 0
+                    for size, start, end in self._pos:
+                        num_end += size
+                        if num_start <= item < num_end:
+                            self._mask[num_start:num_end] = 1
+                            self._cache[num_start:num_end] = list(
+                                Unpacker(BytesIO(self._readb(start, end)))
+                            )
+                            break
+                        num_start = num_end
 
         return self._cache[index]
 
@@ -437,7 +529,7 @@ class ArchiveList(ArchiveItem):
         return self
 
     def __next__(self):
-        if self._index >= self._toc.__len__():
+        if self._index >= len(self):
             raise StopIteration
 
         item = self[self._index]
@@ -445,24 +537,29 @@ class ArchiveList(ArchiveItem):
         return item
 
     def __len__(self):
-        return self._toc.__len__()
-
-    def all(self):
-        if self._full_cache is None:
-            self._full_cache = self._read(self._pos)
-
-        return self._full_cache
+        return self._toc.__len__() if self._toc else sum(x[0] for x in self._pos)
 
     def to_json(self):
-        if self._full_cache is None:
-            if config.archive.fast_loading and 2 * self._accessed_items < len(
-                self._toc
-            ):
-                self._full_cache = self._read(self._pos)
+        if not self._full_loaded:
+            self._full_loaded = True
+            if not self._fast_loading:
+                for index in range(len(self)):
+                    self._cache[index] = to_json(self[index])  # type: ignore
+            elif self._toc:
+                self._cache = self._read(*self._pos)
             else:
-                self._full_cache = [to_json(v) for v in self]
+                num_start, num_end = 0, 0
+                for size, start, end in self._pos:
+                    num_end += size
+                    if 0 == self._mask[num_start]:
+                        self._cache[num_start:num_end] = list(
+                            Unpacker(BytesIO(self._readb(start, end)))
+                        )
+                    num_start = num_end
 
-        return self._full_cache
+            self._mask.setall(1)
+
+        return self._cache
 
 
 class ArchiveDict(ArchiveItem):
@@ -476,17 +573,11 @@ class ArchiveDict(ArchiveItem):
     ):
         super().__init__(f, offset, counter=counter)
         self._toc: dict = toc['toc']
-        self._pos: tuple = tuple(toc['pos'])
+        self._pos: list = toc['pos']
         self._cache: dict = {}
-        self._full_cache: dict = None  # type: ignore
+        self._full_loaded: bool = False
 
     def __getitem__(self, key):
-        if key not in self._toc:
-            raise KeyError(key)
-
-        if self._full_cache is not None:
-            return self._full_cache[key]
-
         if key not in self._cache:
             self._cache[key] = self._child(self._toc[key])
 
@@ -515,22 +606,16 @@ class ArchiveDict(ArchiveItem):
         for k in self._toc:
             yield self[k]
 
-    def all(self):
-        if self._full_cache is None:
-            self._full_cache = self._read(self._pos)
-
-        return self._full_cache
-
     def to_json(self):
-        if self._full_cache is None:
-            if config.archive.fast_loading and 2 * self._accessed_items < len(
-                self._toc
-            ):
-                self._full_cache = self._read(self._pos)
+        if not self._full_loaded:
+            self._full_loaded = True
+            if self._fast_loading and self._pos:
+                self._cache = self._read(*self._pos)
             else:
-                self._full_cache = {k: to_json(v) for k, v in self.items()}
+                for k in self:
+                    self._cache[k] = to_json(self[k])
 
-        return self._full_cache
+        return self._cache
 
 
 class ArchiveReader(ArchiveItem):
@@ -638,6 +723,36 @@ class ArchiveReader(ArchiveItem):
 
         return self._toc_block_info[i_block]
 
+    def _locate_position(self, key: str) -> tuple:
+        if not self._use_blocked_toc or self._toc_entry is not None:
+            positions = self._toc_entry[key]
+            return Utility.decode(positions[0]), Utility.decode(positions[1])
+
+        if self._toc_number == 0:
+            raise KeyError(key)
+
+        if (positions := self._toc.get(key)) is None:
+            r_start, r_end, i_entry = 0, self._toc_number, -9999
+            while r_start <= r_end:
+                if i_entry == (m_entry := r_start + (r_end - r_start) // 2):
+                    break
+
+                i_entry = m_entry
+
+                first, last = self._load_toc_block(i_entry)
+
+                if key < first:
+                    r_end = i_entry - 1
+                elif key > last:
+                    r_start = i_entry + 1
+                else:
+                    break
+
+            if (positions := self._toc.get(key)) is None:
+                raise KeyError(key)
+
+        return positions
+
     def __getitem__(self, key: str) -> ArchiveDict:
         key = utils.adjust_uuid_size(key)
 
@@ -647,38 +762,29 @@ class ArchiveReader(ArchiveItem):
         if key in self._cache:
             return self._cache[key]
 
-        if self._use_blocked_toc and self._toc_entry is None:
-            if self._toc_number == 0:
-                raise KeyError(key)
+        toc_position, data_position = self._locate_position(key)
+        self._cache[key] = self._child(self._read(*toc_position), data_position[0])  # type: ignore
 
-            if (positions := self._toc.get(key)) is None:
-                r_start, r_end, i_entry = 0, self._toc_number, -9999
-                while r_start <= r_end:
-                    if i_entry == (m_entry := r_start + (r_end - r_start) // 2):
-                        break
-
-                    i_entry = m_entry
-
-                    first, last = self._load_toc_block(i_entry)
-
-                    if key < first:
-                        r_end = i_entry - 1
-                    elif key > last:
-                        r_start = i_entry + 1
-                    else:
-                        break
-
-                if (positions := self._toc.get(key)) is None:
-                    raise KeyError(key)
-
-            toc_position, data_position = positions
-        else:
-            positions = self._toc_entry[key]
-            toc_position = Utility.decode(positions[0])
-            data_position = Utility.decode(positions[1])
-
-        self._cache[key] = self._child(self._read(toc_position), data_position[0])  # type: ignore
         return self._cache[key]
+
+    def get_raw(self, key: str) -> tuple[dict, Generator]:
+        """
+        Get raw bytes of the data and the TOC of the entry.
+        This is used to read the data without decoding it.
+        This is used in combining individual entries into a single archive file.
+        """
+        toc_position, data_position = self._locate_position(utils.adjust_uuid_size(key))
+
+        def _iter(position: tuple[int, int]):
+            start, end = position
+            total_size = end - start
+            while total_size > 0:
+                size = min(total_size, config.archive.copy_chunk_size)
+                yield self._direct_read(size, start + self._offset)
+                start += size
+                total_size -= size
+
+        return self._read(*toc_position), _iter(data_position)
 
     def __contains__(self, item):
         try:
@@ -717,7 +823,7 @@ class ArchiveReader(ArchiveItem):
 
     def _ensure_toc(self):
         if self._toc_entry is None:
-            self._toc_entry = self._read(self._toc_position)
+            self._toc_entry = self._read(*self._toc_position)
 
     def close(self, close_unowned: bool = False):
         if close_unowned or isinstance(self._file_or_path, str):

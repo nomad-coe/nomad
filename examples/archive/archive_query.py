@@ -38,5 +38,7 @@ for result in query.download(100):
     print(f'{formula}: {total_energy}')
 
 # Convert the retrieved data directly into a pandas dataframe
-df_from_query = query.entries_to_dataframe(keys_to_filter=['workflow2.results.calculation_result_ref'])
+df_from_query = query.entries_to_dataframe(
+    keys_to_filter=['workflow2.results.calculation_result_ref']
+)
 print(df_from_query)
