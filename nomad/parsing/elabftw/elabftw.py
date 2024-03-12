@@ -308,7 +308,7 @@ class ELabFTWParser(MatchingParser):
 
         # The last item of the @graph array is assumed to be a Dataset and contain the experiments info
         try:
-            no_of_experiments = len(data['@graph'][-1]['hasPart'])
+            no_of_experiments = len(data['@graph'][-2]['hasPart'])
         except (KeyError, IndexError, TypeError):
             return False
 
@@ -344,14 +344,16 @@ class ELabFTWParser(MatchingParser):
                 logger.error(
                     'Could not set the the external_id from the experiment url'
                 )
-
-            author_full_name = ' '.join(
-                [
-                    raw_experiment['author']['given_name'],
-                    raw_experiment['author']['family_name'],
-                ]
-            )
-            elabftw_experiment.post_process(full_name=author_full_name)
+            try:
+                author_full_name = ' '.join(
+                    [
+                        data['graph'][-1]['given_name'],
+                        data['graph'][-1]['family_name'],
+                    ]
+                )
+                elabftw_experiment.post_process(full_name=author_full_name)
+            except Exception:
+                logger.error('Could not extract the author name')
 
             mainfile_raw_path = os.path.dirname(mainfile)
             parent_folder_raw_path = mainfile.split('/')[-2]
