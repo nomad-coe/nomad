@@ -102,7 +102,7 @@ infrastructure = [
     'fastapi==0.92.0',
     'uvicorn[standard]',
     'python-multipart==0.0.5',
-    'jupyterhub==1.4.2',
+    'jupyterhub==4.0.2',
     'dockerspawner==12.1.0',
     'oauthenticator==15.1.0',
     'validators==0.18.2',
@@ -140,7 +140,8 @@ dev = [
     'mkdocs-click==0.8.0',
     'mkdocs-redirects==1.2.0',
     'mkdocs-git-revision-date-localized-plugin==1.2.1',
-    'ruff==0.1.8'
+    'ruff==0.1.8',
+    'ruamel.yaml==0.17.21'
 ]
 
 

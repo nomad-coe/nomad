@@ -41,7 +41,7 @@ nomad:
         memory: "8Gi"
 
 jupyterhub:
-  fullnameOverride: "nomad-prod-staging-north"
+  fullnameOverride: "nomad-prod-develop-north"
   hub:
     baseUrl: "/prod/v1/develop/north"
     config:

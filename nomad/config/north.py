@@ -46,18 +46,60 @@ class NORTHExternalMount(BaseModel):
 
 
 class NORTHTool(BaseModel):
-    image: str
-    description: str = None
-    short_description: str = None
-    cmd: str = None
-    with_path: bool = False
-    path_prefix: str = None
-    mount_path: str = None
-    icon: str = None
-    file_extensions: List[str] = []
-    maintainer: List[NORTHToolMaintainer] = []
-    privileged: bool = False
-    external_mounts: List[NORTHExternalMount] = []
+    short_description: str = Field(
+        None,
+        description='A short description of the tool, e.g. shown in the NOMAD GUI.',
+    )
+    description: str = Field(
+        None, description='A description of the tool, e.g. shown in the NOMAD GUI.'
+    )
+    image: str = Field(
+        None, description='The docker image (incl. tags) to use for the tool.'
+    )
+    cmd: str = Field(
+        None, description='The container cmd that is passed to the spawner.'
+    )
+    image_pull_policy: str = Field(
+        'Always', description='The image pull policy used in k8s deployments.'
+    )
+    privileged: bool = Field(
+        False, description='Whether the tool needs to run in privileged mode.'
+    )
+    path_prefix: str = Field(
+        None,
+        description=(
+            'An optional path prefix that is added to the container URL to '
+            'reach the tool, e.g. "lab/tree" for jupyterlab.'
+        ),
+    )
+    with_path: bool = Field(
+        False,
+        description=(
+            'Whether the tool supports a path to a file or directory. '
+            'This also enables tools to be launched from files in the NOMAD UI.'
+        ),
+    )
+    file_extensions: List[str] = Field(
+        [],
+        description='The file extensions of files that this tool should be launchable for.',
+    )
+    mount_path: str = Field(
+        None,
+        description=(
+            'The path in the container where uploads and work directories will be mounted, '
+            'e.g. /home/jovyan for Jupyter containers.'
+        ),
+    )
+    icon: str = Field(
+        None,
+        description='A URL to an icon that is used to represent the tool in the NOMAD UI.',
+    )
+    maintainer: List[NORTHToolMaintainer] = Field(
+        [], description='The maintainers of the tool.'
+    )
+    external_mounts: List[NORTHExternalMount] = Field(
+        [], description='Additional mounts to be added to tool containers.'
+    )
 
 
 class NORTHTools(Options):
@@ -107,14 +149,25 @@ class NORTH(NomadSettings):
         None, description='The NOMAD app host name that spawned containers use.'
     )
     windows = Field(True, description='Enable windows OS hacks.')
+    nomad_access_token_expiry_time: int = Field(
+        24 * 3600,
+        description=(
+            'All tools are run with an access token for the NOMAD api in the NOMAD_CLIENT_ACCESS_TOKEN '
+            'environment variable. This token will be automatically used by the nomad-lab Python package, '
+            'e.g. if you use the ArchiveQuery to access data. '
+            'This option sets the amount of seconds that this token is valid for.'
+        ),
+    )
 
     tools: NORTHTools = Field(
         NORTHTools(
+            include=None,
+            exclude=['pyiron'],
             options={
                 'jupyter': NORTHTool(
                     short_description='Basic jupyter run with an empty notebook or on given notebook file.',
                     description='### **Jupyter Notebook**: The Classic Notebook Interface\n\nThe Jupyter Notebook is the original web application for creating and sharing computational documents. It offers a simple, streamlined, document-centric experience.',
-                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/jupyterlab:prod',
+                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/north/jupyter:latest',
                     path_prefix='lab/tree',
                     with_path=True,
                     mount_path='/home/jovyan',
@@ -124,11 +177,23 @@ class NORTH(NomadSettings):
                         NORTHToolMaintainer(
                             name='Markus Scheidgen',
                             email='markus.scheidgen@physik.hu-berlin.de',
-                        ),
+                        )
+                    ],
+                ),
+                'pyiron': NORTHTool(
+                    short_description='Jupyterlab with pyiron installed.',
+                    description='## Pyiron: Complex workflows made easy\n\nFrom rapid prototyping to high performance computing in material science. [Homepage](https://pyiron.org/).',
+                    image='pyiron/pyiron:latest',
+                    path_prefix='lab/tree',
+                    with_path=True,
+                    mount_path='/home/jovyan',
+                    icon='pyiron_logo.png',
+                    file_extensions=['ipynb'],
+                    maintainer=[
                         NORTHToolMaintainer(
-                            name='Some-one Else',
+                            name='Markus Scheidgen',
                             email='markus.scheidgen@physik.hu-berlin.de',
-                        ),
+                        )
                     ],
                 ),
                 'nionswift': NORTHTool(
@@ -201,7 +266,7 @@ class NORTH(NomadSettings):
                 'xps': NORTHTool(
                     short_description='An example for analyzing XPS data.',
                     description='Includes tools for analyzing X-ray Photoelectron Spectroscopy (XPS) spectra and converting SPECS SLE files into NeXus.',
-                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps/jupyter',
+                    image='gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps/jupyter:master',
                     path_prefix='lab/tree',
                     icon='jupyter_logo.svg',
                     mount_path='/home/jovyan',
@@ -303,7 +368,7 @@ class NORTH(NomadSettings):
                         )
                     ],
                 ),
-            }
+            },
         ),
         description='The available north tools. Either the tools definitions as dict or a path to a .json file.',
     )

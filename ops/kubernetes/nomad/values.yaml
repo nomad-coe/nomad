@@ -2,8 +2,8 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 roll: false
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: ''
+fullnameOverride: ''
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -14,42 +14,33 @@ serviceAccount:
   annotations: {}
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template
-  name: ""
+  name: ''
 
 nomad:
   enabled: true
   image:
     repository: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair
-    tag: "latest"
+    tag: latest
     pullPolicy: Always
 
   imagePullSecrets: []
-
-  # Default values for nomad.
-  # This is a YAML-formatted file.
-  # Declare variables to be passed into your templates.
-
-  # GLOBAL parameters
-  enabled: false
-
-  ## Default values for nomad@FAIRDI
   config:
     version:
-      label: "latest"
+      label: latest
       isTest: false
       isBeta: false
       usesBetaData: false
-      officialUrl: "https://nomad-lab.eu/prod/v1/gui"
+      officialUrl: https://nomad-lab.eu/prod/v1/gui
 
     meta:
-      service: "app"
-      homepage: "https://nomad-lab.eu"
-      source_url: "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR"
-      maintainer_email: "markus.scheidgen@physik.hu-berlin.de"
+      service: app
+      homepage: https://nomad-lab.eu
+      source_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR
+      maintainer_email: markus.scheidgen@physik.hu-berlin.de
 
     api:
       ## Secret used as cryptographic seed
-      secret: "defaultApiSecret"
+      secret: defaultApiSecret
       ## Limit of unpublished uploads per user, except admin user
       uploadLimit: 10
 
@@ -63,15 +54,15 @@ nomad:
       ## There are two routing modes "queue" and "worker". The "queue" routing will use a general
       # task queue and spread calc processing task over worker instances. The "worker" routing
       # will send all tasks related to an upload to the same worker
-      routing: "queue"
+      routing: queue
       timeout: 7200
       acks_late: false
 
     mail:
       enabled: false
-      host: "localhost"
+      host: localhost
       port: 25
-      from: "support@nomad-lab.eu"
+      from: support@nomad-lab.eu
 
     client:
       username: admin
@@ -93,17 +84,17 @@ nomad:
 
     datacite:
       enabled: false
-      prefix: "10.17172"
+      prefix: '10.17172'
 
     ## A common name/prefix for all dbs and indices.
     dbname: fairdi_nomad_latest
 
     mongo:
-      host: ""
+      host: ''
       port: 27017
 
     elastic:
-      host: ""
+      host: ''
       port: 9200
       timeout: 60
       bulkTimeout: 600
@@ -113,16 +104,16 @@ nomad:
     logstash:
       enabled: true
       port: 5000
-      host: ""
+      host: ''
 
     keycloak:
-      serverExternalUrl: "https://nomad-lab.eu/fairdi/keycloak/auth/"
-      serverUrl: "https://nomad-lab.eu/keycloak/auth/"
-      realmName: "fairdi_nomad_test"
-      username: "admin"
-      clientId: "nomad_public"
-      guiClientId: "nomad_public"
-      admin_user_id: "00000000-0000-0000-0000-000000000000"
+      serverExternalUrl: https://nomad-lab.eu/fairdi/keycloak/auth/
+      serverUrl: https://nomad-lab.eu/keycloak/auth/
+      realmName: fairdi_nomad_test
+      username: admin
+      clientId: nomad_public
+      guiClientId: nomad_public
+      admin_user_id: 00000000-0000-0000-0000-000000000000
 
     ## Everything concerning the data that is used by the service
     volumes:
@@ -140,7 +131,7 @@ nomad:
 
     north:
       enabled: false
-      hubServiceApiToken: "secret-token"
+      hubServiceApiToken: secret-token
 
     gui:
       ## This variable is used in the GUI to show or hide additional information
@@ -148,16 +139,27 @@ nomad:
       ## automatically gz based on header
       gzip: true
 
+    proxy:
+      # Set a nodePort to create a NodePort service instead of ClusterIP. Also set a nodeIP for the externalIP.
+      timeout: 120
+      editTimeout: 1800
+      external:
+        host: nomad-lab.eu
+        port: 80
+        path: /fairdi/nomad/latest
+        https: true
+
+
   ingress:
     enabled: false
     limitConnections: 32
     limitConnectionsApi: 8
     hosts:
-      - nomad-lab.eu
-    className: ""
+    - nomad-lab.eu
+    className: ''
     annotations:
-      nginx.ingress.kubernetes.io/ssl-redirect: "false"
-      nginx.ingress.kubernetes.io/proxy-body-size: "32g"
+      nginx.ingress.kubernetes.io/ssl-redirect: 'false'
+      nginx.ingress.kubernetes.io/proxy-body-size: 32g
     tls: []
 
   # Additional volumes on the output Deployment definition.
@@ -182,7 +184,7 @@ nomad:
   ## Everything concerning the nginx that serves the gui, proxies the api
   #  It is run via NodePort service
   proxy:
-    path: "/fairdi/nomad/latest"
+    path: /fairdi/nomad/latest
     timeout: 60
     editTimeout: 60
     connectionTimeout: 10
@@ -196,8 +198,8 @@ nomad:
       tag: 1.13.9-alpine
       pullPolicy: IfNotPresent
 
-    command: ["nginx"]
-    args: ["-g", "daemon off;"]
+    command: [nginx]
+    args: [-g, daemon off;]
 
     imagePullSecrets: []
 
@@ -379,7 +381,7 @@ jupyterhub:
       type: ClusterIP
   singleuser:
     image:
-      pullPolicy: "Always"
+      pullPolicy: Always
     storage:
       type: none
   hub:
@@ -416,13 +418,13 @@ jupyterhub:
         hub_service_api_token = os.getenv('NOMAD_NORTH_HUB_SERVICE_API_TOKEN')
 
         # configure nomad service
-        c.JupyterHub.services = [
+        c.JupyterHub.services.append(
             {
                 "name": "nomad-service",
                 "admin": True,
                 "api_token": hub_service_api_token,
             }
-        ]
+        )
 
         async def pre_spawn_hook(spawner):
             await spawner.load_user_options()
@@ -433,10 +435,6 @@ jupyterhub:
 
             if spawner.handler.current_user.name != 'nomad-service':
                 # Do nothing, will only launch the default image with no volumes.
-                # Only the nomad-service can launch specialized tools with mounted volumes
-                if spawner.name:
-                    spawner.log.error(f'The {spawner.name} server is not allowed to start this way, raise an error')
-                    raise NotImplementedError('Only the nomad-service can launch specialized tools.')
                 return
 
             user_home = spawner.user_options.get('user_home')
@@ -479,10 +477,11 @@ jupyterhub:
                     spawner.uid = 0
 
         c.Spawner.pre_spawn_hook = pre_spawn_hook
+        c.OAuthenticator.allow_all = True
 
   cull:
     enabled: true
-    timeout: 3600
+    timeout: 86400  # 24 hours
     every: 600
     removeNamedServers: true
 
@@ -490,10 +489,46 @@ jupyterhub:
     hook:
       enabled: true
       image:
-        pullPolicy: "Always"
+        pullPolicy: Always
     continuous:
       enabled: false
-
+    extraImages:
+      jupyter:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/jupyter
+        tag: latest
+      nionswift:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop
+        tag: latest
+      nexustools:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop
+        tag: latest
+      ellips:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/ellips-jupyter
+        tag: latest
+      mpes:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/mpes/webtop
+        tag: latest
+      xps:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/xps/jupyter
+        tag: master
+      sts:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/sts-jupyter
+        tag: latest
+      webtop:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/webtop
+        tag: latest
+      apmtools:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/apmtools-webtop
+        tag: latest
+      fiji:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/fiji-webtop
+        tag: latest
+      frwr:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/frwr-webtop
+        tag: latest
+      abtem:
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/abtem-webtop
+        tag: latest
   scheduling:
     userScheduler:
       enabled: false
