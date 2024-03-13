@@ -558,7 +558,7 @@ async def assign_doi(
         doi.make_findable()
     except DOIException:
         if doi.doi:
-            dataset.doi = doi
+            dataset.doi = doi.doi
             dataset.save()
 
         raise HTTPException(
