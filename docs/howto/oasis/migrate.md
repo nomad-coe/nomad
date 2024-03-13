@@ -66,6 +66,30 @@ For changing the minor or major version, please check the [migration steps](#mig
 
 ## Migration steps
 
+### to 1.2.2
+
+We upgraded the Jupyterhub version used for NORTH from 1.0.2 to 4.0.2. By default the
+Jupyterhub database is persisted in the `nomad_oasis_north` container. If you want to
+keep the database (e.g. to not loose any open tools), you will have to upgrade the database.
+Update the NOMAD docker image version and restart the Oasis like this:
+
+```
+docker compose down
+docker compose pull
+docker copmose run north python -m jupyterhub upgrade
+docker compose up -d
+```
+
+Alternatively, you can delete the `nomad_oasis_north` container and start with a fresh
+database. Make sure that all north tools are stopped and removed.
+
+```
+docker compose down
+docker rm nomad_oasis_north
+docker compose pull
+docker compose up -d
+```
+
 ### to 1.2.0
 
 - We introduced the plugin mechanism. There are now more options to control which schemas

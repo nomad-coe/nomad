@@ -29,6 +29,7 @@ from nomad import config
 from nomad.config.north import NORTHTool
 from nomad.utils import strip, get_logger, slugify
 from nomad.processing import Upload
+from nomad.app.v1.routers.auth import generate_simple_token
 from .auth import create_user_dependency, oauth2_scheme
 from ..models import User, HTTPExceptionModel
 from ..utils import create_responses
@@ -159,7 +160,6 @@ async def get_tool(
 )
 async def start_tool(
     tool: ToolModel = Depends(tool),
-    access_token: str = Depends(oauth2_scheme),
     user: User = Depends(create_user_dependency(required=True)),
     upload_id: Optional[str] = None,
 ):
@@ -238,6 +238,9 @@ async def start_tool(
         )
 
     url = f'{config.hub_url()}/api/users/{user.username}/servers/{tool.name}'
+    access_token = generate_simple_token(
+        user_id=user.user_id, expires_in=config.north.nomad_access_token_expiry_time
+    )
     body = {
         'tool': {'image': tool.image, 'cmd': tool.cmd, 'privileged': tool.privileged},
         'environment': {

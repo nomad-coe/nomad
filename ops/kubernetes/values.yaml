@@ -85,7 +85,7 @@ nomad:
   ingress:
     enabled: true
     limitConnections: 32
-    limitConnectionsApi: 8
+    limitConnectionsApi: 16
     className: "nginx"
     annotations:
       cert-manager.io/cluster-issuer: "letsencrypt-production"

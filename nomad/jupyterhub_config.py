@@ -77,13 +77,13 @@ def pre_spawn(spawner):
 c.Spawner.pre_spawn_hook = pre_spawn
 
 # configure nomad service
-c.JupyterHub.services = [
+c.JupyterHub.services.append(
     {
         'name': 'nomad-service',
         'admin': True,
         'api_token': config.north.hub_service_api_token,
     }
-]
+)
 
 # Allow named single-user servers per user (Default: False)
 c.JupyterHub.allow_named_servers = True
@@ -117,6 +117,7 @@ c.GenericOAuthenticator.username_key = 'preferred_username'
 c.GenericOAuthenticator.scope = ['openid', 'profile']
 c.Authenticator.auto_login = True
 c.Authenticator.enable_auth_state = True
+c.Ahtenticator.allow_all = True
 
 
 # configure docker spawner

@@ -37,7 +37,7 @@ dependencies:
   version: 14.0.4
   repository: oci://registry-1.docker.io/bitnamicharts
 - name: jupyterhub
-  version: "1.2.0"
+  version: "3.2.1"
   repository: "https://jupyterhub.github.io/helm-chart/"
   condition: nomad.config.north.enabled
 
