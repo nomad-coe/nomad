@@ -20,7 +20,6 @@ nomad:
       north_home: /nomad/test/fs/north/users
       tmp: /nomad/test/fs/tmp
       nomad: /nomad
-      archiveVersionSuffix: v1
 
     mail:
       enabled: false
