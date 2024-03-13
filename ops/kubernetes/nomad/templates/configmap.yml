@@ -132,4 +132,7 @@ data:
     {{ if .Values.nomad.config.normalize }}
     normalize: {{ .Values.nomad.config.normalize | toYaml | nindent 6 }}
     {{ end }}
+    {{ if .Values.nomad.config.oasis }}
+    oasis: {{ .Values.nomad.config.oasis | toYaml | nindent 6 }}
+    {{ end }}
 {{- end }}
