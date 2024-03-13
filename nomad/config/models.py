@@ -2538,6 +2538,12 @@ class UI(StrictSettings):
                         interactive statistics about the data.
                     """
                         ),
+                        'filters': {
+                            'include': [
+                                '*#perovskite_solar_cell_database.schema.PerovskiteSolarCell'
+                            ],
+                            'exclude': ['mainfile', 'entry_name', 'combine'],
+                        },
                         'pagination': {
                             'order_by': 'results.properties.optoelectronic.solar_cell.efficiency',
                         },
@@ -2598,11 +2604,13 @@ class UI(StrictSettings):
                                         'quantity': 'results.properties.optoelectronic.solar_cell.open_circuit_voltage'
                                     },
                                     'y': {
-                                        'quantity': 'results.properties.optoelectronic.solar_cell.efficiency'
+                                        'quantity': 'results.properties.optoelectronic.solar_cell.efficiency',
+                                        'title': 'Efficiency (%)',
                                     },
                                     'markers': {
                                         'color': {
-                                            'quantity': 'results.properties.optoelectronic.solar_cell.short_circuit_current_density'
+                                            'quantity': 'results.properties.optoelectronic.solar_cell.short_circuit_current_density',
+                                            'unit': 'mA/cm^2',
                                         }
                                     },
                                     'layout': {
@@ -2653,7 +2661,8 @@ class UI(StrictSettings):
                                     'autorange': True,
                                     'size': 1000,
                                     'y': {
-                                        'quantity': 'results.properties.optoelectronic.solar_cell.efficiency'
+                                        'quantity': 'results.properties.optoelectronic.solar_cell.efficiency',
+                                        'title': 'Efficiency (%)',
                                     },
                                     'x': {
                                         'quantity': 'results.properties.optoelectronic.solar_cell.open_circuit_voltage',

@@ -1880,6 +1880,9 @@ window.nomadEnv = {
             }
           },
           "filters": {
+            "include": [
+              "*#perovskite_solar_cell_database.schema.PerovskiteSolarCell"
+            ],
             "exclude": [
               "mainfile",
               "entry_name",
@@ -1983,10 +1986,12 @@ window.nomadEnv = {
                   "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
                 },
                 "y": {
+                  "title": "Efficiency (%)",
                   "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
                 },
                 "markers": {
                   "color": {
+                    "unit": "mA/cm^2",
                     "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
                   }
                 },
@@ -2041,6 +2046,7 @@ window.nomadEnv = {
                   "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
                 },
                 "y": {
+                  "title": "Efficiency (%)",
                   "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
                 },
                 "markers": {
