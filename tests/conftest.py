@@ -98,6 +98,11 @@ setattr(logging, 'Formatter', structlogging.ConsoleFormatter)
 pytest_plugins = ('celery.contrib.pytest',)
 
 
+def pytest_addoption(parser):
+    help = 'Set this < 1.0 to speed up worker cleanup. May leave tasks running.'
+    parser.addoption('--celery-inspect-timeout', type=float, default=1.0, help=help)
+
+
 @pytest.fixture(scope='function')
 def tmp():
     parent_directory = '.volumes'
@@ -190,8 +195,9 @@ def purged_app(celery_session_app):
 
 
 @pytest.fixture(scope='session')
-def celery_inspect(purged_app):
-    yield purged_app.control.inspect()
+def celery_inspect(purged_app, pytestconfig):
+    timeout = pytestconfig.getoption('celery_inspect_timeout')
+    yield purged_app.control.inspect(timeout=timeout)
 
 
 # It might be necessary to make this a function scoped fixture, if old tasks keep
