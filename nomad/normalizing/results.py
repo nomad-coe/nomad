@@ -23,8 +23,8 @@ import ase.data
 from matid import SymmetryAnalyzer  # pylint: disable=import-error
 import matid.geometry  # pylint: disable=import-error
 
+from nomad import config
 from nomad import atomutils
-from nomad.config import config
 from nomad.utils import traverse_reversed, extract_section
 from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import Normalizer

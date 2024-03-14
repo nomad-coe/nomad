@@ -201,4 +201,4 @@ the path without the need for specifying a schema, e.g. `results.material.symmet
 
 ## App configuration reference
 
-{{ pydantic_model('nomad.config.models.config.App')}}
+{{ pydantic_model('nomad.config.models.App')}}

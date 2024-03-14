@@ -32,8 +32,8 @@ from inspect import isclass
 from markdown.extensions.toc import slugify
 
 from nomad.utils import strip
-from nomad.config import config
-from nomad.config.models.plugins import Parser, Plugin
+from nomad import config
+from nomad.config.plugins import Parser, Plugin
 from nomad.app.v1.models import query_documentation, owner_documentation
 from nomad.app.v1.routers.entries import archive_required_documentation
 from nomad import utils
@@ -282,18 +282,21 @@ def define_env(env):
 
     @env.macro
     def config_models(models=None):  # pylint: disable=unused-variable
-        from nomad.config.models.config import Config
+        from nomad import config
 
         results = ''
-        for field in Config.__fields__.values():
-            if models and field.name not in models:
-                continue
+        for attribute_name, attribute in config.__dict__.items():
+            if isinstance(attribute, config.NomadSettings):
+                if models and attribute_name not in models:
+                    continue
 
-            if not models and field.name in exported_config_models:
-                continue
+                if not models and attribute_name in exported_config_models:
+                    continue
 
-            results += pydantic_model_from_model(field.type_, field.name)
-            results += '\n\n'
+                results += pydantic_model_from_model(
+                    attribute.__class__, attribute_name
+                )
+                results += '\n\n'
 
         return results
 

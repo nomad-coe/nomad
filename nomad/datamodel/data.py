@@ -33,7 +33,7 @@ from nomad.metainfo.metainfo import (
     Section,
     Datetime,
 )
-from nomad.config import config
+from nomad import config
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 

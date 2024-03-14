@@ -23,7 +23,7 @@ import os
 import os.path
 import traceback
 
-from nomad.config import config
+from nomad import config
 
 from .admin import admin
 

@@ -4,7 +4,7 @@ import pytest
 from copy import deepcopy
 
 from tests.logtransfer.test_logtransfer import standard_test_log_record
-from nomad.config import config
+from nomad import config
 from nomad.logtransfer import gzip_bytes
 
 

@@ -42,8 +42,7 @@ def clean(dry, skip_entries, skip_fs, skip_es, staging_too, force):
     import tabulate
     import elasticsearch_dsl
 
-    from nomad import infrastructure, processing
-    from nomad.config import config as nomad_config
+    from nomad import config as nomad_config, infrastructure, processing
     from nomad.search import delete_by_query
     from nomad.search import quantity_values
 

@@ -67,6 +67,7 @@ import validators
 
 from nomad import (
     utils,
+    config,
     infrastructure,
     search,
     datamodel,
@@ -74,8 +75,6 @@ from nomad import (
     parsing,
     client,
 )
-from nomad.config import config
-
 from nomad.datamodel.datamodel import RFC3161Timestamp
 from nomad.files import (
     RawPathInfo,
@@ -122,7 +121,6 @@ from nomad.app.v1.models import (
 )
 from nomad.app.v1.routers.metainfo import store_package_definition
 from nomad.search import update_metadata as es_update_metadata
-from nomad.config.models.config import Reprocess
 
 section_metadata = datamodel.EntryArchive.metadata.name
 section_workflow = datamodel.EntryArchive.workflow2.name
@@ -1993,7 +1991,7 @@ class Upload(Proc):
         """
         logger = self.get_logger()
         logger.info('starting to (re)process')
-        settings: Reprocess = config.reprocess.customize(
+        settings: config.Reprocess = config.reprocess.customize(
             reprocess_settings
         )  # Add default settings
         if reprocess_settings:
@@ -2025,7 +2023,7 @@ class Upload(Proc):
 
     @process_local
     def put_file_and_process_local(
-        self, path, target_dir, reprocess_settings: Reprocess = None
+        self, path, target_dir, reprocess_settings: config.Reprocess = None
     ) -> Entry:
         """
         Pushes a raw file, matches it, and if matched, runs the processing - all as a local process.
@@ -2320,7 +2318,7 @@ class Upload(Proc):
 
     def match_all(
         self,
-        reprocess_settings: Reprocess,
+        reprocess_settings: config.Reprocess,
         path_filter: str = None,
         updated_files: Set[str] = None,
     ):

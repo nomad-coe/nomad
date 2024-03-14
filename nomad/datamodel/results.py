@@ -23,8 +23,7 @@ from elasticsearch_dsl import Text
 
 from ase.data import chemical_symbols
 
-from nomad import utils
-from nomad.config import config
+from nomad import config, utils
 from nomad.datamodel.metainfo.common import ProvenanceTracker, PropertySection
 from nomad.datamodel.metainfo.simulation.method import CoreHole as CoreHoleRun
 from nomad.metainfo.elasticsearch_extension import (

@@ -29,8 +29,7 @@ import h5py
 import numpy as np
 import json
 
-from nomad import utils
-from nomad.config import config
+from nomad import config, utils
 from nomad.datamodel import EntryArchive, EntryMetadata
 from nomad.metainfo import Package
 

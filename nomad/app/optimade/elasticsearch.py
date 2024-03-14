@@ -12,8 +12,7 @@ from nomad.units import ureg
 from nomad.atomutils import Formula
 from nomad.search import search
 from nomad.app.v1.models import MetadataPagination, MetadataRequired
-from nomad.config import config
-from nomad import datamodel, files, utils
+from nomad import datamodel, files, utils, config
 
 from .filterparser import _get_transformer as get_transformer
 from .common import provider_specific_fields

@@ -7,7 +7,7 @@ from nomad import logtransfer
 from logging import LogRecord
 import logging
 from nomad.utils.structlogging import LogstashFormatter
-from nomad.config import config
+from nomad import config
 
 logtransfer.enable_log_print = False
 

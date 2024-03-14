@@ -17,203 +17,184 @@
 #
 
 import pytest
-import yaml
 import os
+import yaml
+from pydantic import parse_obj_as, BaseModel
 
+from nomad import config
 from nomad.utils import flatten_dict
-from nomad.config import load_config
-from nomad.config.models.plugins import Schema, Parser
-
-from pydantic import ValidationError
 
 from .utils import assert_log
 
 
-def load_test_config(conf_yaml, conf_env, mockopen=None, monkeypatch=None):
-    if conf_env:
-        monkeypatch.setattr('os.environ', conf_env)
-    config_file = os.environ.get('NOMAD_CONFIG', 'nomad.yaml')
-    if conf_yaml:
-        mockopen.write(config_file, yaml.dump(conf_yaml))
-        old = os.path.exists
-        monkeypatch.setattr(
-            'os.path.exists', lambda x: True if x == config_file else old(x)
-        )
-    return load_config()
-
-
-def get_config_env(config):
-    if not config:
-        return {}
-    return {
-        f'NOMAD_{key.upper()}': value
-        for key, value in flatten_dict(config, '_').items()
-    }
-
-
-def load_format(config, format):
-    conf_yaml = config if format == 'yaml' else None
-    conf_env = get_config_env(config) if format == 'env' else None
-    return conf_yaml, conf_env
-
-
-def assert_config(config, config_expected):
-    flattened = flatten_dict(config_expected)
-    for key, val in flattened.items():
-        root = config
-        for part in key.split('.'):
-            if isinstance(root, dict):
-                root = root[part]
-            else:
-                root = getattr(root, part)
-        assert root == val
-
-
-def test_config_file_change(mockopen, monkeypatch):
-    """Tests that changing the config file path works."""
-    conf_yaml = {'fs': {'public': 'test'}}
-    conf_env = {'NOMAD_CONFIG': 'test.yaml'}
-    config = load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-    assert_config(config, conf_yaml)
+@pytest.fixture
+def with_config():
+    old_values = config.fs.public, config.fs.archive_version_suffix
+    yield config
+    config.fs.public, config.fs.archive_version_suffix = old_values
 
 
 @pytest.mark.parametrize(
-    'config_dict',
+    'a, b, expected',
     [
-        pytest.param({'fs': {'public': 'test'}}, id='nested string'),
-        pytest.param({'north': {'hub_ip': '1.2.3.4'}}, id='underscore in field name'),
+        pytest.param({}, {}, {}, id='empty'),
+        pytest.param({}, None, {}, id='merge None'),
+        pytest.param(None, {}, None, id='merge to None'),
+        pytest.param({'test': 1}, {'test': 2}, {'test': 2}, id='override scalar'),
+        pytest.param(
+            {'test': {'override': 1, 'keep': 3}},
+            {'test': {'override': 2}},
+            {'test': {'override': 2, 'keep': 3}},
+            id='override dict partial',
+        ),
     ],
 )
-@pytest.mark.parametrize('format', ['yaml', 'env'])
-def test_config_success(config_dict, format, mockopen, monkeypatch):
-    """Tests that config variables are correctly loaded."""
-    conf_yaml, conf_env = load_format(config_dict, format)
-    config_obj = load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-    assert_config(config_obj, config_dict)
+def test_merge(a, b, expected):
+    config._merge(a, b)
+    assert a == expected
+
+
+def test_apply(with_config, caplog):
+    config._apply('fs_public', 'test_value')
+    assert config.fs.public == 'test_value'
+
+    config._apply('fs_archive_version_suffix', 'test_value')
+    assert config.fs.archive_version_suffix == 'test_value'
+
+    config._apply('does_not_exist', 'test_value')
+    assert_log(caplog, 'ERROR', 'config key does not exist: does_not_exist')
+
+    config._apply('fs_does_not_exist', 'test_value')
+    assert_log(caplog, 'ERROR', 'config key does not exist: fs_does_not_exist')
+
+    config._apply('services_max_entry_download', 'not_a_number')
+    assert_log(caplog, 'ERROR', 'cannot set')
+
+    config._apply('nounderscore', 'test_value')
+    assert_log(caplog, 'ERROR', 'config key does not exist: nounderscore')
+
+
+def test_env(with_config, monkeypatch):
+    monkeypatch.setattr('os.environ', dict(NOMAD_FS_PUBLIC='test_value'))
+    os.environ['NOMAD_FS_PUBLIC'] = 'test_value'
+    config._apply_env_variables()
+    assert config.fs.public == 'test_value'
+
+
+def load_config(config_dict, monkeypatch):
+    """Loads the given dictionary into the current config."""
+    test_nomad_yaml = os.path.join(config.fs.tmp, 'nomad_test.yaml')
+    monkeypatch.setattr('os.environ', dict(NOMAD_CONFIG=test_nomad_yaml))
+    with open(test_nomad_yaml, 'w') as file:
+        yaml.dump(config_dict, file)
+    config.load_config()
+    os.remove(test_nomad_yaml)
 
 
 @pytest.mark.parametrize(
-    'config_dict, warning',
+    'config_dict, include',
     [
         pytest.param(
-            {'does': {'not': 'exist'}},
-            'The following extra fields in the NOMAD config model "Config" are ignored: "does"',
-            id='non-existing field',
-        )
+            {'services': {'max_entry_download': 123}},
+            {'services.max_entry_download': 123},
+            id='set integer',
+        ),
+        pytest.param(
+            {'ui': {'theme': {'title': 'mytitle'}}},
+            {'ui.theme.title': 'mytitle'},
+            id='overwrite default value in nested object',
+        ),
+        pytest.param(
+            {
+                'ui': {
+                    'apps': {
+                        'options': {
+                            'entries': {
+                                'label': 'TEST',
+                                'path': 'eln',
+                                'category': 'Experiments',
+                                'columns': {'selected': ['test']},
+                                'filter_menus': {},
+                                'dashboard': {
+                                    'widgets': [
+                                        {
+                                            'type': 'terms',
+                                            'layout': {},
+                                            'quantity': 'test',
+                                            'scale': 'linear',
+                                            'showinput': True,
+                                        }
+                                    ]
+                                },
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                'ui.apps.options.entries.dashboard.widgets': [
+                    {
+                        'type': 'terms',
+                        'layout': {},
+                        'quantity': 'test',
+                        'scale': 'linear',
+                        'showinput': True,
+                    }
+                ]
+            },
+            id='overwrite unset object value',
+        ),
+        pytest.param(
+            {'ui': {'unit_systems': {}}},
+            {'ui.unit_systems.selected': 'Custom'},
+            id='unset values do not override',
+        ),
     ],
 )
-@pytest.mark.parametrize('format', ['yaml', 'env'])
-def test_config_warning(config_dict, format, warning, caplog, mockopen, monkeypatch):
-    """Tests that extra fields create a warning message."""
-    conf_yaml, conf_env = load_format(config_dict, format)
-    load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-    assert_log(caplog, 'WARNING', warning)
+def test_config_apply(
+    raw_files_function, with_config, monkeypatch, caplog, config_dict, include
+):
+    load_config(config_dict, monkeypatch)
+    config_dict = {}
+    for key, value in config.__dict__.items():
+        if isinstance(value, BaseModel):
+            config_dict[key] = value.dict()
+    flat_real = flatten_dict(config_dict)
+    for key, value in include.items():
+        assert flat_real[key] == value
 
 
 @pytest.mark.parametrize(
     'config_dict, error',
     [
         pytest.param(
-            {'celery': {'timeout': 'not_a_number'}},
-            (
-                r'1 validation error for Config\n'
-                r'celery -> timeout\n'
-                r'  value is not a valid integer \(type=type_error\.integer\)'
-            ),
-            id='invalid type',
+            {'does_not_exist': 'test_value'},
+            'config key does not exist: does_not_exist',
+            id='undefined field root',
+        ),
+        pytest.param(
+            {'fs': {'does_not_exist': 'test_value'}},
+            'config key does not exist: fs_does_not_exist',
+            id='undefined field child',
+        ),
+        pytest.param(
+            {'services': {'max_entry_download': 'not_a_number'}},
+            'cannot set config setting services_max_entry_download=not_a_number: 1 validation error for ParsingModel[int]',
+            id='incompatible-value',
         ),
     ],
 )
-@pytest.mark.parametrize('format', ['yaml', 'env'])
-def test_config_error(config_dict, format, error, mockopen, monkeypatch):
-    """Tests that validation errors raise exceptions."""
-    conf_yaml, conf_env = load_format(config_dict, format)
-    with pytest.raises(ValidationError, match=error):
-        load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-
-
-@pytest.mark.parametrize(
-    'conf_yaml, conf_env, value',
-    [
-        pytest.param(None, None, '.volumes/fs/public', id='default'),
-        pytest.param(
-            {'fs': {'public': 'yaml'}}, {}, 'yaml', id='yaml overrides default'
-        ),
-        pytest.param(
-            None, {'NOMAD_FS_PUBLIC': 'env'}, 'env', id='env overrides default'
-        ),
-        pytest.param(
-            {'fs': {'public': 'yaml'}},
-            {'NOMAD_FS_PUBLIC': 'env'},
-            'env',
-            id='env overrides yaml and default',
-        ),
-    ],
-)
-def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
-    """Tests that the priority between model defaults, yaml and environment
-    variables is correctly handled."""
-    config = load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-    assert config.fs.public == value
-
-
-@pytest.mark.parametrize(
-    'conf_yaml, conf_env, conf_expected',
-    [
-        pytest.param(
-            {
-                'plugins': {
-                    'options': {
-                        'normalizers/simulation/dos': {
-                            'name': 'yaml',
-                        }
-                    }
-                }
-            },
-            {'plugins': {'include': ['normalizers/simulation/dos']}},
-            {
-                'plugins': {
-                    'include': ['normalizers/simulation/dos'],
-                    'options': {
-                        'normalizers/simulation/dos': {
-                            'name': 'yaml',
-                            'python_package': 'dosnormalizer',
-                            'description': 'This is the normalizer for DOS in NOMAD.\n',
-                            'plugin_documentation_url': None,
-                            'plugin_source_code_url': None,
-                            'normalizer_class_name': 'dosnormalizer.DosNormalizer',
-                            'plugin_type': 'normalizer',
-                        }
-                    },
-                }
-            },
-            id='dictionary: merges',
-        ),
-        pytest.param(
-            {'plugins': {'include': ['a']}},
-            {'plugins': {'include': ['b']}},
-            {'plugins': {'include': ['b']}},
-            id='list: overrides',
-        ),
-        pytest.param(
-            {'celery': {'timeout': 100}},
-            {'celery': {'timeout': 200}},
-            {'celery': {'timeout': 200}},
-            id='scalar: overrides',
-        ),
-    ],
-)
-def test_config_merge(conf_yaml, conf_env, conf_expected, mockopen, monkeypatch):
-    """Tests that configs are correctly merged: dictionaries should be merged,
-    everything else overridden."""
-    config = load_test_config(
-        conf_yaml, get_config_env(conf_env), mockopen, monkeypatch
-    )
-    assert_config(config, conf_expected)
+def test_config_error(
+    raw_files_function, with_config, monkeypatch, caplog, config_dict, error
+):
+    load_config(config_dict, monkeypatch)
+    assert_log(caplog, 'ERROR', error)
 
 
 def test_parser_plugins():
-    config = load_config()
+    from nomad import config
+    from nomad.config import Parser
+
     parsers = [
         plugin
         for plugin in config.plugins.options.values()
@@ -222,24 +203,34 @@ def test_parser_plugins():
     assert len(parsers) == 71
 
 
-def test_plugin_polymorphism(mockopen, monkeypatch):
-    plugins = {
-        'plugins': {
-            'options': {
-                'schema': {
-                    'plugin_type': 'schema',
-                    'name': 'test',
-                    'python_package': 'runschema',
-                },
-                'parser': {
-                    'plugin_type': 'parser',
-                    'name': 'parsers/abinit',
-                    'python_package': 'electronicparsers.abinit',
-                    'parser_class_name': 'electronicparsers.abinit.parser.AbinitParser',
-                },
-            }
-        }
-    }
-    config = load_test_config(plugins, None, mockopen, monkeypatch)
-    assert isinstance(config.plugins.options['schema'], Schema)
-    assert isinstance(config.plugins.options['parser'], Parser)
+def test_plugin_polymorphism():
+    plugins_yaml = parse_obj_as(
+        config.Plugins,
+        yaml.safe_load(
+            """
+        options:
+            schema:
+                plugin_type: schema
+                name: test
+                python_package: runschema
+    """
+        ),
+    )
+
+    plugins_config = config.Plugins(
+        options=dict(
+            parser=config.Parser(
+                name='parsers/abinit',
+                python_package='electronicparsers.abinit',
+                parser_class_name='electronicparsers.abinit.parser.AbinitParser',
+            )
+        )
+    )
+
+    from nomad.config import _merge
+
+    _merge(plugins_config.options, plugins_yaml.options)
+    plugins = plugins_config
+
+    assert isinstance(plugins.options['schema'], config.Schema)
+    assert isinstance(plugins.options['parser'], config.Parser)

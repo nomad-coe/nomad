@@ -20,7 +20,7 @@ import click
 
 
 from nomad.cli.cli import cli
-from nomad.config import config
+from nomad import config
 
 
 @cli.group(help='Commands that use the nomad API to do useful things')

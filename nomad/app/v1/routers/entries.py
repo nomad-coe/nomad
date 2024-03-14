@@ -39,9 +39,8 @@ import orjson
 from pydantic.main import create_model
 from starlette.responses import Response
 
-from nomad import files, utils, metainfo, processing as proc
+from nomad import files, config, utils, metainfo, processing as proc
 from nomad import datamodel
-from nomad.config import config
 from nomad.datamodel import EditableUserMetadata
 from nomad.files import StreamedFile, create_zipstream
 from nomad.utils import strip

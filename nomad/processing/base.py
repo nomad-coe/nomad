@@ -46,9 +46,8 @@ from mongoengine.connection import ConnectionFailure
 from datetime import datetime
 import functools
 
-from nomad import utils, infrastructure
-from nomad.config import config
-from nomad.config.models.config import CELERY_WORKER_ROUTING
+from nomad import config, utils, infrastructure
+from nomad.config.models import CELERY_WORKER_ROUTING
 import nomad.patch  # pylint: disable=unused-import
 
 

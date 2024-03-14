@@ -22,8 +22,7 @@ from fastapi.responses import JSONResponse
 import traceback
 from celery.signals import worker_process_init
 
-from nomad import utils
-from nomad.config import config
+from nomad import config, utils
 
 from .routers import resources
 

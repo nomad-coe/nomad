@@ -23,7 +23,7 @@ from urllib.parse import urlencode
 import time
 import dateutil.parser
 
-from nomad.config import config
+from nomad import config
 from nomad.app.resources.main import app, remove_mongo
 from nomad.app.resources.routers.resources import (
     aflow_prototypes_db,

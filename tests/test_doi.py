@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from nomad.config import config
+from nomad import config
 from nomad.doi import DOI, DOIException
 import pytest
 from unittest.mock import MagicMock

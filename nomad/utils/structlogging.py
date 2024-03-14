@@ -52,8 +52,7 @@ from contextlib import contextmanager
 import json
 import re
 
-from nomad import utils
-from nomad.config import config
+from nomad import config, utils
 
 
 def sanitize_logevent(event: str) -> str:

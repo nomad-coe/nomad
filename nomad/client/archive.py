@@ -29,8 +29,7 @@ from click import progressbar
 from httpx import Timeout, AsyncClient
 from keycloak import KeycloakOpenID
 
-from nomad import metainfo as mi
-from nomad.config import config
+from nomad import config, metainfo as mi
 from nomad.datamodel import EntryArchive, ClientContext
 from nomad.utils import dict_to_dataframe
 

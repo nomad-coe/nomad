@@ -59,8 +59,7 @@ from elasticsearch_dsl.query import Query as EsQuery
 from pydantic.error_wrappers import ErrorWrapper
 from pydantic import ValidationError
 
-from nomad import infrastructure, utils
-from nomad.config import config
+from nomad import config, infrastructure, utils
 from nomad import datamodel
 from nomad.app.v1.models import models
 from nomad.datamodel import (

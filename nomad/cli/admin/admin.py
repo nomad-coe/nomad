@@ -18,7 +18,7 @@
 
 import click
 
-from nomad.config import config
+from nomad import config
 from nomad.cli.cli import cli
 
 

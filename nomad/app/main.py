@@ -28,8 +28,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 
-from nomad import infrastructure
-from nomad.config import config
+from nomad import config, infrastructure
 from .v1.main import app as v1_app
 from .static import app as static_files_app, GuiFiles
 

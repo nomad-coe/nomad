@@ -26,7 +26,7 @@ The following depicts the used hierarchy of fixtures:
 Otherwise the test submodules follow the names of the nomad code modules.
 """
 
-from nomad.config import config
+from nomad import config
 
 
 # This should be setup with fixtures with in conftest.py, but it will be too late.

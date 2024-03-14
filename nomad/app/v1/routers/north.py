@@ -25,8 +25,8 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, status, HTTPException
 from mongoengine.queryset.visitor import Q
 
-from nomad.config import config
-from nomad.config.models.north import NORTHTool
+from nomad import config
+from nomad.config.north import NORTHTool
 from nomad.utils import strip, get_logger, slugify
 from nomad.processing import Upload
 from nomad.app.v1.routers.auth import generate_simple_token
