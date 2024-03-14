@@ -5,7 +5,7 @@ from multiprocessing import Process
 import socket
 import time
 
-from nomad import config
+from nomad.config import config
 from nomad import logtransfer
 
 

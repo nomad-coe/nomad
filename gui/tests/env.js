@@ -23,24 +23,24 @@ window.nomadEnv = {
         "Custom": {
           "label": "Custom",
           "units": {
-            "length": {
-              "definition": "\u00c5",
-              "locked": false
-            },
-            "time": {
-              "definition": "fs",
+            "angle": {
+              "definition": "\u00b0",
               "locked": false
             },
             "energy": {
               "definition": "eV",
               "locked": false
             },
+            "length": {
+              "definition": "\u00c5",
+              "locked": false
+            },
             "pressure": {
               "definition": "GPa",
               "locked": false
             },
-            "angle": {
-              "definition": "\u00b0",
+            "time": {
+              "definition": "fs",
               "locked": false
             },
             "dimensionless": {
@@ -136,28 +136,68 @@ window.nomadEnv = {
         "SI": {
           "label": "International System of Units (SI)",
           "units": {
-            "dimensionless": {
-              "definition": "dimensionless",
+            "activity": {
+              "definition": "kat",
               "locked": true
             },
-            "length": {
-              "definition": "m",
+            "angle": {
+              "definition": "rad",
               "locked": true
             },
-            "mass": {
-              "definition": "kg",
+            "capacitance": {
+              "definition": "F",
               "locked": true
             },
-            "time": {
-              "definition": "s",
+            "charge": {
+              "definition": "C",
+              "locked": true
+            },
+            "conductance": {
+              "definition": "S",
               "locked": true
             },
             "current": {
               "definition": "A",
               "locked": true
             },
-            "temperature": {
-              "definition": "K",
+            "dimensionless": {
+              "definition": "dimensionless",
+              "locked": true
+            },
+            "electric_potential": {
+              "definition": "V",
+              "locked": true
+            },
+            "energy": {
+              "definition": "J",
+              "locked": true
+            },
+            "force": {
+              "definition": "N",
+              "locked": true
+            },
+            "frequency": {
+              "definition": "Hz",
+              "locked": true
+            },
+            "illuminance": {
+              "definition": "lx",
+              "locked": true
+            },
+            "inductance": {
+              "definition": "H",
+              "locked": true
+            },
+            "information": {
+              "definition": "bit",
+              "locked": true
+            },
+            "length": {
+              "definition": "m",
+              "locked": true
+            },
+            "luminance": {
+              "definition": "nit",
               "locked": true
             },
             "luminosity": {
@@ -168,24 +208,16 @@ window.nomadEnv = {
               "definition": "lm",
               "locked": true
             },
-            "substance": {
-              "definition": "mol",
+            "magnetic_field": {
+              "definition": "T",
               "locked": true
             },
-            "angle": {
-              "definition": "rad",
+            "magnetic_flux": {
+              "definition": "Wb",
               "locked": true
             },
-            "information": {
-              "definition": "bit",
-              "locked": true
-            },
-            "force": {
-              "definition": "N",
-              "locked": true
-            },
-            "energy": {
-              "definition": "J",
+            "mass": {
+              "definition": "kg",
               "locked": true
             },
             "power": {
@@ -196,52 +228,20 @@ window.nomadEnv = {
               "definition": "Pa",
               "locked": true
             },
-            "charge": {
-              "definition": "C",
-              "locked": true
-            },
             "resistance": {
               "definition": "\u03a9",
               "locked": true
             },
-            "conductance": {
-              "definition": "S",
+            "substance": {
+              "definition": "mol",
               "locked": true
             },
-            "inductance": {
-              "definition": "H",
+            "temperature": {
+              "definition": "K",
               "locked": true
             },
-            "magnetic_flux": {
-              "definition": "Wb",
-              "locked": true
-            },
-            "magnetic_field": {
-              "definition": "T",
-              "locked": true
-            },
-            "frequency": {
-              "definition": "Hz",
-              "locked": true
-            },
-            "luminance": {
-              "definition": "nit",
-              "locked": true
-            },
-            "illuminance": {
-              "definition": "lx",
-              "locked": true
-            },
-            "electric_potential": {
-              "definition": "V",
-              "locked": true
-            },
-            "capacitance": {
-              "definition": "F",
-              "locked": true
-            },
-            "activity": {
-              "definition": "kat",
+            "time": {
+              "definition": "s",
               "locked": true
             }
           }
@@ -249,29 +249,69 @@ window.nomadEnv = {
         "AU": {
           "label": "Hartree atomic units (AU)",
           "units": {
-            "dimensionless": {
-              "definition": "dimensionless",
-              "locked": true
+            "activity": {
+              "definition": "kat",
+              "locked": false
             },
-            "length": {
-              "definition": "bohr",
-              "locked": true
+            "angle": {
+              "definition": "rad",
+              "locked": false
             },
-            "mass": {
-              "definition": "m_e",
-              "locked": true
+            "capacitance": {
+              "definition": "F",
+              "locked": false
             },
-            "time": {
-              "definition": "atomic_unit_of_time",
-              "locked": true
+            "charge": {
+              "definition": "C",
+              "locked": false
+            },
+            "conductance": {
+              "definition": "S",
+              "locked": false
             },
             "current": {
               "definition": "atomic_unit_of_current",
               "locked": true
             },
-            "temperature": {
-              "definition": "atomic_unit_of_temperature",
+            "dimensionless": {
+              "definition": "dimensionless",
               "locked": true
+            },
+            "electric_potential": {
+              "definition": "V",
+              "locked": false
+            },
+            "energy": {
+              "definition": "Ha",
+              "locked": true
+            },
+            "force": {
+              "definition": "atomic_unit_of_force",
+              "locked": true
+            },
+            "frequency": {
+              "definition": "Hz",
+              "locked": false
+            },
+            "illuminance": {
+              "definition": "lx",
+              "locked": false
+            },
+            "inductance": {
+              "definition": "H",
+              "locked": false
+            },
+            "information": {
+              "definition": "bit",
+              "locked": false
+            },
+            "length": {
+              "definition": "bohr",
+              "locked": true
+            },
+            "luminance": {
+              "definition": "nit",
+              "locked": false
             },
             "luminosity": {
               "definition": "cd",
@@ -281,24 +321,16 @@ window.nomadEnv = {
               "definition": "lm",
               "locked": false
             },
-            "substance": {
-              "definition": "mol",
+            "magnetic_field": {
+              "definition": "T",
               "locked": false
             },
-            "angle": {
-              "definition": "rad",
+            "magnetic_flux": {
+              "definition": "Wb",
               "locked": false
             },
-            "information": {
-              "definition": "bit",
-              "locked": false
-            },
-            "force": {
-              "definition": "atomic_unit_of_force",
-              "locked": true
-            },
-            "energy": {
-              "definition": "Ha",
+            "mass": {
+              "definition": "m_e",
               "locked": true
             },
             "power": {
@@ -309,53 +341,21 @@ window.nomadEnv = {
               "definition": "atomic_unit_of_pressure",
               "locked": true
             },
-            "charge": {
-              "definition": "C",
-              "locked": false
-            },
             "resistance": {
               "definition": "\u03a9",
               "locked": false
             },
-            "conductance": {
-              "definition": "S",
+            "substance": {
+              "definition": "mol",
               "locked": false
             },
-            "inductance": {
-              "definition": "H",
-              "locked": false
+            "temperature": {
+              "definition": "atomic_unit_of_temperature",
+              "locked": true
             },
-            "magnetic_flux": {
-              "definition": "Wb",
-              "locked": false
-            },
-            "magnetic_field": {
-              "definition": "T",
-              "locked": false
-            },
-            "frequency": {
-              "definition": "Hz",
-              "locked": false
-            },
-            "luminance": {
-              "definition": "nit",
-              "locked": false
-            },
-            "illuminance": {
-              "definition": "lx",
-              "locked": false
-            },
-            "electric_potential": {
-              "definition": "V",
-              "locked": false
-            },
-            "capacitance": {
-              "definition": "F",
-              "locked": false
-            },
-            "activity": {
-              "definition": "kat",
-              "locked": false
+            "time": {
+              "definition": "atomic_unit_of_time",
+              "locked": true
             }
           }
         }
@@ -436,7 +436,7 @@ window.nomadEnv = {
           "resource": "entries",
           "category": "All",
           "description": "Search entries across all domains",
-          "readme": "This page allows you to search **entries** within NOMAD.\nEntries represent any individual data items that have\nbeen uploaded to NOMAD, no matter whether they come from\ntheoretical calculations, experiments, lab notebooks or\nany other source of data. This allows you to perform\ncross-domain queries, but if you are interested in a\nspecific subfield, you should see if a specific\napplication exists for it in the explore menu to get\nmore details.",
+          "readme": "This page allows you to search **entries** within NOMAD. Entries represent any individual data items that have been uploaded to NOMAD, no matter whether they come from theoretical calculations, experiments, lab notebooks or any other source of data. This allows you to perform cross-domain queries, but if you are interested in a specific subfield, you should see if a specific application exists for it in the explore menu to get more details.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -727,7 +727,7 @@ window.nomadEnv = {
           "resource": "entries",
           "category": "Theory",
           "description": "Search calculations",
-          "readme": "This page allows you to search **calculations** within\nNOMAD. Calculations typically come from a specific\nsimulation software that uses an approximate model to\ninvestigate and report different physical properties.",
+          "readme": "This page allows you to search **calculations** within NOMAD. Calculations typically come from a specific simulation software that uses an approximate model to investigate and report different physical properties.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -956,22 +956,6 @@ window.nomadEnv = {
               {
                 "type": "periodictable",
                 "layout": {
-                  "xxl": {
-                    "h": 9,
-                    "w": 13,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 11,
-                    "w": 14,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 11,
                     "w": 14,
@@ -991,6 +975,22 @@ window.nomadEnv = {
                   "sm": {
                     "h": 8,
                     "w": 12,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 11,
+                    "w": 14,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 13,
                     "x": 0,
                     "y": 0,
                     "minH": 3,
@@ -1003,22 +1003,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 9,
-                    "w": 6,
-                    "x": 30,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 24,
-                    "y": 5,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 5,
                     "w": 5,
@@ -1042,6 +1026,22 @@ window.nomadEnv = {
                     "y": 13,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 24,
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 6,
+                    "x": 30,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.symmetry.space_group_symbol",
@@ -1051,22 +1051,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 9,
-                    "w": 6,
-                    "x": 19,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 11,
-                    "w": 5,
-                    "x": 19,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 5,
@@ -1090,6 +1074,22 @@ window.nomadEnv = {
                     "y": 8,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 11,
+                    "w": 5,
+                    "x": 19,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 6,
+                    "x": 19,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.material.structural_type",
@@ -1099,22 +1099,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 9,
-                    "w": 6,
-                    "x": 13,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 11,
-                    "w": 5,
-                    "x": 14,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 5,
@@ -1138,6 +1122,22 @@ window.nomadEnv = {
                     "y": 8,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 11,
+                    "w": 5,
+                    "x": 14,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 6,
+                    "x": 13,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.method.simulation.program_name",
@@ -1147,22 +1147,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 9,
-                    "w": 5,
-                    "x": 25,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 24,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 5,
                     "w": 5,
@@ -1184,6 +1168,22 @@ window.nomadEnv = {
                     "w": 6,
                     "x": 0,
                     "y": 13,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 24,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 5,
+                    "x": 25,
+                    "y": 0,
                     "minH": 3,
                     "minW": 3
                   }
@@ -1209,7 +1209,7 @@ window.nomadEnv = {
           "resource": "materials",
           "category": "Theory",
           "description": "Search materials that are identified from calculations",
-          "readme": "This page allows you to search **materials** within\nNOMAD. NOMAD can often automatically detect the material\nfrom individual calculations that contain the full\natomistic structure and can then group the data by using\nthese detected materials. This allows you to search\nindividual materials which have properties that are\naggregated from several entries. Following the link for\na specific material will take you to the corresponding\n[NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search)\npage for that material. NOMAD Encyclopedia is a service\nthat is specifically oriented towards materials property\nexploration.\n\nNotice that by default the properties that you search\ncan be combined from several different entries. If\ninstead you wish to search for a material with an\nindividual entry fullfilling your search criteria,\nuncheck the **combine results from several\nentries**-checkbox.",
+          "readme": "This page allows you to search **materials** within NOMAD. NOMAD can often automatically detect the material from individual calculations that contain the full atomistic structure and can then group the data by using these detected materials. This allows you to search individual materials which have properties that are aggregated from several entries. Following the link for a specific material will take you to the corresponding [NOMAD Encyclopedia](https://nomad-lab.eu/prod/rae/encyclopedia/#/search) page for that material. NOMAD Encyclopedia is a service that is specifically oriented towards materials property exploration.\nNotice that by default the properties that you search can be combined from several different entries. If instead you wish to search for a material with an individual entry fullfilling your search criteria, uncheck the **combine results from several entries**-checkbox.",
           "pagination": {
             "order_by": "chemical_formula_hill",
             "order": "asc",
@@ -1395,7 +1395,7 @@ window.nomadEnv = {
           "resource": "entries",
           "category": "Experiment",
           "description": "Search electronic lab notebooks",
-          "readme": "This page allows you to specifically seach **electronic\nlab notebooks (ELNs)** within NOMAD.  It is very similar\nto the entries search, but with a reduced filter set and\nspecialized arrangement of default columns.",
+          "readme": "This page allows you to specifically seach **electronic lab notebooks (ELNs)** within NOMAD. It is very similar to the entries search, but with a reduced filter set and specialized arrangement of default columns.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -1542,7 +1542,7 @@ window.nomadEnv = {
           "resource": "entries",
           "category": "Experiment",
           "description": "Search electron energy loss spectroscopy experiments",
-          "readme": "This page allows you to spefically search **Electron\nEnergy Loss Spectroscopy (EELS) experiments** within\nNOMAD. It is similar to the entries search, but with a\nreduced filter set and specialized arrangement of\ndefault columns.",
+          "readme": "This page allows you to spefically search **Electron Energy Loss Spectroscopy (EELS) experiments** within NOMAD. It is similar to the entries search, but with a reduced filter set and specialized arrangement of default columns.",
           "pagination": {
             "order_by": "upload_create_time",
             "order": "desc",
@@ -1571,9 +1571,11 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.properties.spectroscopic.spectra.provenance.eels.min_energy": {
+                "label": "Min energy",
                 "align": "left"
               },
               "results.properties.spectroscopic.spectra.provenance.eels.max_energy": {
+                "label": "Max energy",
                 "align": "left"
               },
               "entry_name": {
@@ -1685,7 +1687,7 @@ window.nomadEnv = {
           "resource": "entries",
           "category": "Use Cases",
           "description": "Search solar cells",
-          "readme": "This page allows you to search **solar cell data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for solar cell\nexploration. The dashboard directly shows useful\ninteractive statistics about the data.",
+          "readme": "This page allows you to search **solar cell data** within NOMAD. The filter menu on the left and the shown default columns are specifically designed for solar cell exploration. The dashboard directly shows useful interactive statistics about the data.",
           "pagination": {
             "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
             "order": "desc",
@@ -1894,22 +1896,6 @@ window.nomadEnv = {
               {
                 "type": "periodictable",
                 "layout": {
-                  "xxl": {
-                    "h": 8,
-                    "w": 13,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 8,
-                    "minW": 12
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 8,
-                    "minW": 12
-                  },
                   "lg": {
                     "h": 8,
                     "w": 12,
@@ -1933,6 +1919,22 @@ window.nomadEnv = {
                     "y": 16,
                     "minH": 8,
                     "minW": 12
+                  },
+                  "xl": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 8,
+                    "minW": 12
+                  },
+                  "xxl": {
+                    "h": 8,
+                    "w": 13,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 8,
+                    "minW": 12
                   }
                 },
                 "quantity": "results.material.elements",
@@ -1941,22 +1943,6 @@ window.nomadEnv = {
               {
                 "type": "scatterplot",
                 "layout": {
-                  "xxl": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 24,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 9,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 12,
@@ -1977,6 +1963,22 @@ window.nomadEnv = {
                     "h": 5,
                     "w": 6,
                     "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 8,
+                    "w": 9,
+                    "x": 12,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 24,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
@@ -2001,22 +2003,6 @@ window.nomadEnv = {
               {
                 "type": "scatterplot",
                 "layout": {
-                  "xxl": {
-                    "h": 8,
-                    "w": 11,
-                    "x": 13,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 9,
-                    "x": 21,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 12,
@@ -2040,6 +2026,22 @@ window.nomadEnv = {
                     "y": 0,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 8,
+                    "w": 9,
+                    "x": 21,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 8,
+                    "w": 11,
+                    "x": 13,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "x": {
@@ -2060,22 +2062,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 14,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 14,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2099,6 +2085,22 @@ window.nomadEnv = {
                     "y": 10,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 14,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 14,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
@@ -2108,22 +2110,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 11,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 4,
                     "w": 12,
@@ -2147,6 +2133,22 @@ window.nomadEnv = {
                     "y": 13,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 11,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
@@ -2158,22 +2160,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 8,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 8,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2197,6 +2183,22 @@ window.nomadEnv = {
                     "y": 5,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 8,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 8,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
@@ -2206,22 +2208,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 11,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 12,
@@ -2245,6 +2231,22 @@ window.nomadEnv = {
                     "y": 10,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 11,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
@@ -2256,22 +2258,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 20,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 5,
-                    "x": 25,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2295,6 +2281,22 @@ window.nomadEnv = {
                     "y": 5,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 25,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 20,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
@@ -2304,22 +2306,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 26,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 5,
-                    "x": 20,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2343,6 +2329,22 @@ window.nomadEnv = {
                     "y": 5,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 6,
+                    "w": 5,
+                    "x": 20,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 26,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
@@ -2360,16 +2362,430 @@ window.nomadEnv = {
             ]
           }
         },
+        "mofs": {
+          "label": "Metal-Organic Frameworks",
+          "path": "mofs",
+          "resource": "entries",
+          "category": "Use Cases",
+          "description": "Search metal-organic frameworks (MOFs)",
+          "readme": "This page allows you to search **metal-organic framework (MOF) data** within NOMAD. The filter menu on the left and the shown default columns are specifically designed for MOF exploration. The dashboard directly shows useful interactive statistics about the data.",
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "columns": {
+            "options": {
+              "results.material.chemical_formula_iupac": {
+                "label": "Formula",
+                "align": "left"
+              },
+              "mainfile": {
+                "label": "Mainfile",
+                "align": "left"
+              },
+              "upload_create_time": {
+                "label": "Upload time",
+                "align": "left"
+              },
+              "authors": {
+                "label": "Authors",
+                "align": "left"
+              },
+              "comment": {
+                "label": "Comment",
+                "align": "left"
+              },
+              "datasets": {
+                "label": "Datasets",
+                "align": "left"
+              },
+              "published": {
+                "label": "Access",
+                "align": "left"
+              }
+            },
+            "selected": [
+              "results.material.chemical_formula_iupac",
+              "mainfile",
+              "authors"
+            ]
+          },
+          "rows": {
+            "actions": {
+              "enabled": true
+            },
+            "details": {
+              "enabled": true
+            },
+            "selection": {
+              "enabled": true
+            }
+          },
+          "filter_menus": {
+            "options": {
+              "material": {
+                "label": "Material",
+                "level": 0,
+                "size": "s"
+              },
+              "elements": {
+                "label": "Elements / Formula",
+                "level": 1,
+                "size": "xl"
+              },
+              "structure": {
+                "label": "Structure",
+                "level": 1,
+                "size": "s"
+              },
+              "electronic": {
+                "label": "Electronic Properties",
+                "level": 0,
+                "size": "s"
+              },
+              "author": {
+                "label": "Author / Origin / Dataset",
+                "level": 0,
+                "size": "m"
+              },
+              "metadata": {
+                "label": "Visibility / IDs / Schema",
+                "level": 0,
+                "size": "s"
+              },
+              "optimade": {
+                "label": "Optimade",
+                "level": 0,
+                "size": "m"
+              }
+            }
+          },
+          "filters": {
+            "exclude": [
+              "mainfile",
+              "entry_name",
+              "combine"
+            ]
+          },
+          "dashboard": {
+            "widgets": [
+              {
+                "type": "periodictable",
+                "layout": {
+                  "lg": {
+                    "h": 9,
+                    "w": 15,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 8,
+                    "w": 11,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 6,
+                    "w": 9,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 9,
+                    "w": 19,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 10,
+                    "w": 25,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.material.elements",
+                "scale": "linear"
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "lg": {
+                    "h": 9,
+                    "w": 9,
+                    "x": 15,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 8,
+                    "w": 7,
+                    "x": 11,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 6,
+                    "w": 3,
+                    "x": 9,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 9,
+                    "w": 11,
+                    "x": 19,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 10,
+                    "w": 11,
+                    "x": 25,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.material.topology.sbu_type",
+                "scale": "linear",
+                "showinput": true
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "lg": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 0,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 3,
+                    "w": 6,
+                    "x": 0,
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 15,
+                    "x": 0,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 19,
+                    "x": 0,
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.material.topology.pore_limiting_diameter",
+                "scale": "linear",
+                "autorange": false,
+                "showinput": true,
+                "nbins": 30
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "lg": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 0,
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 9,
+                    "y": 8,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 3,
+                    "w": 6,
+                    "x": 6,
+                    "y": 6,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 15,
+                    "x": 0,
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 17,
+                    "x": 19,
+                    "y": 10,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.material.topology.largest_cavity_diameter",
+                "scale": "linear",
+                "autorange": false,
+                "showinput": true,
+                "nbins": 30
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "lg": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 11,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 12,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 3,
+                    "w": 6,
+                    "x": 0,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 15,
+                    "x": 15,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 19,
+                    "x": 0,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.material.topology.accessible_surface_area",
+                "scale": "linear",
+                "autorange": false,
+                "showinput": true,
+                "nbins": 30
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "lg": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 11,
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 9,
+                    "y": 12,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 3,
+                    "w": 6,
+                    "x": 6,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 15,
+                    "x": 15,
+                    "y": 14,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 17,
+                    "x": 19,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.material.topology.void_fraction",
+                "scale": "linear",
+                "autorange": false,
+                "showinput": true,
+                "nbins": 30
+              }
+            ]
+          },
+          "filters_locked": {
+            "results.material.topology.label": "MOF"
+          },
+          "search_syntaxes": {
+            "exclude": [
+              "free_text"
+            ]
+          }
+        },
         "heterogeneouscatalyst": {
           "label": "Heterogeneous Catalysis",
           "path": "heterogeneouscatalyst",
           "resource": "entries",
           "category": "Use Cases",
           "description": "Search heterogeneous catalysts",
-          "readme": "This page allows you to search **catalyst and catalysis data**\nwithin NOMAD. The filter menu on the left and the shown\ndefault columns are specifically designed for Heterogeneous Catalyst\nexploration. The dashboard directly shows useful\ninteractive statistics about the data.",
+          "readme": "This page allows you to search **catalyst and catalysis data** within NOMAD. The filter menu on the left and the shown default columns are specifically designed for Heterogeneous Catalyst exploration. The dashboard directly shows useful interactive statistics about the data.",
           "pagination": {
             "order_by": "upload_create_time",
-            "order": "asc",
+            "order": "desc",
             "page_size": 20
           },
           "columns": {
@@ -2559,22 +2975,6 @@ window.nomadEnv = {
               {
                 "type": "periodictable",
                 "layout": {
-                  "xxl": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 5,
-                    "minH": 8,
-                    "minW": 12
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 5,
-                    "minH": 8,
-                    "minW": 12
-                  },
                   "lg": {
                     "h": 8,
                     "w": 12,
@@ -2598,6 +2998,22 @@ window.nomadEnv = {
                     "y": 5,
                     "minH": 8,
                     "minW": 12
+                  },
+                  "xl": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 5,
+                    "minH": 8,
+                    "minW": 12
+                  },
+                  "xxl": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 5,
+                    "minH": 8,
+                    "minW": 12
                   }
                 },
                 "quantity": "results.material.elements",
@@ -2606,22 +3022,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2645,6 +3045,22 @@ window.nomadEnv = {
                     "y": 0,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reactants.name",
@@ -2654,22 +3070,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2693,6 +3093,22 @@ window.nomadEnv = {
                     "y": 0,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 12,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reaction_name",
@@ -2702,22 +3118,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 6,
                     "w": 6,
@@ -2741,6 +3141,22 @@ window.nomadEnv = {
                     "y": 0,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 12,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.products.name",
@@ -2750,22 +3166,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 5,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 5,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 4,
                     "w": 6,
@@ -2789,6 +3189,22 @@ window.nomadEnv = {
                     "y": 13,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 5,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method",
@@ -2798,22 +3214,6 @@ window.nomadEnv = {
               {
                 "type": "terms",
                 "layout": {
-                  "xxl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 4,
                     "w": 6,
@@ -2837,6 +3237,22 @@ window.nomadEnv = {
                     "y": 16,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 9,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type",
@@ -2846,22 +3262,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 0,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 9,
@@ -2885,6 +3285,22 @@ window.nomadEnv = {
                     "y": 13,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 9,
+                    "x": 0,
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.test_temperatures",
@@ -2896,22 +3312,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 17,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 9,
@@ -2935,6 +3335,22 @@ window.nomadEnv = {
                     "y": 22,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 17,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 9,
+                    "x": 0,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.gas_hourly_space_velocity",
@@ -2946,22 +3362,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 9,
@@ -2983,6 +3383,22 @@ window.nomadEnv = {
                     "w": 8,
                     "x": 0,
                     "y": 16,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 9,
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 9,
+                    "x": 9,
+                    "y": 13,
                     "minH": 3,
                     "minW": 8
                   }
@@ -2996,22 +3412,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 17,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 9,
@@ -3032,6 +3432,22 @@ window.nomadEnv = {
                     "h": 3,
                     "w": 8,
                     "x": 0,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 9,
+                    "y": 17,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 9,
+                    "x": 9,
                     "y": 16,
                     "minH": 3,
                     "minW": 8
@@ -3046,22 +3462,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 19,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 21,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 9,
@@ -3085,6 +3485,22 @@ window.nomadEnv = {
                     "y": 33,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 21,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.products.selectivity",
@@ -3096,22 +3512,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 22,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 25,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 9,
@@ -3135,6 +3535,22 @@ window.nomadEnv = {
                     "y": 30,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 22,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.reactants.conversion",
@@ -3146,22 +3562,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 8,
-                    "y": 25,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 29,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 12,
@@ -3185,6 +3585,22 @@ window.nomadEnv = {
                     "y": 36,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 9,
+                    "y": 29,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 8,
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.reactivity.rates.reaction_rate",
@@ -3196,22 +3612,6 @@ window.nomadEnv = {
               {
                 "type": "scatterplot",
                 "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 10,
-                    "x": 8,
-                    "y": 19,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 9,
-                    "x": 9,
-                    "y": 21,
-                    "minH": 3,
-                    "minW": 3
-                  },
                   "lg": {
                     "h": 8,
                     "w": 9,
@@ -3235,6 +3635,22 @@ window.nomadEnv = {
                     "y": 25,
                     "minH": 3,
                     "minW": 3
+                  },
+                  "xl": {
+                    "h": 8,
+                    "w": 9,
+                    "x": 9,
+                    "y": 21,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 10,
+                    "x": 8,
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 3
                   }
                 },
                 "x": {
@@ -3254,22 +3670,6 @@ window.nomadEnv = {
               {
                 "type": "histogram",
                 "layout": {
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 25,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 29,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "lg": {
                     "h": 4,
                     "w": 12,
@@ -3293,6 +3693,22 @@ window.nomadEnv = {
                     "y": 39,
                     "minH": 3,
                     "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 0,
+                    "y": 29,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 3,
+                    "w": 8,
+                    "x": 0,
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 8
                   }
                 },
                 "quantity": "results.properties.catalytic.catalyst_characterization.surface_area",
@@ -3305,420 +3721,6 @@ window.nomadEnv = {
           },
           "filters_locked": {
             "quantities": "results.properties.catalytic"
-          },
-          "search_syntaxes": {
-            "exclude": [
-              "free_text"
-            ]
-          }
-        },
-        "mofs": {
-          "label": "Metal-Organic Frameworks",
-          "path": "mofs",
-          "resource": "entries",
-          "category": "Use Cases",
-          "description": "Search metal-organic frameworks (MOFs)",
-          "readme": "This page allows you to search **metal-organic framework\n(MOF) data** within NOMAD. The filter menu on the left\nand the shown default columns are specifically designed\nfor MOF exploration. The dashboard directly shows useful\ninteractive statistics about the data.",
-          "pagination": {
-            "order_by": "upload_create_time",
-            "order": "desc",
-            "page_size": 20
-          },
-          "columns": {
-            "options": {
-              "results.material.chemical_formula_iupac": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "mainfile": {
-                "label": "Mainfile",
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "label": "Authors",
-                "align": "left"
-              },
-              "comment": {
-                "label": "Comment",
-                "align": "left"
-              },
-              "datasets": {
-                "label": "Datasets",
-                "align": "left"
-              },
-              "published": {
-                "label": "Access",
-                "align": "left"
-              }
-            },
-            "selected": [
-              "results.material.chemical_formula_iupac",
-              "mainfile",
-              "authors"
-            ]
-          },
-          "rows": {
-            "actions": {
-              "enabled": true
-            },
-            "details": {
-              "enabled": true
-            },
-            "selection": {
-              "enabled": true
-            }
-          },
-          "filter_menus": {
-            "options": {
-              "material": {
-                "label": "Material",
-                "level": 0,
-                "size": "s"
-              },
-              "elements": {
-                "label": "Elements / Formula",
-                "level": 1,
-                "size": "xl"
-              },
-              "structure": {
-                "label": "Structure",
-                "level": 1,
-                "size": "s"
-              },
-              "electronic": {
-                "label": "Electronic Properties",
-                "level": 0,
-                "size": "s"
-              },
-              "author": {
-                "label": "Author / Origin / Dataset",
-                "level": 0,
-                "size": "m"
-              },
-              "metadata": {
-                "label": "Visibility / IDs / Schema",
-                "level": 0,
-                "size": "s"
-              },
-              "optimade": {
-                "label": "Optimade",
-                "level": 0,
-                "size": "m"
-              }
-            }
-          },
-          "filters": {
-            "exclude": [
-              "mainfile",
-              "entry_name",
-              "combine"
-            ]
-          },
-          "dashboard": {
-            "widgets": [
-              {
-                "type": "periodictable",
-                "layout": {
-                  "xxl": {
-                    "h": 10,
-                    "w": 25,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 9,
-                    "w": 19,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "lg": {
-                    "h": 9,
-                    "w": 15,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 8,
-                    "w": 11,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 6,
-                    "w": 9,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.material.elements",
-                "scale": "linear"
-              },
-              {
-                "type": "terms",
-                "layout": {
-                  "xxl": {
-                    "h": 10,
-                    "w": 11,
-                    "x": 25,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 9,
-                    "w": 11,
-                    "x": 19,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "lg": {
-                    "h": 9,
-                    "w": 9,
-                    "x": 15,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 8,
-                    "w": 7,
-                    "x": 11,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 6,
-                    "w": 3,
-                    "x": 9,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.material.topology.sbu_type",
-                "scale": "linear",
-                "showinput": true
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 19,
-                    "x": 0,
-                    "y": 10,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 15,
-                    "x": 0,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "lg": {
-                    "h": 5,
-                    "w": 12,
-                    "x": 0,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 6,
-                    "x": 0,
-                    "y": 6,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.material.topology.pore_limiting_diameter",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": true,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 17,
-                    "x": 19,
-                    "y": 10,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 15,
-                    "x": 0,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "lg": {
-                    "h": 5,
-                    "w": 12,
-                    "x": 0,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 6,
-                    "x": 6,
-                    "y": 6,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.material.topology.largest_cavity_diameter",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": true,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 19,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 15,
-                    "x": 15,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "lg": {
-                    "h": 5,
-                    "w": 12,
-                    "x": 11,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 12,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 6,
-                    "x": 0,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.material.topology.accessible_surface_area",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": true,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "xxl": {
-                    "h": 6,
-                    "w": 17,
-                    "x": 19,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 15,
-                    "x": 15,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "lg": {
-                    "h": 5,
-                    "w": 12,
-                    "x": 11,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 12,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 6,
-                    "x": 6,
-                    "y": 9,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.material.topology.void_fraction",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": true,
-                "nbins": 30
-              }
-            ]
-          },
-          "filters_locked": {
-            "results.material.topology.label": "MOF"
           },
           "search_syntaxes": {
             "exclude": [

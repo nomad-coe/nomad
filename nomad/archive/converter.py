@@ -23,7 +23,7 @@ import os.path
 from multiprocessing import Pool, Lock, Manager
 from typing import Iterable, Callable
 
-from nomad import config
+from nomad.config import config
 from nomad.archive import to_json, read_archive
 from nomad.archive.storage_v2 import ArchiveWriter as ArchiveWriterNew
 from nomad.files import StagingUploadFiles, PublicUploadFiles

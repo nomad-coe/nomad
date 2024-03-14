@@ -18,7 +18,7 @@
 
 import pytest
 
-from nomad.config.models import Options
+from nomad.config.models.config import Options
 
 
 @pytest.mark.parametrize(

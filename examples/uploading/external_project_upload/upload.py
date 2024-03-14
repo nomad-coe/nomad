@@ -7,7 +7,7 @@ import requests
 import os.path
 import time
 
-from nomad import config
+from nomad.config import config
 from nomad.client import Auth
 
 nomad_url = config.client.url
@@ -22,7 +22,9 @@ auth = Auth(user=user, password=password)
 # upload data
 print('uploading  a file with "external_id/AcAg/vasp.xml" inside ...')
 with open(upload_file, 'rb') as f:
-    response = requests.post(f'{nomad_url}/v1/uploads', auth=auth, data=f, params=dict(publish_directly=True))
+    response = requests.post(
+        f'{nomad_url}/v1/uploads', auth=auth, data=f, params=dict(publish_directly=True)
+    )
     assert response.status_code == 200
     upload = response.json()['data']
 
@@ -32,7 +34,10 @@ while upload['process_running']:
     assert response.status_code == 200
     upload = response.json()['data']
     time.sleep(5)
-    print('processed: %d, failures: %d' % (upload['processed_entries_count'], upload['failed_entries_count']))
+    print(
+        'processed: %d, failures: %d'
+        % (upload['processed_entries_count'], upload['failed_entries_count'])
+    )
 
 # check if processing was a success
 if upload['process_status'] != 'SUCCESS':

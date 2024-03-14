@@ -21,7 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 import traceback
 
-from nomad import config, utils
+from nomad import utils
+from nomad.config import config
 
 from .common import root_path
 from .routers import dcat

@@ -27,7 +27,8 @@ import zipfile
 import re
 import pathlib
 
-from nomad import config, datamodel, utils
+from nomad import datamodel, utils
+from nomad.config import config
 from nomad.archive import to_json
 from nomad.files import (
     DirectoryObject,

@@ -20,8 +20,8 @@ import os.path
 from typing import Optional, Tuple, List, Dict
 from collections.abc import Iterable
 
-from nomad import config
-from nomad.config import Parser as ParserPlugin
+from nomad.config import config
+from nomad.config.models.plugins import Parser as ParserPlugin
 from nomad.datamodel import EntryArchive, EntryMetadata, results
 from nomad.datamodel.context import Context, ClientContext
 

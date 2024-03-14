@@ -25,7 +25,8 @@ import json
 
 import yaml
 
-from nomad import utils, config
+from nomad import utils
+from nomad.config import config
 from nomad.archive.converter import convert_archive
 from nomad.metainfo import (
     MSection,

@@ -59,7 +59,7 @@ import unicodedata
 import re
 import pandas as pd
 
-from nomad import config
+from nomad.config import config
 
 
 def dump_json(data):

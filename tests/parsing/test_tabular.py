@@ -23,7 +23,7 @@ import re
 import datetime
 import yaml
 
-from nomad import config
+from nomad.config import config
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.context import ClientContext
 from nomad.utils import generate_entry_id, strip

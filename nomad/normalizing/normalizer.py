@@ -17,7 +17,7 @@
 #
 
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from nomad.utils import get_logger
 from nomad.metainfo import MSection
@@ -33,7 +33,7 @@ class Normalizer(metaclass=ABCMeta):
         entry_archive: The entry_archive root section of the archive to normalize.
     """
 
-    domain = 'dft'
+    domain: Optional[str] = 'dft'
     """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
     normalizer_level = 0
     """ Specifies the order of normalization with respect to other normalizers. Lower level

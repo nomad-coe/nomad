@@ -21,7 +21,7 @@ import pytest
 import numpy as np
 from elasticsearch_dsl import Keyword
 
-from nomad import config
+from nomad.config import config
 from nomad.utils.exampledata import ExampleData
 from nomad.datamodel.datamodel import SearchableQuantity
 from nomad.metainfo import MSection, Quantity, SubSection, Datetime, Unit, MEnum

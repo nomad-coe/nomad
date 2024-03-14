@@ -15,8 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import builtins
 from typing import Any, Tuple, List
 from pathlib import Path
+from io import StringIO
 import math
 import pytest
 from collections import namedtuple
@@ -35,8 +37,8 @@ from aiosmtpd.controller import Controller
 from fastapi.testclient import TestClient
 import socketserver
 
-from nomad import config
-from nomad.config.plugins import Schema, add_plugin, remove_plugin
+from nomad.config import config
+from nomad.config.models.plugins import Schema, add_plugin, remove_plugin
 
 # make sure to disable logstash (the logs can interfere with the testing, especially for logtransfer)
 config.logstash.enabled = False  # noqa: E402  # this must be set *before* the other modules are imported
@@ -1549,3 +1551,51 @@ def central_logstash_mock():
 
     # make sure to close the server
     logstash_mock_central.server_close()
+
+
+class MockFileManager:
+    def __init__(self):
+        self.files = {}
+        self._open = builtins.open
+
+    def open(self, name, mode='r', buffering=-1, **options):
+        name = os.path.abspath(name)
+        if mode.startswith('r') and name not in self.files:
+            # We have to let some files through
+            return self._open(name, mode, buffering, **options)
+            # This causes stracktraces not to display
+            # raise IOError(2, "No such file or directory: '%s'" % name)
+
+        if mode.startswith('w') or (mode.startswith('a') and name not in self.files):
+            buf = StringIO()
+            buf.close = lambda: None
+            self.files[name] = buf
+
+        buf = self.files[name]
+
+        if mode.startswith('r'):
+            buf.seek(0)
+        elif mode.startswith('a'):
+            buf.seek(0)
+
+        return buf
+
+    def write(self, name, text):
+        name = os.path.abspath(name)
+        buf = StringIO(text)
+        buf.close = lambda: None
+        self.files[name] = buf
+
+    def read(self, name):
+        name = os.path.abspath(name)
+        if name not in self.files:
+            raise IOError(2, "No such file or directory: '%s'" % name)
+
+        return self.files[name].getvalue()
+
+
+@pytest.fixture
+def mockopen(monkeypatch):
+    manager = MockFileManager()
+    monkeypatch.setattr(builtins, 'open', manager.open)
+    return manager

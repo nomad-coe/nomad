@@ -20,7 +20,7 @@ import requests
 from keycloak import KeycloakOpenID
 import time
 
-from nomad import config
+from nomad.config import config
 
 
 class APIError(Exception):

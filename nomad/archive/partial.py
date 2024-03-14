@@ -18,7 +18,8 @@
 
 from typing import Any, Tuple, Dict, Union, List
 
-from nomad import infrastructure, config
+from nomad import infrastructure
+from nomad.config import config
 from nomad.metainfo import (
     MSection,
     Definition,

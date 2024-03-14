@@ -26,7 +26,8 @@ import socket
 from fastapi import Request, HTTPException
 from fastapi.routing import APIRouter
 
-from nomad import config, utils
+from nomad import utils
+from nomad.config import config
 
 logger = utils.get_logger(__name__)
 

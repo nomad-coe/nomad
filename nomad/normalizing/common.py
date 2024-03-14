@@ -26,7 +26,7 @@ from matid.symmetry.wyckoffset import WyckoffSet as WyckoffSetMatID  # pylint: d
 import matid.geometry  # pylint: disable=import-error
 
 from nomad import atomutils
-from nomad import config
+from nomad.config import config
 from nomad.utils import hash
 from nomad.units import ureg
 from nomad.datamodel.metainfo.system import Atoms as NOMADAtoms

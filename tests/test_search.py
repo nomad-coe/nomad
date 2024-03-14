@@ -22,7 +22,8 @@ import json
 from datetime import datetime
 
 from nomad.utils import deep_get
-from nomad import config, utils, infrastructure
+from nomad import utils, infrastructure
+from nomad.config import config
 from nomad.app.v1.models import (
     WithQuery,
     MetadataRequired,

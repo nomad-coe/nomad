@@ -20,7 +20,8 @@ import click
 import logging
 import os
 
-from nomad import config, utils
+from nomad import utils
+from nomad.config import config
 
 
 class POPO(dict):
