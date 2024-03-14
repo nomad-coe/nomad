@@ -28,8 +28,7 @@ from mongoengine import Document, StringField, DateTimeField
 from mongoengine.errors import NotUniqueError
 
 from nomad.datamodel import User
-from nomad.config import config
-from nomad import utils
+from nomad import config, utils
 from fastapi import HTTPException
 
 

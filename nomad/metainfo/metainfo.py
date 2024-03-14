@@ -51,7 +51,7 @@ import pandas as pd
 import pint
 from pydantic import parse_obj_as, ValidationError, BaseModel, Field
 
-from nomad.config import config
+from nomad.config import process
 from nomad.metainfo.util import (
     Annotation,
     DefinitionAnnotation,
@@ -489,6 +489,7 @@ class _QuantityType(DataType):
         if isinstance(value, Reference):
             if isinstance(value, QuantityReference):
                 type_data = value.target_quantity_def.m_path()
+                from nomad import config
 
                 if config.process.store_package_definition_in_mongo:
                     type_data += f'@{value.target_quantity_def.definition_id}'
@@ -510,6 +511,8 @@ class _QuantityType(DataType):
                     type_data = value.target_section_def.qualified_name()
             else:
                 type_data = value.target_section_def.m_path()
+
+            from nomad import config
 
             if config.process.store_package_definition_in_mongo:
                 type_data += f'@{value.target_section_def.definition_id}'
@@ -797,6 +800,8 @@ class _SectionReference(Reference):
         return super().set_normalize(section, quantity_def, value)
 
     def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> Any:
+        from nomad import config
+
         def _append_definition_id(section_name) -> str:
             if config.process.store_package_definition_in_mongo:
                 return f'{section_name}@{value.definition_id}'
@@ -3584,10 +3589,7 @@ class Definition(MSection):
                 if relative_name:
                     definition_reference = relative_name
 
-        if (
-            config.process.add_definition_id_to_reference
-            and '@' not in definition_reference
-        ):
+        if process.add_definition_id_to_reference and '@' not in definition_reference:
             definition_reference += '@' + self.definition_id
 
         return definition_reference

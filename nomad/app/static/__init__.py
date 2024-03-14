@@ -12,7 +12,7 @@ from starlette.staticfiles import (
 from starlette.responses import PlainTextResponse
 from starlette.datastructures import Headers
 
-from nomad.config import config
+from nomad import config
 
 
 app = FastAPI()

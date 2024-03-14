@@ -175,8 +175,7 @@ from pint import Quantity as PintQuantity
 import re
 from elasticsearch_dsl import Q
 
-from nomad import utils
-from nomad.config import config
+from nomad import config, utils
 from nomad.metainfo.util import MTypes
 
 from .metainfo import (

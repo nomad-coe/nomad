@@ -26,14 +26,14 @@ from msgpack.fallback import Packer, StringIO
 import struct
 import json
 
-from nomad import utils
-from nomad.config import config
+from nomad import utils, config
+from nomad.config import archive
 
 __packer = msgpack.Packer(autoreset=True, use_bin_type=True)
 
 _toc_uuid_size = utils.default_hash_len + 1
 _toc_item_size = _toc_uuid_size + 25  # packed(uuid + [10-byte-pos, 10-byte-pos])
-_entries_per_block = config.archive.block_size // _toc_item_size
+_entries_per_block = archive.block_size // _toc_item_size
 _bytes_per_block = _entries_per_block * _toc_item_size
 
 
@@ -361,9 +361,7 @@ class ArchiveReader(ArchiveDict):
         if isinstance(self._file_or_path, str):
             f: BytesIO = cast(
                 BytesIO,
-                open(
-                    self._file_or_path, 'rb', buffering=config.archive.read_buffer_size
-                ),
+                open(self._file_or_path, 'rb', buffering=archive.read_buffer_size),
             )
         elif isinstance(self._file_or_path, (BytesIO, BufferedReader)):
             f = cast(BytesIO, self._file_or_path)
@@ -529,15 +527,13 @@ class ArchiveReader(ArchiveDict):
 
 
 def combine_archive(path: str, n_entries: int, data: Iterable[Tuple[str, Any]]):
-    if config.archive.use_new_writer:
+    if archive.use_new_writer:
         from .storage_v2 import (
             ArchiveWriter as ArchiveWriterNew,
             ArchiveReader as ArchiveReaderNew,
         )
 
-        with ArchiveWriterNew(
-            path, n_entries, toc_depth=config.archive.toc_depth
-        ) as writer:
+        with ArchiveWriterNew(path, n_entries, toc_depth=archive.toc_depth) as writer:
             for uuid, reader in data:
                 if not reader:
                     writer.add(uuid, {})
@@ -618,7 +614,7 @@ def write_archive(
         entry_toc_depth: The depth of the table of contents in each entry. Only objects will
             count for calculating the depth.
     """
-    if config.archive.use_new_writer:
+    if archive.use_new_writer:
         from .storage_v2 import ArchiveWriter as ArchiveWriterNew
 
         with ArchiveWriterNew(

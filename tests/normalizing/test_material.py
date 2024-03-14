@@ -23,8 +23,7 @@ import ase.build
 from matid.symmetry.wyckoffset import WyckoffSet  # pylint: disable=import-error
 
 from nomad.units import ureg
-from nomad import atomutils
-from nomad.config import config
+from nomad import atomutils, config
 from nomad.utils import hash
 from nomad.normalizing.common import ase_atoms_from_nomad_atoms
 from nomad.datamodel.results import ElementalComposition

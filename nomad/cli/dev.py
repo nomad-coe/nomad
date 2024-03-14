@@ -21,7 +21,7 @@ import json
 import os
 import click
 
-from nomad.config import config
+from nomad import config
 from nomad.metainfo.elasticsearch_extension import schema_separator
 from .cli import cli
 
@@ -214,7 +214,7 @@ def get_gui_config() -> str:
           services use an explicit host+port+path as configured in the config, or whether
           they simply use a relative path that a proxy can resolve.
     """
-    from nomad.config import config
+    from nomad import config
 
     data = {
         'appBase': config.ui.app_base,
@@ -240,7 +240,7 @@ def get_gui_config() -> str:
 
 @dev.command(help='Generates the GUI development .env file based on NOMAD config.')
 def gui_env():
-    from nomad.config import config
+    from nomad import config
 
     print(f'REACT_APP_BACKEND_URL={config.ui.app_base}')
 

@@ -25,8 +25,7 @@ import msgpack
 from bitarray import bitarray
 from msgpack import Unpacker
 
-from nomad import utils
-from nomad.config import config
+from nomad import utils, config
 from nomad.archive import ArchiveError
 
 _packer = msgpack.Packer(autoreset=True, use_bin_type=True)

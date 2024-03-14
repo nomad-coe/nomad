@@ -24,8 +24,7 @@ import re
 
 from h5grove import fastapi_utils as h5grove_router
 
-from nomad import utils
-from nomad.config import config
+from nomad import config, utils
 from nomad.app.v1.models import User
 from nomad.app.v1.routers.auth import create_user_dependency
 from nomad.app.v1.routers.uploads import get_upload_with_read_access

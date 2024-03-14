@@ -21,7 +21,7 @@ import json
 import os
 import os.path
 
-from nomad.config import config
+from nomad import config
 from nomad.parsing.parser import ArchiveParser
 from nomad.datamodel import EntryArchive, Context
 

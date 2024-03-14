@@ -1,10 +1,10 @@
-"""
+'''
 This is a brief example on how use requests with authentication to talks to the NOMAD API.
-"""
+'''
 
 import requests
 
-from nomad.config import config
+from nomad import config
 from nomad.client import Auth
 
 nomad_url = config.client.url

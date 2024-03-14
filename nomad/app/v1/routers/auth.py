@@ -36,8 +36,7 @@ from pydantic import BaseModel
 import jwt
 import datetime
 
-from nomad import utils, infrastructure, datamodel
-from nomad.config import config
+from nomad import utils, infrastructure, config, datamodel
 from nomad.utils import get_logger, strip
 
 from ..common import root_path

@@ -25,9 +25,8 @@ import zipfile
 import json
 import yaml
 
-from nomad import utils, infrastructure
-from nomad.config import config
-from nomad.config.models.config import BundleImportSettings
+from nomad import utils, infrastructure, config
+from nomad.config.models import BundleImportSettings
 from nomad.archive import read_partial_archive_from_mongo, to_json
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.parsing.parser import Parser

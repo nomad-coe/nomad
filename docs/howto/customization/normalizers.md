@@ -20,7 +20,7 @@ information, not alter existing information.
 
 Fork and clone the [normalizer example project](https://github.com/nomad-coe/nomad-normalizer-plugin-example) as described in [How to develop and publish plugins](plugins_dev.md). Follow the original [How to write a parser](parsers.md).
 
-{{pydantic_model('nomad.config.models.plugins.Normalizer', heading='### Normalizer plugin metadata')}}
+{{pydantic_model('nomad.config.plugins.Normalizer', heading='### Normalizer plugin metadata')}}
 ## Starting example
 
 This is an example for a very simple normalizer that computes the unit cell volume from

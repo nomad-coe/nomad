@@ -47,9 +47,8 @@ from tests.app.v1.routers.common import (
     assert_browser_download_headers,
     perform_get,
 )
-from nomad import files, infrastructure
-from nomad.config import config
-from nomad.config.models.config import BundleImportSettings
+from nomad import config, files, infrastructure
+from nomad.config.models import BundleImportSettings
 from nomad.processing import Upload, Entry, ProcessStatus
 from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
 from nomad.bundles import BundleExporter

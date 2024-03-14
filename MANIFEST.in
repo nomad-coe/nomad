@@ -2,7 +2,7 @@ prune *
 exclude *
 
 recursive-include nomad *.py *.json *.j2 *.md *.txt nomad_plugin.yaml
-include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requirements.txt requirements-dev.txt nomad/config/defaults.yaml
+include pyproject.toml setup.py AUTHORS LICENSE README.md README.parsers.md requirements.txt requirements-dev.txt
 
 graft nomad/app/static
 exclude nomad/app/static/gui/env.js

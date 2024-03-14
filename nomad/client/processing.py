@@ -21,9 +21,7 @@ import io
 import typing
 import sys
 
-from nomad import utils, datamodel
-from nomad.config import config
-
+from nomad import config, utils, datamodel
 
 from .api import Auth
 

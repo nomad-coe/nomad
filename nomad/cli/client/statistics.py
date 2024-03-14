@@ -33,7 +33,7 @@ A command that generates various statistics.
 # import datetime
 # import subprocess
 
-# from nomad.config import config
+# from nomad import config
 # from .client import client
 
 

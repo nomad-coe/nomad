@@ -30,8 +30,7 @@ import bs4
 import time
 import os.path
 
-from nomad import archive
-from nomad.config import config
+from nomad import config, archive
 from nomad.archive import read_archive
 
 required_items = {

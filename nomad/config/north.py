@@ -21,7 +21,7 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from .common import ConfigBaseModel, Options
+from .models import NomadSettings, Options
 
 _jupyterhub_config_description = """
     This setting is forwarded to jupyterhub; refer to the jupyterhub
@@ -106,7 +106,7 @@ class NORTHTools(Options):
     options: Dict[str, NORTHTool] = Field(dict(), description='The available plugin.')
 
 
-class NORTH(ConfigBaseModel):
+class NORTH(NomadSettings):
     """
     Settings related to the operation of the NOMAD remote tools hub service *north*.
     """

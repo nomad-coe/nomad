@@ -156,7 +156,7 @@ def test_folder_access(monkeypatch):
             f.write(','.join([str(v) for v in path]) + ',\n')
 
     from nomad.archive.storage_v2 import write_archive as write_archive_v2
-    from nomad.config import config
+    from nomad import config
 
     for j in threshold:
         monkeypatch.setattr(

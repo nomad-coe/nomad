@@ -39,11 +39,9 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from fastapi.exceptions import RequestValidationError
 
-from nomad import utils, files
-from nomad.config import config
+from nomad import utils, config, files
 from nomad.files import StagingUploadFiles, is_safe_relative_path, is_safe_basename
 from nomad.bundles import BundleExporter, BundleImporter
-from nomad.config.models.config import Reprocess
 from nomad.processing import (
     Upload,
     Entry,
@@ -1452,7 +1450,7 @@ async def put_upload_raw_path(
         upload_path = upload_paths[0]
         full_path = os.path.join(path, os.path.basename(upload_path))
         try:
-            reprocess_settings = Reprocess(
+            reprocess_settings = config.Reprocess(
                 index_individual_entries=True, reprocess_existing_entries=True
             )
             entry = upload.put_file_and_process_local(

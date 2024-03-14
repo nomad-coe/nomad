@@ -17,9 +17,10 @@
 #
 
 import importlib
+from pydantic import parse_obj_as
 
-from nomad.config import config
-from nomad.config.models.plugins import Schema
+from nomad import config
+from nomad.config import Schema, Plugin
 
 from . import (
     annotations,

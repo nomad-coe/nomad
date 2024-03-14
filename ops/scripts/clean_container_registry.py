@@ -22,37 +22,29 @@ import datetime
 import re
 import click
 
-from nomad.config import config
+from nomad import config
 
 print(
     'This script will look for and delete nomad-FAIR container registry tags that are '
-    'not version tags and older than 90 days.'
-)
+    'not version tags and older than 90 days.')
 
-gl = gitlab.Gitlab(
-    'https://gitlab.mpcdf.mpg.de', private_token=config.gitlab.private_token
-)
+gl = gitlab.Gitlab('https://gitlab.mpcdf.mpg.de', private_token=config.gitlab.private_token)
 
 project = next(
-    project
-    for project in gl.projects.list(search='nomad-FAIR')
-    if project.name == 'nomad-FAIR'
-)
+    project for project in gl.projects.list(search='nomad-FAIR')
+    if project.name == 'nomad-FAIR')
 
 repository = next(
-    repository
-    for repository in project.repositories.list()
-    if repository.path == 'nomad-lab/nomad-fair'
-)
+    repository for repository in project.repositories.list()
+    if repository.path == 'nomad-lab/nomad-fair')
 
 to_delete = []
 for tag in repository.tags.list(per_page=1000, requires=['created_at']):
+
     if re.match(r'v[0-9]+\.[0-9]+\.[0-9]+[-.*]?', tag.name):
         continue
 
-    tag_details = gl.http_get(
-        f'/projects/{project.id}/registry/repositories/{repository.id}/tags/{tag.name}'
-    )
+    tag_details = gl.http_get(f'/projects/{project.id}/registry/repositories/{repository.id}/tags/{tag.name}')
     created_at = dateutil.parser.parse(tag_details['created_at'])
     age = datetime.datetime.now() - created_at.replace(tzinfo=None)
     if age.days > 90:

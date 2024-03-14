@@ -17,12 +17,11 @@
 #
 
 from nomad.datamodel.data import ArchiveSection
-from typing import List, Optional
 from . import Normalizer
 
 
 class MetainfoNormalizer(Normalizer):
-    domain: Optional[str] = None
+    domain = None
 
     def normalize_section(self, section, logger):
         normalize = None

@@ -25,7 +25,7 @@ import re
 from warnings import warn
 import importlib
 
-from nomad.config import config
+from nomad import config
 from nomad.units import ureg
 from nomad.utils import get_logger
 from nomad.normalizing import normalizers
