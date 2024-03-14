@@ -101,6 +101,29 @@ pytest_plugins = ('celery.contrib.pytest',)
 def pytest_addoption(parser):
     help = 'Set this < 1.0 to speed up worker cleanup. May leave tasks running.'
     parser.addoption('--celery-inspect-timeout', type=float, default=1.0, help=help)
+    help = 'Only run tests with these fixtures and exclude ones prefixed with "!".'
+    parser.addoption('--fixture-filters', nargs='+', help=help)
+
+
+def pytest_collection_modifyitems(items, config):
+    fixture_filters = config.getoption('fixture_filters')
+    if not fixture_filters:
+        return
+
+    must_filters = set(f for f in fixture_filters if not f.startswith('!'))
+    not_filters = set(f[1:] for f in fixture_filters if f.startswith('!'))
+
+    selected_items = []
+    deselected_items = []
+
+    for item in items:
+        fixtures = getattr(item, 'fixturenames', ())
+        if must_filters.issubset(fixtures) and not_filters.isdisjoint(fixtures):
+            selected_items.append(item)
+        else:
+            deselected_items.append(item)
+    config.hook.pytest_deselected(items=deselected_items)
+    items[:] = selected_items
 
 
 @pytest.fixture(scope='function')
