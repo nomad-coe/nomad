@@ -31,7 +31,8 @@ from pydantic import BaseModel, Field, validator
 from datetime import datetime
 import enum
 
-from nomad import utils, datamodel, processing, config
+from nomad import utils, datamodel, processing
+from nomad.config import config
 from nomad.metainfo.elasticsearch_extension import entry_type
 from nomad.utils import strip, create_uuid
 from nomad.datamodel import Dataset as DatasetDefinitionCls

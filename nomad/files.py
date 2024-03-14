@@ -71,9 +71,10 @@ import yaml
 import magic
 import zipfile
 
-from nomad import config, utils, datamodel
+from nomad import utils, datamodel
+from nomad.config import config
 from nomad.archive.storage import combine_archive
-from nomad.config.models import BundleImportSettings, BundleExportSettings
+from nomad.config.models.config import BundleImportSettings, BundleExportSettings
 from nomad.archive import write_archive, read_archive, ArchiveReader, to_json
 
 decompress_file_extensions = (

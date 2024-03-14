@@ -447,7 +447,7 @@ we will get a final normalized archive that contains our data like this:
 }
 ```
 
-{{pydantic_model('nomad.config.plugins.Schema', heading='## Schema plugin metadata')}}
+{{pydantic_model('nomad.config.models.plugins.Schema', heading='## Schema plugin metadata')}}
 
 ## Develop a Parser plugin
 
@@ -455,4 +455,4 @@ NOMAD uses parsers to convert raw code input and output files into NOMAD's commo
 
 Fork and clone the [parser example project](https://github.com/nomad-coe/nomad-parser-plugin-example){:target="_blank"} as described in [How-to install a plugin](../oasis/plugins_install.md). Follow the original [how-to on writing a parser](parsers.md).
 
-{{pydantic_model('nomad.config.plugins.Parser', heading='### Parser plugin metadata', hide=['code_name','code_category','code_homepage','metadata'])}}
+{{pydantic_model('nomad.config.models.plugins.Parser', heading='### Parser plugin metadata', hide=['code_name','code_category','code_homepage','metadata'])}}

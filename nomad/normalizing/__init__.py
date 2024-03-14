@@ -39,9 +39,11 @@ There is one ABC for all normalizer:
 import importlib
 from typing import Any, Iterator
 from collections import UserList
-from .normalizer import Normalizer
 
-from nomad import config
+from nomad.config import config
+
+from nomad.config.models.plugins import Normalizer as NormalizerPlugin
+from .normalizer import Normalizer
 
 
 def import_normalizer(class_name: str):
@@ -83,7 +85,7 @@ normalizers = SortedNormalizers([])
 
 
 for plugin_name, plugin in config.plugins.options.items():
-    if isinstance(plugin, config.Normalizer) and config.plugins.filter(plugin_name):
+    if isinstance(plugin, NormalizerPlugin) and config.plugins.filter(plugin_name):
         normalizers.append(NormalizerInterface(plugin.normalizer_class_name))
 
 for normalizer in config.normalize.normalizers.filtered_values():

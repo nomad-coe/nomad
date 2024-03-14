@@ -28,7 +28,7 @@ from nomad.metainfo import Package
 from nomad.metainfo.metainfo import MSection, Section, Quantity, Datetime, JSON
 from nomad.metainfo.mongoengine_extension import MongoDocument, Mongo
 from nomad.utils import strip, get_logger
-from nomad import config
+from nomad.config import config
 
 logger = get_logger(__name__)
 

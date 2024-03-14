@@ -1,7 +1,7 @@
-'''
+"""
 The scenario is that you have a lot of <name>-*.zip files for upload. This script
 will add a nomad.json to the uploads, upload them 1 at a time, watch the processing, repeat.
-'''
+"""
 
 from typing import Dict, Any
 from urllib.parse import urlparse
@@ -12,7 +12,7 @@ import zipfile
 
 import requests
 
-from nomad import config
+from nomad.config import config
 from nomad.client import Auth, upload_file
 
 nomad_url = config.client.url
@@ -26,23 +26,31 @@ auth = Auth(user=user, password=password)
 
 
 def upload(
-        path: str, local_path: bool = False, metadata_path: str = None,
-        publish_directly: bool = False, main_author: str = None):
-    '''
+    path: str,
+    local_path: bool = False,
+    metadata_path: str = None,
+    publish_directly: bool = False,
+    main_author: str = None,
+):
+    """
     Arguments:
         path: The file path to the upload file.
         local: If this file should be uploaded with &local_path
         metadata_path: Optional nomad.(yaml|json) metadata file
         publish_directly: If the upload should be published directly
-    '''
+    """
 
     assert os.path.isfile(path), f'The {path} is not a file'
 
     # add metadata
     if metadata_path is not None:
         assert os.path.isfile(metadata_path), f'The {metadata_path} is not a file'
-        assert os.path.basename(metadata_path).endswith('.json'), f'The {metadata_path} is not a nomad metadata file'
-        assert path.endswith('.zip'), 'Adding nomad metadata is only supported for .zip files'
+        assert os.path.basename(metadata_path).endswith(
+            '.json'
+        ), f'The {metadata_path} is not a nomad metadata file'
+        assert path.endswith(
+            '.zip'
+        ), 'Adding nomad metadata is only supported for .zip files'
 
         with zipfile.ZipFile(path, 'a') as zip:
             zip.write(metadata_path, 'nomad.json')
@@ -76,5 +84,9 @@ if __name__ == '__main__':
 
     for path in paths:
         upload(
-            path, metadata_path=metadata_path, local_path=True, publish_directly=True,
-            main_author=main_author)
+            path,
+            metadata_path=metadata_path,
+            local_path=True,
+            publish_directly=True,
+            main_author=main_author,
+        )

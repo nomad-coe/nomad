@@ -19,7 +19,7 @@
 from rdflib import Graph, Literal, RDF, URIRef, BNode
 from rdflib.namespace import Namespace, DCAT, DCTERMS as DCT, FOAF, RDF
 
-from nomad import config
+from nomad.config import config
 from nomad.datamodel import User
 
 from .common import url

@@ -21,7 +21,7 @@ from zipfile import ZipFile
 
 import pytest
 
-from nomad import config
+from nomad.config import config
 from nomad.app.v1.routers.metainfo import store_package_definition
 from nomad.datamodel import EntryArchive, ClientContext
 from nomad.metainfo import MSection, MetainfoReferenceError

@@ -18,7 +18,7 @@
 
 import pytest
 import numpy as np
-from nomad import config
+from nomad.config import config
 from nomad.parsing.chemotion.chemotion import (
     ChemotionParser,
     _element_type_section_mapping,

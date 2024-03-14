@@ -19,13 +19,10 @@
 import sys
 import importlib
 from typing_extensions import Annotated
-from typing import Optional, Dict, Union, List, Literal, Any
-from pydantic import BaseModel, Field, root_validator
-import os.path
-import pkgutil
-import yaml
+from typing import Optional, Dict, Union, List, Literal
+from pydantic import BaseModel, Field
 
-from .models import Options
+from .common import Options
 
 
 class PluginBase(BaseModel):
@@ -62,58 +59,10 @@ class PythonPluginBase(PluginBase):
     """
     )
 
-    @classmethod
-    def _add_metadata(cls, metadata: Dict[str, Any], values: Dict[str, Any]):
-        values.update(metadata)
-
     def import_python_package(self):
         if not self.python_package:
             raise ValueError('Python plugins must provide a python_package.')
         importlib.import_module(self.python_package)
-
-    @root_validator(pre=True)
-    def load_metadata(cls, values: Dict[str, Any]):  # pylint: disable=no-self-argument
-        python_package = values.get('python_package')
-        if not python_package:
-            raise ValueError('Python plugins must provide a python_package.')
-
-        package_path = values.get('package_path')
-        if package_path is None:
-            try:
-                # We manually look for the package to avoid the circlular imports that
-                # all "official" methods (importlib, pkgutil) will cause. This will also
-                # make the config import faster.
-                # We try to deduce the package path from the top-level package
-                package_path_segments = python_package.split('.')
-                root_package = package_path_segments[0]
-                package_dirs = package_path_segments[1:]
-                package_path = os.path.join(
-                    os.path.dirname(pkgutil.get_loader(root_package).get_filename()),  # type: ignore
-                    *package_dirs,
-                )
-                if not os.path.isdir(package_path):
-                    # We could not find it this way. Let's try to official way
-                    package_path = os.path.dirname(
-                        pkgutil.get_loader(python_package).get_filename()  # type: ignore
-                    )
-            except Exception as e:
-                raise ValueError(
-                    f'The python package {python_package} cannot be loaded.', e
-                )
-            values['package_path'] = package_path
-
-        metadata_path = os.path.join(package_path, 'nomad_plugin.yaml')
-        if os.path.exists(metadata_path):
-            try:
-                with open(metadata_path, 'r', encoding='UTF-8') as f:
-                    metadata = yaml.load(f, Loader=yaml.SafeLoader)
-            except Exception as e:
-                raise ValueError(
-                    f'Cannot load plugin metadata file {metadata_path}.', e
-                )
-
-            cls._add_metadata(metadata, values)
-        return values
 
 
 class Schema(PythonPluginBase):
@@ -303,7 +252,7 @@ class Plugins(Options):
 
 def add_plugin(plugin: Schema) -> None:
     """Function for dynamically adding a plugin."""
-    from nomad import config
+    from nomad.config import config
     from nomad.metainfo.elasticsearch_extension import entry_type
 
     if plugin.package_path not in sys.path:
@@ -323,7 +272,7 @@ def add_plugin(plugin: Schema) -> None:
 
 def remove_plugin(plugin) -> None:
     """Function for removing a plugin."""
-    from nomad import config
+    from nomad.config import config
     from nomad.metainfo.elasticsearch_extension import entry_type
     from nomad.metainfo import Package
 

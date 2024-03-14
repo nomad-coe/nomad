@@ -25,7 +25,8 @@ from fastapi.routing import APIRoute
 import traceback
 import orjson
 
-from nomad import config, utils
+from nomad import utils
+from nomad.config import config
 
 from .common import root_path
 from .routers import (
