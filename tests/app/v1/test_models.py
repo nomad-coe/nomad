@@ -107,10 +107,7 @@ def test_module():
                                 '*':
                                     archive:
                                         data:
-                                            my_ref:
-                                                m_is: MValue
-                                                ref_value:
-                                                    '*': '*'
+                                            my_ref: '*'
                     datasets:
                         m_request:
                             query:
@@ -131,8 +128,7 @@ def test_module():
                 'users.m_children.me.uploads.m_request.query.is_published:False',
                 'users.m_children.me.uploads.m_request.pagination.page_size:23',
                 'users.m_children.me.uploads.m_children.*.upload_name:*',
-                'users.m_children.me.uploads.m_children.*.entries.m_children.*.archive.m_children.data.m_children.my_ref:MValueRequest',
-                'users.m_children.me.uploads.m_children.*.entries.m_children.*.archive.m_children.data.m_children.my_ref.ref_value.m_children.*:*',
+                'users.m_children.me.uploads.m_children.*.entries.m_children.*.archive.m_children.data.my_ref:*',
                 'users.m_children.me.uploads.m_children.*.files.m_children.foo.m_children.bar.entry.entry_id:*',
                 'users.m_children.me.datasets.m_request.query:DatasetQuery',
                 'users.m_children.me.datasets.m_children.*.doi:*',

@@ -98,7 +98,12 @@ class _DictModel(BaseModel):
                 value_types = (value_type,)
 
             types = []
+            hasAny = False
             for value_type in value_types:
+                if value_type == Any:
+                    hasAny = True
+                    break
+
                 if isinstance(value_type, ForwardRef):
                     value_type = value_type.__forward_value__
 
@@ -114,7 +119,10 @@ class _DictModel(BaseModel):
 
                 schema['properties'].pop('m_children')
 
-            schema['additionalProperties'] = {'anyOf': types}
+            if hasAny:
+                schema['additionalProperties'] = True
+            else:
+                schema['additionalProperties'] = {'anyOf': types}
 
 
 def _get_request_type(type_hint: Any, ns: ModelNamespace) -> Any:
@@ -177,12 +185,15 @@ ModelNamespace = Dict[str, Union[Type[BaseModel], ForwardRef]]
 
 
 def _generate_model(
-    source_model: Type[BaseModel],
+    source_model: Union[Type[BaseModel], Any],
     suffix: str,
     generate_type: Callable[[type, ModelNamespace], type],
     ns: ModelNamespace,
     **kwargs,
 ):
+    if source_model == Any:
+        return Any
+
     # We need to populate a forward ref for the model in the ns use it in recursion cases.
     result_model_name = f'{source_model.__name__}{suffix}'
     is_ns_origin = len(ns) == 0
@@ -205,7 +216,8 @@ def _generate_model(
             else:
                 types = (type_hint,)
             if not all(
-                isinstance(type_, type) and issubclass(type_, BaseModel)
+                type_ == Any
+                or (isinstance(type_, type) and issubclass(type_, BaseModel))
                 for type_ in types
             ):
                 raise TypeError(
@@ -239,7 +251,7 @@ def _generate_model(
                 fields[field_name] = (Optional[Union[type_hint]], None)  # type: ignore
             continue
 
-        if field_name.startswith('m_') and field_name not in ['m_def']:
+        if field_name.startswith('m_') and field_name not in ['m_def', 'm_def_id']:
             raise NotImplementedError(
                 f'The internal field {field_name} is not implemented.'
             )
