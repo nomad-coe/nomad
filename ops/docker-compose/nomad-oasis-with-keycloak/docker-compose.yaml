@@ -4,7 +4,7 @@ services:
   # keycloak user management
   keycloak:
     restart: unless-stopped
-    image: jboss/keycloak:16.1.1
+    image: quay.io/keycloak/keycloak:16.1.1
     container_name: nomad_oasis_keycloak
     environment:
       - PROXY_ADDRESS_FORWARDING=true
