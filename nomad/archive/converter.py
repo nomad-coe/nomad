@@ -20,7 +20,9 @@ from __future__ import annotations
 import functools
 import hashlib
 import os.path
-from multiprocessing import Pool, Lock, Manager
+import signal
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import Manager
 from typing import Iterable, Callable
 
 from nomad.config import config
@@ -30,12 +32,9 @@ from nomad.files import StagingUploadFiles, PublicUploadFiles
 from nomad.infrastructure import setup
 from nomad.processing import Upload
 
-lock = Lock()
-
 
 def flush(*args, **kwargs):
-    with lock:
-        print(flush=True, *args, **kwargs)
+    print(flush=True, *args, **kwargs)
 
 
 class Counter:
@@ -107,6 +106,11 @@ def convert_archive(
             )
             return
 
+    new_path: str = transform(original_path) if transform else original_path
+    if os.path.exists(new_path) and not overwrite:
+        flush(f'{prefix} [ERROR] File already exists: {new_path}')
+        return
+
     def safe_remove(path: str):
         if not path:
             return
@@ -132,13 +136,14 @@ def convert_archive(
         flush(f'{prefix} [ERROR] Failed to convert {original_path}: {e}')
         safe_remove(tmp_path)
     else:
-        new_path = transform(original_path) if transform else original_path
-        if os.path.exists(new_path):
-            if not overwrite:
-                flush(f'{prefix} [ERROR] File already exists: {new_path}')
-                safe_remove(tmp_path)
-                return
+        backup_int = signal.getsignal(signal.SIGINT)
+        backup_term = signal.getsignal(signal.SIGTERM)
 
+        # override SIGINT and SIGTERM to ensure no data loss
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+
+        if os.path.exists(new_path):  # overwrite=True
             safe_remove(new_path)
 
         # the old path and the new path could be the same
@@ -146,6 +151,9 @@ def convert_archive(
             safe_remove(original_path)
 
         os.rename(tmp_path, new_path)
+
+        signal.signal(signal.SIGINT, backup_int)
+        signal.signal(signal.SIGTERM, backup_term)
 
 
 def convert_folder(
@@ -202,18 +210,27 @@ def convert_folder(
 
     counter = Counter(len(file_list))
 
-    with Pool(processes=processes) as pool:
-        pool.map(
-            functools.partial(
-                convert_archive,
-                transform=transform,
-                overwrite=overwrite,
-                delete_old=delete_old,
-                counter=counter,
-                force_repack=force_repack,
-            ),
-            file_list,
-        )
+    _converter = functools.partial(
+        convert_archive,
+        transform=transform,
+        overwrite=overwrite,
+        delete_old=delete_old,
+        counter=counter,
+        force_repack=force_repack,
+    )
+
+    with ProcessPoolExecutor(max_workers=processes) as executor:
+        try:
+            futures = [executor.submit(_converter, file) for file in file_list]
+
+            for index, future in enumerate(futures):
+                try:
+                    future.result()
+                except Exception:  # noqa
+                    flush(f'[ERROR] (OOM): {file_list[index]}')
+        except KeyboardInterrupt:
+            for pid in executor._processes:  # noqa
+                os.kill(pid, signal.SIGTERM)
 
 
 def convert_upload(
