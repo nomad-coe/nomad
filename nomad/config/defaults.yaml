@@ -230,8 +230,6 @@ north:
   hub_service_api_token: secret-token
   nomad_access_token_expiry_time: 86400
   tools:
-    exclude:
-    - pyiron
     options:
       jupyter:
         description: '### **Jupyter Notebook**: The Classic Notebook Interface
