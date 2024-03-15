@@ -496,6 +496,9 @@ jupyterhub:
       jupyter:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/jupyter
         tag: latest
+      pyiron:
+        name: pyiron/pyiron
+        tag: latest
       nionswift:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nionswift-webtop
         tag: latest

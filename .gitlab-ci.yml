@@ -91,7 +91,7 @@ build helm chart:
   stage: build
   script:
     - helm package -u ops/kubernetes/nomad -d ops/kubernetes
-    - 'curl --request POST --user gitlab-ci-token:$CI_JOB_TOKEN --form "chart=@ops/kubernetes/nomad-1.0.0.tgz" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/latest/charts"'
+    - 'curl --request POST --user gitlab-ci-token:$CI_JOB_TOKEN --form "chart=@ops/kubernetes/nomad-1.1.0.tgz" "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/helm/api/latest/charts"'
   rules:
     - if: $CI_COMMIT_BRANCH == "develop"
     - when: manual
