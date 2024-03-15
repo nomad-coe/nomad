@@ -20,8 +20,9 @@ from typing import Union, Iterable
 import json
 import re
 
-from nomad.datamodel import EntryArchive, EntryData
-from nomad.datamodel.data import ElnIntegrationCategory
+from nomad.datamodel import EntryArchive, EntryData, Results
+from nomad.datamodel.data import ElnIntegrationCategory, ArchiveSection
+from nomad.datamodel.metainfo.annotations import ELNAnnotation
 from nomad.metainfo import (
     Package,
     Quantity,
@@ -69,6 +70,19 @@ def _create_file_section(file, graph, parent_folder_raw_path, logger=None):
     return section
 
 
+class ELabFTWRef(MSection):
+    """Represents a referenced item in ELabFTW entry."""
+
+    row_refs = Quantity(
+        type=ArchiveSection,
+        a_eln=ELNAnnotation(
+            component='ReferenceEditQuantity',
+            label='ELabFTW Reference',
+        ),
+        description='References that connect to each ELabFTW ref. Each item is stored in it individual entry.',
+    )
+
+
 class ELabFTWParserError(Exception):
     """eln parser related errors."""
 
@@ -83,7 +97,7 @@ class ELabFTWExperimentLink(MSection):
     """
 
     itemid = Quantity(
-        type=str, description='id of the external experiment linked to this experiemnt'
+        type=str, description='id of the external experiment linked to this experiment'
     )
     title = Quantity(type=str, description='title of the external experiment')
     elabid = Quantity(type=str, description='hashed id')
@@ -108,7 +122,7 @@ class ELabFTWSteps(MSection):
     """
 
     id = Quantity(type=str, description='id of the current step')
-    item_id = Quantity(type=str, description='item_id of the current experiemnt')
+    item_id = Quantity(type=str, description='item_id of the current experiment')
     body = Quantity(type=str, description='title of the step')
     ordering = Quantity(
         type=str, description='location of the current step in the overall order'
@@ -124,7 +138,7 @@ class ELabFTWSteps(MSection):
 
 class ELabFTWExperimentData(MSection):
     """
-    Detailed information of the given elabFTW experiemnt, such as links to external resources and extra fields, are
+    Detailed information of the given ELabFTW experiment, such as links to external resources and extra fields, are
     stored here.
     """
 
@@ -140,7 +154,7 @@ class ELabFTWExperimentData(MSection):
     sharelink = Quantity(
         type=str,
         a_eln=dict(component='URLEditQuantity'),
-        description='URL link to this experiment in the elabftw repository',
+        description='URL link to this experiment in the ELabFTW repository',
     )
     extra_fields = Quantity(
         type=JSON,
@@ -157,10 +171,39 @@ class ELabFTWExperimentData(MSection):
         a_eln=dict(component='StringEditQuantity'),
         description="Author's full name",
     )
-    # TODO: if these links are already in the NOMAD repo, then there should also be a link to them as well
+
     items_links = SubSection(sub_section=ELabFTWItemLink, repeats=True)
     experiments_links = SubSection(sub_section=ELabFTWExperimentLink, repeats=True)
     steps = SubSection(sub_section=ELabFTWSteps, repeats=True)
+    references = SubSection(sub_section=ELabFTWRef, repeats=True)
+
+    def normalize(self, archive, logger) -> None:
+        exp_ids = [('experiments', exp.itemid) for exp in self.experiments_links]
+        res_ids = [('database', exp.itemid) for exp in self.items_links]
+
+        for item in exp_ids + res_ids:
+            from nomad.search import search, MetadataPagination
+
+            query = {'external_id': item[1]}
+            search_result = search(
+                owner='all',
+                query=query,
+                pagination=MetadataPagination(page_size=1),
+                user_id=archive.metadata.main_author.user_id,
+            )
+            if search_result.pagination.total > 0:
+                entry_id = search_result.data[0]['entry_id']
+                upload_id = search_result.data[0]['upload_id']
+                ref = ELabFTWRef()
+                ref.row_refs = f'../uploads/{upload_id}/archive/{entry_id}#data'
+                self.references.append(ref)
+                if search_result.pagination.total > 1:
+                    logger.warn(
+                        f'Found {search_result.pagination.total} entries with external id: '
+                        f'"{item[1]}". Will use the first one found.'
+                    )
+            else:
+                logger.warn(f'Found no entries with metadata.external_id: "{item[1]}".')
 
 
 class ELabFTWComment(MSection):
@@ -224,7 +267,7 @@ class ElabFTWDataset(ELabFTWBaseSection):
     url = Quantity(
         type=str,
         a_eln=dict(component='URLEditQuantity'),
-        description='Link to this dataset in elabftw repository',
+        description='Link to this dataset in ELabFTW repository',
     )
     date_created = Quantity(type=Datetime, description='Creation date')
     date_modified = Quantity(type=Datetime, description='Last modification date')
@@ -253,7 +296,6 @@ class ELabFTW(EntryData):
         type=str,
         description='id of the file containing the metadata information. It should always be ro-crate-metadata.json',
     )
-    type = Quantity(type=str, description="Type of the mainfile's schema")
     title = Quantity(type=str, description='Title of the entry')
 
     date_created = Quantity(type=Datetime, description='Creation date of the .eln')
@@ -263,6 +305,7 @@ class ELabFTW(EntryData):
         a_browser=dict(value_component='JsonValue'),
     )
     author = Quantity(type=str, description="Full name of the experiment's author")
+    project_id = Quantity(type=str, description='Project ID')
 
     experiment_data = SubSection(sub_section=ELabFTWExperimentData)
     experiment_files = SubSection(sub_section=ELabFTWBaseSection, repeats=True)
@@ -322,6 +365,7 @@ class ELabFTWParser(MatchingParser):
 
         title_pattern = re.compile(r'^\d{4}-\d{2}-\d{2} - ([a-zA-Z0-9\-]+) - .*$')
 
+        lab_ids: list[tuple[str, str]] = []
         with open(mainfile, 'rt') as f:
             data = json.load(f)
 
@@ -335,15 +379,23 @@ class ELabFTWParser(MatchingParser):
             raw_experiment, exp_archive = graph[exp_id], child_archives[str(index)]
 
             elabftw_experiment = ELabFTW()
+            try:
+                del graph['ro-crate-metadata.json']['type']
+            except Exception:
+                pass
             elabftw_experiment.m_update_from_dict(graph['ro-crate-metadata.json'])
 
             try:
                 exp_external_id = raw_experiment['url'].split('&id=')[1]
-                exp_archive.metadata.external_id = exp_external_id
+                if match := re.search(r'.*/([^/]+)\.php', raw_experiment['url']):
+                    elabftw_entity_type = match.group(1)
+                exp_archive.metadata.external_id = str(exp_external_id)
+                elabftw_experiment.project_id = exp_external_id
             except Exception:
                 logger.error(
                     'Could not set the the external_id from the experiment url'
                 )
+
             try:
                 author_full_name = ' '.join(
                     [
@@ -384,20 +436,42 @@ class ELabFTWParser(MatchingParser):
             experiment_data = ELabFTWExperimentData()
             try:
                 experiment_data.m_update_from_dict(export_data[0])
-                experiment_data.extra_fields = export_data[0]['metadata'][
-                    'extra_fields'
-                ]
             except (IndexError, KeyError, TypeError):
                 logger.warning(
                     f"Couldn't read and parse the data from export-elabftw.json file"
                 )
+            try:
+                experiment_data.extra_fields = export_data[0]['metadata'][
+                    'extra_fields'
+                ]
+            except Exception:
+                pass
             elabftw_experiment.experiment_data = experiment_data
 
+            try:
+                exp_archive.metadata.comment = elabftw_entity_type
+
+                lab_ids.extend(
+                    ('experiment_link', experiment_link['itemid'])
+                    for experiment_link in export_data[0]['experiments_links']
+                )
+                lab_ids.extend(
+                    ('item_link', experiment_link['itemid'])
+                    for experiment_link in export_data[0]['items_links']
+                )
+            except Exception:
+                pass
             for file_id in raw_experiment['has_part']:
                 file_section = _create_file_section(
                     graph[file_id['id']], graph, parent_folder_raw_path, logger
                 )
                 elabftw_experiment.experiment_files.append(file_section)
+
+            if not archive.results:
+                archive.results = Results()
+                archive.results.eln = Results.eln.sub_section.section_cls()
+                archive.results.eln.lab_ids = [str(lab_id[1]) for lab_id in lab_ids]
+                archive.results.eln.tags = [lab_id[0] for lab_id in lab_ids]
 
             exp_archive.data = elabftw_experiment
 
