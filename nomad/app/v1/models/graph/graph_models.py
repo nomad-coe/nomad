@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Optional, List, Union, Any, Literal
 from pydantic import BaseModel, Field, Extra
 
+from nomad.metainfo import Package
 from nomad.graph.model import RequestConfig, DatasetQuery
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.datamodel.data import User as UserModel
@@ -78,30 +79,16 @@ class File(BaseModel):
     parent: Directory
 
 
-# class MetainfoObjectRequestOptions(BaseModel):
-#     # Other options and filters for recursing through sections, sub-sections, etc.
-#     # RecursionOptions could be further specialized.
-#     # Do we need pagination in certain cases?
-#     include_sub_sections: Optional[RecursionOptions]
-#     include_m_def: Optional[RecursionOptions]
-#     include_references: Optional[RecursionOptions]
-
-
-class MValue(BaseModel):
-    m_errors: List[Error]
-    m_is: Literal['MValue']
-    value: Any
-    ref_value: Union[MSection, MValue]
-    path_value: Union[Directory, File]
+class MDef(BaseModel):
+    m_def: str
+    m_def_id: str
 
 
 class MSection(BaseModel):
     m_errors: List[Error]
-    m_is: Literal['MSection']
     m_request: RecursionOptions
-    # TODO we do not have special models for definitions yet.
-    m_def: MSection
-    m_children: Union[MSection, MValue]
+    m_def: MDef
+    m_children: Any
 
 
 class Entry(mapped(EntryProcData, mainfile='mainfile_path', entry_metadata=None)):  # type: ignore
@@ -230,13 +217,17 @@ class Datasets(BaseModel):
     m_children: Dataset
 
 
+class Metainfo(BaseModel):
+    m_children: MSection
+
+
 class Graph(BaseModel):
     users: Users
     entries: Entries
     uploads: Uploads
     datasets: Datasets
     search: Search
-    metainfo: MSection
+    metainfo: Metainfo
 
 
 GraphRequest = generate_request_model(Graph)
