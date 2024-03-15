@@ -18,7 +18,8 @@
 
 import click
 
-from nomad import config, utils
+from nomad import utils
+from nomad.config import config
 
 from .admin import admin
 

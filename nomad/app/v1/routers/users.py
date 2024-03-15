@@ -20,7 +20,8 @@ from typing import List, Union, Optional
 from fastapi import Depends, APIRouter, status, HTTPException, Query
 from pydantic.main import BaseModel
 
-from nomad import infrastructure, config, datamodel
+from nomad import infrastructure, datamodel
+from nomad.config import config
 from nomad.utils import strip
 
 from .auth import create_user_dependency

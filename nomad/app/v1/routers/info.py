@@ -26,7 +26,8 @@ from fastapi.routing import APIRouter
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 
-from nomad import config, normalizing
+from nomad import normalizing
+from nomad.config import config
 from nomad.utils import strip
 from nomad.search import search
 from nomad.parsing import parsers

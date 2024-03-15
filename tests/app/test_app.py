@@ -18,7 +18,7 @@
 
 import pytest
 
-from nomad import config
+from nomad.config import config
 
 
 def test_alive(client):

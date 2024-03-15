@@ -38,7 +38,8 @@ from mongoengine import (
 from mongoengine.queryset.visitor import Q
 from asgiref.sync import async_to_sync
 
-from nomad import utils, config
+from nomad import utils
+from nomad.config import config
 from nomad.atomutils import Formula
 from nomad.processing.base import app
 

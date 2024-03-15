@@ -28,7 +28,7 @@ from nomad.units import ureg
 from nomad.metainfo import Section
 from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
-from nomad import config
+from nomad.config import config
 from nomad.datamodel.results import (
     Method,
     Simulation,

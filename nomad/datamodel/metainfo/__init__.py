@@ -17,10 +17,9 @@
 #
 
 import importlib
-from pydantic import parse_obj_as
 
-from nomad import config
-from nomad.config import Schema, Plugin
+from nomad.config import config
+from nomad.config.models.plugins import Schema
 
 from . import (
     annotations,
@@ -48,6 +47,7 @@ class SchemaInterface:
 
 
 simulationworkflowschema, runschema = None, None
+config.load_plugins()
 for plugin in config.plugins.filtered_values():
     if isinstance(plugin, Schema):
         if plugin.name == 'simulationworkflowschema':

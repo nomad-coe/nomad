@@ -39,7 +39,8 @@ import ase
 import bs4
 import matid  # pylint: disable=import-error
 
-from nomad import atomutils, config, client, processing as proc
+from nomad import atomutils, client, processing as proc
+from nomad.config import config
 from nomad.client import api, upload_file
 
 

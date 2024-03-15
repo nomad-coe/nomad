@@ -39,7 +39,8 @@ from datetime import datetime
 import re
 import unidecode
 
-from nomad import config, utils
+from nomad import utils
+from nomad.config import config
 from nomad.utils.structlogging import get_logger
 
 # The metainfo is defined and used during imports. This is problematic.

@@ -22,7 +22,7 @@ import threading
 import time
 from multiprocessing import Process
 
-from nomad import config
+from nomad.config import config
 from nomad import utils
 
 

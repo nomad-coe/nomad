@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient
 from nomad.app import h5grove_app
 from nomad.utils.exampledata import ExampleData
 from nomad.files import StagingUploadFiles
-from nomad import config
+from nomad.config import config
 
 
 @pytest.fixture

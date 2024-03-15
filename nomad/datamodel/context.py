@@ -23,7 +23,8 @@ import os.path
 
 import requests
 
-from nomad import utils, config
+from nomad import utils
+from nomad.config import config
 from nomad.datamodel.util import parse_path
 from nomad.datamodel.datamodel import EntryMetadata
 from nomad.metainfo import (
