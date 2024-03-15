@@ -21,7 +21,7 @@ import pytest
 from typing import Union, List, Dict, Optional
 from typing_extensions import Literal, Annotated  # type: ignore
 from pydantic import BaseModel, Field
-from nomad.config.models import WidgetHistogram, WidgetTerms
+from nomad.config.models.ui import WidgetHistogram, WidgetTerms
 from nomad.mkdocs import (
     get_field_type_info,
     get_field_description,

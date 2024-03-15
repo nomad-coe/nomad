@@ -27,7 +27,7 @@ import io
 import gzip
 from datetime import datetime, timedelta
 
-from nomad import config
+from nomad.config import config
 
 # For logtransfer no Python logging is used, but instead prints. The reason is that logging can interfere with
 # Nomad logging and may be send to

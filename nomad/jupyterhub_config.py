@@ -24,7 +24,7 @@ NOMAD servers.
 from dockerspawner.dockerspawner import DockerSpawner
 from oauthenticator.generic import GenericOAuthenticator
 
-from nomad import config
+from nomad.config import config
 
 c = get_config()  # type: ignore  # pylint: disable=undefined-variable
 

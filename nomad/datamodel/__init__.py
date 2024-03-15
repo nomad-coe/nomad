@@ -54,13 +54,14 @@ def all_metainfo_packages():
     """
     from nomad.metainfo import Package, Environment
     from nomad.datamodel import EntryArchive
-    from nomad.config.plugins import PythonPluginBase
+    from nomad.config.models.plugins import PythonPluginBase
 
     # Due to lazyloading plugins, we need to explicitly
     # import plugin's python packages if we want to assure that their
     # metainfo package is loaded.
-    from nomad import config
+    from nomad.config import config
 
+    config.load_plugins()
     for plugin in config.plugins.filtered_values():
         if isinstance(plugin, PythonPluginBase):
             plugin.import_python_package()

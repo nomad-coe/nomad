@@ -14,8 +14,9 @@ import json
 from datetime import datetime, timedelta
 from packaging import version
 
-from nomad import config, utils, datamodel, search
-from nomad.config.models import BundleImportSettings, BundleExportSettings
+from nomad import utils, datamodel, search
+from nomad.config import config
+from nomad.config.models.config import BundleImportSettings, BundleExportSettings
 from nomad.files import (
     zipfile,
     PathObject,

@@ -16,6 +16,6 @@
 # limitations under the License.
 #
 
-from nomad import config
+from nomad.config import config
 
 root_path = f'{config.services.api_base_path}/api/v1'
