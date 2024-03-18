@@ -141,7 +141,7 @@ class Services(ConfigBaseModel):
         True, description="""If true the app will serve the h5grove API."""
     )
 
-    console_log_level = Field(
+    console_log_level: Union[int, str] = Field(
         logging.WARNING,
         description="""
         The log level that controls console logging for all NOMAD services (app, worker, north).
@@ -437,7 +437,7 @@ class Logstash(ConfigBaseModel):
     enabled = False
     host = 'localhost'
     tcp_port = '5000'
-    level: int = logging.DEBUG
+    level: Union[int, str] = logging.DEBUG
 
     # Validators
     _level = validator('level', allow_reuse=True)(normalize_loglevel)
