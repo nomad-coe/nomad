@@ -305,7 +305,7 @@ yarn
 yarn start
 ```
 
-Note that the current codebase requires Node.js version 16.20. If you have a newer version installed on your system, you may need to downgrade or use the following workaround as described [here](https://codingbeautydev.com/blog/node-err-ossl-evp-unsupported/) before `yarn start` works properly. 
+Note that the current codebase requires Node.js version 16.20. If you have a newer version installed on your system, you may need to downgrade or use the following workaround as described [here](https://codingbeautydev.com/blog/node-err-ossl-evp-unsupported/) before `yarn start` works properly.
 ```
 export NODE_OPTIONS=--openssl-legacy-provider
 ```
@@ -427,6 +427,22 @@ nomad dev qa
 This mimics the tests and checks that the GitLab CI/CD will perform.
 
 If you are migrating an old merge request to a formatted one, please see find the migration guide [here](../migrate-to-autoformatter.md)
+
+#### Custom pytest options
+
+##### `--celery-inspect-timeout`
+
+To ensure that all tests are independent despite reusing the same queue and workers, the `worker` fixture cleans up all running tasks after the test. This involves by default a timeout of one second, which accumulates over all tests using that fixture. In one local development environment this made a difference of about 14 min vs. 7 min without the timeout.
+
+If you want to speed up your local testing, you can use `pytest --celery-inspect-timeout 0.1` to shorten the timeout to a tenth of a second. Be aware that this might leave tasks running, which can affect later tests.
+
+##### `--fixture-filters`
+
+You may want to run only tests that use a specific fixture, e.g. if you are editing that fixture. For example, to run only tests with the `worker` fixture, use `pytest --fixture-filters worker`. If you list more than one, all of them must be requested by the test to be included.
+
+You can also negate a fixture by prefixing its name with `!`. For example, to run all tests that do not depend on the `worker` fixture, use `pytest --fixture-filters '!worker'` (quotes are needed for `!`).
+
+Note that if `test1` depends on `fixture1`, and `fixture1` depends on `fixture2`, then `test1` also depends on `fixture2`, even though it was not explicitly listed as a parameter.
 
 ### Frontend tests
 
