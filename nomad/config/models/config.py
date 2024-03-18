@@ -975,7 +975,7 @@ class Config(ConfigBaseModel):
         )
 
     def hub_url(self):
-        return f'httselfp://{self.north.hub_host}:{self.north.hub_port}{self.services.api_base_path}/north/hub'
+        return f'http://{self.north.hub_host}:{self.north.hub_port}{self.services.api_base_path}/north/hub'
 
     @root_validator()
     def __validate(cls, values):  # pylint: disable=no-self-argument
