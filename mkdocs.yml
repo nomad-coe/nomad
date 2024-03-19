@@ -21,6 +21,7 @@ nav:
       - Use NORTH: howto/manage/north.md
     - Programmatic use:
       - Use the API: howto/programmatic/api.md  # TODO separate into How-to and Explanation/Reference
+      - Download data: howto/programmatic/download.md
       - Publish data using python: howto/programmatic/publish_python.md
       - Install nomad-lab: howto/programmatic/pythonlib.md
       - Access processed data: howto/programmatic/archive_query.md
