@@ -205,7 +205,7 @@ class EntryArchiveRequest(BaseModel):
     required: Optional[ArchiveRequired] = _archive_required_field
 
 
-class EntriesArchiveDownload(WithQuery):
+class EntriesArchiveDownload(WithQuery, EntryArchiveRequest):
     files: Optional[Files] = Body(None)
 
 
@@ -999,7 +999,7 @@ async def get_entries_archive_query(
 
 
 def _answer_entries_archive_download_request(
-    owner: Owner, query: Query, files: Files, user: User
+    owner: Owner, query: Query, required: ArchiveRequired, files: Files, user: User
 ):
     if owner == Owner.all_:
         raise HTTPException(
@@ -1032,7 +1032,7 @@ def _answer_entries_archive_download_request(
     manifest = []
     search_includes = ['entry_id', 'upload_id', 'parser_name']
 
-    required_reader = RequiredReader('*', user=user)
+    required_reader = _validate_required(required, user=user)
 
     # a generator of StreamedFile objects to create the zipstream from
     def streamed_files():
@@ -1104,7 +1104,11 @@ async def post_entries_archive_download_query(
     data: EntriesArchiveDownload, user: User = Depends(create_user_dependency())
 ):
     return _answer_entries_archive_download_request(
-        owner=data.owner, query=data.query, files=data.files, user=user
+        owner=data.owner,
+        query=data.query,
+        required=data.required,
+        files=data.files,
+        user=user,
     )
 
 
@@ -1124,7 +1128,11 @@ async def get_entries_archive_download(
     user: User = Depends(create_user_dependency(signature_token_auth_allowed=True)),
 ):
     return _answer_entries_archive_download_request(
-        owner=with_query.owner, query=with_query.query, files=files, user=user
+        owner=with_query.owner,
+        query=with_query.query,
+        required='*',
+        files=files,
+        user=user,
     )
 
 
