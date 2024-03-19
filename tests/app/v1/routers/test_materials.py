@@ -38,7 +38,6 @@ from .common import (
     aggregation_test_parameters_default,
     assert_aggregation_response,
 )
-from tests.conftest import example_data  # pylint: disable=unused-import
 
 """
 These are the tests for all API operations below ``materials``. The tests are organized

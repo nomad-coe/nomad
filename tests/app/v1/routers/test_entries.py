@@ -48,7 +48,6 @@ from .common import (
     assert_aggregation_response,
     perform_entries_metadata_test,
 )
-from tests.conftest import example_data, example_data_schema_python  # pylint: disable=unused-import
 
 """
 These are the tests for all API operations below ``entries``. The tests are organized

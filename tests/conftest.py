@@ -378,6 +378,16 @@ test_users = {
 }
 
 
+@pytest.fixture(scope='session')
+def test_user_molds():
+    label_num = {
+        'admin_user': 0,
+        'test_user': 1,
+        'other_test_user': 2,
+    }
+    return {label: test_users[test_user_uuid(num)] for label, num in label_num.items()}
+
+
 @pytest.fixture(scope='session', autouse=True)
 def configure_admin_user_id(monkeysession):
     monkeysession.setattr('nomad.config.services.admin_user_id', admin_user_id)
@@ -522,7 +532,7 @@ def test_user_group_uuid(handle: Any):
 
 
 @pytest.fixture(scope='session')
-def test_user_groups_dict():
+def test_user_group_molds():
     def old_group(group_id, group_name, owner, members):
         return dict(
             group_id=test_user_group_uuid(group_id),
@@ -552,9 +562,9 @@ def test_user_groups_dict():
 
 
 @pytest.fixture(scope='session')
-def convert_group_labels_to_ids(test_user_groups_dict):
+def convert_group_labels_to_ids(test_user_group_molds):
     mapping = {
-        label: group.get('group_id') for label, group in test_user_groups_dict.items()
+        label: group.get('group_id') for label, group in test_user_group_molds.items()
     }
 
     def convert(raw):
@@ -573,22 +583,22 @@ def convert_group_labels_to_ids(test_user_groups_dict):
 
 
 @pytest.fixture(scope='session')
-def user_owner_group(test_user_groups_dict):
-    return UserGroup(**test_user_groups_dict['user_owner_group'])
+def user_owner_group(test_user_group_molds):
+    return UserGroup(**test_user_group_molds['user_owner_group'])
 
 
 @pytest.fixture(scope='session')
-def other_owner_group(test_user_groups_dict):
-    return UserGroup(**test_user_groups_dict['other_owner_group'])
+def other_owner_group(test_user_group_molds):
+    return UserGroup(**test_user_group_molds['other_owner_group'])
 
 
 @pytest.fixture(scope='session')
-def mixed_group(test_user_groups_dict):
-    return UserGroup(**test_user_groups_dict['mixed_group'])
+def mixed_group(test_user_group_molds):
+    return UserGroup(**test_user_group_molds['mixed_group'])
 
 
 @pytest.fixture(scope='session')
-def create_user_groups(test_user_groups_dict):
+def create_user_groups(test_user_group_molds):
     def create():
         user_groups = {}
         for label in [
@@ -597,7 +607,7 @@ def create_user_groups(test_user_groups_dict):
             'other_owner_group',
             'mixed_group',
         ]:
-            group = test_user_groups_dict[label]
+            group = test_user_group_molds[label]
             user_group = create_user_group(**group)
             user_groups[label] = user_group
 
@@ -1479,7 +1489,7 @@ def reset_infra(mongo_function, elastic_function):
 
 
 @pytest.fixture(scope='session')
-def api_v1(monkeysession):
+def api_v1(monkeysession, test_user_molds):
     """
     This fixture provides an HTTP client with Python requests interface that accesses
     the fast api. The have to provide URLs that start with out leading '/' after '.../api/v1.
@@ -1509,7 +1519,7 @@ def api_v1(monkeysession):
     )
 
     def __call__(self, request):
-        for user in test_users.values():
+        for user in test_user_molds.values():
             if user['username'] == self.user or user['email'] == self.user:
                 request.headers['Authorization'] = f'Bearer {user["user_id"]}'
         return request

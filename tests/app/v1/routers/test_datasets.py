@@ -29,7 +29,6 @@ from nomad.utils.exampledata import ExampleData
 
 from tests.conftest import admin_user_id
 
-from tests.conftest import example_data  # pylint: disable=unused-import
 from .common import assert_response
 
 """
