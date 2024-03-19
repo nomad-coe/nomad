@@ -161,6 +161,7 @@ def perform_entries_archive_download_test(
     headers={},
     query={},
     owner=None,
+    required=None,
     files={},
     total=-1,
     status_code=200,
@@ -171,7 +172,11 @@ def perform_entries_archive_download_test(
         status_code = 401
 
     if http_method == 'post':
-        body = {'query': query, 'files': files}
+        body = {
+            'query': query,
+            'required': '*' if required is None else required,
+            'files': files,
+        }
         if owner is not None:
             body['owner'] = owner
         response = client.post(
@@ -1006,22 +1011,24 @@ def test_entry_raw_file(
 
 
 @pytest.mark.parametrize(
-    'user, owner, query, files, total, status_code',
+    'user, owner, query, required, files, total, status_code',
     [
-        pytest.param(None, None, {}, {}, 23, 200, id='all'),
+        pytest.param(None, None, {}, None, {}, 23, 200, id='all'),
         pytest.param(
             'test_user',
             'visible',
             {'upload_id': 'id_child_entries'},
+            None,
             {},
             3,
             200,
             id='child-entries',
         ),
+        pytest.param(None, None, {}, {'metadata': '*'}, {}, 23, 200, id='required'),
         pytest.param(
-            None, None, {program_name: 'DOESNOTEXIST'}, {}, -1, 200, id='empty'
+            None, None, {program_name: 'DOESNOTEXIST'}, None, {}, -1, 200, id='empty'
         ),
-        pytest.param(None, None, {}, {'compress': True}, 23, 200, id='compress'),
+        pytest.param(None, None, {}, None, {'compress': True}, 23, 200, id='compress'),
     ],
 )
 @pytest.mark.parametrize('http_method', ['post', 'get'])
@@ -1032,6 +1039,7 @@ def test_entries_archive_download(
     user,
     owner,
     query,
+    required,
     files,
     total,
     status_code,
@@ -1045,6 +1053,7 @@ def test_entries_archive_download(
         status_code=status_code,
         query=query,
         http_method=http_method,
+        required=required,
         files=files,
         total=total,
     )

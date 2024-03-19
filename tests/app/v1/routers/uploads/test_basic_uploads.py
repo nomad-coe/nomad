@@ -1003,6 +1003,63 @@ def test_get_upload_entry(
 
 
 @pytest.mark.parametrize(
+    'args, expected_status_code, expected_content',
+    [
+        pytest.param(
+            dict(
+                user='test_user',
+                upload_id='id_published',
+            ),
+            200,
+            {'test_content/subdir/test_entry_01/mainfile.json': 'method'},
+            id='published-file',
+        ),
+        pytest.param(
+            dict(user='test_user', upload_id='id_unpublished'),
+            400,
+            None,
+            id='unpublished-file',
+        ),
+        pytest.param(
+            dict(user='other_test_user', upload_id='id_embargo'),
+            401,
+            None,
+            id='embargo-file',
+        ),
+        pytest.param(
+            dict(user='test_user', upload_id='silly_value'),
+            404,
+            None,
+            id='bad-upload-id',
+        ),
+    ],
+)
+def test_get_upload_raw(
+    client,
+    example_data,
+    test_auth_dict,
+    args,
+    expected_status_code,
+    expected_content,
+):
+    user = args['user']
+    upload_id = args['upload_id']
+    user_auth, __token = test_auth_dict[user]
+
+    response = perform_get(client, f'uploads/{upload_id}/raw', user_auth=user_auth)
+
+    assert_response(response, expected_status_code)
+    if expected_status_code == 200:
+        mime_type = response.headers.get('Content-Type')
+        assert mime_type == 'application/zip'
+        with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
+            for name, content in expected_content.items():
+                with zip_file.open(name, 'r') as f:
+                    file_content = f.read()
+                    assert content.encode() in file_content
+
+
+@pytest.mark.parametrize(
     'args, expected_status_code, expected_mime_type, expected_content',
     [
         pytest.param(

@@ -36,12 +36,17 @@ from fastapi import (
     Query as FastApiQuery,
     HTTPException,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, files
 from nomad.config import config
-from nomad.files import StagingUploadFiles, is_safe_relative_path, is_safe_basename
+from nomad.files import (
+    StagingUploadFiles,
+    is_safe_relative_path,
+    is_safe_basename,
+    PublicUploadFiles,
+)
 from nomad.bundles import BundleExporter, BundleImporter
 from nomad.config.models.config import Reprocess
 from nomad.processing import (
@@ -1008,6 +1013,54 @@ async def get_upload_rawdir_path(
         if upload_files:
             upload_files.close()
         raise
+
+
+@router.get(
+    '/{upload_id}/raw',
+    tags=[raw_tag],
+    summary='Downloads the published upload .zip file with all the raw files of the upload.',
+    response_class=StreamingResponse,
+    responses=create_responses(
+        _raw_path_response,
+        _upload_or_path_not_found,
+        _not_authorized_to_upload,
+        _bad_request,
+    ),
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
+async def get_upload_raw(
+    upload_id: str = Path(..., description='The unique id of the upload.'),
+    user: User = Depends(
+        create_user_dependency(required=False, signature_token_auth_allowed=True)
+    ),
+):
+    """
+    NOMAD manages the raw files of published uploads as a .zip file. This endpoint
+    allows to download it. While the outcome is similar to using `/uploads/<upload_id>/raw/`
+    which creates a .zip file on the fly, this endpoint is more efficient
+    because it simply streams an already existing .zip file. On the other hand, this
+    endpoint is only available for published uploads and does not allow to selectively
+    filter the files.
+    """
+
+    # Get upload
+    upload = get_upload_with_read_access(upload_id, user, include_others=True)
+    # Get upload files
+    upload_files = upload.upload_files
+    if not isinstance(upload_files, PublicUploadFiles):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=strip(
+                """
+            Cannot download raw files .zip from non published uploads. Use '/{upload_id}/raw/' instead
+            to recursively create and download a .zip file with all files."""
+            ),
+        )
+
+    # Find the .zip file and start streaming it
+    raw_zip_file_path = upload_files.raw_zip_file_object().os_path
+    return FileResponse(raw_zip_file_path, media_type='application/zip')
 
 
 @router.get(
