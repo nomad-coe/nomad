@@ -26,7 +26,7 @@ from nomad.app.optimade import parse_filter
 from nomad.app.optimade.common import provider_specific_fields
 from nomad.utils.exampledata import ExampleData
 
-from tests.conftest import clear_elastic, clear_raw_files
+from tests.fixtures.infrastructure import clear_elastic, clear_raw_files
 
 
 def test_get_entry(published: Upload):

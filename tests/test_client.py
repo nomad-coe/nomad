@@ -26,7 +26,7 @@ from nomad.client.archive import ArchiveQuery
 from nomad.datamodel import EntryArchive, User
 from nomad.datamodel.metainfo import runschema, SCHEMA_IMPORT_ERROR
 from nomad.metainfo import MSection, SubSection
-from tests.conftest import test_users
+from tests.fixtures.users import test_users
 from tests.processing import test_data as test_processing
 
 

@@ -36,7 +36,7 @@ from nomad.metainfo.elasticsearch_extension import (
     material_index,
 )
 
-from tests.conftest import clear_elastic_infra
+from tests.fixtures.infrastructure import clear_elastic_infra
 from tests.app.v1.routers.common import perform_quantity_search_test
 
 

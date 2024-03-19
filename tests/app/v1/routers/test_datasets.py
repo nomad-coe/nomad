@@ -27,7 +27,7 @@ from nomad.search import search
 from nomad.app.v1.models import Query, Any_
 from nomad.utils.exampledata import ExampleData
 
-from tests.conftest import admin_user_id
+from tests.fixtures.users import admin_user_id
 
 from .common import assert_response
 
