@@ -15,12 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import pytest
-from tests.conftest import (
-    test_users as conf_test_users,
-    test_user_uuid as conf_test_user_uuid,
-)
+
+from tests.fixtures.users import test_users as conf_test_users
+from tests.utils import test_user_uuid as conf_test_user_uuid
 
 
 def assert_user(user, expected_user):

@@ -30,7 +30,6 @@ from nomad.datamodel.metainfo.eln.labfolder import (
     LabfolderImportError,
 )
 from nomad.utils.exampledata import ExampleData
-from tests.test_files import example_mainfile_contents, append_raw_files  # pylint: disable=unused-import
 
 
 def test_labfolder_integration(mongo_function, monkeypatch, test_user):

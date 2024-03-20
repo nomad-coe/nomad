@@ -19,8 +19,7 @@
 import pytest
 
 from nomad.infrastructure import UserManagement
-
-from tests.conftest import test_user_uuid as create_test_user_uuid
+from tests.fixtures.users import test_user_uuid as create_test_user_uuid
 
 
 @pytest.fixture(scope='function')

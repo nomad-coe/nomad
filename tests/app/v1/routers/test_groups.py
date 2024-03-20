@@ -137,14 +137,14 @@ def test_create_group(
     mongo_function,
     request,
     test_auth_dict,
-    test_user_groups_dict,
+    test_user_group_molds,
     user_label,
     new_group_label,
     ref_group_label,
     expected_status_code,
 ):
     user_auth, _ = test_auth_dict[user_label]
-    new_group = test_user_groups_dict[new_group_label]
+    new_group = test_user_group_molds[new_group_label]
 
     response = perform_post(client, base_url, user_auth, json=new_group)
     assert_response(response, expected_status_code)
@@ -155,7 +155,7 @@ def test_create_group(
     response_group = UserGroup.parse_raw(response.content)
     group = get_user_group(response_group.group_id)
     assert_group(group, response_group)
-    ref_group = test_user_groups_dict[ref_group_label]
+    ref_group = test_user_group_molds[ref_group_label]
     assert_group(group, ref_group, ref_group.keys())
 
 
@@ -182,7 +182,7 @@ def test_update_user_group(
     client,
     mongo_function,
     test_auth_dict,
-    test_user_groups_dict,
+    test_user_group_molds,
     user_groups_function,
     user_owner_group,
     user_label,
@@ -192,7 +192,7 @@ def test_update_user_group(
 ):
     user_auth, _ = test_auth_dict[user_label]
     group_before = get_user_group(user_owner_group.group_id)
-    group_edit = test_user_groups_dict[group_edit_label]
+    group_edit = test_user_group_molds[group_edit_label]
 
     url = f'{base_url}/{group_before.group_id}/edit'
     response = perform_post(client, url, user_auth, json=group_edit)
@@ -205,7 +205,7 @@ def test_update_user_group(
 
     response_group = UserGroup.parse_raw(response.content)
     assert_group(group_after, response_group)
-    ref_group = test_user_groups_dict[ref_group_label]
+    ref_group = test_user_group_molds[ref_group_label]
     assert_group(group_after, ref_group, ref_group.keys())
 
 
