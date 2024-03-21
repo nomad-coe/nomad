@@ -17,7 +17,7 @@
  */
 import React, { useCallback, useState, useMemo } from 'react'
 import {
-  Box, Button, Menu, FormLabel, makeStyles, Typography, Select, MenuItem, InputLabel, FormControl
+  Box, Button, Menu, FormLabel, makeStyles, Typography
 } from '@material-ui/core'
 import SettingsIcon from '@material-ui/icons/Settings'
 import ReplayIcon from '@material-ui/icons/Replay'
@@ -49,7 +49,7 @@ const UnitMenu = React.memo(({
   onUnitChange,
   onSystemChange
 }) => {
-  const {units, dimensionMap, reset, scope, setScope} = useUnitContext()
+  const {units, dimensionMap, reset} = useUnitContext()
   const [anchorEl, setAnchorEl] = useState(null)
   const open = Boolean(anchorEl)
   const styles = useStyles()
@@ -152,7 +152,7 @@ const UnitMenu = React.memo(({
           </Action>
         </Actions>
         <Box mt={1} />
-        <FormControl variant="filled" fullWidth disabled={!scope}>
+        {/* <FormControl variant="filled" fullWidth disabled={!scope}>
           <InputLabel>Scope</InputLabel>
           <Select
             value={scope || 'Global'}
@@ -161,7 +161,7 @@ const UnitMenu = React.memo(({
             <MenuItem value={'Global'}>Global</MenuItem>
             <MenuItem value={'Schema'}>Schema</MenuItem>
           </Select>
-        </FormControl>
+        </FormControl> */}
         <Box mt={1} />
         <FormLabel component="legend">Select unit system</FormLabel>
         <UnitSystemSelect onChange={onSystemChange}/>

@@ -111,8 +111,10 @@ export class Quantity {
  * Convenience function for parsing value and unit information from a string.
  *
  * @param {string} input The input string to parse
- * @param {string} dimension Dimension for the unit. Defaults to 'dimensionless'
- *    if not specified. If you want to disable dimension checks, use null.
+ * @param {string} dimension Dimension for the unit. Note that you should use
+ *   the base dimensions which you can get e.g. with .dimension(true). Defaults
+ *   to 'dimensionless' if not specified. If you want to disable dimension
+ *   checks, use null.
  * @param {boolean} requireValue Whether an explicit numeric value is required at the start of the input.
  * @param {boolean} requireUnit Whether an explicit unit in the input is required at the end of the input.
  * @returns Object containing the following properties, if available:
@@ -177,8 +179,7 @@ export function parseQuantity(input, dimension = 'dimensionless', requireValue =
   // TODO: This check is not enough: the input may be compatible after the base
   // units are compared.
   if (dimension !== null) {
-    const inputDim = unit.dimension()
-    if (inputDim !== dimension) {
+    if (!(unit.dimension(true) === dimension || unit.dimension(false) === dimension)) {
       error = `Unit "${unit.label(false)}" is incompatible with dimension "${dimension}"`
     }
   }
