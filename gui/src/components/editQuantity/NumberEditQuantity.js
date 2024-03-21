@@ -21,7 +21,7 @@ import Autocomplete from '@material-ui/lab/Autocomplete'
 import PropTypes from 'prop-types'
 import {Quantity, parseQuantity} from '../units/Quantity'
 import {Unit} from '../units/Unit'
-import {useUnitContext, getUnits} from '../units/UnitContext'
+import {getUnits} from '../units/UnitContext'
 import {debounce, isNil} from 'lodash'
 import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
 import {useDisplayUnit} from "../units/useDisplayUnit"
@@ -205,28 +205,28 @@ NumberField.propTypes = {
 
 export const NumberEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, ...otherProps} = props
-  const {units, isReset} = useUnitContext()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
-  const dimension = defaultUnit && defaultUnit.dimension()
+  const dimension = defaultUnit && defaultUnit.dimension(false)
+  const dimensionBase = defaultUnit && defaultUnit.dimension(true)
   const [checked, setChecked] = useState(true)
   const [displayedValue, setDisplayedValue] = useState(true)
   const {defaultDisplayUnit: deprecatedDefaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
-  const {displayUnit: defaultDisplayUnitObj} = useDisplayUnit(undefined, quantityDef)
+  const displayUnit = useDisplayUnit(quantityDef)
+  const [unit, setUnit] = useState(displayUnit)
 
-  const [unit, setUnit] = useState(defaultDisplayUnitObj)
-
+  // Set the unit if display unit changes
   useEffect(() => {
-    setUnit(isReset ? defaultDisplayUnitObj : defaultUnit && new Unit(defaultUnit).toSystem(units))
-  }, [defaultDisplayUnitObj, defaultUnit, dimension, isReset, units])
+    setUnit(displayUnit)
+  }, [displayUnit])
 
   // Get a list of unit options for this field
   const options = useMemo(() => {
     const units = [...getUnits(dimension)].map(x => new Unit(x).label())
     unit && units.push(unit.label())
     defaultUnit && units.push(defaultUnit.label())
-    defaultDisplayUnitObj && units.push(defaultDisplayUnitObj.label())
+    displayUnit && units.push(displayUnit.label())
     return [...new Set(units)]
-  }, [defaultDisplayUnitObj, defaultUnit, dimension, unit])
+  }, [displayUnit, defaultUnit, dimension, unit])
 
   // Handle a change in NumberField input
   const handleChange = useCallback((value, unit) => {
@@ -270,7 +270,7 @@ export const NumberEditQuantity = React.memo((props) => {
             checked={checked}
           />
         </Tooltip>
-        <UnitSelect options={options} unit={unit} dimension={dimension} onChange={handleUnitChange}/>
+        <UnitSelect options={options} unit={unit} dimension={dimensionBase} onChange={handleUnitChange}/>
       </Box>
     )}
   </Box>

@@ -52,32 +52,32 @@ describe('Test numberEditQuantity', () => {
     await waitFor(() => expect(handleChange.mock.calls[1][0]).toBe(undefined))
   })
 
-  it('without default display unit', async () => {
+  test.each([
+    ['no default unit or unit system, defaults to global scope units', 'm', undefined, undefined, undefined, '100000000000'],
+    ['with display unit', 'm', 'mm', undefined, undefined, '10000'],
+    ['with display unit system', 'm', undefined, 'AU', undefined, '188972612462.228'],
+    ['with display unit and unit system', 'm', 'mm', 'AU', undefined, '10000'],
+    ['complex unit with no display unit', 'm**2 / second**2', undefined, undefined, undefined, '1e-9'],
+    ['complex unit with display unit', 'm**2 / second**2', 'Å**2 / fs**2', undefined, undefined, '1e-9'],
+    ['deprecated display unit in eln annotation', 'm', undefined, undefined, 'mm', '10000']
+  ])('%s', async (name, unit, displayUnit, displayUnitSystem, elnUnit, expected) => {
     render(
       <NumberEditQuantity
         quantityDef={{
           name: 'name',
-          unit: 'meter'
-        }}
-        type={{type_kind: 'python', type_data: 'int'}}
-        value={10}
-      />
-    )
-    const numberFieldValue = screen.queryByTestId('number-edit-quantity-value')
-    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    // should be rendered in default unit system
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('100000000000'))
-  })
-
-  it('with default display unit', async () => {
-    render(
-      <NumberEditQuantity
-        quantityDef={{
-          name: 'name',
-          unit: 'meter',
+          m_def: 'nomad.metainfo.metainfo.Quantity',
+          unit: unit,
+          _parent: displayUnitSystem && {
+            m_annotations: {
+              display: [{unit_system: displayUnitSystem}]
+            }
+          },
           m_annotations: {
-            display: [{
-              unit: 'mm'
+            display: displayUnit && [{
+              unit: displayUnit
+            }],
+            eln: elnUnit && [{
+              defaultDisplayUnit: elnUnit
             }]
           }
         }}
@@ -87,66 +87,6 @@ describe('Test numberEditQuantity', () => {
     )
     const numberFieldValue = screen.queryByTestId('number-edit-quantity-value')
     const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    // should be rendered in default unit provided by schema
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('10000'))
-  })
-
-  it('complex unit', async () => {
-    render(
-      <NumberEditQuantity
-        quantityDef={{
-          name: 'name',
-          unit: 'm**2 / second**2'
-        }}
-        type={{type_kind: 'python', type_data: 'int'}}
-        value={10}
-      />
-    )
-    const numberFieldValue = screen.queryByTestId('number-edit-quantity-value')
-    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('1e-9'))
-  })
-
-  it('complex unit with display unit', async () => {
-    render(
-      <NumberEditQuantity
-        quantityDef={{
-          name: 'name',
-          unit: 'm**2 / second**2',
-          m_annotations: {
-            display: [{
-              unit: 'm**2 / second**2'
-            }]
-          }
-        }}
-        type={{type_kind: 'python', type_data: 'int'}}
-        value={10}
-      />
-    )
-    const numberFieldValue = screen.queryByTestId('number-edit-quantity-value')
-    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('10'))
-  })
-
-  it('with default display unit (deprecated version)', async () => {
-    render(
-      <NumberEditQuantity
-        quantityDef={{
-          name: 'name',
-          unit: 'meter',
-          m_annotations: {
-            eln: [{
-              defaultDisplayUnit: 'mm'
-            }]
-          }
-        }}
-        type={{type_kind: 'python', type_data: 'int'}}
-        value={10}
-      />
-    )
-    const numberFieldValue = screen.queryByTestId('number-edit-quantity-value')
-    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    // should be rendered in default unit provided by schema
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('10000'))
+    await waitFor(() => expect(numberFieldValueInput.value).toEqual(expected))
   })
 })
