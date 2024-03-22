@@ -57,8 +57,8 @@ app.add_middleware(
 async def add_upload_folder_path(request: Request, call_next):
     upload_path = f"{request.query_params['upload_id'][0:config.fs.prefix_size]}/{request.query_params['upload_id']}/raw/"
     scope = request.scope
-    old_file = urllib.parse.quote(request.query_params['file'])
-    new_file = urllib.parse.quote(upload_path + request.query_params['file'])
+    old_file = urllib.parse.quote(request.query_params['file'], safe=[])
+    new_file = urllib.parse.quote(upload_path + request.query_params['file'], safe=[])
     scope['query_string'] = scope['query_string'].replace(
         old_file.encode('utf-8'), new_file.encode('utf-8')
     )
