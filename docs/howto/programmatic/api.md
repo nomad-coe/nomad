@@ -452,3 +452,34 @@ response = requests.post(
 {{ doc_snippet('archive-required') }}
 
 {{ metainfo_data() }}
+
+## Limits
+
+The API allows you to ask many requests in parallel and to put a lot of load
+on NOMAD servers. Since this can accidentally or deliberately reduce the service
+quality for other, we have to enforce a few limits.
+
+- *rate limit*: you can only run a certain amount of requests at the same time
+- *rate limit*: you can only run a certain amount of requests per second
+- *api limit*: many API endpoints will enforce a maximum page size
+
+If you get responses with an HTTP code **503 Service Unavailable**, you are hitting
+a rate limit and you cannot use the service until you fall back into our limits. Consider,
+to ask fewer requests in a larger time frame.
+
+Rate limits are enforced based on your IP address. Please note that when you or your
+colleagues are sharing a single external IPs from within a local network, e.g.
+via [NAT](https://en.wikipedia.org/wiki/Network_address_translation),
+you are also sharing the rate limits.
+Depending on the NOMAD installation, these limits can be as low as 30 requests per second
+or 10 concurrent requests.
+
+Consider to use endpoints that allow you to retrieve full
+pages of resources, instead of endpoints that force you to access resources one at a time.
+See also the sections on [types of data](#different-kinds-of-data) and [pagination](#pagination).
+
+However, pagination also has its limits and you might ask for pages that are too large.
+If you get responses in the 400 range, e.g. **422 Unprocessable Content** or **400 Bad request**,
+you might hit an api limit. Those responses are typically accompanied by an error message
+in the response body that will inform you about the limit, e.g. the maximum allowed
+page size.

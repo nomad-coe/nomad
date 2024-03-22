@@ -209,7 +209,7 @@ def define_env(env):
     @env.macro
     def nomad_url():  # pylint: disable=unused-variable
         # TODO Fix the configuration during build time.
-        return 'https://nomad-lab.eu/prod/v1/staging/api'
+        return 'https://nomad-lab.eu/prod/v1/api'
         # return config.api_url()
 
     @env.macro
