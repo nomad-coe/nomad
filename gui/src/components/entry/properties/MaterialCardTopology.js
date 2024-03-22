@@ -61,8 +61,8 @@ const useMaterialCardStyles = makeStyles((theme) => ({
 
 const MaterialCardTopology = React.memo(({index, archive}) => {
   const styles = useMaterialCardStyles()
-  const [topologyTree, topologyMap] = useMemo(() => getTopology(index, archive), [index, archive])
-  const [selected, setSelected] = useState(topologyTree.system_id)
+  const [topologyTrees, topologyMap] = useMemo(() => getTopology(index, archive), [index, archive])
+  const [selected, setSelected] = useState(topologyTrees[0].system_id)
   const [tab, setTab] = useState('composition')
   const [float, setFloat] = useState(false)
 
@@ -84,7 +84,7 @@ const MaterialCardTopology = React.memo(({index, archive}) => {
             <Box display="flex" flexDirection="row" width="100%">
               <Box flex="1 1 33%">
                 <Topology
-                  topologyTree={topologyTree}
+                  topologyTrees={topologyTrees}
                   topologyMap={topologyMap}
                   selected={selected}
                   onSelect={setSelected}
@@ -137,7 +137,7 @@ const useTopologyStyles = makeStyles((theme) => ({
 /**
  * Displays the topology in an interactive tree.
  */
-const Topology = React.memo(({topologyTree, topologyMap, selected, onSelect}) => {
+const Topology = React.memo(({topologyTrees, topologyMap, selected, onSelect}) => {
   const styles = useTopologyStyles()
 
   // Add selection handlers and gather a list of all nodes.
@@ -167,7 +167,9 @@ const Topology = React.memo(({topologyTree, topologyMap, selected, onSelect}) =>
       defaultCollapseIcon={<ExpandMoreIcon />}
       defaultExpandIcon={<ChevronRightIcon />}
     >
-      <TopologyItem node={topologyTree} level={0} selected={selected}/>
+      {topologyTrees.map(topologyTree =>
+        <TopologyItem key={topologyTree.id} node={topologyTree} level={0} selected={selected}/>
+      )}
     </TreeView>
     <div className={styles.spacer} />
     {description && <Box padding={1} paddingBottom={0}>
@@ -177,7 +179,7 @@ const Topology = React.memo(({topologyTree, topologyMap, selected, onSelect}) =>
   </div>
 })
 Topology.propTypes = {
-  topologyTree: PropTypes.object,
+  topologyTrees: PropTypes.list,
   topologyMap: PropTypes.object,
   selected: PropTypes.string,
   onSelect: PropTypes.func
@@ -546,23 +548,27 @@ export function getTopology(index, archive) {
 
   // Create topology tree by finding the root node and then recursively
   // replacing its children with the actual child instances.
-  const root = topology.find(top => isNil(top.parent_system))
+  const roots = topology.filter(top => isNil(top.parent_system))
   const traverse = (node) => {
     if (!isEmpty(node?.child_systems)) {
       node.child_systems = node.child_systems.map(id => topologyMap[id])
       node.child_systems.forEach(child => traverse(child))
     }
   }
-  traverse(root)
+  for (const root of roots) {
+    traverse(root)
+  }
 
   // Simplify the view if there is only one subsystem that covers everything.
-  if (root?.child_systems?.length === 1) {
-    const child = root.child_systems[0]
-    if (child.atomic_fraction === 1 && child?.system_relation?.type === 'subsystem') {
-      child.parent_system = root
-      root.child_systems = child.child_systems
+  for (const root of roots) {
+    if (root?.child_systems?.length === 1) {
+      const child = root.child_systems[0]
+      if (child.atomic_fraction === 1 && child?.system_relation?.type === 'subsystem') {
+        child.parent_system = root
+        root.child_systems = child.child_systems
+      }
     }
   }
 
-  return [root, topologyMap]
+  return [roots, topologyMap]
 }
