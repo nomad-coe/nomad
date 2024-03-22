@@ -21,6 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import traceback
 import re
+import urllib.parse
 
 from h5grove import fastapi_utils as h5grove_router
 
@@ -56,12 +57,10 @@ app.add_middleware(
 async def add_upload_folder_path(request: Request, call_next):
     upload_path = f"{request.query_params['upload_id'][0:config.fs.prefix_size]}/{request.query_params['upload_id']}/raw/"
     scope = request.scope
-    file = 'file=' + upload_path + request.query_params['file']
-    extension = re.search(
-        '.(nxs|h5|hdf5|hd5|hdf)', scope['query_string'].decode('utf-8')
-    )
-    scope['query_string'] = (
-        file.encode('utf-8') + scope['query_string'][extension.span()[1] :]
+    old_file = urllib.parse.quote(request.query_params['file'])
+    new_file = urllib.parse.quote(upload_path + request.query_params['file'])
+    scope['query_string'] = scope['query_string'].replace(
+        old_file.encode('utf-8'), new_file.encode('utf-8')
     )
     response = await call_next(Request(scope))
     return response
