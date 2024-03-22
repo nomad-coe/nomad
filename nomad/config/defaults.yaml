@@ -84,7 +84,6 @@ elastic:
   port: 9200
   timeout: 60
 fs:
-  archive_version_suffix: v1
   local_tmp: /tmp
   north_home: .volumes/fs/north/users
   prefix_size: 2
