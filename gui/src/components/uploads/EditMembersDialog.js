@@ -15,22 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, {useCallback, useContext, useMemo, useState, useReducer} from 'react'
 import {
-  makeStyles, DialogTitle, DialogContent, Dialog, IconButton, Tooltip,
-  Box, Divider, TextField, MenuItem, Select, Typography, FormControl, InputLabel, CircularProgress
+  Box,
+  Checkbox,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  MenuItem, Select,
+  TextField,
+  Tooltip,
+  Typography,
+  makeStyles
 } from '@material-ui/core'
-import DialogContentText from '@material-ui/core/DialogContentText'
-import MembersIcon from '@material-ui/icons/People'
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
-import { debounce } from 'lodash'
-import {Datatable, DatatableTable} from '../datatable/Datatable'
-import PropTypes from 'prop-types'
-import {useApi} from '../api'
-import {useErrors} from '../errors'
-import AutoComplete from '@material-ui/lab/Autocomplete'
+import DialogContentText from '@material-ui/core/DialogContentText'
 import DeleteIcon from '@material-ui/icons/Delete'
+import MembersIcon from '@material-ui/icons/People'
+import AutoComplete from '@material-ui/lab/Autocomplete'
+import { debounce } from 'lodash'
+import PropTypes from 'prop-types'
+import React, { useCallback, useContext, useMemo, useReducer, useState } from 'react'
+import { useApi } from '../api'
+import { Datatable, DatatableTable } from '../datatable/Datatable'
+import { useErrors } from '../errors'
 import { useUploadPageContext } from './UploadPageContext'
 
 export const editMembersDialogContext = React.createContext()
@@ -346,6 +360,12 @@ function EditMembersDialog({...props}) {
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
+  const [isVisibleForAll, setIsVisibleForAll] = useState(false)
+
+  const handleIsVisibleForAll = useCallback((event) => {
+    setIsVisibleForAll(event.target.checked)
+    setIsChanged(true)
+  }, [])
 
   const getUsers = useCallback((user_ids, roles) => {
     return new Promise((resolve, reject) => {
@@ -370,6 +390,7 @@ function EditMembersDialog({...props}) {
   const handleOpenDialog = () => {
     setMembers([])
     setIsChanged(false)
+    setIsVisibleForAll(upload.reviewer_groups?.includes('all'))
     fetchMembers()
       .then(members => setMembers(members))
       .catch(error => raiseError(error))
@@ -385,10 +406,12 @@ function EditMembersDialog({...props}) {
     if (isChanged) {
       const newCoauthors = members.filter(member => member.role === 'Co-author').map(member => member.user_id)
       const newReviewers = members.filter(member => member.role === 'Reviewer').map(member => member.user_id)
+      const allAction = isVisibleForAll ? 'add' : 'remove'
       api.post(`/uploads/${uploadId}/edit`, {
         'metadata': {
           'coauthors': newCoauthors,
-          'reviewers': newReviewers
+          'reviewers': newReviewers,
+          'reviewer_groups': {[allAction]: 'all'}
         }
       }).then(results => {
         updateUpload({upload: results.data})
@@ -429,7 +452,15 @@ function EditMembersDialog({...props}) {
             <br/>
             The upload includes {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'}.
           </DialogContentText>
-          <Divider/>
+          <Tooltip title="If checked, the upload can be viewed before publication even by unregistered users.">
+            <FormControlLabel
+              label="Visible for all"
+              control={
+                <Checkbox checked={isVisibleForAll} onChange={handleIsVisibleForAll} />
+              }
+            />
+          </Tooltip>
+          <Divider />
           <AddMember api={api} raiseError={raiseError} {...props}/>
           <MembersTable />
         </DialogContent>
