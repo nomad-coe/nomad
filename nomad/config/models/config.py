@@ -375,10 +375,11 @@ class FS(ConfigBaseModel):
     @root_validator()
     def __validate(cls, values):  # pylint: disable=no-self-argument
         def get_external_path(path):
-            work_dir = values.get('external_working_directory')
-            if work_dir and not os.path.isabs(path):
-                return os.path.join(work_dir, path)
-            return path
+            if os.path.isabs(path):
+                return path
+            external_work_dir = values.get('external_working_directory')
+            work_dir = external_work_dir or values.get('working_directory')
+            return os.path.join(work_dir, path)
 
         if values.get('staging_external') is None:
             values['staging_external'] = get_external_path(values.get('staging'))
