@@ -60,7 +60,7 @@ const StructureNGL = React.memo(({
   const [species, setSpecies] = useState()
   const [loading, setLoading] = useState(true)
   const [prompt, setPrompt] = useState()
-  const [accepted, setAccepted] = useState()
+  const [accepted, setAccepted] = useState(false)
   const [noData, setNoData] = useState(false)
   const [ready, setReady] = useState(false)
   const [showBonds, setShowBonds] = useState(false)
@@ -86,15 +86,16 @@ const StructureNGL = React.memo(({
   const asyncError = useAsyncError()
   const {entryId: newEntryId, path} = getSystemAPIQuery(selected, entryId, topologyMap)
   const system = topologyMap?.[selected]
+  const nAtomsAccepted = useRef(0)
 
   // Fetch the number of atoms
   const nAtoms = useMemo(() => {
-    const nAtoms = Object.values(topologyMap).find((top) => top.label === "original").n_atoms
+    const nAtoms = topologyMap?.[selected]?.n_atoms
     if (nAtoms > 500) {
       setShowBonds(false)
       setDisableShowBonds(true)
     }
-    if (nAtoms > sizeLimit) {
+    if (nAtoms > sizeLimit && nAtoms > nAtomsAccepted.current) {
       setPrompt(
         `Visualization is by default disabled for systems with more than ${sizeLimit} ` +
         `atoms. Do you wish to enable visualization for this system with ${nAtoms} atoms?`
@@ -105,7 +106,7 @@ const StructureNGL = React.memo(({
       setAccepted(true)
     }
     return nAtoms
-  }, [sizeLimit, topologyMap])
+  }, [sizeLimit, topologyMap, selected])
 
   // Updated the list of the species for the currently shown system
   useEffect(() => {
@@ -134,6 +135,13 @@ const StructureNGL = React.memo(({
   const render = useCallback(() => {
     viewerRef.current.render()
   }, [])
+
+  // Toggles bond visiblity on all representations
+  const handleAccept = useCallback(() => {
+    nAtomsAccepted.current = nAtoms
+    setAccepted(true)
+    setPrompt()
+  }, [nAtoms])
 
   // Toggles bond visiblity on all representations
   const handleShowBonds = useCallback((value) => {
@@ -441,14 +449,22 @@ const StructureNGL = React.memo(({
 
   // Called whenever the system changes. Loads the structure asynchronously.
   useEffect(() => {
+    // No structure to show
+    if (isNil(path)) {
+      setNoData(true)
+      setReady(true)
+      readyRef.current = true
+      return
+    }
+
+    // Start loading component
     const componentKey = `${newEntryId}/${path}`
     if (isNil(componentsRef.current[componentKey])) {
       setLoading(true)
     }
-    readyRef.current = false
     setReady(false)
-    setNoData(path === false)
-    if (!path) return
+    readyRef.current = false
+    setNoData(false)
 
     // For large systems we ask the user for permission
     if (!accepted) return
@@ -469,7 +485,7 @@ const StructureNGL = React.memo(({
 
   // React to selection
   useEffect(() => {
-    if (!ready || !readyRef.current) return
+    if (!ready || !readyRef.current || !system) return
 
     // Resolve how the selected topology should be visualized.
     const topSelection = system
@@ -486,52 +502,54 @@ const StructureNGL = React.memo(({
 
     // Determine the selection to center on.
     const representation = representationMap.current[independent ? selected : topParent]
-    representationRef.current = representation
-    selectionRef.current = representation?.sele
+    if (representation) {
+      representationRef.current = representation
+      selectionRef.current = representation?.sele
 
-    // Determine the selections to show opaque, i.e. as a solid color
-    const opaque = new Set([selected])
+      // Determine the selections to show opaque, i.e. as a solid color
+      const opaque = new Set([selected])
 
-    // Determine the selections to show transparent
-    const transparent = new Set((isGroup || structuralType === 'active orbitals') ? [topParent] : [])
+      // Determine the selections to show transparent
+      const transparent = new Set((isGroup || structuralType === 'active orbitals') ? [topParent] : [])
 
-    // Determine whether to show cell
-    const cellVisible = !(isMolecule || isMonomer || isMonomerGroup)
-    if (cellVisible) {
-      handleShowCell(showCell)
-      handleShowLatticeConstants(showCell)
-    } else {
-      handleShowCell(false, false)
-      handleShowLatticeConstants(false, false)
-    }
-    setDisableShowCell(!cellVisible)
-    setDisableWrapMode(!independent)
-    setWrapMode(representation.wrapMode)
-    setDisableShowLatticeContants(!cellVisible)
-
-    // Loop through representations and set the correct visualization
-    for (const [key, value] of Object.entries(representationMap.current)) {
-      const transparency = opaque.has(key) ? 1 : transparent.has(key) ? 0.1 : 0
-      if (transparency) {
-        value.atoms.setParameters({opacity: transparency})
-        value.bonds.setParameters({opacity: transparency})
-        value.atoms.setVisibility(true)
-        value.bonds.setVisibility(showBonds)
+      // Determine whether to show cell
+      const cellVisible = !(isMolecule || isMonomer || isMonomerGroup)
+      if (cellVisible) {
+        handleShowCell(showCell)
+        handleShowLatticeConstants(showCell)
       } else {
-        value.atoms.setParameters({opacity: 0})
-        value.atoms.setVisibility(false)
-        value.bonds.setVisibility(false)
+        handleShowCell(false, false)
+        handleShowLatticeConstants(false, false)
       }
-    }
-    wrapRepresentation(componentRef.current, representation)
+      setDisableShowCell(!cellVisible)
+      setDisableWrapMode(!independent)
+      setWrapMode(representation.wrapMode)
+      setDisableShowLatticeContants(!cellVisible)
 
-    // Configure and reset the view based on the basis vectors.
-    const nBasis = 3
-    if (nBasis === 3) {
-      alignmentRef.current = [['up', 'c'], ['right', 'a']]
-      rotationsRef.current = [[0, 30, 0], [30, 0, 0]]
+      // Loop through representations and set the correct visualization
+      for (const [key, value] of Object.entries(representationMap.current)) {
+        const transparency = opaque.has(key) ? 1 : transparent.has(key) ? 0.1 : 0
+        if (transparency) {
+          value.atoms.setParameters({opacity: transparency})
+          value.bonds.setParameters({opacity: transparency})
+          value.atoms.setVisibility(true)
+          value.bonds.setVisibility(showBonds)
+        } else {
+          value.atoms.setParameters({opacity: 0})
+          value.atoms.setVisibility(false)
+          value.bonds.setVisibility(false)
+        }
+      }
+      wrapRepresentation(componentRef.current, representation)
+
+      // Configure and reset the view based on the basis vectors.
+      const nBasis = 3
+      if (nBasis === 3) {
+        alignmentRef.current = [['up', 'c'], ['right', 'a']]
+        rotationsRef.current = [[0, 30, 0], [30, 0, 0]]
+      }
+      handleReset()
     }
-    handleReset()
     setLoading(false)
   // We don't want this effect to react to 'showCell', 'showBonds',
   // 'showLatticeParameters', or 'wrapMode'
@@ -549,7 +567,7 @@ const StructureNGL = React.memo(({
     onShowLatticeConstants={handleShowLatticeConstants}
     disableShowLatticeConstants={disableShowLatticeConstants}
     accepted={accepted}
-    onAccept={() => { setAccepted(true); setPrompt() }}
+    onAccept={handleAccept}
     showBonds={showBonds}
     onShowBonds={handleShowBonds}
     disableShowBonds={disableShowBonds}
@@ -612,15 +630,19 @@ export function getSystemAPIQuery(selected, entryId, topologyMap) {
   // the structure and does not specify indices. This way the visualizer is a
   // bit more optimal compared to doing API calls for every subsystem.
   function getPath(top) {
-    return ((top.atoms_ref || top.atoms) && isNil(top.indices))
-      ? top.system_id
-      : getPath(topologyMap[top.parent_system])
+    let path
+    if ((top.atoms_ref || top.atoms) && isNil(top.indices)) {
+      path = top.system_id
+    } else if (!isNil(top.indices)) {
+      path = getPath(topologyMap[top.parent_system])
+    }
+    return path
   }
   let path = getPath(topologyMap[selected])
 
   // The path may be a reference that points to some other entry as well,
   // here it is resolved
-  if (!path.startsWith('results')) {
+  if (path && !path.startsWith('results')) {
     const nomadUrl = parseNomadUrl(path)
     entryId = nomadUrl.entryId || entryId
     path = nomadUrl.path
