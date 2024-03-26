@@ -34,47 +34,55 @@ const FilterSubMenuCatalyst = React.memo(({
     <InputGrid>
       <InputGridItem xs={12}>
         <InputField
-          quantity="results.properties.catalytic.reactivity.reaction_name"
+          quantity="results.properties.catalytic.reaction.name"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.catalytic.reactivity.reactants"
+          section="results.properties.catalytic.reaction.reactants"
           visible={visible}
         >
           <InputField
-          quantity="results.properties.catalytic.reactivity.reactants.name"
+          quantity="results.properties.catalytic.reaction.reactants.name"
           visible={visible}
           />
           <InputRange
-          quantity="results.properties.catalytic.reactivity.reactants.conversion"
+          quantity="results.properties.catalytic.reaction.reactants.conversion"
           visible={visible}
           />
           <InputRange
-          quantity="results.properties.catalytic.reactivity.reactants.gas_concentration_in"
+          quantity="results.properties.catalytic.reaction.reactants.gas_concentration_in"
+          visible={visible}
+          />
+          <InputRange
+          quantity="results.properties.catalytic.reaction.reactants.gas_concentration_out"
           visible={visible}
           />
         </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.catalytic.reactivity.products"
+          section="results.properties.catalytic.reaction.products"
           visible={visible}
         >
           <InputField
-          quantity="results.properties.catalytic.reactivity.products.name"
+          quantity="results.properties.catalytic.reaction.products.name"
           visible={visible}
           />
           <InputRange
-          quantity="results.properties.catalytic.reactivity.products.selectivity"
+          quantity="results.properties.catalytic.reaction.products.selectivity"
+          visible={visible}
+          />
+          <InputRange
+          quantity="results.properties.catalytic.reaction.products.gas_concentration_out"
           visible={visible}
           />
         </InputSection>
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputRange
-          quantity="results.properties.catalytic.reactivity.test_temperatures"
+          quantity="results.properties.catalytic.reaction.temperature"
           visible={visible}
         />
       </InputGridItem>
@@ -97,6 +105,10 @@ const FilterSubMenuCatalyst = React.memo(({
           section="results.properties.catalytic.catalyst_characterization"
           visible={visible}
         >
+          <InputField
+            quantity="results.properties.catalytic.catalyst_characterization.method"
+            visible={visible}
+          />
           <InputRange
             quantity="results.properties.catalytic.catalyst_characterization.surface_area"
             visible={visible}

@@ -490,6 +490,7 @@ registerFilter(
   idCatalyst,
   nestedQuantity,
   [
+    {name: 'method', ...termQuantity},
     {name: 'surface_area', ...numberHistogramQuantity, scale: '1/4'},
     {name: 'method_surface_area', ...termQuantity}
   ]
@@ -504,38 +505,40 @@ registerFilter(
   ]
 )
 registerFilter(
-  'results.properties.catalytic.reactivity',
+  'results.properties.catalytic.reaction',
   idCatalyst,
   nestedQuantity,
   [
-    {name: 'reaction_name', ...termQuantity},
-    {name: 'reaction_class', ...termQuantity},
-    {name: 'test_temperatures', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'name', ...termQuantity},
+    {name: 'type', ...termQuantity},
+    {name: 'temperature', ...numberHistogramQuantity, scale: '1/4'},
     {name: 'pressure', ...numberHistogramQuantity, scale: 'linear'},
-    {name: 'gas_hourly_space_velocity', ...numberHistogramQuantity, scale: '1/4'}
+    {name: 'weight_hourly_space_velocity', ...numberHistogramQuantity, scale: '1/4'}
   ]
 )
 registerFilter(
-  'results.properties.catalytic.reactivity.products',
+  'results.properties.catalytic.reaction.products',
   idCatalyst,
   nestedQuantity,
   [
     {name: 'name', ...termQuantityAllNonExclusive},
+    {name: 'gas_concentration_out', ...numberHistogramQuantity, scale: 'linear'},
     {name: 'selectivity', ...numberHistogramQuantity, scale: '1/4'}
   ]
 )
 registerFilter(
-  'results.properties.catalytic.reactivity.reactants',
+  'results.properties.catalytic.reaction.reactants',
   idCatalyst,
   nestedQuantity,
   [
     {name: 'name', ...termQuantityAllNonExclusive},
     {name: 'gas_concentration_in', ...numberHistogramQuantity, scale: 'linear'},
+    {name: 'gas_concentration_out', ...numberHistogramQuantity, scale: 'linear'},
     {name: 'conversion', ...numberHistogramQuantity, scale: 'linear'}
   ]
 )
 registerFilter(
-  'results.properties.catalytic.reactivity.rates',
+  'results.properties.catalytic.reaction.rates',
   idCatalyst,
   nestedQuantity,
   [

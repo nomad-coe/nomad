@@ -3339,51 +3339,65 @@ class OptoelectronicProperties(MSection):
     solar_cell = SubSection(sub_section=SolarCell.m_def, repeats=False)
 
 
-class Reactant(MSection):
+class Reagent(MSection):
     m_def = Section(
         description="""
-        A reactant in a catalytic test reaction. A reactant is identified by having a conversion.
+        A participant in a catalytic reaction
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007005'],
         label_quantity='name',
     )
     name = Quantity(
         type=str,
         shape=[],
         description="""
-        Name of the reactant.
+        IUPAC name of the reagent.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     gas_concentration_in = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         description="""
-        Volumetric concentration of the reactant in the feed gas, value between 0 and 1.
+        Volumetric concentration of the reagent in the feed gas, in %.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     gas_concentration_out = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         description="""
-        Volumetric concentration of the reactant after the reactor, value between 0 and 1.
+        Volumetric concentration of the reagent after the reactor, value between 0 and 1.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class Reactant(Reagent):
+    m_def = Section(
+        description="""
+        A reactant in a catalytic test reaction. A reactant
+        is identified by having a conversion.
+        """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000101'],
+        label_quantity='name',
     )
     conversion = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         description="""
         Conversion of the reactant, in %.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0005002'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
 
-class Product(MSection):
+class Product(Reagent):
     m_def = Section(
         description="""
-        A product of a catalytic test reaction. A product is identified by having a selectivity.
+        A product of a catalytic reaction. A product here is usually identified by having
+        a selectivity, or a gas_concentration_out but no/zero gas_concentration_in.
         """,
         label_quantity='name',
     )
@@ -3391,38 +3405,46 @@ class Product(MSection):
         type=str,
         shape=[],
         description="""
-        Name of the product.
-        """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-    gas_concentration_out = Quantity(
-        type=np.float64,
-        shape=[],
-        description="""
-        Volumetric concentration of the product after the reactor, value between 0 and 1.
+        Name of the product, preferably the IUPAC name.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     selectivity = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         description="""
         Selectivity of the product, in %.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000125'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     space_time_yield = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         unit='1/s',
         description="""
         Space-time-yield of the product, in mass product per mass catalyst per time.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0005006'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
 
 class Rate(MSection):
+    m_def = Section(
+        description="""
+        The rate of a catalytic test reaction.
+        """,
+        label_quantity='name',
+    )
+    name = Quantity(
+        type=str,
+        shape=[],
+        description="""
+        IUPAC name of the reagent whose rate is captured.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
     reaction_rate = Quantity(
         type=np.float64,
         shape=[],
@@ -3430,6 +3452,7 @@ class Rate(MSection):
         The rate of the number of reactant or product molecules converted/produced, per mass of total catalyst, per time.
         """,
         unit='mol/(g*s)',
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007024'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3440,6 +3463,7 @@ class Rate(MSection):
         The specific rate of the reactant, per mass of active catalyst component (e.g. metal).
         """,
         unit='mol/(g*s)',
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007025'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     specific_surface_area_rate = Quantity(
@@ -3449,6 +3473,7 @@ class Rate(MSection):
         The specific rate of the reactant, per surface area of active catalyst.
         """,
         unit='mol/(m**2*s)',
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007025'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
     rate = Quantity(
@@ -3470,28 +3495,30 @@ class Rate(MSection):
     )
 
 
-class Reactivity(MSection):
+class Reaction(MSection):
     m_def = Section(
         description="""
         Properties of a catalytic test reaction.
         """
     )
-    reaction_name = Quantity(
+    name = Quantity(
         type=str,
         shape=[],
         description="""
         Name of the catalytic test reaction.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007009'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
-    reaction_class = Quantity(
+    type = Quantity(
         type=str,
         shape=[],
         description="""
         Classification of the catalytic test reaction such as Oxidation, Hydrogenation,
         Isomerization, Coupling...
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007010'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3513,33 +3540,46 @@ class Reactivity(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True),
     )
 
+    weight_hourly_space_velocity = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='(ml/g/s)',
+        description="""
+        The weight hourly space velocity in 1/time (gas flow per catalyst mass).
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
     gas_hourly_space_velocity = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         unit='(s)^-1',
         description="""
         The gas hourly space velocity in 1/time (gas flow per catalyst volume).
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007023'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
     flow_rate = Quantity(
         type=np.float64,
-        shape=[],
+        shape=['*'],
         unit='m^3/s',
         description="""
-        The volumetric gas flow in volume per time
+        The volumetric gas flow in volume per time.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000162'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
-    test_temperatures = Quantity(
+    temperature = Quantity(
         type=np.float64,
         shape=['*'],
         unit='K',
         description="""
-        The reaction temperature(s) during the catalytic test reaction.
+        The reaction temperature(s) in the catalytic reactor during a chemical reaction.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007032'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3548,7 +3588,7 @@ class Reactivity(MSection):
         shape=['*'],
         unit='s',
         description="""
-        The time on stream of the catalyst in the catalytic test reaction.
+        The time on stream of the catalyst in the catalytic reaction.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
@@ -3558,7 +3598,7 @@ class Reactivity(MSection):
         shape=[],
         unit='s',
         description="""
-        The time on stream of the catalyst in the catalytic test reaction.
+        The total time on stream of the catalyst in the catalytic test reaction.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
@@ -3568,7 +3608,7 @@ class Reactivity(MSection):
         shape=['*'],
         unit='Pa',
         description="""
-        The pressure set during the catalytic test reaction.
+        The pressure during the catalytic test reaction.
         """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
@@ -3596,6 +3636,7 @@ class CatalystSynthesis(MSection):
         description="""
         The main preparation method of the sample.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007016'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3605,6 +3646,7 @@ class CatalystSynthesis(MSection):
         description="""
         The type of catalyst, wether metal or oxide, ...
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007014'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3615,6 +3657,14 @@ class CatalystCharacterization(MSection):
         Properties of a heterogeneous catalyst.
         """
     )
+    method = Quantity(
+        type=str,
+        shape=['*'],
+        description="""
+        A method used to characterize the catalyst.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
 
     surface_area = Quantity(
         type=np.float64,
@@ -3623,6 +3673,7 @@ class CatalystCharacterization(MSection):
         description="""
         The surface area per catalyst mass.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000013'],
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3642,7 +3693,7 @@ class CatalyticProperties(MSection):
         Properties of Heterogeneous Catalysts.
         """
     )
-    reactivity = SubSection(sub_section=Reactivity.m_def, repeats=False)
+    reaction = SubSection(sub_section=Reaction.m_def, repeats=False)
     catalyst_synthesis = SubSection(sub_section=CatalystSynthesis.m_def, repeats=False)
     catalyst_characterization = SubSection(
         sub_section=CatalystCharacterization.m_def, repeats=False
