@@ -12,6 +12,8 @@ fs:
   public: '.volumes/test_fs/public'
 plugins:
   include:
+    - schema/simulation/run
+    - schema/simulation/workflow
     - parsers/vasp
 services:
   aitoolkit_enabled: true

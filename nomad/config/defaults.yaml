@@ -1718,7 +1718,7 @@ ui:
         columns:
           selected:
           - entry_name
-          - results.properties.catalytic.reactivity.reaction_name
+          - results.properties.catalytic.reaction.name
           - results.properties.catalytic.catalyst_synthesis.catalyst_type
           - results.properties.catalytic.catalyst_synthesis.preparation_method
           - results.properties.catalytic.catalyst_characterization.surface_area
@@ -1734,15 +1734,15 @@ ui:
                 decimals: 2
                 mode: standard
               label: Surface Area (m^2/g)
-            results.properties.catalytic.reactivity.reaction_name:
+            results.properties.catalytic.reaction.name:
               label: Reaction Name
-            results.properties.catalytic.reactivity.reaction_class:
+            results.properties.catalytic.reaction.type:
               label: Reaction Class
             results.properties.catalytic.catalyst_synthesis.catalyst_name:
               label: Catalyst Name
-            results.properties.catalytic.reactivity.reactants.name:
+            results.properties.catalytic.reaction.reactants.name:
               label: Reactants
-            results.properties.catalytic.reactivity.products.name:
+            results.properties.catalytic.reaction.products.name:
               label: Products
             references:
               label: References
@@ -1805,176 +1805,202 @@ ui:
         dashboard:
           widgets:
           - layout:
-              lg: {h: 8, minH: 8, minW: 12, w: 12, x: 0, y: 6}
+              lg: {h: 10, minH: 8, minW: 12, w: 16, x: 0, y: 6}
               md: {h: 8, minH: 8, minW: 12, w: 12, x: 0, y: 5}
-              sm: {h: 8, minH: 8, minW: 12, w: 12, x: 0, y: 5}
-              xl: {h: 8, minH: 8, minW: 12, w: 12, x: 0, y: 5}
-              xxl: {h: 8, minH: 8, minW: 12, w: 12, x: 0, y: 5}
+              sm: {h: 8, minH: 8, minW: 12, w: 12, x: 0, y: 4}
+              xl: {h: 10, minH: 8, minW: 12, w: 16, x: 0, y: 6}
+              xxl: {h: 10, minH: 8, minW: 12, w: 16, x: 0, y: 6}
             quantity: results.material.elements
             scale: linear
             type: periodictable
           - layout:
-              lg: {h: 6, minH: 3, minW: 3, w: 6, x: 0, y: 0}
-              md: {h: 5, minH: 3, minW: 3, w: 6, x: 0, y: 0}
-              sm: {h: 5, minH: 3, minW: 3, w: 4, x: 0, y: 0}
-              xl: {h: 5, minH: 3, minW: 3, w: 6, x: 0, y: 0}
-              xxl: {h: 5, minH: 3, minW: 3, w: 6, x: 6, y: 0}
-            quantity: results.properties.catalytic.reactivity.reactants.name
-            scale: linear
-            showinput: true
-            type: terms
-          - layout:
-              lg: {h: 6, minH: 3, minW: 3, w: 6, x: 12, y: 0}
-              md: {h: 5, minH: 3, minW: 3, w: 6, x: 12, y: 0}
-              sm: {h: 5, minH: 3, minW: 3, w: 4, x: 8, y: 0}
-              xl: {h: 5, minH: 3, minW: 3, w: 6, x: 12, y: 0}
-              xxl: {h: 5, minH: 3, minW: 3, w: 6, x: 0, y: 0}
-            quantity: results.properties.catalytic.reactivity.reaction_name
-            scale: linear
-            showinput: true
-            type: terms
-          - layout:
-              lg: {h: 6, minH: 3, minW: 3, w: 6, x: 6, y: 0}
+              lg: {h: 6, minH: 3, minW: 3, w: 8, x: 8, y: 0}
               md: {h: 5, minH: 3, minW: 3, w: 6, x: 6, y: 0}
-              sm: {h: 5, minH: 3, minW: 3, w: 4, x: 4, y: 0}
-              xl: {h: 5, minH: 3, minW: 3, w: 6, x: 6, y: 0}
-              xxl: {h: 5, minH: 3, minW: 3, w: 6, x: 12, y: 0}
-            quantity: results.properties.catalytic.reactivity.products.name
+              sm: {h: 4, minH: 4, minW: 3, w: 4, x: 4, y: 0}
+              xl: {h: 6, minH: 3, minW: 3, w: 8, x: 8, y: 0}
+              xxl: {h: 6, minH: 3, minW: 3, w: 8, x: 8, y: 0}
+            quantity: results.properties.catalytic.reaction.reactants.name
             scale: linear
             showinput: true
             type: terms
           - layout:
-              lg: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 6}
+              lg: {h: 6, minH: 3, minW: 3, w: 8, x: 0, y: 0}
+              md: {h: 5, minH: 3, minW: 3, w: 6, x: 0, y: 0}
+              sm: {h: 4, minH: 3, minW: 3, w: 4, x: 0, y: 0}
+              xl: {h: 6, minH: 3, minW: 3, w: 8, x: 0, y: 0}
+              xxl: {h: 6, minH: 3, minW: 3, w: 8, x: 0, y: 0}
+            quantity: results.properties.catalytic.reaction.name
+            scale: linear
+            showinput: true
+            type: terms
+          - layout:
+              lg: {h: 6, minH: 3, minW: 3, w: 8, x: 16, y: 0}
+              md: {h: 5, minH: 3, minW: 3, w: 6, x: 12, y: 0}
+              sm: {h: 4, minH: 3, minW: 3, w: 4, x: 8, y: 0}
+              xl: {h: 6, minH: 3, minW: 3, w: 8, x: 16, y: 0}
+              xxl: {h: 6, minH: 3, minW: 3, w: 8, x: 16, y: 0}
+            quantity: results.properties.catalytic.reaction.products.name
+            scale: linear
+            showinput: true
+            type: terms
+          - layout:
+              lg: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 6}
               md: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 5}
-              sm: {h: 3, minH: 3, minW: 3, w: 4, x: 8, y: 13}
-              xl: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 5}
-              xxl: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 5}
+              sm: {h: 3, minH: 3, minW: 3, w: 6, x: 0, y: 12}
+              xl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 6}
+              xxl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 6}
             quantity: results.properties.catalytic.catalyst_synthesis.preparation_method
             scale: linear
             showinput: true
             type: terms
           - layout:
-              lg: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 10}
+              lg: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 11}
               md: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 9}
-              sm: {h: 3, minH: 3, minW: 3, w: 4, x: 8, y: 16}
-              xl: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 9}
-              xxl: {h: 4, minH: 3, minW: 3, w: 6, x: 12, y: 9}
+              sm: {h: 3, minH: 3, minW: 3, w: 6, x: 6, y: 12}
+              xl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 11}
+              xxl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 11}
             quantity: results.properties.catalytic.catalyst_synthesis.catalyst_type
             scale: linear
             showinput: true
             type: terms
           - autorange: false
             layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 14}
+              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 0, y: 16}
               md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 13}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 13}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 13}
-              xxl: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 13}
+              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 0, y: 15}
+              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 16}
+              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 16}
             nbins: 30
-            quantity: results.properties.catalytic.reactivity.test_temperatures
+            quantity: results.properties.catalytic.reaction.temperature
             scale: linear
             showinput: false
             type: histogram
           - autorange: false
             layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 18}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 16}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 22}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 17}
-              xxl: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 16}
-            nbins: 30
-            quantity: results.properties.catalytic.reactivity.gas_hourly_space_velocity
-            scale: linear
-            showinput: false
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 9, x: 9, y: 14}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 13}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 16}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 9, y: 13}
-              xxl: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 13}
-            nbins: 30
-            quantity: results.properties.catalytic.reactivity.reactants.gas_concentration_in
-            scale: linear
-            showinput: false
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 9, x: 9, y: 14}
+              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 0, y: 21}
               md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 16}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 16}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 9, y: 17}
-              xxl: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 16}
+              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 0, y: 18}
+              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 20}
+              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 20}
             nbins: 30
-            quantity: results.properties.catalytic.reactivity.pressure
+            quantity: results.properties.catalytic.reaction.weight_hourly_space_velocity
             scale: linear
             showinput: false
             type: histogram
           - autorange: false
             layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 26}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 22}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 33}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 21}
-              xxl: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 19}
+              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 12, y: 21}
+              md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 16}
+              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 6, y: 18}
+              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
+              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
             nbins: 30
-            quantity: results.properties.catalytic.reactivity.products.selectivity
+            quantity: results.properties.catalytic.reaction.reactants.gas_concentration_in
             scale: linear
             showinput: false
             type: histogram
           - autorange: false
             layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 22}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 19}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 30}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 25}
-              xxl: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 22}
+              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 12, y: 16}
+              md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 13}
+              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 6, y: 15}
+              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
+              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
             nbins: 30
-            quantity: results.properties.catalytic.reactivity.reactants.conversion
-            scale: linear
-            showinput: false
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 30}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 25}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 36}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 9, y: 29}
-              xxl: {h: 3, minH: 3, minW: 8, w: 8, x: 8, y: 25}
-            nbins: 30
-            quantity: results.properties.catalytic.reactivity.rates.reaction_rate
+            quantity: results.properties.catalytic.reaction.pressure
             scale: linear
             showinput: false
             type: histogram
           - autorange: true
             layout:
-              lg: {h: 8, minH: 3, minW: 3, w: 9, x: 9, y: 22}
-              md: {h: 6, minH: 3, minW: 3, w: 9, x: 9, y: 19}
-              sm: {h: 5, minH: 3, minW: 3, w: 8, x: 9, y: 25}
-              xl: {h: 8, minH: 3, minW: 3, w: 9, x: 9, y: 21}
-              xxl: {h: 6, minH: 3, minW: 3, w: 10, x: 8, y: 19}
+              lg: {h: 8, minH: 3, minW: 3, w: 12, x: 0, y: 26}
+              md: {h: 6, minH: 3, minW: 3, w: 9, x: 0, y: 19}
+              sm: {h: 5, minH: 3, minW: 3, w: 6, x: 0, y: 21}
+              xl: {h: 9, minH: 3, minW: 3, w: 12, x: 0, y: 24}
+              xxl: {h: 9, minH: 3, minW: 3, w: 12, x: 0, y: 24}
             markers:
               color:
-                quantity: results.properties.catalytic.catalyst_characterization.surface_area
+                quantity: results.properties.catalytic.reaction.reactants[*].name
             size: 1000
             type: scatterplot
             x:
-              quantity: results.properties.catalytic.reactivity.reactants.conversion
+              quantity: results.properties.catalytic.reaction.temperature
             y:
-              quantity: results.properties.catalytic.reactivity.products.selectivity
+              quantity: results.properties.catalytic.reaction.reactants[*].conversion
+          - autorange: true
+            layout:
+              lg: {h: 8, minH: 3, minW: 3, w: 12, x: 12, y: 26}
+              md: {h: 6, minH: 3, minW: 3, w: 9, x: 9, y: 19}
+              sm: {h: 5, minH: 3, minW: 3, w: 6, x: 6, y: 21}
+              xl: {h: 9, minH: 3, minW: 3, w: 12, x: 12, y: 24}
+              xxl: {h: 9, minH: 3, minW: 3, w: 12, x: 12, y: 24}
+            markers:
+              color:
+                quantity: results.properties.catalytic.reaction.products[*].name
+            size: 1000
+            type: scatterplot
+            x:
+              quantity: results.properties.catalytic.reaction.temperature
+            y:
+              quantity: results.properties.catalytic.reaction.products[*].selectivity
+          - autorange: true
+            layout:
+              lg: {h: 8, minH: 3, minW: 3, w: 12, x: 0, y: 34}
+              md: {h: 6, minH: 3, minW: 3, w: 9, x: 0, y: 25}
+              sm: {h: 5, minH: 3, minW: 3, w: 6, x: 0, y: 26}
+              xl: {h: 9, minH: 3, minW: 3, w: 12, x: 0, y: 33}
+              xxl: {h: 9, minH: 3, minW: 3, w: 12, x: 0, y: 33}
+            markers:
+              color:
+                quantity: results.properties.catalytic.reaction.name
+            size: 1000
+            type: scatterplot
+            x:
+              quantity: results.properties.catalytic.reaction.reactants[? name=='molecular oxygen'].conversion
+              title: 'Oxygen Conversion'
+            y:
+              quantity: results.properties.catalytic.reaction.products[? name=='acetic acid'].selectivity
+              title: 'Acetic Acid Selectivity'
+          - autorange: true
+            layout:
+              lg: {h: 8, minH: 3, minW: 3, w: 12, x: 12, y: 34}
+              md: {h: 6, minH: 3, minW: 3, w: 9, x: 9, y: 25}
+              sm: {h: 5, minH: 3, minW: 3, w: 6, x: 6, y: 26}
+              xl: {h: 9, minH: 3, minW: 3, w: 12, x: 12, y: 33}
+              xxl: {h: 9, minH: 3, minW: 3, w: 12, x: 12, y: 33}
+            markers:
+              color:
+                quantity: results.properties.catalytic.catalyst_synthesis.preparation_method
+            size: 1000
+            type: scatterplot
+            x:
+              quantity: results.properties.catalytic.reaction.reactants[? name=='carbon monoxide'].conversion
+              title: 'Carbon Monoxide Conversion'
+            y:
+              quantity: results.properties.catalytic.reaction.products[? name=='ethanol'].selectivity
+              title: 'Ethanol Selectivity'
           - autorange: false
             layout:
-              lg: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 34}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 28}
-              sm: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 39}
-              xl: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 29}
-              xxl: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 25}
+              lg: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}
+              md: {h: 4, minH: 3, minW: 8, w: 9, x: 0, y: 31}
+              sm: {h: 4, minH: 3, minW: 8, w: 8, x: 0, y: 31}
+              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}
+              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}
             nbins: 30
             quantity: results.properties.catalytic.catalyst_characterization.surface_area
             scale: 1/4
             showinput: false
             type: histogram
+          - layout:
+              lg: {h: 4, minH: 3, minW: 3, w: 12, x: 12, y: 42}
+              md: {h: 4, minH: 3, minW: 3, w: 9, x: 9, y: 31}
+              sm: {h: 4, minH: 4, minW: 3, w: 8, x: 8, y: 31}
+              xl: {h: 4, minH: 3, minW: 3, w: 12, x: 12, y: 42}
+              xxl: {h: 4, minH: 3, minW: 3, w: 12, x: 12, y: 42}
+            quantity: results.properties.catalytic.catalyst_characterization.method
+            scale: linear
+            showinput: true
+            type: terms
 plugins:
   options:
     normalizers/simulation/band_structure:

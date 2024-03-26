@@ -2810,11 +2810,11 @@ window.nomadEnv = {
                   "mode": "standard"
                 }
               },
-              "results.properties.catalytic.reactivity.reaction_name": {
+              "results.properties.catalytic.reaction.name": {
                 "label": "Reaction Name",
                 "align": "left"
               },
-              "results.properties.catalytic.reactivity.reaction_class": {
+              "results.properties.catalytic.reaction.type": {
                 "label": "Reaction Class",
                 "align": "left"
               },
@@ -2822,11 +2822,11 @@ window.nomadEnv = {
                 "label": "Catalyst Name",
                 "align": "left"
               },
-              "results.properties.catalytic.reactivity.reactants.name": {
+              "results.properties.catalytic.reaction.reactants.name": {
                 "label": "Reactants",
                 "align": "left"
               },
-              "results.properties.catalytic.reactivity.products.name": {
+              "results.properties.catalytic.reaction.products.name": {
                 "label": "Products",
                 "align": "left"
               },
@@ -2897,7 +2897,7 @@ window.nomadEnv = {
             },
             "selected": [
               "entry_name",
-              "results.properties.catalytic.reactivity.reaction_name",
+              "results.properties.catalytic.reaction.name",
               "results.properties.catalytic.catalyst_synthesis.catalyst_type",
               "results.properties.catalytic.catalyst_synthesis.preparation_method",
               "results.properties.catalytic.catalyst_characterization.surface_area"
@@ -2976,8 +2976,8 @@ window.nomadEnv = {
                 "type": "periodictable",
                 "layout": {
                   "lg": {
-                    "h": 8,
-                    "w": 12,
+                    "h": 10,
+                    "w": 16,
                     "x": 0,
                     "y": 6,
                     "minH": 8,
@@ -2995,23 +2995,23 @@ window.nomadEnv = {
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 5,
+                    "y": 4,
                     "minH": 8,
                     "minW": 12
                   },
                   "xl": {
-                    "h": 8,
-                    "w": 12,
+                    "h": 10,
+                    "w": 16,
                     "x": 0,
-                    "y": 5,
+                    "y": 6,
                     "minH": 8,
                     "minW": 12
                   },
                   "xxl": {
-                    "h": 8,
-                    "w": 12,
+                    "h": 10,
+                    "w": 16,
                     "x": 0,
-                    "y": 5,
+                    "y": 6,
                     "minH": 8,
                     "minW": 12
                   }
@@ -3024,8 +3024,8 @@ window.nomadEnv = {
                 "layout": {
                   "lg": {
                     "h": 6,
-                    "w": 6,
-                    "x": 0,
+                    "w": 8,
+                    "x": 8,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
@@ -3033,37 +3033,37 @@ window.nomadEnv = {
                   "md": {
                     "h": 5,
                     "w": 6,
-                    "x": 0,
+                    "x": 6,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
                   },
                   "sm": {
-                    "h": 5,
+                    "h": 4,
                     "w": 4,
-                    "x": 0,
+                    "x": 4,
                     "y": 0,
-                    "minH": 3,
+                    "minH": 4,
                     "minW": 3
                   },
                   "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 0,
+                    "h": 6,
+                    "w": 8,
+                    "x": 8,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
                   },
                   "xxl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
+                    "h": 6,
+                    "w": 8,
+                    "x": 8,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
                   }
                 },
-                "quantity": "results.properties.catalytic.reactivity.reactants.name",
+                "quantity": "results.properties.catalytic.reaction.reactants.name",
                 "scale": "linear",
                 "showinput": true
               },
@@ -3072,8 +3072,56 @@ window.nomadEnv = {
                 "layout": {
                   "lg": {
                     "h": 6,
+                    "w": 8,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 5,
                     "w": 6,
-                    "x": 12,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 6,
+                    "w": 8,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 6,
+                    "w": 8,
+                    "x": 0,
+                    "y": 0,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.properties.catalytic.reaction.name",
+                "scale": "linear",
+                "showinput": true
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "lg": {
+                    "h": 6,
+                    "w": 8,
+                    "x": 16,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
@@ -3087,7 +3135,7 @@ window.nomadEnv = {
                     "minW": 3
                   },
                   "sm": {
-                    "h": 5,
+                    "h": 4,
                     "w": 4,
                     "x": 8,
                     "y": 0,
@@ -3095,71 +3143,23 @@ window.nomadEnv = {
                     "minW": 3
                   },
                   "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.properties.catalytic.reactivity.reaction_name",
-                "scale": "linear",
-                "showinput": true
-              },
-              {
-                "type": "terms",
-                "layout": {
-                  "lg": {
                     "h": 6,
-                    "w": 6,
-                    "x": 6,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 5,
-                    "w": 4,
-                    "x": 4,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
+                    "w": 8,
+                    "x": 16,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
                   },
                   "xxl": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 12,
+                    "h": 6,
+                    "w": 8,
+                    "x": 16,
                     "y": 0,
                     "minH": 3,
                     "minW": 3
                   }
                 },
-                "quantity": "results.properties.catalytic.reactivity.products.name",
+                "quantity": "results.properties.catalytic.reaction.products.name",
                 "scale": "linear",
                 "showinput": true
               },
@@ -3167,9 +3167,9 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "lg": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
                     "y": 6,
                     "minH": 3,
                     "minW": 3
@@ -3184,25 +3184,25 @@ window.nomadEnv = {
                   },
                   "sm": {
                     "h": 3,
-                    "w": 4,
-                    "x": 8,
-                    "y": 13,
+                    "w": 6,
+                    "x": 0,
+                    "y": 12,
                     "minH": 3,
                     "minW": 3
                   },
                   "xl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 5,
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
+                    "y": 6,
                     "minH": 3,
                     "minW": 3
                   },
                   "xxl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 5,
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
+                    "y": 6,
                     "minH": 3,
                     "minW": 3
                   }
@@ -3215,10 +3215,10 @@ window.nomadEnv = {
                 "type": "terms",
                 "layout": {
                   "lg": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 10,
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
+                    "y": 11,
                     "minH": 3,
                     "minW": 3
                   },
@@ -3232,25 +3232,25 @@ window.nomadEnv = {
                   },
                   "sm": {
                     "h": 3,
-                    "w": 4,
-                    "x": 8,
-                    "y": 16,
+                    "w": 6,
+                    "x": 6,
+                    "y": 12,
                     "minH": 3,
                     "minW": 3
                   },
                   "xl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 9,
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
+                    "y": 11,
                     "minH": 3,
                     "minW": 3
                   },
                   "xxl": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 9,
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
+                    "y": 11,
                     "minH": 3,
                     "minW": 3
                   }
@@ -3263,10 +3263,10 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "lg": {
-                    "h": 4,
-                    "w": 9,
+                    "h": 5,
+                    "w": 12,
                     "x": 0,
-                    "y": 14,
+                    "y": 16,
                     "minH": 3,
                     "minW": 8
                   },
@@ -3280,30 +3280,30 @@ window.nomadEnv = {
                   },
                   "sm": {
                     "h": 3,
-                    "w": 8,
+                    "w": 6,
                     "x": 0,
-                    "y": 13,
+                    "y": 15,
                     "minH": 3,
                     "minW": 8
                   },
                   "xl": {
                     "h": 4,
-                    "w": 9,
+                    "w": 12,
                     "x": 0,
-                    "y": 13,
+                    "y": 16,
                     "minH": 3,
                     "minW": 8
                   },
                   "xxl": {
-                    "h": 3,
-                    "w": 9,
+                    "h": 4,
+                    "w": 12,
                     "x": 0,
-                    "y": 13,
+                    "y": 16,
                     "minH": 3,
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.catalytic.reactivity.test_temperatures",
+                "quantity": "results.properties.catalytic.reaction.temperature",
                 "scale": "linear",
                 "autorange": false,
                 "showinput": false,
@@ -3313,297 +3313,147 @@ window.nomadEnv = {
                 "type": "histogram",
                 "layout": {
                   "lg": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 18,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 22,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 17,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "quantity": "results.properties.catalytic.reactivity.gas_hourly_space_velocity",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "quantity": "results.properties.catalytic.reactivity.reactants.gas_concentration_in",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 17,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xxl": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "quantity": "results.properties.catalytic.reactivity.pressure",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 26,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 0,
-                    "y": 22,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 33,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 9,
+                    "h": 5,
+                    "w": 12,
                     "x": 0,
                     "y": 21,
                     "minH": 3,
                     "minW": 8
                   },
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 19,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "quantity": "results.properties.catalytic.reactivity.products.selectivity",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 22,
-                    "minH": 3,
-                    "minW": 8
-                  },
                   "md": {
                     "h": 3,
                     "w": 9,
                     "x": 0,
-                    "y": 19,
+                    "y": 16,
                     "minH": 3,
                     "minW": 8
                   },
                   "sm": {
                     "h": 3,
-                    "w": 8,
+                    "w": 6,
                     "x": 0,
-                    "y": 30,
+                    "y": 18,
                     "minH": 3,
                     "minW": 8
                   },
                   "xl": {
-                    "h": 4,
-                    "w": 9,
-                    "x": 0,
-                    "y": 25,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 22,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "quantity": "results.properties.catalytic.reactivity.reactants.conversion",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 30,
+                    "y": 20,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 0,
+                    "y": 20,
+                    "minH": 3,
+                    "minW": 8
+                  }
+                },
+                "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity",
+                "scale": "linear",
+                "autorange": false,
+                "showinput": false,
+                "nbins": 30
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "lg": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 12,
+                    "y": 21,
                     "minH": 3,
                     "minW": 8
                   },
                   "md": {
                     "h": 3,
                     "w": 9,
-                    "x": 0,
-                    "y": 25,
+                    "x": 9,
+                    "y": 16,
                     "minH": 3,
                     "minW": 8
                   },
                   "sm": {
                     "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 36,
+                    "w": 6,
+                    "x": 6,
+                    "y": 18,
                     "minH": 3,
                     "minW": 8
                   },
                   "xl": {
                     "h": 4,
-                    "w": 9,
-                    "x": 9,
-                    "y": 29,
+                    "w": 12,
+                    "x": 12,
+                    "y": 20,
                     "minH": 3,
                     "minW": 8
                   },
                   "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 8,
-                    "y": 25,
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 20,
                     "minH": 3,
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.catalytic.reactivity.rates.reaction_rate",
+                "quantity": "results.properties.catalytic.reaction.reactants.gas_concentration_in",
+                "scale": "linear",
+                "autorange": false,
+                "showinput": false,
+                "nbins": 30
+              },
+              {
+                "type": "histogram",
+                "layout": {
+                  "lg": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 12,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "md": {
+                    "h": 3,
+                    "w": 9,
+                    "x": 9,
+                    "y": 13,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "sm": {
+                    "h": 3,
+                    "w": 6,
+                    "x": 6,
+                    "y": 15,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
+                  },
+                  "xxl": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 16,
+                    "minH": 3,
+                    "minW": 8
+                  }
+                },
+                "quantity": "results.properties.catalytic.reaction.pressure",
                 "scale": "linear",
                 "autorange": false,
                 "showinput": false,
@@ -3614,9 +3464,67 @@ window.nomadEnv = {
                 "layout": {
                   "lg": {
                     "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 26,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 6,
                     "w": 9,
-                    "x": 9,
-                    "y": 22,
+                    "x": 0,
+                    "y": 19,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 21,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 0,
+                    "y": 24,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 0,
+                    "y": 24,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "x": {
+                  "quantity": "results.properties.catalytic.reaction.temperature"
+                },
+                "y": {
+                  "quantity": "results.properties.catalytic.reaction.reactants[*].conversion"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.catalytic.reaction.reactants[*].name"
+                  }
+                },
+                "size": 1000,
+                "autorange": true
+              },
+              {
+                "type": "scatterplot",
+                "layout": {
+                  "lg": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 26,
                     "minH": 3,
                     "minW": 3
                   },
@@ -3630,38 +3538,158 @@ window.nomadEnv = {
                   },
                   "sm": {
                     "h": 5,
-                    "w": 8,
-                    "x": 9,
-                    "y": 25,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 9,
-                    "x": 9,
+                    "w": 6,
+                    "x": 6,
                     "y": 21,
                     "minH": 3,
                     "minW": 3
                   },
+                  "xl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 12,
+                    "y": 24,
+                    "minH": 3,
+                    "minW": 3
+                  },
                   "xxl": {
-                    "h": 6,
-                    "w": 10,
-                    "x": 8,
-                    "y": 19,
+                    "h": 9,
+                    "w": 12,
+                    "x": 12,
+                    "y": 24,
                     "minH": 3,
                     "minW": 3
                   }
                 },
                 "x": {
-                  "quantity": "results.properties.catalytic.reactivity.reactants.conversion"
+                  "quantity": "results.properties.catalytic.reaction.temperature"
                 },
                 "y": {
-                  "quantity": "results.properties.catalytic.reactivity.products.selectivity"
+                  "quantity": "results.properties.catalytic.reaction.products[*].selectivity"
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                    "quantity": "results.properties.catalytic.reaction.products[*].name"
+                  }
+                },
+                "size": 1000,
+                "autorange": true
+              },
+              {
+                "type": "scatterplot",
+                "layout": {
+                  "lg": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 34,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 6,
+                    "w": 9,
+                    "x": 0,
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 0,
+                    "y": 26,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 0,
+                    "y": 33,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 0,
+                    "y": 33,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "x": {
+                  "title": "Oxygen Conversion",
+                  "quantity": "results.properties.catalytic.reaction.reactants[? name=='molecular oxygen'].conversion"
+                },
+                "y": {
+                  "title": "Acetic Acid Selectivity",
+                  "quantity": "results.properties.catalytic.reaction.products[? name=='acetic acid'].selectivity"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.catalytic.reaction.name"
+                  }
+                },
+                "size": 1000,
+                "autorange": true
+              },
+              {
+                "type": "scatterplot",
+                "layout": {
+                  "lg": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 34,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 6,
+                    "w": 9,
+                    "x": 9,
+                    "y": 25,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 26,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 12,
+                    "y": 33,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 9,
+                    "w": 12,
+                    "x": 12,
+                    "y": 33,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "x": {
+                  "title": "Carbon Monoxide Conversion",
+                  "quantity": "results.properties.catalytic.reaction.reactants[? name=='carbon monoxide'].conversion"
+                },
+                "y": {
+                  "title": "Ethanol Selectivity",
+                  "quantity": "results.properties.catalytic.reaction.products[? name=='ethanol'].selectivity"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method"
                   }
                 },
                 "size": 1000,
@@ -3674,39 +3702,39 @@ window.nomadEnv = {
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 34,
+                    "y": 42,
                     "minH": 3,
                     "minW": 8
                   },
                   "md": {
-                    "h": 3,
+                    "h": 4,
                     "w": 9,
                     "x": 0,
-                    "y": 28,
+                    "y": 31,
                     "minH": 3,
                     "minW": 8
                   },
                   "sm": {
-                    "h": 3,
+                    "h": 4,
                     "w": 8,
                     "x": 0,
-                    "y": 39,
+                    "y": 31,
                     "minH": 3,
                     "minW": 8
                   },
                   "xl": {
                     "h": 4,
-                    "w": 9,
+                    "w": 12,
                     "x": 0,
-                    "y": 29,
+                    "y": 42,
                     "minH": 3,
                     "minW": 8
                   },
                   "xxl": {
-                    "h": 3,
-                    "w": 8,
+                    "h": 4,
+                    "w": 12,
                     "x": 0,
-                    "y": 25,
+                    "y": 42,
                     "minH": 3,
                     "minW": 8
                   }
@@ -3716,6 +3744,54 @@ window.nomadEnv = {
                 "autorange": false,
                 "showinput": false,
                 "nbins": 30
+              },
+              {
+                "type": "terms",
+                "layout": {
+                  "lg": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 42,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "md": {
+                    "h": 4,
+                    "w": 9,
+                    "x": 9,
+                    "y": 31,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "sm": {
+                    "h": 4,
+                    "w": 8,
+                    "x": 8,
+                    "y": 31,
+                    "minH": 4,
+                    "minW": 3
+                  },
+                  "xl": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 42,
+                    "minH": 3,
+                    "minW": 3
+                  },
+                  "xxl": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 42,
+                    "minH": 3,
+                    "minW": 3
+                  }
+                },
+                "quantity": "results.properties.catalytic.catalyst_characterization.method",
+                "scale": "linear",
+                "showinput": true
               }
             ]
           },
