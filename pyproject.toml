@@ -66,6 +66,7 @@ parsing = [
     'pyzeo==0.1.4',
     'quippy-ase==0.9.14',
     'pybis@git+https://github.com/FAIRmat-NFDI/fairmat-pybis.git',
+    'pynxtools[convert]==0.1.1',
 ]
 infrastructure = [
     'h5grove[fastapi]==1.3.0',
@@ -198,7 +199,6 @@ where = [
     "dependencies/parsers/database",
     "dependencies/parsers/eelsdb",
     "dependencies/parsers/electronic",
-    "dependencies/parsers/nexus",
     "dependencies/parsers/workflow",
     "dependencies/parsers/simulation",
     "dependencies/schema/simulation/workflow",

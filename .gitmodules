@@ -8,10 +8,6 @@
 	path = dependencies/parsers/eelsdb
 	url = https://github.com/nomad-coe/nomad-parser-eelsdb.git
 	branch = master
-[submodule "dependencies/parsers/nexus"]
-	path = dependencies/parsers/nexus
-	url = https://github.com/FAIRmat-NFDI/pynxtools.git
-	branch = master
 [submodule "gui/crystcif-parse"]
 	path = gui/crystcif-parse
 	url = https://github.com/stur86/crystcif-parse.git

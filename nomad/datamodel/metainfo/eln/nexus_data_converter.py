@@ -1,17 +1,23 @@
-import re
-import yaml
 import os.path
-import numpy as np
-
-from pynxtools.dataconverter.template import Template
-from nomad.datamodel.data import EntryData
-from nomad.metainfo import Package, Quantity, MEnum
-from nomad.units import ureg
-
+import re
 from typing import Optional
-from pynxtools.dataconverter import writer as pynxtools_writer
-from pynxtools.dataconverter import convert as pynxtools_converter
-from pynxtools.nexus.nexus import get_app_defs_names  # pylint: disable=import-error
+
+import numpy as np
+import yaml
+
+NEXUS_AVAILABLE = True
+try:
+    from pynxtools.dataconverter import convert as pynxtools_converter
+    from pynxtools.dataconverter import writer as pynxtools_writer
+    from pynxtools.dataconverter.template import Template
+    from pynxtools.nexus.nexus import get_app_defs_names  # pylint: disable=import-error
+except ImportError:
+    NEXUS_AVAILABLE = False
+    pass
+
+from nomad.datamodel.data import EntryData
+from nomad.metainfo import MEnum, Package, Quantity
+from nomad.units import ureg
 
 m_package = Package(name='nexus_data_converter')
 
@@ -51,7 +57,7 @@ def write_yaml(archive, filename, eln_dict):
 
 
 def populate_nexus_subsection(
-    template: Template,
+    template: 'Template',
     app_def: str,
     archive,
     logger,
@@ -156,13 +162,15 @@ class ElnYamlConverter(EntryData):
 
 class NexusDataConverter(EntryData):
     reader = Quantity(
-        type=MEnum(pynxtools_converter.get_names_of_all_readers()),
+        type=MEnum(
+            pynxtools_converter.get_names_of_all_readers() if NEXUS_AVAILABLE else []
+        ),
         description='The reader needed to run the Nexus converter.',
         a_eln=dict(component='AutocompleteEditQuantity'),
     )
 
     nxdl = Quantity(
-        type=MEnum(get_app_defs_names()),
+        type=MEnum(get_app_defs_names() if NEXUS_AVAILABLE else []),
         description='The nxdl needed for running the Nexus converter.',
         a_eln=dict(component='AutocompleteEditQuantity'),
     )

@@ -20,16 +20,20 @@ import xml.etree.ElementTree as ET
 from typing import Optional
 
 import numpy as np
-from pynxtools.nexus import nexus as read_nexus  # pylint: disable=import-error
+
+try:
+    from pynxtools.nexus import nexus as read_nexus  # pylint: disable=import-error
+except ImportError:
+    pass
+from pint.errors import UndefinedUnitError
+
 from nomad.datamodel import EntryArchive
+from nomad.datamodel.results import Material, Results
 from nomad.metainfo import MSection, nexus
 from nomad.metainfo.util import MQuantity, MSubSectionList, resolve_variadic_name
 from nomad.parsing import Parser
 from nomad.units import ureg
-from pint.errors import UndefinedUnitError
 from nomad.utils import get_logger
-from nomad.datamodel.results import Material
-from nomad.datamodel.results import Results
 
 
 def _to_group_name(nx_node: ET.Element):

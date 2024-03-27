@@ -476,18 +476,6 @@
     "status": "production",
     "tableOfFiles": ""
   },
-  "NeXus": {
-    "codeCategory": "Database manager",
-    "codeLabel": "NeXus",
-    "codeLabelStyle": "capitals: N, X.",
-    "codeName": "nexus",
-    "codeUrl": "https://www.nexusformat.org/",
-    "parserDirName": "dependencies/parsers/nexus/",
-    "parserGitUrl": "https://github.com/nomad-coe/nomad-parser-nexus.git",
-    "preamble": "This is not a real parser, but an example template on how to write one. You can fork this repository to create actual parsers.\n\n## Get started\n\nYou should create a virtual environment. This is optional, but highly recommended as\nthe required nomad-lab pypi package requires many dependencies with specific versions\nthat might conflict with other libraries that you have installed. This was tested\nwith Python 3.9.\n\n```\npip install virtualenv\nvirtualenv -p `which python3` .pyenv\nsource .pyenv/bin/activate\n```\n\nSimply install our pypi package with pip:\n```\npip install --upgrade pip\npip install nomad-lab\n```\n\nClone this project (or fork and then clone the fork). Go into the cloned directly and\ndirectly run the parser from there:\n```\ngit clone https://github.com/nomad-coe/nomad-parser-nexus.git parser-nexus\ncd parser-nexus\npython -m nexusutils tests/data/nexus.out\n```\n\nThere are also a basic test framework written in [pytest](https://docs.pytest.org/en/stable/).\nInstall the remaining dev dependencies and run the tests with:\n```\npip install -r requirements.txt\npytest -sv tests\n```\n\n## Next steps\n\nOur documentation provides several resources that might be interesting:\n- [How to write a parser](https://nomad-lab.eu/prod/rae/docs/parser.html). Provides\n  a more detailed tutorial on how to write a parser.\n- [Introduction to the NOMAD Metainfo](https://nomad-lab.eu/prod/rae/docs/metainfo.html).\n  This explains how NOMAD data schema and can be extended and used within your parser.\n\nTo get you parser included in NOMAD or ask further questions, you can:\n- Use our forums at [matsci.org](https://matsci.org/c/nomad/32)\n- Open an issue on the [nexus-parser GitHub project](https://github.com/nomad-coe/nomad-parser-nexus/issues)\n- Write to [support@nomad-lab.eu](mailto:support@nomad-lab.eu)\n\n**Note!** The rest of this README.md is the usual text that applies to all NOMAD parsers.\n",
-    "status": "production",
-    "tableOfFiles": "|Input Filename| Description|\n|--- | --- |\n|`nexus.out` | **Mainfile** in NEXUS specific plain-text |\n"
-  },
   "OCEAN": {
     "codeCategory": "Atomistic code",
     "codeLabel": "OCEAN",
