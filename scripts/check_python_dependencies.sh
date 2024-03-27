@@ -24,7 +24,6 @@ pip-compile --resolver=backtracking --annotation-style=line \
     --pip-args="--prefer-binary" \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/eelsdb/pyproject.toml \
-    dependencies/parsers/nexus/pyproject.toml \
     pyproject.toml
 
 diff requirements.txt.tmp requirements.txt

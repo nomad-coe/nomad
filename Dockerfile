@@ -126,6 +126,10 @@ COPY --from=dev_node /app/gui/build nomad/app/static/gui
 ARG SETUPTOOLS_SCM_PRETEND_VERSION='0.0'
 
 # Build documentation
+
+# This is a temporary workaround because atomisticparsers installs an older version
+# of nomad-lab via pip install git+...still containing pynxtools as a submodule
+RUN pip uninstall -y pynxtools
 RUN pip install ".[parsing,infrastructure,dev]"
 
 RUN ./scripts/generate_docs_artifacts.sh \
@@ -171,6 +175,10 @@ RUN pip install --progress-bar off --prefer-binary -r requirements.txt
 # install
 COPY --from=dev_python /app/dist/nomad-lab-*.tar.gz .
 RUN pip install nomad-lab-*.tar.gz
+# This is a temporary workaround because atomisticparsers installs an older version
+# of nomad-lab via pip install git+...still containing pynxtools as a submodule
+RUN pip uninstall -y pynxtools
+RUN pip install pynxtools[convert]
 
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \

@@ -26,6 +26,13 @@ import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Set, Union
 
 import numpy as np
+
+try:
+    from pynxtools.nexus import nexus  # pylint: disable=import-error
+except ImportError:
+    pass
+from toposort import toposort_flatten
+
 from nomad.datamodel import EntryArchive
 from nomad.metainfo import (
     Attribute,
@@ -40,9 +47,6 @@ from nomad.metainfo import (
     SubSection,
 )
 from nomad.utils import get_logger, strip
-from toposort import toposort_flatten
-
-from pynxtools.nexus import nexus  # pylint: disable=import-error
 
 # __URL_REGEXP from
 # https://stackoverflow.com/questions/3809401/what-is-a-good-regular-expression-to-match-a-url
@@ -706,14 +710,16 @@ def init_nexus_metainfo():
     # to include nexus in an EntryArchive.
     nexus_section = Section(validate=VALIDATE, name='NeXus')
 
-    try:
-        load_nexus_schema('')
-    except Exception:
-        nexus_metainfo_package = __create_package_from_nxdl_directories(nexus_section)
-        try:
-            save_nexus_schema('')
-        except Exception:
-            pass
+    # try:
+    #     load_nexus_schema('')
+    # except Exception:
+    #     nexus_metainfo_package = __create_package_from_nxdl_directories(nexus_section)
+    #     try:
+    #         save_nexus_schema('')
+    #     except Exception:
+    #         pass
+
+    nexus_metainfo_package = __create_package_from_nxdl_directories(nexus_section)
 
     EntryArchive.nexus = SubSection(name='nexus', section_def=nexus_section)
     EntryArchive.nexus.init_metainfo()

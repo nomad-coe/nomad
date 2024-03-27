@@ -447,3 +447,6 @@ $RECYCLE.BIN/
 
 # local overwrites for docker-compose files
 docker-compose.local.yml
+
+# nexus objects
+nexus.obj
