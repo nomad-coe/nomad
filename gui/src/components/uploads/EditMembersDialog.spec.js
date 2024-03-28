@@ -236,3 +236,36 @@ test.each([
   await testReadOnlyPermissions()
   closeAPI()
 })
+
+test('Toggle visible for all checkbox', async () => {
+  await startAPI(
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/members-dialog-toggle-visible',
+    'test',
+    'password'
+  )
+  waitForGUI(0, true)
+  render(<UploadPage uploadId='dft_upload'/>)
+
+  let dialog = await openMembersDialog()
+  let checkbox = await within(dialog).findByRoleAndText('checkbox', 'Visible for all')
+  expect(checkbox.checked).toEqual(false)
+  fireEvent.click(checkbox)
+  expect(checkbox.checked).toEqual(true)
+  await submitChanges(dialog)
+  await waitForGUI(2000, true)
+
+  dialog = await openMembersDialog()
+  checkbox = await within(dialog).findByRoleAndText('checkbox', 'Visible for all')
+  expect(checkbox.checked).toEqual(true)
+  fireEvent.click(checkbox)
+  expect(checkbox.checked).toEqual(false)
+  await submitChanges(dialog)
+  await waitForGUI(2000, true)
+
+  dialog = await openMembersDialog()
+  checkbox = await within(dialog).findByRoleAndText('checkbox', 'Visible for all')
+  expect(checkbox.checked).toEqual(false)
+
+  closeAPI()
+})
