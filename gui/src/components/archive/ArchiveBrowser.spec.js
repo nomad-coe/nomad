@@ -17,6 +17,7 @@
  */
 import React from 'react'
 import { range } from 'lodash'
+import { TestAdaptor } from './conftest.spec'
 import { screen, renderNoAPI, render } from '../conftest.spec'
 import { expectPagination } from '../visualization/conftest.spec'
 import { PropertyValuesList, Section } from './ArchiveBrowser'
@@ -24,7 +25,6 @@ import { laneContext } from './Browser'
 import {waitFor} from "@testing-library/dom"
 import {Metainfo} from './metainfo'
 import {systemMetainfoUrl} from '../../utils'
-import {TestAdaptor} from './Browser.spec'
 
 test.each([
   [15, 10, 5],

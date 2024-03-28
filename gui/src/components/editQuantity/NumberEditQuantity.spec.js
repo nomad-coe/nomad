@@ -53,25 +53,18 @@ describe('Test numberEditQuantity', () => {
   })
 
   test.each([
-    ['no default unit or unit system, defaults to global scope units', 'm', undefined, undefined, undefined, '100000000000'],
-    ['with display unit', 'm', 'mm', undefined, undefined, '10000'],
-    ['with display unit system', 'm', undefined, 'AU', undefined, '188972612462.228'],
-    ['with display unit and unit system', 'm', 'mm', 'AU', undefined, '10000'],
-    ['complex unit with no display unit', 'm**2 / second**2', undefined, undefined, undefined, '1e-9'],
-    ['complex unit with display unit', 'm**2 / second**2', 'Å**2 / fs**2', undefined, undefined, '1e-9'],
-    ['deprecated display unit in eln annotation', 'm', undefined, undefined, 'mm', '10000']
-  ])('%s', async (name, unit, displayUnit, displayUnitSystem, elnUnit, expected) => {
+    ['no default unit or unit system, defaults to global scope units', 'm', undefined, undefined, '100000000000'],
+    ['with display unit', 'm', 'mm', undefined, '10000'],
+    ['complex unit with no display unit', 'm**2 / second**2', undefined, undefined, '1e-9'],
+    ['complex unit with display unit', 'm**2 / second**2', 'Å**2 / fs**2', undefined, '1e-9'],
+    ['deprecated display unit in eln annotation', 'm', undefined, 'mm', '10000']
+  ])('%s', async (name, unit, displayUnit, elnUnit, expected) => {
     render(
       <NumberEditQuantity
         quantityDef={{
           name: 'name',
           m_def: 'nomad.metainfo.metainfo.Quantity',
           unit: unit,
-          _parent: displayUnitSystem && {
-            m_annotations: {
-              display: [{unit_system: displayUnitSystem}]
-            }
-          },
           m_annotations: {
             display: displayUnit && [{
               unit: displayUnit

@@ -126,7 +126,27 @@ class DisplayAnnotation(BaseModel):
 
 
 class QuantityDisplayAnnotation(DisplayAnnotation):
-    """The display settings for quantities."""
+    """
+    This annotations control how quantities are displayed in the GUI.  Use the
+    key `display` to add this annotation. For example in Python:
+
+    ```python
+    class Example(EntryData):
+        sample_id = Quantity(type=str, a_display={'visible': False})
+    ```
+
+    or in YAML:
+    ```yaml
+    definitions:
+      Example:
+        quantities:
+          sample_id:
+            type: str
+            m_annotations:
+              display:
+                visible: false
+    ```
+    """
 
     display_unit: Optional[str] = Field(
         None,
@@ -139,16 +159,28 @@ class QuantityDisplayAnnotation(DisplayAnnotation):
 
 
 class SectionDisplayAnnotation(DisplayAnnotation):
-    """The display settings for sections and packages."""
+    """
+    This annotations control how sections are displayed in the GUI. Use the
+    key `display` to add this annotation. For example in Python:
 
-    display_unit_system: Optional[str] = Field(
-        None,
-        description=strip(
-            """
-            To determine the default display unit system for section.
-        """
-        ),
-    )
+    ```python
+    class Example(MSection):
+        m_def = Section(a_display={
+            'visible': False
+        })
+    ```
+
+    or in YAML:
+    ```yaml
+    definitions:
+      sections:
+        Example:
+          m_annotations:
+            display:
+              visible: false
+    ```
+    """
+
     order: Optional[List[str]] = Field(
         None,
         description=strip(
@@ -265,11 +297,13 @@ class ELNAnnotation(AnnotationModel):
     defaultDisplayUnit: str = Field(
         None,
         description="""
-        Allows to define a default unit to initialize a `NumberEditQuantity` with. The
-        unit has to be compatible with the unit of the annotation quantity and the annotated
-        quantity must have a unit. Only applies to quantities and with
-        `component=NumberEditQuantity`.
+        This attribute is deprecated, use the `unit` attribute of `display`
+        annotation instead. Allows to define a default unit to initialize a
+        `NumberEditQuantity` with. The unit has to be compatible with the unit
+        of the annotation quantity and the annotated quantity must have a unit.
+        Only applies to quantities and with `component=NumberEditQuantity`.
     """,
+        deprecated=True,
     )
 
     minValue: Union[int, float] = Field(
@@ -301,7 +335,7 @@ class ELNAnnotation(AnnotationModel):
     hide: List[str] = Field(
         None,
         description="""
-        The annotation "hide" is deprecated. Use "visible" key of "properties" annotation instead.
+        This attribute is deprecated. Use `visible` attribute of `display` annotation instead.
         Allows you to hide certain quantities from a section editor. Give a list
         of quantity names. Quantities must exist in the section that this annotation
         is added to. Can only be used in section annotations.

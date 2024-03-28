@@ -71,6 +71,7 @@ import { useEntryStore } from '../entry/EntryContext'
 import ArchiveSearchBar from './ArchiveSearchBar'
 import DOMPurify from 'dompurify'
 import XYPlot from "./XYPlot"
+import { useDisplayUnit } from '../units/useDisplayUnit'
 
 export const configState = atom({
   key: 'config',
@@ -649,7 +650,8 @@ const convertComplexArray = (real, imag) => {
 }
 
 export function QuantityItemPreview({value, def}) {
-  const {units, unitSystems, isReset} = useUnitContext()
+  const displayUnit = useDisplayUnit(def)
+
   if (isReference(def)) {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">reference ...</Typography>
@@ -707,27 +709,12 @@ export function QuantityItemPreview({value, def}) {
       finalValue = value
     }
 
-    let finalUnit
-    if (def.unit) {
-      let a
-      const section_default_unit_system = def?._parent?.m_annotations?.display?.[0]?.unit_system
-      const quantity_default_unit = def?.m_annotations?.display?.[0]?.unit
-      if (isReset && (section_default_unit_system || quantity_default_unit)) {
-        if (section_default_unit_system && unitSystems[section_default_unit_system]) {
-          a = new Q(finalValue, def.unit).toSystem(unitSystems[section_default_unit_system].units)
-        }
-        if (quantity_default_unit) {
-          a = new Q(finalValue, def.unit).to(quantity_default_unit)
-        }
-      } else {
-        a = new Q(finalValue, def.unit).toSystem(units)
-      }
-      finalValue = a.value()
-      finalUnit = a.label()
+    if (displayUnit) {
+      finalValue = new Q(finalValue, def.unit).to(displayUnit).value()
     }
     return <Box component="span" whiteSpace="nowarp">
       <Number component="span" variant="body1" value={finalValue} exp={8}/>
-      {finalUnit && <Typography component="span">&nbsp;{finalUnit}</Typography>}
+      {displayUnit && <Typography component="span">&nbsp;{displayUnit.label()}</Typography>}
     </Box>
   }
 }
@@ -922,7 +909,6 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
   const [showJson, setShowJson] = useState(false)
   const lane = useContext(laneContext)
   const history = useHistory()
-  useUnitContext(def._package.name, def?._package?.m_annotations?.display?.[0]?.unit_system)
 
   const isEditable = useMemo(() => {
     let editableExcluded = false
