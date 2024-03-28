@@ -124,12 +124,6 @@ def keycloak(monkeypatch):
 
 
 @pytest.fixture(scope='function')
-def proc_infra(worker, elastic_function, mongo_function, raw_files_function):
-    """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
-    return dict(elastic=elastic_function)
-
-
-@pytest.fixture(scope='function')
 def with_oasis_user_management(monkeypatch):
     from nomad.infrastructure import OasisUserManagement
 
