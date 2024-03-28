@@ -2724,6 +2724,15 @@ def test_delete_upload_raw_path(
         ),
         pytest.param(
             'test_user',
+            'id_unpublished_w',
+            dict(
+                metadata=dict(coauthors='unknown'),
+                expected_error_loc=('metadata', 'coauthors'),
+            ),
+            id='edit-coauthor-unknown-fails',
+        ),
+        pytest.param(
+            'test_user',
             'id_published_w',
             dict(metadata=dict(embargo_length=0)),
             id='lift-embargo',

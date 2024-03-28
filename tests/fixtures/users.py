@@ -24,6 +24,13 @@ test_users = {
         last_name='Hofstadter',
         user_id=test_user_uuid(2),
     ),
+    test_user_uuid(3): dict(
+        username='hwolowitz',
+        email='howard.wolowitz@nomad-fairdi.tests.de',
+        first_name='Howard',
+        last_name='Wolowitz',
+        user_id=test_user_uuid(3),
+    ),
 }
 
 
@@ -33,8 +40,39 @@ def test_user_molds():
         'admin_user': 0,
         'test_user': 1,
         'other_test_user': 2,
+        'yet_test_user': 3,
     }
     return {label: test_users[test_user_uuid(num)] for label, num in label_num.items()}
+
+
+@pytest.fixture(scope='session')
+def admin_user():
+    return User(**test_users[test_user_uuid(0)])
+
+
+@pytest.fixture(scope='session')
+def test_user():
+    return User(**test_users[test_user_uuid(1)])
+
+
+@pytest.fixture(scope='session')
+def other_test_user():
+    return User(**test_users[test_user_uuid(2)])
+
+
+@pytest.fixture(scope='session')
+def yet_test_user():
+    return User(**test_users[test_user_uuid(3)])
+
+
+@pytest.fixture(scope='session')
+def test_users_dict(test_user, other_test_user, admin_user, yet_test_user):
+    return {
+        'admin_user': admin_user,
+        'test_user': test_user,
+        'other_test_user': other_test_user,
+        'yet_test_user': yet_test_user,
+    }
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -44,7 +82,7 @@ def configure_admin_user_id(monkeysession):
 
 class KeycloakMock:
     def __init__(self):
-        self.id_counter = 2
+        self.id_counter = 3
         self.users = dict(**test_users)
 
     def tokenauth(self, access_token: str):
@@ -130,27 +168,3 @@ def with_oasis_user_management(monkeypatch):
     monkeypatch.setattr('nomad.infrastructure.user_management', OasisUserManagement())
     yield
     monkeypatch.setattr('nomad.infrastructure.user_management', _user_management)
-
-
-@pytest.fixture(scope='module')
-def test_user():
-    return User(**test_users[test_user_uuid(1)])
-
-
-@pytest.fixture(scope='module')
-def other_test_user():
-    return User(**test_users[test_user_uuid(2)])
-
-
-@pytest.fixture(scope='module')
-def admin_user():
-    return User(**test_users[test_user_uuid(0)])
-
-
-@pytest.fixture(scope='module')
-def test_users_dict(test_user, other_test_user, admin_user):
-    return {
-        'test_user': test_user,
-        'other_test_user': other_test_user,
-        'admin_user': admin_user,
-    }

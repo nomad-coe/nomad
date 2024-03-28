@@ -86,6 +86,7 @@ from nomad.files import (
     create_tmp_dir,
     is_safe_relative_path,
 )
+from nomad.groups import user_group_exists
 from nomad.processing.base import (
     Proc,
     process,
@@ -148,6 +149,10 @@ editable_metadata: Dict[str, metainfo.Definition] = {
     for quantity in EditableUserMetadata.m_def.definitions
     if isinstance(quantity, metainfo.Quantity)
 }
+
+
+def assert_user_group_exists(group_id: str):
+    assert user_group_exists(group_id), f"User group '{group_id}' does not exist."
 
 
 def _pack_log_event(logger, method_name, event_dict):
@@ -645,12 +650,15 @@ class MetadataEditRequestHandler:
             ), f'Expected a {definition.type.__name__}'
             if definition.name == 'embargo_length':
                 assert 0 <= value <= 36, 'Value should be between 0 and 36'
-            if definition.name == 'references':
+            elif definition.name == 'references':
                 assert validators.url(value), 'Please enter a valid URL ...'
-            if definition.name == 'coauthor_groups':
+            elif definition.name == 'coauthor_groups':
                 assert (
                     value != 'all'
                 ), "Special group 'all' is invalid for field coauthor_groups."
+                assert_user_group_exists(value)
+            elif definition.name == 'reviewer_groups':
+                assert_user_group_exists(value)
             return None if value == '' else value
         elif definition.type == metainfo.Datetime:
             if value is not None:

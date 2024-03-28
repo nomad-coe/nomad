@@ -27,12 +27,13 @@ def test_user_group_molds():
         'admin_owner_group': old_group(0, 'Admin Owner Group', 0, []),
         'user_owner_group': old_group(1, 'User Owner Group', 1, []),
         'other_owner_group': old_group(2, 'Other Owner Group', 2, []),
-        'mixed_group': old_group(3, 'Mixed Group', 0, [1, 2]),
-        'new_group': new_group('New Group', [0, 2]),
+        'yet_owner_group': old_group(3, 'Yet Owner Group', 3, []),
+        'mixed_group': old_group(4, 'Mixed Group', 0, [1, 2]),
+        'new_group': new_group('New Group', [2, 3]),
         'short_name': new_group('GG', []),
         'long_name': new_group('G' * 33, []),
-        'double_member': new_group('Double Member', [0, 2, 0]),
-        'double_member_ref': new_group('Double Member', [0, 2]),
+        'double_member': new_group('Double Member', [2, 3, 2]),
+        'double_member_ref': new_group('Double Member', [2, 3]),
         'special_char': new_group('G!G', []),
     }
 
@@ -81,6 +82,7 @@ def create_user_groups(test_user_group_molds):
             'admin_owner_group',
             'user_owner_group',
             'other_owner_group',
+            'yet_owner_group',
             'mixed_group',
         ]:
             group = test_user_group_molds[label]
@@ -164,6 +166,17 @@ def upload_coauthor_other_and_mixed_group(
         upload_id='id_coauthor_ogroup_mgroup',
         coauthor_groups=[other_owner_group.group_id, mixed_group.group_id],
     )
+    data.save()
+
+    yield data
+
+    data.delete()
+
+
+@pytest.fixture(scope='function')
+def upload_reviewer_all_group(mongo_function, test_user):
+    data = ExampleData(main_author=test_user)
+    data.create_upload(upload_id='id_reviewer_all', reviewer_groups=['all'])
     data.save()
 
     yield data

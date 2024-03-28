@@ -92,5 +92,7 @@ def get_user_group(group_id: str) -> Optional[UserGroup]:
     return UserGroup.objects(group_id=group_id).first()
 
 
-def user_group_exists(group_id: str) -> bool:
+def user_group_exists(group_id: str, *, include_all=True) -> bool:
+    if include_all and group_id == 'all':
+        return True
     return get_user_group(group_id) is not None

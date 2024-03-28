@@ -29,6 +29,11 @@ def create_auth_headers(token: str):
 
 
 @pytest.fixture(scope='module')
+def admin_user_auth(admin_user: User):
+    return create_auth_headers(admin_user.user_id)
+
+
+@pytest.fixture(scope='module')
 def test_user_auth(test_user: User):
     return create_auth_headers(test_user.user_id)
 
@@ -39,8 +44,8 @@ def other_test_user_auth(other_test_user: User):
 
 
 @pytest.fixture(scope='module')
-def admin_user_auth(admin_user: User):
-    return create_auth_headers(admin_user.user_id)
+def yet_test_user_auth(yet_test_user: User):
+    return create_auth_headers(yet_test_user.user_id)
 
 
 @pytest.fixture(scope='module')
@@ -56,12 +61,14 @@ def app_token_auth(test_user: User):
 
 @pytest.fixture(scope='module')
 def test_auth_dict(
+    admin_user,
     test_user,
     other_test_user,
-    admin_user,
+    yet_test_user,
+    admin_user_auth,
     test_user_auth,
     other_test_user_auth,
-    admin_user_auth,
+    yet_test_user_auth,
     invalid_user_auth,
 ):
     """
@@ -69,12 +76,13 @@ def test_auth_dict(
     contains an example of invalid credentials, and the key None contains (None, None).
     """
     return {
+        'admin_user': (admin_user_auth, generate_upload_token(admin_user)),
         'test_user': (test_user_auth, generate_upload_token(test_user)),
         'other_test_user': (
             other_test_user_auth,
             generate_upload_token(other_test_user),
         ),
-        'admin_user': (admin_user_auth, generate_upload_token(admin_user)),
+        'yet_test_user': (yet_test_user_auth, generate_upload_token(yet_test_user)),
         'invalid': (invalid_user_auth, 'invalid.upload.token'),
         None: (None, None),
     }
