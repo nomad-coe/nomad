@@ -18,44 +18,11 @@ Many annotations control the representation of data in the GUI. This can be for 
 
 {{ pydantic_model('nomad.datamodel.metainfo.annotations.BrowserAnnotation', heading='## Browser') }}
 
-{{ pydantic_model('nomad.datamodel.metainfo.annotations.BrowserAnnotation', heading='## browser') }}
+## Display annotations
 
-### `display unit system`
-The unit system to override the global or the unit system determined by parent. It could be used in the level of Package, Section, or Quantity.
-One can use the supported [unit systems](./config.md#unitsystems) such as `SI` or `AU`.
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.QuantityDisplayAnnotation', heading='### Display annotation for quantities') }}
 
-```yaml
-definitions:
-  name: 'Sun'
-  m_annotations:
-    display:
-      unit_system: SI
-  sections:
-    SolarSystem:
-      quantities:
-        total_energy:
-          type: float
-          description: The total energy in SI unit system, energy unit
-      sub_sections:
-        Electrons:
-          section:
-            m_annotations:
-              display:
-                unit_system: AU
-            quantities:
-              free_energy:
-                type: float
-                description: The electron energy in AU unit system, energy unit
-              energy:
-                m_annotations:
-                  display:
-                    unit: erg
-                type: float
-                description: The electron energy in a custom unit
-```
-
-### `display unit`
-To determine the desired unit to override the global or the unit determined by parent. See the example in [display unit system](#display_unit_system).
+{{ pydantic_model('nomad.datamodel.metainfo.annotations.SectionDisplayAnnotation', heading='### Display annotation for sections') }}
 
 ### `label_quantity`
 

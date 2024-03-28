@@ -19,8 +19,11 @@ import { join, basename } from 'path'
 import { waitFor } from '@testing-library/dom'
 import { screen, within, expectNoConsoleOutput } from '../conftest.spec'
 import userEvent from '@testing-library/user-event'
-import { laneErrorBoundryMessage } from './Browser'
+import { Item, Content, Compartment, Title, laneErrorBoundryMessage, Adaptor } from './Browser'
 import { isWaitingForUpdateTestId } from '../../utils'
+import React from 'react'
+import PropTypes from 'prop-types'
+
 const crypto = require('crypto')
 
 /*****************************************************************************************
@@ -325,4 +328,58 @@ export function pseudoRandomNumberGenerator(seed = 7) {
     t ^= t + Math.imul(t ^ t >>> 7, t | 61)
     return ((t ^ t >>> 14) >>> 0) / 4294967296
   }
+}
+
+function checkTestLane({lane, laneIndex, lanePath, lastSegment, browserTree, rootTitle}) {
+  expect(within(lane).getByText(laneIndex === 0 ? rootTitle : lastSegment)).toBeVisible() // Lane title
+
+  itemsInTreePath(browserTree, lanePath).forEach(item => {
+    expect(within(lane).getByText(item)).toBeVisible()
+  })
+}
+
+export const browserTree = {
+  '': {cb: checkTestLane},
+  'dir1': {cb: checkTestLane},
+  'dir1/success': {cb: checkTestLane},
+  'dir1/fail': {cb: checkTestLane}
+}
+
+export class TestAdaptor extends Adaptor {
+  constructor(path, title) {
+    super()
+    this.path = path
+    this.title = title
+    this.parsedObjUrl = {entryId: 'entryID1'}
+  }
+
+  itemAdaptor(key) {
+    return new TestAdaptor(join(this.path, key))
+  }
+
+  render() {
+    return <TestContent path={this.path} title={this.title} />
+  }
+}
+
+export function TestContent({path, title}) {
+  if (path.endsWith('/fail')) {
+    throw new Error('mocked render error')
+  }
+  return <Content key={path}>
+    <Title title={title || basename(path)} label="test" />
+    <Compartment>
+      {
+        itemsInTreePath(browserTree, path).map(itemKey => (
+          <Item itemKey={itemKey} key={join(path, itemKey)}>
+            {itemKey}
+          </Item>
+        ))
+      }
+    </Compartment>
+  </Content>
+}
+TestContent.propTypes = {
+  path: PropTypes.string.isRequired,
+  title: PropTypes.string
 }

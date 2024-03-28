@@ -24,7 +24,7 @@ import {Section} from "./ArchiveBrowser"
 import {Metainfo} from "./metainfo"
 import {systemMetainfoUrl} from "../../utils"
 import {laneContext} from './Browser'
-import {TestAdaptor} from "./Browser.spec"
+import {TestAdaptor} from "./conftest.spec"
 
 async function createMetainfo(data, parent, url = systemMetainfoUrl) {
   data._url = url
@@ -36,11 +36,6 @@ const mockPackage = ({
   packages: [
     {
       name: 'testPackage',
-      m_annotations: {
-        display: [{
-          unit_system: 'AU'
-        }]
-      },
       section_definitions: [
         {
           name: 'TestSection',
@@ -53,42 +48,7 @@ const mockPackage = ({
             },
             {
               name: 'value2',
-              m_annotations: {
-                eln: [
-                  {
-                    component: "NumberEditQuantity"
-                  }
-                ]
-              },
-              type: { type_kind: 'python', type_data: 'float' },
-              unit: 'meter',
-              m_parent_sub_section: 'quantities'
-            }
-          ]
-        },
-        {
-          name: 'TestSection',
-          m_annotations: {
-            display: [{
-              unit_system: 'SI'
-            }]
-          },
-          quantities: [
-            {
-              name: 'value3',
-              type: { type_kind: 'python', type_data: 'float' },
-              unit: 'meter',
-              m_parent_sub_section: 'quantities'
-            },
-            {
-              name: 'value4',
-              m_annotations: {
-                eln: [
-                  {
-                    component: "NumberEditQuantity"
-                  }
-                ]
-              },
+              m_annotations: {eln: [{component: "NumberEditQuantity"}]},
               type: { type_kind: 'python', type_data: 'float' },
               unit: 'meter',
               m_parent_sub_section: 'quantities'
@@ -100,95 +60,32 @@ const mockPackage = ({
   ]
 })
 
-describe('Test interaction between unit menu and quantities', () => {
-  it('Package with display unit_system', async () => {
-    const metainfo = await createMetainfo(mockPackage)
-    const defsByName = await metainfo.getDefsByName()
-    const def = defsByName.TestSection[0]
-    const adaptor = new TestAdaptor('', 'Data')
+test.each([
+  ['non-editable, no display unit', {value1: 7.5}, false, '7.5·10+10'],
+  ['editable, no display unit', {value2: 7.5}, true, '75000000000']
+])('Test editable/uneditable sections: %s', async (name, section, editable, expected) => {
+  const metainfo = await createMetainfo(mockPackage)
+  const defsByName = await metainfo.getDefsByName()
+  const def = defsByName.TestSection[0]
+  const adaptor = new TestAdaptor('', 'Data')
 
-    render(
-      <laneContext.Provider value={{next: {}, adaptor: adaptor}}>
-        <Section
-          section={{value1: 7.5}}
-          def={def}
-          sectionIsInEln={false}
-          sectionIsEditable={false}
-        />
-      </laneContext.Provider>
-    )
-    // should be rendered in package default unit system
+  render(
+    <laneContext.Provider value={{next: {}, adaptor: adaptor}}>
+      <Section
+        section={section}
+        def={def}
+        sectionIsInEln={editable}
+        sectionIsEditable={editable}
+      />
+    </laneContext.Provider>
+  )
+  if (editable) {
+    const numberFieldValue = screen.getByTestId('number-edit-quantity-value')
+    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
+    await waitFor(() => expect(numberFieldValueInput.value).toEqual(expected))
+  } else {
     const numberWithUnit = document.querySelector('[data-testid="scientific-number-with-unit"]')
     const span = numberWithUnit.querySelector('span')
-    expect(span.textContent).toContain('1.41729459')
-    expect(span.textContent).toContain('·10')
-    const sup = document.querySelector('sup')
-    expect(sup.textContent).toContain('+11')
-  })
-
-  it('Editable package with display unit_system', async () => {
-    const metainfo = await createMetainfo(mockPackage)
-    const defsByName = await metainfo.getDefsByName()
-    const def = defsByName.TestSection[0]
-    const adaptor = new TestAdaptor('', 'Data')
-
-    render(
-      <laneContext.Provider value={{next: {}, adaptor: adaptor}}>
-        <Section
-          section={{value2: 8.5}}
-          def={def}
-          sectionIsInEln={true}
-          sectionIsEditable={true}
-        />
-      </laneContext.Provider>
-    )
-    // should be rendered in package default unit system
-    const numberFieldValue = screen.getByTestId('number-edit-quantity-value')
-    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    // should be rendered in default unit system
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('160626720592.894'))
-  })
-
-  it('Section with display unit_system', async () => {
-    const metainfo = await createMetainfo(mockPackage)
-    const defsByName = await metainfo.getDefsByName()
-    const def = defsByName.TestSection[1]
-    const adaptor = new TestAdaptor('', 'Data')
-
-    render(
-      <laneContext.Provider value={{next: {}, adaptor: adaptor}}>
-        <Section
-          section={{value3: 7.5}}
-          def={def}
-          sectionIsInEln={false}
-          sectionIsEditable={false}
-        />
-      </laneContext.Provider>
-    )
-    // Should be rendered in section default unit system, The determined package default unit system should be overridden.
-    const numberWithUnit = document.querySelector('[data-testid="scientific-number-with-unit"]')
-    expect(numberWithUnit.textContent).toContain('7.50000')
-  })
-
-  it('Editable Section with display unit_system', async () => {
-    const metainfo = await createMetainfo(mockPackage)
-    const defsByName = await metainfo.getDefsByName()
-    const def = defsByName.TestSection[1]
-    const adaptor = new TestAdaptor('', 'Data')
-
-    render(
-      <laneContext.Provider value={{next: {}, adaptor: adaptor}}>
-        <Section
-          section={{value4: 8.5}}
-          def={def}
-          sectionIsInEln={true}
-          sectionIsEditable={true}
-        />
-      </laneContext.Provider>
-    )
-    // Should be rendered in section default unit system, The determined package default unit system should be overridden.
-    const numberFieldValue = screen.getByTestId('number-edit-quantity-value')
-    const numberFieldValueInput = within(numberFieldValue).getByRole('textbox')
-    await waitFor(() => expect(numberFieldValueInput.value).toEqual('8.5'))
-  })
+    expect(span.textContent).toContain(expected)
+  }
 })

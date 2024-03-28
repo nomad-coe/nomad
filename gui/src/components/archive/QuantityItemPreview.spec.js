@@ -20,45 +20,31 @@ import React from 'react'
 import {render} from "../conftest.spec"
 import {QuantityItemPreview} from "./ArchiveBrowser"
 
-describe('Test QuantityItemPreview', () => {
-  it('without default display unit', async () => {
-    render(
-      <QuantityItemPreview
-        def={{
-          unit: 'meter',
-          type: {type_kind: 'python', type_data: 'float'},
-          shape: [],
-          m_annotations: {}
-        }}
-        value={3.5}
-      />
-    )
-    // should be rendered in default unit system
-    const span = document.querySelector('span')
-    expect(span.textContent).toContain('3.5')
-    expect(span.textContent).toContain('·10')
-    const sup = document.querySelector('sup')
-    expect(sup.textContent).toContain('+10')
-  })
-
-  it('with default display unit', async () => {
-    render(
-      <QuantityItemPreview
-        def={{
-          unit: 'meter',
-          type: {type_kind: 'python', type_data: 'float'},
-          shape: [],
-          m_annotations: {
-            display: [{
-              unit: 'mm'
-            }]
-          }
-        }}
-        value={3.5}
-      />
-    )
-    // should be rendered in default unit provided by schema
-    const span = document.querySelector('span')
-    expect(span.textContent).toContain('3500 mm')
-  })
+test.each([
+  [
+    'without unit',
+    3.5,
+    {},
+    '3.50000'],
+  [
+    'without display unit',
+    3.5,
+    {unit: 'meter'},
+    '3.5·10+10 Å'
+  ],
+  [
+    'with default display unit',
+    3.5,
+    {unit: 'meter', m_annotations: {display: [{unit: 'mm'}]}},
+    '3500 mm'
+  ]
+])('Test QuantityItemPreview %s', async (name, value, def, expected) => {
+  render(
+    <QuantityItemPreview
+      def={{name: 'value1', shape: [], type: {type_kind: 'python', type_data: 'float'}, ...def}}
+      value={value}
+    />
+  )
+  const span = document.querySelector('span')
+  expect(span.textContent).toContain(expected)
 })
