@@ -1,0 +1,8 @@
+dataconverter:
+  reader: xps
+  nxdl: NXmpes
+  input-file:
+    - EX439_S718_Au.sle
+    - eln_data.yaml
+  remove_align: True
+  output: Au_25_mbar_O2_no_align.nxs

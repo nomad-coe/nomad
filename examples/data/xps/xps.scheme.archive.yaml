@@ -1,14 +1,14 @@
 definitions:
   name: XPS ELN Example
   sections:
-    mpes:
+    XPS:
       base_sections:
       - nomad.datamodel.metainfo.eln.NexusDataConverter
       - nomad.datamodel.data.EntryData
       m_annotations:
         template:
           reader: xps
-          nxdl: NX<NAME>.nxdl
+          nxdl: NXmpes.nxdl
         eln:
           hide: []
       quantities:
@@ -20,49 +20,53 @@ definitions:
           description: 'Obligatory value: NXmpes'
         definition/@version:
           type: str
-          description: NXDL version number
           m_annotations:
             eln:
               component: StringEditQuantity
+          description: 'NXDL version number'
         title:
           type: str
           m_annotations:
             eln:
               component: StringEditQuantity
-          description: ''
+          description: 'Extended title for entry.'
         start_time:
           type: Datetime
           m_annotations:
             eln:
               component: DateTimeEditQuantity
-          description: ' Datetime of the start of the measurement. Should be a ISO8601
+          description: 'Datetime of the start of the measurement. Should be a ISO8601
             date/time stamp. It is recommended to add an explicit time zone, otherwise
-            the local time zone is assumed per ISO8601. '
+            the local time zone is assumed per ISO8601.'
         end_time:
           type: Datetime
           m_annotations:
             eln:
               component: DateTimeEditQuantity
-          description: ' Datetime of the end of the measurement. Should be a ISO8601
+          description: 'Datetime of the end of the measurement. Should be a ISO8601
             date/time stamp. It is recommended to add an explicit time zone, otherwise
-            the local time zone is assumed per ISO8601. '
+            the local time zone is assumed per ISO8601.'
         method:
           type: str
           m_annotations:
             eln:
               component: StringEditQuantity
-          description: ' Name of the experimental method.  If applicable, this name
-            should match the terms given by `Clause 11`_ of the `ISO 18115-1:2023`_
-            specification.  Examples include: * X-ray photoelectron spectroscopy (XPS)
-            * angle-resolved X-ray photoelectron spectroscopy (ARXPS) * ultraviolet
-            photoelectron spectroscopy (UPS) * angle-resolved photoelectron spectroscopy
-            (ARPES) * hard X-ray photoemission spectroscopy (HAXPES) * near ambient
-            pressure X-ray photoelectron spectroscopy (NAPXPS) * photoelectron emission
-            microscopy (PEEM) * electron spectroscopy for chemical analysis (ESCA)
-            * time-resolved angle-resolved X-ray photoelectron spectroscopy (trARPES)
-            * spin-resolved angle-resolved X-ray photoelectron spectroscopy (spin-ARPES)
-            * momentum microscopy  .. _ISO 18115-1:2023: https://www.iso.org/standard/74811.html
-            .. _Clause 11: https://www.iso.org/obp/ui/en/#iso:std:iso:18115:-1:ed-3:v1:en:sec:11 '
+          description: 'Name of the experimental method.  If applicable, this name
+                        should match the terms given by `Clause 11`_ of the `ISO 18115-1:2023`_
+                        specification.  Examples include:
+                          - X-ray photoelectron spectroscopy (XPS)
+                          - angle-resolved X-ray photoelectron spectroscopy (ARXPS)
+                          - ultraviolet photoelectron spectroscopy (UPS)
+                          - angle-resolved photoelectron spectroscopy (ARPES)
+                          - hard X-ray photoemission spectroscopy (HAXPES)
+                          - near ambient pressure X-ray photoelectron spectroscopy (NAPXPS)
+                          - photoelectron emission microscopy (PEEM)
+                          - electron spectroscopy for chemical analysis (ESCA)
+                          - time-resolved angle-resolved X-ray photoelectron spectroscopy (trARPES)
+                          - spin-resolved angle-resolved X-ray photoelectron spectroscopy (spin-ARPES)
+                          - momentum microscopy  .. _ISO 18115-1:2023: https://www.iso.org/standard/74811.html
+
+                        .. _Clause 11: https://www.iso.org/obp/ui/en/#iso:std:iso:18115:-1:ed-3:v1:en:sec:11'
       sub_sections:
         user:
           section:
@@ -75,25 +79,30 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-                description: Name of the user.
+                description: 'Name of the user.'
               affiliation:
                 type: str
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-                description: Name of the affiliation of the user at the time when
-                  the experiment was performed.
+                description: 'Name of the affiliation of the user at the time when
+                              the experiment was performed.'
         instrument:
           section:
             m_annotations:
               eln:
                 overview: true
+            description: 'Description of the MPES spectrometer and its individual parts.
+                          This concept is related to term 12.58 of the ISO 18115-1:2023 standard.'
             sub_sections:
               energy_resolution:
                 section:
                   m_annotations:
                     eln:
                       overview: true
+                  description: 'Overall energy resolution of the MPES instrument.
+                          This concept is related to term 10.7 ff. of the ISO 18115-1:2023 standard.
+                          This concept is related to term 10.24 of the ISO 18115-1:2023 standard.'  
                   quantities:
                     physical_quantity:
                       type: str
@@ -113,12 +122,10 @@ definitions:
                                     - other'
                     resolution:
                       type: np.float64
-                      unit: '<hint: NX_ENERGY>'
-                      value: <ADD default value>
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
+                          defaultDisplayUnit: 'eV'
                       description: 'Energy resolution'
               device_information:
                 section:
@@ -131,19 +138,19 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Company name of the manufacturer.
+                      description: 'Company name of the manufacturer.'
                     model:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Version or model of the instrument named by the manufacturer.
+                      description: 'Version or model of the instrument named by the manufacturer.'
                     identifier:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the instrument.
+                      description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the instrument.'
               source_probe:
                 section:
                   m_annotations:
@@ -173,19 +180,29 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Specification of type, may also go to name.
+                      description: 'Specification of type, may also go to name.'
                     name:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Name of source
+                      description: 'Name of source'
                     probe:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: type of radiation probe
+                      description: 'Type of radiation probe (pick one from the enumerated
+                                    list and spell exactly)
+                                    Any of these values:
+                                      - neutron
+                                      - x-ray
+                                      - muon
+                                      - electron
+                                      - ultraviolet
+                                      - visible light
+                                      - positron
+                                      - proton'
                   sub_sections:
                     device_information:
                       section:
@@ -196,21 +213,21 @@ definitions:
                           vendor:
                             type: str
                             m_annotations:
-                            eln:
-                              component: StringEditQuantity
-                            description: Company name of the manufacturer.
+                              eln:
+                                component: StringEditQuantity
+                            description: 'Company name of the manufacturer.'
                           model:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Version or model of the source named by the manufacturer.
+                            description: 'Version or model of the source named by the manufacturer.'
                           identifier:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the source.
+                            description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the source.'
                     associated_beam:
                       section:
                         m_annotations:
@@ -224,50 +241,46 @@ definitions:
                   quantities:
                     distance:
                       type: np.float64
-                      unit: '<hint: NX_LENGTH>'
                       value: 0.0
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: meter
-                      description: ' Distance between the point where the current
+                          defaultDisplayUnit: 'meter'
+                      description: 'Distance between the point where the current
                         NXbeam instance is evaluating the beam properties and the
                         point where the beam interacts with the sample. For photoemission,
                         the latter is the point where the the centre of the beam touches
-                        the sample surface. '
+                        the sample surface.'
                     incident_energy:
                       type: np.float64
-                      unit: '<hint: NX_ENERGY>'
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
                           minValue: 0
-                          defaultDisplayUnit: eV
-                    description: 'Indicent energy of the beam'
+                          defaultDisplayUnit: 'eV'
+                      description: 'Indicent energy of the beam.'
                     incident_energy_spread:
                       type: np.float64
-                      unit: '<hint: NX_ENERGY>'
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
-                      description: The energy spread FWHM for the corresponding energy(ies) in incident_energy
+                          defaultDisplayUnit: 'eV'
+                      description: 'The energy spread FWHM for the corresponding energy(ies) in incident_energy.'
                     incident_polarization:
                       type: np.float64
-                      unit: '<hint: NX_ANY>'
                       shape: ["4"]
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                      description: Incident Stokes Vector
+                      description: 'Incident Stokes Vector.'
                     extent:
                       type: np.float64
                       shape: ["2"]
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: meter
-                      description: Size of the beam
+                          defaultDisplayUnit: 'meter'
+                      description: 'Size of the beam.'
                   sub_sections:
                     associated_source:
                       section:
@@ -291,19 +304,19 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Company name of the manufacturer.
+                            description: 'Company name of the manufacturer.'
                           model:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Version or model of the analyser named by the manufacturer.
+                            description: 'Version or model of the analyser named by the manufacturer.'
                           identifier:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the analyser.
+                            description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the analyser.'
                     energy_resolution:
                       section:
                         m_annotations:
@@ -331,13 +344,19 @@ definitions:
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: eV
-                            description: ''
+                                defaultDisplayUnit: 'eV'
+                            description: 'The resolution of the physical quantity.'
                     transmission_function:
                       section:
                         m_annotations:
                           eln:
                             overview: true
+                      description: 'Transmission function of the electron analyser.
+                                    The transmission function (TF) specifies the detection efficiency per solid angle for electrons of different kinetic energy
+                                    passing through the electron analyser. It depends on the spectrometer geometry as well as operation settings such as lens mode
+                                    and pass energy. The transmission function is usually given as relative intensity vs. kinetic energy. The TF is used for
+                                    calibration of the intensity scale in quantitative XPS. Without proper transmission correction, a comparison of results measured
+                                    from the same sample using different operating modes for an instrument would show significant variations in atomic concentrations.'
                     collectioncolumn:
                       section:
                         m_annotations:
@@ -349,13 +368,13 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Scheme of the electron collection column.
+                            description: 'Scheme of the electron collection column.'
                           lens_mode:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Labelling of the lens setting in use.
+                            description: 'Labelling of the lens setting in use.'
                           projection:
                             type: str
                             m_annotations:
@@ -370,15 +389,15 @@ definitions:
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: degree
-                            description: Acceptance angle of the collection column.
+                                defaultDisplayUnit: 'degree'
+                            description: 'Acceptance angle of the collection column.'
                           spatial_acceptance:
                             type: np.float64
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: meter
-                            description: Acceptance length or area of the collection column.
+                                defaultDisplayUnit: 'meter'
+                            description: 'Acceptance length or area of the collection column.'
                         sub_sections:
                           field_aperture:
                             section:
@@ -406,19 +425,19 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Company name of the manufacturer.
+                                  description: 'Company name of the manufacturer.'
                                 model:
                                   type: str
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Version or model of the collectioncolumn named by the manufacturer.
+                                  description: 'Version or model of the collectioncolumn named by the manufacturer.'
                                 identifier:
                                   type: str
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the collectioncolumn.
+                                  description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the collectioncolumn.'
                     energydispersion:
                       section:
                         m_annotations:
@@ -430,15 +449,15 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: 'Energy dispersion scheme employed, for example: tof, hemispherical, cylindrical, mirror, retarding grid, etc.'
+                            description: 'Energy dispersion scheme employed, 
+                                          for example: tof, hemispherical, cylindrical, mirror, retarding grid, etc.'
                           pass_energy:
                             type: np.float64
-                            unit: '<hint: NX_ENERGY>'
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: eV
-                            description: Energy of the electrons on the mean path of the analyser. Pass energy for hemispherics.
+                                defaultDisplayUnit: 'eV'
+                            description: 'Energy of the electrons on the mean path of the analyser. Pass energy for hemispherics.'
                           energy_scan_mode:
                             type: str
                             m_annotations:
@@ -473,20 +492,20 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Company name of the manufacturer.
+                                  description: 'Company name of the manufacturer.'
                                 model:
                                   type: str
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Version or model of the energy-dispersive element named by the manufacturer.
+                                  description: 'Version or model of the energy-dispersive element named by the manufacturer.'
                                 identifier:
                                   type: str
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the energy-dispersive element.
-                    Detector:
+                                  description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the energy-dispersive element.'
+                    detector:
                       section:
                         m_annotations:
                           eln:
@@ -497,14 +516,13 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Type of electron amplifier in the first
-                              amplification step.
+                            description: 'Type of electron amplifier in the first amplification step.'
                           detector_type:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Description of the detector type.
+                            description: 'Description of the detector type.'
                         sub_sections:
                           device_information:
                             section:
@@ -517,19 +535,19 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Company name of the manufacturer.
+                                  description: 'Company name of the manufacturer.'
                                 model:
                                   type: str
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Version or model of the detector named by the manufacturer.
+                                  description: 'Version or model of the detector named by the manufacturer.'
                                 identifier:
                                   type: str
                                   m_annotations:
                                     eln:
                                       component: StringEditQuantity
-                                  description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the detector.
+                                  description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the detector.'
                           raw_data:
                             section:
                               m_annotations:
@@ -541,35 +559,34 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: NumberEditQuantity
-                                      defaultDisplayUnit: counts
-                                  description: Raw data before calibration.
+                                      defaultDisplayUnit: 'counts'
+                                  description: 'Raw data before calibration.'
                   quantities:
                     description:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Free text description of the type of the detector
+                      description: 'Free text description of the type of the detector.'
                     work_function:
                       type: np.float64
-                      unit: '<hint: NX_ENERGY>'
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
-                      description: Work function of the electron analyser
+                          defaultDisplayUnit: 'eV'
+                      description: 'Work function of the electron analyser.'
                     fast_axes:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: List of the axes that are acquired simultaneously by the detector
+                      description: 'List of the axes that are acquired simultaneously by the detector.'
                     slow_axes:
                       type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: List of the axes that are acquired by scanning a physical parameter, listed in order of decreasing speed
+                      description: 'List of the axes that are acquired by scanning a physical parameter, listed in order of decreasing speed.'
               manipulator:
                 section:
                   m_annotations:
@@ -587,7 +604,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Name for the sensor
+                            description: 'Name for the sensor'
                           measurement:
                             type: str
                             m_annotations:
@@ -599,14 +616,14 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: The type of hardware used for the measurement
+                            description: 'The type of hardware used for the measurement.'
                           value:
                             type: np.float64
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: kelvin
-                            description: Nominal setpoint or average value
+                                defaultDisplayUnit: 'kelvin'
+                            description: 'Nominal setpoint or average value.'
                     sample_heater:
                       section:
                         m_annotations:
@@ -618,7 +635,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Name of the heater
+                            description: 'Name of the heater.'
                           physical_quantity:
                             type: str
                             m_annotations:
@@ -629,14 +646,16 @@ definitions:
                             type: str
                             m_annotations:
                               eln:
-                            description: The type of hardware used for heating.
+                                component: StringEditQuantity
+                            description: 'The type of hardware used for heating.'
                           heater_power:
                             type: np.float64
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: watt 
-                            description: In case of a fixed or averaged heating power, this is the scalar heater power. It can also be a 1D array of heater powers (without time stamps).
+                                defaultDisplayUnit: 'watt'
+                            description: 'In case of a fixed or averaged heating power, this is the scalar heater power. 
+                                          It can also be a 1D array of heater powers (without time stamps).'
                         sub_sections:
                           pid:
                             section:
@@ -649,8 +668,9 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: NumberEditQuantity
-                                      defaultDisplayUnit: kelvin
-                                  description: In case of a fixed or averaged temperature, this is the scalar temperature setpoint. It can also be a 1D array of temperature setpoints (without time stamps).
+                                      defaultDisplayUnit: 'kelvin'
+                                  description: 'In case of a fixed or averaged temperature, this is the scalar temperature setpoint.
+                                                It can also be a 1D array of temperature setpoints (without time stamps).'
                     cryostat:
                       section:
                         m_annotations:
@@ -662,7 +682,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Name of the cryostat
+                            description: 'Name of the cryostat.'
                           physical_quantity:
                             type: str
                             m_annotations:
@@ -674,7 +694,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: The type of hardware used for cooling
+                            description: 'The type of hardware used for cooling.'
                         sub_sections:
                           pid:
                             section:
@@ -687,8 +707,9 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: NumberEditQuantity
-                                      defaultDisplayUnit: kelvin
-                                  description: In case of a fixed or averaged cooling temperature, this is the scalar temperature setpoint. It can also be a 1D array of temperature setpoints (without time stamps).
+                                      defaultDisplayUnit: 'kelvin'
+                                  description: 'In case of a fixed or averaged cooling temperature, this is the scalar temperature setpoint. 
+                                                It can also be a 1D array of temperature setpoints (without time stamps).'
                     drain_current_amperemeter:
                       section:
                         m_annotations:
@@ -700,7 +721,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Name of the amperemeter
+                            description: 'Name of the amperemeter.'
                           measurement:
                             type: str
                             m_annotations:
@@ -712,14 +733,15 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: The type of hardware used for measuring the drain current
+                            description: 'The type of hardware used for measuring the drain current.'
                           value:
                             type: np.float64
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: A
-                            description: In case of a single or averaged drain current measurement, this is the scalar drain current measured between the sample and sample holder. It can also be an 1D array of measured currents (without time stamps).
+                                defaultDisplayUnit: 'A'
+                            description: 'In case of a single or averaged drain current measurement, this is the scalar drain current measured between the sample and sample holder.
+                                          It can also be an 1D array of measured currents (without time stamps).'
                     sample_bias_voltmeter:
                       section:
                         m_annotations:
@@ -731,26 +753,27 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Name of the voltmeter
+                            description: 'Name of the voltmeter.'
                           measurement:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: 'Name for measured signal. Obligatory value: voltage'
+                            description: 'Name for measured signal. Obligatory value: voltage'          
                           type:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: The type of hardware used for measuring the sample bias
+                            description: 'The type of hardware used for measuring the sample bias.'
                           value:
                             type: np.float64
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: V
-                            description: In case of a single or averaged bias measurement, this is the scalar voltage measured between sample and sample holder. It can also be an 1D array of measured voltages (without time stamps).
+                                defaultDisplayUnit: 'V'
+                            description: 'In case of a single or averaged bias measurement, this is the scalar voltage measured between sample and sample holder.
+                                          It can also be an 1D array of measured voltages (without time stamps).'
                     sample_bias_potentiostat:
                       section:
                         m_annotations:
@@ -762,7 +785,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Name of the potentiostat
+                            description: 'Name of the potentiostat.'
                           physical_quantity:
                             type: str
                             m_annotations:
@@ -774,7 +797,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: The type of hardware used for applying the sample bias
+                            description: 'The type of hardware used for applying the sample bias.'
                         sub_sections:
                           pid:
                             section:
@@ -787,8 +810,9 @@ definitions:
                                   m_annotations:
                                     eln:
                                       component: NumberEditQuantity
-                                      defaultDisplayUnit: V
-                                  description: In case of a fixed or averaged applied bias, this is the scalar voltage applied between sample and sample holder. It can also be an 1D array of voltage setpoints (without time stamps).
+                                      defaultDisplayUnit: 'V'
+                                  description: 'In case of a fixed or averaged applied bias, this is the scalar voltage applied between sample and sample holder.
+                                                It can also be an 1D array of voltage setpoints (without time stamps).'
                     device_information:
                       section:
                         m_annotations:
@@ -800,19 +824,19 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Company name of the manufacturer.
+                            description: 'Company name of the manufacturer.'                                
                           model:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Version or model of the manipulator named by the manufacturer.
+                            description: 'Version or model of the manipulator named by the manufacturer.'
                           identifier:
                             type: str
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the manipulator.
+                            description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the manipulator.'
               pressure_gauge:
                 section:
                   m_annotations:
@@ -824,7 +848,7 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Name of the pressure gauge
+                      description: 'Name of the pressure gauge.'
                     measurement:
                       type: str
                       m_annotations:
@@ -836,18 +860,15 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: The type of hardware used for measuring the gas pressure
+                      description: 'The type of hardware used for measuring the gas pressure'
                     value:
                       type: np.float64
-                      unit: '<hint: NX_PRESSURE>'
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: mbar
-                      description: ' In case of a single or averaged gas pressure
-                        measurement, this is the scalar gas pressure around the sample.
-                        It can also be an 1D array of measured pressures (without
-                        time stamps). '
+                          defaultDisplayUnit: 'milli-bar'
+                      description: 'In case of a single or averaged gas pressure measurement, this is the scalar gas pressure around the sample.
+                                    It can also be an 1D array of measured pressures (without time stamps).'
                   sub_sections:
                     value_log:
                       section:
@@ -857,14 +878,12 @@ definitions:
                         quantities:
                           value:
                             type: np.float64
-                            unit: '<hint: NX_PRESSURE>'
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: mbar
-                            description: ' In the case of an experiment in which the
-                              gas pressure changes and is recorded, this is an array
-                              of length m of gas pressures. '
+                                defaultDisplayUnit: 'milli-bar'
+                            description: 'In the case of an experiment in which the gas pressure changes and is recorded,
+                                          this is an array of length m of gas pressures.'
               flood_gun:
                 section:
                   m_annotations:
@@ -876,7 +895,7 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: Name of the flood gun
+                      description: 'Name of the flood gun.'
                     physical_quantity:
                       type: str
                       m_annotations:
@@ -884,21 +903,19 @@ definitions:
                           component: StringEditQuantity
                       description: 'Obligatory value: current'
                     type:
-                      type: str
+                      type: str                      
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: The type of hardware providing low-energy electrons
+                      description: 'The type of hardware providing low-energy electrons'
                     current:
                       type: np.float64
-                      unit: '<hint: NX_CURRENT>'
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
                           defaultDisplayUnit: A
-                      description: ' In case of a fixed or averaged electron current,
-                        this is the scalar current. It can also be an 1D array of
-                        output current (without time stamps). '
+                      description: 'In case of a fixed or averaged electron current, this is the scalar current.
+                                    It can also be an 1D array of output current (without time stamps).'
                   sub_sections:
                     current_log:
                       section:
@@ -908,14 +925,12 @@ definitions:
                         quantities:
                           value:
                             type: np.float64
-                            unit: '<hint: NX_CURRENT>'
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: A
-                            description: ' In the case of an experiment in which the
-                              electron current is changed and recorded with time stamps,
-                              this is an array of length m of current setpoints. '
+                                defaultDisplayUnit: 'A'
+                            description: 'In the case of an experiment in which the electron current is changed and
+                                          recorded with time stamps,this is an array of length m of current setpoints.'
         process:
           section:
             m_annotations:
@@ -933,9 +948,8 @@ definitions:
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
-                      description: ' This is the calibrated energy axis to be used
-                        for data plotting. '
+                          defaultDisplayUnit: 'eV'
+                      description: 'This is the calibrated energy axis to be used for data plotting.'
               angular_calibration:
                 section:
                   m_annotations:
@@ -947,9 +961,8 @@ definitions:
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: degree
-                      description: ' This is the calibrated angular axis to be used
-                        for data plotting. '
+                          defaultDisplayUnit: 'degree'
+                      description: 'This is the calibrated angular axis to be used for data plotting.'
               spatial_calibration:
                 section:
                   m_annotations:
@@ -961,9 +974,8 @@ definitions:
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: meter
-                      description: ' This is the calibrated spatial axis to be used
-                        for data plotting. '
+                          defaultDisplayUnit: 'meter'
+                      description: 'This is the calibrated spatial axis to be used for data plotting.'
               momentum_calibration:
                 section:
                   m_annotations:
@@ -975,9 +987,8 @@ definitions:
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: 1/angstrom
-                      description: ' This is the momentum axis to be used for data
-                        plotting. '
+                          defaultDisplayUnit: '1/angstrom'
+                      description: 'This is the momentum axis to be used for data plotting.'
               energy_referencing:
                 section:
                   m_annotations:
@@ -995,35 +1006,34 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: ' Reference peak that was used for the calibration.  For
-                        example: adventitious carbon | C-C | metallic Au | elemental
-                        Si | Fermi edge | vacuum level '
+                      description: 'Reference peak that was used for the calibration.  For example:
+                                    adventitious carbon | C-C | metallic Au | elemental Si |
+                                    Fermi edge | vacuum level'             
                     binding_energy:
                       type: np.float64
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
-                      description: ' The binding energy (in units of eV) that the
-                        specified emission line appeared at, after adjusting the binding
-                        energy scale.  This concept is related to term `12.16_ ff.`_
-                        of the ISO 18115-1:2023 standard.  .. _12.16_ ff.: https://www.iso.org/obp/ui/en/#iso:std:iso:18115:-1:ed-3:v1:en:term:12.16 '
+                          defaultDisplayUnit: 'eV'
+                      description: 'The binding energy (in units of eV) that the specified emission line 
+                                    appeared at, after adjusting the binding energy scale. This concept is
+                                    related to term `12.16_ ff.`_ of the ISO 18115-1:2023 standard. 
+                                    .. _12.16_ ff.: https://www.iso.org/obp/ui/en/#iso:std:iso:18115:-1:ed-3:v1:en:term:12.16'
                     offset:
                       type: np.float64
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
-                      description: ' Offset between measured binding energy and calibrated
-                        binding energy of the emission line. '
+                          defaultDisplayUnit: 'eV'
+                      description: 'Offset between measured binding energy and calibrated binding energy of the emission line.'
                     calibrated_axis:
                       type: np.float64
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                          defaultDisplayUnit: eV
-                      description: ' This is the calibrated energy axis to be used
-                        for data plotting.  This should link to /entry/data/energy. '
+                          defaultDisplayUnit: 'eV'
+                      description: 'This is the calibrated energy axis to be used for data plotting.
+                                    This should link to /entry/data/energy.'
               transmission_correction:
                 section:
                   m_annotations:
@@ -1038,21 +1048,17 @@ definitions:
                         quantities:
                           kinetic_energy:
                             type: np.float64
-                            unit: '<hint: NX_ENERGY>'
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                                defaultDisplayUnit: eV
-                            description: ' Kinetic energy values '
+                                defaultDisplayUnit: 'eV'
+                            description: 'Kinetic energy values.'
                           relative_intensity:
                             type: np.float64
-                            unit: '<hint: NX_UNITLESS>'
-                            value: <ADD default value>
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity
-                            description: ' Relative transmission efficiency for the
-                              given kinetic energies '
+                            description: 'Relative transmission efficiency for the given kinetic energies.'
         sample:
           section:
             m_annotations:
@@ -1064,27 +1070,35 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-                description: Descriptive name of sample
+                description: 'Descriptive name of sample.'
               atom_types:
                 type: str
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-                description: ' List of comma-separated elements from the periodic
-                  table that are contained in the sample. If the sample substance
-                  has multiple components, all elements from each component must be
-                  included in `atom_types`. '
+                description: 'List of comma-separated elements from the periodic table that are contained in the sample. 
+                              If the sample substance has multiple components, all elements from each component must be
+                              included in `atom_types`.'
               physical_form:
                 type: str
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-                description: Physical form of the sample material. Examples include single crystal, foil, pellet, powder, thin film, disc, foam, gas, liquid, amorphous.
+                description: 'Physical form of the sample material. Examples include single crystal, foil, pellet, powder,
+                              thin film, disc, foam, gas, liquid, amorphous.'
               situation:
                 type: str
                 m_annotations:
                   eln:
                     component: StringEditQuantity
+                description: 'Surrounding atmosphere. Any of these values:
+                              - air
+                              - vacuum
+                              - inert atmosphere
+                              - oxidising atmosphere
+                              - reducing atmosphere
+                              - sealed can
+                              - other'
             sub_sections:
               substance:
                 section:
@@ -1097,8 +1111,7 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                      description: The chemical formula of the sample (using CIF
-                        conventions).
+                      description: 'The chemical formula of the sample (using CIF conventions).'
               sample_history:
                 section:
                   m_annotations:
@@ -1126,8 +1139,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: Details about the method of sample preparation
-                              before the MPES experiment. 
+                            description: 'Details about the method of sample preparation before the MPES experiment.'
               temperature:
                 section:
                   m_annotations:
@@ -1206,23 +1218,21 @@ definitions:
             quantities:
               data:
                 type: np.float64
-                unit: '<hint: NX_ANY>'
                 m_annotations:
                   eln:
                     component: NumberEditQuantity
-                    defaultDisplayUnit: counts_per_second
-                description: ' Represents a measure of one- or more-dimensional photoemission
-                  counts, where the varied axis may be for example energy, momentum,
-                  spatial coordinate, pump-probe delay, spin index, temperature, etc.
-                  The axes traces should be linked to the actual encoder position
-                  in NXinstrument or calibrated axes in NXprocess. '
+                    defaultDisplayUnit: 'counts_per_second'
+                description: 'Represents a measure of one- or more-dimensional photoemission counts, 
+                              where the varied axis may be for example energy, momentum, spatial coordinate,
+                              pump-probe delay, spin index, temperature, etc.
+                              The axes traces should be linked to the actual encoder position in NXinstrument 
+                              or calibrated axes in NXprocess.'
               energy:
                 type: np.float64
-                unit: '<hint: NX_ENERGY>'
-                value: <ADD default value>
                 m_annotations:
                   eln:
                     component: NumberEditQuantity
-                    defaultDisplayUnit: eV
-                description: ' Calibrated energy axis.  This could be a link to either
-                  /entry/process/energy_calibration/calibrated_axis or /entry/process/energy_correction/calibrated_axis. '
+                    defaultDisplayUnit: 'eV'
+                description: 'Calibrated energy axis. This could be a link to either
+                              /entry/process/energy_calibration/calibrated_axis or
+                              /entry/process/energy_correction/calibrated_axis.'
