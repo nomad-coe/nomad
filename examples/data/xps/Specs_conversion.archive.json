@@ -7,6 +7,7 @@
             "EX439_S718_Au.sle",
             "eln_data.yaml"
         ],
+        "output": "Au_25_mbar_O2_no_align.nxs",
         "definition":"NXmpes",
         "definition/@version":"1.0",
         "title":"XPS Experiment",
