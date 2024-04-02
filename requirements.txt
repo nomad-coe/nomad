@@ -9,7 +9,6 @@ alembic==1.9.1            # via jupyterhub
 amqp==5.1.1               # via kombu
 aniso8601==7.0.0          # via nomad-lab (pyproject.toml)
 anyio==3.6.2              # via httpcore, starlette, watchfiles
-appnope==0.1.4            # via ipykernel, ipython
 arrow==1.2.3              # via isoduration
 asciitree==0.3.3          # via zarr
 ase==3.19.0               # via asr, ifes-apt-tc-data-modeling, matid, nomad-lab (pyproject.toml), pynxtools, quippy-ase
@@ -122,7 +121,8 @@ latexcodec==2.0.1         # via pybtex
 llvmlite==0.39.1          # via numba
 lmfit==1.2.2              # via pyxem
 locket==1.0.0             # via partd
-lxml==4.7.1               # via nomad-lab (pyproject.toml)
+lxml==5.2.0               # via lxml-html-clean, nomad-lab (pyproject.toml)
+lxml-html-clean==0.1.0    # via nomad-lab (pyproject.toml)
 m2r==0.2.1                # via nomad-lab (pyproject.toml)
 mako==1.2.4               # via alembic
 markupsafe==2.1.1         # via jinja2, mako, werkzeug
