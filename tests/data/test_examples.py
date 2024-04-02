@@ -87,14 +87,14 @@ def test_sample_tabular(mainfile, assert_xpaths, raw_files_function, no_warn):
 )
 def test_sample_entry_mode(
     mongo_function,
-    test_user,
+    user1,
     raw_files_function,
     monkeypatch,
     proc_infra,
     test_files,
     number_of_entries,
 ):
-    upload = create_upload('test_upload_id', test_user.user_id, test_files)
+    upload = create_upload('test_upload_id', user1.user_id, test_files)
     assert upload is not None
     assert upload.processed_entries_count == number_of_entries
 
@@ -213,14 +213,14 @@ def test_sample_entry_mode(
 )
 def test_tabular_doc_examples(
     mongo_function,
-    test_user,
+    user1,
     raw_files_function,
     monkeypatch,
     proc_infra,
     test_files,
     status,
 ):
-    upload = create_upload('test_upload_id', test_user.user_id, test_files)
+    upload = create_upload('test_upload_id', user1.user_id, test_files)
     assert upload is not None
 
     for entry in Entry.objects(upload_id='test_upload_id'):

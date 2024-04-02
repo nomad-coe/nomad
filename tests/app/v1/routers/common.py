@@ -286,33 +286,21 @@ def owner_test_parameters():
         pytest.param('admin', None, 401, -1, -1, -1, id='admin-wo-auth'),
         pytest.param('shared', None, 401, -1, -1, -1, id='shared-wo-auth'),
         pytest.param('public', None, 200, 23, 23, 6, id='public-wo-auth'),
-        pytest.param('user', 'test_user', 200, 32, 30, 13, id='user-test-user'),
-        pytest.param('staging', 'test_user', 200, 6, 4, 4, id='staging-test-user'),
-        pytest.param('visible', 'test_user', 200, 32, 30, 13, id='visible-test-user'),
-        pytest.param('admin', 'test_user', 401, -1, -1, -1, id='admin-test-user'),
-        pytest.param('shared', 'test_user', 200, 32, 30, 13, id='shared-test-user'),
-        pytest.param('public', 'test_user', 200, 23, 23, 6, id='public-test-user'),
-        pytest.param(
-            'user', 'other_test_user', 200, 0, 0, 0, id='user-other-test-user'
-        ),
-        pytest.param(
-            'staging', 'other_test_user', 200, 2, 2, 2, id='staging-other-test-user'
-        ),
-        pytest.param(
-            'visible', 'other_test_user', 200, 27, 27, 10, id='visible-other-test-user'
-        ),
-        pytest.param(
-            'shared', 'other_test_user', 200, 4, 4, 4, id='shared-other-test-user'
-        ),
-        pytest.param(
-            'public', 'other_test_user', 200, 23, 23, 6, id='public-other-test-user'
-        ),
+        pytest.param('user', 'user1', 200, 32, 30, 13, id='user-user1'),
+        pytest.param('staging', 'user1', 200, 6, 4, 4, id='staging-user1'),
+        pytest.param('visible', 'user1', 200, 32, 30, 13, id='visible-user1'),
+        pytest.param('admin', 'user1', 401, -1, -1, -1, id='admin-user1'),
+        pytest.param('shared', 'user1', 200, 32, 30, 13, id='shared-user1'),
+        pytest.param('public', 'user1', 200, 23, 23, 6, id='public-user1'),
+        pytest.param('user', 'user2', 200, 0, 0, 0, id='user-user2'),
+        pytest.param('staging', 'user2', 200, 2, 2, 2, id='staging-user2'),
+        pytest.param('visible', 'user2', 200, 27, 27, 10, id='visible-user2'),
+        pytest.param('shared', 'user2', 200, 4, 4, 4, id='shared-user2'),
+        pytest.param('public', 'user2', 200, 23, 23, 6, id='public-user2'),
         pytest.param('all', None, 200, 26, 26, 9, id='metadata-all-wo-auth'),
-        pytest.param('all', 'test_user', 200, 32, 30, 13, id='metadata-all-test-user'),
-        pytest.param(
-            'all', 'other_test_user', 200, 28, 28, 11, id='metadata-all-other-test-user'
-        ),
-        pytest.param('admin', 'admin_user', 200, 32, 30, 13, id='admin-admin-user'),
+        pytest.param('all', 'user1', 200, 32, 30, 13, id='metadata-all-user1'),
+        pytest.param('all', 'user2', 200, 28, 28, 11, id='metadata-all-user2'),
+        pytest.param('admin', 'user0', 200, 32, 30, 13, id='admin-user0'),
         pytest.param('all', 'bad_user', 401, -1, -1, -1, id='bad-credentials'),
     ]
 
@@ -490,7 +478,7 @@ def aggregation_test_parameters(
             str['total'],
             min(str['size'], default_size),
             200,
-            'test_user',
+            'user1',
             id='terms-str',
         ),
         pytest.param(
@@ -498,7 +486,7 @@ def aggregation_test_parameters(
             enum['total'],
             min(enum['size'], default_size),
             200,
-            'test_user',
+            'user1',
             id='terms-enum',
         ),
         pytest.param(
@@ -506,7 +494,7 @@ def aggregation_test_parameters(
             bool['total'],
             min(bool['size'], default_size),
             200,
-            'test_user',
+            'user1',
             id='terms-bool',
         ),
         pytest.param(
@@ -514,7 +502,7 @@ def aggregation_test_parameters(
             0,
             0,
             200,
-            'test_user',
+            'user1',
             id='no-results',
         ),
         pytest.param(
@@ -522,7 +510,7 @@ def aggregation_test_parameters(
             default_total,
             min(default_total, default_size),
             200,
-            'test_user',
+            'user1',
             id='entries',
         ),
         pytest.param(
@@ -530,7 +518,7 @@ def aggregation_test_parameters(
             default_total,
             min(default_total, default_size),
             200,
-            'test_user',
+            'user1',
             id='entries-size',
         ),
         pytest.param(
@@ -538,7 +526,7 @@ def aggregation_test_parameters(
             -1,
             -1,
             422,
-            'test_user',
+            'user1',
             id='bad-entries',
         ),
         pytest.param(
@@ -554,7 +542,7 @@ def aggregation_test_parameters(
             str['total'],
             min(str['size'], default_size),
             200,
-            'test_user',
+            'user1',
             id='entries-include',
         ),
         pytest.param(
@@ -570,7 +558,7 @@ def aggregation_test_parameters(
             str['total'],
             min(str['size'], default_size),
             200,
-            'test_user',
+            'user1',
             id='entries-exclude',
         ),
         pytest.param(
@@ -626,7 +614,7 @@ def aggregation_test_parameters(
             pagination['total'],
             min(pagination['size'], default_size),
             200,
-            'test_user',
+            'user1',
             id='order-direction',
         ),
         pytest.param(
@@ -639,7 +627,7 @@ def aggregation_test_parameters(
             pagination['total'],
             pagination['page_after_value_size'],
             200,
-            'test_user',
+            'user1',
             id='after',
         ),
         pytest.param(
@@ -680,7 +668,7 @@ def aggregation_test_parameters(
             histogram_date['default_size'],
             histogram_date['default_size'],
             200,
-            'test-user',
+            'user1',
             id='date-histogram-default',
         ),
         pytest.param(
@@ -693,7 +681,7 @@ def aggregation_test_parameters(
             histogram_date['interval_size'],
             histogram_date['interval_size'],
             200,
-            'test-user',
+            'user1',
             id='date-histogram-interval',
         ),
         pytest.param(
@@ -707,7 +695,7 @@ def aggregation_test_parameters(
             histogram_date['interval_size'],
             histogram_date['interval_size'],
             200,
-            'test-user',
+            'user1',
             id='date-histogram-metrics',
         ),
         pytest.param(
@@ -715,7 +703,7 @@ def aggregation_test_parameters(
             -1,
             -1,
             422,
-            'test-user',
+            'user1',
             id='date-histogram-no-date',
         ),
         pytest.param(
@@ -723,7 +711,7 @@ def aggregation_test_parameters(
             -1,
             -1,
             400,
-            'test-user',
+            'user1',
             id='date-histogram-bad-interval',
         ),
         # Int histogram
@@ -750,7 +738,7 @@ def aggregation_test_parameters(
             histogram_int['bucket_size'],
             histogram_int['bucket_size'],
             200,
-            'test-user',
+            'user1',
             id='histogram-buckets',
         ),
         pytest.param(
@@ -822,7 +810,7 @@ def aggregation_test_parameters(
                 pagination['total'],
                 min(pagination['size'], default_size),
                 200,
-                'test_user',
+                'user1',
                 id='order-str',
             ),
             pytest.param(
@@ -835,7 +823,7 @@ def aggregation_test_parameters(
                 pagination['total'],
                 min(pagination['size'], default_size),
                 200,
-                'test_user',
+                'user1',
                 id='order-date',
             ),
             pytest.param(
@@ -848,7 +836,7 @@ def aggregation_test_parameters(
                 pagination['total'],
                 min(pagination['size'], default_size),
                 200,
-                'test_user',
+                'user1',
                 id='order-int',
             ),
             pytest.param(
@@ -866,7 +854,7 @@ def aggregation_test_parameters(
                 pagination['total'],
                 pagination['page_after_value_size'],
                 200,
-                'test_user',
+                'user1',
                 id='after-order',
             ),
         ]
@@ -1375,7 +1363,7 @@ def assert_query_response(client, test_method, query, total, status_code):
 
 def assert_aggregation_response(
     client,
-    test_user_auth,
+    user1_auth,
     aggregation,
     total,
     size,
@@ -1385,8 +1373,8 @@ def assert_aggregation_response(
 ):
     """Checks that the aggregation response is as expected."""
     headers = {}
-    if user == 'test_user':
-        headers = test_user_auth
+    if user == 'user1':
+        headers = user1_auth
 
     agg_id = 'test_agg_name'
     aggregations = {agg_id: aggregation}
@@ -1532,9 +1520,9 @@ def perform_materials_metadata_test(*args, **kwargs):
 
 def perform_owner_test(
     client,
-    test_user_auth,
-    other_test_user_auth,
-    admin_user_auth,
+    user0_auth,
+    user1_auth,
+    user2_auth,
     owner,
     user,
     status_code,
@@ -1543,12 +1531,12 @@ def perform_owner_test(
     test_method,
 ):
     headers = None
-    if user == 'test_user':
-        headers = test_user_auth
-    elif user == 'other_test_user':
-        headers = other_test_user_auth
-    elif user == 'admin_user':
-        headers = admin_user_auth
+    if user == 'user1':
+        headers = user1_auth
+    elif user == 'user2':
+        headers = user2_auth
+    elif user == 'user0':
+        headers = user0_auth
     elif user == 'bad_user':
         headers = {'Authorization': 'Bearer NOTATOKEN'}
 

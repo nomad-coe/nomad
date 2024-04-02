@@ -34,8 +34,8 @@ def perform_get_token_test(client, http_method, status_code, username, password)
 
 
 @pytest.mark.parametrize('http_method', ['post', 'get'])
-def test_get_token(client, test_user, http_method):
-    perform_get_token_test(client, http_method, 200, test_user.username, 'password')
+def test_get_token(client, user1, http_method):
+    perform_get_token_test(client, http_method, 200, user1.username, 'password')
 
 
 @pytest.mark.parametrize('http_method', ['post', 'get'])
@@ -43,8 +43,8 @@ def test_get_token_bad_credentials(client, http_method):
     perform_get_token_test(client, http_method, 401, 'bad', 'credentials')
 
 
-def test_get_signature_token(client, test_user_auth):
-    response = client.get('auth/signature_token', headers=test_user_auth)
+def test_get_signature_token(client, user1_auth):
+    response = client.get('auth/signature_token', headers=user1_auth)
     assert response.status_code == 200
     assert response.json().get('signature_token') is not None
 
@@ -66,9 +66,9 @@ def test_get_signature_token_unauthorized(client, invalid_user_auth):
         (None, 422),
     ],
 )
-def test_get_app_token(client, test_user_auth, expires_in, status_code):
+def test_get_app_token(client, user1_auth, expires_in, status_code):
     response = client.get(
-        'auth/app_token', headers=test_user_auth, params={'expires_in': expires_in}
+        'auth/app_token', headers=user1_auth, params={'expires_in': expires_in}
     )
     assert response.status_code == status_code
     if status_code == 200:

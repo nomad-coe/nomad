@@ -147,7 +147,7 @@ def assert_file_upload_and_processing(
     url,
     mode,
     user,
-    test_auth_dict,
+    auth_dict,
     upload_id,
     source_paths,
     target_path,
@@ -167,7 +167,7 @@ def assert_file_upload_and_processing(
     source_paths = source_paths or []
     if isinstance(source_paths, str):
         source_paths = [source_paths]
-    user_auth, token = test_auth_dict[user]
+    user_auth, token = auth_dict[user]
     # Use either token or bearer token for the post operation (never both)
     user_auth_action = user_auth
     if use_upload_token:
@@ -457,7 +457,7 @@ def get_upload_entries_metadata(
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 expected_upload_ids=[
                     'id_embargo_w_coauthor',
                     'id_embargo_w_reviewer',
@@ -465,7 +465,7 @@ def get_upload_entries_metadata(
                     'id_unpublished_w_reviewer',
                 ],
             ),
-            id='other_test_user',
+            id='user2',
         ),
         pytest.param(dict(user=None, expected_status_code=401), id='no-credentials'),
         pytest.param(
@@ -627,7 +627,7 @@ def get_upload_entries_metadata(
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 query_params={'roles': 'coauthor'},
                 expected_pagination={'total': 2},
             ),
@@ -635,7 +635,7 @@ def get_upload_entries_metadata(
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 query_params={'roles': 'reviewer'},
                 expected_pagination={'total': 2},
             ),
@@ -643,7 +643,7 @@ def get_upload_entries_metadata(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 query_params={'roles': 'main_author'},
                 expected_pagination={'total': 10},
             ),
@@ -651,7 +651,7 @@ def get_upload_entries_metadata(
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 query_params={'roles': ['reviewer', 'coauthor']},
                 expected_pagination={'total': 4},
             ),
@@ -659,15 +659,15 @@ def get_upload_entries_metadata(
         ),
     ],
 )
-def test_get_uploads(client, mongo_module, test_auth_dict, example_data, kwargs):
+def test_get_uploads(client, mongo_module, auth_dict, example_data, kwargs):
     """Makes a get request to uploads in various different ways."""
     # Extract kwargs
-    user = kwargs.get('user', 'test_user')
+    user = kwargs.get('user', 'user1')
     query_params = kwargs.get('query_params', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
     # Api call
     response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
     # Verify result
@@ -691,27 +691,27 @@ def test_get_uploads(client, mongo_module, test_auth_dict, example_data, kwargs)
 @pytest.mark.parametrize(
     'user, upload_id, expected_status_code',
     [
-        pytest.param('test_user', 'id_unpublished', 200, id='valid-upload_id'),
+        pytest.param('user1', 'id_unpublished', 200, id='valid-upload_id'),
         pytest.param(
-            'test_user', 'id_child_entries', 200, id='valid-upload_id-w-child-entries'
+            'user1', 'id_child_entries', 200, id='valid-upload_id-w-child-entries'
         ),
-        pytest.param('test_user', 'silly_value', 404, id='invalid-upload_id'),
+        pytest.param('user1', 'silly_value', 404, id='invalid-upload_id'),
         pytest.param(None, 'id_unpublished', 401, id='no-credentials'),
         pytest.param('invalid', 'id_unpublished', 401, id='invalid-credentials'),
-        pytest.param('other_test_user', 'id_unpublished', 401, id='no-access'),
-        pytest.param('admin_user', 'id_unpublished', 200, id='admin-access'),
+        pytest.param('user2', 'id_unpublished', 401, id='no-access'),
+        pytest.param('user0', 'id_unpublished', 200, id='admin-access'),
     ],
 )
 def test_get_upload(
     client,
     mongo_module,
-    test_auth_dict,
+    auth_dict,
     user,
     upload_id,
     expected_status_code,
 ):
     """Tests the endpoint for getting an upload by upload_id."""
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -760,10 +760,8 @@ def test_get_upload(
         pytest.param(
             dict(user='invalid', expected_status_code=401), id='invalid-credentials'
         ),
-        pytest.param(
-            dict(user='other_test_user', expected_status_code=401), id='no-access'
-        ),
-        pytest.param(dict(user='admin_user', expected_data_len=1), id='admin-access'),
+        pytest.param(dict(user='user2', expected_status_code=401), id='no-access'),
+        pytest.param(dict(user='user0', expected_data_len=1), id='admin-access'),
         pytest.param(
             dict(upload_id='silly_value', expected_status_code=404),
             id='invalid-upload_id',
@@ -915,19 +913,19 @@ def test_get_upload(
         ),
     ],
 )
-def test_get_upload_entries(client, mongo_module, test_auth_dict, example_data, kwargs):
+def test_get_upload_entries(client, mongo_module, auth_dict, example_data, kwargs):
     """
     Fetches the entries for a specific upload, by calling uploads/{upload_id}/entries,
     with the provided query paramters, and checks the result.
     """
     upload_id = kwargs.get('upload_id', 'id_embargo')
-    user = kwargs.get('user', 'test_user')
+    user = kwargs.get('user', 'user1')
     query_args = kwargs.get('query_args', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_data_len = kwargs.get('expected_data_len', 1)
     expected_response = kwargs.get('expected_response', {})
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
 
     response = perform_get(
         client, f'uploads/{upload_id}/entries', user_auth, **query_args
@@ -953,11 +951,11 @@ def test_get_upload_entries(client, mongo_module, test_auth_dict, example_data, 
 @pytest.mark.parametrize(
     'upload_id, entry_id, user, expected_status_code',
     [
-        pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
+        pytest.param('id_embargo', 'id_embargo_1', 'user1', 200, id='ok'),
         pytest.param(
             'id_child_entries',
             'id_child_entries_child1',
-            'test_user',
+            'user1',
             200,
             id='child-entry',
         ),
@@ -965,24 +963,18 @@ def test_get_upload_entries(client, mongo_module, test_auth_dict, example_data, 
         pytest.param(
             'id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'
         ),
+        pytest.param('id_embargo', 'id_embargo_1', 'user2', 401, id='no-access'),
+        pytest.param('id_embargo', 'id_embargo_1', 'user0', 200, id='admin-access'),
         pytest.param(
-            'id_embargo', 'id_embargo_1', 'other_test_user', 401, id='no-access'
+            'silly_value', 'id_embargo_1', 'user1', 404, id='invalid-upload_id'
         ),
-        pytest.param(
-            'id_embargo', 'id_embargo_1', 'admin_user', 200, id='admin-access'
-        ),
-        pytest.param(
-            'silly_value', 'id_embargo_1', 'test_user', 404, id='invalid-upload_id'
-        ),
-        pytest.param(
-            'id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id'
-        ),
+        pytest.param('id_embargo', 'silly_value', 'user1', 404, id='invalid-entry_id'),
     ],
 )
 def test_get_upload_entry(
     client,
     mongo_module,
-    test_auth_dict,
+    auth_dict,
     example_data,
     upload_id,
     entry_id,
@@ -992,7 +984,7 @@ def test_get_upload_entry(
     """
     Fetches an entry via a call to uploads/{upload_id}/entries/{entry_id} and checks it.
     """
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}/entries/{entry_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -1007,7 +999,7 @@ def test_get_upload_entry(
     [
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
             ),
             200,
@@ -1015,19 +1007,19 @@ def test_get_upload_entry(
             id='published-file',
         ),
         pytest.param(
-            dict(user='test_user', upload_id='id_unpublished'),
+            dict(user='user1', upload_id='id_unpublished'),
             400,
             None,
             id='unpublished-file',
         ),
         pytest.param(
-            dict(user='other_test_user', upload_id='id_embargo'),
+            dict(user='user2', upload_id='id_embargo'),
             401,
             None,
             id='embargo-file',
         ),
         pytest.param(
-            dict(user='test_user', upload_id='silly_value'),
+            dict(user='user1', upload_id='silly_value'),
             404,
             None,
             id='bad-upload-id',
@@ -1037,14 +1029,14 @@ def test_get_upload_entry(
 def test_get_upload_raw(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     args,
     expected_status_code,
     expected_content,
 ):
     user = args['user']
     upload_id = args['upload_id']
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
 
     response = perform_get(client, f'uploads/{upload_id}/raw', user_auth=user_auth)
 
@@ -1064,7 +1056,7 @@ def test_get_upload_raw(
     [
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
             ),
@@ -1075,7 +1067,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
                 ignore_mime_type=True,
@@ -1087,7 +1079,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
             ),
@@ -1098,7 +1090,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='admin_user',
+                user='user0',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
             ),
@@ -1109,7 +1101,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/mainfile.json',
             ),
@@ -1120,7 +1112,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/mainfile.json',
                 ignore_mime_type=True,
@@ -1132,7 +1124,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='admin_user',
+                user='user0',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/1.aux',
             ),
@@ -1143,7 +1135,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
                 compress=True,
@@ -1155,7 +1147,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/',
                 compress=True,
@@ -1166,7 +1158,7 @@ def test_get_upload_raw(
             id='unpublished-dir-compressed',
         ),
         pytest.param(
-            dict(user='test_user', upload_id='id_unpublished', path='', compress=True),
+            dict(user='user1', upload_id='id_unpublished', path='', compress=True),
             200,
             'application/zip',
             [
@@ -1178,7 +1170,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/1.aux',
                 compress=True,
@@ -1190,7 +1182,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01',
                 compress=True,
@@ -1201,7 +1193,7 @@ def test_get_upload_raw(
             id='published-dir-compressed',
         ),
         pytest.param(
-            dict(user='test_user', upload_id='id_published', path='', compress=True),
+            dict(user='user1', upload_id='id_published', path='', compress=True),
             200,
             'application/zip',
             ['test_content', 'test_content/subdir/test_entry_01/1.aux'],
@@ -1209,7 +1201,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='silly_value',
                 path='test_content/subdir/test_entry_01/1.aux',
                 compress=True,
@@ -1221,7 +1213,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/silly_name',
                 compress=True,
@@ -1233,7 +1225,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
                 offset=2,
@@ -1245,7 +1237,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
                 offset=2,
@@ -1258,7 +1250,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/1.aux',
                 offset=2,
@@ -1270,7 +1262,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/1.aux',
                 offset=2,
@@ -1283,7 +1275,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/1.aux',
                 offset=-3,
@@ -1295,7 +1287,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='test_user',
+                user='user1',
                 upload_id='id_published',
                 path='test_content/subdir/test_entry_01/1.aux',
                 offset=3,
@@ -1330,7 +1322,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
             ),
@@ -1341,7 +1333,7 @@ def test_get_upload_raw(
         ),
         pytest.param(
             dict(
-                user='admin_user',
+                user='user0',
                 upload_id='id_unpublished',
                 path='test_content/id_unpublished_1/1.aux',
             ),
@@ -1355,7 +1347,7 @@ def test_get_upload_raw(
 def test_get_upload_raw_path(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     args,
     expected_status_code,
     expected_mime_type,
@@ -1370,7 +1362,7 @@ def test_get_upload_raw_path(
     offset = args.get('offset', None)
     length = args.get('length', None)
     ignore_mime_type = args.get('ignore_mime_type', None)
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
     query_args = dict(
         ignore_mime_type=ignore_mime_type,
         compress=compress,
@@ -1443,7 +1435,7 @@ def test_get_upload_raw_path(
     'user, upload_id, path, query_args, expected_status_code, expected_content, expected_file_metadata, expected_pagination',
     [
         pytest.param(
-            'test_user',
+            'user1',
             'id_published',
             'test_content/subdir/silly_value',
             {},
@@ -1454,7 +1446,7 @@ def test_get_upload_raw_path(
             id='bad-path',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published',
             'test_content/subdir/test_entry_01',
             {},
@@ -1465,7 +1457,7 @@ def test_get_upload_raw_path(
             id='published-dir',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published',
             'test_content/subdir/test_entry_01',
             {'include_entry_info': True},
@@ -1476,7 +1468,7 @@ def test_get_upload_raw_path(
             id='published-dir-include_entry_info',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published',
             'test_content/subdir/test_entry_01',
             {'include_entry_info': True, 'page_size': 2, 'page': 3},
@@ -1487,7 +1479,7 @@ def test_get_upload_raw_path(
             id='published-dir-include_entry_info-page3',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published',
             '',
             {},
@@ -1498,7 +1490,7 @@ def test_get_upload_raw_path(
             id='published-dir-root',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished',
             'test_content/id_unpublished_1/',
             {},
@@ -1509,7 +1501,7 @@ def test_get_upload_raw_path(
             id='unpublished-dir',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished',
             'test_content/id_unpublished_1/',
             {'page_size': 3, 'page': 1},
@@ -1520,7 +1512,7 @@ def test_get_upload_raw_path(
             id='unpublished-dir-page1',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished',
             'test_content/id_unpublished_1/',
             {'page_size': 2, 'page': 4},
@@ -1531,7 +1523,7 @@ def test_get_upload_raw_path(
             id='unpublished-dir-page-out-of-range',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished',
             'test_content/id_unpublished_1/',
             {'include_entry_info': True},
@@ -1542,7 +1534,7 @@ def test_get_upload_raw_path(
             id='unpublished-dir-include_entry_info',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_child_entries',
             'test_content',
             {'include_entry_info': True},
@@ -1553,7 +1545,7 @@ def test_get_upload_raw_path(
             id='dir-child-entries-include_entry_info',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished',
             '',
             {},
@@ -1564,7 +1556,7 @@ def test_get_upload_raw_path(
             id='unpublished-dir-root',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished',
             'test_content/id_unpublished_1/2.aux',
             {'include_entry_info': True},
@@ -1575,7 +1567,7 @@ def test_get_upload_raw_path(
             id='unpublished-aux-file',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published',
             'test_content/subdir/test_entry_01/mainfile.json',
             {'include_entry_info': True},
@@ -1591,7 +1583,7 @@ def test_get_upload_raw_path(
             id='published-main-file',
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'id_unpublished',
             'test_content/id_unpublished_1',
             {},
@@ -1602,7 +1594,7 @@ def test_get_upload_raw_path(
             id='unpublished-no-access',
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'id_embargo',
             'test_content/id_embargo_1',
             {},
@@ -1613,7 +1605,7 @@ def test_get_upload_raw_path(
             id='embargoed-no-access',
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'id_embargo_w_coauthor',
             'test_content/id_embargo_w_coauthor_1',
             {},
@@ -1628,7 +1620,7 @@ def test_get_upload_raw_path(
 def test_get_upload_rawdir_path(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     user,
     upload_id,
     path,
@@ -1638,7 +1630,7 @@ def test_get_upload_rawdir_path(
     expected_file_metadata,
     expected_pagination,
 ):
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
 
     response = perform_get(
         client, f'uploads/{upload_id}/rawdir/{path}', user_auth=user_auth, **query_args
@@ -1713,14 +1705,14 @@ def test_get_upload_rawdir_path(
         pytest.param(
             'id_unpublished',
             'test_content/id_unpublished_1/mainfile.json',
-            'test_user',
+            'user1',
             200,
             id='auth',
         ),
         pytest.param(
             'id_child_entries',
             'test_content/mainfile_w_children.json',
-            'test_user',
+            'user1',
             200,
             id='entry-w-child-entries',
         ),
@@ -1729,13 +1721,13 @@ def test_get_upload_rawdir_path(
 def test_get_upload_entry_archive_mainfile(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     upload_id: str,
     mainfile: str,
     user: str,
     status_code: int,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.get(
         f'uploads/{upload_id}/archive/mainfile/{mainfile}', headers=user_auth
     )
@@ -1751,11 +1743,11 @@ def test_get_upload_entry_archive_mainfile(
         pytest.param('id_published', 'doesnotexist', None, 404, id='bad-entry-id'),
         pytest.param('id_doesnotexist', 'id_01', None, 404, id='bad-upload-id'),
         pytest.param('id_unpublished', 'id_unpublished_1', None, 401, id='unpublished'),
-        pytest.param('id_unpublished', 'id_unpublished_1', 'test_user', 200, id='auth'),
+        pytest.param('id_unpublished', 'id_unpublished_1', 'user1', 200, id='auth'),
         pytest.param(
             'id_child_entries',
             'id_child_entries_child1',
-            'test_user',
+            'user1',
             200,
             id='child-entry',
         ),
@@ -1764,13 +1756,13 @@ def test_get_upload_entry_archive_mainfile(
 def test_get_upload_entry_archive(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     upload_id: str,
     entry_id: str,
     user: str,
     status_code: int,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.get(f'uploads/{upload_id}/archive/{entry_id}', headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
@@ -1834,7 +1826,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'admin_user',
+            'user0',
             'id_published_w',
             example_file_aux,
             '',
@@ -1847,7 +1839,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'admin_user',
+            'user0',
             'id_processing_w',
             example_file_aux,
             '',
@@ -1860,7 +1852,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'other_test_user',
+            'user2',
             'silly_value',
             example_file_aux,
             '',
@@ -1873,7 +1865,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'other_test_user',
+            'user2',
             'examples_template',
             example_file_aux,
             '',
@@ -1886,7 +1878,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             None,
             '',
@@ -1899,7 +1891,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'local_path',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             '',
@@ -1912,7 +1904,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             '',
@@ -1925,7 +1917,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'id_unpublished_w',
             example_file_aux,
             'test_content/test_embargo_entry',
@@ -1938,7 +1930,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'id_unpublished_w',
             None,
             'test_content/test_embargo_entry',
@@ -1955,7 +1947,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             '',
@@ -1968,7 +1960,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             None,
             '',
@@ -1985,7 +1977,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             None,
             '',
@@ -2002,7 +1994,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             None,
             '',
@@ -2019,7 +2011,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             None,
             '',
@@ -2036,7 +2028,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             '',
@@ -2049,7 +2041,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'local_path',
-            'admin_user',
+            'user0',
             'examples_template',
             example_file_aux,
             '',
@@ -2062,7 +2054,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             '',
@@ -2075,7 +2067,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             'dir1/dir2/dir3',
@@ -2088,7 +2080,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_vasp_with_binary,
             'dir1/dir2',
@@ -2105,7 +2097,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             'examples_template',
@@ -2118,7 +2110,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_vasp_with_binary,
             '',
@@ -2135,7 +2127,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'stream',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_corrupt_zip,
             '',
@@ -2148,7 +2140,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_aux,
             'examples_template',
@@ -2161,7 +2153,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_mainfile_different_atoms,
             'dir1/dir2',
@@ -2174,7 +2166,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_mainfile_different_atoms,
             'dir1/dir2',
@@ -2187,7 +2179,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_mainfile_different_atoms,
             'examples_template',
@@ -2200,7 +2192,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_unparsable,
             'examples_template',
@@ -2213,7 +2205,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             example_file_vasp_with_binary,
             'examples_template',
@@ -2226,7 +2218,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             [example_file_vasp_with_binary, example_file_aux],
             'dir1',
@@ -2243,7 +2235,7 @@ def test_get_upload_entry_archive(
         ),
         pytest.param(
             'multipart',
-            'test_user',
+            'user1',
             'examples_template',
             [example_file_aux, example_file_corrupt_zip],
             'dir1',
@@ -2261,7 +2253,7 @@ def test_put_upload_raw_path(
     proc_infra,
     non_empty_processed,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     mode,
     user,
     upload_id,
@@ -2289,7 +2281,7 @@ def test_put_upload_raw_path(
         url,
         mode,
         user,
-        test_auth_dict,
+        auth_dict,
         upload_id,
         source_paths,
         target_path,
@@ -2337,14 +2329,14 @@ def test_put_upload_raw_path(
 
 @pytest.mark.parametrize(
     'mode, user, expected_status_code',
-    [pytest.param('multipart', 'test_user', 409, id='conflict_in_concurrent_editing')],
+    [pytest.param('multipart', 'user1', 409, id='conflict_in_concurrent_editing')],
 )
 def test_editing_raw_file(
     client,
     proc_infra,
     non_empty_processed,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     mode,
     user,
     expected_status_code,
@@ -2354,7 +2346,7 @@ def test_editing_raw_file(
     action = 'PUT'
     url = f'uploads/{upload_id}/raw/{target_path}'
     path = 'examples_template/template.json'
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
 
     # Get an existing upload with entries
     response = perform_get(
@@ -2377,7 +2369,7 @@ def test_editing_raw_file(
         url,
         mode,
         user,
-        test_auth_dict,
+        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2403,7 +2395,7 @@ def test_editing_raw_file(
         url,
         mode,
         user,
-        test_auth_dict,
+        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2438,7 +2430,7 @@ def test_editing_raw_file(
         url,
         mode,
         user,
-        test_auth_dict,
+        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2477,7 +2469,7 @@ def test_editing_raw_file(
         url,
         mode,
         user,
-        test_auth_dict,
+        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2496,41 +2488,41 @@ def test_editing_raw_file(
     'user, upload_id, path, expected_status_code',
     [
         pytest.param(
-            'test_user', 'id_published_w', 'test_content/newdir', 401, id='published'
+            'user1', 'id_published_w', 'test_content/newdir', 401, id='published'
         ),
         pytest.param(
             None, 'id_unpublished_w', 'test_content/newdir', 401, id='no-credentials'
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'id_unpublished_w',
             'test_content/newdir',
             401,
             id='no-access',
         ),
         pytest.param(
-            'admin_user',
+            'user0',
             'id_unpublished_w',
             'test_content/newdir',
             200,
             id='admin-access',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             'test_content/test_embargo_entry/newdir',
             200,
             id='ok',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             'test_content/chars?! "\'@#$%&\\()[]{}=+`´^~*,.;:|<>',
             200,
             id='special-chars',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             'test_content/test_embargo_entry/mainfile.json/newdir',
             400,
@@ -2542,13 +2534,13 @@ def test_post_upload_raw_create_dir_path(
     client,
     proc_infra,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     user,
     upload_id,
     path,
     expected_status_code,
 ):
-    user_auth, _token = test_auth_dict[user]
+    user_auth, _token = auth_dict[user]
     response = client.post(
         f'uploads/{upload_id}/raw-create-dir/{requests.utils.quote(path)}',
         headers=user_auth,
@@ -2564,7 +2556,7 @@ def test_post_upload_raw_create_dir_path(
     'user, upload_id, path, use_upload_token, expected_status_code, expected_mainfiles',
     [
         pytest.param(
-            'test_user',
+            'user1',
             'examples_template',
             'examples_template/1.aux',
             False,
@@ -2573,7 +2565,7 @@ def test_post_upload_raw_create_dir_path(
             id='delete-aux-file',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'examples_template',
             'examples_template/template.json',
             False,
@@ -2582,10 +2574,10 @@ def test_post_upload_raw_create_dir_path(
             id='delete-main-file',
         ),
         pytest.param(
-            'test_user', 'examples_template', '', False, 200, [], id='delete-root'
+            'user1', 'examples_template', '', False, 200, [], id='delete-root'
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'examples_template',
             'examples_template',
             False,
@@ -2594,7 +2586,7 @@ def test_post_upload_raw_create_dir_path(
             id='delete-subfolder',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'examples_template',
             'examples_template/1.aux',
             True,
@@ -2603,7 +2595,7 @@ def test_post_upload_raw_create_dir_path(
             id='delete-token-access',
         ),
         pytest.param(
-            'admin_user',
+            'user0',
             'examples_template',
             'examples_template/1.aux',
             False,
@@ -2612,7 +2604,7 @@ def test_post_upload_raw_create_dir_path(
             id='delete-admin-access',
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'examples_template',
             'examples_template/1.aux',
             False,
@@ -2648,7 +2640,7 @@ def test_post_upload_raw_create_dir_path(
             id='invalid-credentials-token',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published_w',
             'examples_template/1.aux',
             False,
@@ -2657,7 +2649,7 @@ def test_post_upload_raw_create_dir_path(
             id='published',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_processing_w',
             'examples_template/1.aux',
             False,
@@ -2672,7 +2664,7 @@ def test_delete_upload_raw_path(
     proc_infra,
     non_empty_processed,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     user,
     upload_id,
     path,
@@ -2680,7 +2672,7 @@ def test_delete_upload_raw_path(
     expected_status_code,
     expected_mainfiles,
 ):
-    user_auth, token = test_auth_dict[user]
+    user_auth, token = auth_dict[user]
     # Use either token or bearer token for the post operation (never both)
     user_auth_action = user_auth
     if use_upload_token:
@@ -2717,13 +2709,13 @@ def test_delete_upload_raw_path(
     'user, upload_id, kwargs',
     [
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             dict(metadata=all_coauthor_metadata),
             id='edit-all',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             dict(
                 metadata=dict(coauthors='unknown'),
@@ -2732,19 +2724,19 @@ def test_delete_upload_raw_path(
             id='edit-coauthor-unknown-fails',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published_w',
             dict(metadata=dict(embargo_length=0)),
             id='lift-embargo',
         ),
         pytest.param(
-            'admin_user',
+            'user0',
             'id_published_w',
             dict(metadata=all_admin_metadata),
             id='protected-admin',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             dict(
                 metadata=dict(main_author='lhofstadter'),
@@ -2753,7 +2745,7 @@ def test_delete_upload_raw_path(
             id='protected-not-admin',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'silly_value',
             dict(
                 metadata=dict(upload_name='test_name'),
@@ -2762,13 +2754,13 @@ def test_delete_upload_raw_path(
             id='bad-upload_id',
         ),
         pytest.param(
-            'admin_user',
+            'user0',
             'id_published_w',
             dict(metadata=dict(upload_name='test_name')),
             id='published-admin',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_published_w',
             dict(metadata=dict(upload_name='test_name')),
             id='published-not-admin',
@@ -2786,7 +2778,7 @@ def test_delete_upload_raw_path(
             id='invalid-credentials',
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'id_unpublished_w',
             dict(
                 metadata=dict(upload_name='test_name'),
@@ -2795,19 +2787,19 @@ def test_delete_upload_raw_path(
             id='no-access',
         ),
         pytest.param(
-            'other_test_user',
+            'user2',
             'id_unpublished_w',
             dict(metadata=dict(upload_name='test_name'), add_coauthor=True),
             id='coauthor-access',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_empty_w',
             dict(metadata=dict(upload_name='test_name')),
             id='empty-upload-ok',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             dict(
                 query={
@@ -2822,7 +2814,7 @@ def test_delete_upload_raw_path(
             id='query-ok',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             dict(
                 query={
@@ -2838,7 +2830,7 @@ def test_delete_upload_raw_path(
             id='query-cannot-edit-upload-data',
         ),
         pytest.param(
-            'test_user',
+            'user1',
             'id_unpublished_w',
             dict(
                 query={'upload_create_time:lt': '2021-01-01'},
@@ -2855,8 +2847,8 @@ def test_post_upload_edit(
     proc_infra,
     example_data_writeable,
     example_datasets,
-    test_auth_dict,
-    test_users_dict,
+    auth_dict,
+    users_dict,
     user,
     upload_id,
     kwargs,
@@ -2866,8 +2858,8 @@ def test_post_upload_edit(
     `MetadataEditRequestHandler.edit_metadata`, we only do very simple verification here,
     the more extensive testnig is done in `tests.processing.test_edit_metadata`.
     """
-    user_auth, _token = test_auth_dict[user]
-    user = test_users_dict.get(user)
+    user_auth, _token = auth_dict[user]
+    user = users_dict.get(user)
     query = kwargs.get('query')
     owner = kwargs.get('owner')
     metadata = kwargs.get('metadata')
@@ -2917,7 +2909,7 @@ def test_post_upload_edit(
             'multipart',
             example_file_vasp_with_binary,
             dict(upload_name='test_name'),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -2928,7 +2920,7 @@ def test_post_upload_edit(
             'multipart',
             example_file_vasp_with_binary,
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -2939,7 +2931,7 @@ def test_post_upload_edit(
             'multipart',
             example_file_vasp_with_binary,
             dict(upload_name='test_name'),
-            'test_user',
+            'user1',
             True,
             False,
             True,
@@ -2950,7 +2942,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(embargo_length=0, upload_name='test_name'),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -2961,7 +2953,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(embargo_length=7),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -2972,7 +2964,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(embargo_length=37),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -2983,7 +2975,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(upload_name='test_name'),
-            'test_user',
+            'user1',
             True,
             False,
             True,
@@ -2994,7 +2986,7 @@ def test_post_upload_edit(
             'local_path',
             example_file_vasp_with_binary,
             dict(),
-            'admin_user',
+            'user0',
             False,
             False,
             True,
@@ -3005,7 +2997,7 @@ def test_post_upload_edit(
             'local_path',
             example_file_vasp_with_binary,
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3016,7 +3008,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             False,
@@ -3060,7 +3052,7 @@ def test_post_upload_edit(
             'stream',
             [],
             dict(upload_name='test_name'),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3071,7 +3063,7 @@ def test_post_upload_edit(
             'stream',
             example_file_aux,
             dict(file_name='1.aux'),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3082,7 +3074,7 @@ def test_post_upload_edit(
             'stream',
             example_file_aux,
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3093,7 +3085,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(upload_name='test_name', publish_directly=True),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3104,7 +3096,7 @@ def test_post_upload_edit(
             'stream',
             empty_file,
             dict(upload_name='test_name', publish_directly=True),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3115,7 +3107,7 @@ def test_post_upload_edit(
             'stream',
             example_file_vasp_with_binary,
             dict(upload_name='test_name'),
-            'test_user',
+            'user1',
             False,
             True,
             True,
@@ -3126,7 +3118,7 @@ def test_post_upload_edit(
             'multipart',
             example_file_corrupt_zip,
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3137,7 +3129,7 @@ def test_post_upload_edit(
             'multipart',
             [example_file_aux, example_file_mainfile_different_atoms],
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3148,7 +3140,7 @@ def test_post_upload_edit(
             'multipart',
             [example_file_aux, example_file_corrupt_zip],
             dict(),
-            'test_user',
+            'user1',
             False,
             False,
             True,
@@ -3162,7 +3154,7 @@ def test_post_upload(
     mongo_function,
     proc_infra,
     monkeypatch,
-    test_auth_dict,
+    auth_dict,
     empty_upload,
     non_empty_example_upload,
     mode,
@@ -3197,7 +3189,7 @@ def test_post_upload(
         url,
         mode,
         user,
-        test_auth_dict,
+        auth_dict,
         upload_id,
         source_paths,
         target_path,
@@ -3228,7 +3220,7 @@ def test_post_upload(
             assert not upload_proc.published
         else:
             assert_gets_published(
-                client, upload_id, test_auth_dict['test_user'][0], **query_args
+                client, upload_id, auth_dict['user1'][0], **query_args
             )
 
 
@@ -3266,20 +3258,18 @@ def test_post_upload(
         pytest.param(
             dict(user='invalid', expected_status_code=401), id='invalid-credentials'
         ),
-        pytest.param(
-            dict(user='other_test_user', expected_status_code=401), id='no-access'
-        ),
+        pytest.param(dict(user='user2', expected_status_code=401), id='no-access'),
     ],
 )
 def test_post_upload_action_publish(
-    client, proc_infra, example_data_writeable, test_auth_dict, kwargs
+    client, proc_infra, example_data_writeable, auth_dict, kwargs
 ):
     """Tests the publish action with various arguments."""
     upload_id = kwargs.get('upload_id', 'id_unpublished_w')
     query_args = kwargs.get('query_args', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
-    user = kwargs.get('user', 'test_user')
-    user_auth, __token = test_auth_dict[user]
+    user = kwargs.get('user', 'user1')
+    user_auth, __token = auth_dict[user]
 
     response = perform_post_upload_action(
         client, user_auth, upload_id, 'publish', **query_args
@@ -3316,8 +3306,8 @@ def test_post_upload_action_publish_to_central_nomad(
     proc_infra,
     monkeypatch,
     oasis_publishable_upload,
-    test_users_dict,
-    test_auth_dict,
+    users_dict,
+    auth_dict,
     import_settings,
     query_args,
 ):
@@ -3326,8 +3316,8 @@ def test_post_upload_action_publish_to_central_nomad(
     query_args['to_central_nomad'] = True
     embargo_length = query_args.get('embargo_length')
     expected_status_code = 200
-    user = 'admin_user'
-    user_auth, __token = test_auth_dict[user]
+    user = 'user0'
+    user_auth, __token = auth_dict[user]
     old_upload = Upload.get(upload_id)
 
     import_settings = config.bundle_import.default_settings.customize(import_settings)
@@ -3396,24 +3386,16 @@ def test_post_upload_action_publish_to_central_nomad(
 @pytest.mark.parametrize(
     'upload_id, publish, user, expected_status_code',
     [
-        pytest.param(
-            'examples_template', True, 'admin_user', 200, id='published-admin'
-        ),
-        pytest.param(
-            'examples_template', True, 'test_user', 401, id='published-not-admin'
-        ),
-        pytest.param('examples_template', False, 'test_user', 200, id='not-published'),
+        pytest.param('examples_template', True, 'user0', 200, id='published-admin'),
+        pytest.param('examples_template', True, 'user1', 401, id='published-not-admin'),
+        pytest.param('examples_template', False, 'user1', 200, id='not-published'),
         pytest.param('examples_template', False, None, 401, id='no-credentials'),
         pytest.param(
             'examples_template', False, 'invalid', 401, id='invalid-credentials'
         ),
-        pytest.param(
-            'examples_template', False, 'other_test_user', 401, id='no-access'
-        ),
-        pytest.param(
-            'id_processing_w', False, 'test_user', 400, id='already-processing'
-        ),
-        pytest.param('silly_value', False, 'test_user', 404, id='invalid-upload_id'),
+        pytest.param('examples_template', False, 'user2', 401, id='no-access'),
+        pytest.param('id_processing_w', False, 'user1', 400, id='already-processing'),
+        pytest.param('silly_value', False, 'user1', 404, id='invalid-upload_id'),
     ],
 )
 def test_post_upload_action_process(
@@ -3424,7 +3406,7 @@ def test_post_upload_action_process(
     example_data_writeable,
     non_empty_processed,
     internal_example_user_metadata,
-    test_auth_dict,
+    auth_dict,
     upload_id,
     publish,
     user,
@@ -3440,7 +3422,7 @@ def test_post_upload_action_process(
 
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
 
     response = perform_post_upload_action(client, user_auth, upload_id, 'process')
     assert_response(response, expected_status_code)
@@ -3448,7 +3430,7 @@ def test_post_upload_action_process(
         assert_processing(
             client,
             upload_id,
-            test_auth_dict['test_user'][0],
+            auth_dict['user1'][0],
             check_files=False,
             published=True,
         )
@@ -3459,7 +3441,7 @@ def test_post_upload_action_process(
     [
         pytest.param(
             'id_published_w',
-            'admin_user',
+            'user0',
             None,
             {'entry_id': 'id_published_w_entry'},
             False,
@@ -3470,7 +3452,7 @@ def test_post_upload_action_process(
         ),
         pytest.param(
             'id_unpublished_w',
-            'other_test_user',
+            'user2',
             None,
             {'entry_id': 'id_unpublished_w_entry'},
             False,
@@ -3481,7 +3463,7 @@ def test_post_upload_action_process(
         ),
         pytest.param(
             'id_unpublished_w',
-            'test_user',
+            'user1',
             None,
             None,
             False,
@@ -3492,7 +3474,7 @@ def test_post_upload_action_process(
         ),
         pytest.param(
             'id_unpublished_w',
-            'test_user',
+            'user1',
             None,
             {'entry_id': ['id_unpublished_w_entry', 'silly']},
             False,
@@ -3503,7 +3485,7 @@ def test_post_upload_action_process(
         ),
         pytest.param(
             'id_unpublished_w',
-            'test_user',
+            'user1',
             None,
             {'entry_id': 'id_unpublished_w_entry'},
             True,
@@ -3514,7 +3496,7 @@ def test_post_upload_action_process(
         ),
         pytest.param(
             'id_unpublished_w',
-            'admin_user',
+            'user0',
             'admin',
             {'entry_id': 'id_unpublished_w_entry'},
             False,
@@ -3530,7 +3512,7 @@ def test_post_upload_action_delete_entry_files(
     mongo_function,
     proc_infra,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     upload_id,
     user,
     owner,
@@ -3540,7 +3522,7 @@ def test_post_upload_action_delete_entry_files(
     expect_exists,
     expect_not_exists,
 ):
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
     json = {}
     if include_parent_folders is not None:
         json.update(include_parent_folders=include_parent_folders)
@@ -3569,30 +3551,28 @@ def test_post_upload_action_delete_entry_files(
 @pytest.mark.parametrize(
     'upload_id, user, preprocess, expected_status_code',
     [
-        pytest.param('id_published_w', 'test_user', None, 200, id='ok'),
-        pytest.param('id_published_w', 'other_test_user', None, 401, id='no-access'),
-        pytest.param(
-            'id_published_w', 'other_test_user', 'make-coauthor', 200, id='ok-coauthor'
-        ),
+        pytest.param('id_published_w', 'user1', None, 200, id='ok'),
+        pytest.param('id_published_w', 'user2', None, 401, id='no-access'),
+        pytest.param('id_published_w', 'user2', 'make-coauthor', 200, id='ok-coauthor'),
         pytest.param('id_published_w', None, None, 401, id='no-credentials'),
         pytest.param('id_published_w', 'invalid', None, 401, id='invalid-credentials'),
-        pytest.param('id_unpublished_w', 'test_user', None, 400, id='not-published'),
-        pytest.param('id_published_w', 'test_user', 'lift', 400, id='already-lifted'),
+        pytest.param('id_unpublished_w', 'user1', None, 400, id='not-published'),
+        pytest.param('id_published_w', 'user1', 'lift', 400, id='already-lifted'),
     ],
 )
 def test_post_upload_action_lift_embargo(
     client,
     proc_infra,
     example_data_writeable,
-    test_auth_dict,
-    test_users_dict,
+    auth_dict,
+    users_dict,
     upload_id,
     user,
     preprocess,
     expected_status_code,
 ):
-    user_auth, __token = test_auth_dict[user]
-    user = test_users_dict.get(user)
+    user_auth, __token = auth_dict[user]
+    user = users_dict.get(user)
 
     if preprocess:
         if preprocess == 'lift':
@@ -3614,16 +3594,14 @@ def test_post_upload_action_lift_embargo(
 @pytest.mark.parametrize(
     'upload_id, user, expected_status_code',
     [
-        pytest.param('id_unpublished_w', 'test_user', 200, id='delete-own'),
+        pytest.param('id_unpublished_w', 'user1', 200, id='delete-own'),
+        pytest.param('id_unpublished_w', 'user2', 401, id='delete-others-not-admin'),
+        pytest.param('id_unpublished_w', 'user0', 200, id='delete-others-admin'),
+        pytest.param('id_published_w', 'user1', 401, id='delete-own-published'),
         pytest.param(
-            'id_unpublished_w', 'other_test_user', 401, id='delete-others-not-admin'
+            'id_published_w', 'user0', 200, id='delete-others-published-admin'
         ),
-        pytest.param('id_unpublished_w', 'admin_user', 200, id='delete-others-admin'),
-        pytest.param('id_published_w', 'test_user', 401, id='delete-own-published'),
-        pytest.param(
-            'id_published_w', 'admin_user', 200, id='delete-others-published-admin'
-        ),
-        pytest.param('silly_value', 'test_user', 404, id='invalid-upload_id'),
+        pytest.param('silly_value', 'user1', 404, id='invalid-upload_id'),
         pytest.param('id_unpublished_w', None, 401, id='no-credentials'),
         pytest.param('id_unpublished_w', 'invalid', 401, id='invalid-credentials'),
     ],
@@ -3632,51 +3610,45 @@ def test_delete_upload(
     client,
     proc_infra,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     upload_id,
     user,
     expected_status_code,
 ):
     """Uploads a file, and then tries to delete it, with different parameters and users."""
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
 
     response = client.delete(f'uploads/{upload_id}', headers=user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_upload_does_not_exist(client, upload_id, test_auth_dict['test_user'][0])
+        assert_upload_does_not_exist(client, upload_id, auth_dict['user1'][0])
 
 
 @pytest.mark.parametrize(
     'upload_id, user, query_args, expected_status_code',
     [
-        pytest.param('id_published_w', 'test_user', dict(), 200, id='published-owner'),
-        pytest.param('id_published_w', 'admin_user', dict(), 200, id='published-admin'),
-        pytest.param(
-            'id_published_w', 'other_test_user', dict(), 401, id='published-not-owner'
-        ),
+        pytest.param('id_published_w', 'user1', dict(), 200, id='published-owner'),
+        pytest.param('id_published_w', 'user0', dict(), 200, id='published-admin'),
+        pytest.param('id_published_w', 'user2', dict(), 401, id='published-not-owner'),
         pytest.param(
             'id_published_w',
-            'test_user',
+            'user1',
             dict(include_raw_files=False),
             200,
             id='published-owner-exclude-raw',
         ),
         pytest.param(
             'id_published_w',
-            'test_user',
+            'user1',
             dict(include_archive_files=False),
             200,
             id='published-owner-exclude-archive',
         ),
-        pytest.param(
-            'id_unpublished_w', 'test_user', dict(), 200, id='unpublished-owner'
-        ),
-        pytest.param(
-            'id_unpublished_w', 'admin_user', dict(), 200, id='unpublished-admin'
-        ),
+        pytest.param('id_unpublished_w', 'user1', dict(), 200, id='unpublished-owner'),
+        pytest.param('id_unpublished_w', 'user0', dict(), 200, id='unpublished-admin'),
         pytest.param(
             'id_unpublished_w',
-            'other_test_user',
+            'user2',
             dict(),
             401,
             id='unpublished-not-owner',
@@ -3687,7 +3659,7 @@ def test_get_upload_bundle(
     client,
     proc_infra,
     example_data_writeable,
-    test_auth_dict,
+    auth_dict,
     upload_id,
     user,
     query_args,
@@ -3697,7 +3669,7 @@ def test_get_upload_bundle(
     include_archive_files = query_args.get('include_archive_files', True)
 
     url = build_url(f'uploads/{upload_id}/bundle', query_args)
-    response = perform_get(client, url, user_auth=test_auth_dict[user][0])
+    response = perform_get(client, url, user_auth=auth_dict[user][0])
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
@@ -3719,16 +3691,12 @@ def test_get_upload_bundle(
 @pytest.mark.parametrize(
     'publish, test_duplicate, user, export_args, query_args, expected_status_code',
     [
+        pytest.param(True, False, 'user0', dict(), dict(), 200, id='published-admin'),
         pytest.param(
-            True, False, 'admin_user', dict(), dict(), 200, id='published-admin'
+            False, False, 'user0', dict(), dict(), 200, id='unpublished-admin'
         ),
-        pytest.param(
-            False, False, 'admin_user', dict(), dict(), 200, id='unpublished-admin'
-        ),
-        pytest.param(True, True, 'admin_user', dict(), dict(), 400, id='duplicate'),
-        pytest.param(
-            True, False, 'other_test_user', dict(), dict(), 401, id='not-oasis-admin'
-        ),
+        pytest.param(True, True, 'user0', dict(), dict(), 400, id='duplicate'),
+        pytest.param(True, False, 'user2', dict(), dict(), 401, id='not-oasis-admin'),
         pytest.param(True, False, None, dict(), dict(), 401, id='no-credentials'),
     ],
 )
@@ -3737,7 +3705,7 @@ def test_post_upload_bundle(
     proc_infra,
     non_empty_processed,
     internal_example_user_metadata,
-    test_auth_dict,
+    auth_dict,
     publish,
     test_duplicate,
     user,
@@ -3767,7 +3735,7 @@ def test_post_upload_bundle(
         # Delete the upload so we can import the bundle without id collisions
         upload.delete_upload_local()
     # Finally, import the bundle
-    user_auth, __token = test_auth_dict[user]
+    user_auth, __token = auth_dict[user]
     response = perform_post_put_file(
         client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args
     )
@@ -3782,11 +3750,11 @@ def test_post_upload_bundle(
     'authorized, expected_status_code',
     [pytest.param(True, 200, id='ok'), pytest.param(False, 401, id='not-authorized')],
 )
-def test_get_command_examples(client, test_user_auth, authorized, expected_status_code):
+def test_get_command_examples(client, user1_auth, authorized, expected_status_code):
     response = perform_get(
         client,
         'uploads/command-examples',
-        user_auth=test_user_auth if authorized else None,
+        user_auth=user1_auth if authorized else None,
     )
     assert_response(response, expected_status_code)
     if expected_status_code == 200:

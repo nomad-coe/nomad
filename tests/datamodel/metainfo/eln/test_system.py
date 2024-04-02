@@ -24,12 +24,12 @@ from nomad.utils.exampledata import ExampleData
 from tests.normalizing.conftest import run_normalize
 
 
-def test_substance(raw_files_function, test_user, mongo_function):
+def test_substance(raw_files_function, user1, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_substance.archive.yaml'
     upload_id = 'test_upload_id'
 
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id=upload_id, published=False)
     context = ClientContext(local_dir=directory, upload_id=upload_id)
 
@@ -52,11 +52,11 @@ def test_substance(raw_files_function, test_user, mongo_function):
     os.unlink(os.path.join(directory, 'cas_10101-63-0_image.svg'))
 
 
-def test_ensemble(raw_files_function, test_user, mongo_function):
+def test_ensemble(raw_files_function, user1, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_ensemble.archive.yaml'
     upload_id = 'test_upload_id'
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id=upload_id, published=False)
     context = ClientContext(local_dir=directory, upload_id=upload_id)
 

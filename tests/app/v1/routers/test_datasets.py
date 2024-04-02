@@ -53,10 +53,8 @@ def create_dataset(**kwargs):
 
 
 @pytest.fixture(scope='function')
-def data(
-    elastic_function, raw_files_function, mongo_function, test_user, other_test_user
-):
-    data = ExampleData(main_author=test_user)
+def data(elastic_function, raw_files_function, mongo_function, user1, user2):
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='upload_1', published=True)
     data.create_entry(
         upload_id='upload_1',
@@ -65,13 +63,13 @@ def data(
         datasets=[
             create_dataset(
                 dataset_id='dataset_1',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='test dataset 1',
                 dataset_type='owned',
             ),
             create_dataset(
                 dataset_id='dataset_2',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='test dataset 2',
                 dataset_type='owned',
             ),
@@ -85,13 +83,13 @@ def data(
         datasets=[
             create_dataset(
                 dataset_id='dataset_listed',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='foreign test dataset',
                 dataset_type='foreign',
             ),
             create_dataset(
                 dataset_id='dataset_doi',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='foreign test dataset',
                 dataset_type='foreign',
                 doi='test_doi',
@@ -238,23 +236,23 @@ def test_dataset(client, data, dataset_id, result, status_code):
     'dataset_name, dataset_type, query, entries, user, status_code',
     [
         pytest.param(
-            'another test dataset', 'foreign', None, None, 'test_user', 200, id='plain'
+            'another test dataset', 'foreign', None, None, 'user1', 200, id='plain'
         ),
         pytest.param(
             'another test dataset', 'foreign', None, None, None, 401, id='no-user'
         ),
         pytest.param(
-            'test dataset 1', 'foreign', None, None, 'test_user', 400, id='exists'
+            'test dataset 1', 'foreign', None, None, 'user1', 400, id='exists'
         ),
         pytest.param(
-            'another test dataset', 'owned', None, None, 'test_user', 200, id='owned'
+            'another test dataset', 'owned', None, None, 'user1', 200, id='owned'
         ),
         pytest.param(
             'another test dataset',
             'owned',
             {},
             None,
-            'test_user',
+            'user1',
             200,
             id='owned-owner-query',
         ),
@@ -263,7 +261,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
             'owned',
             {},
             None,
-            'other_test_user',
+            'user2',
             200,
             id='owned-non-owner-query',
         ),
@@ -272,7 +270,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
             'owned',
             None,
             ['id_01', 'id_02'],
-            'test_user',
+            'user1',
             200,
             id='owned-owner-entries',
         ),
@@ -281,7 +279,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
             'owned',
             None,
             ['id_01', 'id_02'],
-            'other_test_user',
+            'user2',
             200,
             id='owned-non-owner-entries',
         ),
@@ -290,7 +288,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
             'foreign',
             {},
             None,
-            'test_user',
+            'user1',
             200,
             id='foreign-query',
         ),
@@ -299,7 +297,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
             'foreign',
             None,
             ['id_01', 'id_02'],
-            'test_user',
+            'user1',
             200,
             id='foreign-entries',
         ),
@@ -309,10 +307,10 @@ def test_post_datasets(
     client,
     data,
     example_data,
-    test_user,
-    test_user_auth,
-    other_test_user,
-    other_test_user_auth,
+    user1,
+    user1_auth,
+    user2,
+    user2_auth,
     dataset_name,
     dataset_type,
     query,
@@ -326,12 +324,12 @@ def test_post_datasets(
     if entries is not None:
         dataset['entries'] = entries
     auth = None
-    if user == 'test_user':
-        auth = test_user_auth
-        user = test_user
-    elif user == 'other_test_user':
-        auth = other_test_user_auth
-        user = other_test_user
+    if user == 'user1':
+        auth = user1_auth
+        user = user1
+    elif user == 'user2':
+        auth = user2_auth
+        user = user2
     response = client.post('datasets/', headers=auth, json=dataset)
 
     assert_response(response, status_code=status_code)
@@ -354,21 +352,21 @@ def test_post_datasets(
 @pytest.mark.parametrize(
     'dataset_id, user, status_code',
     [
-        pytest.param('dataset_listed', 'test_user', 200, id='plain'),
+        pytest.param('dataset_listed', 'user1', 200, id='plain'),
         pytest.param('dataset_listed', None, 401, id='no-user'),
-        pytest.param('dataset_listed', 'other_test_user', 401, id='wrong-user'),
-        pytest.param('DOESNOTEXIST', 'test_user', 404, id='does-not-exist'),
-        pytest.param('dataset_doi', 'test_user', 400, id='with-doi'),
+        pytest.param('dataset_listed', 'user2', 401, id='wrong-user'),
+        pytest.param('DOESNOTEXIST', 'user1', 404, id='does-not-exist'),
+        pytest.param('dataset_doi', 'user1', 400, id='with-doi'),
     ],
 )
 def test_delete_dataset(
-    client, data, test_user_auth, other_test_user_auth, dataset_id, user, status_code
+    client, data, user1_auth, user2_auth, dataset_id, user, status_code
 ):
     auth = None
-    if user == 'test_user':
-        auth = test_user_auth
-    if user == 'other_test_user':
-        auth = other_test_user_auth
+    if user == 'user1':
+        auth = user1_auth
+    if user == 'user2':
+        auth = user2_auth
     response = client.delete('datasets/%s' % dataset_id, headers=auth)
 
     assert_response(response, status_code=status_code)
@@ -382,25 +380,25 @@ def test_delete_dataset(
 @pytest.mark.parametrize(
     'dataset_id, user, status_code',
     [
-        pytest.param('dataset_1', 'test_user', 200, id='plain'),
+        pytest.param('dataset_1', 'user1', 200, id='plain'),
         pytest.param('dataset_1', None, 401, id='no-user'),
-        pytest.param('dataset_1', 'other_test_user', 401, id='wrong-user'),
-        pytest.param('dataset_doi', 'test_user', 400, id='with-doi'),
-        pytest.param('unpublished', 'test_user', 400, id='unpublished'),
-        pytest.param('empty', 'test_user', 400, id='empty'),
+        pytest.param('dataset_1', 'user2', 401, id='wrong-user'),
+        pytest.param('dataset_doi', 'user1', 400, id='with-doi'),
+        pytest.param('unpublished', 'user1', 400, id='unpublished'),
+        pytest.param('empty', 'user1', 400, id='empty'),
     ],
 )
 def test_assign_doi_dataset(
     client,
     data,
-    test_user,
-    test_user_auth,
-    other_test_user_auth,
+    user1,
+    user1_auth,
+    user2_auth,
     dataset_id,
     user,
     status_code,
 ):
-    more_data = ExampleData(main_author=test_user)
+    more_data = ExampleData(main_author=user1)
     more_data.create_upload(upload_id='unpublished', published=False)
     more_data.create_entry(
         upload_id='unpublished',
@@ -409,7 +407,7 @@ def test_assign_doi_dataset(
         datasets=[
             create_dataset(
                 dataset_id='unpublished',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='test unpublished entries',
                 dataset_type='owned',
             )
@@ -418,7 +416,7 @@ def test_assign_doi_dataset(
 
     create_dataset(
         dataset_id='empty',
-        user_id=test_user.user_id,
+        user_id=user1.user_id,
         dataset_name='test empty dataset',
         dataset_type='owned',
     )
@@ -426,10 +424,10 @@ def test_assign_doi_dataset(
     more_data.save(with_files=False)
 
     auth = None
-    if user == 'test_user':
-        auth = test_user_auth
-    if user == 'other_test_user':
-        auth = other_test_user_auth
+    if user == 'user1':
+        auth = user1_auth
+    if user == 'user2':
+        auth = user2_auth
     response = client.post('datasets/%s/action/doi' % dataset_id, headers=auth)
 
     assert_response(response, status_code=status_code)
@@ -438,5 +436,5 @@ def test_assign_doi_dataset(
 
     json_response = response.json()
     dataset = json_response['data']
-    assert_dataset(dataset, user_id=test_user.user_id)
+    assert_dataset(dataset, user_id=user1.user_id)
     assert dataset['doi'] is not None

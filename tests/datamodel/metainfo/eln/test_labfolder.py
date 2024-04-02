@@ -32,7 +32,7 @@ from nomad.datamodel.metainfo.eln.labfolder import (
 from nomad.utils.exampledata import ExampleData
 
 
-def test_labfolder_integration(mongo_function, monkeypatch, test_user):
+def test_labfolder_integration(mongo_function, monkeypatch, user1):
     directory = 'tests/data/datamodel/metainfo/eln/material_library'
     mainfile = 'example-labfolder.archive.json'
 
@@ -188,7 +188,7 @@ def test_labfolder_integration(mongo_function, monkeypatch, test_user):
 def test_labfolder_detailed(
     mongo_function,
     monkeypatch,
-    test_user,
+    user1,
     status_code,
     project_url,
     labfolder_email,
@@ -223,7 +223,7 @@ def test_labfolder_detailed(
     monkeypatch.setattr(requests, 'get', mock_labfolder_json_method)
 
     # processing preparation
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_upload_id', published=False)
 
     data.create_entry(

@@ -17,8 +17,8 @@
 #
 import pytest
 
-from tests.fixtures.users import test_users as conf_test_users
-from tests.utils import test_user_uuid as conf_test_user_uuid
+from tests.fixtures.users import users
+from tests.utils import fake_user_uuid
 
 
 def assert_user(user, expected_user):
@@ -27,8 +27,8 @@ def assert_user(user, expected_user):
     assert 'email' not in user
 
 
-def test_me(client, test_user_auth, app_token_auth):
-    response = client.get('users/me', headers=test_user_auth)
+def test_me(client, user1_auth, app_token_auth):
+    response = client.get('users/me', headers=user1_auth)
     assert response.status_code == 200
     response = client.get('users/me', headers=app_token_auth)
     assert response.status_code == 200
@@ -44,10 +44,10 @@ def test_me_auth_bad_token(client):
     assert response.status_code == 401
 
 
-def test_invite(client, test_user_auth, no_warn):
+def test_invite(client, user1_auth, no_warn):
     rv = client.put(
         'users/invite',
-        headers=test_user_auth,
+        headers=user1_auth,
         json={
             'first_name': 'John',
             'last_name': 'Doe',
@@ -68,28 +68,28 @@ def test_invite(client, test_user_auth, no_warn):
         pytest.param(
             dict(prefix='Sheldon'),
             200,
-            conf_test_users[conf_test_user_uuid(1)],
+            users[fake_user_uuid(1)],
             id='search-user',
         ),
         pytest.param(
-            dict(user_id=conf_test_user_uuid(1)),
+            dict(user_id=fake_user_uuid(1)),
             200,
-            conf_test_users[conf_test_user_uuid(1)],
+            users[fake_user_uuid(1)],
             id='one-user-id',
         ),
         pytest.param(
-            dict(user_id=[conf_test_user_uuid(1), conf_test_user_uuid(2)]),
+            dict(user_id=[fake_user_uuid(1), fake_user_uuid(2)]),
             200,
             [
-                conf_test_users[conf_test_user_uuid(1)],
-                conf_test_users[conf_test_user_uuid(2)],
+                users[fake_user_uuid(1)],
+                users[fake_user_uuid(2)],
             ],
             id='multi-user-id',
         ),
         pytest.param(
-            dict(user_id=[conf_test_user_uuid(1), conf_test_user_uuid(9)]),
+            dict(user_id=[fake_user_uuid(1), fake_user_uuid(9)]),
             200,
-            [conf_test_users[conf_test_user_uuid(1)]],
+            [users[fake_user_uuid(1)]],
             id='wrong-user-id',
         ),
     ],
@@ -132,9 +132,9 @@ def test_users(client, args, expected_status_code, expected_content):
     'args, expected_status_code, expected_content',
     [
         pytest.param(
-            dict(user_id=conf_test_user_uuid(1)),
+            dict(user_id=fake_user_uuid(1)),
             200,
-            conf_test_users[conf_test_user_uuid(1)],
+            users[fake_user_uuid(1)],
             id='valid-user',
         )
     ],

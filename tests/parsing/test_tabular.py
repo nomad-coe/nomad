@@ -339,9 +339,9 @@ def test_tabular_complex_schema(raw_files_function, monkeypatch, schema):
 
 
 def test_tabular_entry_mode(
-    mongo_function, test_user, raw_files_function, monkeypatch, proc_infra
+    mongo_function, user1, raw_files_function, monkeypatch, proc_infra
 ):
-    upload = Upload(upload_id='test_upload_id', main_author=test_user.user_id)
+    upload = Upload(upload_id='test_upload_id', main_author=user1.user_id)
     upload.save()
     files.StagingUploadFiles(upload_id=upload.upload_id, create=True)
     upload.staging_upload_files.add_rawfiles('tests/data/parsers/tabular/')

@@ -80,9 +80,9 @@ def _assert_elabftw(test_archive):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_elabftw_parser(raw_files_function, proc_infra, api_v1, test_user):
+def test_elabftw_parser(raw_files_function, proc_infra, api_v1, user1):
     upload = run_processing(
-        ('test_upload', 'tests/data/parsers/elabftw/test.eln'), test_user
+        ('test_upload', 'tests/data/parsers/elabftw/test.eln'), user1
     )
 
     assert upload.total_entries_count == 2

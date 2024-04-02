@@ -32,7 +32,7 @@ def test_archive_query(
     elastic_function,
     raw_files_function,
     mongo_function,
-    test_user,
+    user1,
     capsys,
 ):
     mainfile = os.path.join(
@@ -42,7 +42,7 @@ def test_archive_query(
     run_normalize(archive)
     archive.metadata.apply_archive_metadata(archive)
 
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload('test_upload_id', published=True)
     data.create_entry(upload_id='test_upload_id', entry_archive=archive)
     data.save()

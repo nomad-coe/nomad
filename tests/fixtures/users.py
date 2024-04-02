@@ -1,77 +1,79 @@
+"""
+User fixtures:
+- user0: admin user
+- user1: default user to use
+- user2, user3: additional users for access or interaction tests
+"""
+
 import pytest
 
 from nomad import infrastructure
 from nomad.config import config
 from nomad.datamodel import User
-from tests.utils import test_user_uuid
+from tests.utils import fake_user_uuid
 
-admin_user_id = test_user_uuid(0)
+admin_user_id = fake_user_uuid(0)
 
-test_users = {
-    test_user_uuid(0): dict(username='admin', email='admin', user_id=test_user_uuid(0)),
-    test_user_uuid(1): dict(
+users = {
+    fake_user_uuid(0): dict(username='admin', email='admin', user_id=fake_user_uuid(0)),
+    fake_user_uuid(1): dict(
         username='scooper',
         email='sheldon.cooper@nomad-coe.eu',
         first_name='Sheldon',
         last_name='Cooper',
-        user_id=test_user_uuid(1),
+        user_id=fake_user_uuid(1),
         is_oasis_admin=True,
     ),
-    test_user_uuid(2): dict(
+    fake_user_uuid(2): dict(
         username='lhofstadter',
         email='leonard.hofstadter@nomad-fairdi.tests.de',
         first_name='Leonard',
         last_name='Hofstadter',
-        user_id=test_user_uuid(2),
+        user_id=fake_user_uuid(2),
     ),
-    test_user_uuid(3): dict(
+    fake_user_uuid(3): dict(
         username='hwolowitz',
         email='howard.wolowitz@nomad-fairdi.tests.de',
         first_name='Howard',
         last_name='Wolowitz',
-        user_id=test_user_uuid(3),
+        user_id=fake_user_uuid(3),
     ),
 }
 
 
 @pytest.fixture(scope='session')
-def test_user_molds():
-    label_num = {
-        'admin_user': 0,
-        'test_user': 1,
-        'other_test_user': 2,
-        'yet_test_user': 3,
-    }
-    return {label: test_users[test_user_uuid(num)] for label, num in label_num.items()}
+def user_molds():
+    label_num = {f'user{i}': i for i in range(4)}
+    return {label: users[fake_user_uuid(num)] for label, num in label_num.items()}
 
 
 @pytest.fixture(scope='session')
-def admin_user():
-    return User(**test_users[test_user_uuid(0)])
+def user0():
+    return User(**users[fake_user_uuid(0)])
 
 
 @pytest.fixture(scope='session')
-def test_user():
-    return User(**test_users[test_user_uuid(1)])
+def user1():
+    return User(**users[fake_user_uuid(1)])
 
 
 @pytest.fixture(scope='session')
-def other_test_user():
-    return User(**test_users[test_user_uuid(2)])
+def user2():
+    return User(**users[fake_user_uuid(2)])
 
 
 @pytest.fixture(scope='session')
-def yet_test_user():
-    return User(**test_users[test_user_uuid(3)])
+def user3():
+    return User(**users[fake_user_uuid(3)])
 
 
 @pytest.fixture(scope='session')
-def test_users_dict(test_user, other_test_user, admin_user, yet_test_user):
+def users_dict(user0, user1, user2, user3):
     return {
-        'admin_user': admin_user,
-        'test_user': test_user,
-        'other_test_user': other_test_user,
-        'yet_test_user': yet_test_user,
+        'user0': user0,
+        'user1': user1,
+        'user2': user2,
+        'user3': user3,
     }
 
 
@@ -83,7 +85,7 @@ def configure_admin_user_id(monkeysession):
 class KeycloakMock:
     def __init__(self):
         self.id_counter = 3
-        self.users = dict(**test_users)
+        self.users = dict(**users)
 
     def tokenauth(self, access_token: str):
         if access_token in self.users:
@@ -93,7 +95,7 @@ class KeycloakMock:
 
     def add_user(self, user, *args, **kwargs):
         self.id_counter += 1
-        user.user_id = test_user_uuid(self.id_counter)
+        user.user_id = fake_user_uuid(self.id_counter)
         user.username = (user.first_name[0] + user.last_name).lower()
         self.users[user.user_id] = dict(
             email=user.email,
@@ -121,9 +123,9 @@ class KeycloakMock:
 
     def search_user(self, query):
         return [
-            User(**test_user)
-            for test_user in self.users.values()
-            if query in ' '.join([str(value) for value in test_user.values()])
+            User(**user)
+            for user in self.users.values()
+            if query in ' '.join([str(value) for value in user.values()])
         ]
 
     def basicauth(self, username: str, password: str) -> str:

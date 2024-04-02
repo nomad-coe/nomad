@@ -38,8 +38,8 @@ def upload_id():
 
 
 @pytest.fixture
-def example_data_nxs(test_user, upload_id):
-    data = ExampleData(main_author=test_user)
+def example_data_nxs(user1, upload_id):
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id)
     data.create_entry(upload_id=upload_id, entry_id='nexus_test_entry')
     data.save(with_files=False, with_mongo=True)
@@ -50,11 +50,11 @@ def example_data_nxs(test_user, upload_id):
     [
         pytest.param('invalid', 401, 'test.h5', id='invalid-credentials'),
         pytest.param(None, 401, 'test.h5', id='no-credentials'),
-        pytest.param('test_user', 404, 'some_other.h5', id='file-not-found'),
+        pytest.param('user1', 404, 'some_other.h5', id='file-not-found'),
         pytest.param(
-            'test_user', 200, 'test.h5', id='file-in-published'
+            'user1', 200, 'test.h5', id='file-in-published'
         ),  # TODO: Implement fetching from published upload
-        pytest.param('test_user', 200, 'test.h5', id='file-in-staging'),
+        pytest.param('user1', 200, 'test.h5', id='file-in-staging'),
     ],
 )
 def test_h5grove(
@@ -62,12 +62,12 @@ def test_h5grove(
     upload_id,
     proc_infra,
     example_data_nxs,
-    test_auth_dict,
+    auth_dict,
     user,
     status_code,
     file_name,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     test_file = 'test.h5'
     file_path = f'{StagingUploadFiles(upload_id=upload_id, create=True)._raw_dir}{os.sep}{test_file}'
     h5file = h5py.File(file_path, 'w')

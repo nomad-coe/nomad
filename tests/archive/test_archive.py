@@ -886,13 +886,13 @@ def test_required_reader(
 
 
 @pytest.fixture(scope='function')
-def example_data_with_reference(proc_infra, test_user, json_dict):
+def example_data_with_reference(proc_infra, user1, json_dict):
     """
     Provides a couple of entries with references.
 
     Only used in test_required_reader_with_remote_reference.
     """
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
 
     data.create_upload(
         upload_id='id_published_with_ref', upload_name='name_published', published=True
@@ -1062,7 +1062,7 @@ def test_required_reader_with_remote_reference(
     remote_reference_required,
     resolve_inplace,
     example_data_with_reference,
-    test_user,
+    user1,
     entry_id,
     inplace_result,
 ):
@@ -1081,7 +1081,7 @@ def test_required_reader_with_remote_reference(
 
     with read_archive(BytesIO(packed_archive)) as archive_reader:
         required_reader = RequiredReader(
-            remote_reference_required, resolve_inplace=resolve_inplace, user=test_user
+            remote_reference_required, resolve_inplace=resolve_inplace, user=user1
         )
         results = required_reader.read(
             archive_reader, 'entry_id', 'id_published_with_ref'
@@ -1113,7 +1113,7 @@ def test_required_reader_with_remote_reference(
             assert calculation.system_ref.symmetry[0].space_group_number == 221
 
 
-def test_custom_schema(test_user, proc_infra):
+def test_custom_schema(user1, proc_infra):
     yaml_archive = yaml.safe_load(
         """
 ---
@@ -1143,7 +1143,7 @@ data:
 """
     )
     archive = EntryArchive.m_from_dict(yaml_archive)
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
 
     data.create_upload(
         upload_id='id_custom', upload_name='name_published', published=True
@@ -1156,7 +1156,7 @@ data:
     f = BytesIO()
     write_archive(f, 1, [('id_example', yaml_archive)], entry_toc_depth=2)
     with read_archive(BytesIO(f.getbuffer())) as archive_reader:
-        required_reader = RequiredReader({'data': {'my_quantity': '*'}}, user=test_user)
+        required_reader = RequiredReader({'data': {'my_quantity': '*'}}, user=user1)
         results = required_reader.read(archive_reader, 'id_example', 'id_custom')
 
         assert_dict(

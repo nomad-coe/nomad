@@ -66,11 +66,11 @@ n_code_names = results.Simulation.program_name.a_elasticsearch[
     aggregation_test_parameters_default('materials'),
 )
 def test_materials_aggregations(
-    client, example_data, test_user_auth, aggregation, total, size, status_code, user
+    client, example_data, user1_auth, aggregation, total, size, status_code, user
 ):
     assert_aggregation_response(
         client,
-        test_user_auth,
+        user1_auth,
         aggregation,
         total,
         size,
@@ -328,9 +328,9 @@ def test_materials_get_query(client, example_data, query, status_code, total):
 def test_materials_owner(
     client,
     example_data,
-    test_user_auth,
-    other_test_user_auth,
-    admin_user_auth,
+    user0_auth,
+    user1_auth,
+    user2_auth,
     owner,
     user,
     status_code,
@@ -342,9 +342,9 @@ def test_materials_owner(
 ):
     perform_owner_test(
         client,
-        test_user_auth,
-        other_test_user_auth,
-        admin_user_auth,
+        user0_auth,
+        user1_auth,
+        user2_auth,
         owner,
         user,
         status_code,
