@@ -1,5 +1,5 @@
 definitions:
-  name: XPS ELN Example
+  name: XPS data schema
   sections:
     XPS:
       base_sections:
