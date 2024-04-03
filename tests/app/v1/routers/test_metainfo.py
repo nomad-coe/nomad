@@ -67,7 +67,7 @@ def test_metainfo_section_id_endpoint(metainfo_data, mongo_module, client):
 
 
 def test_upload_and_download(
-    client, test_user, proc_infra, mongo_module, no_warn, monkeypatch, tmp
+    client, user1, proc_infra, mongo_module, no_warn, monkeypatch, tmp
 ):
     monkeypatch.setattr('nomad.config.process.store_package_definition_in_mongo', True)
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
@@ -141,7 +141,7 @@ def test_upload_and_download(
             zipObj.write(data_path, arcname=data_file_name)
 
         processed = run_processing(
-            (create_uuid(), archive_path), test_user, publish_directly=True
+            (create_uuid(), archive_path), user1, publish_directly=True
         )
         return processed.upload_id
 
@@ -280,7 +280,7 @@ def example_upload_two_schemas():
 
 
 def test_two_schemas(
-    example_upload_two_schemas, client, test_user, proc_infra, no_warn, monkeypatch
+    example_upload_two_schemas, client, user1, proc_infra, no_warn, monkeypatch
 ):
     monkeypatch.setattr('nomad.config.process.store_package_definition_in_mongo', True)
     monkeypatch.setattr('nomad.config.process.add_definition_id_to_reference', True)
@@ -303,7 +303,7 @@ def test_two_schemas(
 
     processed = run_processing(
         (archive_name.replace('.zip', ''), tmp(archive_name)),
-        test_user,
+        user1,
         publish_directly=True,
     )
 

@@ -42,8 +42,8 @@ def assert_path_exists(path, response):
         raise KeyError
 
 
-def test_graph_query_random(client, test_auth_dict, example_data):
-    user_auth, _ = test_auth_dict['test_user']
+def test_graph_query_random(client, auth_dict, example_data):
+    user_auth, _ = auth_dict['user1']
     response = client.post(
         'graph/raw_query',
         json={
@@ -71,36 +71,30 @@ def test_graph_query_random(client, test_auth_dict, example_data):
 @pytest.mark.parametrize(
     'upload_id,entry_id,user,status_code',
     [
-        pytest.param('id_embargo', 'id_embargo_1', 'test_user', 200, id='ok'),
+        pytest.param('id_embargo', 'id_embargo_1', 'user1', 200, id='ok'),
         pytest.param(
             'id_child_entries',
             'id_child_entries_child1',
-            'test_user',
+            'user1',
             200,
             id='child-entry',
         ),
-        pytest.param(
-            'id_embargo', 'id_embargo_1', 'admin_user', 200, id='admin-access'
-        ),
+        pytest.param('id_embargo', 'id_embargo_1', 'user0', 200, id='admin-access'),
         pytest.param('id_embargo', 'id_embargo_1', None, 401, id='no-credentials'),
         pytest.param(
             'id_embargo', 'id_embargo_1', 'invalid', 401, id='invalid-credentials'
         ),
+        pytest.param('id_embargo', 'id_embargo_1', 'user2', 404, id='no-access'),
         pytest.param(
-            'id_embargo', 'id_embargo_1', 'other_test_user', 404, id='no-access'
+            'silly_value', 'id_embargo_1', 'user1', 404, id='invalid-upload_id'
         ),
-        pytest.param(
-            'silly_value', 'id_embargo_1', 'test_user', 404, id='invalid-upload_id'
-        ),
-        pytest.param(
-            'id_embargo', 'silly_value', 'test_user', 404, id='invalid-entry_id'
-        ),
+        pytest.param('id_embargo', 'silly_value', 'user1', 404, id='invalid-entry_id'),
     ],
 )
 def test_graph_query(
-    client, test_auth_dict, example_data, upload_id, entry_id, user, status_code
+    client, auth_dict, example_data, upload_id, entry_id, user, status_code
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.post(
         'graph/query',
         json={Token.UPLOADS: {upload_id: {Token.ENTRIES: {entry_id: '*'}}}},
@@ -128,12 +122,10 @@ def test_graph_query(
         pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
     ],
 )
-def test_graph_archive_query(
-    client, example_data, required, status_code, test_user_auth
-):
+def test_graph_archive_query(client, example_data, required, status_code, user1_auth):
     response = client.post(
         'graph/archive/query',
-        headers=test_user_auth,
+        headers=user1_auth,
         json={'owner': 'user', 'required': required},
     )
 
@@ -219,8 +211,8 @@ def example_archive():
 
 
 @pytest.fixture(scope='function')
-def example_upload(example_archive, test_user, mongo_function, elastic_function):
-    data = ExampleData(main_author=test_user)
+def example_upload(example_archive, user1, mongo_function, elastic_function):
+    data = ExampleData(main_author=user1)
     data.create_upload(
         upload_id='test_id', upload_name='name_published', published=True
     )
@@ -256,7 +248,7 @@ def example_upload(example_archive, test_user, mongo_function, elastic_function)
         ),
         pytest.param(
             dict(
-                user='other_test_user',
+                user='user2',
                 expected_upload_ids=[
                     'id_embargo_w_coauthor',
                     'id_embargo_w_reviewer',
@@ -264,7 +256,7 @@ def example_upload(example_archive, test_user, mongo_function, elastic_function)
                     'id_unpublished_w_reviewer',
                 ],
             ),
-            id='other_test_user',
+            id='user2',
         ),
         pytest.param(dict(user=None, expected_status_code=401), id='no-credentials'),
         pytest.param(
@@ -390,13 +382,13 @@ def example_upload(example_archive, test_user, mongo_function, elastic_function)
     ],
 )
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
-def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
-    user = kwargs.get('user', 'test_user')
+def test_get_uploads_graph(client, auth_dict, example_data, kwargs):
+    user = kwargs.get('user', 'user1')
     query_params = kwargs.get('query_params', None)
     pagination = kwargs.get('pagination', None)
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
 
     query_body = {Token.UPLOADS: {'m_request': {}}}
 
@@ -523,8 +515,8 @@ def test_get_uploads_graph(client, test_auth_dict, example_data, kwargs):
         ),
     ],
 )
-def test_fs_graph(client, test_auth_dict, example_data, depth, result):
-    user_auth, _ = test_auth_dict['test_user']
+def test_fs_graph(client, auth_dict, example_data, depth, result):
+    user_auth, _ = auth_dict['user1']
 
     response = client.post(
         'graph/query',
@@ -592,9 +584,9 @@ def test_fs_graph(client, test_auth_dict, example_data, depth, result):
 )
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
 def test_entry_reader_with_reference(
-    example_archive, required, error, test_user, example_upload
+    example_archive, required, error, user1, example_upload
 ):
-    with EntryReader({Token.ARCHIVE: required}, user=test_user) as reader:
+    with EntryReader({Token.ARCHIVE: required}, user=user1) as reader:
         results = reader.read('test_id')
 
     if error:
@@ -674,9 +666,9 @@ def test_entry_reader_with_reference(
     ],
 )
 def test_graph_query_archive_functionality(
-    client, test_auth_dict, example_upload, required, result
+    client, auth_dict, example_upload, required, result
 ):
-    user_auth, _ = test_auth_dict['test_user']
+    user_auth, _ = auth_dict['user1']
     response = client.post(
         'graph/query',
         json={'uploads': {'test_id': {'entries': {'test_id': {'archive': required}}}}},

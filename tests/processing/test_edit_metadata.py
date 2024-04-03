@@ -308,22 +308,20 @@ def test_edit_metadata(
     purged_app,
     example_data_writeable,
     example_datasets,
-    test_users_dict,
+    users_dict,
     kwargs,
 ):
-    kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]
+    kwargs['user'] = users_dict[kwargs.get('user', 'user1')]
     assert_edit_request(**kwargs)
 
 
-def test_set_and_clear_all(
-    proc_infra, example_data_writeable, example_datasets, test_user
-):
+def test_set_and_clear_all(proc_infra, example_data_writeable, example_datasets, user1):
     # Set all fields a coauthor can set
-    assert_edit_request(user=test_user, metadata=all_coauthor_metadata)
+    assert_edit_request(user=user1, metadata=all_coauthor_metadata)
     # Clear all fields that can be cleared with a 'set' operation
     # = all of the above, except embargo_length and datasets
     assert_edit_request(
-        user=test_user,
+        user=user1,
         metadata=dict(
             upload_name='',
             coauthors=[],
@@ -523,7 +521,7 @@ def test_list_quantities(
     purged_app,
     example_data_writeable,
     example_datasets,
-    test_users_dict,
+    users_dict,
     kwargs,
 ):
     def replace_dataset_ref(dataset_ref):
@@ -538,7 +536,7 @@ def test_list_quantities(
             return [replace_dataset_ref(ref) for ref in ref_or_reflist]
         return replace_dataset_ref(ref_or_reflist)
 
-    kwargs['user'] = test_users_dict[kwargs.get('user', 'test_user')]
+    kwargs['user'] = users_dict[kwargs.get('user', 'user1')]
     for suffix in ('_1', '_2'):
         for arg in ('metadata', 'expected_metadata', 'expected_error_loc'):
             if arg in kwargs:
@@ -557,16 +555,14 @@ def test_list_quantities(
         assert_edit_request(**kwargs)
 
 
-def test_admin_quantities(
-    proc_infra, example_data_writeable, test_user, other_test_user, admin_user
-):
+def test_admin_quantities(proc_infra, example_data_writeable, user1, user2, user0):
     assert_edit_request(
-        user=admin_user, upload_id='id_published_w', metadata=all_admin_metadata
+        user=user0, upload_id='id_published_w', metadata=all_admin_metadata
     )
     # try to do the same as a non-admin
     for k, v in all_admin_metadata.items():
         assert_edit_request(
-            user=test_user,
+            user=user1,
             upload_id='id_unpublished_w',
             metadata={k: v},
             expected_error_loc=('metadata', k),
@@ -574,7 +570,7 @@ def test_admin_quantities(
 
 
 def test_query_cannot_set_upload_attributes(
-    proc_infra, example_data_writeable, example_datasets, test_user
+    proc_infra, example_data_writeable, example_datasets, user1
 ):
     query = {'and': [{'upload_create_time:gt': '2021-01-01'}, {'published': False}]}
     for k, v in all_coauthor_upload_metadata.items():
@@ -582,7 +578,7 @@ def test_query_cannot_set_upload_attributes(
         # regardless of if upload_id is specified
         for upload_id in (None, 'id_unpublished_w'):
             assert_edit_request(
-                user=test_user,
+                user=user1,
                 query=query,
                 owner='user',
                 upload_id=upload_id,
@@ -591,7 +587,7 @@ def test_query_cannot_set_upload_attributes(
             )
     # Attempting to edit an entry level attribute with query should always succeed
     assert_edit_request(
-        user=test_user,
+        user=user1,
         query=query,
         owner='user',
         upload_id=None,

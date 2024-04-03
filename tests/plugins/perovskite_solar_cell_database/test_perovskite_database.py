@@ -23,12 +23,12 @@ from nomad.utils.exampledata import ExampleData
 
 
 def test_perovskite_solar_cell_plugin_processing(
-    raw_files_function, no_warn, test_user, mongo_function
+    raw_files_function, no_warn, user1, mongo_function
 ):
     directory = 'tests/data/plugins/perovskite_solar_cell_database'
     mainfile = 'example.archive.json'
     upload_id = 'test_upload_id'
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id=upload_id, published=False)
     context = ClientContext(local_dir=directory, upload_id=upload_id)
 

@@ -260,27 +260,21 @@ def test_processing(processed, no_warn, mails, monkeypatch):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_processing_two_runs(test_user, proc_infra, tmp):
+def test_processing_two_runs(user1, proc_infra, tmp):
     upload_file = create_template_upload_file(
         tmp, mainfiles=['tests/data/proc/templates/template_tworuns.json']
     )
-    processed = run_processing(
-        (
-            'test_upload_id',
-            upload_file,
-        ),
-        test_user,
-    )
+    processed = run_processing(('test_upload_id', upload_file), user1)
     assert_processing(processed)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_processing_with_large_dir(test_user, proc_infra, tmp):
+def test_processing_with_large_dir(user1, proc_infra, tmp):
     upload_path = create_template_upload_file(
         tmp, mainfiles=['tests/data/proc/templates/template.json'], auxfiles=150
     )
     upload_id = upload_path[:-4]
-    upload = run_processing((upload_id, upload_path), test_user)
+    upload = run_processing((upload_id, upload_path), user1)
     for entry in upload.successful_entries:
         assert len(entry.warnings) == 1
 
@@ -315,10 +309,8 @@ def test_publish(
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_publish_directly(
-    non_empty_uploaded, test_user, proc_infra, no_warn, monkeypatch
-):
-    processed = run_processing(non_empty_uploaded, test_user, publish_directly=True)
+def test_publish_directly(non_empty_uploaded, user1, proc_infra, no_warn, monkeypatch):
+    processed = run_processing(non_empty_uploaded, user1, publish_directly=True)
 
     with processed.entries_metadata() as entries:
         assert_upload_files(
@@ -359,13 +351,13 @@ def test_republish(
 def test_publish_failed(
     non_empty_uploaded: Tuple[str, str],
     internal_example_user_metadata,
-    test_user,
+    user1,
     monkeypatch,
     proc_infra,
 ):
     mock_failure(Entry, 'parsing', monkeypatch)
 
-    processed = run_processing(non_empty_uploaded, test_user)
+    processed = run_processing(non_empty_uploaded, user1)
     set_upload_entry_metadata(processed, internal_example_user_metadata)
 
     additional_keys = ['with_embargo']
@@ -400,7 +392,7 @@ def test_publish_to_central_nomad(
     proc_infra,
     monkeypatch,
     oasis_publishable_upload,
-    test_user,
+    user1,
     no_warn,
     import_settings,
     embargo_length,
@@ -458,19 +450,19 @@ def test_publish_to_central_nomad(
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_processing_with_warning(proc_infra, test_user, with_warn, tmp):
+def test_processing_with_warning(proc_infra, user1, with_warn, tmp):
     example_file = create_template_upload_file(
         tmp, 'tests/data/proc/templates/with_warning_template.json'
     )
     example_upload_id = os.path.basename(example_file).replace('.zip', '')
 
-    upload = run_processing((example_upload_id, example_file), test_user)
+    upload = run_processing((example_upload_id, example_file), user1)
     assert_processing(upload)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_process_non_existing(proc_infra, test_user, with_error):
-    upload = run_processing(('__does_not_exist', '__does_not_exist'), test_user)
+def test_process_non_existing(proc_infra, user1, with_error):
+    upload = run_processing(('__does_not_exist', '__does_not_exist'), user1)
 
     assert not upload.process_running
     assert upload.process_status == ProcessStatus.FAILURE
@@ -667,7 +659,7 @@ def test_re_process_match(non_empty_processed, published, monkeypatch, no_warn):
 
 
 @pytest.mark.parametrize('reuse_parser', [False, True])
-def test_reuse_parser(monkeypatch, tmp, test_user, proc_infra, reuse_parser, no_warn):
+def test_reuse_parser(monkeypatch, tmp, user1, proc_infra, reuse_parser, no_warn):
     upload_path = os.path.join(tmp, 'example_upload.zip')
     with zipfile.ZipFile(upload_path, 'w') as zf:
         zf.write('tests/data/parsers/vasp/vasp.xml', 'one/run.vasp.xml')
@@ -679,7 +671,7 @@ def test_reuse_parser(monkeypatch, tmp, test_user, proc_infra, reuse_parser, no_
             'example_upload',
             upload_path,
         ),
-        test_user,
+        user1,
     )
 
     assert upload.total_entries_count == 2
@@ -891,7 +883,7 @@ def mock_failure(cls, function_name, monkeypatch):
 )
 @pytest.mark.timeout(config.tests.default_timeout)
 def test_process_failure(
-    monkeypatch, uploaded, function, proc_infra, test_user, with_error
+    monkeypatch, uploaded, function, proc_infra, user1, with_error
 ):
     upload_id, _ = uploaded
     # mock the function to throw exceptions
@@ -905,7 +897,7 @@ def test_process_failure(
     mock_failure(cls, function, monkeypatch)
 
     # run the test
-    upload = run_processing(uploaded, test_user)
+    upload = run_processing(uploaded, user1)
 
     assert not upload.process_running
 
@@ -936,14 +928,14 @@ def test_process_failure(
 
 # consume_ram, segfault, and exit are not testable with the celery test worker
 @pytest.mark.parametrize('failure', ['exception'])
-def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
+def test_malicious_parser_failure(proc_infra, failure, user1, tmp):
     example_file = os.path.join(tmp, 'upload.zip')
     with zipfile.ZipFile(example_file, mode='w') as zf:
         with zf.open('chaos.json', 'w') as f:
             f.write(f'"{failure}"'.encode())
     example_upload_id = f'chaos_{failure}'
 
-    upload = run_processing((example_upload_id, example_file), test_user)
+    upload = run_processing((example_upload_id, example_file), user1)
 
     assert not upload.process_running
     assert len(upload.errors) == 0
@@ -957,7 +949,7 @@ def test_malicious_parser_failure(proc_infra, failure, test_user, tmp):
     assert len(entry.errors) == 1
 
 
-def test_parent_child_parser(proc_infra, test_user, tmp):
+def test_parent_child_parser(proc_infra, user1, tmp):
     # Create a dummy parser which creates child entries
     class ParentChildParser(Parser):
         name = 'parsers/parentchild'
@@ -1005,7 +997,7 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
         with open(example_filepath, 'w') as f:
             f.write('\n'.join(['parentchild', *children]))
 
-        upload = run_processing((example_upload_id, example_filepath), test_user)
+        upload = run_processing((example_upload_id, example_filepath), user1)
 
         assert upload.process_status == ProcessStatus.SUCCESS
         assert upload.total_entries_count == len(children) + 1
@@ -1023,12 +1015,12 @@ def test_parent_child_parser(proc_infra, test_user, tmp):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_creating_new_entries_during_processing(proc_infra, test_user):
+def test_creating_new_entries_during_processing(proc_infra, user1):
     """
     Tests a use-case where a schema has a normalizer that adds new mainfiles during processing.
     """
     upload_id = 'test_create_during_processing'
-    upload = Upload.create(upload_id=upload_id, main_author=test_user)
+    upload = Upload.create(upload_id=upload_id, main_author=user1)
     upload_files = StagingUploadFiles(upload_id, create=True)
     with upload_files.raw_file('batch.archive.json', 'w') as outfile:
         json.dump(
@@ -1056,9 +1048,9 @@ def test_creating_new_entries_during_processing(proc_infra, test_user):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_ems_data(proc_infra, test_user):
+def test_ems_data(proc_infra, user1):
     upload = run_processing(
-        ('test_ems_upload', 'tests/data/proc/examples_ems.zip'), test_user
+        ('test_ems_upload', 'tests/data/proc/examples_ems.zip'), user1
     )
 
     additional_keys = ['results.method.method_name', 'results.material.elements']
@@ -1073,9 +1065,9 @@ def test_ems_data(proc_infra, test_user):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_qcms_data(proc_infra, test_user):
+def test_qcms_data(proc_infra, user1):
     upload = run_processing(
-        ('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), test_user
+        ('test_qcms_upload', 'tests/data/proc/examples_qcms.zip'), user1
     )
 
     additional_keys = [
@@ -1093,9 +1085,9 @@ def test_qcms_data(proc_infra, test_user):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_phonopy_data(proc_infra, test_user):
+def test_phonopy_data(proc_infra, user1):
     upload = run_processing(
-        ('test_upload', 'tests/data/proc/examples_phonopy.zip'), test_user
+        ('test_upload', 'tests/data/proc/examples_phonopy.zip'), user1
     )
 
     additional_keys = ['results.method.simulation.program_name']
@@ -1109,7 +1101,7 @@ def test_phonopy_data(proc_infra, test_user):
         assert_search_upload(entries, additional_keys, published=False)
 
 
-def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
+def test_read_metadata_from_file(proc_infra, user1, user2, tmp):
     upload_file = os.path.join(tmp, 'upload.zip')
     with zipfile.ZipFile(upload_file, 'w') as zf:
         zf.write(
@@ -1138,7 +1130,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
             f.write(json.dumps(entry_2).encode())
         metadata = {
             'upload_name': 'my name',
-            'coauthors': other_test_user.user_id,
+            'coauthors': user2.user_id,
             'references': ['http://test0.com'],
             'entries': {
                 'examples/entry_3/template.json': {
@@ -1152,7 +1144,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         with zf.open('nomad.json', 'w') as f:
             f.write(json.dumps(metadata).encode())
 
-    upload = run_processing(('test_upload', upload_file), test_user)
+    upload = run_processing(('test_upload', upload_file), user1)
 
     entries = Entry.objects(upload_id=upload.upload_id)
     entries = sorted(entries, key=lambda entry: entry.mainfile)
@@ -1165,7 +1157,7 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
         ['http://test3.com'],
         ['http://test0.com'],
     ]
-    expected_coauthors = [other_test_user]
+    expected_coauthors = [user2]
 
     for i in range(len(entries)):
         entry_metadata = entries[i].full_entry_metadata(upload)
@@ -1182,9 +1174,9 @@ def test_read_metadata_from_file(proc_infra, test_user, other_test_user, tmp):
             assert coauthors[j].last_name == expected_coauthors[j].last_name
 
 
-def test_skip_matching(proc_infra, test_user):
+def test_skip_matching(proc_infra, user1):
     upload = run_processing(
-        ('test_skip_matching', 'tests/data/proc/skip_matching.zip'), test_user
+        ('test_skip_matching', 'tests/data/proc/skip_matching.zip'), user1
     )
     assert upload.total_entries_count == 1
 
@@ -1203,13 +1195,13 @@ def test_skip_matching(proc_infra, test_user):
     ],
 )
 def test_upload_context(
-    raw_files_function, mongo_function, test_user, url, normalized_url, monkeypatch
+    raw_files_function, mongo_function, user1, url, normalized_url, monkeypatch
 ):
     monkeypatch.setattr(
         'nomad.utils.generate_entry_id', lambda *args, **kwargs: 'test_id'
     )
 
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_id', published=True)
 
     referenced_archive = EntryArchive(data=TestData())

@@ -51,9 +51,6 @@ from nomad.utils.exampledata import ExampleData
 from tests.config import yaml_schema_name, python_schema_name
 
 
-other_groups = ['other_owner_group', 'mixed_group']
-
-
 def split(path):
     return [int(x) if x.isdigit() else x for x in path.split('.')]
 
@@ -167,8 +164,8 @@ def get_schema_quantity(type, quantity):
 
 
 @pytest.fixture()
-def example_data(elastic_function, test_user):
-    data = ExampleData(main_author=test_user)
+def example_data(elastic_function, user1):
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
     for i in range(0, 4):
         data.create_entry(
@@ -182,20 +179,20 @@ def example_data(elastic_function, test_user):
 
 @pytest.fixture(scope='class')
 def example_group_data(
-    elastic_module, user_groups_module, test_user, other_test_user, fill_group_data
+    elastic_module, user_groups_module, user1, user2, fill_group_data
 ):
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     fill_group_data(data, 'no_embargo', [], [], embargo_length=0)
     fill_group_data(data, 'with_embargo', [], [], embargo_length=3)
     fill_group_data(data, 'no_group', [], [])
-    fill_group_data(data, 'coauthor_user', ['user_owner_group'], [])
-    fill_group_data(data, 'reviewer_user', [], ['user_owner_group'])
-    fill_group_data(data, 'coauthor_other', ['other_owner_group'], [])
-    fill_group_data(data, 'reviewer_other', [], ['other_owner_group'])
-    fill_group_data(data, 'coauthor_mixed', ['mixed_group'], [])
-    fill_group_data(data, 'reviewer_mixed', [], ['mixed_group'])
+    fill_group_data(data, 'coauthor_group1', ['group1'], [])
+    fill_group_data(data, 'reviewer_group1', [], ['group1'])
+    fill_group_data(data, 'coauthor_group2', ['group2'], [])
+    fill_group_data(data, 'reviewer_group2', [], ['group2'])
+    fill_group_data(data, 'coauthor_group012', ['group012'], [])
+    fill_group_data(data, 'reviewer_group012', [], ['group012'])
     fill_group_data(data, 'reviewer_all', [], ['all'])
-    fill_group_data(data, 'other_user', [], [], main_author=other_test_user)
+    fill_group_data(data, 'user2', [], [], main_author=user2)
     data.save(with_files=False, with_mongo=False)
 
     yield data
@@ -204,8 +201,8 @@ def example_group_data(
 
 
 @pytest.fixture()
-def example_text_search_data(mongo_module, elastic_function, test_user):
-    data = ExampleData(main_author=test_user)
+def example_text_search_data(mongo_module, elastic_function, user1):
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_upload_text_search', published=True)
     data.create_entry(
         upload_id='test_upload_text_search',
@@ -221,7 +218,7 @@ def example_text_search_data(mongo_module, elastic_function, test_user):
 
 
 @pytest.fixture()
-def example_eln_data(elastic_function, test_user):
+def example_eln_data(elastic_function, user1):
     class DataSection(EntryData):
         text = Quantity(type=str)
         keyword = Quantity(type=MEnum('one', 'two'))
@@ -230,7 +227,7 @@ def example_eln_data(elastic_function, test_user):
         date = Quantity(type=Datetime)
         boolean = Quantity(type=bool)
 
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_upload_id', published=True, embargo_length=12)
 
     parameters = [
@@ -338,37 +335,37 @@ class TestsWithGroups:
         'owner, user, exc_or_total',
         [
             pytest.param('admin', None, ARE, id='admin-none'),
-            pytest.param('admin', 'test_user', ARE, id='admin-user'),
-            pytest.param('admin', 'admin_user', 11, id='admin-admin'),
+            pytest.param('admin', 'user1', ARE, id='admin-user1'),
+            pytest.param('admin', 'user0', 11, id='admin-user0'),
             pytest.param('user', None, ARE, id='user-none'),
-            pytest.param('user', 'test_user', 10, id='user-user'),
-            pytest.param('user', 'other_test_user', 1, id='user-other'),
+            pytest.param('user', 'user1', 10, id='user-user1'),
+            pytest.param('user', 'user2', 1, id='user-user2'),
             pytest.param('shared', None, ARE, id='shared-none'),
-            pytest.param('shared', 'test_user', 10, id='shared-user'),
-            pytest.param('shared', 'other_test_user', 6, id='shared'),
+            pytest.param('shared', 'user1', 10, id='shared-user1'),
+            pytest.param('shared', 'user2', 6, id='shared'),
             pytest.param('staging', None, ARE, id='staging-none'),
-            pytest.param('staging', 'test_user', 8, id='staging-user'),
-            pytest.param('staging', 'other_test_user', 6, id='staging-other'),
+            pytest.param('staging', 'user1', 8, id='staging-user1'),
+            pytest.param('staging', 'user2', 6, id='staging-user2'),
             pytest.param('visible', None, 2, id='visible-none'),
-            pytest.param('visible', 'test_user', 10, id='visible-user'),
-            pytest.param('visible', 'other_test_user', 7, id='visible-other'),
+            pytest.param('visible', 'user1', 10, id='visible-user1'),
+            pytest.param('visible', 'user2', 7, id='visible-user2'),
             pytest.param('public', None, 1, id='public-none'),
-            pytest.param('public', 'test_user', 1, id='public-user'),
-            pytest.param('public', 'other_test_user', 1, id='public-other'),
+            pytest.param('public', 'user1', 1, id='public-user1'),
+            pytest.param('public', 'user2', 1, id='public-user2'),
             pytest.param('all', None, 3, id='all-none'),
-            pytest.param('all', 'test_user', 10, id='all-user'),
-            pytest.param('all', 'other_test_user', 8, id='all-other'),
+            pytest.param('all', 'user1', 10, id='all-user1'),
+            pytest.param('all', 'user2', 8, id='all-user2'),
         ],
     )
     def test_search_query_group(
         self,
-        test_users_dict,
+        users_dict,
         example_group_data,
         owner,
         user,
         exc_or_total,
     ):
-        user = test_users_dict.get(user)
+        user = users_dict.get(user)
         user_id = user.user_id if user is not None else None
 
         if not isinstance(exc_or_total, int):

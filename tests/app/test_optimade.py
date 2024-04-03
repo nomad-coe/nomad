@@ -40,9 +40,9 @@ def test_get_entry(published: Upload):
 
 
 def test_no_optimade(
-    mongo_function, elastic_function, raw_files_function, client, test_user
+    mongo_function, elastic_function, raw_files_function, client, user1
 ):
-    example_data = ExampleData(main_author=test_user)
+    example_data = ExampleData(main_author=user1)
     example_data.create_upload(
         upload_id='test_upload', published=True, embargo_length=0
     )
@@ -57,11 +57,11 @@ def test_no_optimade(
 
 
 @pytest.fixture(scope='module')
-def example_structures(elastic_infra, mongo_module, raw_files_infra, test_user):
+def example_structures(elastic_infra, mongo_module, raw_files_infra, user1):
     clear_elastic(elastic_infra)
     mongo_module.drop_database('test_db')
 
-    example_data = ExampleData(main_author=test_user)
+    example_data = ExampleData(main_author=user1)
     example_data.create_upload(
         upload_id='test_upload',
         upload_create_time='1978-04-08T10:10:00Z',

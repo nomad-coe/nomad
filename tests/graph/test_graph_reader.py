@@ -98,7 +98,7 @@ user_dict = {
 
 
 # noinspection SpellCheckingInspection,DuplicatedCode
-def test_remote_reference(json_dict, example_data_with_reference, test_user):
+def test_remote_reference(json_dict, example_data_with_reference, user1):
     def increment():
         n = 0
         while True:
@@ -108,14 +108,14 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     counter = increment()
 
     def __user_print(msg, required, *, result: dict = None):
-        with UserReader(required, user=test_user) as reader:
+        with UserReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read(test_user.user_id), result)
+                assert_dict(reader.read(user1.user_id), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 rprint('output:')
-                rprint(reader.read(test_user.user_id))
+                rprint(reader.read(user1.user_id))
 
     __user_print(
         'plain user',
@@ -831,7 +831,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     )
 
     def __upload_print(msg, required, *, result: dict = None):
-        with UploadReader(required, user=test_user) as reader:
+        with UploadReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.read('id_published_with_ref'), result)
             else:
@@ -1246,7 +1246,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     )
 
     def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
-        with EntryReader(required, user=test_user) as reader:
+        with EntryReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.read('id_03'), result)
             else:
@@ -1617,7 +1617,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
     )
 
     def __fs_print(msg, required, *, result: dict = None):
-        with FileSystemReader(required, user=test_user) as reader:
+        with FileSystemReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.read('id_published_with_ref'), result)
             else:
@@ -2081,7 +2081,7 @@ def test_remote_reference(json_dict, example_data_with_reference, test_user):
 
 
 # noinspection DuplicatedCode,SpellCheckingInspection
-def test_general_reader(json_dict, example_data_with_reference, test_user):
+def test_general_reader(json_dict, example_data_with_reference, user1):
     def increment():
         n = 0
         while True:
@@ -2091,7 +2091,7 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
     counter = increment()
 
     def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
-        with MongoReader(required, user=test_user) as reader:
+        with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.read(), result)
             else:
@@ -2454,7 +2454,7 @@ def test_general_reader(json_dict, example_data_with_reference, test_user):
 
 
 # noinspection DuplicatedCode,SpellCheckingInspection
-def test_general_reader_search(json_dict, example_data_with_reference, test_user):
+def test_general_reader_search(json_dict, example_data_with_reference, user1):
     def increment():
         n = 0
         while True:
@@ -2464,7 +2464,7 @@ def test_general_reader_search(json_dict, example_data_with_reference, test_user
     counter = increment()
 
     def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
-        with MongoReader(required, user=test_user) as reader:
+        with MongoReader(required, user=user1) as reader:
             if result:
                 assert_dict(reader.read(), result)
             else:
@@ -2555,7 +2555,7 @@ def test_general_reader_search(json_dict, example_data_with_reference, test_user
 
 
 @pytest.fixture(scope='function')
-def custom_data(test_user, proc_infra):
+def custom_data(user1, proc_infra):
     yaml_archive = yaml.safe_load(
         """
 ---
@@ -2585,7 +2585,7 @@ data:
 """
     )
     archive = EntryArchive.m_from_dict(yaml_archive)
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
 
     data.create_upload(
         upload_id='id_custom', upload_name='name_published', published=True
@@ -2600,7 +2600,7 @@ data:
     data.delete()
 
 
-def test_custom_schema_archive_and_definition(test_user, custom_data):
+def test_custom_schema_archive_and_definition(user1, custom_data):
     def increment():
         n = 0
         while True:
@@ -2610,7 +2610,7 @@ def test_custom_schema_archive_and_definition(test_user, custom_data):
     counter = increment()
 
     def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
-        with EntryReader(required, user=test_user) as reader:
+        with EntryReader(required, user=user1) as reader:
             response = reader.read('id_example')
             if result:
                 assert_dict(response, result)
@@ -2712,14 +2712,14 @@ def test_custom_schema_archive_and_definition(test_user, custom_data):
 
 @pytest.fixture(scope='function')
 def example_data_with_reference(
-    elastic_function, raw_files_module, mongo_function, test_user, json_dict
+    elastic_function, raw_files_module, mongo_function, user1, json_dict
 ):
     """
     Provides a couple of entries with references.
 
     Only used in test_required_reader_with_remote_reference.
     """
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
 
     data.create_upload(
         upload_id='id_published_with_ref', upload_name='name_published', published=False

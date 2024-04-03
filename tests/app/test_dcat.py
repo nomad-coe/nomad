@@ -43,23 +43,23 @@ def create_dataset(**kwargs):
 
 
 @pytest.fixture(scope='module')
-def data(test_user, other_test_user, elastic_infra, mongo_module):
+def data(user1, user2, elastic_infra, mongo_module):
     example_attrs = dict(
         entry_id='test-id',
         upload_id='upload-id',
         last_processing_time=datetime.now(),
-        entry_coauthors=[other_test_user],
+        entry_coauthors=[user2],
         datasets=[
             create_dataset(
                 dataset_id='dataset_1',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='test dataset 1',
                 dataset_type='owned',
                 doi='TEST/DOI',
             ),
             create_dataset(
                 dataset_id='dataset_2',
-                user_id=test_user.user_id,
+                user_id=user1.user_id,
                 dataset_name='test dataset 2',
                 dataset_type='owned',
             ),
@@ -67,7 +67,7 @@ def data(test_user, other_test_user, elastic_infra, mongo_module):
         comment='this is an entry comment',
     )
 
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(
         upload_id='upload-id',
         upload_create_time=datetime(2000, 1, 1),

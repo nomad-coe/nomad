@@ -36,8 +36,8 @@ def assert_group(group, ref_group, keys=None):
 @pytest.mark.parametrize(
     'user_label, expected_status_code',
     [
-        pytest.param('test_user', 200, id='test-user'),
-        pytest.param('other_test_user', 200, id='other-test-user'),
+        pytest.param('user1', 200, id='user1'),
+        pytest.param('user2', 200, id='user2'),
         pytest.param('invalid', 200, id='invalid-user'),
         pytest.param(None, 200, id='guest-user'),
     ],
@@ -45,12 +45,12 @@ def assert_group(group, ref_group, keys=None):
 def test_get_groups(
     client,
     mongo_module,
-    test_auth_dict,
+    auth_dict,
     user_groups_module,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
+    user_auth, _ = auth_dict[user_label]
 
     response = perform_get(client, base_url, user_auth)
     assert_response(response, expected_status_code)
@@ -64,21 +64,21 @@ def test_get_groups(
 @pytest.mark.parametrize(
     'user_label, expected_status_code',
     [
-        pytest.param('test_user', 200, id='test-user'),
-        pytest.param('other_test_user', 200, id='other-test-user'),
+        pytest.param('user1', 200, id='user1'),
+        pytest.param('user2', 200, id='user2'),
         pytest.param('invalid', 200, id='invalid-user'),
         pytest.param(None, 200, id='guest-user'),
     ],
 )
 def test_get_group(
     client,
-    test_auth_dict,
+    auth_dict,
     user_groups_module,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
-    ref_group = user_groups_module['other_owner_group']
+    user_auth, _ = auth_dict[user_label]
+    ref_group = user_groups_module['group2']
 
     response = perform_get(client, f'{base_url}/{ref_group.group_id}', user_auth)
     assert_response(response, expected_status_code)
@@ -92,8 +92,8 @@ def test_get_group(
 @pytest.mark.parametrize(
     'user_label, expected_status_code',
     [
-        pytest.param('test_user', 404, id='test-user'),
-        pytest.param('other_test_user', 404, id='other-test-user'),
+        pytest.param('user1', 404, id='user1'),
+        pytest.param('user2', 404, id='user2'),
         pytest.param('invalid', 404, id='invalid-user'),
         pytest.param(None, 404, id='guest-user'),
     ],
@@ -101,12 +101,12 @@ def test_get_group(
 def test_get_group_invalid(
     client,
     mongo_module,
-    test_auth_dict,
+    auth_dict,
     user_groups_module,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
+    user_auth, _ = auth_dict[user_label]
 
     response = perform_get(client, f'{base_url}/invalid-group-id', user_auth)
     assert_response(response, expected_status_code)
@@ -115,16 +115,14 @@ def test_get_group_invalid(
 @pytest.mark.parametrize(
     'user_label, new_group_label, ref_group_label, expected_status_code',
     [
-        pytest.param('test_user', 'new_group', 'new_group', 201, id='test-user'),
-        pytest.param(
-            'other_test_user', 'new_group', 'new_group', 201, id='other-test-user'
-        ),
+        pytest.param('user1', 'new_group', 'new_group', 201, id='user1'),
+        pytest.param('user2', 'new_group', 'new_group', 201, id='user2'),
         pytest.param('invalid', 'new_group', None, 401, id='invalid-user'),
         pytest.param(None, 'new_group', None, 401, id='guest-user'),
-        pytest.param('test_user', 'short_name', None, 422, id='short-name-fails'),
-        pytest.param('test_user', 'long_name', None, 422, id='long-name-fails'),
+        pytest.param('user1', 'short_name', None, 422, id='short-name-fails'),
+        pytest.param('user1', 'long_name', None, 422, id='long-name-fails'),
         pytest.param(
-            'test_user',
+            'user1',
             'double_member',
             'double_member_ref',
             201,
@@ -136,15 +134,15 @@ def test_create_group(
     client,
     mongo_function,
     request,
-    test_auth_dict,
-    test_user_group_molds,
+    auth_dict,
+    group_molds,
     user_label,
     new_group_label,
     ref_group_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
-    new_group = test_user_group_molds[new_group_label]
+    user_auth, _ = auth_dict[user_label]
+    new_group = group_molds[new_group_label]
 
     response = perform_post(client, base_url, user_auth, json=new_group)
     assert_response(response, expected_status_code)
@@ -155,7 +153,7 @@ def test_create_group(
     response_group = UserGroup.parse_raw(response.content)
     group = get_user_group(response_group.group_id)
     assert_group(group, response_group)
-    ref_group = test_user_group_molds[ref_group_label]
+    ref_group = group_molds[ref_group_label]
     assert_group(group, ref_group, ref_group.keys())
 
 
@@ -164,13 +162,13 @@ def test_create_group(
     [
         pytest.param(None, 'new_group', None, 401, id='guest-fails'),
         pytest.param('invalid', 'new_group', None, 401, id='faker-fails'),
-        pytest.param('other_test_user', 'new_group', None, 401, id='other-fails'),
-        pytest.param('test_user', 'new_group', 'new_group', 200, id='edit-ok'),
-        pytest.param('test_user', 'short_name', None, 422, id='short-name-fails'),
-        pytest.param('test_user', 'long_name', None, 422, id='long-name-fails'),
-        pytest.param('test_user', 'special_char', None, 422, id='special-chars-fails'),
+        pytest.param('user2', 'new_group', None, 401, id='other-fails'),
+        pytest.param('user1', 'new_group', 'new_group', 200, id='edit-ok'),
+        pytest.param('user1', 'short_name', None, 422, id='short-name-fails'),
+        pytest.param('user1', 'long_name', None, 422, id='long-name-fails'),
+        pytest.param('user1', 'special_char', None, 422, id='special-chars-fails'),
         pytest.param(
-            'test_user',
+            'user1',
             'double_member',
             'double_member_ref',
             200,
@@ -181,18 +179,18 @@ def test_create_group(
 def test_update_user_group(
     client,
     mongo_function,
-    test_auth_dict,
-    test_user_group_molds,
+    auth_dict,
+    group_molds,
     user_groups_function,
-    user_owner_group,
+    group1,
     user_label,
     group_edit_label,
     ref_group_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
-    group_before = get_user_group(user_owner_group.group_id)
-    group_edit = test_user_group_molds[group_edit_label]
+    user_auth, _ = auth_dict[user_label]
+    group_before = get_user_group(group1.group_id)
+    group_edit = group_molds[group_edit_label]
 
     url = f'{base_url}/{group_before.group_id}/edit'
     response = perform_post(client, url, user_auth, json=group_edit)
@@ -205,62 +203,60 @@ def test_update_user_group(
 
     response_group = UserGroup.parse_raw(response.content)
     assert_group(group_after, response_group)
-    ref_group = test_user_group_molds[ref_group_label]
+    ref_group = group_molds[ref_group_label]
     assert_group(group_after, ref_group, ref_group.keys())
 
 
 @pytest.mark.parametrize(
     'user_label, expected_status_code',
     [
-        pytest.param('test_user', 204, id='test-user'),
-        pytest.param('other_test_user', 401, id='other-test-user'),
+        pytest.param('user1', 204, id='user1'),
+        pytest.param('user2', 401, id='user2'),
         pytest.param('invalid', 401, id='invalid-user'),
         pytest.param(None, 401, id='guest-user'),
     ],
 )
 def test_delete_group(
+    auth_dict,
     client,
-    other_owner_group,
-    test_auth_dict,
+    group1,
+    group2,
     user_groups_function,
-    user_owner_group,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
+    user_auth, _ = auth_dict[user_label]
 
-    response = client.delete(
-        f'{base_url}/{user_owner_group.group_id}', headers=user_auth
-    )
+    response = client.delete(f'{base_url}/{group1.group_id}', headers=user_auth)
     assert_response(response, expected_status_code)
 
     if response.status_code != 204:
-        assert user_group_exists(user_owner_group.group_id)
+        assert user_group_exists(group1.group_id)
         return
 
-    assert not user_group_exists(user_owner_group.group_id)
-    assert user_group_exists(other_owner_group.group_id)
+    assert not user_group_exists(group1.group_id)
+    assert user_group_exists(group2.group_id)
 
 
 @pytest.mark.parametrize(
     'user_label, expected_status_code',
     [
-        pytest.param('test_user', 404, id='test-user'),
-        pytest.param('other_test_user', 404, id='other-test-user'),
+        pytest.param('user1', 404, id='user1'),
+        pytest.param('user2', 404, id='user2'),
         pytest.param('invalid', 401, id='invalid-user'),
         pytest.param(None, 401, id='guest-user'),
     ],
 )
 def test_delete_group_invalid(
     client,
-    test_auth_dict,
+    auth_dict,
     user_groups_function,
-    user_owner_group,
+    group1,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = test_auth_dict[user_label]
+    user_auth, _ = auth_dict[user_label]
 
     response = client.delete(f'{base_url}/invalid-group-id', headers=user_auth)
     assert_response(response, expected_status_code)
-    assert user_group_exists(user_owner_group.group_id)
+    assert user_group_exists(group1.group_id)

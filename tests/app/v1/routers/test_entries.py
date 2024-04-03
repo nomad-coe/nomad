@@ -402,12 +402,12 @@ def test_entries_all_metrics(client, example_data):
     aggregation_test_parameters_default('entries'),
 )
 def test_entries_aggregations(
-    client, example_data, test_user_auth, aggregation, total, size, status_code, user
+    client, example_data, user1_auth, aggregation, total, size, status_code, user
 ):
     """Tests aggregation calls for regular statically mapped quantities."""
     assert_aggregation_response(
         client,
-        test_user_auth,
+        user1_auth,
         aggregation,
         total,
         size,
@@ -477,7 +477,7 @@ def test_entries_aggregations_dynamic(
     plugin_schema,
     client,
     example_data_schema_python,
-    test_user_auth,
+    user1_auth,
     aggregation,
     total,
     size,
@@ -489,7 +489,7 @@ def test_entries_aggregations_dynamic(
     """
     assert_aggregation_response(
         client,
-        test_user_auth,
+        user1_auth,
         aggregation,
         total,
         size,
@@ -571,9 +571,7 @@ def test_entries_required(client, example_data, required, status_code, http_meth
     'user, entry_id, required, status_code',
     [
         pytest.param(None, 'id_01', {}, 200, id='id'),
-        pytest.param(
-            'test_user', 'id_child_entries_child1', {}, 200, id='id-child-entry'
-        ),
+        pytest.param('user1', 'id_child_entries_child1', {}, 200, id='id-child-entry'),
         pytest.param(None, 'doesnotexist', {}, 404, id='404'),
         pytest.param(
             None, 'id_01', {'include': ['entry_id', 'upload_id']}, 200, id='include'
@@ -589,9 +587,9 @@ def test_entries_required(client, example_data, required, status_code, http_meth
     ],
 )
 def test_entry_metadata(
-    client, example_data, test_auth_dict, user, entry_id, required, status_code
+    client, example_data, auth_dict, user, entry_id, required, status_code
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.get(
         'entries/%s?%s' % (entry_id, urlencode(required, doseq=True)), headers=user_auth
     )
@@ -609,7 +607,7 @@ def test_entry_metadata(
         pytest.param(None, None, {}, {}, 23, 5, 200, id='all'),
         pytest.param(None, None, {'entry_id': 'id_01'}, {}, 1, 5, 200, id='one-entry'),
         pytest.param(
-            'test_user',
+            'user1',
             'visible',
             {'upload_id': 'id_child_entries'},
             {},
@@ -627,7 +625,7 @@ def test_entry_metadata(
 def test_entries_rawdir(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     user,
     owner,
     query,
@@ -637,7 +635,7 @@ def test_entries_rawdir(
     status_code,
     http_method,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     perform_entries_rawdir_test(
         client,
         owner=owner,
@@ -656,7 +654,7 @@ def test_entries_rawdir(
     [
         pytest.param(None, None, {}, {}, 23, 5, 200, id='all'),
         pytest.param(
-            'test_user',
+            'user1',
             'visible',
             {'upload_id': 'id_child_entries'},
             {},
@@ -725,7 +723,7 @@ def test_entries_rawdir(
 def test_entries_raw(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     user,
     owner,
     query,
@@ -735,7 +733,7 @@ def test_entries_raw(
     status_code,
     http_method,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     perform_entries_raw_test(
         client,
         headers=user_auth,
@@ -769,17 +767,15 @@ def test_entries_download_max(
     'user, entry_id, files_per_entry, status_code',
     [
         pytest.param(None, 'id_01', 5, 200, id='id'),
-        pytest.param(
-            'test_user', 'id_child_entries_child1', 5, 200, id='child-entries'
-        ),
+        pytest.param('user1', 'id_child_entries_child1', 5, 200, id='child-entries'),
         pytest.param(None, 'id_embargo', -1, 404, id='embargoed'),
         pytest.param(None, 'doesnotexist', -1, 404, id='bad-entry_id'),
     ],
 )
 def test_entry_rawdir(
-    client, example_data, test_auth_dict, user, entry_id, files_per_entry, status_code
+    client, example_data, auth_dict, user, entry_id, files_per_entry, status_code
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.get('entries/%s/rawdir' % entry_id, headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
@@ -790,9 +786,7 @@ def test_entry_rawdir(
     'user, entry_id, files, files_per_entry, status_code',
     [
         pytest.param(None, 'id_01', {}, 5, 200, id='id'),
-        pytest.param(
-            'test_user', 'id_child_entries_child1', {}, 5, 200, id='child-entry'
-        ),
+        pytest.param('user1', 'id_child_entries_child1', {}, 5, 200, id='child-entry'),
         pytest.param(None, 'doesnotexist', {}, -1, 404, id='404'),
         pytest.param(None, 'id_01', {'glob_pattern': '*.json'}, 1, 200, id='glob'),
         pytest.param(None, 'id_01', {'re_pattern': '[a-z]*\\.aux'}, 4, 200, id='re'),
@@ -807,14 +801,14 @@ def test_entry_rawdir(
 def test_entry_raw(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     user,
     entry_id,
     files,
     files_per_entry,
     status_code,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.get(
         'entries/%s/raw?%s' % (entry_id, urlencode(files, doseq=True)),
         headers=user_auth,
@@ -834,11 +828,11 @@ def example_data_with_compressed_files(
     elastic_module,
     raw_files_module,
     mongo_module,
-    test_user,
-    other_test_user,
+    user1,
+    user2,
     normalized,
 ):
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
 
     data.create_upload(upload_id='with_compr_published', published=True)
     data.create_entry(
@@ -891,7 +885,7 @@ def example_data_with_compressed_files(
         pytest.param(
             'id_child_entries_child1',
             'mainfile_w_children.json',
-            {'user': 'test_user'},
+            {'user': 'user1'},
             200,
             id='child-entry',
         ),
@@ -932,14 +926,14 @@ def example_data_with_compressed_files(
         pytest.param(
             'with_compr_unpublished',
             'mainfile.xz',
-            {'decompress': True, 'user': 'test_user'},
+            {'decompress': True, 'user': 'user1'},
             200,
             id='decompress-xz-unpublished',
         ),
         pytest.param(
             'with_compr_unpublished',
             'mainfile.gz',
-            {'decompress': True, 'user': 'test_user'},
+            {'decompress': True, 'user': 'user1'},
             200,
             id='decompress-gz-unpublished',
         ),
@@ -950,28 +944,28 @@ def example_data_with_compressed_files(
         pytest.param(
             'id_embargo_1',
             'mainfile.json',
-            {'user': 'other_test_user'},
+            {'user': 'user2'},
             404,
             id='404-embargo-no-access',
         ),
         pytest.param(
             'id_embargo_1',
             'mainfile.json',
-            {'user': 'test_user'},
+            {'user': 'user1'},
             200,
             id='embargo-main_author',
         ),
         pytest.param(
             'id_embargo_w_coauthor_1',
             'mainfile.json',
-            {'user': 'other_test_user'},
+            {'user': 'user2'},
             200,
             id='embargo-coauthor',
         ),
         pytest.param(
             'id_embargo_w_reviewer_1',
             'mainfile.json',
-            {'user': 'other_test_user'},
+            {'user': 'user2'},
             200,
             id='embargo-reviewer',
         ),
@@ -982,14 +976,14 @@ def test_entry_raw_file(
     example_data,
     example_data_with_compressed_files,
     example_mainfile_contents,
-    test_auth_dict,
+    auth_dict,
     entry_id,
     path,
     params,
     status_code,
 ):
     user = params.get('user')
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     if user:
         del params['user']
 
@@ -1014,7 +1008,7 @@ def test_entry_raw_file(
     [
         pytest.param(None, None, {}, None, {}, 23, 200, id='all'),
         pytest.param(
-            'test_user',
+            'user1',
             'visible',
             {'upload_id': 'id_child_entries'},
             None,
@@ -1034,7 +1028,7 @@ def test_entry_raw_file(
 def test_entries_archive_download(
     client,
     example_data,
-    test_auth_dict,
+    auth_dict,
     user,
     owner,
     query,
@@ -1044,7 +1038,7 @@ def test_entries_archive_download(
     status_code,
     http_method,
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     perform_entries_archive_download_test(
         client,
         headers=user_auth,
@@ -1080,15 +1074,13 @@ def test_entries_archive(client, example_data, required, status_code):
     'user, entry_id, status_code',
     [
         pytest.param(None, 'id_01', 200, id='id'),
-        pytest.param('test_user', 'id_child_entries_child1', 200, id='child-entry'),
+        pytest.param('user1', 'id_child_entries_child1', 200, id='child-entry'),
         pytest.param(None, 'id_02', 404, id='404-not-visible'),
         pytest.param(None, 'doesnotexist', 404, id='404-does-not-exist'),
     ],
 )
-def test_entry_archive(
-    client, example_data, test_auth_dict, user, entry_id, status_code
-):
-    user_auth, _ = test_auth_dict[user]
+def test_entry_archive(client, example_data, auth_dict, user, entry_id, status_code):
+    user_auth, _ = auth_dict[user]
     response = client.get('entries/%s/archive' % entry_id, headers=user_auth)
     assert_response(response, status_code)
     if status_code == 200:
@@ -1100,20 +1092,16 @@ def test_entry_archive(
     [
         pytest.param(None, 'id_01', False, 200, id='id'),
         pytest.param(None, 'id_01', True, 200, id='id'),
-        pytest.param(
-            'test_user', 'id_child_entries_child1', False, 200, id='child-entry'
-        ),
-        pytest.param(
-            'test_user', 'id_child_entries_child1', True, 200, id='child-entry'
-        ),
+        pytest.param('user1', 'id_child_entries_child1', False, 200, id='child-entry'),
+        pytest.param('user1', 'id_child_entries_child1', True, 200, id='child-entry'),
         pytest.param(None, 'id_02', True, 404, id='404-not-visible'),
         pytest.param(None, 'doesnotexist', False, 404, id='404-does-not-exist'),
     ],
 )
 def test_entry_archive_download(
-    client, example_data, test_auth_dict, user, entry_id, ignore_mime_type, status_code
+    client, example_data, auth_dict, user, entry_id, ignore_mime_type, status_code
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.get(
         f'entries/{entry_id}/archive/download'
         + ('?ignore_mime_type=true' if ignore_mime_type else ''),
@@ -1138,7 +1126,7 @@ def test_entry_archive_download(
     [
         pytest.param(None, 'id_01', '*', 200, id='full'),
         pytest.param(
-            'test_user', 'id_child_entries_child1', '*', 200, id='full-child-entry'
+            'user1', 'id_child_entries_child1', '*', 200, id='full-child-entry'
         ),
         pytest.param(None, 'id_02', '*', 404, id='404'),
         pytest.param(None, 'id_01', {'metadata': '*'}, 200, id='partial'),
@@ -1170,9 +1158,9 @@ def test_entry_archive_download(
     ],
 )
 def test_entry_archive_query(
-    client, example_data, test_auth_dict, user, entry_id, required, status_code
+    client, example_data, auth_dict, user, entry_id, required, status_code
 ):
-    user_auth, _ = test_auth_dict[user]
+    user_auth, _ = auth_dict[user]
     response = client.post(
         'entries/%s/archive/query' % entry_id,
         json={'required': required},
@@ -1357,9 +1345,9 @@ def test_entries_get_query_dynamic(
 def test_entries_owner(
     client,
     example_data,
-    test_user_auth,
-    other_test_user_auth,
-    admin_user_auth,
+    user0_auth,
+    user1_auth,
+    user2_auth,
     owner,
     user,
     status_code,
@@ -1376,9 +1364,9 @@ def test_entries_owner(
     )
     perform_owner_test(
         client,
-        test_user_auth,
-        other_test_user_auth,
-        admin_user_auth,
+        user0_auth,
+        user1_auth,
+        user2_auth,
         owner,
         user,
         status_code,

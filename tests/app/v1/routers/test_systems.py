@@ -126,8 +126,8 @@ atoms_wrap_mode_no_pbc.periodic = [False, False, False]
 
 
 @pytest.fixture(scope='module')
-def example_data_systems(elastic_module, mongo_module, test_user):
-    data = ExampleData(main_author=test_user)
+def example_data_systems(elastic_module, mongo_module, user1):
+    data = ExampleData(main_author=user1)
     upload_id = 'systems_upload'
 
     data.create_upload(upload_id=upload_id, published=True)

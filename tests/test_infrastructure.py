@@ -19,7 +19,7 @@
 import pytest
 
 from nomad.infrastructure import UserManagement
-from tests.fixtures.users import test_user_uuid as create_test_user_uuid
+from tests.fixtures.users import fake_user_uuid
 
 
 @pytest.fixture(scope='function')
@@ -46,7 +46,7 @@ def test_search_user(user_management: UserManagement, query, count):
     [
         pytest.param('username', 'scooper', id='username'),
         pytest.param('email', 'sheldon.cooper@nomad-coe.eu', id='email'),
-        pytest.param('user_id', create_test_user_uuid(1), id='user_id'),
+        pytest.param('user_id', fake_user_uuid(1), id='user_id'),
     ],
 )
 def test_get_user(user_management: UserManagement, key, value):

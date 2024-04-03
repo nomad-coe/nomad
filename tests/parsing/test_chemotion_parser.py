@@ -59,9 +59,9 @@ def _assert_chemotion(test_archive):
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
-def test_chemotion_parser(raw_files_function, proc_infra, api_v1, test_user):
+def test_chemotion_parser(raw_files_function, proc_infra, api_v1, user1):
     upload = run_processing(
-        ('test_upload', 'tests/data/parsers/chemotion/test.zip'), test_user
+        ('test_upload', 'tests/data/parsers/chemotion/test.zip'), user1
     )
 
     assert upload.total_entries_count == 2

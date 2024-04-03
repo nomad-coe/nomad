@@ -63,11 +63,11 @@ def empty_upload():
 
 
 @pytest.fixture(scope='module')
-def example_user_metadata(other_test_user, test_user) -> dict:
+def example_user_metadata(user2) -> dict:
     return {
         'comment': 'test comment',
         'references': ['http://external.ref/one', 'http://external.ref/two'],
-        'entry_coauthors': [other_test_user.user_id],
+        'entry_coauthors': [user2.user_id],
         '_pid': '256',
         'external_id': 'external_test_id',
     }
@@ -127,7 +127,7 @@ def oasis_publishable_upload(
     non_empty_processed: processing.Upload,
     internal_example_user_metadata,
     monkeypatch,
-    test_user,
+    user1,
 ):
     """
     Creates a published upload which can be used with Upload.publish_externally. Some monkeypatching
@@ -195,14 +195,14 @@ def oasis_publishable_upload(
 
     monkeypatch.setattr('requests.post', new_post)
     monkeypatch.setattr('nomad.config.oasis.is_oasis', True)
-    monkeypatch.setattr('nomad.config.keycloak.username', test_user.username)
+    monkeypatch.setattr('nomad.config.keycloak.username', user1.username)
 
     monkeypatch.setattr('nomad.config.oasis.central_nomad_deployment_url', '/api')
 
     # create a dataset to also test this aspect of oasis uploads
     entry = non_empty_processed.successful_entries[0]
     datamodel.Dataset(
-        dataset_id='dataset_id', dataset_name='dataset_name', user_id=test_user.user_id
+        dataset_id='dataset_id', dataset_name='dataset_name', user_id=user1.user_id
     ).a_mongo.save()
     entry.datasets = ['dataset_id']
     entry.save()
@@ -212,18 +212,18 @@ def oasis_publishable_upload(
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def processed(
-    uploaded: Tuple[str, str], test_user: User, proc_infra, mails
+    uploaded: Tuple[str, str], user1: User, proc_infra, mails
 ) -> processing.Upload:
     """
-    Provides a processed upload. Upload was uploaded with test_user.
+    Provides a processed upload. Upload was uploaded with user1.
     """
-    return test_processing.run_processing(uploaded, test_user)
+    return test_processing.run_processing(uploaded, user1)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def processeds(
-    non_empty_example_upload: str, test_user: User, proc_infra
+    non_empty_example_upload: str, user1: User, proc_infra
 ) -> List[processing.Upload]:
     result: List[processing.Upload] = []
     for i in range(2):
@@ -232,9 +232,7 @@ def processeds(
             i,
         )
         result.append(
-            test_processing.run_processing(
-                (upload_id, non_empty_example_upload), test_user
-            )
+            test_processing.run_processing((upload_id, non_empty_example_upload), user1)
         )
 
     return result
@@ -243,12 +241,12 @@ def processeds(
 @pytest.mark.timeout(config.tests.default_timeout)
 @pytest.fixture(scope='function')
 def non_empty_processed(
-    non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra
+    non_empty_uploaded: Tuple[str, str], user1: User, proc_infra
 ) -> processing.Upload:
     """
-    Provides a processed upload. Upload was uploaded with test_user.
+    Provides a processed upload. Upload was uploaded with user1.
     """
-    return test_processing.run_processing(non_empty_uploaded, test_user)
+    return test_processing.run_processing(non_empty_uploaded, user1)
 
 
 @pytest.mark.timeout(config.tests.default_timeout)
@@ -257,7 +255,7 @@ def published(
     non_empty_processed: processing.Upload, internal_example_user_metadata
 ) -> processing.Upload:
     """
-    Provides a processed published upload. Upload was uploaded with test_user and is embargoed.
+    Provides a processed published upload. Upload was uploaded with user1 and is embargoed.
     """
     set_upload_entry_metadata(non_empty_processed, internal_example_user_metadata)
     non_empty_processed.publish_upload(embargo_length=12)
@@ -275,7 +273,7 @@ def published_wo_user_metadata(
     non_empty_processed: processing.Upload,
 ) -> processing.Upload:
     """
-    Provides a processed upload. Upload was uploaded with test_user.
+    Provides a processed upload. Upload was uploaded with user1.
     """
     non_empty_processed.publish_upload()
     try:
@@ -291,8 +289,8 @@ def example_data(
     elastic_module,
     raw_files_module,
     mongo_module,
-    test_user,
-    other_test_user,
+    user1,
+    user2,
     normalized,
 ):
     """
@@ -323,7 +321,7 @@ def example_data(
     id_empty:
         unpublished upload without any entries
     """
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
 
     # 6 uploads with different combinations of main_type and sub_type
     for main_type in ('embargo', 'unpublished'):
@@ -338,8 +336,8 @@ def example_data(
                 embargo_length = 0
                 upload_name = None
             entry_id = upload_id + '_1'
-            coauthors = [other_test_user.user_id] if sub_type == 'w_coauthor' else None
-            reviewers = [other_test_user.user_id] if sub_type == 'w_reviewer' else None
+            coauthors = [user2.user_id] if sub_type == 'w_coauthor' else None
+            reviewers = [user2.user_id] if sub_type == 'w_reviewer' else None
             data.create_upload(
                 upload_id=upload_id,
                 upload_name=upload_name,
@@ -416,12 +414,12 @@ def example_data(
 
 @pytest.fixture(scope='function')
 def example_data_schema_python(
-    elastic_module, raw_files_module, mongo_module, test_user, normalized
+    elastic_module, raw_files_module, mongo_module, user1, normalized
 ):
     """
     Contains entries that store data using a python schema.
     """
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     upload_id = 'id_plugin_schema_published'
     date_value = datetime.now(timezone.utc)
 
@@ -492,12 +490,12 @@ def example_data_schema_python(
 
 @pytest.fixture(scope='function')
 def example_data_nexus(
-    elastic_module, raw_files_module, mongo_module, test_user, normalized
+    elastic_module, raw_files_module, mongo_module, user1, normalized
 ):
     """
     Contains entries that store data using a python schema.
     """
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     upload_id = 'id_nexus_published'
 
     data.create_upload(upload_id=upload_id, upload_name=upload_id, published=True)
@@ -535,13 +533,13 @@ def example_data_schema_yaml(
     no_warn,
     raw_files_module,
     mongo_module,
-    test_user,
+    user1,
     normalized,
 ):
     """
     Contains entries that store data using a python schema.
     """
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     upload_id = 'id_plugin_schema_published'
     date_value = datetime.now(timezone.utc)
 
@@ -611,8 +609,8 @@ def example_data_schema_yaml(
 
 
 @pytest.fixture(scope='function')
-def example_data_writeable(mongo_function, test_user, normalized):
-    data = ExampleData(main_author=test_user)
+def example_data_writeable(mongo_function, user1, normalized):
+    data = ExampleData(main_author=user1)
 
     # one upload with one entry, published
     data.create_upload(upload_id='id_published_w', published=True, embargo_length=12)
@@ -649,11 +647,11 @@ def example_data_writeable(mongo_function, test_user, normalized):
 
 
 @pytest.fixture(scope='function')
-def example_datasets(mongo_function, test_user, other_test_user):
+def example_datasets(mongo_function, user1, user2):
     dataset_specs = (
-        ('test_dataset_1', test_user, None),
-        ('test_dataset_2', test_user, 'test_doi_2'),
-        ('test_dataset_3', other_test_user, None),
+        ('test_dataset_1', user1, None),
+        ('test_dataset_2', user1, 'test_doi_2'),
+        ('test_dataset_3', user2, None),
     )
     datasets = []
     for dataset_name, user, doi in dataset_specs:

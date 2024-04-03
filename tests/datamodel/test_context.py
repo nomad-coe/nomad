@@ -549,9 +549,9 @@ def test_client_custom_schema(api_v1, published_wo_user_metadata):
     ],
 )
 def test_client_external_schema(
-    referencing_upload_contents, raw_files_function, test_user, api_v1, proc_infra
+    referencing_upload_contents, raw_files_function, user1, api_v1, proc_infra
 ):
-    upload1 = Upload(upload_id='references_upload_id1', main_author=test_user.user_id)
+    upload1 = Upload(upload_id='references_upload_id1', main_author=user1.user_id)
     upload1.save()
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/upload1')
@@ -567,7 +567,7 @@ def test_client_external_schema(
     context2 = ClientContext(
         upload_id='upload2_id',
         installation_url=installation_url,
-        username=test_user.username,
+        username=user1.username,
         password='password',
     )
 
@@ -590,8 +590,8 @@ def test_client_external_schema(
         assert results == content
 
 
-def test_circular_external_schema(raw_files_function, test_user, api_v1, proc_infra):
-    upload1 = Upload(upload_id='upload_id', main_author=test_user.user_id)
+def test_circular_external_schema(raw_files_function, user1, api_v1, proc_infra):
+    upload1 = Upload(upload_id='upload_id', main_author=user1.user_id)
     upload1.save()
     files.StagingUploadFiles(upload_id=upload1.upload_id, create=True)
     upload1.staging_upload_files.add_rawfiles('examples/data/references/circular')

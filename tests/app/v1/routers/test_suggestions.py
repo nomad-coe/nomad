@@ -37,11 +37,11 @@ def example_data_suggestions(
     elastic_module,
     raw_files_module,
     mongo_module,
-    test_user,
-    other_test_user,
+    user1,
+    user2,
     normalized,
 ):
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     upload_id = 'suggestions_upload'
 
     data.create_upload(upload_id=upload_id, published=True)

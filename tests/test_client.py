@@ -26,7 +26,7 @@ from nomad.client.archive import ArchiveQuery
 from nomad.datamodel import EntryArchive, User
 from nomad.datamodel.metainfo import runschema, SCHEMA_IMPORT_ERROR
 from nomad.metainfo import MSection, SubSection
-from tests.fixtures.users import test_users
+from tests.fixtures.users import users
 from tests.processing import test_data as test_processing
 
 
@@ -54,11 +54,11 @@ def assert_results(
 
 
 @pytest.fixture(scope='function')
-def many_uploads(non_empty_uploaded: Tuple[str, str], test_user: User, proc_infra):
+def many_uploads(non_empty_uploaded: Tuple[str, str], user1: User, proc_infra):
     _, upload_file = non_empty_uploaded
     for index in range(0, 4):
         upload = test_processing.run_processing(
-            ('test_upload_%d' % index, upload_file), test_user
+            ('test_upload_%d' % index, upload_file), user1
         )
         upload.publish_upload()  # pylint: disable=no-member
         try:
@@ -90,7 +90,7 @@ def async_api_v1(monkeysession):
     monkeysession.setattr('httpx.AsyncClient.delete', getattr(test_client, 'delete'))
 
     def mocked_auth_headers(self) -> dict:
-        for user in test_users.values():
+        for user in users.values():
             if user['username'] == self.user or user['email'] == self.user:
                 return dict(Authorization=f'Bearer {user["user_id"]}')
         return {}
@@ -129,12 +129,12 @@ def test_async_query_required(
     assert_results(async_query.download(), sub_section_defs=sub_sections)
 
 
-def test_async_query_auth(async_api_v1, published, other_test_user, test_user):
-    async_query = ArchiveQuery(username=other_test_user.username, password='password')
+def test_async_query_auth(async_api_v1, published, user2, user1):
+    async_query = ArchiveQuery(username=user2.username, password='password')
 
     assert_results(async_query.download(), total=0)
 
-    async_query = ArchiveQuery(username=test_user.username, password='password')
+    async_query = ArchiveQuery(username=user1.username, password='password')
 
     assert_results(async_query.download(), total=1)
 

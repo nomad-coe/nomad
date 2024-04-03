@@ -220,3 +220,9 @@ def elastic_function(elastic_infra):
 def reset_infra(mongo_function, elastic_function):
     """Fixture that resets infrastructure after deleting db or search index."""
     yield None
+
+
+@pytest.fixture(scope='function')
+def proc_infra(worker, elastic_function, mongo_function, raw_files_function):
+    """Combines all fixtures necessary for processing (elastic, worker, files, mongo)"""
+    return dict(elastic=elastic_function)

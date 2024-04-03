@@ -94,7 +94,7 @@ def mocked_login(url):
 def test_openbis(
     mongo_function,
     monkeypatch,
-    test_user,
+    user1,
     status_code,
     project_url,
     username,
@@ -153,7 +153,7 @@ def test_openbis(
     # patching openbis attrs
     monkeypatch.setattr(pybis, 'Openbis', mock_openbis_response)
 
-    data = ExampleData(main_author=test_user)
+    data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_upload_id', published=False)
 
     data.create_entry(

@@ -159,10 +159,10 @@ def create_template_upload_file(
     return upload_path
 
 
-def test_user_uuid(handle):
+def fake_user_uuid(handle):
     return '00000000-0000-0000-0000-00000000000%d' % handle
 
 
-def test_user_group_uuid(handle: Any):
+def fake_group_uuid(handle: Any):
     """Returns a test user group uuid based on the handle."""
     return str(handle).rjust(22, 'G')

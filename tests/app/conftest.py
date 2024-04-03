@@ -29,18 +29,23 @@ def create_auth_headers(token: str):
 
 
 @pytest.fixture(scope='module')
-def test_user_auth(test_user: User):
-    return create_auth_headers(test_user.user_id)
+def user0_auth(user0: User):
+    return create_auth_headers(user0.user_id)
 
 
 @pytest.fixture(scope='module')
-def other_test_user_auth(other_test_user: User):
-    return create_auth_headers(other_test_user.user_id)
+def user1_auth(user1: User):
+    return create_auth_headers(user1.user_id)
 
 
 @pytest.fixture(scope='module')
-def admin_user_auth(admin_user: User):
-    return create_auth_headers(admin_user.user_id)
+def user2_auth(user2: User):
+    return create_auth_headers(user2.user_id)
+
+
+@pytest.fixture(scope='module')
+def user3_auth(user3: User):
+    return create_auth_headers(user3.user_id)
 
 
 @pytest.fixture(scope='module')
@@ -49,19 +54,21 @@ def invalid_user_auth():
 
 
 @pytest.fixture(scope='module')
-def app_token_auth(test_user: User):
-    app_token = generate_simple_token(test_user.user_id, expires_in=3600)
+def app_token_auth(user1: User):
+    app_token = generate_simple_token(user1.user_id, expires_in=3600)
     return create_auth_headers(app_token)
 
 
 @pytest.fixture(scope='module')
-def test_auth_dict(
-    test_user,
-    other_test_user,
-    admin_user,
-    test_user_auth,
-    other_test_user_auth,
-    admin_user_auth,
+def auth_dict(
+    user0,
+    user1,
+    user2,
+    user3,
+    user0_auth,
+    user1_auth,
+    user2_auth,
+    user3_auth,
     invalid_user_auth,
 ):
     """
@@ -69,12 +76,10 @@ def test_auth_dict(
     contains an example of invalid credentials, and the key None contains (None, None).
     """
     return {
-        'test_user': (test_user_auth, generate_upload_token(test_user)),
-        'other_test_user': (
-            other_test_user_auth,
-            generate_upload_token(other_test_user),
-        ),
-        'admin_user': (admin_user_auth, generate_upload_token(admin_user)),
+        'user0': (user0_auth, generate_upload_token(user0)),
+        'user1': (user1_auth, generate_upload_token(user1)),
+        'user2': (user2_auth, generate_upload_token(user2)),
+        'user3': (user3_auth, generate_upload_token(user3)),
         'invalid': (invalid_user_auth, 'invalid.upload.token'),
         None: (None, None),
     }

@@ -186,7 +186,7 @@ def reset_config():
 
 
 @pytest.fixture(scope='session')
-def api_v1(monkeysession, test_user_molds):
+def api_v1(monkeysession, user_molds):
     """
     This fixture provides an HTTP client with Python requests interface that accesses
     the fast api. The have to provide URLs that start with out leading '/' after '.../api/v1.
@@ -216,7 +216,7 @@ def api_v1(monkeysession, test_user_molds):
     )
 
     def __call__(self, request):
-        for user in test_user_molds.values():
+        for user in user_molds.values():
             if user['username'] == self.user or user['email'] == self.user:
                 request.headers['Authorization'] = f'Bearer {user["user_id"]}'
         return request
