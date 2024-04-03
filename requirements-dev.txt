@@ -10,7 +10,6 @@ alembic==1.9.1            # via -r requirements.txt, jupyterhub
 amqp==5.1.1               # via -r requirements.txt, kombu
 aniso8601==7.0.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 anyio==3.6.2              # via -r requirements.txt, httpcore, starlette, watchfiles
-appnope==0.1.4            # via -r requirements.txt, ipykernel, ipython
 arrow==1.2.3              # via -r requirements.txt, isoduration
 asciitree==0.3.3          # via -r requirements.txt, zarr
 ase==3.19.0               # via -r requirements.txt, asr, ifes-apt-tc-data-modeling, matid, nomad-lab (pyproject.toml), pynxtools, quippy-ase
@@ -51,7 +50,7 @@ colorama==0.4.6           # via twine
 comm==0.1.4               # via -r requirements.txt, ipywidgets
 commonmark==0.9.1         # via -r requirements.txt, recommonmark
 coverage==6.5.0           # via pytest-cov
-cryptography==39.0.0      # via -r requirements.txt, nomad-lab (pyproject.toml), pyjwt, pyopenssl, rfc3161ng
+cryptography==39.0.0      # via -r requirements.txt, nomad-lab (pyproject.toml), pyjwt, pyopenssl, rfc3161ng, secretstorage
 cycler==0.11.0            # via -r requirements.txt, matplotlib
 dask[array]==2022.2.0     # via -r requirements.txt, dask, hyperspy, kikuchipy, orix, pyxem
 debugpy==1.6.5            # via -r requirements.txt, ipykernel
@@ -119,6 +118,7 @@ isort==4.3.21             # via pylint
 itsdangerous==2.1.2       # via -r requirements.txt, flask, nomad-lab (pyproject.toml)
 jaraco-classes==3.2.3     # via keyring
 jedi==0.18.2              # via -r requirements.txt, ipython
+jeepney==0.8.0            # via keyring, secretstorage
 jinja2==3.0.3             # via -r requirements.txt, flask, hyperspy, jupyterhub, mkdocs, mkdocs-macros-plugin, mkdocs-material, sphinx
 jmespath==0.10.0          # via -r requirements.txt, nomad-lab (pyproject.toml)
 joblib==1.1.0             # via -r requirements.txt, mdanalysis, pymatgen, scikit-learn
@@ -139,7 +139,8 @@ lazy-object-proxy==1.9.0  # via astroid
 llvmlite==0.39.1          # via -r requirements.txt, numba
 lmfit==1.2.2              # via -r requirements.txt, pyxem
 locket==1.0.0             # via -r requirements.txt, partd
-lxml==4.7.1               # via -r requirements.txt, nomad-lab (pyproject.toml)
+lxml==5.2.0               # via -r requirements.txt, lxml-html-clean, nomad-lab (pyproject.toml)
+lxml-html-clean==0.1.0    # via -r requirements.txt, nomad-lab (pyproject.toml)
 m2r==0.2.1                # via -r requirements.txt, nomad-lab (pyproject.toml)
 mako==1.2.4               # via -r requirements.txt, alembic
 markdown==3.4.1           # via mkdocs, mkdocs-click, mkdocs-material, pymdown-extensions
@@ -287,6 +288,7 @@ runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 scikit-image==0.19.3      # via -r requirements.txt, hyperspy, kikuchipy, pyxem
 scikit-learn==1.0.2       # via -r requirements.txt, kikuchipy, matid, nomad-lab (pyproject.toml), pyxem
 scipy==1.7.1              # via -r requirements.txt, ase, diffsims, findiff, griddataformats, hyperspy, kikuchipy, lmfit, matid, mdanalysis, niondata, nionswift, nomad-lab (pyproject.toml), orix, pyfai, pymatgen, pynxtools, pyxem, radioactivedecay, scikit-image, scikit-learn, sparse
+secretstorage==3.3.3      # via keyring
 sentinels==1.0.0          # via -r requirements.txt, mongomock
 silx==1.1.2               # via -r requirements.txt, pyfai
 six==1.16.0               # via -r requirements.txt, asttokens, basicauth, bcrypt, bleach, click-repl, diffpy-structure, ecdsa, elasticsearch-dsl, griddataformats, html5lib, isodate, latexcodec, pybtex, pytest-xdist, python-dateutil, python-multipart, rdflib, rfc3339-validator, validators
