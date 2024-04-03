@@ -241,7 +241,7 @@ pymongo==4.3.3            # via -r requirements.txt, mongoengine, nomad-lab (pyp
 pynxtools[convert,mpes,stm,xps]==0.1.1  # via nomad-lab (pyproject.toml), pynxtools, pynxtools-mpes, pynxtools-stm, pynxtools-xps
 pynxtools-mpes==0.0.1     # via -r requirements.txt, pynxtools
 pynxtools-stm==1.0.1      # via -r requirements.txt, pynxtools
-pynxtools-xps==0.0.2      # via -r requirements.txt, pynxtools
+pynxtools-xps==0.0.3      # via -r requirements.txt, pynxtools
 pyopenssl==23.0.0         # via -r requirements.txt, certipy
 pyparsing==3.0.9          # via -r requirements.txt, matplotlib, rdflib
 pyrsistent==0.19.3        # via -r requirements.txt, jsonschema
