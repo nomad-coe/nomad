@@ -132,13 +132,18 @@ const Quantity = React.memo((props) => {
 
   const getRenderFromType = useCallback((quantity, data) => {
     const type = quantity.type
+    const value = data[quantity.name]
     if (type.type_data === 'str') {
       return <Typography noWrap>
-        {data[quantity.name]}
+        {value}
+      </Typography>
+    } else if (typeof value === 'boolean') {
+      return <Typography noWrap>
+        {value.toString()}
       </Typography>
     } else if (type.type_data === 'nomad.metainfo.metainfo._Datetime') {
       return <Typography noWrap>
-        {formatTimestamp(data[quantity.name])}
+        {formatTimestamp(value)}
       </Typography>
     } else if (type.type_data === 'nomad.metainfo.metainfo._JSON') {
       return <Typography noWrap>
@@ -146,7 +151,7 @@ const Quantity = React.memo((props) => {
       </Typography>
     }
     return <Typography noWrap>
-      {data[quantity.name]}
+      {value}
     </Typography>
   }, [])
 
