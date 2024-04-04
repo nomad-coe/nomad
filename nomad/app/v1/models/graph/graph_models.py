@@ -56,27 +56,27 @@ class DirectoryResponseOptions(BaseModel):
     pagination: PaginationResponse
 
 
-class Directory(BaseModel):
+class GraphDirectory(BaseModel):
     m_errors: List[Error]
     m_is: Literal['Directory']
     m_request: DirectoryRequestOptions
     m_response: DirectoryResponseOptions
-    m_children: Union[Directory, File]
+    m_children: Union[GraphDirectory, GraphFile]
 
 
-class File(BaseModel):
+class GraphFile(BaseModel):
     m_errors: List[Error]
     m_is: Literal['File']
     m_request: DirectoryRequestOptions
     path: str
     size: int
-    entry: Optional[Entry]
+    entry: Optional[GraphEntry]
     # The old API also had those, but they can be grabbed from entry:
     # parser_name, entry_id, archive
     # This is similar to the question for "m_parent" in Directory. At least we need
     # to navigate from Entry to mainfile to directory, but we could also but a
     # mainfile_directory into Entry?
-    parent: Directory
+    parent: GraphDirectory
 
 
 class MDef(BaseModel):
@@ -91,12 +91,12 @@ class MSection(BaseModel):
     m_children: Any
 
 
-class Entry(mapped(EntryProcData, mainfile='mainfile_path', entry_metadata=None)):  # type: ignore
+class GraphEntry(mapped(EntryProcData, mainfile='mainfile_path', entry_metadata=None)):  # type: ignore
     m_errors: List[Error]
-    mainfile: File
-    upload: Upload
+    mainfile: GraphFile
+    upload: GraphUpload
     archive: MSection
-    metadata: EntryMetadata
+    metadata: GraphEntryMetadata
 
 
 class EntriesRequestOptions(BaseModel):
@@ -111,13 +111,13 @@ class EntriesResponseOptions(BaseModel):
     # upload: Upload
 
 
-class Entries(BaseModel):
+class GraphEntries(BaseModel):
     m_request: EntriesRequestOptions
     m_response: EntriesResponseOptions
-    m_children: Entry
+    m_children: GraphEntry
 
 
-class User(
+class GraphUser(
     UserModel.m_def.m_get_annotation(PydanticModel).model,  # type: ignore
     extra=Extra.forbid,
 ):
@@ -125,24 +125,24 @@ class User(
     # This would only refer to uploads with the user as main_author.
     # For many clients and use-cases uploads.m_request.query will be the
     # more generic or only option
-    uploads: Optional[Uploads]
-    datasets: Optional[Datasets]
+    uploads: Optional[GraphUploads]
+    datasets: Optional[GraphDatasets]
 
 
-class Users(BaseModel):
+class GraphUsers(BaseModel):
     m_errors: List[Error]
-    m_children: User
+    m_children: GraphUser
 
 
-class Upload(
+class GraphUpload(
     mapped(  # type: ignore
         UploadProcData,
         entries='n_entries',
-        main_author=User,
-        coauthors=List[User],
-        reviewers=List[User],
-        viewers=List[User],
-        writers=List[User],
+        main_author=GraphUser,
+        coauthors=List[GraphUser],
+        reviewers=List[GraphUser],
+        viewers=List[GraphUser],
+        writers=List[GraphUser],
     ),
     extra=Extra.forbid,
 ):
@@ -154,8 +154,8 @@ class Upload(
         description='Number of entries that failed to process.'
     )
 
-    entries: Entries = Field(description='The entries contained in this upload.')
-    files: Directory = Field(
+    entries: GraphEntries = Field(description='The entries contained in this upload.')
+    files: GraphDirectory = Field(
         description="This upload's root directory for all files (raw data)."
     )
 
@@ -170,15 +170,15 @@ class UploadResponseOptions(BaseModel):
     query: Optional[UploadProcDataQuery]
 
 
-class Uploads(BaseModel):
+class GraphUploads(BaseModel):
     m_request: UploadRequestOptions
     m_response: UploadResponseOptions
     m_errors: List[Error]
-    m_children: Upload
+    m_children: GraphUpload
 
 
-class EntryMetadata(BaseModel, extra=Extra.allow):
-    entry: Entry
+class GraphEntryMetadata(BaseModel, extra=Extra.allow):
+    entry: GraphEntry
 
 
 class SearchRequestOptions(BaseModel):
@@ -189,14 +189,14 @@ class SearchResponseOptions(BaseModel):
     query: Optional[MetadataResponse]
 
 
-class Search(BaseModel):
+class GraphSearch(BaseModel):
     m_request: SearchRequestOptions
     m_response: SearchResponseOptions
     m_errors: List[Error]
-    m_children: EntryMetadata
+    m_children: GraphEntryMetadata
 
 
-class Dataset(mapped(DatasetV1, query=None, entries=None)):  # type: ignore
+class GraphDataset(mapped(DatasetV1, query=None, entries=None)):  # type: ignore
     pass
 
 
@@ -210,24 +210,24 @@ class DatasetResponseOptions(BaseModel):
     query: Optional[DatasetQuery]
 
 
-class Datasets(BaseModel):
+class GraphDatasets(BaseModel):
     m_request: DatasetRequestOptions
     m_response: DatasetResponseOptions
     m_errors: List[Error]
-    m_children: Dataset
+    m_children: GraphDataset
 
 
-class Metainfo(BaseModel):
+class GraphMetainfo(BaseModel):
     m_children: MSection
 
 
 class Graph(BaseModel):
-    users: Users
-    entries: Entries
-    uploads: Uploads
-    datasets: Datasets
-    search: Search
-    metainfo: Metainfo
+    users: GraphUsers
+    entries: GraphEntries
+    uploads: GraphUploads
+    datasets: GraphDatasets
+    search: GraphSearch
+    metainfo: GraphMetainfo
 
 
 GraphRequest = generate_request_model(Graph)
