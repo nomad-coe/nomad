@@ -67,9 +67,9 @@ def assert_path(data: BaseModel, path: str):
 def test_module():
     for model_name in [
         'GraphRequest',
-        'UploadsRequest',
-        'UploadRequest',
-        'UploadsResponse',
+        'GraphUploadsRequest',
+        'GraphUploadRequest',
+        'GraphUploadsResponse',
     ]:
         assert hasattr(
             sys.modules['nomad.app.v1.models.graph.graph_models'], model_name
@@ -133,7 +133,7 @@ def test_module():
                 'users.m_children.me.datasets.m_request.query:DatasetQuery',
                 'users.m_children.me.datasets.m_children.*.doi:*',
                 'search.m_children.*.entry.process_status:*',
-                'search.m_children.*.entry:EntryRequest',
+                'search.m_children.*.entry:GraphEntryRequest',
                 'search.m_children.*.*:*',
             ],
             None,
@@ -233,16 +233,16 @@ def test_request_model(path_ref_prefix):
 
     root_schema = root_model.schema()
     defs = root_schema['definitions']
-    assert 'UploadRequest' in defs
+    assert 'GraphUploadRequest' in defs
     assert [
         type['$ref']
-        for type in defs['UploadsRequest']['additionalProperties']['anyOf']
+        for type in defs['GraphUploadsRequest']['additionalProperties']['anyOf']
         if '$ref' in type
     ] == [
-        '#/definitions/UploadRequest',
+        '#/definitions/GraphUploadRequest',
         '#/definitions/UploadRequestOptions',
     ]
-    assert 'required' not in defs['UploadsRequest']
+    assert 'required' not in defs['GraphUploadsRequest']
 
     root_model.parse_obj(
         yaml.safe_load(
@@ -268,13 +268,13 @@ def test_response_model(path_ref_prefix):
 
     root_schema = root_model.schema()
     defs = root_schema['definitions']
-    assert 'UploadResponse' in defs
+    assert 'GraphUploadResponse' in defs
     assert [
         type['$ref']
-        for type in defs['UploadsResponse']['additionalProperties']['anyOf']
+        for type in defs['GraphUploadsResponse']['additionalProperties']['anyOf']
         if '$ref' in type
     ] == [
-        f'#/definitions/UploadResponse',
+        f'#/definitions/GraphUploadResponse',
         f'#/definitions/UploadResponseOptions',
     ]
     # assert defs["UploadsResponse"]["required"] == ["m_response"]
