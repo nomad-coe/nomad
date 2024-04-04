@@ -2654,7 +2654,13 @@ def get_role_query(roles: List[UploadRole], user: User) -> Q:
     return role_query
 
 
-def is_user_upload_viewer(upload: Upload, user: User):
+def is_user_upload_viewer(upload: Upload, user: Optional[User]):
+    if 'all' in upload.reviewer_groups:
+        return True
+
+    if user is None:
+        return False
+
     if user.is_admin:
         return True
 
@@ -2683,7 +2689,7 @@ def is_user_upload_writer(upload: Upload, user: User):
 
 
 def get_upload_with_read_access(
-    upload_id: str, user: User, include_others: bool = False
+    upload_id: str, user: Optional[User], include_others: bool = False
 ) -> Upload:
     """
     Determines if the user has read access to the upload. If so, the corresponding Upload
@@ -2708,7 +2714,7 @@ def get_upload_with_read_access(
             ),
         )
 
-    if user and is_user_upload_viewer(upload, user):
+    if is_user_upload_viewer(upload, user):
         return upload
 
     if not include_others:

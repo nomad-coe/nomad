@@ -82,7 +82,8 @@ def test_get_group_uploads(
         pytest.param(None, 'id_reviewer_group2', 401, id='reviewer-group2-guest'),
         pytest.param('user2', 'id_coauthor_group012', 200, id='coauthor-group012'),
         pytest.param('user2', 'id_reviewer_group012', 200, id='reviewer-group012'),
-        pytest.param('user2', 'id_reviewer_all', 200, id='reviewer-all'),
+        pytest.param('user2', 'id_reviewer_all', 200, id='reviewer-all-user2'),
+        pytest.param(None, 'id_reviewer_all', 200, id='reviewer-all-guest'),
     ],
 )
 def test_get_group_upload(
