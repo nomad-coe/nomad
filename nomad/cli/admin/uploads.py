@@ -16,15 +16,16 @@
 # limitations under the License.
 #
 
-import typing
-import click
 import json
 import os
 import os.path
 import traceback
+import typing
+
+import click
+from orjson import dumps
 
 from nomad.config import config
-
 from .admin import admin
 
 
@@ -431,17 +432,37 @@ def export(ctx, uploads, required, output: str):
 
 @uploads.command(help='List selected uploads')
 @click.argument('UPLOADS', nargs=-1)
-@click.option('-e', '--entries', is_flag=True, help='Show details about entries.')
-@click.option('--ids', is_flag=True, help='Only show a list of ids.')
-@click.option('--json', is_flag=True, help='Output a JSON array of ids.')
+@click.option(
+    '-e',
+    '--entries',
+    is_flag=True,
+    help='Show details about entries when displaying in a tabulated format.',
+)
+@click.option(
+    '--ids',
+    is_flag=True,
+    help='Only show a list of ids when displaying in a tabulated format.',
+)
+@click.option(
+    '--json', is_flag=True, help='Output a JSON array instead of a tabulated list.'
+)
+@click.option(
+    '--size',
+    type=int,
+    default=10,
+    help='Controls the maximum size of returned uploads, use -1 to return all.',
+)
 @click.pass_context
-def ls(ctx, uploads, entries, ids, json):
+def ls(ctx, uploads, entries, ids, json, size):
     import tabulate
 
     _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
 
     def row(upload):
-        row = [
+        if ids:
+            return [upload.upload_id]
+
+        rows = [
             upload.upload_id,
             upload.upload_name,
             upload.main_author,
@@ -450,29 +471,40 @@ def ls(ctx, uploads, entries, ids, json):
         ]
 
         if entries:
-            row += [
+            rows += [
                 upload.total_entries_count,
                 upload.failed_entries_count,
                 upload.total_entries_count - upload.processed_entries_count,
             ]
 
-        return row
-
-    headers = ['id', 'upload_name', 'user', 'process', 'published']
-    if entries:
-        headers += ['entries', 'failed', 'processing']
+        return rows
 
     if ids:
-        for upload in uploads:
-            print(upload.upload_id)
-        return
+        headers = ['id']
+    else:
+        headers = ['id', 'upload_name', 'user', 'process', 'published']
+        if entries:
+            headers += ['entries', 'failed', 'processing']
+
+    total_count = uploads.count()
+
+    if size > 0:
+        uploads = uploads[:size]
 
     if json:
-        print('[%s]' % ','.join(['"%s"' % upload.upload_id for upload in uploads]))
-        return
 
-    print('%d uploads selected, showing no more than first 10' % uploads.count())
-    print(tabulate.tabulate([row(upload) for upload in uploads[:10]], headers=headers))
+        def filter_upload(source):
+            return {k: v for k, v in zip(headers, row(source))}
+
+        print(dumps([filter_upload(upload) for upload in uploads]).decode())
+    else:
+        if total_count > uploads.count():
+            print(
+                f'Showing the first {uploads.count()} (out of {total_count}) uploads selected...'
+            )
+        else:
+            print(f'Showing all {uploads.count()} uploads selected...')
+        print(tabulate.tabulate([row(upload) for upload in uploads], headers=headers))
 
 
 @uploads.command(help='Change the owner of the upload and all its entries.')
