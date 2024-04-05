@@ -199,7 +199,7 @@ pymongo==4.3.3            # via mongoengine, nomad-lab (pyproject.toml), optimad
 pynxtools[convert,mpes,stm,xps]==0.1.1  # via nomad-lab (pyproject.toml), pynxtools, pynxtools-mpes, pynxtools-stm, pynxtools-xps
 pynxtools-mpes==0.0.1     # via pynxtools
 pynxtools-stm==1.0.1      # via pynxtools
-pynxtools-xps==0.0.2      # via pynxtools
+pynxtools-xps==0.0.3      # via pynxtools
 pyopenssl==23.0.0         # via certipy
 pyparsing==3.0.9          # via matplotlib, rdflib
 pyrsistent==0.19.3        # via jsonschema
