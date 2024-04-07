@@ -628,6 +628,37 @@ def _parse_required(
     raise ConfigError(f'Invalid required config: {required_query}.')
 
 
+@functools.lru_cache(maxsize=1024)
+def _normalise_index(index: tuple | None, length: int) -> range:
+    """
+    Normalise the index to a [-length,length).
+    """
+    # all items
+    if index is None:
+        return range(length)
+
+    def _bound(v):
+        if v < -length:
+            return -length
+        if v >= length:
+            return length - 1
+        return v
+
+    # one item
+    if len(index) == 1:
+        start = _bound(index[0])
+        return range(start, start + 1)
+
+    # a range of items
+    start, end = index
+    if start is None:
+        start = 0
+    if end is None:
+        end = length
+
+    return range(_bound(start), _bound(end) + 1)
+
+
 class GeneralReader:
     # controls the name of configuration
     # it will be extracted from the query dict to generate the configuration object
@@ -730,37 +761,6 @@ class GeneralReader:
         for upload in self.upload_pool.values():
             upload.close()
 
-    @staticmethod
-    @functools.lru_cache(maxsize=1024)
-    def _normalise_index(index: tuple | None, length: int) -> range:
-        """
-        Normalise the index to a [-length,length).
-        """
-        # all items
-        if index is None:
-            return range(length)
-
-        def _bound(v):
-            if v < -length:
-                return -length
-            if v >= length:
-                return length - 1
-            return v
-
-        # one item
-        if len(index) == 1:
-            start = _bound(index[0])
-            return range(start, start + 1)
-
-        # a range of items
-        start, end = index
-        if start is None:
-            start = 0
-        if end is None:
-            end = length
-
-        return range(_bound(start), _bound(end) + 1)
-
     def _log(
         self,
         message: str,
@@ -800,7 +800,6 @@ class GeneralReader:
             path, set()
         ).add(config_hash)
 
-    @functools.lru_cache(maxsize=128)
     def retrieve_user(self, user_id: str) -> str | dict:
         # `me` is a convenient way to refer to the current user
         if user_id == 'me':
@@ -838,7 +837,6 @@ class GeneralReader:
 
         return plain_dict
 
-    @functools.lru_cache(maxsize=128)
     def retrieve_upload(self, upload_id: str) -> str | dict:
         try:
             upload: Upload = get_upload_with_read_access(
@@ -869,7 +867,6 @@ class GeneralReader:
 
         return plain_dict
 
-    @functools.lru_cache(maxsize=128)
     def retrieve_entry(self, entry_id: str) -> str | dict:
         if (
             perform_search(
@@ -885,7 +882,6 @@ class GeneralReader:
 
         return self._overwrite_entry(Entry.objects(entry_id=entry_id).first())
 
-    @functools.lru_cache(maxsize=128)
     def retrieve_dataset(self, dataset_id: str) -> str | dict:
         if (
             dataset := Dataset.m_def.a_mongo.objects(dataset_id=dataset_id).first()
@@ -959,7 +955,7 @@ class GeneralReader:
         # populate an empty list to keep the structure
         _populate_result(node.result_root, node.current_path, [])
         new_config: RequestConfig = config.new({'index': None}, retain_pattern=True)
-        for i in self._normalise_index(config.index, len(node.archive)):
+        for i in _normalise_index(config.index, len(node.archive)):
             self._resolve(
                 node.replace(
                     archive=node.archive[i], current_path=node.current_path + [str(i)]
@@ -1422,7 +1418,7 @@ class MongoReader(GeneralReader):
                     )
 
                 if isinstance(child_archive, list):
-                    for i in self._normalise_index(index, len(child_archive)):
+                    for i in _normalise_index(index, len(child_archive)):
                         __walk(child_archive[i], child_path + [str(i)])
                 else:
                     __walk(child_archive, child_path)
@@ -1734,7 +1730,6 @@ class EntryReader(MongoReader):
 
 
 class ElasticSearchReader(EntryReader):
-    @functools.lru_cache(maxsize=128)
     def retrieve_entry(self, entry_id: str) -> str | dict:
         search_response = perform_search(
             owner='all', query={'entry_id': entry_id}, user_id=self.user.user_id
@@ -2238,7 +2233,7 @@ class ArchiveReader(GeneralReader):
 
                 if is_list:
                     # field[start:end]: dict
-                    for i in self._normalise_index(index, len(child_archive)):
+                    for i in _normalise_index(index, len(child_archive)):
                         __walk(child_path + [str(i)], child_archive[i])
                 else:
                     # field: dict
@@ -2625,7 +2620,7 @@ class DefinitionReader(GeneralReader):
             # to avoid infinite loop
             # put a reference string here and skip it later
             if is_list:
-                for i in self._normalise_index(index, len(child_def)):
+                for i in _normalise_index(index, len(child_def)):
                     if child_def[i] is not node.archive:
                         continue
                     _populate_result(
@@ -2656,7 +2651,7 @@ class DefinitionReader(GeneralReader):
                     )
 
                 if is_list:
-                    for i in self._normalise_index(index, len(child_def)):
+                    for i in _normalise_index(index, len(child_def)):
                         __resolve(child_path + [str(i)], child_def[i])
                 elif is_plain_container:
                     if value.directive is DirectiveType.resolved:
@@ -2677,7 +2672,7 @@ class DefinitionReader(GeneralReader):
 
                 if is_list:
                     # field[start:end]: dict
-                    for i in self._normalise_index(index, len(child_def)):
+                    for i in _normalise_index(index, len(child_def)):
                         __walk(child_path + [str(i)], child_def[i])
                 elif is_plain_container:
                     for k, v in child_def.items():

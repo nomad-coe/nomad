@@ -56,7 +56,6 @@ from typing import (
     NamedTuple,
     Callable,
 )
-from functools import lru_cache
 from pydantic import BaseModel
 from datetime import datetime
 import os.path
@@ -1156,7 +1155,6 @@ class StagingUploadFiles(UploadFiles):
         elif os.path.isdir(os_path_target):
             raise ValueError('Copying a directory is not possible.')
 
-    @lru_cache()
     def metadata_file_cached(self, path_dir: str = ''):
         """
         Gets the content of the metadata file located in the directory defined by `path_dir`.
