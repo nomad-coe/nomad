@@ -841,40 +841,322 @@ def stop(ctx, uploads, entries: bool, kill: bool, no_celery: bool):
         stop_all(proc.Upload.objects(running_query))
 
 
-@uploads.group(help='Check certain integrity criteria')
-@click.pass_context
-def integrity(ctx):
-    # there is only a staging or a public version of the upload, not both
-    # do (all) files exist (some raw files, some archive files)
-    # does the index exist
-    # do the number of indexed entries match the number of entries in mongo
-    # does nomad version in the the archive (metadata/nomad_version) match the indexed data (nomad_version)
-    # is the archive version suffix matching the preferred (first) configured archive_version_suffix
-    # does the archive use the new writer
-    pass
-
-
-@integrity.command(help='Uploads that have more entries in mongo than in ES.')
+@uploads.command(
+    help='Check certain integrity criteria and return a list of upload IDs.'
+)
 @click.argument('UPLOADS', nargs=-1)
+@click.option(
+    '--both-storages',
+    is_flag=True,
+    help='Select uploads that have both staging and public versions.',
+)
+@click.option(
+    '--missing-storage',
+    is_flag=True,
+    help='Select uploads of which the corresponding raw folder (for staging) or the raw zip archive (for public)'
+    ' is missing in the file system. This only checks the existence of folder/archive uploaded by user.'
+    ' To check the contents, use the --missing-raw-files flag.',
+)
+@click.option(
+    '--missing-raw-files',
+    is_flag=True,
+    help='Select uploads that any of the files listed in metadata/files is missing.'
+    ' Use --check-all-entries to check files for all entries in the upload.'
+    ' It uses the indexed ES data and does not open the msgpack archive files.',
+)
+@click.option(
+    '--missing-archive-files',
+    is_flag=True,
+    help='Select uploads that miss archive (msgpack) files.',
+)
+@click.option(
+    '--missing-index',
+    is_flag=True,
+    help='Select uploads of which the ES index information is missing.',
+)
+@click.option(
+    '--entry-mismatch',
+    is_flag=True,
+    help='Select uploads that have different numbers of entries in mongo and ES.',
+)
+@click.option(
+    '--nomad-version-mismatch',
+    is_flag=True,
+    help='Select uploads that have different nomad versions in archive and ES.',
+)
+@click.option(
+    '--old-archive-format',
+    is_flag=True,
+    help='Select uploads that are using the old archive format (v1).',
+)
+@click.option(
+    '--not-preferred-suffix',
+    is_flag=True,
+    help='Select uploads that are using the preferred (first) suffix in the configuration.',
+)
+@click.option(
+    '--check-all-entries',
+    is_flag=True,
+    help='Check all entries in the upload, otherwise only check one entry per upload.',
+)
 @click.pass_context
-def entry_index(ctx, uploads):
-    from nomad.search import search
+def integrity(
+    ctx,
+    uploads,
+    both_storages,
+    missing_storage,
+    missing_raw_files,
+    missing_archive_files,
+    missing_index,
+    entry_mismatch,
+    nomad_version_mismatch,
+    old_archive_format,
+    not_preferred_suffix,
+    check_all_entries,
+):
+    from nomad.app.v1.models import MetadataPagination, MetadataRequired
+    from nomad.archive.storage_v2 import ArchiveWriter
+    from nomad.files import StagingUploadFiles, PublicUploadFiles
+    from nomad.processing import Entry
     from nomad.processing import Upload
-    from nomad.app.v1.models import Pagination
+    from nomad.search import search
 
-    _, uploads = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+    def search_params(upload_id: str):
+        return {
+            'query': {'upload_id': upload_id},
+            'user_id': config.services.admin_user_id,
+            'owner': 'admin',
+        }
 
-    upload: Upload = None
-    for upload in uploads:
+    def _check_both_storages(upload: Upload) -> bool:
+        """
+        Check if both storage versions are available.
+
+        If both are available, return True.
+        """
+        try:
+            # this will raise KeyError in either case since create=False
+            return not (
+                StagingUploadFiles(upload.upload_id).is_empty()
+                or PublicUploadFiles(upload.upload_id).is_empty()
+            )
+        except KeyError:
+            return False
+
+    def _check_missing_storage(upload: Upload) -> bool:
+        """
+        Check if the corresponding upload structure is missing.
+
+        If missing, return True.
+        """
+        return upload.upload_files.is_empty()
+
+    def _check_missing_raw_files(upload: Upload) -> bool:
+        """
+        Check if any raw files are missing.
+
+        If any are missing, return True.
+        """
         search_results = search(
-            owner='admin',
-            query=dict(upload_id=upload.upload_id),
-            pagination=Pagination(page_size=0),
-            user_id=config.services.admin_user_id,
+            required=MetadataRequired(include=['files', 'entry_id']),
+            pagination=MetadataPagination(
+                page_size=upload.total_entries_count if check_all_entries else 1
+            ),
+            **search_params(upload.upload_id),
         )
 
-        if search_results.pagination.total != upload.total_entries_count:
-            print(upload.upload_id)
+        upload_files = upload.upload_files
+
+        return any(
+            not upload_files.raw_path_exists(file)
+            for entry in search_results.data
+            for file in entry['files']
+        )
+
+    def _check_missing_archive_files(upload: Upload) -> bool:
+        """
+        Check if all archive files exist.
+
+        If not, return True.
+        """
+
+        def _check_file_exist(path) -> bool:
+            return not os.path.exists(path)
+
+        if upload.published:
+            upload_files = PublicUploadFiles(upload.upload_id)
+
+            return _check_file_exist(
+                PublicUploadFiles._create_msg_file_object(  # noqa
+                    upload_files, upload_files.access, True
+                ).os_path
+            )
+
+        upload_files = StagingUploadFiles(upload.upload_id)  # type: ignore
+
+        entries = Entry.objects(upload_id=upload.upload_id)
+        if not check_all_entries:
+            entries = [entries.first()]
+
+        # noinspection PyProtectedMember
+        return any(
+            _check_file_exist(
+                upload_files._archive_file_object(entry.entry_id, True).os_path  # type: ignore
+            )
+            for entry in entries
+        )
+
+    def _check_missing_index(upload: Upload) -> bool:
+        """
+        Check if the index exists in ES.
+
+        If not indexed, return True.
+        """
+        search_results = search(
+            pagination=MetadataPagination(page_size=0),
+            **search_params(upload.upload_id),
+        )
+
+        return search_results.pagination.total == 0
+
+    def _check_entry_mismatch(upload: Upload) -> bool:
+        """
+        Check if the number of entries in the mongo and in the ES are different.
+
+        If different, return True.
+        """
+        search_results = search(
+            pagination=MetadataPagination(page_size=0),
+            **search_params(upload.upload_id),
+        )
+
+        return search_results.pagination.total != upload.total_entries_count
+
+    def _check_nomad_version_mismatch(upload: Upload) -> bool:
+        """
+        Check if the nomad version in the archive and in the ES are different.
+
+        If different, return True.
+        """
+        search_results = search(
+            required=MetadataRequired(include=['nomad_version', 'entry_id']),
+            pagination=MetadataPagination(page_size=upload.total_entries_count),
+            **search_params(upload.upload_id),
+        )
+
+        entries = search_results.data
+        if not check_all_entries:
+            entries = [entries[0]]
+
+        for entry in entries:
+            entry_id = entry['entry_id']
+            es_nomad_version = entry['nomad_version']
+            with upload.upload_files.read_archive(entry_id, False) as archive:
+                archive_nomad_version = archive[entry_id]['metadata']['nomad_version']
+                if es_nomad_version != archive_nomad_version:
+                    return True
+
+        return False
+
+    def _check_old_archive_format(upload: Upload) -> bool:
+        """
+        Check if the archives are using the old format by testing the magic bytes.
+
+        If the magic bytes are not found, return True.
+        If the magic bytes are found, return False.
+        """
+
+        def _check_magic(path) -> bool:
+            with open(path, 'rb') as f:
+                return ArchiveWriter.magic != f.read(ArchiveWriter.magic_len)
+
+        if upload.published:
+            upload_files = PublicUploadFiles(upload.upload_id)
+
+            return _check_magic(
+                PublicUploadFiles._create_msg_file_object(  # noqa
+                    upload_files, upload_files.access, True
+                ).os_path
+            )
+
+        upload_files = StagingUploadFiles(upload.upload_id)  # type: ignore
+
+        entries = Entry.objects(upload_id=upload.upload_id)
+        if not check_all_entries:
+            entries = [entries.first()]
+
+        # noinspection PyProtectedMember
+        return any(
+            _check_magic(
+                upload_files._archive_file_object(entry.entry_id, True).os_path  # type: ignore
+            )
+            for entry in entries
+        )
+
+    def _check_not_preferred_suffix(upload: Upload) -> bool:
+        """
+        Check if the archive version suffix matches the first configured archive_version_suffix.
+
+        If archive_version_suffix is not in the path, return True.
+        """
+        suffix = config.fs.archive_version_suffix
+        if isinstance(suffix, list):
+            suffix = suffix[0]
+
+        def _check_suffix(path) -> bool:
+            return suffix not in path
+
+        if upload.published:
+            upload_files = PublicUploadFiles(upload.upload_id)
+
+            return _check_suffix(
+                PublicUploadFiles._create_msg_file_object(  # noqa
+                    upload_files, upload_files.access, True
+                ).os_path
+            )
+
+        upload_files = StagingUploadFiles(upload.upload_id)  # type: ignore
+
+        entries = Entry.objects(upload_id=upload.upload_id)
+        if not check_all_entries:
+            entries = [entries.first()]
+
+        # noinspection PyProtectedMember
+        return any(
+            _check_suffix(
+                upload_files._archive_file_object(entry.entry_id, True).os_path  # type: ignore
+            )
+            for entry in entries
+        )
+
+    all_checks = []
+    if both_storages:
+        all_checks.append(_check_both_storages)
+    if missing_storage:
+        all_checks.append(_check_missing_storage)
+    if missing_raw_files:
+        all_checks.append(_check_missing_raw_files)
+    if missing_archive_files:
+        all_checks.append(_check_missing_archive_files)
+    if missing_index:
+        all_checks.append(_check_missing_index)
+    if entry_mismatch:
+        all_checks.append(_check_entry_mismatch)
+    if nomad_version_mismatch:
+        all_checks.append(_check_nomad_version_mismatch)
+    if old_archive_format:
+        all_checks.append(_check_old_archive_format)
+    if not_preferred_suffix:
+        all_checks.append(_check_not_preferred_suffix)
+
+    _, selected = _query_uploads(uploads, **ctx.obj.uploads_kwargs)
+
+    for item in selected:
+        try:
+            if any(checker(item) for checker in all_checks):
+                print(item.upload_id)
+        except Exception:  # noqa
+            print(item.upload_id)
 
 
 @uploads.command(help="""Export one or more uploads as bundles.""")
