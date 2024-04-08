@@ -436,12 +436,12 @@ def export(ctx, uploads, required, output: str):
     '-e',
     '--entries',
     is_flag=True,
-    help='Show details about entries when displaying in a tabulated format.',
+    help='Include details about upload entries in the output.',
 )
 @click.option(
     '--ids',
     is_flag=True,
-    help='Only show a list of ids when displaying in a tabulated format.',
+    help='Only include the upload ids in the output.',
 )
 @click.option(
     '--json', is_flag=True, help='Output a JSON array instead of a tabulated list.'
@@ -488,15 +488,15 @@ def ls(ctx, uploads, entries, ids, json, size):
 
     total_count = uploads.count()
 
-    if size > 0:
+    if size >= 0:
         uploads = uploads[:size]
 
     if json:
-
-        def filter_upload(source):
-            return {k: v for k, v in zip(headers, row(source))}
-
-        print(dumps([filter_upload(upload) for upload in uploads]).decode())
+        print(
+            dumps(
+                [{k: v for k, v in zip(headers, row(upload))} for upload in uploads]
+            ).decode()
+        )
     else:
         if total_count > uploads.count():
             print(
