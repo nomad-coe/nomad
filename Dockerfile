@@ -201,7 +201,7 @@ RUN apt-get update \
        unzip \
  && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
  && apt-get install --yes --quiet --no-install-recommends \
-       nodejs npm \
+       nodejs \
  && rm -rf /var/lib/apt/lists/* \
  && npm install -g configurable-http-proxy \
  && npm uninstall -g npm
