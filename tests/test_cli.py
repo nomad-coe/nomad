@@ -23,6 +23,7 @@ import datetime
 import time
 
 from nomad import processing as proc, files
+from nomad.config import config
 from nomad.search import search
 from nomad.cli import cli
 from nomad.cli.cli import POPO
@@ -371,9 +372,17 @@ class TestAdminUploads:
         else:
             assert entry.process_status == expected_state
 
+    @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
     @pytest.mark.parametrize('indexed', [True, False])
+    @pytest.mark.parametrize('check_item', ['--entry-mismatch', '--missing-index'])
     def test_integrity_entry_index(
-        self, user1, mongo_function, elastic_function, indexed
+        self,
+        user1,
+        mongo_function,
+        elastic_function,
+        indexed,
+        check_item,
+        all_entries,
     ):
         data = ExampleData(main_author=user1)
         data.create_upload(upload_id='test_upload')
@@ -381,11 +390,135 @@ class TestAdminUploads:
         data.save(with_es=indexed, with_files=False)
 
         result = invoke_cli(
-            cli, 'admin uploads integrity entry-index', catch_exceptions=True
+            cli,
+            f'admin uploads integrity {all_entries} {check_item}',
+            catch_exceptions=True,
         )
 
         assert result.exit_code == 0
         assert ('test_upload' in result.output) != indexed
+
+    @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
+    @pytest.mark.parametrize('new_writer', [True, False])
+    def test_integrity_archive(
+        self,
+        monkeypatch,
+        user1,
+        mongo_function,
+        elastic_function,
+        new_writer,
+        all_entries,
+    ):
+        with monkeypatch.context() as m:
+            m.setattr('nomad.config.archive.use_new_writer', new_writer)
+            data = ExampleData(main_author=user1)
+            data.create_upload(upload_id='test_upload')
+            data.create_entry(upload_id='test_upload')
+            data.save(with_es=True, with_files=True)
+
+        result = invoke_cli(
+            cli,
+            f'admin uploads integrity {all_entries} --old-archive-format',
+            catch_exceptions=True,
+        )
+
+        assert result.exit_code == 0
+        assert ('test_upload' in result.output) != new_writer
+
+    @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
+    @pytest.mark.parametrize('es_nomad_version', ['1', '2'])
+    @pytest.mark.parametrize('archive_nomad_version', ['1', '2'])
+    def test_integrity_nomad_version(
+        self,
+        monkeypatch,
+        user1,
+        mongo_function,
+        elastic_function,
+        es_nomad_version,
+        archive_nomad_version,
+        all_entries,
+    ):
+        data = ExampleData(main_author=user1)
+        data.create_upload(upload_id='test_upload')
+        data.create_entry(upload_id='test_upload')
+        data.save(
+            with_es=True,
+            with_files=True,
+            es_nomad_version=es_nomad_version,
+            archive_nomad_version=archive_nomad_version,
+        )
+
+        result = invoke_cli(
+            cli,
+            f'admin uploads integrity {all_entries} --nomad-version-mismatch',
+            catch_exceptions=True,
+        )
+
+        assert result.exit_code == 0
+        assert ('test_upload' in result.output) != (
+            es_nomad_version == archive_nomad_version
+        )
+
+    @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
+    def test_integrity_suffix(
+        self,
+        monkeypatch,
+        user1,
+        mongo_function,
+        elastic_function,
+        all_entries,
+    ):
+        data = ExampleData(main_author=user1)
+        data.create_upload(upload_id='test_upload')
+        data.create_entry(upload_id='test_upload')
+        data.save(with_es=True, with_files=True)
+
+        current_suffix = config.fs.archive_version_suffix
+        if isinstance(current_suffix, list):
+            new_suffix = ['whatever'] + current_suffix
+        else:
+            new_suffix = ['whatever', current_suffix]
+
+        monkeypatch.setattr('nomad.config.fs.archive_version_suffix', new_suffix)
+
+        result = invoke_cli(
+            cli,
+            f'admin uploads integrity {all_entries} --not-preferred-suffix',
+            catch_exceptions=True,
+        )
+
+        assert result.exit_code == 0
+        assert 'test_upload' in result.output
+
+    @pytest.mark.parametrize('all_entries', ['--check-all-entries', ''])
+    @pytest.mark.parametrize('delete_file', [True, False])
+    @pytest.mark.parametrize(
+        'check_item',
+        ['--missing-storage', '--missing-raw-files', '--missing-archive-files'],
+    )
+    def test_integrity_files(
+        self, non_empty_processed, check_item, delete_file, all_entries
+    ):
+        if delete_file:
+            non_empty_processed.upload_files.delete()
+        result = invoke_cli(
+            cli,
+            f'admin uploads integrity {all_entries} {check_item}',
+            catch_exceptions=True,
+        )
+
+        assert result.exit_code == 0
+        assert (non_empty_processed.upload_id in result.output) == delete_file
+
+    def test_integrity_both_storages(self, non_empty_processed):
+        result = invoke_cli(
+            cli,
+            'admin uploads integrity --both-storages',
+            catch_exceptions=True,
+        )
+
+        assert result.exit_code == 0
+        assert non_empty_processed.upload_id not in result.output
 
 
 @pytest.mark.usefixtures('reset_config')

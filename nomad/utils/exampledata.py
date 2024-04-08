@@ -58,6 +58,8 @@ class ExampleData:
         with_mongo: bool = True,
         with_es: bool = True,
         additional_files_path: str = None,
+        es_nomad_version: str = None,
+        archive_nomad_version: str = None,
     ):
         from tests.test_files import create_test_upload_files
         from nomad import processing as proc
@@ -88,12 +90,20 @@ class ExampleData:
                 mongo_entry.set_mongo_entry_metadata(entry_metadata)
                 mongo_entry.save()
 
+        if es_nomad_version is not None:
+            for archive in self.archives.values():
+                archive.metadata.nomad_version = es_nomad_version
+
         if with_es:
             archives = list(self.archives.values())
             errors = search.index(archives, update_materials=True, refresh=True)
             assert (
                 not errors
             ), f'The following errors encountered during indexing: {errors}'
+
+        if archive_nomad_version is not None:
+            for archive in self.archives.values():
+                archive.metadata.nomad_version = archive_nomad_version
 
         if with_files:
             for upload_id, upload_dict in self.uploads.items():
