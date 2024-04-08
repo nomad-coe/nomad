@@ -84,7 +84,7 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
     """
 
     def __check_precision(_type):
-        if isinstance(_type, type(None)):
+        if _type is type(None):
             return
 
         precision_error = ValueError(
@@ -148,7 +148,7 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
         def __combine(_real, _imag):
             _real_list: bool = isinstance(_real, list)
             _imag_list: bool = isinstance(_imag, list)
-            if _real_list or _real_list:
+            if _real_list or _imag_list:
                 if _real is None:
                     return [__combine(None, i) for i in _imag]
                 if _imag is None:
