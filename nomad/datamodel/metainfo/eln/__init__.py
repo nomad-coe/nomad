@@ -70,6 +70,7 @@ from nomad.datamodel.metainfo.basesections import (
     Analysis,
     AnalysisResult,
     MeasurementResult,
+    HDF5Normalizer,
 )
 
 from nomad.datamodel.metainfo.annotations import (

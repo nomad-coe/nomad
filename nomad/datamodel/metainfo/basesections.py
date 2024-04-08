@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import os
 from typing import TYPE_CHECKING, Iterable
 import datetime
 import re
@@ -25,6 +25,7 @@ from typing import (
 )
 
 import numpy as np
+import h5py
 from ase.data import (
     chemical_symbols,
     atomic_numbers,
@@ -54,9 +55,8 @@ from nomad.metainfo import (
     Section,
     SubSection,
 )
-from nomad.metainfo.util import (
-    MEnum,
-)
+from nomad.metainfo.util import MEnum
+from nomad.datamodel.util import create_custom_mapping
 from nomad.datamodel.data import (
     ArchiveSection,
     EntryData,
@@ -69,6 +69,7 @@ from nomad.datamodel.results import (
 )
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
+    HDF5Annotation,
 )
 
 
@@ -2085,3 +2086,41 @@ class PublicationReference(ArchiveSection):
             except Exception as e:
                 logger.warning(f'Could not parse crossref for {self.DOI_number}')
                 logger.warning(str(e))
+
+
+class HDF5Normalizer(ArchiveSection):
+    def normalize(self, archive, logger):
+        super(HDF5Normalizer, self).normalize(archive, logger)
+        h5_re = re.compile(r'.*\.h5$')
+
+        for quantity_name, quantity_def in self.m_def.all_quantities.items():
+            if (quantity_def.type == str) and (
+                match := re.match(
+                    h5_re,
+                    '' if self.get(quantity_name) is None else self.get(quantity_name),
+                )
+            ):
+                h5_filepath = os.path.join(
+                    archive.m_context.upload_files.os_path, 'raw', match.group(0)
+                )
+                with h5py.File(h5_filepath, 'r') as h5_file:
+                    self.hdf5_parser(h5_file, logger)
+
+    def hdf5_parser(self, h5_file, logger):
+        if logger is None:
+            logger = utils.get_logger(__name__)
+
+        mapping = create_custom_mapping(self.m_def, HDF5Annotation, 'hdf5', 'path')  # type: ignore
+        for custom_quantities in mapping:
+            h5_path = custom_quantities[0]
+            quantity_mapper = custom_quantities[1]
+            try:
+                dataset = h5_file[h5_path]
+                quantity_mapper(self, dataset[:])
+            except Exception as e:
+                logger.warning(
+                    f'Could not map the path {h5_path}.'
+                    f'Either the path does not exist or the custom quantity cannot hold the content of'
+                    f' h5 dataset',
+                    exc_info=e,
+                )
