@@ -1,0 +1,24 @@
+definitions:
+  name: 'hdf5'
+  sections:
+    Sample:
+      base_sections:
+        - 'nomad.datamodel.data.EntryData'
+        - 'nomad.datamodel.metainfo.basesections.HDF5Normalizer'
+      quantities:
+        datafile:
+          default: test.h5
+          type: str
+          m_annotations:
+            eln:
+              component: FileEditQuantity
+        charge_density:
+          type: np.float32
+          shape: ['*', '*', '*']
+          m_annotations:
+            hdf5:
+              path: '/Fe_spx_BS/output/charge_density/total'
+
+data:
+  m_def: Sample
+  datafile: 'test.h5'

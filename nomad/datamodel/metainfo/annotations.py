@@ -803,6 +803,26 @@ class TabularAnnotation(AnnotationModel):
     )
 
 
+class HDF5Annotation(AnnotationModel):
+    """ """
+
+    path: str = Field(
+        None,
+        description="""
+        The path from the root of the h5 file to the target dataset.
+    """,
+    )
+    unit: str = Field(
+        None,
+        description="""
+            The unit of the value in the file. Has to be compatible with the annotated quantity's
+            unit. Will be used to automatically convert the value. If this is not defined,
+            the values will not be converted. Has to be applied to the
+            quantity that a dataset should be mapped to.
+        """,
+    )
+
+
 class PlotAnnotation(AnnotationModel):
     """
     The `PlotAnnotation` is now deprecated and will be removed in future releases.
@@ -925,4 +945,5 @@ AnnotationModel.m_registry['eln'] = ELNAnnotation
 AnnotationModel.m_registry['browser'] = BrowserAnnotation
 AnnotationModel.m_registry['tabular_parser'] = TabularParserAnnotation
 AnnotationModel.m_registry['tabular'] = TabularAnnotation
+AnnotationModel.m_registry['hdf5'] = HDF5Annotation
 AnnotationModel.m_registry['plot'] = PlotAnnotation
