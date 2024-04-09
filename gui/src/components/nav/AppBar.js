@@ -111,7 +111,7 @@ export default function AppBar() {
   return <MuiAppBar position="fixed" className={styles.root}>
     <Toolbar className={styles.toolbar} disableGutters>
       <div className={styles.logo}>
-        <Link href="https://nomad-lab.eu">
+        <Link href={guiBase}>
           <img alt="The NOMAD logo" className={styles.logoImg} src={`${guiBase}/${oasis ? 'nomad-oasis.png' : 'nomad.png'}`}></img>
         </Link>
       </div>
