@@ -14,7 +14,7 @@ project_dir=$(dirname $(dirname $(realpath $0)))
 
 cd $project_dir
 
-pip-compile --resolver=backtracking --annotation-style=line \
+pip-compile -r -U --resolver=backtracking --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
     --pip-args="--prefer-binary" \
@@ -22,7 +22,7 @@ pip-compile --resolver=backtracking --annotation-style=line \
     dependencies/parsers/eelsdb/pyproject.toml \
     pyproject.toml
 
-pip-compile --resolver=backtracking --annotation-style=line \
+pip-compile -r -U --resolver=backtracking --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
     --pip-args="--prefer-binary" \

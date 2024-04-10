@@ -19,6 +19,7 @@
 """
 A generator for random test calculations.
 """
+
 import random
 from essential_generators import DocumentGenerator
 import pytest

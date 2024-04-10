@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-""" Methods to help with testing of nomad@FAIRDI."""
+"""Methods to help with testing of nomad@FAIRDI."""
 
 from typing import List, Union, Dict, Any
 import urllib.parse

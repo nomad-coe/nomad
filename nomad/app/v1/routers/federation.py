@@ -19,6 +19,7 @@
 """
 API endpoint to receive telemetry data (in logstash format) from local installations.
 """
+
 import gzip
 import io
 import socket

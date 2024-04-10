@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-""" An example metainfo package. """
+"""An example metainfo package."""
 
 import numpy as np
 from datetime import datetime

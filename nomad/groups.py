@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 from typing import Iterable, List, Optional
+
 from mongoengine import Document, StringField, ListField
 from mongoengine.queryset.visitor import Q
 
@@ -96,3 +97,7 @@ def user_group_exists(group_id: str, *, include_all=True) -> bool:
     if include_all and group_id == 'all':
         return True
     return get_user_group(group_id) is not None
+
+
+def get_group_ids(user_id):
+    return UserGroup.get_ids_by_user_id(user_id)

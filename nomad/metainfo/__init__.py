@@ -29,7 +29,6 @@ manipulate, and access data. We also use it to map data to various storage forma
 including JSON, (HDF5), mongodb, and elastic search.
 """
 
-
 from .metainfo import (
     MTypes,
     MSectionBound,

@@ -16,8 +16,8 @@
 # limitations under the License.
 #
 
-""" The beginning of a pylint plugin. Unfotunately it is kinda nonsensical without a
-partnering mypy plugin. """
+"""The beginning of a pylint plugin. Unfotunately it is kinda nonsensical without a
+partnering mypy plugin."""
 
 import astroid
 from astroid import MANAGER

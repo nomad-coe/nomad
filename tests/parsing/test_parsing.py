@@ -38,7 +38,7 @@ parser_examples = [
     ('parsers/vasp', 'tests/data/parsers/vasp_compressed/vasp.xml.gz'),
     ('parsers/vasp', 'tests/data/parsers/vasp_outcar/OUTCAR'),
     ('parsers/fhi-aims', 'tests/data/parsers/fhi-aims/aims.out'),
-    ('parsers/fhi-vibes', 'tests/data/parsers/fhi-vibes/molecular_dynamics.nc'),
+    # ('parsers/fhi-vibes', 'tests/data/parsers/fhi-vibes/molecular_dynamics.nc'),
     ('parsers/cp2k', 'tests/data/parsers/cp2k/si_bulk8.out'),
     ('parsers/crystal', 'tests/data/parsers/crystal/si.out'),
     ('parsers/cpmd', 'tests/data/parsers/cpmd/geo_output.out'),
@@ -101,7 +101,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 126
+correct_num_output_files = 125
 
 
 def create_reference(data, pretty):

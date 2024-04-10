@@ -400,7 +400,7 @@ class ArchiveQuery:
             while chunk := list(islice(iterator, chunk_size)):
                 yield chunk
 
-        with progressbar(
+        with progressbar(  # type: ignore
             length=actual_number, label=f'Downloading {actual_number} entries...'
         ) as bar:
             async with AsyncClient(timeout=Timeout(timeout=300)) as session:

@@ -3603,9 +3603,9 @@ class Definition(MSection):
             '../uploads/{upload_id}/archive/{entry_id}#{fragment}'
         """
         kwargs['strict'] = True
-        kwargs[
-            'global_reference'
-        ] = True  # we always want to use global reference if possible
+        kwargs['global_reference'] = (
+            True  # we always want to use global reference if possible
+        )
         return self.definition_reference(None, **kwargs)
 
 
