@@ -14,44 +14,43 @@ license = { text = "Apache-2.0" }
 requires-python = ">=3.9"
 
 dependencies = [
-    'numpy~=1.22.4',
-    'nptyping~=1.4.4',
-    'pandas>=1.3.5,<2.0.0',
-    'cachetools>=4.2.4',
-    'docstring-parser>=0.12',
-    'pint==0.17',
-    'orjson==3.9.4',
-    'click>=7.1.2',
-    'requests>=2.27.1',
-    'pytz>=2022.7.1',
     'aniso8601>=7.0.0',
     'ase~=3.19.0',
-    'python-keycloak>=0.26.1',
+    'bitarray>=2.3.5',
+    'cachetools>=4.2.4',
+    'click>=7.1.2',
+    'docstring-parser>=0.12',
     'elasticsearch-dsl==7.4.0',
-    'pydantic>=1.10.8,<2.0.0',
-    'jmespath>=0.10.0',
-    'httpx>=0.23.3',
-    'memoization>=0.4.0',
-    'rfc3161ng>=2.1.3',
-    'lxml>=5.2',
-    'lxml_html_clean>=0.1.0',
-    'wrapt>=1.12.1',
-    'pyyaml>=6.0',
-    'python-magic==0.4.24',
+    'h5py>=3.6.0',
     'hjson>=3.0.2',
-    'scipy>=1.7.1',
+    'httpx>=0.23.3',
+    'jmespath>=0.10.0',
+    'lxml>=5.2',
+    'lxml-html-clean>=0.1.0',
+    'matid>=2.0.0.dev2',
+    'mdanalysis==2.5.0',
+    'networkx==2.6.3',
+    'nptyping~=1.4.4',
+    'numpy~=1.22.4',
+    'openpyxl>=3.0.0',
+    'orjson==3.9.4',
+    'pandas>=1.3.5,<2.0.0',
     'panedr>=0.2',
     'parmed>=3.0.0',
-    'mdanalysis==2.5.0',
-    'h5py>=3.6.0',
-    'xarray>=0.20.2',
+    'pint==0.17',
+    'pydantic>=1.10.8,<2.0.0',
     'pymatgen>=2023.5.10',
-    'bitarray>=2.3.5',
+    'python-keycloak>=0.26.1',
+    'python-magic==0.4.24',
+    'pytz>=2022.7.1',
+    'pyyaml>=6.0',
+    'requests>=2.27.1',
+    'rfc3161ng>=2.1.3',
     'scikit-learn>=1.0.2',
+    'scipy>=1.7.1',
     'toposort',
-    'openpyxl>=3.0.0',
-    'networkx==2.6.3',
-    'matid>=2.0.0.dev2'
+    'wrapt>=1.12.1',
+    'xarray>=0.20.2',
 ]
 
 [project.urls]
@@ -62,88 +61,82 @@ repository = 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR'
 [project.optional-dependencies]
 parsing = [
     'asr==0.4.1',
-    'netCDF4==1.5.4',
     'h5py==3.6.0',
-    'pyzeo==0.1.4',
-    'quippy-ase==0.9.14',
+    'netCDF4==1.5.4',
     'pybis@git+https://github.com/FAIRmat-NFDI/fairmat-pybis.git',
     'pynxtools[convert]==0.1.1',
+    'pyzeo==0.1.4',
+    'quippy-ase==0.9.14',
 ]
 infrastructure = [
-    'h5grove[fastapi]==1.3.0',
-    'optimade[mongo]==0.22.1',
-    'structlog',
-    'elasticsearch==7.17.1',
-    'msgpack',
-    'celery[redis]==5.2.7',
     'asgiref~=3.5',
-    'mongoengine>=0.20',
-    'pymongo==4.3.3',
-    'itsdangerous>=2.1.2',
-    'passlib==1.7.4',
-    'python-logstash==0.4.6',
-    'gitpython==3.1.24',
-    'm2r==0.2.1',
-    'zipstream-new==1.1.5',
     'bagit==1.8.1',
-    'bcrypt==3.2.0',
-    'filelock==3.3.1',
-    'pyjwt[crypto]==2.6.0',
-    'cryptography',
-    'jsonschema[format]==4.17.3',
-    'runstats==2.0.0',
-    'tabulate==0.8.9',
-    'bs4==0.0.1',
-    'html5lib==1.1',
     'basicauth==0.4.1',
-    'inflection==0.5.1',
-    'unidecode==1.3.2',
-    'python-json-logger==2.0.2',
-    'recommonmark==0.7.1',
-    'rdflib==5.0.0',
-    'fastapi==0.92.0',
-    'uvicorn[standard]',
-    'python-multipart==0.0.5',
-    'jupyterhub==4.0.2',
+    'bcrypt==3.2.0',
+    'beautifulsoup4',
+    'celery',
+    'cryptography',
     'dockerspawner==12.1.0',
-    'oauthenticator==15.1.0',
-    'validators==0.18.2',
+    'elasticsearch==7.17.1',
+    'fastapi<0.100', # later versions pending pydantic v2 upgrade
+    'filelock==3.3.1',
+    'gitpython==3.1.24',
     'gunicorn>=21.2.0,<22.0.0',
-    'importlib-metadata~=4.13.0' # Needed because of https://github.com/python/importlib_metadata/issues/411
+    'h5grove[fastapi]==1.3.0',
+    'html5lib==1.1',
+    'inflection==0.5.1',
+    'itsdangerous>=2.1.2',
+    'jsonschema[format]==4.17.3',
+    'jupyterhub==4.0.2',
+    'm2r==0.2.1',
+    'mongoengine>=0.20',
+    'msgpack',
+    'oauthenticator==15.1.0',
+    'optimade[mongo]==0.22.1',
+    'passlib==1.7.4',
+    'pyjwt[crypto]==2.6.0',
+    'python-json-logger==2.0.2',
+    'python-logstash==0.4.6',
+    'python-multipart',
+    'rdflib==5.0.0',
+    'recommonmark==0.7.1',
+    'runstats==2.0.0',
+    'structlog',
+    'tabulate==0.8.9',
+    'unidecode==1.3.2',
+    'uvicorn[standard]',
+    'validators==0.18.2',
+    'zipstream-new==1.1.5',
 ]
 dev = [
-    'build',
-    'pip-tools>=6.13.0',
-    'markupsafe',
-    'gitpython==3.1.24',
-    'mypy>=1.0.1',
-    'typed-ast>=1.4.2',
-    'astroid>=2.5.1',
-    'pylint==2.13.9',
-    'pylint_plugin_utils==0.7',
-    'pylint_mongoengine==0.4.0',
-    'pycodestyle==2.8.0',
-    'pytest>= 5.3.0, < 6.0.0',
-    'pytest-xdist>=1.30.0',
-    'pytest-timeout==1.4.2',
-    'pytest-cov==2.7.1',
-    'rope==0.21.0',
-    'names==0.3.0',
-    'essential_generators==1.0',
-    'twine==3.4.2',
-    'python-gitlab==2.10.1',
-    'devtools==0.8.0',
-    'mkdocs==1.3.0',
-    'mkdocs-material==8.2.8',
-    'mkdocs-material-extensions==1.3.1',
-    'mkdocs-macros-plugin==0.6.3',
-    'mkdocs-glightbox==0.3.5',
     'aiosmtpd',
-    'mkdocs-click==0.8.0',
-    'mkdocs-redirects==1.2.0',
-    'mkdocs-git-revision-date-localized-plugin==1.2.1',
-    'ruff==0.1.8',
-    'ruamel.yaml==0.17.21'
+    'astroid>=2.5.1',
+    'build',
+    'devtools',
+    'essential-generators==1.0',
+    'markupsafe',
+    'mkdocs-click',
+    'mkdocs-git-revision-date-localized-plugin',
+    'mkdocs-glightbox',
+    'mkdocs-macros-plugin',
+    'mkdocs-material-extensions',
+    'mkdocs-material',
+    'mkdocs-redirects',
+    'mkdocs',
+    'mypy==1.0.1', # bug: incompatible with derived models of pydantic v1
+    'names==0.3.0',
+    'pip-tools>=6.13.0',
+    'pycodestyle==2.8.0',
+    'pytest-cov==2.7.1',
+    'pytest-timeout==1.4.2',
+    'pytest-xdist>=1.30.0',
+    'pytest>= 5.3.0, < 6.0.0',
+    'python-gitlab==2.10.1',
+    'rope==0.21.0',
+    'ruamel.yaml',
+    'ruff',
+    'twine==3.4.2',
+    'typed-ast>=1.4.2',
 ]
 
 
@@ -152,6 +145,13 @@ nomad = "nomad.cli:run_cli"
 
 [tool.ruff]
 include = ["nomad/*.py", "tests/*.py"]
+exclude = ["dependencies"]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
 select = [
     "E", # pycodestyle
     "W", # pycodestyle
@@ -161,7 +161,7 @@ ignore = [
     "E501", # Line too long ({width} > {limit} characters)
     "E701", # Multiple statements on one line (colon)
     "E731", # Do not assign a lambda expression, use a def
-    "E402",  # Module level import not at top of file
+    "E402", # Module level import not at top of file
     "PLR0911", # Too many return statements
     "PLR0912", # Too many branches
     "PLR0913", # Too many arguments in function definition
@@ -173,11 +173,6 @@ ignore = [
     "PLR5501", # else-if-used
 ]
 fixable = ["ALL"]
-exclude = ["dependencies"]
-
-# Same as Black.
-line-length = 88
-indent-width = 4
 
 [tool.ruff.format]
 # use single quotes for strings.

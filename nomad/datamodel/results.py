@@ -2770,13 +2770,13 @@ class GeometryOptimization(MSection):
         )
         type = simulationworkflowschema.GeometryOptimization.name.m_copy()
         convergence_tolerance_energy_difference = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_energy_difference.m_copy()
-        convergence_tolerance_energy_difference.m_annotations[
-            'elasticsearch'
-        ] = Elasticsearch(material_entry_type)
+        convergence_tolerance_energy_difference.m_annotations['elasticsearch'] = (
+            Elasticsearch(material_entry_type)
+        )
         convergence_tolerance_force_maximum = simulationworkflowschema.GeometryOptimizationMethod.convergence_tolerance_force_maximum.m_copy()
-        convergence_tolerance_force_maximum.m_annotations[
-            'elasticsearch'
-        ] = Elasticsearch(material_entry_type)
+        convergence_tolerance_force_maximum.m_annotations['elasticsearch'] = (
+            Elasticsearch(material_entry_type)
+        )
         final_force_maximum = simulationworkflowschema.GeometryOptimizationResults.final_force_maximum.m_copy()
         final_force_maximum.m_annotations['elasticsearch'] = Elasticsearch(
             material_entry_type

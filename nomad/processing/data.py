@@ -27,6 +27,7 @@ entries, and files
 .. autoclass:: Upload
 
 """
+
 import base64
 from typing import (
     Optional,
@@ -86,7 +87,7 @@ from nomad.files import (
     create_tmp_dir,
     is_safe_relative_path,
 )
-from nomad.groups import user_group_exists
+from nomad.groups import user_group_exists, get_group_ids
 from nomad.processing.base import (
     Proc,
     process,
@@ -339,15 +340,15 @@ class MetadataEditRequestHandler:
         self.verified_entries: Dict[
             str, Dict[str, Any]
         ] = {}  # Metadata specified for individual entries
-        self.affected_uploads: List[
-            'Upload'
-        ] = None  # A MetadataEditRequest may involve multiple uploads
+        self.affected_uploads: List['Upload'] = (
+            None  # A MetadataEditRequest may involve multiple uploads
+        )
 
         # Used when edit_request = files
         self.verified_file_metadata_cache: Dict[str, Dict[str, Any]] = {}
-        self.root_file_entries: Dict[
-            str, Dict[str, Any]
-        ] = None  # `entries` defined in the root metadata file
+        self.root_file_entries: Dict[str, Dict[str, Any]] = (
+            None  # `entries` defined in the root metadata file
+        )
 
     def validate_json_request(self):
         """Validates the provided edit_request_json."""
@@ -397,7 +398,7 @@ class MetadataEditRequestHandler:
                 return self._error('No matching upload found', 'upload_id')
 
             is_admin = self.user.is_admin
-            group_ids = self.user.get_group_ids()
+            group_ids = get_group_ids(self.user.user_id)
             for upload in self.affected_uploads:
                 is_main_author = self.user.user_id == upload.main_author
                 is_coauthor = self.user.user_id in upload.coauthors or (
@@ -1489,9 +1490,9 @@ class Entry(Proc):
                 if self._child_entries:
                     child_archives = {}
                     for child_entry in self._child_entries:
-                        child_archives[
-                            child_entry.mainfile_key
-                        ] = child_entry._parser_results
+                        child_archives[child_entry.mainfile_key] = (
+                            child_entry._parser_results
+                        )
                     kwargs = dict(child_archives=child_archives)
                 else:
                     kwargs = {}

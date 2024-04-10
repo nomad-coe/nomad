@@ -20,6 +20,7 @@
 This module contains all functions necessary to manage DOI via datacite.org and its
 MDS API (https://support.datacite.org/docs/mds-api-guide).
 """
+
 import xml.etree.ElementTree as ET
 import datetime
 import requests
@@ -155,9 +156,9 @@ class DOI(Document):
             title = 'NOMAD Repository Dataset'
 
         mds_resource = ET.Element('resource')
-        mds_resource.attrib[
-            'xsi:schemaLocation'
-        ] = 'http://datacite.org/schema/kernel-3 http://schema.datacite.org/meta/kernel-3.1/metadata.xsd'
+        mds_resource.attrib['xsi:schemaLocation'] = (
+            'http://datacite.org/schema/kernel-3 http://schema.datacite.org/meta/kernel-3.1/metadata.xsd'
+        )
         mds_resource.attrib['xmlns'] = 'http://datacite.org/schema/kernel-3'
         mds_resource.attrib['xmlns:xsi'] = 'http://www.w3.org/2001/XMLSchema-instance'
 

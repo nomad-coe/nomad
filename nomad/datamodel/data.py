@@ -19,7 +19,7 @@
 import os.path
 
 from typing import Any
-from cachetools import cached, TTLCache
+from cachetools import TTLCache, cached
 from nomad.metainfo.metainfo import (
     predefined_datatypes,
     Category,
@@ -175,7 +175,7 @@ class User(Author):
     is_oasis_admin = Quantity(type=bool, default=False)
 
     @staticmethod
-    @cached(cache=TTLCache(maxsize=2048, ttl=24 * 3600))
+    @cached(TTLCache(maxsize=2048, ttl=24 * 3600))
     def get(*args, **kwargs) -> 'User':
         from nomad import infrastructure
 
@@ -187,12 +187,6 @@ class User(Author):
 
         assert self.user_id is not None
         return infrastructure.user_management.get_user(user_id=self.user_id)  # type: ignore
-
-    @cached(cache=TTLCache(maxsize=2048, ttl=60))
-    def get_group_ids(self):
-        from nomad.groups import UserGroup
-
-        return UserGroup.get_ids_by_user_id(self.user_id)
 
 
 class UserReference(Reference):

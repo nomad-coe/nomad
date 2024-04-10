@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-""" All generic entry metadata and related classes. """
+"""All generic entry metadata and related classes."""
 
 from typing import List, Any
 from enum import Enum

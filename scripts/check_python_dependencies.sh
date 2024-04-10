@@ -18,7 +18,7 @@ cd $project_dir
 cp requirements.txt requirements.txt.tmp
 cp requirements-dev.txt requirements-dev.txt.tmp
 
-pip-compile --resolver=backtracking --annotation-style=line \
+pip-compile -r -U --resolver=backtracking --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
     --pip-args="--prefer-binary" \
@@ -28,7 +28,7 @@ pip-compile --resolver=backtracking --annotation-style=line \
 
 diff requirements.txt.tmp requirements.txt
 
-pip-compile --resolver=backtracking --annotation-style=line \
+pip-compile -r -U --resolver=backtracking --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
     --pip-args="--prefer-binary" \

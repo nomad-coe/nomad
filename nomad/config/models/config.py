@@ -19,15 +19,16 @@
 import warnings
 import os
 import logging
+from importlib.metadata import version
+
 import yaml
 from typing import List, Union, Optional, Dict, Any
 from pydantic import Field, root_validator, validator, parse_obj_as
-from pkg_resources import get_distribution, DistributionNotFound
 import pkgutil
 
 try:
-    __version__ = get_distribution('nomad-lab').version
-except DistributionNotFound:
+    __version__ = version('nomad-lab')
+except Exception:  # noqa
     # package is not installed
     pass
 

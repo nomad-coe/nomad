@@ -19,12 +19,12 @@ import os
 from typing import List, Dict, Callable, Set, Any, Tuple, Iterator, Union, Iterable
 
 import pandas as pd
-from memoization import cached
 import re
 import math
 import numpy as np
 import json
 import yaml
+from cachetools import cached, LRUCache
 
 from nomad import utils
 from nomad.parsing import MatchingParser
@@ -598,7 +598,7 @@ def _get_relative_path(section_def) -> Iterator[str]:
     )
 
 
-@cached(max_size=10)
+@cached(LRUCache(maxsize=10))
 def _create_column_to_quantity_mapping(section_def: Section):
     mapping: Dict[str, Callable[[MSection, Any], MSection]] = {}
 

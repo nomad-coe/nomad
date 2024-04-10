@@ -95,8 +95,7 @@ COPY examples ./examples
 COPY nomad ./nomad
 COPY scripts ./scripts
 COPY tests ./tests
-COPY .pylintrc \
-     .coveragerc \
+COPY .coveragerc \
      AUTHORS \
      LICENSE \
      MANIFEST.in \

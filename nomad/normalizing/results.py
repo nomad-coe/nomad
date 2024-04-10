@@ -679,9 +679,9 @@ class ResultsNormalizer(Normalizer):
         methods = ['dft', 'tb']
         self._resolve_workflow_gs_properties(methods, properties)
         # Resolving DMFT Greens functions
-        gfs_electronic: List[
-            GreensFunctionsElectronic
-        ] = self.electronic_properties.get('greens_functions')  # type: ignore
+        gfs_electronic: List[GreensFunctionsElectronic] = (
+            self.electronic_properties.get('greens_functions')  # type: ignore
+        )
         gfs_electronic_dmft = self.resolve_greens_functions(
             ['workflow2', 'results', 'dmft_outputs', 'greens_functions']
         )
@@ -697,9 +697,9 @@ class ResultsNormalizer(Normalizer):
         methods = ['maxent']
         self._resolve_workflow_gs_properties(methods, properties)
         # Resolving DMFT Greens functions
-        gfs_electronic: List[
-            GreensFunctionsElectronic
-        ] = self.electronic_properties.get('greens_functions')  # type: ignore
+        gfs_electronic: List[GreensFunctionsElectronic] = (
+            self.electronic_properties.get('greens_functions')  # type: ignore
+        )
         for method in ['dmft', 'maxent']:
             name = 'MaxEnt' if method == 'maxent' else method.upper()
             gfs = self.resolve_greens_functions(

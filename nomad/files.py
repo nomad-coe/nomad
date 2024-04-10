@@ -1464,9 +1464,9 @@ class PublicUploadFiles(UploadFiles):
             )
             if found:
                 if files_found:
-                    self._access = (
-                        self._raw_zip_file_object
-                    ) = self._archive_msg_file_object = None
+                    self._access = self._raw_zip_file_object = (
+                        self._archive_msg_file_object
+                    ) = None
                     raise KeyError(
                         'Inconsistency: both public and restricted files found'
                     )

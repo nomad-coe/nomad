@@ -387,9 +387,10 @@ def test_convert(tmp):
 
     convert_archive(config.normalize.springer_db_path, transform=rename)
 
-    with read_archive(tmp_archive) as springer_new, read_archive(
-        config.normalize.springer_db_path
-    ) as springer_old:
+    with (
+        read_archive(tmp_archive) as springer_new,
+        read_archive(config.normalize.springer_db_path) as springer_old,
+    ):
         for uuid, entry in springer_old.items():
             assert uuid in springer_new
             assert to_json(springer_new[uuid]) == to_json(entry)

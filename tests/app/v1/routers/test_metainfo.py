@@ -197,9 +197,9 @@ def test_upload_and_download(
         EntryArchive.m_from_dict(entry_data, m_context=client_context())
 
     # 7. now test if client side can read the package using non-versioned package
-    entry_data[
-        'm_def'
-    ] = f'/upload/{upload_1_id}/raw/{schema_file_name}#/definitions/section_definitions/1'
+    entry_data['m_def'] = (
+        f'/upload/{upload_1_id}/raw/{schema_file_name}#/definitions/section_definitions/1'
+    )
     entry_data = EntryArchive.m_from_dict(entry_data, m_context=client_context())
     assert entry_data.test_quantity == 'new_value'
 
@@ -320,9 +320,9 @@ def test_two_schemas(
     )
 
     entry_data = response.json()['data']['archive']['data']
-    entry_data[
-        'chemical'
-    ] = f'/entries/{generate_entry_id(processed.upload_id, "chemical.archive.json")}/archive#/data'
+    entry_data['chemical'] = (
+        f'/entries/{generate_entry_id(processed.upload_id, "chemical.archive.json")}/archive#/data'
+    )
     # get data in absence of original schema files
     entry = EntryArchive.m_from_dict(entry_data, m_context=ClientContext())
 

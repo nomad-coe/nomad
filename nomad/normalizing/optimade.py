@@ -83,7 +83,6 @@ def transform_to_v1(entry: EntryMetadata) -> EntryMetadata:
 
 
 class OptimadeNormalizer(SystemBasedNormalizer):
-
     """
     This normalizer performs all produces a section all data necessary for the Optimade API.
     It assumes that the :class:`SystemNormalizer` was run before.

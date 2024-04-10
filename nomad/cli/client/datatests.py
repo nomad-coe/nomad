@@ -20,6 +20,7 @@
 A command that runs a series of data compatibility tests against this version
 and another nomad@FAIRDI installation.
 """
+
 from nomad.client import api
 from nomad.datamodel.datamodel import EntryArchive
 from nomad.metainfo import MEnum

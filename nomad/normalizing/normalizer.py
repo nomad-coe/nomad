@@ -148,9 +148,9 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         if scc is not None:
             self.section_run.m_cache['representative_scc_idx'] = scc.m_parent_index
         if system is not None:
-            self.section_run.m_cache[
-                'representative_system_idx'
-            ] = system.m_parent_index
+            self.section_run.m_cache['representative_system_idx'] = (
+                system.m_parent_index
+            )
 
         return system.m_resolved() if system is not None else None
 

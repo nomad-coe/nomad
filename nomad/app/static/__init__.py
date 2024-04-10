@@ -102,9 +102,9 @@ async def add_header(request: Request, call_next):
     if max_age is not None:
         response.headers['Cache-Control'] = f'max-age={max_age}, must-revalidate'
     else:
-        response.headers[
-            'Cache-Control'
-        ] = f'max-age=0, no-cache, no-store, must-revalidate'
+        response.headers['Cache-Control'] = (
+            f'max-age=0, no-cache, no-store, must-revalidate'
+        )
 
     # The etags that we and starlette produce do not follow the RFC, because they do not
     # start with a " as the RFC specifies. Nginx considers them weak etags and will strip

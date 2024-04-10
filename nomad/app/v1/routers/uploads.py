@@ -49,6 +49,7 @@ from nomad.files import (
 )
 from nomad.bundles import BundleExporter, BundleImporter
 from nomad.config.models.config import Reprocess
+from nomad.groups import get_group_ids
 from nomad.processing import (
     Upload,
     Entry,
@@ -2641,7 +2642,7 @@ def get_role_query(roles: List[UploadRole], user: User) -> Q:
     if not roles:
         roles = list(UploadRole)
 
-    group_ids = user.get_group_ids()
+    group_ids = get_group_ids(user.user_id)
 
     role_query = Q()
     if UploadRole.main_author in roles:
@@ -2667,7 +2668,7 @@ def is_user_upload_viewer(upload: Upload, user: Optional[User]):
     if user.user_id in upload.viewers:
         return True
 
-    group_ids = user.get_group_ids()
+    group_ids = get_group_ids(user.user_id)
     if not set(group_ids).isdisjoint(upload.viewer_groups):
         return True
 
@@ -2681,7 +2682,7 @@ def is_user_upload_writer(upload: Upload, user: User):
     if user.user_id in upload.writers:
         return True
 
-    group_ids = user.get_group_ids()
+    group_ids = get_group_ids(user.user_id)
     if not set(group_ids).isdisjoint(upload.writer_groups):
         return True
 
