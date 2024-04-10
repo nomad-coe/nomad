@@ -85,3 +85,25 @@ workflow2:
 {{ yaml_snippet('examples/docs/workflows/specialized.archive.yaml:workflow2', '  ', 'inputs,outputs,tasks') }}inputs:
     ...
 ```
+
+# How to use the workflow visualizer
+The entry overview page will show an interactive graph of the `workflow2` section if defined.
+In the following example, a workflow containing three tasks `Single Point`, `Geometry Optimization`
+and `Phonon` is shown.
+
+![workflow visualizer](images/workflow-visualizer-root.png)
+
+The nodes (inputs, tasks and outputs) are shown from left to right for the current workflow layer.
+The edges (arrows) from (to) a node denotes an input (output) to a section in the target node.
+One can see the description for the nodes and edges by hovering over them. When the
+inputs and outputs are clicked, the linked section is shown in the archive browser. By clicking
+on a task, the graph zooms into the nested workflow layer. By clicking on the arrows,
+only the relevant linked nodes are shown. One can go back to the previous view by clicking on
+the current workflow node.
+
+A number of controls are also provided on top of the graph. The first enables a filtering
+of the nodes following a python-like syntax i.e., list (comma-separated) or range (colon-separated).
+Negative index and percent are also supported. By default, the task nodes can be filtered
+but can be changed to inputs or outputs by clicking on one of the respective nodes. By clicking
+on the `play` button, a force-directed layout of the task nodes is enabled. The other tools
+enable to toggle the legend, go back to a previous view and reset the view.
