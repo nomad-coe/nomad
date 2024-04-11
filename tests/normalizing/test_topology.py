@@ -405,8 +405,8 @@ def test_topology_2d(surface, ref_topologies):
 
         elif res_system.label == 'subsystem':
             # Indices: passes if the index overlap is large enough
-            ref_indices = ref_topologies[ref_index].indices
-            indices = res_system.indices[0]
+            ref_indices = ref_topologies[ref_index].indices[0].tolist()
+            indices = res_system.indices[0].tolist()
             indices_overlap = set(ref_indices).intersection(set(indices))
             assert len(indices_overlap) / len(ref_indices) > 0.85
 

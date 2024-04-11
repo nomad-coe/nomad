@@ -1679,7 +1679,7 @@ def create_system(
     formula_reduced: str,
     formula_anonymous: str,
     system_relation: Relation,
-    indices: List[int] = None,
+    indices: List[List[int]] = None,
     material_id: str = None,
     atoms: ArchiveSection = None,
     cell: Cell = None,
@@ -1781,7 +1781,7 @@ def single_cu_surface_topology() -> List[ResultSystem]:
         formula_reduced=f'Cu{n_atoms}',
         formula_anonymous=f'A{n_atoms}',
         system_relation=Relation(type='subsystem'),
-        indices=list(range(n_atoms)),
+        indices=[list(range(n_atoms))],
     )
 
     species = Species()
@@ -1829,7 +1829,7 @@ def single_cr_surface_topology() -> List[ResultSystem]:
         formula_reduced=f'Cr{n_atoms}',
         formula_anonymous=f'A{n_atoms}',
         system_relation=Relation(type='subsystem'),
-        indices=list(range(n_atoms)),
+        indices=[list(range(n_atoms))],
     )
 
     species = Species()
@@ -1878,7 +1878,7 @@ def single_ni_surface_topology() -> List[ResultSystem]:
         formula_reduced=f'Ni{n_atoms}',
         formula_anonymous=f'A{n_atoms}',
         system_relation=Relation(type='subsystem'),
-        indices=list(range(n_atoms)),
+        indices=[list(range(n_atoms))],
     )
 
     species = Species()
@@ -1915,10 +1915,10 @@ def stacked_cu_ni_surface_topology() -> List[ResultSystem]:
     topologies_ni = single_ni_surface_topology()
 
     # Indices are modified
-    n_atoms_cu = len(topologies_cu[0].indices)
-    n_atoms_ni = len(topologies_ni[0].indices)
-    topologies_cu[0].indices = list(range(0, n_atoms_cu))
-    topologies_ni[0].indices = list(range(n_atoms_cu, n_atoms_cu + n_atoms_ni))
+    n_atoms_cu = len(topologies_cu[0].indices[0])
+    n_atoms_ni = len(topologies_ni[0].indices[0])
+    topologies_cu[0].indices = [list(range(0, n_atoms_cu))]
+    topologies_ni[0].indices = [list(range(n_atoms_cu, n_atoms_cu + n_atoms_ni))]
 
     return topologies_cu + topologies_ni
 
@@ -1953,7 +1953,7 @@ def graphene_topology() -> List[ResultSystem]:
         formula_reduced='C32',
         formula_anonymous='A32',
         system_relation=Relation(type='subsystem'),
-        indices=[i for i in range(32)],
+        indices=[[i for i in range(32)]],
     )
 
     if runschema:
@@ -2031,7 +2031,7 @@ def boron_nitride_topology() -> List[ResultSystem]:
         formula_reduced='B16N16',
         formula_anonymous='A16B16',
         system_relation=Relation(type='subsystem'),
-        indices=[i for i in range(32)],
+        indices=[[i for i in range(32)]],
     )
 
     if runschema:
@@ -2109,7 +2109,7 @@ def mos2_topology() -> List[ResultSystem]:
         formula_reduced='Mo16S32',
         formula_anonymous='A32B16',
         system_relation=Relation(type='subsystem'),
-        indices=[i for i in range(48)],
+        indices=[[i for i in range(48)]],
     )
 
     if runschema:
@@ -2163,10 +2163,10 @@ def stacked_graphene_boron_nitride_topology() -> Atoms:
     topologies_bn = boron_nitride_topology()
 
     # Indices are modified
-    n_atoms_c = len(topologies_c[0].indices)
-    n_atoms_bn = len(topologies_bn[0].indices)
-    topologies_c[0].indices = list(range(0, n_atoms_c))
-    topologies_bn[0].indices = list(range(n_atoms_c, n_atoms_c + n_atoms_bn))
+    n_atoms_c = len(topologies_c[0].indices[0])
+    n_atoms_bn = len(topologies_bn[0].indices[0])
+    topologies_c[0].indices = [list(range(0, n_atoms_c))]
+    topologies_bn[0].indices = [list(range(n_atoms_c, n_atoms_c + n_atoms_bn))]
 
     # Lattice parameters are modified as the cells are strained
     topologies_c[1].cell.a = 2.16 * ureg.angstrom
