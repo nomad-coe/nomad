@@ -650,7 +650,7 @@ class TestM1:
 
     def test_pd_dataframe_quantity(self):
         class TestSection(MSection):
-            test_quantity = Quantity(type=np.dtype('int32'))
+            test_quantity = Quantity(type=np.dtype('int32'), shape=['*', '*'])
 
         test_section = TestSection()
         test_section.test_quantity = pd.DataFrame([[1, 2]])
@@ -790,7 +790,7 @@ class TestM1:
     def test_validate_dimension(self):
         system = System()
         system.atom_labels = ['H']
-        system.atom_positions = []
+        system.atom_positions = [[]]
         assert len(system.m_validate()) > 0
 
     def test_multiple_sub_sections(self):
