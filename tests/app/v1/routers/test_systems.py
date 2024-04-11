@@ -162,7 +162,7 @@ def example_data_systems(elastic_module, mongo_module, user1):
             topology=[
                 System(atoms=Atoms.m_from_dict(atoms_without_cell.m_to_dict())),
                 System(atoms_ref=archive.run[0].system[0].atoms),
-                System(atoms_ref=archive.run[0].system[0].atoms, indices=[0]),
+                System(atoms_ref=archive.run[0].system[0].atoms, indices=[[0]]),
                 System(atoms_ref=archive.run[0].system[0].atoms, indices=[[0]]),
                 System(atoms_ref=archive.run[0].system[2].atoms),
             ]
