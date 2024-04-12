@@ -123,7 +123,15 @@ class ElasticTransformer(OPTElasticTransformer):
 
         if quantity.elastic_mapping_type == 'text':
             query_type = 'match'
-        elif quantity.elastic_mapping_type in ['keyword', 'integer', 'float', 'bool']:
+        elif quantity.elastic_mapping_type in [
+            'keyword',
+            'short',
+            'integer',
+            'long',
+            'float',
+            'double',
+            'bool',
+        ]:
             query_type = 'term'
         else:
             raise NotImplementedError('Quantity has unsupported ES field type')

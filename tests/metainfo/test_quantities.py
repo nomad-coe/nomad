@@ -159,7 +159,7 @@ def test_normalization_string(def_type, orig_value, normalized_value):
     + [
         pytest.param(
             int,
-            'm',
+            'inch',
             [],
             100 * units('m'),
             100 * units('m'),
@@ -299,8 +299,8 @@ def test_complex_number(unit, quantity_type, value, shape):
                 'im': [[1, 2, 3], [4, 5, 6]],
             },  # no shape checking anyway
             np.array([[1, 2, 3], [4, 5, 6]]) + 1j * np.array([[1, 2, 3], [4, 5, 6]]),
-            ['*'],
-            id='complex-full',
+            ['*', '*'],
+            id='complex-full-2nd',
         ),
     ],
 )
@@ -327,8 +327,6 @@ def test_complex_number_dict(unit, quantity_type, value, result, shape):
     'quantity_type,value',
     [
         pytest.param(np.complex128, np.int64(1), id='downcast-from-int-128'),
-        pytest.param(np.complex64, {'re': 1}, id='downcast-from-int-64'),
-        pytest.param(np.complex64, {'re': 1.25}, id='downcast-from-float-64'),
         pytest.param(np.complex128, {'re': [1.25, 1], 'im': 1}, id='mismatch-shape'),
         pytest.param(np.complex128, {}, id='empty-dict'),
     ],

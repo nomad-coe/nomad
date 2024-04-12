@@ -1059,7 +1059,11 @@ class ResultsNormalizer(Normalizer):
                             msd.diffusion_constant_error_type = (
                                 diffusion_constant.error_type
                             )
-                            msd.diffusion_constant_errors = diffusion_constant.errors
+                            msd.diffusion_constant_errors = (
+                                diffusion_constant.errors
+                                if isinstance(diffusion_constant.errors, list)
+                                else [diffusion_constant.errors]
+                            )
 
                         md = self.get_md_provenance(
                             msd_workflow.m_parent.m_parent.m_parent

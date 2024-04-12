@@ -495,7 +495,7 @@ def test_msds(molecular_dynamics):
         2.1,
     )
     assert msd.diffusion_constant_error_type == 'Pearson correlation coefficient'
-    assert np.array_equal(msd.diffusion_constant_errors, 0.98)
+    assert np.array_equal(msd.diffusion_constant_errors, [0.98])
 
 
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)

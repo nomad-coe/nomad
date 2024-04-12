@@ -73,7 +73,7 @@
             "composition_leadfree": false,
             "additives_compounds": "Cl",
             "band_gap": 1.6,
-            "band_gap_graded": false,
+            "band_gap_graded": "false",
             "band_gap_estimation_basis": "Composition",
             "storage_time_until_next_deposition_step": "Unknown",
             "storage_atmosphere": "Unknown"
