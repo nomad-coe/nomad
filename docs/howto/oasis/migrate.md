@@ -76,7 +76,7 @@ Update the NOMAD docker image version and restart the Oasis like this:
 ```
 docker compose down
 docker compose pull
-docker copmose run north python -m jupyterhub upgrade
+docker compose run north python -m jupyterhub upgrade-db
 docker compose up -d
 ```
 
