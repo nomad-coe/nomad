@@ -413,6 +413,10 @@ class ELabFTWParser(MatchingParser):
             matched_title = exp_id.split('/')
             if len(matched_title) > 1:
                 extracted_title = matched_title[1]
+                archive.metadata.m_update_from_dict(dict(entry_name='ElabFTW Schema'))
+                exp_archive.metadata.m_update_from_dict(
+                    dict(entry_name=extracted_title)
+                )
             else:
                 logger.warning(f"Couldn't extract the title from {exp_id}")
                 extracted_title = None
