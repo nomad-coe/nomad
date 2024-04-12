@@ -172,7 +172,7 @@ def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None])
         combined = __combine(real, imag)
         return (
             combined
-            if complex_type == complex
+            if complex_type == complex or not isinstance(combined, list)
             else np.array(combined, dtype=complex_type)
         )
 

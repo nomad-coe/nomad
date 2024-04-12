@@ -1428,9 +1428,9 @@ class SolarCellJVCurve(SolarCellJV):
         from scipy import interpolate
 
         j_v_interpolated = interpolate.interp1d(self.current_density, self.voltage)
-        Voc = j_v_interpolated(0)
+        Voc = j_v_interpolated(0).item()
         v_j_interpolated = interpolate.interp1d(self.voltage, self.current_density)
-        Isc = v_j_interpolated(0)
+        Isc = v_j_interpolated(0).item()
         if Isc >= 0:
             idx = np.argmax(self.voltage * self.current_density)
         else:

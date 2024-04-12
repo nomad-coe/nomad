@@ -202,14 +202,22 @@ class TableData(ArchiveSection):
                                     continue
                                 try:
                                     df = pd.DataFrame.from_dict(data.loc[0, sheet_name])
-                                    self.m_set(quantity, np.array(df.loc[:, col_name]))
+                                    tmp = np.array(df.loc[:, col_name])
+                                    self.m_set(
+                                        quantity,
+                                        tmp.item() if quantity.is_scalar else tmp,
+                                    )
                                 except Exception:
                                     continue
                             else:
                                 # Otherwise, assume the sheet_name is the first sheet of Excel/csv
                                 try:
                                     df = pd.DataFrame.from_dict(data.iloc[0, 0])
-                                    self.m_set(quantity, np.array(df.loc[:, col_data]))
+                                    tmp = np.array(df.loc[:, col_data])
+                                    self.m_set(
+                                        quantity,
+                                        tmp.item() if quantity.is_scalar else tmp,
+                                    )
                                 except Exception:
                                     continue
                     if column_sections:
