@@ -85,7 +85,7 @@ If any entries fail to be downloaded due to server error, it is kept in the list
 
 ### Pandas Dataframe
 
-You can also convert the <b>downloaded<b> results to pandas dataframe directly by calling `entries_to_dataframe` method
+You can also convert the <b>downloaded</b> results to pandas dataframe directly by calling `entries_to_dataframe` method
 on the `query` object. In order to filter the final dataframe to contain only specific keys/column_names, you can
 use the option `keys_to_filter` with a list of relevant keys. For example:
 
