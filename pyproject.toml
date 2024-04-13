@@ -72,10 +72,8 @@ infrastructure = [
     'asgiref~=3.5',
     'bagit==1.8.1',
     'basicauth==0.4.1',
-    'bcrypt==3.2.0',
     'beautifulsoup4',
     'celery',
-    'cryptography',
     'dockerspawner==13.0.0',
     'elasticsearch==7.17.1',
     'fastapi<0.100', # later versions pending pydantic v2 upgrade
@@ -93,7 +91,6 @@ infrastructure = [
     'msgpack',
     'oauthenticator==15.1.0',
     'optimade[mongo]==0.22.1',
-    'passlib==1.7.4',
     'pyjwt[crypto]==2.6.0',
     'python-json-logger==2.0.2',
     'python-logstash==0.4.6',
@@ -126,7 +123,7 @@ dev = [
     'mypy==1.0.1', # bug: incompatible with derived models of pydantic v1
     'names==0.3.0',
     'pip-tools>=6.13.0',
-    'pycodestyle==2.8.0',
+    'pycodestyle',
     'pytest-cov==2.7.1',
     'pytest-timeout==1.4.2',
     'pytest-xdist>=1.30.0',
