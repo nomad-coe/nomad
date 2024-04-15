@@ -34,7 +34,7 @@ from nomad.processing import ProcessStatus
 from nomad import files
 
 
-def quantity_generator(quantity_name, header_name, shape="shape: ['*']", to_dict=False):
+def quantity_generator(quantity_name, header_name, shape, to_dict=False):
     if to_dict:
         return {
             quantity_name: {
@@ -462,7 +462,7 @@ def test_tabular_column_mode(
             {
                 'Substance2': {
                     'quantities': quantity_generator(
-                        'quantity_2', 'header_2', shape='', to_dict=True
+                        'quantity_2', 'header_2', shape=[], to_dict=True
                     )
                 }
             },
@@ -520,12 +520,12 @@ def test_tabular_row_mode(
             'sections': {
                 'Substance1': {
                     'quantities': quantity_generator(
-                        'quantity_4', 'header_0', shape='', to_dict=True
+                        'quantity_4', 'header_0', shape=[], to_dict=True
                     )
                 },
                 'Substance2': {
                     'quantities': quantity_generator(
-                        'quantity_2', 'header_2', shape='', to_dict=True
+                        'quantity_2', 'header_2', shape=[], to_dict=True
                     )
                 },
                 'My_schema': {

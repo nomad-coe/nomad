@@ -84,7 +84,7 @@ class LabfolderElement(MSection):
     )
     owner_id = Quantity(type=str, description='the id of the original author')
     element_type = Quantity(
-        type=MEnum('TEXT', 'DATA', 'FILE'),
+        type=MEnum('TEXT', 'DATA', 'FILE', 'TABLE', 'WELL_PLATE'),
         description='Denotes that this is a file element. The value is always `FILE`',
     )
 

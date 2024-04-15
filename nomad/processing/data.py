@@ -671,7 +671,7 @@ class MetadataEditRequestHandler:
             assert isinstance(value, str), 'Expected a string value'
             if value == '':
                 return None
-            assert value in definition.type._values, f'Bad enum value {value}'
+            assert value in definition.type, f'Bad enum value {value}'
             return value
         elif isinstance(definition.type, metainfo.Reference):
             assert isinstance(value, str), 'Expected a string value'

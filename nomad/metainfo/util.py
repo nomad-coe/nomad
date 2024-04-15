@@ -309,12 +309,12 @@ class MEnum(Sequence):
     def get_all_descriptions(self) -> Dict[str, str]:
         return self._descriptions
 
-    def get_all_values(self) -> set:
-        return self._values
-
     # no need to implement __getattr__ as all attributes are stored in the __dict__
     # def __getattr__(self, attr):
     #     pass
+
+    def __contains__(self, item):
+        return item in self._values
 
     def __getitem__(self, index):
         return self._list[index]

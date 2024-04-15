@@ -437,9 +437,21 @@ class ELabFTWParser(MatchingParser):
             except FileNotFoundError:
                 raise ELabFTWParserError(f"Couldn't find export-elabftw.json file.")
 
+            def clean_nones(value):
+                if isinstance(value, list):
+                    return [
+                        clean_nones(x) for x in value
+                    ]  # ??? what to do if this list has None values
+                if isinstance(value, dict):
+                    return {
+                        k: clean_nones(v) for k, v in value.items() if v is not None
+                    }
+
+                return value
+
             experiment_data = ELabFTWExperimentData()
             try:
-                experiment_data.m_update_from_dict(export_data[0])
+                experiment_data.m_update_from_dict(clean_nones(export_data[0]))
             except (IndexError, KeyError, TypeError):
                 logger.warning(
                     f"Couldn't read and parse the data from export-elabftw.json file"

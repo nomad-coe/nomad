@@ -51,9 +51,8 @@ def get_enums(root, path='', es=True, results=None):
         if es and 'elasticsearch' not in quantity.m_annotations:
             continue
         if isinstance(dtype, MEnum):
-            values = dtype._values
             quantity_path = f'{path}.{quantity.name}'
-            results[quantity_path] = values
+            results[quantity_path] = list(dtype)
 
     for subsection in subsections:
         section = subsection.sub_section
