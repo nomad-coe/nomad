@@ -1943,7 +1943,7 @@ class BSE(ExcitedStateMethodology):
         )
         gw_type = Quantity(
             type=MEnum(
-                runschema.method.GW.type.type._list
+                list(runschema.method.GW.type.type)
             ),  # TODO solve conflict between BSE.gw_type and GW.type when using GWMethod.type.m_copy()
             description=runschema.method.GW.type.description,
             a_elasticsearch=[
@@ -2196,6 +2196,7 @@ class Method(MSection):
             'XPS',
             'XRD',
             'NMR',
+            'quantum cms',  # test_qcms_data
             config.services.unavailable_value,
         ),
         description="""

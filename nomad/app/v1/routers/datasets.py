@@ -389,7 +389,8 @@ async def post_datasets(
     # add dataset to entries in mongo and elastic
     # TODO this should be part of a new edit API
     if dataset_type != DatasetType.owned:
-        dataset.query = create.query
+        if create.query is not None:
+            dataset.query = create.dict()['query']
         dataset.entrys = create.entries
         empty = True
     else:

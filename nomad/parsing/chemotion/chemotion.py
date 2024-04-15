@@ -452,6 +452,8 @@ class ChemotionParser(MatchingParser):
 
         for item_name, item_content in data.items():
             for sub_item in item_content.values():
+                if isinstance(sub_item, dict):
+                    sub_item = {k: v for k, v in sub_item.items() if v is not None}
                 try:
                     chemotion_subsection = _element_type_section_mapping[item_name]()
                     _set_inf_to_nan_if_string(sub_item, 'melting_point')

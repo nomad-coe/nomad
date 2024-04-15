@@ -1490,7 +1490,7 @@ class MSection(
             return value
 
         if isinstance(target_type, MEnum):
-            if value not in cast(MEnum, target_type).get_all_values():
+            if value not in target_type:
                 raise TypeError(
                     f'The value {value} is not an enum value for {definition}.'
                 )

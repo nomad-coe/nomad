@@ -9,7 +9,7 @@
             "elements": ["H", "O"]
         },
         "method": {
-            "method_name": "test"
+            "method_name": "DFT"
         }
     }
 }
