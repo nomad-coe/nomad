@@ -359,7 +359,7 @@ class FS(ConfigBaseModel):
     local_tmp = '/tmp'
     prefix_size = 2
     archive_version_suffix: Union[str, List[str]] = Field(
-        'v1.2',
+        ['v1.2', 'v1'],
         description="""
         This allows to add an additional segment to the names of archive files and
         thereby allows different NOMAD installations to work with the same storage
