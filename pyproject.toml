@@ -67,6 +67,7 @@ parsing = [
     'pynxtools[convert]==0.1.1',
     'pyzeo==0.1.4',
     'quippy-ase==0.9.14',
+    'rdkit',
 ]
 infrastructure = [
     'asgiref~=3.5',
