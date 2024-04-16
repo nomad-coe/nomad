@@ -1515,6 +1515,11 @@ class MSection(
                 definition.unit if isinstance(definition, Quantity) else None,
             )
 
+        if isinstance(value, pint.Quantity):
+            if definition.unit is not None:
+                value = value.to(definition.unit)
+            value = value.m
+
         if type(value) != target_type:
             if target_type in MTypes.primitive:
                 try:
