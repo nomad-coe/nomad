@@ -129,7 +129,6 @@ meta:
   name: NOMAD
   service: unknown nomad service
   source_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR
-  version: 1.2.2.dev421+gff18c846b.d20240227
 mongo:
   db_name: nomad_v1
   host: localhost
