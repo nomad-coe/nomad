@@ -245,7 +245,8 @@ class UploadFilesContract(UploadFilesFixtures):
         _, entries, upload_files = test_upload
         for entry in entries:
             for file_path in entry.files:
-                with upload_files.raw_file(file_path) as f:
+                mode = 'rb' if file_path.endswith('.h5') else 'r'
+                with upload_files.raw_file(file_path, mode) as f:
                     assert len(f.read()) > 0
 
     def test_rawfile_size(self, test_upload: UploadWithFiles):
@@ -293,6 +294,11 @@ class UploadFilesContract(UploadFilesFixtures):
         with upload_files.read_archive(example_entry_id) as archive:
             assert to_json(archive[example_entry_id]) == example_archive_contents
 
+    def test_archive_hdf5_file(self, test_upload: UploadWithFiles):
+        _, _, upload_files = test_upload
+        with upload_files.archive_hdf5_file(example_entry_id) as f:
+            assert len(f.read()) > 0
+
 
 def create_staging_upload(
     upload_id: str, entry_specs: str, embargo_length: int = 0
@@ -309,6 +315,8 @@ def create_staging_upload(
             First entry is at top level, following entries will be put under 1/, 2/, etc.
             All entries with capital `P`/`R` will be put in the same directory under multi/.
     """
+    import h5py
+
     upload_files = StagingUploadFiles(upload_id, create=True)
     entries = []
 
@@ -331,6 +339,8 @@ def create_staging_upload(
 
         upload_files.add_rawfiles(entry_file)
         upload_files.write_archive(entry.entry_id, example_archive_contents)
+        with h5py.File(upload_files.archive_hdf5_file(entry.entry_id), 'a') as f:
+            f.create_dataset('value', data=1.0)
 
         entries.append(entry)
         prefix += 1

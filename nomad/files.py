@@ -90,6 +90,7 @@ bundle_info_filename = 'bundle_info.json'
 # Used to check if zip-files/archive files are empty
 # TODO: These should not be needed when we move on to only keep files with the right access
 empty_zip_file_size = 22
+empty_hdf5_file_size = 96
 empty_archive_file_size = 32
 
 
@@ -811,6 +812,9 @@ class UploadFiles(DirectoryObject, metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
+    def archive_hdf5_file(self, entry_id: str) -> IO:
+        raise NotImplementedError()
+
 
 class StagingUploadFiles(UploadFiles):
     def __init__(self, upload_id: str, create: bool = False):
@@ -842,6 +846,7 @@ class StagingUploadFiles(UploadFiles):
     def size(self) -> int:
         return self._size
 
+    @classmethod
     def _file(self, path_object: PathObject, *args, **kwargs) -> IO:
         try:
             return open(path_object.os_path, *args, **kwargs)
@@ -933,6 +938,11 @@ class StagingUploadFiles(UploadFiles):
     def raw_file_object(self, file_path: str) -> PathObject:
         assert is_safe_relative_path(file_path)
         return self._raw_dir.join_file(file_path)
+
+    def archive_hdf5_file(self, entry_id: str) -> IO:
+        file_object = self.join_dir('archive').join_file(f'{entry_id}.h5')
+        farg = 'r+b' if file_object.exists() else 'wb'
+        return self._file(file_object, farg)
 
     def write_archive(self, entry_id: str, data: Any) -> int:
         """Writes the data as archive file and returns the archive file size."""
@@ -1279,6 +1289,26 @@ class StagingUploadFiles(UploadFiles):
             )
             if other_file_object.exists():
                 other_file_object.delete()  # This file should be empty, if it exists
+
+            file_object = PublicUploadFiles._create_archive_hdf5_file_object(
+                target_dir, access
+            )
+            import h5py
+
+            with h5py.File(file_object.os_path, 'w') as hdf5_target:
+                for entry in entries:
+                    with h5py.File(
+                        self.archive_hdf5_file(entry.entry_id), 'a'
+                    ) as hdf5_source:
+                        group = hdf5_target.create_group(entry.entry_id)
+                        for key in hdf5_source.keys():
+                            hdf5_source.copy(key, group)
+            other_file_object = PublicUploadFiles._create_archive_hdf5_file_object(
+                target_dir, other_access
+            )
+            if other_file_object.exists():
+                other_file_object.delete()
+
         except Exception as e:
             self.logger.error('exception during packing archives', exc_info=e)
             raise
@@ -1407,6 +1437,8 @@ class PublicUploadFiles(UploadFiles):
         self._directories: Dict[str, Dict[str, RawPathInfo]] = None
         self._raw_zip_file_object: PathObject = None
         self._raw_zip_file: zipfile.ZipFile = None
+        self._archive_hdf5_file_object: PathObject = None
+        self._archive_hdf5_file: IO = None
         self._archive_msg_file_object: PathObject = None
         self._archive_msg_file: ArchiveReader = None
         self._access: str = None
@@ -1429,6 +1461,9 @@ class PublicUploadFiles(UploadFiles):
 
         if self._archive_msg_file is not None:
             self._archive_msg_file.close()
+
+        if self._archive_hdf5_file is not None:
+            self._archive_hdf5_file.close()
 
     @property
     def access(self):
@@ -1455,24 +1490,35 @@ class PublicUploadFiles(UploadFiles):
             archive_msg_file_object = PublicUploadFiles._create_msg_file_object(
                 self, access
             )
+            archive_hdf5_file_object = (
+                PublicUploadFiles._create_archive_hdf5_file_object(self, access)
+            )
             found = (
-                raw_zip_file_object.exists()
-                and raw_zip_file_object.size > empty_zip_file_size
-            ) or (
-                archive_msg_file_object.exists()
-                and archive_msg_file_object.size > empty_archive_file_size
+                (
+                    raw_zip_file_object.exists()
+                    and raw_zip_file_object.size > empty_zip_file_size
+                )
+                or (
+                    archive_msg_file_object.exists()
+                    and archive_msg_file_object.size > empty_archive_file_size
+                )
+                or (
+                    archive_hdf5_file_object.exists()
+                    and archive_hdf5_file_object.size > empty_hdf5_file_size
+                )
             )
             if found:
                 if files_found:
                     self._access = self._raw_zip_file_object = (
                         self._archive_msg_file_object
-                    ) = None
+                    ) = self._archive_hdf5_file_object = None
                     raise KeyError(
                         'Inconsistency: both public and restricted files found'
                     )
                 files_found = True
                 self._raw_zip_file_object = raw_zip_file_object
                 self._archive_msg_file_object = archive_msg_file_object
+                self._archive_hdf5_file_object = archive_hdf5_file_object
                 self._access = access
         if not files_found:
             raise KeyError('Neither public nor restricted files found')
@@ -1501,6 +1547,28 @@ class PublicUploadFiles(UploadFiles):
         self._raw_zip_file = zipfile.ZipFile(zip_path)
 
         return self._raw_zip_file
+
+    def _open_archive_hdf5_file(self) -> IO:
+        if self._archive_hdf5_file:
+            return self._archive_hdf5_file
+
+        hdf5_file_object = PublicUploadFiles._create_archive_hdf5_file_object(
+            self, self.access
+        )
+        if not hdf5_file_object.exists():
+            raise FileNotFoundError()
+
+        self._archive_hdf5_file = open(hdf5_file_object.os_path, 'rb')
+        return self._archive_hdf5_file
+
+    def archive_hdf5_file(self, entry_id: str) -> IO:
+        return self._open_archive_hdf5_file()
+
+    @staticmethod
+    def _create_archive_hdf5_file_object(
+        target_dir: DirectoryObject, access: str, fallback: bool = False
+    ) -> PathObject:
+        return target_dir.join_file(f'archive-{access}.h5')
 
     @property
     def missing_raw_files(self):
@@ -1560,6 +1628,17 @@ class PublicUploadFiles(UploadFiles):
                     for entry_id, data in archive.items():
                         entry_id = entry_id.strip()
                         staging_upload_files.write_archive(entry_id, to_json(data))
+
+                import h5py
+
+                with h5py.File(self._open_archive_hdf5_file()) as hdf5_source:
+                    for entry_id, data in hdf5_source.items():
+                        with h5py.File(
+                            staging_upload_files.archive_hdf5_file(entry_id), 'w'
+                        ) as hdf5_target:
+                            for key in data.keys():
+                                data.copy(key, hdf5_target)
+
             except FileNotFoundError:
                 pass
 
@@ -1762,11 +1841,22 @@ class PublicUploadFiles(UploadFiles):
             if raw_zip_file_object_new.exists():
                 raw_zip_file_object_new.delete()  # We have checked that the file is empty anyway
             os.rename(raw_zip_file_object.os_path, raw_zip_file_object_new.os_path)
+        hdf5_file_object = PublicUploadFiles._create_archive_hdf5_file_object(
+            self, self.access
+        )
+        hdf5_file_object_new = PublicUploadFiles._create_archive_hdf5_file_object(
+            self, new_access
+        )
+        if hdf5_file_object.exists():
+            if hdf5_file_object_new.exists():
+                hdf5_file_object_new.delete()  # We have checked that the file is empty anyway
+            os.rename(hdf5_file_object.os_path, hdf5_file_object_new.os_path)
 
         # Clear the cached values
         self._access = None
         self._raw_zip_file = self._raw_zip_file_object = None
         self._archive_msg_file = self._archive_msg_file_object = None
+        self._archive_hdf5_file = self._archive_hdf5_file_object = None
 
     def files_to_bundle(
         self, export_settings: BundleExportSettings

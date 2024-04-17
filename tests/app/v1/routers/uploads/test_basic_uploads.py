@@ -3681,7 +3681,11 @@ def test_get_upload_bundle(
                     os_path = os.path.join(dirpath, filename)
                     rel_path = os.path.relpath(os_path, upload_files.os_path)
                     include = False
-                    include |= rel_path.startswith('raw') and include_raw_files
+                    include |= (
+                        rel_path.startswith('raw')
+                        and not rel_path.endswith('.h5')
+                        and include_raw_files
+                    )
                     include |= rel_path.startswith('archive') and include_archive_files
                     if include:
                         expected_files.add(rel_path)

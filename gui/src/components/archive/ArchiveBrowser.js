@@ -72,6 +72,7 @@ import ArchiveSearchBar from './ArchiveSearchBar'
 import DOMPurify from 'dompurify'
 import XYPlot from "./XYPlot"
 import { useDisplayUnit } from '../units/useDisplayUnit'
+import H5Web from '../visualization/H5Web'
 
 export const configState = atom({
   key: 'config',
@@ -667,6 +668,11 @@ export function QuantityItemPreview({value, def}) {
       <Typography component="span">JSON data</Typography>
     </Box>
   }
+  if (def.type.type_data === 'nomad.datamodel.hdf5._HDF5Dataset' || def.type.type_data === 'nomad.datamodel.hdf5._HDF5Reference') {
+    return <Box component="span" fontStyle="italic">
+      <Typography component="span">HDF5 array</Typography>
+    </Box>
+  }
   if (def.shape.length > 0) {
     const dimensions = []
     let typeLabel = 'unknown'
@@ -678,6 +684,9 @@ export function QuantityItemPreview({value, def}) {
       }
       if (def.type.type_kind === 'python') {
         typeLabel = 'list'
+      } else if (typeof value === 'string') {
+        typeLabel = 'HDF5 array'
+        dimensions.length = 0
       } else {
         if (dimensions.length === 1) {
           typeLabel = 'vector'
@@ -726,6 +735,7 @@ QuantityItemPreview.propTypes = ({
 
 const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
   const {units} = useUnitContext()
+  const {uploadId} = useEntryStore()
 
   const getRenderValue = useCallback(value => {
     let finalValue
@@ -737,7 +747,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
       finalValue = value
     }
     let finalUnit
-    if (def.unit) {
+    if (def.unit && typeof finalValue !== 'string') {
       const systemUnitQ = new Q(finalValue, def.unit).toSystem(units)
       finalValue = systemUnitQ.value()
       finalUnit = systemUnitQ.label()
@@ -750,7 +760,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
     return [finalValue, finalUnit]
   }, [def, more, units])
 
-  const isMathValue = def.type.type_kind === 'numpy'
+  const isMathValue = def.type.type_kind === 'numpy' && typeof value !== 'string'
   if (isMathValue) {
     const [finalValue, finalUnit] = getRenderValue(value)
     if (def.shape.length > 0) {
@@ -801,6 +811,13 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
           </li>
         })}
       </ul>
+    } else if ((def.type?.type_data === 'nomad.datamodel.hdf5._HDF5Dataset') || def.type?.type_data === 'nomad.datamodel.hdf5._HDF5Reference') {
+      const h5Path = value.match(/(?:\/uploads\/(?<uploadId>.+?)\/(?<source>.+?)\/)*(?<filename>.+?)#(?<path>.+)/)
+      const h5UploadId = h5Path.groups.uploadId || uploadId
+      const h5Source = h5Path.groups.source || (h5Path.groups.filename.endsWith('.h5') ? 'raw' : 'archive')
+      return <Compartment title='hdf5'>
+        <H5Web upload_id={h5UploadId} filename={h5Path.groups.filename} initialPath={h5Path.groups.path} source={h5Source} sidebarOpen={false}></H5Web>
+      </Compartment>
     } else {
       const [finalValue] = getRenderValue(value)
       return <Typography>{typeof finalValue === 'object' ? JSON.stringify(finalValue) : finalValue?.toString()}</Typography>
