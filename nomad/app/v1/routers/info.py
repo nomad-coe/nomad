@@ -147,13 +147,21 @@ def statistics():
 )
 async def get_info():
     """Return information about the nomad backend and its configuration."""
+    import re  # Import the 're' module for regular expressions
+
+    parser_names = sorted(
+        [re.sub(r'^(parsers?|missing)/', '', key) for key in parsers.parser_dict.keys()]
+    )
     return InfoModel(
         **{
-            'parsers': [
-                key[key.index('/') + 1 :] for key in parsers.parser_dict.keys()
-            ],
-            'metainfo_packages': ['general', 'general.experimental', 'common', 'public']
-            + sorted([key[key.index('/') + 1 :] for key in parsers.parser_dict.keys()]),
+            'parsers': parser_names,
+            'metainfo_packages': [
+                'general',
+                'general.experimental',
+                'common',
+                'public',
+            ]
+            + parser_names,
             'codes': [
                 {
                     'code_name': x.get('codeLabel', 'unknown code'),
