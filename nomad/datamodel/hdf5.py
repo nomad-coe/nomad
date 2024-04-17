@@ -47,7 +47,7 @@ def read_hdf5_dataset(hdf5_file: h5py.File, path: str) -> h5py.Dataset:
     )[match['path']]
 
 
-def write_hdf5_dataset(value: Any, hdf5_file: h5py.File, path: str) -> str:
+def write_hdf5_dataset(value: Any, hdf5_file: h5py.File, path: str) -> None:
     """
     Write data to HDF5 file.
     """
@@ -59,7 +59,6 @@ def write_hdf5_dataset(value: Any, hdf5_file: h5py.File, path: str) -> str:
         dtype=value.dtype if hasattr(value, 'dtype') else None,
     )
     dataset[...] = value.magnitude if hasattr(value, 'magnitude') else value
-    return dataset
 
 
 class _HDF5Reference(DataType):

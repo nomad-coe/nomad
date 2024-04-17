@@ -39,12 +39,12 @@ nav:
       - Use base sections: howto/customization/base_sections.md
       - Parse tabular data: howto/customization/tabular.md
       - Define workflows: howto/customization/workflows.md
-      - Handle large quantities: howto/customization/hdf5.md
       - Write plugins: howto/customization/plugins.md
       - Write a schema plugin: howto/customization/schemas.md
       - Write a parser: howto/customization/parsers.md
       - Write a normalizer: howto/customization/normalizers.md
       - Work with units: howto/customization/units.md
+      - Use HDF5 to handle large quantities: howto/customization/hdf5.md
     - Development:
       - Get started: howto/develop/setup.md
       - Navigate the code: howto/develop/code.md

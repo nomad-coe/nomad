@@ -65,12 +65,12 @@ Customize NOMAD, write plugins, and tailor NOMAD Oasis.
 - [Use base sections](customization/base_sections.md)
 - [Parse tabular data](customization/tabular.md)
 - [Define workflows](customization/workflows.md)
-- [Reference hdf5 files](customization/hdf5.md)
 - [Write plugins](customization/plugins.md)
 - [Write a python schema](customization/schemas.md)
 - [Write a parser](customization/parsers.md)
 - [Write a normalizer](customization/normalizers.md)
 - [Work with units](customization/units.md)
+- [Use HDF5 to handle large quantities](customization/hdf5.md)
 
 </div>
 <div markdown="block">
