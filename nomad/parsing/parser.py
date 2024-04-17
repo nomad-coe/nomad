@@ -393,6 +393,7 @@ class MatchingParser(Parser):
         return self.name
 
 
+# TODO remove this after merging hdf5 reference, only for parser compatibility
 def to_hdf5(value: Any, f: Union[str, IO], path: str):
     with h5py.File(f, 'a') as root:
         segments = path.rsplit('/', 1)

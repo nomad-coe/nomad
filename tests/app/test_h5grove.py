@@ -74,7 +74,8 @@ def test_h5grove(
     h5file.create_dataset('entry', data='test')
     h5file.close()
     resp = h5grove_api.get(
-        f'/data/?file={file_name}&path=/entry&upload_id={upload_id}', headers=user_auth
+        f'/data/?file={file_name}&path=/entry&upload_id={upload_id}&source=raw',
+        headers=user_auth,
     )
     assert resp.status_code == status_code
     if status_code == 200:

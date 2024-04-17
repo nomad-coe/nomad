@@ -956,6 +956,7 @@ class _Bytes(DataType):
         return base64.b64decode(value)
 
 
+# TODO remove this and replace with nomad.datamodel.hdf5.HDF5Reference, only for parser compatibility
 class _HDF5Reference(DataType):
     pass
 

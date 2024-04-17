@@ -21,8 +21,8 @@ import os
 import pytest
 import json
 import re
+import numpy as np
 
-import nomad
 from nomad import utils, files, processing
 from nomad.metainfo.metainfo import MSection
 from nomad.parsing.parser import ArchiveParser
@@ -30,7 +30,7 @@ from nomad.datamodel import Context
 from nomad.datamodel.context import ServerContext, ClientContext, parse_path
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.processing import Upload, Entry, ProcessStatus
-from nomad.datamodel.metainfo import runschema, SCHEMA_IMPORT_ERROR
+from nomad.datamodel.metainfo import runschema
 
 
 @pytest.fixture(scope='module')

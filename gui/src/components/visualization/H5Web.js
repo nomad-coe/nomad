@@ -10,10 +10,12 @@ import '@h5web/lib/dist/styles.css'
 import '@h5web/app/dist/styles.css'
 import './H5Web.css'
 
-const H5Web = ({upload_id, filename, initialPath, explorerOpen}) => {
+const H5Web = ({upload_id, filename, initialPath, explorerOpen, sidebarOpen, source}) => {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [filepath, setFilepath] = useState(false)
+
+  if (!source) source = 'raw'
 
   useEffect(() => {
     if (filename && upload_id) {
@@ -38,15 +40,15 @@ const H5Web = ({upload_id, filename, initialPath, explorerOpen}) => {
         getExportURL={(format, dataset, selection) => async () => {
           const response = await axios.get(appBase + '/h5grove/data/', {
             params: {
-              file: filepath, upload_id: upload_id, format, path: dataset.path
+              file: filepath, upload_id: upload_id, format, path: dataset.path, source: source
             },
             headers: {Authorization: "Bearer " + api?.keycloak?.token}
           })
           return new File([response.data], "test." + format)
         }}
-        axiosConfig={{params: {file: filepath, upload_id: upload_id}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
+        axiosConfig={{params: {file: filepath, upload_id: upload_id, source: source}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
       >
-        <App disableDarkMode initialPath={initialPath} explorerOpen={explorerOpen}/>
+        <App disableDarkMode initialPath={initialPath} explorerOpen={explorerOpen} sidebarOpen={sidebarOpen}/>
 
       </H5GroveProvider>
     )
@@ -57,7 +59,9 @@ H5Web.propTypes = {
   upload_id: PropTypes.string.isRequired,
   filename: PropTypes.string.isRequired,
   initialPath: PropTypes.string.isRequired,
-  explorerOpen: PropTypes.bool
+  explorerOpen: PropTypes.bool,
+  sidebarOpen: PropTypes.bool,
+  source: PropTypes.string
 }
 
 export default H5Web
