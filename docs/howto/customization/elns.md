@@ -2,7 +2,7 @@
 
 ## Schemas for ELNs
 
-A schema defines all possible data structures. With small editions to our schemas, we can instruct NOMAD to provide respective editors for data. This allows us to build Electronic Lab Notebooks (ELNs) as tools to acquire data in a formal and structured way. For schemas with ELN annotations, users can create new entries in NOMAD GUI and edit the archive (structured data) of these entries directly in the GUI.
+A schema defines all possible data structures. With small additions to our schemas, we can instruct NOMAD to provide respective editors for data. This allows us to build Electronic Lab Notebooks (ELNs) as tools to acquire data in a formal and structured way. For schemas with ELN annotations, users can create new entries in the NOMAD repository and edit the archive (structured data) of these entries directly in the GUI.
 
 ### Annotations
 

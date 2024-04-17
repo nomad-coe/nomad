@@ -76,7 +76,7 @@ Parsers are small programs that transform data from a recognized *mainfile* into
 structured machine processable tree of data that we call the *archive* or [**processed data**](data.md)
 of the entry. Only one parser is used for each entry. The used parser is determined
 during matching and depends on the file format. [A dedicated guide](../howto/customization/parsers.md#match-your-raw-file) shows how to match a specific file from your parser. Parsers can be added to NOMAD as
-[plugins](../howto/customization/plugins_dev.md#develop-a-parser-plugin); this is a list of [all built-in parsers](../reference/parsers.md).
+[plugins](../howto/customization/parsers.md#developing-a-parser-plugin); this is a list of [all built-in parsers](../reference/parsers.md).
 
 !!! note
     A special case is the parsing of NOMAD archive files. Usually a parser converts a file
@@ -106,10 +106,10 @@ on all entries and the normalizer might decide to do something or not, depending
 it sees in the processed data.
 
 Normalize functions are special functions implemented as part of section definitions
-in [Python schemas](../howto/customization/plugins_dev.md##writing-schemas-in-python-compared-to-yaml-schemas).
+in [Python schemas](../howto/customization/schemas.md#writing-schemas-in-python-compared-to-yaml-schemas).
 There is a special normalizer that will go through all processed data and execute these
 function if they are defined. Normalize functions get the respective section instance as
-input. This allows [schema plugin](../howto/customization/plugins_dev.md#develop-a-schema-plugin) developers to add normalizing to their sections.
+input. This allows [schema plugin](../howto/customization/schemas.md#how-to-write-a-schema-plugin) developers to add normalizing to their sections.
 Read about our [structured data](./data.md) to learn more about the different sections.
 
 ### Storing and indexing

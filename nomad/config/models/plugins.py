@@ -105,7 +105,7 @@ class Parser(PythonPluginBase):
     """
     A Parser describes a NOMAD parser that can be loaded as a plugin.
 
-    The parser itself is references via `python_name`. For Parser instances `python_name`
+    The parser itself is referenced via `python_name`. For Parser instances `python_name`
     must refer to a Python class that has a `parse` function. The other properties are
     used to create a `MatchingParserInterface`. This comprises general metadata that
     allows users to understand what the parser is, and metadata used to decide if a

@@ -67,7 +67,7 @@ reference (blue) relations.
 If you bookmark this page, you can save the definition represented by the highlighted
 *main* card.
 
-To learn more about the meta-info, visit the [meta-info documentation](${appBase}/docs/metainfo.html).
+To learn more about the metainfo, visit the [metainfo documentation](${appBase}/docs/metainfo.html).
 `
 
 const showInnerSectionDefinitions = false

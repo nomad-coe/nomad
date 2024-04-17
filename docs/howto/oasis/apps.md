@@ -9,7 +9,7 @@ mixture of experiments and simulations, different techniques, and physical
 properties spanning different time and length scales.
 
 Apps only affect the way data is *displayed* for the user: if you wish to affect
-the underlying data structure, you will need to define a custom [Python schema](../customization/plugins_dev.md#develop-a-schema-plugin)
+the underlying data structure, you will need to define a custom [Python schema](../customization/schemas.md#how-to-write-a-schema-plugin)
 or [YAML schema](../customization/basics.md). It is common that a custom schema has
 an app associated with it, but apps can also provide different views of the same
 underlying data.
