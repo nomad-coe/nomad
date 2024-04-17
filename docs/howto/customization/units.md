@@ -106,7 +106,7 @@ this:
  physicist might be familiar with working with electron volts, whereas a chemist
  might prefer kilocalorie per mole.
 
-Currently the display unit is controlled through the [ELN annotation](/reference/annotations.html#eln-annotations), like this:
+Currently the display unit is controlled through the [ELN annotation](../../reference/annotations.md#eln-annotations), like this:
 
 ```python
 distance = Quantity(

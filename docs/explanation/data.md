@@ -1,6 +1,6 @@
 NOMAD structures data into **sections**, where each section can contain data and more sections.
 This allows to browse complex data like you would browse files and directories on your computer.
-Each section follows a **definition** and all the contained data and sub-section have a
+Each section follows a **definition** and all the contained data and subsection have a
 specific name, description, possible type, shape, and unit. This means that all data follows a **schema**.
 This not only helps the human exploration, but also makes it machine interpretable,
 increases consistency and interoperability, enables search, APIs, visualization, and
@@ -17,7 +17,7 @@ analysis.
 The bases for structured data are schemas written in a **schema language**. Our
 schema language is called the **NOMAD Metainfo** language. The name is evocative of the rich **metadata information** that should be associated with the research data and made available in a machine-readable format.
 It defines the tools to define sections, organize definitions into **packages**, and define
-section properties (**sub-sections** and **quantities**).
+section properties (**subsections** and **quantities**).
 
 <figure markdown>
   ![schema language](images/schema_language.png)
@@ -25,15 +25,15 @@ section properties (**sub-sections** and **quantities**).
 </figure>
 
 Packages contain section definitions, section definitions contain definitions for
-sub-sections and quantities. Sections can inherit the properties of other sections. While
-sub-sections allow to define containment hierarchies for sections, quantities can
+subsections and quantities. Sections can inherit the properties of other sections. While
+subsections allow to define containment hierarchies for sections, quantities can
 use section definitions (or other quantity definitions) as a type to define references.
 
 If you are familiar with other schema languages and means to defined structured data
 (json schema, XML schema, pydantic, database schemas, ORM, etc.), you might recognize
 these concept under different names. Sections are similar to *classes*, *concepts*, *entities*, or  *tables*.
 Quantities are related to *properties*, *attributes*, *slots*, *columns*.
-Sub-sections might be called *containment* or *composition*. Sub-sections and quantities
+subsections might be called *containment* or *composition*. subsections and quantities
 with a section type also define *relationships*, *links*, or *references*.
 
 Our guide on [how to write a schema](../howto/customization/basics.md) explains these concepts with an example.
@@ -81,7 +81,7 @@ navigation for all entries that have a workflow inside.
 
 !!! warning "Attention"
     Currently there are two version of the workflow schema. They are stored in two
-    top-level `EntryArchive` sub-sections (`workflow` and `workflow2`). This
+    top-level `EntryArchive` subsections (`workflow` and `workflow2`). This
     will change soon to something that supports multiple workflows used in
     specific schemas and results.
 
@@ -120,10 +120,10 @@ normalization algorithm needs to be implemented.
 
 All built-in definitions that come with NOMAD or one of the installed plugins can
 be explored with the [Metainfo browser](https://nomad-lab.eu/prod/v1/gui/analyze/metainfo/nomad.datamodel.datamodel.EntryArchive){:target="_blank"}. You can start with the root section `EntryArchive`
-and browse based on sub-sections, or explore the Metainfo through packages.
+and browse based on subsections, or explore the Metainfo through packages.
 
-To see all user provided uploaded schemas, you can use a [search for the sub-section `definition`](https://nomad-lab.eu/prod/v1/gui/search/entries?quantities=definitions){:target="_blank"}.
-The sub-section `definition` is a top-level `EntryArchive` sub-section. See also our
+To see all user provided uploaded schemas, you can use a [search for the subsection `definition`](https://nomad-lab.eu/prod/v1/gui/search/entries?quantities=definitions){:target="_blank"}.
+The subsection `definition` is a top-level `EntryArchive` subsection. See also our
 [how-to on writing and uploading schemas](../howto/customization/basics.md#uploading-schemas).
 
 ### Contributing to the Metainfo
@@ -134,7 +134,7 @@ Contributions here are only possible through merge requests.
 
 Base sections can be contributed via plugins. Here they can be explored in the Metainfo
 browser, your plugin can provide more tools, and you can make use of normalize functions.
-See also our [how-to on writing schema plugins](../howto/customization/plugins_dev.md#develop-a-schema-plugin). You could
+See also our [how-to on writing schema plugins](../howto/customization/schemas.md#how-to-write-a-schema-plugin). You could
 also provide base sections via uploaded schemas, but those are harder to explore and
 distribute to other NOMAD installations.
 
@@ -156,7 +156,7 @@ The Metainfo has many serialized forms. You can write `.archive.json` or `.archi
 files yourself. NOMAD internally stores all processed data in [message pack](https://msgpack.org/){:target="_blank"}. Some
 of the data is stored in mongodb or elasticsearch. When you request processed data via
 API, you receive it in JSON. When you use the [ArchiveQuery](../howto/programmatic/archive_query.md), all data is represented
-as Python objects (see also [a starting example](../howto/customization/plugins_dev.md#starting-example)).
+as Python objects (see also [a starting example](../howto/customization/schemas.md#starting-example)).
 
 No matter what the representation is, you can rely on the structure, names, types, shapes, and units
 defined in the schema to interpret the data.
@@ -174,13 +174,14 @@ NOMAD archive file:`EntryArchive`
 * data: `EntryData`
 * run: `Run`
 * nexus: `Nexus`
-* workflow: `Workflow`
+* workflow: `LegacyWorkflow`
+* workflow2: `Workflow`
 * results: `Results`
 
 They all instantiate the same root section `EntryArchive`. They all share common sections `metadata:Metadata`
 and `results:Results`. They also all contain a *data* section, but the used section
 definition varies depending on the type of data of the specific entry. There is the
-literal `data:EntryData` sub-section. Here `EntryData` is abstract and specific entries
+literal `data:EntryData` subsection. Here `EntryData` is abstract and specific entries
 will use concrete definitions that inherit from `EntryData`. There are also specific *data*
 sections, like `run` for simulation data and `nexus` for nexus data.
 

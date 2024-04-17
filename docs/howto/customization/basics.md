@@ -2,7 +2,7 @@
 
 <!-- # Write NOMAD Schemas in YAML -->
 
-This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information on how an archive file is composed, visit the [learn section on schemas](../../explanation/data.md).
+This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information on how an archive file is composed, visit [Explanation > Data structure](../../explanation/data.md).
 
 ## Example data
 
@@ -13,22 +13,22 @@ The following structured data (in this example as a `.yaml` document) could desc
 ```
 
 In structured data formats (such as `.yaml` or `.json`), data is put into combinations
-of *primitive values* (e.g. `'H2O'`, `1.141`), *objects* (a set of *keys* and *value* pairs, where *values* can be *objects*, *lists*, or *primitive values*), or *lists* of *values*.
+of *primitive values* (e.g. `'H2O'`, `1.141`), *objects* (a set of *keys* and *value* pairs, where *values* can be *objects*, *lists*, or *primitive values*), and *lists* of *values*.
 
 ## Sections
 
 In a schema, we want to describe the structure of data, i.e. what are the allowed combinations of *objects*, *lists*, and *primitive values*.
-The key element here is to define what *keys* certain *types of objects* can have and what the possible *values* for each key might be.
+The crucial task here is to define what *keys* certain *types of objects* can have and what possible *values* might exist for each of these keys.
 
 In NOMAD, we call *objects* **sections** and we define *types of objects* with **section
 definitions**. Since *objects* can be nested, **sections** become like the sections and
-sub-sections of a book or paper. Sections are a representation of data and they are
-the building blocks for **archives**. Section definitions form a schema and they are
-the building blocks for the **metainfo**.
+subsections of a book or paper. Sections are a representation of data and they are
+the building blocks for [**archives**](../../reference/glossary.md#archive). Section definitions form a schema and they are
+the building blocks for the [**metainfo**](../../reference/glossary.md#metainfo).
 
-In the above example, we have to *types* of *objects*, one for elements (with *keys* for
-`label`, `density`, and `isotopes`) and the overall
-object for structures (with *keys* for `composition` and `elements`). Let's start with
+In the above example, we have two *types* of *objects*: an overaching object for the entire structure
+(with *keys* for `composition` and `elements`), and an additional object which describes the internal structure of
+`elements` (with *keys* for `label`, `density`, and `isotopes`). Let's start with
 the *definition* for elements. This is what the *section definition* looks like in NOMAD's yaml-based schema format:
 
 ```yaml
@@ -48,7 +48,7 @@ Composition:
 ```
 
 Again, all possible *keys* (`composition` and `elements`) are defined. But now we see
-that there are two different types of *keys*, **quantities** and **sub-sections**. We
+that there are two different types of *keys*, **quantities** and **subsections**. We
 say that *section definitions* can have **properties** (e.g. the *keys* they define) and
 there are two distinct types of *properties*.
 
@@ -105,14 +105,14 @@ be simple units (or their aliases) or complex expressions. Here are a few exampl
 
 While you can use all kinds of units in your uploaded schemas, the built-in NOMAD schema (Metainfo) uses only SI units.
 
-## Sub-sections
+## Subsections
 
-*Sub-sections* define a *part-of-relationship* between two *sections*. *Sub-section definitions* are *properties* of the parent *section definition* and name a child
-*section definition*. In the data, we can now contain instances of the target (e.g. `Element`) in instances of the source (e.g. `Composition`). A *sub-section* can be
+*Subsections* define a *part-of-relationship* between two *sections*. *Subsection definitions* are *properties* of the parent *section definition* and name a child
+*section definition*. In the data, we can now contain instances of the target (e.g. `Element`) in instances of the source (e.g. `Composition`). A *subsection* can be
 defined as *repeating* to allow many child *sections* of the same *type*. In our example,
 one `Composition` can contain many `Elements`.
 
-The *names* of *sub-section definitions* serve as the *key*, used in respective *section objects*.
+The *names* of *subsection definitions* serve as the *key*, used in respective *section objects*.
 
 ## Uploading schemas
 
@@ -151,7 +151,7 @@ A reference is a uni-directional link between a *source* section and a *target* 
 References can be defined in a schema as a quantity in the *source* section definition
 that uses the *target* section definition as a type.
 
-Instead of connecting the elements in a composition with sub-sections, we can also
+Instead of connecting the elements in a composition with subsections, we can also
 connect a composition section to elements with a quantity:
 
 ```yaml
@@ -160,9 +160,9 @@ Composition:
 ```
 
 Here, `type: Element` refers to the section definition `Element`, very similar to
-`section: Element` in a sub-section definition.
+`section: Element` in a subsection definition.
 
-We saw above that sub-sections are represented as nested *objects* in data (forcing a
+We saw above that subsections are represented as nested *objects* in data (forcing a
 *part-of* relationship). References are represented as string-typed *primitive values*
 in serialized data. Here is an example `Composition` with references to elements:
 
@@ -192,14 +192,14 @@ writing down references that point to a *section definition*. Here we can use a 
 
 So far, we never discussed the use of `m_def`. In the examples you might have seen this
 as a special *key* in some objects. Whenever we cannot determine the *section definition*
-for a *section* by its context (e.g. the *key*/*sub-section* used to contain it in a *parent section*), we use `m_def` to provide a reference to the *section definition*.
+for a *section* by its context (e.g. the *key*/*subsection* used to contain it in a *parent section*), we use `m_def` to provide a reference to the *section definition*.
 
 ### Different forms of references
 Depending on where references are used, they might take a different serialized form. Here are a few examples for different reference syntax:
 
 |Example reference|Comments|
 |---|---|
-|`#/data/periodic_table/elements/0`|Reference to a section within the sub-section hierarchy of the same archive.|
+|`#/data/periodic_table/elements/0`|Reference to a section within the subsection hierarchy of the same archive.|
 |`Element`|Reference to a *section definition* in the same archive. Can only be used to target *section definitions*.|
 |`nomad.datamodel.metainfo.workflow`|Reference to a *section definition* that was written in Python and is part of the NOMAD code. Can only be used to target *section definitions*.|
 |`../upload/raw/data.archive.yaml#/data`|Reference to a section in a different `.archive.yaml` file of the same upload.|
@@ -225,7 +225,7 @@ between two NOMAD entries.
 ```
 
 These inter-entry references have two parts: `<entry>#<section>`, where *entry*
-is a path or URL denoting the *target* entry and *section* a path within the *target* entry's sub-section containment hierarchy.
+is a path or URL denoting the *target* entry and *section* a path within the *target* entry's subsection containment hierarchy.
 
 Please note that also schemas can be spread over multiple files. In the above example,
 one file contained the schema and data for a periodic table and another file contained
@@ -258,8 +258,8 @@ and added quantity:
 
 ### Polymorphy
 
-What happens if we reference *abstract* definitions in sub-sections or reference quantities?
-Here is an sub-section example. In one schema, we define the relationship between `Sample`
+What happens if we reference *abstract* definitions in subsections or reference quantities?
+Here is an subsection example. In one schema, we define the relationship between `Sample`
 and `Process`. In another schema, we want to add more *specializations* to what a process is.
 
 **abstract.archive.yaml**
@@ -272,8 +272,8 @@ and `Process`. In another schema, we want to add more *specializations* to what 
 {{ yaml_snippet('examples/docs/inheritance/specialized.archive.yaml', '', 'data') }}
 ```
 
-The *section definition* use in the sub-section `processes` defines what a contained
-section has to be "at least". Meaning that any section based on a *specialization* of `Process` would be a valid `processes` sub-section.
+The *section definition* use in the subsection `processes` defines what a contained
+section has to be "at least". Meaning that any section based on a *specialization* of `Process` would be a valid `processes` subsection.
 
 **specialized.archive.yaml**
 ```yaml
@@ -283,7 +283,7 @@ data:
 {{ yaml_snippet('examples/docs/inheritance/specialized.archive.yaml:data', '  ') }}
 ```
 
-The fact that a sub-section or reference target can have different "forms" (i.e. based on different *specializations*) is called *polymorphism* in object-oriented data modelling.
+The fact that a subsection or reference target can have different "forms" (i.e. based on different *specializations*) is called *polymorphism* in object-oriented data modelling.
 
 
 ### Pre-defined sections
@@ -328,7 +328,7 @@ Here are a few other built-in section definitions and packages of definitions:
 |nomad.datamodel.metainfo.eln.*|A package of section definitions to inherit commonly used quantities for ELNs. These quantities are indexed and allow specialization to utilize the NOMAD search.|
 |nomad.parsing.tabular.TableData|Allows to inherit parsing of references .csv and .xls files.|
 |nomad.datamodel.metainfo.workflow.*|A package of section definitions use by NOMAD to define workflows|
-|nomad.metainfo.*|A package that contains all *definitions* of *definitions*, e.g. NOMAD's "schema language". Here you find *definitions* for what a sections, quantity, sub-sections, etc. is.|
+|nomad.metainfo.*|A package that contains all *definitions* of *definitions*, e.g. NOMAD's "schema language". Here you find *definitions* for what a sections, quantity, subsections, etc. is.|
 
 
 ## Separating data and schema

@@ -91,7 +91,7 @@ the outcome of many parsers and are therefore not part of the parsers themselves
 
 There are normalizer *classes* and normalize *functions*. The normalizer classes are
 run after parsing in a particular order and if certain conditions are fulfilled.
-Normalize functions are part of [schemas](#schema) (i.e. [section definitions](#section-and-sub-section)).
+Normalize functions are part of [schemas](#schema) (i.e. [section definitions](#section-and-subsection)).
 They are run at the end of processing on all the sections that instantiate the respective
 section definition.
 
@@ -153,22 +153,22 @@ be read quicker and in larger amounts.
 ### Schema
 
 *Schemas* define possible data structures for [processed data](#processed-data). Like
-a book they organize data hierarchically in *sections* and *sub-sections*. Schemas
+a book they organize data hierarchically in *sections* and *subsections*. Schemas
 are similar to *ontologies* as they define possible relationships between data organized
 within them.
 
-A schema is a collection of [section](#section-and-sub-section) and [quantity](#quantity)
+A schema is a collection of [section](#section-and-subsection) and [quantity](#quantity)
 definitions. Schemas are organized in *packages*, i.e. collections of definitions.
 All schemas combined form the [metainfo](#metainfo).
 
-### Section and Sub-section
+### Section and Subsection
 
 All [processed data](#processed-data) is structured into sections and quantities. *Sections*
 provide hierarchy and organization, *quantities* refer to the actual pieces of data.
 
 In a [schema](#schema), a section are defined by their name, description, all possible
-*sub-sections*, and [quantities](#quantity). Section definitions can also inherit
-all properties (sub-sections, quantities) from other section definitions using them as
+*subsections*, and [quantities](#quantity). Section definitions can also inherit
+all properties (subsections, quantities) from other section definitions using them as
 *base sections*.
 
 ### Upload

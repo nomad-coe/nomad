@@ -62,7 +62,7 @@ In most scenarios, entry processing is not triggered individually, but as part o
 processing. Many entries of one upload might be processed at the same time. Some order
 can be enforced through *processing levels*. Levels are part of the parser metadata and
 entries paired to parsers with a higher level are processed after entries with a
-parser of lower level. See also [how to write parser plugins](../howto/customization/plugins_dev.md#develop-a-parser-plugin).
+parser of lower level. See also [how to write parser plugins](../howto/customization/parsers.md#developing-a-parser-plugin).
 
 
 ## Customize processing
@@ -90,7 +90,7 @@ section, might indirectly use custom processing functionality.
 
 A parser plugin can define a new parser and therefore add to the *matching*, *parsing*, (and *normalizing*).
 A schema plugin defines new sections that can contain `normalize` functions that add to the *normalizing*.
-See also the how-tos on [plugins installation](../howto/oasis/plugins_install.md), and development of [parsers and schemas](../howto/customization/plugins_dev.md).
+See also the how-tos on [plugins installation](../howto/oasis/plugins_install.md), and development of [parsers and schemas](../howto/customization/plugins.md).
 
 #### Matching
 
@@ -115,7 +115,7 @@ uses certain criteria, for example:
 - regular expressions on mimetypes
 - regular expressions on header content
 
-See [How to write a parser](../howto/customization/plugins_dev.md#develop-a-parser-plugin) for more details.
+See [How to write a parser](../howto/customization/parsers.md#developing-a-parser-plugin) for more details.
 
 The matching step of an upload's processing, will call this function for every file
 and on all parsers. There are some hidden optimizations and additional parameters, but

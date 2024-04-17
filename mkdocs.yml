@@ -29,7 +29,7 @@ nav:
     - NOMAD Oasis:
       - Install an Oasis: howto/oasis/install.md
       - Customize an Oasis: howto/oasis/customize.md
-      - Install plugins: howto/oasis/plugins_install.md
+      - Mount plugins: howto/oasis/plugins_install.md
       - Configure custom apps: howto/oasis/apps.md
       - Migrate Oasis versions: howto/oasis/migrate.md
       - Perform admin tasks: howto/oasis/admin.md
@@ -37,10 +37,11 @@ nav:
       - Write a schema: howto/customization/basics.md
       - Define ELNs: howto/customization/elns.md
       - Use base sections: howto/customization/base_sections.md
-      - Use tabular parser: howto/customization/tabular.md
+      - Parse tabular data: howto/customization/tabular.md
       - Define workflows: howto/customization/workflows.md
-      - Reference hdf5 files: howto/customization/hdf5.md
-      - Develop and publish plugins: howto/customization/plugins_dev.md
+      - Handle large quantities: howto/customization/hdf5.md
+      - Write plugins: howto/customization/plugins.md
+      - Write a schema plugin: howto/customization/schemas.md
       - Write a parser: howto/customization/parsers.md
       - Write a normalizer: howto/customization/normalizers.md
       - Work with units: howto/customization/units.md
@@ -55,6 +56,12 @@ nav:
     - Computational data:
       - Quick start: examples/computational_data/uploading.md
       - Workflows: examples/computational_data/workflows.md
+      - MetaInfo: examples/computational_data/metainfo.md
+      - Schema plugins: examples/computational_data/schema_plugins.md
+      - Parser plugins: examples/computational_data/parser_plugins.md
+      - H5MD schema - Howto: examples/computational_data/h5md_howto.md
+      - H5MD schema - Explanation: examples/computational_data/h5md_expl.md
+      - H5MD - Reference: examples/computational_data/h5md_ref.md
   - Explanation:
     - From files to data: explanation/basics.md
     - Data structure: explanation/data.md

@@ -5,7 +5,7 @@
     You might also want to read:
 
     - [How to run parsers locally](../howto/programmatic/local_parsers.md)
-    - [How to develop a parser plugin](../howto/customization/plugins_dev.md#develop-a-parser-plugin)
+    - [How to develop a parser plugin](../howto/customization/plugins.md#develop-a-parser-plugin)
 
 This is a list of all available parsers and supported file formats:
 

@@ -1,27 +1,16 @@
-# How to develop and publish plugins
+# How to write a schema plugin
 
-We provide template projects on GitHub. You can fork these projects and follow the
-instructions in their `README.md`. These instructions will give you everything you
-need to run and test your plugin as a plugin developer.<br />
-[How-to install a plugin](../oasis/plugins_install.md) section explains how to add plugins to a NOMAD installation.
-Dedicated Explanation sections provide more background information on [what is a schema](../../explanation/data.md#schema) and [what is a parser](../../explanation/data.md#parser)
+## Getting started
 
-- [schema plugin](https://github.com/nomad-coe/nomad-schema-plugin-example){:target="_blank"}
-- [parser plugin](https://github.com/nomad-coe/nomad-parser-plugin-example){:target="_blank"}
+Fork and clone the [schema example project](https://github.com/nomad-coe/nomad-schema-plugin-example){:target="_blank"} as described in [How-to mount a plugin](../oasis/plugins_install.md).
 
-## Develop a schema plugin
+## Writing schemas in Python compared to YAML schemas
 
-### Getting started
+In this [guide](basics.md), we explain how to write and upload schemas in the `.archive.yaml` format. Writing and uploading such YAML schemas is a good way for NOMAD users to add schemas. But it has limitations. As a NOMAD developer or Oasis administrator you can add Python schemas to NOMAD. All built-in NOMAD schemas (e.g. for electronic structure code data) are written in Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
 
-Fork and clone the [schema example project](https://github.com/nomad-coe/nomad-schema-plugin-example){:target="_blank"} as described in [How-to install a plugin](../oasis/plugins_install.md).
+There is a 1-1 translation between Python schemas (written in classes) and YAML (or JSON) schemas (written in objects). Both use the same fundamental concepts, like *section*, *quantity*, or *subsection*, introduced in [YAML schemas](basics.md).
 
-### Writing schemas in Python compared to YAML schemas
-
-In this [guide](basics.md), we explain how to write and upload schemas in the `.archive.yaml` format. Writing and uploading such YAML schemas is a good way for NOMAD users to add schemas. But it has limitations. As a NOMAD developer or Oasis administrator you can add Python schemas to NOMAD. All build in NOMAD schemas (e.g. for electronic structure code data) are written an Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
-
-There is a 1-1 translation between Python schemas (written in classes) and YAML (or JSON) schemas (written in objects). Both use the same fundamental concepts, like *section*, *quantity*, or *sub-section*, introduced in [YAML schemas](basics.md).
-
-### Starting example
+## Starting example
 
 ```python
 from nomad.metainfo import MSection, Quantity, SubSection, Units
@@ -47,21 +36,17 @@ class Run(MSection):
     section_system = SubSection(sub_section=System, repeats=True)
 ```
 
-We define simple metainfo schema with two *sections* called `System` and `Run`. Sections
-allow to organize related data into, well, *sections*. Each section can have two types of
-properties: *quantities* and *sub-sections*. Sections and their properties are defined with
-Python classes and their attributes.
-
-Each *quantity* defines a piece of data. Basic quantity attributes are `type`, `shape`,
+We define a simple metainfo schema with two *sections* called `System` and `Run`.
+Each section can have two types of properties: *quantities* and *subsections*. Sections and their properties are defined with
+Python classes and their attributes. Each *quantity* defines a piece of data. Basic quantity attributes are `type`, `shape`,
 `unit`, and `description`.
 
-*Sub-sections* allow to place section within each other, forming containment
-hierarchies or sections and the respective data within them. Basic sub-section attributes are
-`sub_section`(i.e. a reference to the section definition of the sub-section) and `repeats`
-(determines whether a sub-section can be included once or multiple times).
+*Subsections* allow the placement of sections within each other, forming containment
+hierarchies. Basic subsection attributes are
+`sub_section`&mdash;a reference to the section definition of the subsection&mdash;and `repeats`&mdash;determines whether a subsection can be included once or multiple times.
 
-The above simply defines a schema. To use the schema and create actual data, we have to
-instantiate the above classes:
+To use the above-defined schema and create actual data, we have to
+instantiate the classes:
 
 ```python
 run = Run()
@@ -73,10 +58,11 @@ print(system.atom_labels)
 print(n_atoms = 3)
 ```
 
-Section *instances* can be used like regular Python objects: quantities and sub-sections
-can be set and accessed like any other Python attribute. Special meta-info methods, starting
+Section *instances* can be used like regular Python objects: quantities and subsections
+can be set and accessed like any other Python attribute. Special metainfo methods, starting
 with `m_` allow us to realize more complex semantics. For example `m_create` will
-instantiate a sub-section and add it to the *parent* section in one step.
+instantiate a subsection and add it to the *parent* section in one step.
+<!-- ? m_create is deprecated? -->
 
 Another example for an `m_`-method is:
 
@@ -102,74 +88,75 @@ This will convert the data into JSON:
 }
 ```
 
-### Definitions
+## Definitions
 
-The following describes the schema language (the sum of all possible definitions) and how it is expressed in Python.
+The following describes in detail the schema language for the NOMAD Metainfo and how it is expressed in Python.
 
 
-#### Common attributes of Metainfo Definitions
+### Common attributes of Metainfo Definitions
 
 In the example, you have already seen the basic Python interface to the Metainfo. *Sections* are
-represented in Python as objects. To define a section, you write a Python classe that inherits
-from `MSection`. To define sub-sections and quantities you use Python properties. The
-definitions themselves are also objects derived from classes. For sub-sections and
-quantities, you directly instantiate :class`SubSection` and :class`Quantity`. For sections
-there is a generated object derived from :class:`Section` and available via
+represented in Python as objects. To define a section, you write a Python class that inherits
+from `MSection`. To define subsections and quantities you use Python properties. The
+definitions themselves are also objects derived from classes. For subsections and
+quantities, you directly instantiate `:class:SubSection` and `:class:Quantity`. For sections
+there is a generated object derived from `:class:Section` and available via
 `m_def` from each *section class* and *section instance*.
+<!-- TODO Either fix all cross references with :: syntax here and throughout or remove them -->
 
 These Python classes, used to represent metainfo definitions, form an inheritance
 hierarchy to share common properties
 
-- `name`, each definition has a name. This is typically defined by the corresponding
-Python property. E.g. a sections class name, becomes the section name; a quantity gets the name
-from its Python property, etc.
-- `description`, each definition should have one. Either set it directly or use *doc strings*
-- `links`, a list of useful internet references.
-- `more`, a dictionary of custom information. Any additional `kwargs` set when creating a definition
+- `name`: each definition has a name. This is typically defined by the corresponding
+Python property. For example, a section class name becomes the section name; a quantity gets the name
+from the variable name used in its Python definition, etc.
+- `description`: each definition should have one. Either set it directly or use *doc strings*
+- `links`: a list of useful internet references.
+- `more`: a dictionary of custom information. Any additional `kwargs` set when creating a definition
     are added to `more`.
 
-#### Sections
+### Sections
 
 Sections are defined with Python classes that extend `MSection` (or other section classes).
 
-- `base_sections` are automatically taken from the base classes ofc the Python class.
-- `extends_base_section` is a boolean that determines the inheritance. If this is `False`,
-normal Python inheritance implies and this section will inherit all properties (sub-sections,
-quantities) from all base classes. If this is `True`, all definitions in this section
+- `base_sections`: automatically taken from the base classes of the Python class.
+- `extends_base_section`: a boolean that determines the inheritance. If this is `False`,
+normal Python inheritance implies and this section will inherit all properties (subsections,
+quantities) from all base classes. If `True`, all definitions in this section
 will be added to the properties of the base class section. This allows the extension of existing
 sections with additional properties.
 
-#### Quantities
+### Quantities
 
-Quantity definitions are the main building block of meta-info schemas. Each quantity
-represents a single piece of data. Quantities can be defined by:
+Quantity definitions are the main building block of metainfo schemas. Each quantity
+represents a single piece of data. Quantities can be defined with the following attributes:
 
-- A `type`, that can be a primitive Python type (`str`, `int`, `bool`), a numpy
-data type (`np.dtype('float64')`), a `MEnum('item1', ..., 'itemN')`, a predefined
+- `type`: can be a primitive Python type (`str`, `int`, `bool`), a numpy
+data type (`np.dtype('float64')`), an `MEnum('item1', ..., 'itemN')`, a predefined
 metainfo type (`Datetime`, `JSON`, `File`, ...), or another section or quantity to define
 a reference type.
-- A `shape` that defines the dimensionality of the quantity. Examples are: `[]` (number),
+- `shape`: defines the dimensionality of the quantity. Examples are: `[]` (number),
 `['*']` (list), `[3, 3]` (3 by 3 matrix), `['n_elements']` (a vector of length defined by
 another quantity `n_elements`).
-- A physics `unit`. We use [Pint](https://pint.readthedocs.io/en/stable/){:target="_blank"} here. You can
+- `unit`: a physical unit. We use [Pint](https://pint.readthedocs.io/en/stable/){:target="_blank"} here. You can
 use unit strings that are parsed by Pint, e.g. `meter`, `m`, `m/s^2`. As a convention the
-metainfo uses only SI units.
+NOMAD Metainfo uses only SI units.
 
-#### Sub-Section
+### SubSection
 
-A sub-section defines a named property of a section that refers to another section. It
-allows to define that a section can contain another section.
+A subsection defines a named property of a section that refers to another section. It
+allows to define that a section that contains another section.
 
-- `sub_section` (aliases `section_def`, `sub_section_def`) defines the section that can
+- `sub_section`: (aliases `section_def`, `sub_section_def`) defines the section that can
 be contained.
-- `repeats` is a boolean that determines whether the sub-section relationship allows multiple section
+- `repeats`: a boolean that determines whether the subsection relationship allows multiple sections
 or only one.
 
-#### References and Proxies
+### References and Proxies
 
-Beside creating hierarchies (e.g. tree structures) with subsections, the metainfo
-also allows to create cross references between sections and other sections or quantity
-values:
+Besides creating hierarchies with subsections (e.g. tree structures), the metainfo
+also allows one to create a reference within a section that points to either another section or a quantity
+value:
 
 ```python
 class Calculation(MSection):
@@ -189,21 +176,22 @@ In Python memory, quantity values that reference other sections simply contain a
 Python reference to the respective *section instance*. However, upon serializing/storing
 metainfo data, these references have to be represented differently.
 
-Value references are a little different. When you read a value reference, it behaves like
-the reference value. Internally, we do not store the values, but a reference to the
-section that holds the referenced quantity. Therefore, when you want to
+Value references work a little differently. When you read a value reference, it behaves like
+the reference value. Internally, we do not store the values, but instead a reference to the
+section that holds the referenced quantity is stored. Therefore, when you want to
 assign a value reference, use the section with the quantity and not the value itself.
+<!-- TODO Add a simply example here -->
 
 References are serialized as URLs. There are different types of reference URLs:
 
-- `#/run/0/calculation/1`, a reference in the same Archive
-- `/run/0/calculation/1`, a reference in the same archive (legacy version)
-- `../upload/archive/mainfile/{mainfile}#/run/0`, a reference into an Archive of the same upload
-- `/entries/{entry_id}/archive#/run/0/calculation/1`, a reference into the Archive of a different entry on the same NOMAD installation
-- `/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1`, similar to the previous one but based on uploads
-- `https://myoasis.de/api/v1/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1`, a global reference towards a different NOMAD installation (Oasis)
+- `#/run/0/calculation/1`: a reference in the same Archive
+- `/run/0/calculation/1`: a reference in the same archive (legacy version)
+- `../upload/archive/mainfile/{mainfile}#/run/0`: a reference into an Archive of the same upload
+- `/entries/{entry_id}/archive#/run/0/calculation/1`: a reference into the Archive of a different entry on the same NOMAD installation
+- `/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1`: similar to the previous one but based on uploads
+- `https://myoasis.de/api/v1/uploads/{upload_id}/archive/{entry_id}#/run/0/calculation/1`: a global reference towards a different NOMAD installation (Oasis)
 
-The host and path parts of URLs correspond with the NOMAD API. The anchors are paths from the root section of an Archive, over its sub-sections, to the referenced section or quantity value. Each path segment is the name of the subsection or an index in a repeatable subsection: `/system/0` or `/system/0/atom_labels`.
+The host and path parts of URLs correspond with the [NOMAD API](../programmatic/api.md). The anchors are paths from the root section of an Archive, over its subsections, to the referenced section or quantity value. Each path segment is the name of the subsection or an index in a repeatable subsection: `/system/0` or `/system/0/atom_labels`.
 
 References are automatically serialized by `:py:meth:MSection.m_to_dict`. When de-serializing
 data with `:py:meth:MSection.m_from_dict` these references are not resolved right away,
@@ -224,11 +212,11 @@ class Calculation(MSection):
 The strings given to `SectionProxy` are paths within the available definitions.
 The above example works, if `System` is eventually defined in the same package.
 
-#### Categories
+### Categories
 
-In the old meta-info this was known as *abstract types*.
+In the old metainfo this was known as *abstract types*.
 
-Categories are defined with Python classes that have :class:`MCategory` as base class.
+Categories are defined with Python classes that have `:class:MCategory` as base class.
 Their name and description are taken from the name and docstring of the class. An example
 category looks like this:
 
@@ -238,7 +226,7 @@ class CategoryName(MCategory):
     m_def = Category(links=['http://further.explanation.eu'], categories=[ParentCategory])
 ```
 
-#### Packages
+### Packages
 
 Metainfo packages correspond to Python packages. Typically your metainfo Python files should follow this pattern:
 ```python
@@ -251,13 +239,12 @@ m_package = Package()
 m_package.__init_metainfo__()
 ```
 
-### Adding Python schemas to NOMAD
+## Adding Python schemas to NOMAD
 
-Now you know how to write a schema as a Python module, but how should you
-integrate new schema modules into the existing code and what conventions need to be
-followed?
+The following describes how to integrate new schema modules into the existing code according
+to best practices.
 
-#### Schema super structure
+### Schema super structure
 
 You should follow the basic [developer's getting started](../develop/setup.md) to setup a development environment. This will give you all the necessary libraries and allows you
 to place your modules into the NOMAD code.
@@ -265,29 +252,31 @@ to place your modules into the NOMAD code.
 The `EntryArchive` section definition sets the root of the archive for each entry in
 NOMAD. It therefore defines the top level sections:
 
-- `metadata`, all "administrative" metadata (ids, permissions, publish state, uploads, user metadata, etc.)
-- `results`, a summary with copies and references to data from method specific sections. This also
+- `metadata`: all "administrative" metadata (ids, permissions, publish state, uploads, user metadata, etc.)
+- `results`: a summary with copies and references to data from method specific sections. This also
 presents the [searchable metadata](../develop/search.md).
-- `workflows`, all workflow metadata
-- Method specific sub-sections, e.g. `run`. This is were all parsers are supposed to
+- `workflows`: all workflow metadata
+- Method-specific subsections: e.g. `run`. This is were all parsers are supposed to
 add the parsed data.
+<!-- TODO Update!!! -->
 
 The main NOMAD Python project includes Metainfo definitions in the following modules:
 
-- `nomad.metainfo` defines the Metainfo itself. This includes a self-referencing schema. E.g. there is a section `Section`, etc.
-- `nomad.datamodel` mostly defines the section `metadata` that contains all "administrative"
+- `nomad.metainfo`: defines the Metainfo itself. This includes a self-referencing schema. E.g. there is a section `Section`, etc.
+- `nomad.datamodel`: defines the section `metadata` that contains all "administrative"
 metadata. It also contains the root section `EntryArchive`.
-- `nomad.datamodel.metainfo` defines all the central, method specific (but not parser specific) definitions.
+- `nomad.datamodel.metainfo`: defines all the central, method specific (but not parser specific) definitions.
 For example the section `run` with all the simulation definitions (computational material science definitions)
 that are shared among the respective parsers.
 
-#### Extending existing sections
+### Extending existing sections
 
-Parsers can provide their own definitions. By conventions, these are placed into a
+Parsers can provide their own definitions. By convention, these are placed into a
 `metainfo` sub-module of the parser Python module. The definitions here can add properties
-to existing sections (e.g. from `nomad.datamodel.metainfo`). By convention us a `x_mycode_`
+to existing sections (e.g. from `nomad.datamodel.metainfo`). By convention, use a `x_mycode_`
 prefix. This is done with the
 `extends_base_section` [Section property](#sections). Here is an example:
+<!-- ? Do we want to encourage this as best practice in the future? -->
 
 ```py
 from nomad.metainfo import Section
@@ -299,7 +288,7 @@ class MyCodeRun(Workflow)
         type=MEnum('hpc', 'parallel', 'single'), description='...')
 ```
 
-#### Schema conventions
+### Schema conventions
 
 - Use lower snake case for section properties; use upper camel case for section definitions.
 - Use a `_ref` suffix for references.
@@ -308,11 +297,11 @@ E.g. the section `workflow` contains a section `geometry_optimization` for all g
 workflow quantities.
 - Prefix parser-specific and user-defined definitions with `x_name_`, where `name` is the
 short handle of a code name or other special method prefix.
+<!-- TODO add case examples to the reference pages and add corresponding links here and throughout -->
 
+## Use Python schemas to work with data
 
-### Use Python schemas to work with data
-
-#### Access structured data via API
+### Access structured data via API
 
 The [API section](../programmatic/api.md#access-archives) demonstrates how to access an Archive, i.e.
 retrieve the processed data from a NOAMD entry. This API will give you JSON data likes this:
@@ -365,11 +354,11 @@ To learn what each key means, you need to look up its definition in the Metainfo
 {{ metainfo_data() }}
 
 
-#### Wrap data with Python schema classes
+### Wrap data with Python schema classes
 
 In Python, JSON data is typically represented as nested combinations of dictionaries
 and lists. Of course, you could work with this right away. To make it easier for Python
-programmers the [NOMAD Python package](../programmatic/pythonlib.md) allows you to use this
+programmers, the [NOMAD Python package](../programmatic/pythonlib.md) allows you to use this
 JSON data with a higher level interface, which provides the following advantages:
 
 - code completion in dynamic coding environments like Jupyter notebooks
@@ -397,13 +386,13 @@ import json
 print(json.dumps(calc.m_to_dict(), indent=2))
 ```
 
-#### Access structured data via the NOMAD Python package
+### Access structured data via the NOMAD Python package
 
 The NOMAD Python package provides utilities to [query large amounts of
 archive data](../programmatic/archive_query.md). This uses the built-in Python schema classes as
 an interface to the data.
 
-### Custom normalizers
+## Custom normalizers
 
 For custom schemas, you might want to add custom normalizers. All files are parsed
 and normalized when they are uploaded or changed. The NOMAD metainfo Python interface
@@ -446,13 +435,19 @@ we will get a final normalized archive that contains our data like this:
   }
 }
 ```
+## Schema plugin metadata
+{{pydantic_model('nomad.config.models.plugins.Schema')}}
 
-{{pydantic_model('nomad.config.models.plugins.Schema', heading='## Schema plugin metadata')}}
+## Pre-defined schemas in NOMAD
+Several schemas are currently being developed in NOMAD for various metadata.
+The following lists these projects:
 
-## Develop a Parser plugin
-
-NOMAD uses parsers to convert raw code input and output files into NOMAD's common Archive format. This is the documentation on how to develop such a parser.
-
-Fork and clone the [parser example project](https://github.com/nomad-coe/nomad-parser-plugin-example){:target="_blank"} as described in [How-to install a plugin](../oasis/plugins_install.md). Follow the original [how-to on writing a parser](parsers.md).
-
-{{pydantic_model('nomad.config.models.plugins.Parser', heading='### Parser plugin metadata', hide=['code_name','code_category','code_homepage','metadata'])}}
+| Description                  | Project url                                                                |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| simulation run               | <https://github.com/nomad-coe/nomad-schema-plugin-run.git>                 |
+| simulation data              | <https://github.com/nomad-coe/nomad-schema-plugin-simulation-data.git>     |
+| simulation workflow          | <https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git> |
+| NEXUS                        | <https://github.com/FAIRmat-NFDI/pynxtools.git>                            |
+| synthesis                    | <https://github.com/FAIRmat-NFDI/AreaA-data_modeling_and_schemas.git>      |
+| material processing          | <https://github.com/FAIRmat-NFDI/nomad-material-processing.git>            |
+| measurements                 | <https://github.com/FAIRmat-NFDI/nomad-measurements.git>                   |

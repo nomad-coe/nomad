@@ -1,14 +1,15 @@
 # How to use base sections
 
-As previously mentioned in ["How to write a schema"](basics.md#base-sections-and-inheritance),
-base sections can be used when writing custom schemas to inherit properties, and more
-importantly, functionality from already defined sections. Here we explain the properties
+As previously mentioned in [How to write a schema](basics.md#base-sections-and-inheritance),
+base sections can be used when writing custom schemas to inherit properties and *functionality*
+from already defined sections. Here we explain the properties
 and functionality of specific base sections and how they can be used.
 
 ## `datamodel.metainfo.basesections`
 
 This built-in nomad module contains a set of base sections based on an entity-activity
 model.
+<!-- TODO add some sort of link to a standard reference for entity-activity model -->
 
 !!! info
     In this part of the documentation we use UML Class diagrams to illustrate the

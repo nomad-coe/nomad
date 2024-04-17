@@ -28,7 +28,7 @@ editor to enter your notes.
 ## Add your own ELN schema
 
 To make NOMAD ELNs more useful, you can define your own schema to create you own data
-fields, create more sub-sections, reference other entries, and much more.
+fields, create more subsections, reference other entries, and much more.
 
 You should have a look at our ELN example upload. Go to `PUBLISH` / `Uploads` and
 click the `ADD EXAMPLE UPLOADS` button. The `Electronic Lab Notebook` example, will
@@ -73,10 +73,10 @@ elabFTW project.
 You can inspect the parsed data of each of your entries (experiments) by going to the <b>DATA</b>
 tab of each Entry page. Under <i>Entry</i> column, click on <i>data</i> section. Now a new lane titled
 `ElabFTW Project Import` should be visible. Under this section, (some of) the metadata of your project is listed.
-There two sub-sections: 1) <b>experiment_data</b>, and 2) <b>experiment_files</b>.
+There two subsections: 1) <b>experiment_data</b>, and 2) <b>experiment_files</b>.
 
 <b>experiment_data</b> section contains detailed information of the given elabFTW experiment, such as
-links to external resources and extra fields. <b>experiment_files</b> section is a list of sub-sections
+links to external resources and extra fields. <b>experiment_files</b> section is a list of subsections
 containing metadata and additional info of the files associated with the experiment.
 
 

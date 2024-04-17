@@ -81,7 +81,7 @@ See also the [documentation part](./code.md#documentation) in our code navigatio
 ## Plugins
 
 Also read the guide on
-[how to develop, publish, and distribute plugins](../customization/plugins_dev.md).
+[how to develop, publish, and distribute plugins](../customization/plugins.md).
 
 ### Built-in plugins (and submodules)
 

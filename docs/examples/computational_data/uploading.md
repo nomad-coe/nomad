@@ -153,7 +153,7 @@ Once the mainfile has been recognized, a new [entry](../../reference/glossary.md
 <!-- TODO add more info or link properly
 You can check more details in [Writing a parser plugin](../writing_a_parser_plugin/parser_plugin_overview.md) on how to add new parsers in order for NOMAD to support new codes. -->
 
-For this new entry, NOMAD generates a **NOMAD archive**. It will contain all the (meta)information extracted from the unstructured raw data files but in a _structured_, _well defined_, and _machine readable_ format. This **metadata** provides context to the raw data, i.e., what were the input methodological parameters, on which material the calculation was performed, etc. We define the **NOMAD Metainfo** as all the set of [sections, sub-sections, and quantities](../../reference/glossary.md/#metainfo) used to structure the raw data into a structured _schema_. Further information about the NOMAD Metainfo is available in the general NOMAD documentation page in [Learn > Structured data](https://nomad-lab.eu/prod/v1/staging/docs/learn/data.html){:target="_blank"}.
+For this new entry, NOMAD generates a **NOMAD archive**. It will contain all the (meta)information extracted from the unstructured raw data files but in a _structured_, _well defined_, and _machine readable_ format. This **metadata** provides context to the raw data, i.e., what were the input methodological parameters, on which material the calculation was performed, etc. We define the **NOMAD Metainfo** as all the set of [sections, subsections, and quantities](../../reference/glossary.md/#metainfo) used to structure the raw data into a structured _schema_. Further information about the NOMAD Metainfo is available in the general NOMAD documentation page in [Learn > Structured data](https://nomad-lab.eu/prod/v1/staging/docs/learn/data.html){:target="_blank"}.
 
 ![The NOMAD metainfo](images/nomad_metainfo.png){.screenshot}
 
@@ -176,7 +176,7 @@ Under the `Entry` / `archive` section, there are several sections and quantities
 
 ### Parsing
 
-A parser is a Python module which reads the code-specific mainfile and auxiliary files and populates the `run` and `workflow2` sections of the `archive`, along with all relevant sub-sections and quantities.
+A parser is a Python module which reads the code-specific mainfile and auxiliary files and populates the `run` and `workflow2` sections of the `archive`, along with all relevant subsections and quantities.
 <!-- TODO add link to parser plugin or maybe parser explanation -->
 <!-- We explain them more in detail in [Writing a parser plugin](../writing_a_parser_plugin/parser_plugin_overview.md). -->
 

@@ -1,4 +1,4 @@
-# How to use tabular parser
+# How to parse tabular data
 
 Refer to the [Reference guide](../../reference/annotations.md) for the full list of annotations connected to this parser and to the [Tabular parser tutorial](../../tutorial/custom.md#the-built-in-tabular-parser)  for a detailed description of each of them.
 
@@ -82,7 +82,7 @@ In this section eight examples will be presented, containing all the features av
 ### 1. Column mode, current Entry, parse to root
 
 <p align="center" width="100%">
-    <img width="100%" src="../tutorial/images/tabular-1.png">
+    <img width="100%" src="../../tutorial/images/tabular-1.png">
 </p>
 
 The first case gives rise to the simplest data archive file. Here the tabular data file is parsed by columns, directly within the Entry where the `TableData` is inherited and filling the quantities in the root level of the schema (see dedicated how-to to learn [how to inherit tabular parser in your schema](tabular.md#inheriting-the-tabledata-base-section)).

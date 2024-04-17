@@ -12,6 +12,6 @@ guides to learn more.
 - [Configure custom apps](apps.md)
 - Write .yaml based [schemas](../customization/basics.md) and [ELNs](../customization/elns.md)
 - Learn how to use the [tabular parser](../customization/tabular.md) to manage data from .xls or .csv
-- Develop a [schema plugin](../customization/plugins_dev.md#develop-a-schema-plugin) for more powerful schemas and ELNs
-- Use and develop [parser plugins](../customization/plugins_dev.md#develop-a-parser-plugin) for specific file formats
+- Develop a [schema plugin](../customization/schemas.md#how-to-write-a-schema-plugin) for more powerful schemas and ELNs
+- Use and develop [parser plugins](../customization/parsers.md#developing-a-parser-plugin) for specific file formats
 - Add specialized [NORTH tools](../manage/north.md)
