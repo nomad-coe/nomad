@@ -14,7 +14,7 @@ meta:
   deployment_url: 'https://my-oasis.org/api'
   maintainer_email: 'me@my-oasis.org'
 
-logstash:
+logtransfer:
   enabled: false
 
 mongo:

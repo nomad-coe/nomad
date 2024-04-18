@@ -23,6 +23,7 @@ import os
 from collections import defaultdict
 from celery import Celery, Task
 from celery.worker.request import Request
+from celery.bootsteps import StartStopStep
 from celery.signals import (
     after_setup_task_logger,
     after_setup_logger,
@@ -49,6 +50,7 @@ import functools
 from nomad import utils, infrastructure
 from nomad.config import config
 from nomad.config.models.config import CELERY_WORKER_ROUTING
+from nomad.app.v1.routers.info import statistics
 import nomad.patch  # pylint: disable=unused-import
 
 
@@ -105,6 +107,24 @@ if config.celery.routing == CELERY_WORKER_ROUTING:
 app.conf.task_queue_max_priority = 10
 app.conf.worker_redirect_stdouts = config.process.redirect_stdouts
 app.conf.worker_redirect_stdouts_level = 'INFO'
+
+
+@app.task
+def transfer_logs():
+    from nomad.logtransfer import transfer_logs
+
+    utils.get_logger('nomad.oasis').info('oasis statistics', **statistics())
+    transfer_logs()
+
+
+if config.logtransfer.enabled:
+    app.conf.beat_schedule = {
+        'transfer-logs': {
+            'task': 'nomad.processing.base.transfer_logs',
+            'schedule': config.logtransfer.transfer_interval,
+            'args': (),
+        },
+    }
 
 
 class ProcessStatus:

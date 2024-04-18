@@ -2,10 +2,24 @@ import requests
 import json
 import pytest
 from copy import deepcopy
+import logging
+import zlib
 
-from tests.logtransfer.test_logtransfer import standard_test_log_record
 from nomad.config import config
-from nomad.logtransfer import gzip_bytes
+from nomad.utils.structlogging import LogstashFormatter
+
+
+def create_log_record(msg='testmsg') -> bytes:
+    record = logging.LogRecord(
+        name='test',
+        msg=msg,
+        args=(),
+        exc_info=None,
+        lineno=1,
+        level=logging.INFO,
+        pathname='testpath',
+    )
+    return LogstashFormatter().format(record)
 
 
 @pytest.mark.parametrize(
@@ -14,10 +28,10 @@ from nomad.logtransfer import gzip_bytes
 )
 @pytest.mark.timeout(3)
 def test_single_logrecord(is_gzip, api_v1, central_logstash_mock):
-    record = standard_test_log_record() + b'\n'
+    record = create_log_record() + b'\n'
 
     if is_gzip:
-        send_record_post = gzip_bytes(deepcopy(record))
+        send_record_post = zlib.compress(record)
         headers = {'Content-Encoding': 'gzip'}
     else:
         send_record_post = deepcopy(record)
@@ -27,15 +41,13 @@ def test_single_logrecord(is_gzip, api_v1, central_logstash_mock):
 
     with central_logstash_mock as server:
         ret = requests.post(target, data=send_record_post, headers=headers)
-        # print(f'send request {send_record_post}')
         server.handle_request()
 
     assert ret.status_code == 200
-    assert int(json.loads(ret.content)['filesize']) > 0
+    assert int(json.loads(ret.content)['received_logs_size']) > 0
     assert len(central_logstash_mock.received_content) == 1
 
     log_received_json = json.loads(deepcopy(central_logstash_mock.received_content[0]))
-    # print(f'log_received_json={log_received_json}')
     log_sent_json = json.loads(record)
 
     assert 'ip_address' not in log_sent_json
@@ -59,7 +71,7 @@ def test_single_logrecord(is_gzip, api_v1, central_logstash_mock):
 def test_nginx_ipaddress_header(
     send_header_ip, expected_ip, api_v1, central_logstash_mock
 ):
-    send_record = standard_test_log_record() + b'\n'
+    send_record = create_log_record() + b'\n'
     target = f'{config.client.url}/v1/federation/logs/'
 
     with central_logstash_mock as server:
@@ -77,8 +89,8 @@ def test_nginx_ipaddress_header(
 def test_two_records_with_redundant_newline(api_v1, central_logstash_mock):
     target = f'{config.client.url}/v1/federation/logs/'
 
-    log1 = standard_test_log_record(msg='testmsg1') + b'\n'
-    log2 = standard_test_log_record(msg='testmsg2') + b'\n'
+    log1 = create_log_record(msg='testmsg1') + b'\n'
+    log2 = create_log_record(msg='testmsg2') + b'\n'
 
     # insert an unnecessary newline between the messages
     # this should simply be ignored and not error
@@ -113,10 +125,7 @@ def test_invalid_logrecord(msg, size, api_v1, central_logstash_mock):
     target = f'{config.client.url}/v1/federation/logs/'
     invalid = msg.encode()
 
-    with central_logstash_mock as server:
+    with central_logstash_mock:
         ret = requests.post(target, data=invalid)
-        server.handle_request()
 
-    assert ret.status_code == 200
-    assert len(central_logstash_mock.received_content) == 0
-    assert int(json.loads(ret.content)['filesize']) == size
+    assert ret.status_code == 422

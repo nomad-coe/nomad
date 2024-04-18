@@ -26,10 +26,10 @@ from fastapi.exception_handlers import (
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from pydantic import BaseModel
 
 from nomad import infrastructure
 from nomad.config import config
+
 from .v1.main import app as v1_app
 from .static import app as static_files_app, GuiFiles
 

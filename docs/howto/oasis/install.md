@@ -76,12 +76,13 @@ add up quickly, especially if many CPU cores are available for processing entrie
 parallel. We recommend at least 2GB per core and a minimum of 8GB. You also need to consider
 RAM and CPU for running tools like jupyter, if you opt to use NOMAD NORTH.
 
-### Sharing data through the logtransfer service and data privacy notice
+### Sharing data through log transfer and data privacy notice
 
-NOMAD includes a `logtransfer` service. When enabled this service automatically collects
-and transfers non-personalized log-data to us. Currently, this service is experimental
+NOMAD includes a *log transfer* functions. When enabled this it automatically collects
+and transfers non-personalized logging data to us. Currently, this functionality is experimental
 and requires opt-in. However, in upcoming versions of NOMAD Oasis, we might change to out-out.
-See the instructions in the configuration below on how to enable/disable `logtransfer`.
+
+To enable this functionality add `logtransfer.enabled: true` to you `nomad.yaml`.
 
 The service collects log-data and aggregated statistics, such as the number of users or the
 number of uploaded datasets. In any case this data does not personally identify any users or
@@ -93,7 +94,7 @@ The data is solely used by the NOMAD developers and FAIRmat, including but not l
 * Improving our NOMAD software based on usage patterns.
 * Generating aggregated and anonymized reports.
 
-We do not share any data collected through the `logtransfer` service with any third parties.
+We do not share any collected data with any third parties.
 
 We may update this data privacy notice from time to time to reflect changes in our data practices.
 We encourage you to review this notice periodically for any updates.
@@ -168,9 +169,6 @@ Changes necessary:
 - The group in the value of the hub's user parameter needs to match the docker group
 on the host. This should ensure that the user which runs the hub, has the rights to access the host's docker.
 - On Windows or MacOS computers you have to run the `app` and `worker` container without `user: '1000:1000'` and the `north` container with `user: root`.
-- To opt-in the `logtransfer` service
-  ([data notice above](#sharing-data-through-the-logtransfer-service-and-data-privacy-notice)), start `docker compose`
-  with the flag `--profile with_logtransfer`. See also below for further necessary adaptations in the `nomad.yaml` file.
 
 A few things to notice:
 
@@ -201,7 +199,7 @@ You should change the following:
 users back to this host. Make sure this is the hostname, your users can use.
 - Replace `deployment`, `deployment_url`, and `maintainer_email` with representative values.
 The `deployment_url` should be the url to the deployment's api (should end with `/api`).
-- To enable the `logtransfer` service activate logging in `logstash` format by setting `enable: true`.
+- To enable the *log transfer* set `logtransfer.enable: true` ([data privacy notice above](#sharing-data-through-the-logtransfer-service-and-data-privacy-notice)).
 - You can change `api_base_path` to run NOMAD under a different path prefix.
 - You should generate your own `north.jupyterhub_crypt_key`. You can generate one
 with `openssl rand -hex 32`.
@@ -485,12 +483,6 @@ docker run --rm -v `pwd`/nginx.conf:/etc/nginx/conf.d/default.conf -p 80:80 ngin
 
 ### Running NOMAD
 
-Before you start, we need to transfer your `nomad.yaml` config values to the GUI's
-javascript. You need to repeat this, if you change your `nomad.yaml`. You can do this by running:
-```
-nomad admin ops gui-config
-```
-
 To run NOMAD, you must run two services. One is the NOMAD app, it serves the API and GUI:
 ```sh
 --8<-- "run.sh"
@@ -498,7 +490,7 @@ To run NOMAD, you must run two services. One is the NOMAD app, it serves the API
 
 the second is the NOMAD worker, that runs the NOMAD processing.
 ```
-celery -A nomad.processing worker -l info -Q celery
+--8<-- "run_worker.sh"
 ```
 
 This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.

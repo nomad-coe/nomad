@@ -101,17 +101,14 @@ keycloak:
 logstash:
   enabled: false
   host: localhost
-  level: 10
+  level: 20
   tcp_port: '5000'
 logtransfer:
-  backup_count: 10
-  enable_logtransfer: false
-  enable_statistics: true
-  log_filename: collectedlogs.txt
-  max_bytes: 10000000
-  raise_unexpected_exceptions: false
-  statistics_interval: 86400
-  submit_interval: 86400
+  enabled: false
+  level: 20
+  transfer_threshold: 0
+  transfer_capacity: 1048576
+  transfer_interval: 600
 mail:
   enabled: false
   from_address: support@nomad-lab.eu
@@ -123,9 +120,9 @@ mail:
 meta:
   beta: {}
   commit: ''
-  deployment: devel
+  deployment: oasis
   homepage: https://nomad-lab.eu
-  maintainer_email: markus.scheidgen@physik.hu-berlin.de
+  maintainer_email: me@my-oasis.org
   name: NOMAD
   service: unknown nomad service
   source_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR

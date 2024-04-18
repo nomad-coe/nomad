@@ -455,47 +455,48 @@ class Logstash(ConfigBaseModel):
 class Logtransfer(ConfigBaseModel):
     """Configuration of logtransfer and statistics service.
 
-    Note that other configurations are also used within logtransfer
-
-    * class Logstash (Configs: enabled, host, level, tcp_port) such that logs are send to the logstash proxy
-    * class Oasis (Config: central_nomad_api_url) address to which the logs are sent to
-    * class FS (Config: tmp) path where collected logfiles are stored until they are transferred
+    When enabled (enabled) an additional logger will write logs to a log file (log_file).
+    At regular intervals (transfer_interval) a celery task is scheduled. It will log a set
+    of statistics. It will copy the log file (transfer_log_files). Transfer the contents
+    of the copy to the central NOMAD (oasis.central_nomad_deployment_url) and delete the copy.
+    The transfer is only done if the the log file has a certain size (transfer_threshold). Only a
+    maximum amount of logs are transferred (transfer_capacity). Only logs with a certain
+    level (level) are considered. The files will be stored in fs.tmp.
     """
 
-    # for logtransfer, see nomad/logtransfer.py
-    enable_logtransfer: bool = Field(
+    enabled: bool = Field(
         False,
         description='If enabled this starts process that frequently generates logs with statistics.',
     )
-    submit_interval: int = Field(
-        60 * 60 * 24,
-        description='Time interval in seconds after which logs are transferred.',
+    transfer_threshold: int = Field(
+        0,
+        description='The minimum size in bytes of stored logs before logs are transferred. 0 means transfer at every transfer interval.',
     )
-    max_bytes: int = Field(
-        int(1e7),
-        description='The size of the logfile in bytes at which the logs are transferred.',
+    transfer_capacity: int = Field(
+        1000000,
+        description='The maximum number of bytes of stored logs that are transferred. Excess is dropped.',
     )
-    backup_count: int = Field(
-        10,
-        description='Number of logfiles stored before oldest rotated logfile is removed.',
+    transfer_interval: int = Field(
+        600,
+        description='Time interval in seconds after which stored logs are potentially transferred.',
     )
-    log_filename: str = Field(
-        'collectedlogs.txt',
-        description='Filename of logfile (located in ".volumes/tmp/").',
+    level: Union[int, str] = Field(
+        logging.INFO, description='The min log level for logs to be transferred.'
     )
-    raise_unexpected_exceptions: bool = Field(
-        False,
-        description='Whether to keep the server alive if an unexpected exception is raised. Set to True for testing.',
+    log_file: str = Field(
+        'nomad.log', description='The log file that is used to store logs for transfer.'
     )
-    # for statistics (which are submitted to logstash/logtransfer), see nomad/statistics.py
-    enable_statistics: bool = Field(
-        True,
-        description='If enabled this starts a process that frequently generates logs with statistics.',
+    transfer_log_file: str = Field(
+        '.transfer.log',
+        description='The log file that is used to copy logs for transfer.',
     )
-    statistics_interval: int = Field(
-        60 * 60 * 24,
-        description='Time interval in seconds in which statistics are logged.',
+    file_rollover_wait_time: float = Field(
+        1,
+        description='Time in seconds to wait after log file was "rolled over" for transfer.',
     )
+
+    # Validators
+    _level = validator('level', allow_reuse=True)(normalize_loglevel)
 
 
 class Tests(ConfigBaseModel):
