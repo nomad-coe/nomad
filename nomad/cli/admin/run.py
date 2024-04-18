@@ -45,10 +45,15 @@ def worker():
     help='The app will configure the gui for production and service it.',
     is_flag=True,
 )
-@click.option('--host', type=str, help='Passed to uvicorn host parameter.')
-@click.option('--port', type=int, help='Passed to uvicorn host parameter.')
-@click.option('--log-config', type=str, help='Passed to uvicorn log-config parameter.')
-@click.option('--gunicorn', is_flag=True, type=bool, help='Run app with gunicorn.')
+@click.option('--host', type=str, help='Passed as host parameter.')
+@click.option('--port', type=int, help='Passed as port parameter.')
+@click.option('--log-config', type=str, help='Passed as log-config parameter.')
+@click.option(
+    '--gunicorn',
+    is_flag=True,
+    type=bool,
+    help='Run app with gunicorn instead of uvicorn.',
+)
 @click.option('--workers', type=int, help='Passed to uvicorn workers parameter.')
 def app(with_gui: bool, **kwargs):
     run_app(with_gui=with_gui, **kwargs)
@@ -97,6 +102,7 @@ def run_app(
     gunicorn: bool = False,
     host: str = None,
     log_config: str = None,
+    port: int = None,
     **kwargs,
 ):
     config.meta.service = 'app'
@@ -166,8 +172,11 @@ def run_app(
             def load_config(self):
                 self.cfg.set('timeout', config.services.api_timeout)
                 self.cfg.set('worker_class', 'uvicorn.workers.UvicornWorker')
-                if host:
-                    self.cfg.set('bind', host)
+                if host or port:
+                    self.cfg.set(
+                        'bind',
+                        f'{host if host else "0.0.0.0"}:{port if port else 8000}',
+                    )
                 for key, value in kwargs.items():
                     if key in self.cfg.settings and value is not None:
                         self.cfg.set(key, value)
@@ -184,6 +193,7 @@ def run_app(
             'nomad.app.main:app',
             log_level='info',
             host=host,
+            port=port if port else 8000,
             **{k: v for k, v in kwargs.items() if v is not None},
         )
 
@@ -238,7 +248,7 @@ def task_worker():
 
 
 @run.command(help='Run both app and worker.')
-def appworker():
+def appworker(app_host, app_port):
     from concurrent import futures as concurrent_futures
     import asyncio
 
