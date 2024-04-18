@@ -21,8 +21,6 @@ import re
 
 from nomad.utils import get_logger
 from nomad.metainfo import DataType, MSection, Quantity
-from nomad.datamodel.context import ServerContext, Context
-from nomad.datamodel import EntryArchive
 
 LOGGER = get_logger(__name__)
 
@@ -63,7 +61,7 @@ def write_hdf5_dataset(value: Any, hdf5_file: h5py.File, path: str) -> None:
 
 class _HDF5Reference(DataType):
     @staticmethod
-    def _get_upload_files(archive: EntryArchive, path: str):
+    def _get_upload_files(archive, path: str):
         match = match_hdf5_reference(path)
         file_id = match['file_id']
 
@@ -71,12 +69,13 @@ class _HDF5Reference(DataType):
             LOGGER.error('Invalid HDF5 path.')
 
         from nomad import files
+        from nomad.datamodel.context import ServerContext
 
         upload_id, _ = ServerContext._get_ids(archive, required=True)
         return match, files.UploadFiles.get(upload_id)
 
     @staticmethod
-    def write_dataset(archive: EntryArchive, value: Any, path: str) -> None:
+    def write_dataset(archive, value: Any, path: str) -> None:
         """
         Write value to HDF5 file specified in path following the form
         filename.h5#/path/to/dataset. upload_id is resolved from archive.
@@ -88,7 +87,7 @@ class _HDF5Reference(DataType):
             write_hdf5_dataset(value, f, match['path'])
 
     @staticmethod
-    def read_dataset(archive: EntryArchive, path: str) -> Any:
+    def read_dataset(archive, path: str) -> Any:
         """
         Read HDF5 dataset from file specified in path following the form
         filename.h5#/path/to/dataset. upload_id is resolved from archive.
@@ -100,6 +99,8 @@ class _HDF5Reference(DataType):
 
 class _HDF5Dataset(DataType):
     def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> str:
+        from nomad.datamodel.context import ServerContext, Context
+
         if isinstance(value, h5py.Dataset):
             return f'{value.file.filename}#{value.name}'
 
@@ -130,6 +131,8 @@ class _HDF5Dataset(DataType):
     def deserialize(
         self, section: MSection, quantity_def: Quantity, value: str
     ) -> h5py.Dataset:
+        from nomad.datamodel.context import Context
+
         match = match_hdf5_reference(value)
         if not match:
             return None
