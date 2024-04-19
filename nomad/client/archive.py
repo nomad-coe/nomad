@@ -159,7 +159,7 @@ class ArchiveQuery:
         max_requests_per_second: int = 20,
     ):
         self._owner: str = owner
-        self._required = required if required else dict(run='*')
+        self._required = required if required is not None else '*'
         self._query_list: list[dict] = [
             {'quantities': list(_collect(self._required, EntryArchive.m_def))}
         ]
