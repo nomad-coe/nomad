@@ -33,7 +33,7 @@ import { InputTextField } from '../input/InputText'
 import UnitInput from '../../units/UnitInput'
 
 // Predefined in order to not break memoization
-const dtypesNumeric = new Set([DType.Int, DType.Float])
+const dtypesNumeric = new Set([DType.Int, DType.Float, DType.Timestamp])
 const dtypesColor = new Set([DType.String, DType.Enum, DType.Float, DType.Int])
 const nPointsOptions = {
   100: 100,
