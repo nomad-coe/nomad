@@ -134,15 +134,20 @@ export const WidgetScatterPlot = React.memo((
   // Create final axis config for the plot
   const {xAxis, yAxis, colorAxis} = useMemo(() => {
     if (error) return {}
-    const xTitle = x.title || filterData[xParsed.quantity]?.label
-    const yTitle = y.title || filterData[yParsed.quantity]?.label
-    const colorTitle = markers?.color?.title || filterData[colorParsed.quantity]?.label
+    const xFilter = filterData[xParsed.quantity]
+    const yFilter = filterData[yParsed.quantity]
+    const colorFilter = filterData[colorParsed.quantity]
+    const xTitle = x.title || xFilter?.label
+    const yTitle = y.title || yFilter?.label
+    const xType = xFilter?.dtype
+    const yType = yFilter?.dtype
+    const colorTitle = markers?.color?.title || colorFilter?.label
     const unitLabelX = displayUnitX.label()
     const unitLabelY = displayUnitY.label()
     const unitLabelColor = displayUnitColor.label()
     return {
-      xAxis: {...x, ...xParsed, title: xTitle, unit: unitLabelX},
-      yAxis: {...y, ...yParsed, title: yTitle, unit: unitLabelY},
+      xAxis: {...x, ...xParsed, title: xTitle, unit: unitLabelX, type: xType},
+      yAxis: {...y, ...yParsed, title: yTitle, unit: unitLabelY, type: yType},
       colorAxis: markers?.color ? {...markers.color, ...colorParsed, title: colorTitle, unit: unitLabelColor} : {}
     }
   }, [colorParsed, displayUnitColor, displayUnitX, displayUnitY, filterData, markers?.color, x, xParsed, y, yParsed, error])
@@ -287,14 +292,18 @@ export const WidgetScatterPlot = React.memo((
   // Perform unit conversion, report errors
   const data = useMemo(() => {
     if (!dataRaw) return
-    const x = new Quantity(dataRaw.x, unitXObj).to(displayUnitX).value()
-    const y = new Quantity(dataRaw.y, unitYObj).to(displayUnitY).value()
+    const x = xAxis.type === DType.Timestamp
+      ? dataRaw.x
+      : new Quantity(dataRaw.x, unitXObj).to(displayUnitX).value()
+    const y = yAxis.type === DType.Timestamp
+      ? dataRaw.y
+      : new Quantity(dataRaw.y, unitYObj).to(displayUnitY).value()
     const color = dataRaw.color && (discrete
       ? dataRaw.color
       : new Quantity(dataRaw.color, unitColorObj).to(displayUnitColor).value()
     )
     return {x, y, color, id: dataRaw.id}
-  }, [dataRaw, displayUnitColor, displayUnitX, displayUnitY, unitColorObj, unitXObj, unitYObj, discrete])
+  }, [dataRaw, displayUnitColor, displayUnitX, displayUnitY, unitColorObj, unitXObj, unitYObj, discrete, xAxis, yAxis])
 
   const handleEdit = useCallback(() => {
     setWidget(old => { return {...old, editing: true } })

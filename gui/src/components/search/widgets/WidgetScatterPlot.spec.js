@@ -40,6 +40,7 @@ jest.mock('../SearchContext', () => ({
           return [
             {
               entry_id: 0,
+              entry_create_time: '2024-04-18T09:00:00.000000+00:00',
               results: {
                 material: {n_elements: 1, elements: ['Si'], chemical_formula_hill: 'Si2'},
                 properties: {
@@ -58,6 +59,7 @@ jest.mock('../SearchContext', () => ({
             },
             {
               entry_id: 1,
+              entry_create_time: '2024-04-18T10:00:00.000000+00:00',
               results: {
                 material: {n_elements: 1, elements: ['C', 'O'], chemical_formula_hill: 'CO2'},
                 properties: {
@@ -84,6 +86,7 @@ jest.mock('../SearchContext', () => ({
 describe('test different combinations of x/y/color produced with JMESPath', () => {
   test.each([
     ['scalar quantity', 'results.material.n_elements', 'results.material.n_elements', 'results.material.n_elements'],
+    ['datetime', 'entry_create_time', 'entry_create_time', 'entry_id'],
     ['index expression', 'results.properties.electronic.band_gap[0].value', 'results.properties.electronic.band_gap[0].value', 'results.properties.electronic.band_gap[0].value'],
     ['slicing', 'results.properties.electronic.band_gap[1:2].value', 'results.properties.electronic.band_gap[1:2].value', 'results.properties.electronic.band_gap[1:2].value'],
     ['function', 'min(results.properties.electronic.band_gap[*].value)', 'min(results.properties.electronic.band_gap[*].value)', 'min(results.properties.electronic.band_gap[*].value)'],
