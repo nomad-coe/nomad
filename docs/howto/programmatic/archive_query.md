@@ -16,7 +16,7 @@ To define a query, one can, for example, write
 ```python
 from nomad.client.archive import ArchiveQuery
 
-query = ArchiveQuery(query={}, required={}, page_size=10, results_max=10000)
+query = ArchiveQuery(query={}, required='*', page_size=10, results_max=10000)
 ```
 
 Although the above query object has an empty query.
