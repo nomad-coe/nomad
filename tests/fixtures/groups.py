@@ -8,7 +8,6 @@ Group fixtures:
 import pytest
 
 from nomad.groups import UserGroup, create_user_group
-from nomad.utils.exampledata import ExampleData
 from tests.utils import fake_group_uuid, fake_user_uuid
 
 
@@ -107,83 +106,3 @@ def user_groups_module(mongo_module, create_user_groups):
 @pytest.fixture(scope='function')
 def user_groups_function(mongo_function, create_user_groups):
     return create_user_groups()
-
-
-@pytest.fixture('module')
-def fill_group_data(convert_group_labels_to_ids):
-    def fill(data: ExampleData, id_label, c_groups, r_groups, **kwargs):
-        upload_id = f'id_{id_label}'
-        entry_id = f'{upload_id}_1'
-
-        d = kwargs.copy()
-        d['upload_id'] = upload_id
-        d['coauthor_groups'] = convert_group_labels_to_ids(c_groups)
-        d['reviewer_groups'] = convert_group_labels_to_ids(r_groups)
-        d.setdefault('published', d.get('embargo_length') is not None)
-        if d.get('embargo_length') is None:
-            d['embargo_length'] = 0
-
-        data.create_upload(**d)
-        data.create_entry(upload_id=upload_id, entry_id=entry_id)
-
-    return fill
-
-
-@pytest.fixture(scope='module')
-def example_data_groups(
-    elastic_module, mongo_module, user_groups_module, user1, fill_group_data
-):
-    data = ExampleData(main_author=user1)
-    fill_group_data(data, 'no_group', [], [])
-    fill_group_data(data, 'coauthor_group2', ['group2'], [])
-    fill_group_data(data, 'reviewer_group2', [], ['group2'])
-    fill_group_data(data, 'coauthor_group012', ['group012'], [])
-    fill_group_data(data, 'reviewer_group012', [], ['group012'])
-    fill_group_data(data, 'reviewer_all', [], ['all'])
-
-    data.save(with_files=False)
-
-    yield data
-
-    data.delete()
-
-
-@pytest.fixture(scope='function')
-def upload_no_group(mongo_function, user1):
-    data = ExampleData(main_author=user1)
-    data.create_upload(upload_id='id_no_group')
-    data.save()
-
-    yield data
-
-    data.delete()
-
-
-@pytest.fixture(scope='function')
-def upload_coauthor_group2_and_group012(
-    mongo_function,
-    user1,
-    group2,
-    group012,
-):
-    data = ExampleData(main_author=user1)
-    data.create_upload(
-        upload_id='id_coauthor_ogroup_mgroup',
-        coauthor_groups=[group2.group_id, group012.group_id],
-    )
-    data.save()
-
-    yield data
-
-    data.delete()
-
-
-@pytest.fixture(scope='function')
-def upload_reviewer_all_group(mongo_function, user1):
-    data = ExampleData(main_author=user1)
-    data.create_upload(upload_id='id_reviewer_all', reviewer_groups=['all'])
-    data.save()
-
-    yield data
-
-    data.delete()

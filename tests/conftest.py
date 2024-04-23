@@ -63,6 +63,7 @@ pytest_plugins = (
     'celery.contrib.pytest',
     'tests.fixtures.data',
     'tests.fixtures.groups',
+    'tests.fixtures.group_uploads',
     'tests.fixtures.infrastructure',
     'tests.fixtures.mails',
     'tests.fixtures.users',

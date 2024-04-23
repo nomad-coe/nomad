@@ -177,29 +177,6 @@ def example_data(elastic_function, user1):
     data.save(with_files=False, with_mongo=False)
 
 
-@pytest.fixture(scope='class')
-def example_group_data(
-    elastic_module, user_groups_module, user1, user2, fill_group_data
-):
-    data = ExampleData(main_author=user1)
-    fill_group_data(data, 'no_embargo', [], [], embargo_length=0)
-    fill_group_data(data, 'with_embargo', [], [], embargo_length=3)
-    fill_group_data(data, 'no_group', [], [])
-    fill_group_data(data, 'coauthor_group1', ['group1'], [])
-    fill_group_data(data, 'reviewer_group1', [], ['group1'])
-    fill_group_data(data, 'coauthor_group2', ['group2'], [])
-    fill_group_data(data, 'reviewer_group2', [], ['group2'])
-    fill_group_data(data, 'coauthor_group012', ['group012'], [])
-    fill_group_data(data, 'reviewer_group012', [], ['group012'])
-    fill_group_data(data, 'reviewer_all', [], ['all'])
-    fill_group_data(data, 'user2', [], [], main_author=user2)
-    data.save(with_files=False, with_mongo=False)
-
-    yield data
-
-    data.delete()
-
-
 @pytest.fixture()
 def example_text_search_data(mongo_module, elastic_function, user1):
     data = ExampleData(main_author=user1)
@@ -357,10 +334,10 @@ class TestsWithGroups:
             pytest.param('all', 'user2', 8, id='all-user2'),
         ],
     )
-    def test_search_query_group(
+    def test_search_query_groups(
         self,
         users_dict,
-        example_group_data,
+        uploads_search_query_groups,
         owner,
         user,
         exc_or_total,

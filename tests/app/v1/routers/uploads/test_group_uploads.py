@@ -45,7 +45,7 @@ from .common import assert_upload
 )
 def test_get_group_uploads(
     client,
-    example_data_groups,
+    uploads_get_groups,
     auth_dict,
     user,
     query_params,
@@ -88,7 +88,7 @@ def test_get_group_uploads(
 )
 def test_get_group_upload(
     client,
-    example_data_groups,
+    uploads_get_groups,
     auth_dict,
     user,
     upload_id,
