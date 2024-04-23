@@ -16,46 +16,47 @@
 # limitations under the License.
 #
 
-import pytest
 import io
 import os
-import requests
 import time
 import zipfile
 from datetime import datetime
-from typing import List, Dict, Any, Iterable
-from tests.app.v1.routers.uploads.common import assert_upload
+from typing import Any, Dict, Iterable, List
 
-from tests.utils import build_url, set_upload_entry_metadata
-from tests.test_files import (
-    example_file_mainfile_different_atoms,
-    example_file_vasp_with_binary,
-    example_file_aux,
-    example_file_unparsable,
-    example_file_corrupt_zip,
-    empty_file,
-    assert_upload_files,
-)
-from tests.test_search import assert_search_upload
-from tests.processing.test_edit_metadata import (
-    assert_metadata_edited,
-    all_coauthor_metadata,
-    all_admin_metadata,
-)
-from tests.app.v1.routers.common import (
-    assert_response,
-    assert_browser_download_headers,
-    perform_get,
-)
+import pytest
+import requests
+
 from nomad import files, infrastructure
+from nomad.bundles import BundleExporter
 from nomad.config import config
 from nomad.config.models.config import BundleImportSettings
-from nomad.processing import Upload, Entry, ProcessStatus
-from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
-from nomad.bundles import BundleExporter
 from nomad.datamodel import EntryMetadata
+from nomad.files import PublicUploadFiles, StagingUploadFiles, UploadFiles
+from nomad.processing import Entry, ProcessStatus, Upload
+from tests.app.v1.routers.common import (
+    assert_browser_download_headers,
+    assert_response,
+    perform_get,
+)
+from tests.processing.test_edit_metadata import (
+    all_admin_metadata,
+    all_coauthor_metadata,
+    assert_metadata_edited,
+)
+from tests.test_files import (
+    assert_upload_files,
+    empty_file,
+    example_file_aux,
+    example_file_corrupt_zip,
+    example_file_mainfile_different_atoms,
+    example_file_unparsable,
+    example_file_vasp_with_binary,
+)
+from tests.test_search import assert_search_upload
+from tests.utils import build_url, set_upload_entry_metadata
 
 from ..test_entries import assert_archive_response
+from .common import assert_entry, assert_upload
 
 """
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -355,17 +356,6 @@ def assert_gets_published(
             assert entry.with_embargo == (embargo_length > 0)
 
     assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
-
-
-def assert_entry(entry, **kwargs):
-    """Checks the content of a returned entry dictionary."""
-    assert 'upload_id' in entry
-    assert 'entry_id' in entry
-    assert 'entry_create_time' in entry
-    assert not entry['process_running']
-    for key, value in kwargs.items():
-        assert entry.get(key, None) == value
-    assert 'entry_metadata' in entry
 
 
 def assert_pagination(pagination, expected_pagination):

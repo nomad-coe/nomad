@@ -18,12 +18,14 @@
 
 """Methods to help with testing of nomad@FAIRDI."""
 
-from typing import List, Union, Dict, Any
-import urllib.parse
 import json
-from logging import LogRecord
-import zipfile
 import os.path
+import urllib.parse
+import zipfile
+from logging import LogRecord
+from typing import Any, Dict, List, Union
+
+import pytest
 
 
 def assert_log(caplog, level: str, event_part: str) -> LogRecord:
@@ -160,9 +162,36 @@ def create_template_upload_file(
 
 
 def fake_user_uuid(handle):
-    return '00000000-0000-0000-0000-00000000000%d' % handle
+    uuid = '00000000-0000-0000-0000-' + str(handle).rjust(12, '0')
+    assert len(uuid) == 36
+    return uuid
 
 
 def fake_group_uuid(handle: Any):
     """Returns a test user group uuid based on the handle."""
-    return str(handle).rjust(22, 'G')
+    uuid = str(handle).rjust(22, 'G')
+    assert len(uuid) == 22
+    return uuid
+
+
+def generate_convert_label(mapping):
+    """Returned function converts labels to values according to mapping,
+    also in lists and dicts, returns copies. Missing labels persist."""
+
+    def convert(raw):
+        if isinstance(raw, str):
+            return mapping.get(raw, raw)
+
+        if isinstance(raw, list):
+            return [convert(v) for v in raw]
+
+        if isinstance(raw, dict):
+            return {k: convert(v) for k, v in raw.items()}
+
+        return raw
+
+    return convert
+
+
+def dict_to_params(d):
+    return [pytest.param(*item, id=id) for id, item in d.items()]
