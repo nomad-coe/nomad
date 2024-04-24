@@ -14,11 +14,11 @@ from .common import assert_upload
             'user2',
             {},
             [
-                'id_coauthor_group2',
-                'id_reviewer_group2',
-                'id_coauthor_group123',
-                'id_reviewer_group123',
-                'id_reviewer_all',
+                'id_CGg2',
+                'id_RGg2',
+                'id_CGg123',
+                'id_RGg123',
+                'id_RGall',
             ],
             200,
             id='no-args',
@@ -26,7 +26,7 @@ from .common import assert_upload
         pytest.param(
             'user2',
             {'roles': 'coauthor'},
-            ['id_coauthor_group2', 'id_coauthor_group123'],
+            ['id_CGg2', 'id_CGg123'],
             200,
             id='coauthor',
         ),
@@ -34,9 +34,9 @@ from .common import assert_upload
             'user2',
             {'roles': 'reviewer'},
             [
-                'id_reviewer_group2',
-                'id_reviewer_group123',
-                'id_reviewer_all',
+                'id_RGg2',
+                'id_RGg123',
+                'id_RGall',
             ],
             200,
             id='reviewer',
@@ -70,20 +70,16 @@ def test_get_group_uploads(
 @pytest.mark.parametrize(
     'user, upload_id, expected_status_code',
     [
-        pytest.param('user2', 'id_coauthor_group2', 200, id='coauthor-group2'),
-        pytest.param(
-            'invalid', 'id_coauthor_group2', 401, id='coauthor-group2-invalid'
-        ),
-        pytest.param(None, 'id_coauthor_group2', 401, id='coauthor-group2-guest'),
-        pytest.param('user2', 'id_reviewer_group2', 200, id='reviewer-group2'),
-        pytest.param(
-            'invalid', 'id_reviewer_group2', 401, id='reviewer-group2-invalid'
-        ),
-        pytest.param(None, 'id_reviewer_group2', 401, id='reviewer-group2-guest'),
-        pytest.param('user2', 'id_coauthor_group123', 200, id='coauthor-group123'),
-        pytest.param('user2', 'id_reviewer_group123', 200, id='reviewer-group123'),
-        pytest.param('user2', 'id_reviewer_all', 200, id='reviewer-all-user2'),
-        pytest.param(None, 'id_reviewer_all', 200, id='reviewer-all-guest'),
+        pytest.param('user2', 'id_CGg2', 200, id='CGg2'),
+        pytest.param('invalid', 'id_CGg2', 401, id='CGg2-invalid'),
+        pytest.param(None, 'id_CGg2', 401, id='CGg2-guest'),
+        pytest.param('user2', 'id_RGg2', 200, id='RGg2'),
+        pytest.param('invalid', 'id_RGg2', 401, id='RGg2-invalid'),
+        pytest.param(None, 'id_RGg2', 401, id='RGg2-guest'),
+        pytest.param('user2', 'id_CGg123', 200, id='CGg123'),
+        pytest.param('user2', 'id_RGg123', 200, id='RGg123'),
+        pytest.param('user2', 'id_RGall', 200, id='RGall-user2'),
+        pytest.param(None, 'id_RGall', 200, id='RGall-guest'),
     ],
 )
 def test_get_group_upload(
@@ -110,7 +106,7 @@ def test_get_group_upload(
             {'coauthor_groups': 'group2'},
             200,
             ['group2'],
-            id='coauthor-group2',
+            id='CGg2',
         ),
         pytest.param(
             'upload_no_group',
@@ -124,7 +120,7 @@ def test_get_group_upload(
             },
             200,
             ['group1', 'group2', 'group123'],
-            id='coauthor-multiple-groups',
+            id='CGg1g2g123',
         ),
         pytest.param(
             'upload_no_group',
@@ -132,63 +128,63 @@ def test_get_group_upload(
             {'reviewer_groups': ['group2', 'group2']},
             200,
             ['group2'],
-            id='reviewer-group2-double',
+            id='RGg2-double',
         ),
         pytest.param(
-            'upload_coauthor_group2_and_group123',
+            'upload_CGg2g123',
             'user1',
             {'coauthor_groups': {'add': 'group2'}},
             200,
             ['group2', 'group123'],
-            id='coauthor-add-existing',
+            id='CG-add-existing',
         ),
         pytest.param(
-            'upload_coauthor_group2_and_group123',
+            'upload_CGg2g123',
             'user1',
             {'coauthor_groups': 'unknown_group'},
             422,
             ['group2', 'group123'],
-            id='coauthor-set0-unknown-fails',
+            id='CG-set0-unknown-fails',
         ),
         pytest.param(
-            'upload_coauthor_group2_and_group123',
+            'upload_CGg2g123',
             'user1',
             {'coauthor_groups': {'set': 'unknown_group'}},
             422,
             ['group2', 'group123'],
-            id='coauthor-set1-unknown-fails',
+            id='CG-set1-unknown-fails',
         ),
         pytest.param(
-            'upload_coauthor_group2_and_group123',
+            'upload_CGg2g123',
             'user1',
             {'coauthor_groups': {'add': 'unknown_group'}},
             422,
             ['group2', 'group123'],
-            id='coauthor-add-unknown-fails',
+            id='CG-add-unknown-fails',
         ),
         pytest.param(
-            'upload_reviewer_all_group',
+            'upload_RGall',
             'user1',
             {'reviewer_groups': 'unknown_group'},
             422,
             ['all'],
-            id='reviewer-set0-unknown-fails',
+            id='RG-set0-unknown-fails',
         ),
         pytest.param(
-            'upload_reviewer_all_group',
+            'upload_RGall',
             'user1',
             {'reviewer_groups': {'set': 'unknown_group'}},
             422,
             ['all'],
-            id='reviewer-set1-unknown-fails',
+            id='RG-set1-unknown-fails',
         ),
         pytest.param(
-            'upload_reviewer_all_group',
+            'upload_RGall',
             'user1',
             {'reviewer_groups': {'add': 'unknown_group'}},
             422,
             ['all'],
-            id='reviewer-add-unknown-fails',
+            id='RG-add-unknown-fails',
         ),
         pytest.param(
             'upload_no_group',
@@ -196,7 +192,7 @@ def test_get_group_upload(
             {'reviewer_groups': ['group2']},
             200,
             ['group2'],
-            id='reviewer-group2',
+            id='RGg2',
         ),
         pytest.param(
             'upload_no_group',
@@ -204,7 +200,7 @@ def test_get_group_upload(
             {'reviewer_groups': ['all']},
             200,
             ['all'],
-            id='reviewer-all',
+            id='RGall',
         ),
         pytest.param(
             'upload_no_group',
@@ -212,7 +208,7 @@ def test_get_group_upload(
             {'coauthor_groups': ['all']},
             422,
             [],
-            id='coauthor-all-fails',
+            id='CGall-fails',
         ),
         pytest.param(
             'upload_no_group',
@@ -220,7 +216,7 @@ def test_get_group_upload(
             {'reviewer_groups': ['group2']},
             422,
             [],
-            id='other-user-fails',
+            id='user2-fails',
         ),
     ],
 )
@@ -288,7 +284,7 @@ def test_remove_groups_from_upload(
     groups_function,
     proc_infra,
     convert_group_labels_to_ids,
-    upload_coauthor_group2_and_group123,
+    upload_CGg2g123,
     auth_dict,
     user,
     metadata,
@@ -296,7 +292,7 @@ def test_remove_groups_from_upload(
     expected_groups,
 ):
     user_auth, __token = auth_dict[user]
-    upload_id = list(upload_coauthor_group2_and_group123.uploads)[0]
+    upload_id = list(upload_CGg2g123.uploads)[0]
 
     url = f'uploads/{upload_id}/edit'
     metadata = convert_group_labels_to_ids(metadata)
