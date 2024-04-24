@@ -2,7 +2,7 @@ import pytest
 
 from nomad.processing.data import Upload
 from ..common import assert_response, perform_get, perform_post
-from .common import assert_upload
+from .common import assert_entry, assert_upload
 
 
 @pytest.mark.parametrize(
@@ -82,7 +82,7 @@ def test_get_group_uploads(
         pytest.param(None, 'id_RGall', 200, id='RGall-guest'),
     ],
 )
-def test_get_group_upload(
+def test_get_group_upload_and_entries(
     client,
     uploads_get_groups,
     auth_dict,
@@ -93,8 +93,21 @@ def test_get_group_upload(
     user_auth, __token = auth_dict[user]
     response = perform_get(client, f'uploads/{upload_id}', user_auth)
     assert_response(response, expected_status_code)
-    if expected_status_code == 200:
-        assert_upload(response.json())
+
+    if expected_status_code != 200:
+        return
+
+    all_entries = uploads_get_groups.entries.items()
+    reference_entries = {k: v for k, v in all_entries if v['upload_id'] == upload_id}
+    assert_upload(response.json(), entries=len(reference_entries))
+
+    response = perform_get(client, f'uploads/{upload_id}/entries', user_auth)
+    assert_response(response, expected_status_code)
+
+    response_data = response.json()['data']
+    assert len(response_data) == len(reference_entries)
+    for entry in response_data:
+        assert_entry(entry, has_metadata=False, upload_id=upload_id)
 
 
 @pytest.mark.parametrize(
