@@ -215,7 +215,7 @@ class BaseSection(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short human readable and descriptive name.',
-        a_eln=dict(component='StringEditQuantity', label='Short name'),
+        a_eln=dict(component='StringEditQuantity', label='name'),
     )
     datetime = Quantity(
         type=Datetime,
@@ -1218,7 +1218,7 @@ class ActivityResult(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short and descriptive name for the result.',
-        a_eln=dict(component='StringEditQuantity', label='Short name'),
+        a_eln=dict(component='StringEditQuantity', label='name'),
     )
 
 
