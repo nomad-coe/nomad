@@ -227,7 +227,7 @@ def test_get_group_upload(
 def test_add_groups_to_upload(
     request,
     client,
-    user_groups_function,
+    groups_function,
     proc_infra,
     convert_group_labels_to_ids,
     upload_fixture,
@@ -285,7 +285,7 @@ def test_add_groups_to_upload(
 )
 def test_remove_groups_from_upload(
     client,
-    user_groups_function,
+    groups_function,
     proc_infra,
     convert_group_labels_to_ids,
     upload_coauthor_group2_and_group012,

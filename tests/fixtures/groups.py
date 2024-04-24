@@ -7,8 +7,8 @@ Group fixtures:
 
 import pytest
 
-from nomad.groups import UserGroup, create_user_group
-from tests.utils import fake_group_uuid, fake_user_uuid
+from nomad.groups import create_user_group
+from tests.utils import fake_group_uuid, fake_user_uuid, generate_convert_label
 
 
 @pytest.fixture(scope='session')
@@ -45,37 +45,14 @@ def group_molds():
 
 
 @pytest.fixture(scope='session')
-def convert_group_labels_to_ids(group_molds):
-    mapping = {label: group.get('group_id') for label, group in group_molds.items()}
-
-    def convert(raw):
-        if isinstance(raw, str):
-            return mapping.get(raw, raw)
-
-        if isinstance(raw, list):
-            return [convert(v) for v in raw]
-
-        if isinstance(raw, dict):
-            return {k: convert(v) for k, v in raw.items()}
-
-        return raw
-
-    return convert
+def group_label_id_mapping(group_molds):
+    return {label: value.get('group_id') for label, value in group_molds.items()}
 
 
 @pytest.fixture(scope='session')
-def group1(group_molds):
-    return UserGroup(**group_molds['group1'])
-
-
-@pytest.fixture(scope='session')
-def group2(group_molds):
-    return UserGroup(**group_molds['group2'])
-
-
-@pytest.fixture(scope='session')
-def group012(group_molds):
-    return UserGroup(**group_molds['group012'])
+def convert_group_labels_to_ids(group_label_id_mapping):
+    """Returned function converts group labels to ids, also in lists and dicts."""
+    return generate_convert_label(group_label_id_mapping)
 
 
 @pytest.fixture(scope='session')
@@ -99,10 +76,10 @@ def create_user_groups(group_molds):
 
 
 @pytest.fixture(scope='module')
-def user_groups_module(mongo_module, create_user_groups):
+def groups_module(mongo_module, create_user_groups):
     return create_user_groups()
 
 
 @pytest.fixture(scope='function')
-def user_groups_function(mongo_function, create_user_groups):
+def groups_function(mongo_function, create_user_groups):
     return create_user_groups()

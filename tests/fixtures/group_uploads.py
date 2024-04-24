@@ -24,9 +24,7 @@ def fill_group_data(convert_group_labels_to_ids):
 
 
 @pytest.fixture(scope='module')
-def uploads_get_groups(
-    elastic_module, mongo_module, user_groups_module, user1, fill_group_data
-):
+def uploads_get_groups(elastic_module, groups_module, user1, fill_group_data):
     data = ExampleData(main_author=user1)
     fill_group_data(data, 'no_group', [], [])
     fill_group_data(data, 'coauthor_group2', ['group2'], [])
@@ -55,11 +53,11 @@ def upload_no_group(mongo_function, user1):
 
 @pytest.fixture(scope='function')
 def upload_coauthor_group2_and_group012(
-    mongo_function,
+    groups_function,
     user1,
-    group2,
-    group012,
 ):
+    group2 = groups_function['group2']
+    group012 = groups_function['group012']
     data = ExampleData(main_author=user1)
     data.create_upload(
         upload_id='id_coauthor_ogroup_mgroup',
@@ -85,7 +83,7 @@ def upload_reviewer_all_group(mongo_function, user1):
 
 @pytest.fixture(scope='class')
 def uploads_search_query_groups(
-    elastic_module, user_groups_module, user1, user2, fill_group_data
+    elastic_module, groups_module, user1, user2, fill_group_data
 ):
     data = ExampleData(main_author=user1)
     fill_group_data(data, 'no_embargo', [], [], embargo_length=0)
