@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import functools
 import click
 
 from nomad import utils
@@ -231,10 +232,10 @@ def run_hub():
     )
 
 
-def task_app():
+def task_app(*args, **kwargs):
     logger = utils.get_logger('app')
     try:
-        run_app()
+        run_app(*args, **kwargs)
     except Exception as error:
         logger.exception(error)
 
@@ -247,12 +248,20 @@ def task_worker():
         logger.exception(error)
 
 
-@run.command(help='Run both app and worker.')
-def appworker(app_host, app_port):
+def appworker_(app_host=None, app_port=None):
     from concurrent import futures as concurrent_futures
     import asyncio
 
+    app_kwargs = {'host': app_host, 'port': app_port}
+
     executor = concurrent_futures.ProcessPoolExecutor(2)
     loop = asyncio.get_event_loop()
-    loop.run_in_executor(executor, task_app)
+    loop.run_in_executor(executor, functools.partial(task_app, **app_kwargs))
     loop.run_in_executor(executor, task_worker)
+
+
+@run.command(help='Run both app and worker.')
+@click.option('--app-host', type=str, help='Passed as app host parameter.')
+@click.option('--app-port', type=int, help='Passed as app port parameter.')
+def appworker(app_host: str = None, app_port: int = None):
+    appworker_(app_host, app_port)
