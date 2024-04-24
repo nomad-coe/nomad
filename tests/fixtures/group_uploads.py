@@ -29,8 +29,8 @@ def uploads_get_groups(elastic_module, groups_module, user1, fill_group_data):
     fill_group_data(data, 'no_group', [], [])
     fill_group_data(data, 'coauthor_group2', ['group2'], [])
     fill_group_data(data, 'reviewer_group2', [], ['group2'])
-    fill_group_data(data, 'coauthor_group012', ['group012'], [])
-    fill_group_data(data, 'reviewer_group012', [], ['group012'])
+    fill_group_data(data, 'coauthor_group123', ['group123'], [])
+    fill_group_data(data, 'reviewer_group123', [], ['group123'])
     fill_group_data(data, 'reviewer_all', [], ['all'])
 
     data.save(with_files=False)
@@ -52,16 +52,16 @@ def upload_no_group(mongo_function, user1):
 
 
 @pytest.fixture(scope='function')
-def upload_coauthor_group2_and_group012(
+def upload_coauthor_group2_and_group123(
     groups_function,
     user1,
 ):
     group2 = groups_function['group2']
-    group012 = groups_function['group012']
+    group123 = groups_function['group123']
     data = ExampleData(main_author=user1)
     data.create_upload(
         upload_id='id_coauthor_ogroup_mgroup',
-        coauthor_groups=[group2.group_id, group012.group_id],
+        coauthor_groups=[group2.group_id, group123.group_id],
     )
     data.save()
 
@@ -93,8 +93,8 @@ def uploads_search_query_groups(
     fill_group_data(data, 'reviewer_group1', [], ['group1'])
     fill_group_data(data, 'coauthor_group2', ['group2'], [])
     fill_group_data(data, 'reviewer_group2', [], ['group2'])
-    fill_group_data(data, 'coauthor_group012', ['group012'], [])
-    fill_group_data(data, 'reviewer_group012', [], ['group012'])
+    fill_group_data(data, 'coauthor_group123', ['group123'], [])
+    fill_group_data(data, 'reviewer_group123', [], ['group123'])
     fill_group_data(data, 'reviewer_all', [], ['all'])
     fill_group_data(data, 'user2', [], [], main_author=user2)
     data.save(with_files=False, with_mongo=False)
