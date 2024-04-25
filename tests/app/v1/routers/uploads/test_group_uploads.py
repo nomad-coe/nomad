@@ -1,8 +1,15 @@
 import pytest
 
 from nomad.processing.data import Upload
+from tests.utils import dict_to_params
+
 from ..common import assert_response, perform_get, perform_post
 from .common import assert_entry, assert_upload
+
+
+def get_agents_from_upload(upload):
+    keys = ('coauthors', 'reviewers', 'coauthor_groups', 'reviewer_groups')
+    return {k: upload[k] for k in keys}
 
 
 @pytest.mark.parametrize(
@@ -110,213 +117,183 @@ def test_get_group_upload_and_entries(
         assert_entry(entry, has_metadata=False, upload_id=upload_id)
 
 
-@pytest.mark.parametrize(
-    'upload_fixture, user, metadata, expected_status_code, expected_groups',
-    [
-        pytest.param(
-            'upload_no_group',
-            'user1',
-            {'coauthor_groups': 'group2'},
-            200,
-            ['group2'],
-            id='CGg2',
-        ),
-        pytest.param(
-            'upload_no_group',
-            'user1',
-            {
-                'coauthor_groups': [
-                    'group1',
-                    'group2',
-                    'group123',
-                ]
-            },
-            200,
-            ['group1', 'group2', 'group123'],
-            id='CGg1g2g123',
-        ),
-        pytest.param(
-            'upload_no_group',
-            'user1',
-            {'reviewer_groups': ['group2', 'group2']},
-            200,
-            ['group2'],
-            id='RGg2-double',
-        ),
-        pytest.param(
-            'upload_CGg2g123',
-            'user1',
-            {'coauthor_groups': {'add': 'group2'}},
-            200,
-            ['group2', 'group123'],
-            id='CG-add-existing',
-        ),
-        pytest.param(
-            'upload_CGg2g123',
-            'user1',
-            {'coauthor_groups': 'unknown_group'},
-            422,
-            ['group2', 'group123'],
-            id='CG-set0-unknown-fails',
-        ),
-        pytest.param(
-            'upload_CGg2g123',
-            'user1',
-            {'coauthor_groups': {'set': 'unknown_group'}},
-            422,
-            ['group2', 'group123'],
-            id='CG-set1-unknown-fails',
-        ),
-        pytest.param(
-            'upload_CGg2g123',
-            'user1',
-            {'coauthor_groups': {'add': 'unknown_group'}},
-            422,
-            ['group2', 'group123'],
-            id='CG-add-unknown-fails',
-        ),
-        pytest.param(
-            'upload_RGall',
-            'user1',
-            {'reviewer_groups': 'unknown_group'},
-            422,
-            ['all'],
-            id='RG-set0-unknown-fails',
-        ),
-        pytest.param(
-            'upload_RGall',
-            'user1',
-            {'reviewer_groups': {'set': 'unknown_group'}},
-            422,
-            ['all'],
-            id='RG-set1-unknown-fails',
-        ),
-        pytest.param(
-            'upload_RGall',
-            'user1',
-            {'reviewer_groups': {'add': 'unknown_group'}},
-            422,
-            ['all'],
-            id='RG-add-unknown-fails',
-        ),
-        pytest.param(
-            'upload_no_group',
-            'user1',
-            {'reviewer_groups': ['group2']},
-            200,
-            ['group2'],
-            id='RGg2',
-        ),
-        pytest.param(
-            'upload_no_group',
-            'user1',
-            {'reviewer_groups': ['all']},
-            200,
-            ['all'],
-            id='RGall',
-        ),
-        pytest.param(
-            'upload_no_group',
-            'user1',
-            {'coauthor_groups': ['all']},
-            422,
-            [],
-            id='CGall-fails',
-        ),
-        pytest.param(
-            'upload_no_group',
-            'user2',
-            {'reviewer_groups': ['group2']},
-            422,
-            [],
-            id='user2-fails',
-        ),
-    ],
-)
-def test_add_groups_to_upload(
-    request,
-    client,
-    groups_function,
-    proc_infra,
-    convert_group_labels_to_ids,
-    upload_fixture,
+@pytest.fixture(scope='function')
+def perform_edit_upload_agents_test(
     auth_dict,
-    user,
-    expected_status_code,
-    metadata,
-    expected_groups,
+    client,
+    convert_agent_labels_to_ids,
+    proc_infra,
+    groups_function,
 ):
-    user_auth, __token = auth_dict[user]
-    upload_fixture = request.getfixturevalue(upload_fixture)
-    upload_id = list(upload_fixture.uploads)[0]
-    group_quantity = list(metadata)[0]
+    def perform(upload_fixture, user, metadata, expected_status_code, changed_agents):
+        user_auth, _ = auth_dict[user]
+        upload = list(upload_fixture.uploads.values())[0]
+        expected_agents = get_agents_from_upload(upload)
+        expected_agents.update(changed_agents)
+        expected_agents = convert_agent_labels_to_ids(expected_agents)
+        upload_id = upload['upload_id']
 
-    url = f'uploads/{upload_id}/edit'
-    metadata = convert_group_labels_to_ids(metadata)
-    edit_request = dict(metadata=metadata)
-    response = perform_post(client, url, user_auth, json=edit_request)
+        url = f'uploads/{upload_id}/edit'
+        metadata = convert_agent_labels_to_ids(metadata)
+        edit_request = dict(metadata=metadata)
+        response = perform_post(client, url, user_auth, json=edit_request)
+        assert_response(response, expected_status_code)
 
-    assert_response(response, expected_status_code)
-    upload = Upload.get(upload_id)
-    upload.block_until_complete()
+        upload = Upload.get(upload_id)
+        upload.block_until_complete()
+        agents = get_agents_from_upload(upload)
+        assert sorted(agents) == sorted(expected_agents)
 
-    group_ids = getattr(upload, group_quantity)
-    expected_ids = convert_group_labels_to_ids(expected_groups)
-    assert group_ids == expected_ids
+    return perform
+
+
+edit_upload_agents_C_params = {
+    'set-C': ({'coauthors': {'set': []}}, {'coauthors': []}),
+    'set-C9': ({'coauthors': 'user9'}, {'coauthors': ['user9']}),
+    'remove-C2': ({'coauthors': {'remove': 'user2'}}, {'coauthors': ['user4']}),
+    'remove-C24': ({'coauthors': {'remove': ['user2', 'user4']}}, {'coauthors': []}),
+    'add-C2-noop': ({'coauthors': {'add': ['user2']}}, {}),
+    'add-C24-noop': ({'coauthors': {'add': ['user2', 'user4']}}, {}),
+    'add-C8': (
+        {'coauthors': {'add': 'user8'}},
+        {'coauthors': ['user2', 'user4', 'user8']},
+    ),
+    'add-C88-merged': (
+        {'coauthors': {'add': ['user8', 'user8']}},
+        {'coauthors': ['user2', 'user4', 'user8']},
+    ),
+    'add-C89': (
+        {'coauthors': {'add': ['user8', 'user9']}},
+        {'coauthors': ['user2', 'user4', 'user8', 'user9']},
+    ),
+    'add-CX-fails': ({'coauthors': {'add': 'unknown_user'}}, 422),
+    'remove-C2-add-C9': (
+        {'coauthors': {'remove': 'user2', 'add': 'user9'}},
+        {'coauthors': ['user4', 'user9']},
+    ),
+}
+
+edit_upload_agents_CG_params = {
+    'set-CG': ({'coauthor_groups': {'set': []}}, {'coauthor_groups': []}),
+    'set-CGg9': (
+        {'coauthor_groups': {'set': 'group9'}},
+        {'coauthor_groups': ['group9']},
+    ),
+    'set-CGg9g19': (
+        {'coauthor_groups': {'set': ['group9', 'group19']}},
+        {'coauthor_groups': ['group9', 'group19']},
+    ),
+    'remove-CGg8': (
+        {'coauthor_groups': {'remove': 'group8'}},
+        {'coauthor_groups': ['group2', 'group14']},
+    ),
+    'remove-CGg8g14': (
+        {'coauthor_groups': {'remove': ['group8', 'group14']}},
+        {'coauthor_groups': ['group2']},
+    ),
+    'remove-CGg9-noop': ({'coauthor_groups': {'remove': 'group9'}}, {}),
+    'add-CGg9': (
+        {'coauthor_groups': {'add': 'group9'}},
+        {'coauthor_groups': ['group2', 'group14', 'group9']},
+    ),
+    'add-CGg9g19': (
+        {'coauthor_groups': {'add': ['group9', 'group19']}},
+        {'coauthor_groups': ['group2', 'group14', 'group9', 'group19']},
+    ),
+    'add-CGg2g14-noop': ({'coauthor_groups': {'add': ['group2', 'group14']}}, {}),
+    'add-CGgX-fails': ({'coauthor_groups': {'add': 'unknown_group'}}, 422),
+    'set-CGall-fails': ({'coauthor_groups': {'set': 'all'}}, 422),
+    'add-CGall-fails': ({'coauthor_groups': {'add': 'all'}}, 422),
+    'add-CGg9-remove-CGg8': (
+        {'coauthor_groups': {'add': 'group9', 'remove': 'group8'}},
+        {'coauthor_groups': ['group2', 'group14', 'group9']},
+    ),
+    'add-CGX-fails': ({'coauthor_groups': {'add': 'unknown'}}, 422),
+}
+
+edit_upload_agents_RG_params = {
+    'set-RGall': ({'reviewer_groups': {'set': []}}, {'reviewer_groups': []}),
+    'add-RGall': (
+        {'reviewer_groups': {'add': 'all'}},
+        {'reviewer_groups': ['all', 'group3', 'group8', 'group15']},
+    ),
+    'remove-RGall-noop': ({'reviewer_groups': {'remove': 'all'}}, {}),
+}
+
+
+edit_upload_agents_params = {
+    **edit_upload_agents_C_params,
+    **edit_upload_agents_CG_params,
+    **edit_upload_agents_RG_params,
+}
+edit_upload_agents_params = dict_to_params(edit_upload_agents_params)
 
 
 @pytest.mark.parametrize(
-    'user, metadata, expected_status_code, expected_groups',
+    'metadata, code_or_changed_agents',
+    edit_upload_agents_params,
+)
+def test_edit_upload_agents(
+    perform_edit_upload_agents_test,
+    upload_full_agents,
+    metadata,
+    code_or_changed_agents,
+):
+    if isinstance(code_or_changed_agents, int):
+        expected_status_code = code_or_changed_agents
+        changed_agents = {}
+    else:
+        expected_status_code = 200
+        changed_agents = code_or_changed_agents
+
+    perform_edit_upload_agents_test(
+        upload_full_agents, 'user1', metadata, expected_status_code, changed_agents
+    )
+
+
+@pytest.mark.parametrize(
+    'upload_id, user, expected_status_code',
     [
-        pytest.param('user1', {'coauthor_groups': []}, 200, [], id='user1-empty'),
-        pytest.param(
-            'user1',
-            {'coauthor_groups': {'set': []}},
-            200,
-            [],
-            id='user1-set-empty',
-        ),
-        pytest.param(
-            'user1',
-            {'coauthor_groups': {'remove': 'group123'}},
-            200,
-            ['group2'],
-            id='user1-remove-single',
-        ),
-        pytest.param(
-            'user4',
-            {'reviewer_groups': ['group4']},
-            422,
-            ['group2', 'group123'],
-            id='user4-fails',
-        ),
+        pytest.param('id_full_agents', 'user2', 200, id='full-user2'),
+        pytest.param('id_full_agents', 'user3', 422, id='full-user3-fails'),
+        pytest.param('id_full_agents', 'user4', 200, id='full-user4'),
+        pytest.param('id_full_agents', 'user5', 422, id='full-user5-fails'),
+        pytest.param('id_full_agents', 'user6', 422, id='full-user6-fails'),
+        pytest.param('id_full_agents', 'user7', 422, id='full-user7-fails'),
+        pytest.param('id_full_agents', 'user8', 200, id='full-user8'),
+        pytest.param('id_full_agents', 'user9', 422, id='full-user9-fails'),
+        pytest.param('id_C2', 'user1', 200, id='C2-user1'),
+        pytest.param('id_C2', 'user2', 200, id='C2-user2'),
+        pytest.param('id_C2', 'user3', 422, id='C2-user3-fails'),
+        pytest.param('id_R2', 'user1', 200, id='R2-user1'),
+        pytest.param('id_R2', 'user2', 422, id='R2-user2-fails'),
+        pytest.param('id_R2', 'user3', 422, id='R2-user3-fails'),
+        pytest.param('id_CGg2', 'user1', 200, id='CGg2-user1'),
+        pytest.param('id_CGg2', 'user2', 200, id='CGg2-user2'),
+        pytest.param('id_CGg2', 'user3', 422, id='CGg2-user3-fails'),
+        pytest.param('id_RGg2', 'user1', 200, id='RGg2-user1'),
+        pytest.param('id_RGg2', 'user2', 422, id='RGg2-user2-fails'),
+        pytest.param('id_RGg2', 'user3', 422, id='RGg2-user3-fails'),
+        pytest.param('id_RGall', 'user1', 200, id='RGall-user1'),
+        pytest.param('id_RGall', 'user2', 422, id='RGall-user2'),
+        pytest.param('id_RGall', 'user3', 422, id='RGall-user3'),
     ],
 )
-def test_remove_groups_from_upload(
-    client,
-    groups_function,
-    proc_infra,
-    convert_group_labels_to_ids,
-    upload_CGg2g123,
+def test_upload_agents_write_access(
     auth_dict,
+    client,
+    convert_agent_labels_to_ids,
+    uploads_agent_write_access,
+    upload_id,
     user,
-    metadata,
     expected_status_code,
-    expected_groups,
 ):
-    user_auth, __token = auth_dict[user]
-    upload_id = list(upload_CGg2g123.uploads)[0]
+    user_auth, _ = auth_dict[user]
 
     url = f'uploads/{upload_id}/edit'
-    metadata = convert_group_labels_to_ids(metadata)
-    edit_request = dict(metadata=metadata)
+    metadata = convert_agent_labels_to_ids(
+        {'coauthor_groups': ['group9'], 'reviewer_groups': ['group9']}
+    )
+    edit_request = dict(metadata=metadata, verify_only=True)
     response = perform_post(client, url, user_auth, json=edit_request)
-
     assert_response(response, expected_status_code)
-    if expected_status_code != 200:
-        return
-
-    upload = Upload.get(upload_id)
-    upload.block_until_complete()
-    expected_groups = convert_group_labels_to_ids(expected_groups)
-    assert upload.coauthor_groups == expected_groups

@@ -87,28 +87,23 @@ def create_group_uploads_from_molds(group_upload_molds):
 
 @pytest.fixture(scope='module')
 def uploads_get_groups(create_group_uploads_from_molds, elastic_module, groups_module):
-    labels = ('no_group', 'CGg2', 'RGg2', 'CGg123', 'RGg123', 'RGall', 'CG2', 'RG2')
+    labels = ('no_group', 'CGg2', 'RGg2', 'CGg123', 'RGg123', 'RGall')
+    yield from create_group_uploads_from_molds(labels)
+
+
+@pytest.fixture
+def upload_full_agents(create_group_uploads_from_molds):
+    labels = ('full_agents',)
     yield from create_group_uploads_from_molds(labels)
 
 
 @pytest.fixture(scope='function')
-def upload_no_group(create_group_uploads_from_molds, groups_function):
-    labels = ('no_group',)
-    yield from create_group_uploads_from_molds(labels)
-
-
-@pytest.fixture(scope='function')
-def upload_CGg2g123(
+def uploads_agent_write_access(
     create_group_uploads_from_molds,
-    groups_function,
+    elastic_module,
+    groups_module,
 ):
-    labels = ('CGg2g123',)
-    yield from create_group_uploads_from_molds(labels)
-
-
-@pytest.fixture(scope='function')
-def upload_RGall(create_group_uploads_from_molds, mongo_function):
-    labels = ('RGall',)
+    labels = ('C2', 'R2', 'CGg2', 'RGg2', 'RGall', 'full_agents')
     yield from create_group_uploads_from_molds(labels)
 
 
