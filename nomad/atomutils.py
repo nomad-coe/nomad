@@ -18,56 +18,57 @@
 
 from __future__ import annotations
 
-import warnings
 import functools
 import itertools
-from collections import namedtuple
-from array import array
-from itertools import chain
+import logging
 import math
 import re
-from string import ascii_uppercase
+import warnings
+from array import array
+from collections import namedtuple
 from functools import reduce
+from itertools import chain
+from string import ascii_uppercase
 from typing import (
-    List,
-    Dict,
-    Tuple,
-    Any,
-    Union,
-    Iterable,
-    cast,
-    Callable,
     TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Tuple,
+    Union,
+    cast,
 )
-import logging
-from nptyping import NDArray, Int
+
+import ase.data
+import ase.geometry
+import MDAnalysis
+import MDAnalysis.analysis.rdf as MDA_RDF
+import networkx
 import numpy as np
+from ase import Atoms
+from ase.formula import Formula as ASEFormula
+from ase.utils import pbc2pbc
+from MDAnalysis.core._get_readers import get_reader_for
+from MDAnalysis.core.topology import Topology
+from MDAnalysis.core.universe import Universe
+from nptyping import Int, NDArray
+from pymatgen.core import Composition
+from pymatgen.core.periodic_table import get_el_sp
 from scipy import sparse
 from scipy.spatial import Voronoi  # pylint: disable=no-name-in-module
 from scipy.stats import linregress
-from ase.utils import pbc2pbc
-import ase.geometry
-import ase.data
-from ase import Atoms
-from ase.formula import Formula as ASEFormula
-from pymatgen.core.periodic_table import get_el_sp
-from pymatgen.core import Composition
-import MDAnalysis
-from MDAnalysis.core.topology import Topology
-from MDAnalysis.core._get_readers import get_reader_for
-from MDAnalysis.core.universe import Universe
-import MDAnalysis.analysis.rdf as MDA_RDF
-import networkx
 
 from nomad.aflow_prototypes import aflow_prototypes
 from nomad.constants import atomic_masses
-from nomad.units import ureg
 from nomad.metainfo import MSection
+from nomad.units import ureg
 
 valid_elements = set(ase.data.chemical_symbols[1:])
 
 if TYPE_CHECKING:
-    from nomad.datamodel.results import Material, System, ElementalComposition
+    from nomad.datamodel.results import ElementalComposition, Material, System
 
 
 def get_summed_atomic_mass(atomic_numbers: NDArray[Any]) -> float:
@@ -1068,6 +1069,7 @@ class Formula:
         self,
         section: Union[Material, System],
         descriptive_format: Union[str, None] = 'original',
+        overwrite: bool = False,
     ) -> None:
         """
         Populates the supplied section with the list of elements and elemental
@@ -1084,24 +1086,27 @@ class Formula:
                 descriptive formula (see `format` method for details). If None,
                 the materials descriptive formula is not set. Defaults to
                 'original'.
+            overwrite: Allow the populated metadata to be overwritten.
 
         Raises:
             ValueError if any of the populated metainfo already exist and would be
             overwritten.
         """
-        for quantity in [
-            'elements',
-            'elemental_composition',
-            'chemical_formula_hill',
-            'chemical_formula_reduced',
-            'chemical_formula_iupac',
-            'chemical_formula_anonymous',
-            'chemical_formula_descriptive',
-        ]:
-            if getattr(section, quantity):
-                raise ValueError(
-                    f'Could not populate compositional data as "{quantity}" is already defined.'
-                )
+        if not overwrite:
+            for quantity in [
+                'elements',
+                'elemental_composition',
+                'chemical_formula_hill',
+                'chemical_formula_reduced',
+                'chemical_formula_iupac',
+                'chemical_formula_anonymous',
+                'chemical_formula_descriptive',
+            ]:
+                if getattr(section, quantity):
+                    raise ValueError(
+                        'Could not populate compositional data '
+                        f'as "{quantity}" is already defined.'
+                    )
 
         section.elements = self.elements()
         section.elemental_composition = self.elemental_composition()
