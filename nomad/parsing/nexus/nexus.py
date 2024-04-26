@@ -17,7 +17,7 @@
 #
 
 import xml.etree.ElementTree as ET
-from typing import Optional
+from typing import Optional, Set
 
 import numpy as np
 
@@ -27,6 +27,7 @@ except ImportError:
     pass
 from pint.errors import UndefinedUnitError
 
+from nomad.atomutils import Formula
 from nomad.datamodel import EntryArchive
 from nomad.datamodel.results import Material, Results
 from nomad.metainfo import MSection, nexus
@@ -125,6 +126,24 @@ class NexusParser(Parser):
         self.nx_root = None
         self._logger = None
         self.nxs_fname: str = ''
+        self._sample_class_refs = {
+            'NXsample': [],
+            'NXsubstance': [],
+            'NXsample_component': [],
+            'NXsample_component_set': [],
+        }
+
+    def _clear_class_refs(self):
+        for key in self._sample_class_refs:
+            self._sample_class_refs[key] = []
+
+    def _collect_class(self, current: MSection):
+        class_name = current.m_def.name
+        if (
+            class_name in self._sample_class_refs
+            and current not in self._sample_class_refs[class_name]
+        ):
+            self._sample_class_refs[class_name].append(current)
 
     def _populate_data(
         self, depth: int, nx_path: list, nx_def: str, hdf_node, current: MSection
@@ -296,6 +315,7 @@ class NexusParser(Parser):
         for name in hdf_path.split('/')[1:]:
             nx_node = nx_path[depth] if depth < len(nx_path) else name
             current = _to_section(name, nx_def, nx_node, current)
+            self._collect_class(current)
             depth += 1
             current_hdf_path = current_hdf_path + (
                 '/' + name if depth < len(nx_path) else ''
@@ -333,6 +353,70 @@ class NexusParser(Parser):
                 filtered.append(individual)
         return filtered
 
+    def _get_chemical_formulas(self) -> Set[str]:
+        """
+        Parses the descriptive chemical formula from a nexus entry.
+        """
+        material = self.archive.m_setdefault('results.material')
+        chemical_formulas: Set[str] = set()
+
+        for sample in self._sample_class_refs['NXsample']:
+            if sample.get('atom_types__field') is not None:
+                if isinstance(sample.atom_types__field, list):
+                    atomlist = sample.atom_types__field
+                else:
+                    atomlist = sample.atom_types__field.replace(' ', '').split(',')
+                # Caution: The element list will be overwritten
+                # in case a single chemical formula is found
+                material.elements = list(set(material.elements) | set(atomlist))
+            if sample.get('chemical_formula__field') is not None:
+                chemical_formulas.add(sample.chemical_formula__field)
+
+        for class_ref in (
+            'NXsample_component',
+            'NXsample_component_set',
+        ):
+            for section in self._sample_class_refs[class_ref]:
+                if section.get('chemical_formula__field') is not None:
+                    chemical_formulas.add(section.chemical_formula__field)
+
+        for substance in self._sample_class_refs['NXsubstance']:
+            if substance.get('molecular_formula_hill__field') is not None:
+                chemical_formulas.add(substance.molecular_formula_hill__field)
+
+        return chemical_formulas
+
+    def normalize_chemical_formula(self, chemical_formulas) -> None:
+        """
+        Normalizes the descriptive chemical formula into different
+        representations of chemical formula if it is a valid description.
+        """
+        material = self.archive.m_setdefault('results.material')
+
+        # TODO: Properly deal with multiple chemical formulas for a single entry
+        if len(chemical_formulas) == 1:
+            material.chemical_formula_descriptive = chemical_formulas.pop()
+        elif not chemical_formulas:
+            self._logger.warn('no chemical formula found')
+        else:
+            self._logger.warn(
+                f'multiple chemical formulas found: {chemical_formulas}.\n'
+                'Cannot build a comprehensiv chemical formula for the entry, '
+                'but will try to extract elements.'
+            )
+            for chem_formula in chemical_formulas:
+                formula = Formula(chem_formula)
+                material.elements = list(
+                    set(material.elements) | set(formula.elements())
+                )
+
+        try:
+            if material.chemical_formula_descriptive:
+                formula = Formula(material.chemical_formula_descriptive)
+                formula.populate(material, overwrite=True)
+        except Exception as e:
+            self._logger.warn('could not normalize material', exc_info=e)
+
     def parse(
         self, mainfile: str, archive: EntryArchive, logger=None, child_archives=None
     ):
@@ -340,6 +424,7 @@ class NexusParser(Parser):
         self.archive.m_create(nexus.NeXus)  # type: ignore # pylint: disable=no-member
         self.nx_root = self.archive.nexus
         self._logger = logger if logger else get_logger(__name__)
+        self._clear_class_refs()
 
         if mainfile.endswith('nxs'):
             nexus_helper = read_nexus.HandleNexus(logger, mainfile)
@@ -366,69 +451,9 @@ class NexusParser(Parser):
 
         if results.material is None:
             results.material = Material()
-        # results.material.elements = sample.elements
-        # results.material.chemical_formula_descriptive = sample.chemical_formula
 
-        from ase import Atoms
-        from pymatgen.core import Composition
-
-        for appdef in self.get_sub_elements(archive.nexus):
-            for entry in self.get_sub_elements(appdef, 'NXentry'):
-                for sample in self.get_sub_elements(entry, 'NXsample'):
-                    subelements = self.get_sub_element_names(sample)
-                    if (
-                        'atom_types__field' in subelements
-                        and sample.atom_types__field is not None
-                    ):
-                        if isinstance(sample.atom_types__field, list):
-                            atomlist = sample.atom_types__field
-                        else:
-                            atomlist = ''.join(sample.atom_types__field.split()).split(
-                                ','
-                            )
-                        archive.results.material.elements = list(
-                            set(archive.results.material.elements) | set(atomlist)
-                        )
-                    if (
-                        'chemical_formula__field' in subelements
-                        and sample.chemical_formula__field is not None
-                    ):
-                        if not archive.results.material.chemical_formula_hill:
-                            archive.results.material.chemical_formula_hill = ''
-                        archive.results.material.chemical_formula_hill += (
-                            sample.chemical_formula__field
-                        )
-                    for component in self.get_sub_elements(
-                        sample, 'NXsample_component'
-                    ):
-                        if (
-                            'chemical_formula__field'
-                            in self.get_sub_element_names(component)
-                            and component.chemical_formula__field is not None
-                        ):
-                            if not archive.results.material.chemical_formula_hill:
-                                archive.results.material.chemical_formula_hill = ''
-                            archive.results.material.chemical_formula_hill += (
-                                component.chemical_formula__field
-                            )
-        try:
-            if archive.results.material.chemical_formula_hill:
-                pycom = Composition(
-                    archive.results.material.chemical_formula_hill
-                ).get_integer_formula_and_factor()[0]
-                atoms = Atoms(pycom)
-                archive.results.material.elements = list(
-                    set(archive.results.material.elements)
-                    | set(atoms.get_chemical_symbols())
-                )
-                # material.chemical_formula_hill = atoms.get_chemical_formula(mode='hill')
-                archive.results.material.chemical_formula_reduced = (
-                    atoms.get_chemical_formula(mode='reduce')
-                )
-                # material.chemical_formula_descriptive = self.chemical_formula
-        except Exception as e:
-            self._logger.warn('could not analyse chemical formula', exc_info=e)
-        self._logger.info('atoms : ' + str(archive.results.material.elements))
+        chemical_formulas = self._get_chemical_formulas()
+        self.normalize_chemical_formula(chemical_formulas)
 
     def is_mainfile(
         self,
