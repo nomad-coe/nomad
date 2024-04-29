@@ -63,8 +63,8 @@ class PorosityNormalizer(SystemBasedNormalizer):
     In the future, the it will also compute the rcsr tological code.
     """
 
-    def __init__(self, archive):
-        super().__init__(archive, only_representatives=True)
+    def __init__(self):
+        super().__init__(only_representatives=True)
 
     def normalize_system(self, system, is_representative):
         if not is_representative:

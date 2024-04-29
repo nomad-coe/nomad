@@ -26,11 +26,10 @@ from nomad.datamodel import EntryArchive
 
 class Normalizer(metaclass=ABCMeta):
     """
-    A base class for normalizers. Normalizers work on a :class:`EntryArchive` section
-    for read and write. Normalizer instances are reused.
-
-    Arguments:
-        entry_archive: The entry_archive root section of the archive to normalize.
+    A base class for normalizers. Only one instance of the Normalizer is
+    created, and you should perform any heavy initialization in the constructor.
+    The normalize method is called on archives, and this function should ideally
+    not mutate the state of the shared normalizer instance.
     """
 
     domain: Optional[str] = 'dft'
@@ -39,16 +38,11 @@ class Normalizer(metaclass=ABCMeta):
     """ Specifies the order of normalization with respect to other normalizers. Lower level
     is executed first."""
 
-    def __init__(self, entry_archive: EntryArchive) -> None:
-        self.entry_archive = entry_archive
-        try:
-            self.section_run = entry_archive.run[0]
-        except (AttributeError, IndexError):
-            self.section_run = None
+    def __init__(self, **kwargs) -> None:
         self.logger = get_logger(__name__)
 
     @abstractmethod
-    def normalize(self, logger=None) -> None:
+    def normalize(self, archive: EntryArchive, logger=None) -> None:
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
 
@@ -65,8 +59,8 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         only_representatives: Will only normalize the `representative` systems.
     """
 
-    def __init__(self, entry_archive: EntryArchive, only_representatives: bool = False):
-        super().__init__(entry_archive)
+    def __init__(self, only_representatives: bool = False, **kwargs):
+        super().__init__(**kwargs)
         self.only_representatives = only_representatives
 
     @property
@@ -80,15 +74,17 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             'configuration_periodic_dimensions',
         ]
 
-    def _normalize_system(self, system, is_representative):
-        return self.normalize_system(system, is_representative)
+    def _normalize_system(self, archive, system, is_representative):
+        return self.normalize_system(archive, system, is_representative)
 
     @abstractmethod
-    def normalize_system(self, system: MSection, is_representative: bool) -> bool:
-        """Normalize the given section and returns True, iff successful"""
+    def normalize_system(
+        self, archive: EntryArchive, system: MSection, is_representative: bool
+    ) -> bool:
+        """Normalize the given section and returns True, if successful"""
         pass
 
-    def __representative_system(self):
+    def __representative_system(self, archive):
         """Used to select a representative system for this entry.
 
         Attempt to find a single section_system that is representative for the
@@ -99,7 +95,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
 
         # Try to find workflow information and select the representative system
         # based on it
-        workflow = self.entry_archive.workflow2
+        workflow = archive.workflow2
 
         if workflow:
             try:
@@ -114,7 +110,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
         # available in reverse order until a valid one is found.
         if system is None:
             try:
-                sccs = self.section_run.calculation
+                sccs = archive.run[0].calculation
                 for iscc in reversed(sccs):
                     isys = iscc.system_ref
                     if isys is not None:
@@ -127,7 +123,7 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             # If no sccs exist, try to find systems
             if system is None:
                 try:
-                    system = self.section_run.system[-1]
+                    system = archive.run[0].system[-1]
                 except Exception:
                     system = None
 
@@ -146,17 +142,17 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
                 pass
 
         if scc is not None:
-            self.section_run.m_cache['representative_scc_idx'] = scc.m_parent_index
+            archive.run[0].m_cache['representative_scc_idx'] = scc.m_parent_index
         if system is not None:
-            self.section_run.m_cache['representative_system_idx'] = (
-                system.m_parent_index
-            )
+            archive.run[0].m_cache['representative_system_idx'] = system.m_parent_index
 
         return system.m_resolved() if system is not None else None
 
-    def __normalize_system(self, system, representative, logger=None) -> bool:
+    def __normalize_system(
+        self, archive: EntryArchive, system, representative, logger=None
+    ) -> bool:
         try:
-            return self._normalize_system(system, representative)
+            return self._normalize_system(archive, system, representative)
 
         except KeyError as e:
             self.logger.error(
@@ -180,22 +176,22 @@ class SystemBasedNormalizer(Normalizer, metaclass=ABCMeta):
             )
             raise e
 
-    def normalize(self, logger=None) -> None:
-        super().normalize(logger)
+    def normalize(self, archive: EntryArchive, logger=None) -> None:
+        super().normalize(archive, logger)
         # If no section run detected, do nothing
-        if self.section_run is None:
+        if not archive.run:
             return
 
         # Process representative system first
         repr_sys_idx = None
-        repr_sys = self.__representative_system()
+        repr_sys = self.__representative_system(archive)
         if repr_sys is not None:
             repr_sys_idx = repr_sys.m_parent_index
             self.logger.info('chose "representative" section system')
-            self.__normalize_system(repr_sys, True, logger)
+            self.__normalize_system(archive, repr_sys, True, logger)
 
         # All the rest if requested
         if not self.only_representatives:
-            for isys, system in enumerate(self.section_run.system):
+            for isys, system in enumerate(archive.run[0].system):
                 if isys != repr_sys_idx:
-                    self.__normalize_system(system, False, logger)
+                    self.__normalize_system(archive, system, False, logger)

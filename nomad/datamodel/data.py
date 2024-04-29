@@ -257,3 +257,4 @@ class AuthorReference(Reference):
 
 author_reference = AuthorReference()
 predefined_datatypes['Author'] = author_reference
+Schema = EntryData

@@ -40,7 +40,6 @@ from matid.classification.classifications import (
 from nomad import utils
 from nomad.config import config
 from nomad import atomutils
-from nomad.units import ureg
 from nomad.datamodel.results import (
     CoreHole,
     SymmetryNew as Symmetry,
