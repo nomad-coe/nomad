@@ -89,14 +89,6 @@ class InfoModel(BaseModel):
     metainfo_packages: List[str]
     codes: List[CodeInfoModel]
     normalizers: List[str]
-    plugin_entry_points: List[dict] = Field(
-        None,
-        desciption='List of plugin entry points that are activated in this deployment.',
-    )
-    plugin_packages: List[dict] = Field(
-        None,
-        desciption='List of plugin packages that are installed in this deployment.',
-    )
     statistics: StatisticsModel = Field(None, description='General NOMAD statistics')
     search_quantities: dict
     version: str
@@ -160,9 +152,6 @@ async def get_info():
     parser_names = sorted(
         [re.sub(r'^(parsers?|missing)/', '', key) for key in parsers.parser_dict.keys()]
     )
-
-    config.load_plugins()
-
     return InfoModel(
         **{
             'parsers': parser_names,
@@ -185,14 +174,6 @@ async def get_info():
             ],
             'normalizers': [
                 normalizer.__name__ for normalizer in normalizing.normalizers
-            ],
-            'plugin_entry_points': [
-                entry_point.dict_safe()
-                for entry_point in config.plugins.entry_points.filtered_values()
-            ],
-            'plugin_packages': [
-                plugin_package.dict()
-                for plugin_package in config.plugins.plugin_packages.values()
             ],
             'statistics': statistics(),
             'search_quantities': {

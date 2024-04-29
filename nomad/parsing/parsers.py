@@ -21,7 +21,7 @@ from typing import Optional, Tuple, List, Dict
 from collections.abc import Iterable
 
 from nomad.config import config
-from nomad.config.models.plugins import Parser as ParserPlugin, ParserEntryPoint
+from nomad.config.models.plugins import Parser as ParserPlugin
 from nomad.datamodel import EntryArchive, EntryMetadata, results
 from nomad.datamodel.context import Context, ClientContext
 
@@ -226,27 +226,13 @@ def run_parser(
 
 
 parsers = [GenerateRandomParser(), TemplateParser(), ChaosParser()]
-config.load_plugins()
-enabled_entry_points = config.plugins.entry_points.filtered_values()
-
-# Load parsers using old plugin mechanism
 parsers.extend(
     [
-        entry_point.create_matching_parser_interface()
-        for entry_point in enabled_entry_points
-        if isinstance(entry_point, ParserPlugin)
+        plugin.create_matching_parser_interface()
+        for plugin_name, plugin in config.plugins.options.items()
+        if config.plugins.filter(plugin_name) and isinstance(plugin, ParserPlugin)
     ]
 )
-
-# Load parsers using new plugin mechanism. The entry point name is used to
-# identify the parser.
-for entry_point in enabled_entry_points:
-    if isinstance(entry_point, ParserEntryPoint):
-        entry_point_name = entry_point.id
-        instance = entry_point.load()
-        instance.name = entry_point_name
-        parsers.append(instance)
-
 parsers.extend([TabularDataParser(), ArchiveParser()])
 
 # There are some entries with PIDs that have mainfiles which do not match what
@@ -284,10 +270,12 @@ if config.process.use_empty_parsers:
 
 parsers.append(BrokenParser())
 
-""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """
+
 parser_dict: Dict[str, Parser] = {
     parser.name: parser for parser in parsers + empty_parsers
-}
+}  # type: ignore
+""" A dict to access parsers by name. Usually 'parsers/<...>', e.g. 'parsers/vasp'. """
+
 
 # renamed parsers
 _renames = {

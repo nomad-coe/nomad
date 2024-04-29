@@ -1520,12 +1520,6 @@ class PublicUploadFiles(UploadFiles):
                 self._archive_msg_file_object = archive_msg_file_object
                 self._archive_hdf5_file_object = archive_hdf5_file_object
                 self._access = access
-
-                files_found = True
-                self._raw_zip_file_object = raw_zip_file_object
-                self._archive_msg_file_object = archive_msg_file_object
-                self._archive_hdf5_file_object = archive_hdf5_file_object
-                self._access = access
         if not files_found:
             raise KeyError('Neither public nor restricted files found')
         return self._access

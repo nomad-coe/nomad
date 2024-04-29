@@ -35,7 +35,7 @@ import APIs from '../APIs'
 import SearchPage from '../search/SearchPage'
 import { SearchContext } from '../search/SearchContext'
 import NorthPage, {help as NORTHHelp} from '../north/NorthPage'
-import { aitoolkitEnabled, appBase, oasis, encyclopediaBase, ui, apps } from '../../config'
+import { aitoolkitEnabled, appBase, oasis, encyclopediaBase, ui } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
@@ -181,7 +181,7 @@ const toolkitRoute = (!oasis && aitoolkitEnabled)
     tooltip: 'Visit the NOMAD Artificial Intelligence Analytics Toolkit'
   }
 
-const searchRoutes = apps
+const searchRoutes = Object.values(ui?.apps?.options || {})
   .map((context) => {
     const routeMap = {
       entries: entryRoutes
