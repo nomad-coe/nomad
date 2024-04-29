@@ -162,13 +162,14 @@ def create_template_upload_file(
 
 
 def fake_user_uuid(handle):
+    """Return a test user uuid based on the handle."""
     uuid = '00000000-0000-0000-0000-' + str(handle).rjust(12, '0')
     assert len(uuid) == 36
     return uuid
 
 
 def fake_group_uuid(handle: Any):
-    """Returns a test user group uuid based on the handle."""
+    """Return a test user group uuid based on the handle."""
     uuid = str(handle).rjust(22, 'G')
     assert len(uuid) == 22
     return uuid
@@ -194,4 +195,7 @@ def generate_convert_label(mapping):
 
 
 def dict_to_params(d):
+    """Convert a dict to a list of pytest.param tuples with keys as ids. Return it.
+
+    Can be used to make the parametrize decorator more concise."""
     return [pytest.param(*item, id=id) for id, item in d.items()]

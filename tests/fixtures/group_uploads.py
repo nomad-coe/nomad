@@ -20,6 +20,7 @@ from nomad.utils.exampledata import ExampleData
 def group_upload_molds(
     convert_user_labels_to_ids, convert_group_labels_to_ids, user1, user2
 ):
+    """Return a dict: upload label -> upload data (dict)."""
     default = {'main_author': user1}
     molds = {
         'no_group': {},
@@ -87,12 +88,14 @@ def create_group_uploads_from_molds(group_upload_molds):
 
 @pytest.fixture(scope='module')
 def uploads_get_groups(create_group_uploads_from_molds, elastic_module, groups_module):
+    """Create and return uploads for testing get uploads with groups."""
     labels = ('no_group', 'CGg2', 'RGg2', 'CGg123', 'RGg123', 'RGall')
     yield from create_group_uploads_from_molds(labels)
 
 
 @pytest.fixture
 def upload_full_agents(create_group_uploads_from_molds):
+    """Create and return an upload with all coauthor/reviewer user and groups filled."""
     labels = ('full_agents',)
     yield from create_group_uploads_from_molds(labels)
 
@@ -103,6 +106,7 @@ def uploads_agent_write_access(
     elastic_module,
     groups_module,
 ):
+    """Create and return uploads for testing agent write access."""
     labels = ('C2', 'R2', 'CGg2', 'RGg2', 'RGall', 'full_agents')
     yield from create_group_uploads_from_molds(labels)
 
@@ -113,6 +117,7 @@ def uploads_search_query_groups(
     elastic_module,
     groups_module,
 ):
+    """Create and return uploads for testing search query with groups."""
     labels = (
         'embargo0',
         'embargo3',

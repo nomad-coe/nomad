@@ -16,6 +16,7 @@ admin_user_id = fake_user_uuid(0)
 
 
 def fake_user(num, first_name, last_name, *, email=None, **kwargs):
+    """Return a dict with test user data based on the number and name."""
     if email is None:
         email = f'{first_name}.{last_name}@nomad-fairdi.tests.de'.lower()
 
@@ -53,31 +54,37 @@ users = {
 
 @pytest.fixture(scope='session')
 def user_molds():
+    """Return a dict: user labels -> user data (dict)."""
     return {f'user{i}': user for i, user in enumerate(users.values())}
 
 
 @pytest.fixture(scope='session')
 def user0():
+    """Return the admin user object."""
     return User(**users[fake_user_uuid(0)])
 
 
 @pytest.fixture(scope='session')
 def user1():
+    """Return the default user object."""
     return User(**users[fake_user_uuid(1)])
 
 
 @pytest.fixture(scope='session')
 def user2():
+    """Return an alternative user object."""
     return User(**users[fake_user_uuid(2)])
 
 
 @pytest.fixture(scope='session')
 def users_dict(user_molds):
+    """Return a dict: user labels -> user objects."""
     return {k: User(**v) for k, v in user_molds.items()}
 
 
 @pytest.fixture(scope='session')
 def user_label_id_mapping(user_molds):
+    """Return a dict: user labels -> user ids."""
     return {label: value.get('user_id') for label, value in user_molds.items()}
 
 

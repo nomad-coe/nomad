@@ -57,8 +57,10 @@ def app_token_auth(user1: User):
 @pytest.fixture(scope='session')
 def auth_dict(users_dict, invalid_user_auth):
     """
-    Returns a dictionary of the form {user_label: (auth_headers, token)}. The key 'invalid'
-    contains an example of invalid credentials, and the key None contains (None, None).
+    Return a dict: user label -> (auth headers, token).
+
+    The key 'invalid' contains invalid credentials.
+    The key None contains (None, None).
     """
     auths = {
         label: (create_auth_headers(user.user_id), generate_upload_token(user))
