@@ -22,7 +22,7 @@ async-generator==1.10     # via -r requirements.txt, jupyterhub
 atpublic==4.1.0           # via aiosmtpd
 attrs==23.2.0             # via -r requirements.txt, aiosmtpd, jsonschema, pytest
 babel==2.14.0             # via -r requirements.txt, mkdocs-git-revision-date-localized-plugin, mkdocs-material, sphinx
-backports-tarfile==1.0.0  # via jaraco-context
+backports-tarfile==1.1.0  # via jaraco-context
 bagit==1.8.1              # via -r requirements.txt, nomad-lab (pyproject.toml)
 basicauth==0.4.1          # via -r requirements.txt, nomad-lab (pyproject.toml)
 beautifulsoup4==4.12.3    # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -33,7 +33,7 @@ blinker==1.7.0            # via -r requirements.txt, flask
 blosc2==2.5.1             # via -r requirements.txt, tables
 build==1.2.1              # via nomad-lab (pyproject.toml), pip-tools
 cachetools==5.3.3         # via -r requirements.txt, nomad-lab (pyproject.toml)
-celery==5.3.6             # via -r requirements.txt, nomad-lab (pyproject.toml)
+celery==5.4.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 certifi==2024.2.2         # via -r requirements.txt, elasticsearch, httpcore, httpx, requests
 certipy==0.1.3            # via -r requirements.txt, jupyterhub
 cffi==1.16.0              # via -r requirements.txt, cryptography
@@ -63,7 +63,7 @@ dnspython==2.6.1          # via -r requirements.txt, email-validator, pymongo
 docker==7.0.0             # via -r requirements.txt, dockerspawner
 dockerspawner==13.0.0     # via -r requirements.txt, nomad-lab (pyproject.toml)
 docstring-parser==0.16    # via -r requirements.txt, nomad-lab (pyproject.toml)
-docutils==0.20.1          # via -r requirements.txt, m2r, readme-renderer, recommonmark, sphinx
+docutils==0.21.1          # via -r requirements.txt, m2r, readme-renderer, recommonmark, sphinx
 elasticsearch==7.17.1     # via -r requirements.txt, elasticsearch-dsl, nomad-lab (pyproject.toml)
 elasticsearch-dsl==7.4.0  # via -r requirements.txt, nomad-lab (pyproject.toml)
 email-validator==1.3.1    # via -r requirements.txt, optimade
@@ -107,7 +107,7 @@ idna==3.7                 # via -r requirements.txt, anyio, email-validator, htt
 ifes-apt-tc-data-modeling==0.1  # via -r requirements.txt, pynxtools
 imageio==2.27.0           # via -r requirements.txt, hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
 imagesize==1.4.1          # via -r requirements.txt, sphinx
-importlib-metadata==7.1.0  # via -r requirements.txt, build, dask, flask, hyperspy, jupyter-client, jupyterhub, keyring, markdown, mkdocs, pynxtools, sphinx, twine
+importlib-metadata==7.1.0  # via -r requirements.txt, build, dask, flask, hyperspy, jupyter-client, jupyterhub, keyring, markdown, mkdocs, nomad-lab (pyproject.toml), pynxtools, sphinx, twine
 importlib-resources==6.4.0  # via -r requirements.txt, matplotlib, spglib
 inflection==0.5.1         # via -r requirements.txt, nomad-lab (pyproject.toml)
 ipykernel==6.29.4         # via -r requirements.txt, ipyparallel
@@ -115,7 +115,7 @@ ipyparallel==8.8.0        # via -r requirements.txt, hyperspy
 ipython==8.18.1           # via -r requirements.txt, hyperspy, ipykernel, ipyparallel, pynxtools-stm
 isodate==0.6.1            # via -r requirements.txt, rdflib
 isoduration==20.11.0      # via -r requirements.txt, jsonschema
-itsdangerous==2.1.2       # via -r requirements.txt, flask, nomad-lab (pyproject.toml)
+itsdangerous==2.2.0       # via -r requirements.txt, flask, nomad-lab (pyproject.toml)
 jaraco-classes==3.4.0     # via keyring
 jaraco-context==5.3.0     # via keyring
 jaraco-functools==4.0.0   # via keyring
@@ -165,7 +165,7 @@ mkdocs-redirects==1.2.1   # via nomad-lab (pyproject.toml)
 mmtf-python==1.1.3        # via -r requirements.txt, mdanalysis
 mongoengine==0.28.2       # via -r requirements.txt, nomad-lab (pyproject.toml)
 mongomock==4.1.2          # via -r requirements.txt, optimade
-monty==2024.3.31          # via -r requirements.txt, pymatgen
+monty==2024.4.17          # via -r requirements.txt, pymatgen
 more-itertools==10.2.0    # via jaraco-classes, jaraco-functools, pytest
 mpmath==1.3.0             # via -r requirements.txt, sympy
 mrcfile==1.5.0            # via -r requirements.txt, griddataformats
@@ -213,7 +213,7 @@ pint==0.17                # via -r requirements.txt, hyperspy, nomad-lab (pyproj
 pip-tools==7.4.1          # via nomad-lab (pyproject.toml)
 pkginfo==1.10.0           # via twine
 platformdirs==4.2.0       # via -r requirements.txt, jupyter-core, mkdocs, pooch
-plotly==5.20.0            # via -r requirements.txt, asr, pymatgen
+plotly==5.21.0            # via -r requirements.txt, asr, pymatgen
 pluggy==0.13.1            # via pytest
 pooch==1.8.1              # via -r requirements.txt, kikuchipy, orix
 prettytable==3.10.0       # via -r requirements.txt, hyperspy
@@ -274,7 +274,7 @@ rdflib==5.0.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 rdkit==2023.9.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
 readme-renderer==43.0     # via twine
 recommonmark==0.7.1       # via -r requirements.txt, nomad-lab (pyproject.toml)
-regex==2023.12.25         # via mkdocs-material
+regex==2024.4.16          # via mkdocs-material
 requests==2.31.0          # via -r requirements.txt, docker, hyperspy, jupyterhub, mkdocs-material, nomad-lab (pyproject.toml), oauthenticator, optimade, pooch, pybis, pymatgen, python-gitlab, python-keycloak, requests-toolbelt, rfc3161ng, sphinx, twine
 requests-toolbelt==1.0.0  # via -r requirements.txt, python-gitlab, python-keycloak, twine
 rfc3161ng==2.1.3          # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -299,7 +299,7 @@ snowballstemmer==2.2.0    # via -r requirements.txt, sphinx
 soupsieve==2.5            # via -r requirements.txt, beautifulsoup4
 sparse==0.15.1            # via -r requirements.txt, hyperspy
 spglib==2.4.0             # via -r requirements.txt, asr, matid, phonopy, pymatgen
-sphinx==7.2.6             # via -r requirements.txt, recommonmark
+sphinx==7.3.6             # via -r requirements.txt, recommonmark
 sphinxcontrib-applehelp==1.0.8  # via -r requirements.txt, sphinx
 sphinxcontrib-devhelp==1.0.6  # via -r requirements.txt, sphinx
 sphinxcontrib-htmlhelp==2.0.5  # via -r requirements.txt, sphinx
@@ -317,8 +317,8 @@ tenacity==8.2.3           # via -r requirements.txt, plotly
 termcolor==2.4.0          # via mkdocs-macros-plugin
 texttable==1.7.0          # via -r requirements.txt, pybis
 threadpoolctl==3.4.0      # via -r requirements.txt, mdanalysis, scikit-learn
-tifffile==2024.2.12       # via -r requirements.txt, h5grove, hyperspy, scikit-image
-tomli==2.0.1              # via build, mypy, pip-tools, pyproject-hooks
+tifffile==2024.4.18       # via -r requirements.txt, h5grove, hyperspy, scikit-image
+tomli==2.0.1              # via -r requirements.txt, build, mypy, pip-tools, pyproject-hooks, sphinx
 toolz==0.12.1             # via -r requirements.txt, dask, hyperspy, partd
 toposort==1.10            # via -r requirements.txt, nomad-lab (pyproject.toml)
 tornado==6.4              # via -r requirements.txt, ipykernel, ipyparallel, jupyter-client, jupyterhub

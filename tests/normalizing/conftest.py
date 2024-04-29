@@ -71,7 +71,7 @@ from nomad.datamodel.metainfo import (
 def run_normalize(entry_archive: EntryArchive) -> EntryArchive:
     for normalizer_class in normalizers:
         normalizer = normalizer_class(entry_archive)
-        normalizer.normalize()
+        normalizer.normalize(logger=get_logger(__name__))
     return entry_archive
 
 

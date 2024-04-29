@@ -88,6 +88,13 @@ export const apiBase = `${appBase}/api`
 export const northBase = urlAbs(window.nomadEnv.northBase)
 export const guiBase = process.env.PUBLIC_URL
 export const ui = normalizeConfig(window.nomadEnv.ui)
+export const entry_points = normalizeConfig(window.nomadEnv?.plugins?.entry_points)
+export const apps = Object.values(ui?.apps?.options || [])
+Object.values(entry_points?.options || [])
+  .filter(entry_point => entry_point.entry_point_type === 'app')
+  .forEach(entry_point => {
+    apps.push(entry_point.app)
+  })
 export const servicesUploadLimit = window.nomadEnv.servicesUploadLimit
 export const keycloakBase = window.nomadEnv.keycloakBase
 export const keycloakRealm = window.nomadEnv.keycloakRealm

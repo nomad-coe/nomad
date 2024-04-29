@@ -33,7 +33,7 @@ from markdown.extensions.toc import slugify
 
 from nomad.utils import strip
 from nomad.config import config
-from nomad.config.models.plugins import Parser, Plugin
+from nomad.config.models.plugins import Parser, EntryPointType
 from nomad.app.v1.models import query_documentation, owner_documentation
 from nomad.app.v1.routers.entries import archive_required_documentation
 from nomad import utils
@@ -383,7 +383,7 @@ def define_env(env):
     def parser_list():  # pylint: disable=unused-variable
         parsers = [
             plugin
-            for _, plugin in config.plugins.filtered_items()
+            for _, plugin in config.plugins.entry_points.filtered_items()
             if isinstance(plugin, Parser)
         ]
 
@@ -446,13 +446,21 @@ def define_env(env):
 
     @env.macro
     def plugin_list():  # pylint: disable=unused-variable
-        plugins = [plugin for plugin in config.plugins.options.values()]
+        plugins = [plugin for plugin in config.plugins.entry_points.options.values()]
 
-        def render_plugin(plugin: Plugin) -> str:
+        def render_plugin(plugin: EntryPointType) -> str:
             result = plugin.name
-            docs_or_code_url = (
-                plugin.plugin_documentation_url or plugin.plugin_source_code_url
-            )
+            docs_or_code_url = None
+            for field in [
+                'plugin_documentation_url',
+                'plugin_source_code_url',
+                'documentation',
+                'repository',
+            ]:
+                value = getattr(plugin, field, None)
+                if value:
+                    dosc_or_code_url = value
+                    break
             if docs_or_code_url:
                 result = f'[{plugin.name}]({docs_or_code_url})'
             if plugin.description:
@@ -462,7 +470,9 @@ def define_env(env):
 
         categories = {}
         for plugin in plugins:
-            category = plugin.python_package.split('.')[0]
+            category = getattr(
+                plugin, 'plugin_type', getattr(plugin, 'entry_point_type', None)
+            )
             categories.setdefault(category, []).append(plugin)
 
         return '\n\n'.join(

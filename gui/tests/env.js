@@ -3810,5 +3810,495 @@ window.nomadEnv = {
       "enabled": true
     },
     "example_uploads": {}
+  },
+  "plugins": {
+    "entry_points": {
+      "include": [
+        "schema/simulation/run",
+        "schema/simulation/workflow",
+        "parsers/vasp"
+      ],
+      "exclude": [],
+      "options": {
+        "normalizers/simulation/band_structure": {
+          "plugin_type": "normalizer",
+          "id": "normalizers/simulation/band_structure",
+          "name": "bandstructurenormalizer",
+          "description": "This is the normalizer for band structure in NOMAD.\n"
+        },
+        "normalizers/simulation/dos": {
+          "plugin_type": "normalizer",
+          "id": "normalizers/simulation/dos",
+          "name": "dosnormalizer",
+          "description": "This is the normalizer for DOS in NOMAD.\n"
+        },
+        "normalizers/simulation/soap": {
+          "plugin_type": "normalizer",
+          "id": "normalizers/simulation/soap",
+          "name": "soapnormalizer",
+          "description": "This is the normalizer for SOAP in NOMAD.\n"
+        },
+        "normalizers/simulation/spectra": {
+          "plugin_type": "normalizer",
+          "id": "normalizers/simulation/spectra",
+          "name": "spectranormalizer",
+          "description": "This is the normalizer for spectra in NOMAD.\n"
+        },
+        "normalizers/simulation/system": {
+          "plugin_type": "normalizer",
+          "id": "normalizers/simulation/system",
+          "name": "systemnormalizer",
+          "description": "This is the normalizer for system in NOMAD.\n"
+        },
+        "normalizers/simulation/workflow": {
+          "plugin_type": "normalizer",
+          "id": "normalizers/simulation/workflow",
+          "name": "simulationworkflownormalizer",
+          "description": "This is the normalizer for simulation workflows in NOMAD.\n"
+        },
+        "parsers/abacus": {
+          "plugin_type": "parser",
+          "id": "parsers/abacus",
+          "name": "parsers/abacus",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/abacus"
+        },
+        "parsers/abinit": {
+          "plugin_type": "parser",
+          "id": "parsers/abinit",
+          "name": "parsers/abinit",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/abinit"
+        },
+        "parsers/aflow": {
+          "plugin_type": "parser",
+          "id": "parsers/aflow",
+          "name": "parsers/aflow",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/aflow"
+        },
+        "parsers/amber": {
+          "plugin_type": "parser",
+          "id": "parsers/amber",
+          "name": "parsers/amber",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/amber"
+        },
+        "parsers/ams": {
+          "plugin_type": "parser",
+          "id": "parsers/ams",
+          "name": "parsers/ams",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/ams"
+        },
+        "parsers/asap": {
+          "plugin_type": "parser",
+          "id": "parsers/asap",
+          "name": "parsers/asap",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/asap"
+        },
+        "parsers/asr": {
+          "plugin_type": "parser",
+          "id": "parsers/asr",
+          "name": "parsers/asr",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/asr"
+        },
+        "parsers/atk": {
+          "plugin_type": "parser",
+          "id": "parsers/atk",
+          "name": "parsers/atk",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/atk"
+        },
+        "parsers/atomate": {
+          "plugin_type": "parser",
+          "id": "parsers/atomate",
+          "name": "parsers/atomate",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/automate"
+        },
+        "parsers/bigdft": {
+          "plugin_type": "parser",
+          "id": "parsers/bigdft",
+          "name": "parsers/bigdft",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/bigdft"
+        },
+        "parsers/bopfox": {
+          "plugin_type": "parser",
+          "id": "parsers/bopfox",
+          "name": "parsers/bopfox",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/bobfox"
+        },
+        "parsers/castep": {
+          "plugin_type": "parser",
+          "id": "parsers/castep",
+          "name": "parsers/castep",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/castep"
+        },
+        "parsers/charmm": {
+          "plugin_type": "parser",
+          "id": "parsers/charmm",
+          "name": "parsers/charmm",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/charmm"
+        },
+        "parsers/chemotion/chemotion": {
+          "plugin_type": "parser",
+          "id": "parsers/chemotion/chemotion",
+          "name": "parsers/chemotion"
+        },
+        "parsers/cp2k": {
+          "plugin_type": "parser",
+          "id": "parsers/cp2k",
+          "name": "parsers/cp2k",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/cp2k"
+        },
+        "parsers/cpmd": {
+          "plugin_type": "parser",
+          "id": "parsers/cpmd",
+          "name": "parsers/cpmd",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/cpmd"
+        },
+        "parsers/crystal": {
+          "plugin_type": "parser",
+          "id": "parsers/crystal",
+          "name": "parsers/crystal",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/crystal"
+        },
+        "parsers/dftbplus": {
+          "plugin_type": "parser",
+          "id": "parsers/dftbplus",
+          "name": "parsers/dftbplus",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/dftplus"
+        },
+        "parsers/dlpoly": {
+          "plugin_type": "parser",
+          "id": "parsers/dlpoly",
+          "name": "parsers/dl-poly",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/dlpoly"
+        },
+        "parsers/dmol3": {
+          "plugin_type": "parser",
+          "id": "parsers/dmol3",
+          "name": "parsers/dmol",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/dmol3"
+        },
+        "parsers/edmft": {
+          "plugin_type": "parser",
+          "id": "parsers/edmft",
+          "name": "parsers/edmft",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/edmft"
+        },
+        "parsers/eelsdbparser": {
+          "plugin_type": "parser",
+          "id": "parsers/eelsdbparser",
+          "name": "parsers/eels",
+          "plugin_source_code_url": "https://github.com/nomad-coe/nomad-parser-eelsdb"
+        },
+        "parsers/elabftw/elabftw": {
+          "plugin_type": "parser",
+          "id": "parsers/elabftw/elabftw",
+          "name": "parsers/elabftw",
+          "plugin_source_code_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/develop/nomad/parsing/elabftw"
+        },
+        "parsers/elastic": {
+          "plugin_type": "parser",
+          "id": "parsers/elastic",
+          "name": "parsers/elastic",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/elastic"
+        },
+        "parsers/elk": {
+          "plugin_type": "parser",
+          "id": "parsers/elk",
+          "name": "parsers/elk",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/elk"
+        },
+        "parsers/exciting": {
+          "plugin_type": "parser",
+          "id": "parsers/exciting",
+          "name": "parsers/exciting",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/exciting"
+        },
+        "parsers/fhi-aims": {
+          "plugin_type": "parser",
+          "id": "parsers/fhi-aims",
+          "name": "parsers/fhi-aims",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/fhiaims"
+        },
+        "parsers/fhivibes": {
+          "plugin_type": "parser",
+          "id": "parsers/fhivibes",
+          "name": "parsers/fhi-vibes",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/fhivibes"
+        },
+        "parsers/fleur": {
+          "plugin_type": "parser",
+          "id": "parsers/fleur",
+          "name": "parsers/fleur",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/fleur"
+        },
+        "parsers/fplo": {
+          "plugin_type": "parser",
+          "id": "parsers/fplo",
+          "name": "parsers/fplo",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/fplo"
+        },
+        "parsers/gamess": {
+          "plugin_type": "parser",
+          "id": "parsers/gamess",
+          "name": "parsers/gamess",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/gamess"
+        },
+        "parsers/gaussian": {
+          "plugin_type": "parser",
+          "id": "parsers/gaussian",
+          "name": "parsers/gaussian",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/gaussian"
+        },
+        "parsers/gpaw": {
+          "plugin_type": "parser",
+          "id": "parsers/gpaw",
+          "name": "parsers/gpaw",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/gpaw"
+        },
+        "parsers/gromacs": {
+          "plugin_type": "parser",
+          "id": "parsers/gromacs",
+          "name": "parsers/gromacs",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gromacs"
+        },
+        "parsers/gromos": {
+          "plugin_type": "parser",
+          "id": "parsers/gromos",
+          "name": "parsers/gromos",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gromos"
+        },
+        "parsers/gulp": {
+          "plugin_type": "parser",
+          "id": "parsers/gulp",
+          "name": "parsers/gulp",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/gulp"
+        },
+        "parsers/h5md": {
+          "plugin_type": "parser",
+          "id": "parsers/h5md",
+          "name": "parsers/h5md"
+        },
+        "parsers/lammps": {
+          "plugin_type": "parser",
+          "id": "parsers/lammps",
+          "name": "parsers/lammps",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/lammps"
+        },
+        "parsers/libatoms": {
+          "plugin_type": "parser",
+          "id": "parsers/libatoms",
+          "name": "parsers/lib-atoms",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/libatoms"
+        },
+        "parsers/lobster": {
+          "plugin_type": "parser",
+          "id": "parsers/lobster",
+          "name": "parsers/lobster",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/lobster"
+        },
+        "parsers/magres": {
+          "plugin_type": "parser",
+          "id": "parsers/magres",
+          "name": "parsers/magres",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/magres"
+        },
+        "parsers/molcas": {
+          "plugin_type": "parser",
+          "id": "parsers/molcas",
+          "name": "parsers/molcas",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/molcas"
+        },
+        "parsers/mopac": {
+          "plugin_type": "parser",
+          "id": "parsers/mopac",
+          "name": "parsers/mopac",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/mopac"
+        },
+        "parsers/namd": {
+          "plugin_type": "parser",
+          "id": "parsers/namd",
+          "name": "parsers/namd",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/namd"
+        },
+        "parsers/nexus": {
+          "plugin_type": "parser",
+          "id": "parsers/nexus",
+          "name": "parsers/nexus",
+          "plugin_source_code_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/develop/nomad/parsing/nexus"
+        },
+        "parsers/nwchem": {
+          "plugin_type": "parser",
+          "id": "parsers/nwchem",
+          "name": "parsers/nwchem",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/nwchem"
+        },
+        "parsers/ocean": {
+          "plugin_type": "parser",
+          "id": "parsers/ocean",
+          "name": "parsers/ocean",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/ocean"
+        },
+        "parsers/octopus": {
+          "plugin_type": "parser",
+          "id": "parsers/octopus",
+          "name": "parsers/octopus",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/octopus"
+        },
+        "parsers/onetep": {
+          "plugin_type": "parser",
+          "id": "parsers/onetep",
+          "name": "parsers/onetep",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/onetep"
+        },
+        "parsers/openkim": {
+          "plugin_type": "parser",
+          "id": "parsers/openkim",
+          "name": "parsers/openkim",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/databaseparsers/openkim"
+        },
+        "parsers/openmx": {
+          "plugin_type": "parser",
+          "id": "parsers/openmx",
+          "name": "parsers/openmx",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/openmx"
+        },
+        "parsers/orca": {
+          "plugin_type": "parser",
+          "id": "parsers/orca",
+          "name": "parsers/orca",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/orca"
+        },
+        "parsers/phonopy": {
+          "plugin_type": "parser",
+          "id": "parsers/phonopy",
+          "name": "parsers/phonopy",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/phonopy"
+        },
+        "parsers/psi4": {
+          "plugin_type": "parser",
+          "id": "parsers/psi4",
+          "name": "parsers/psi4",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/psi4"
+        },
+        "parsers/qball": {
+          "plugin_type": "parser",
+          "id": "parsers/qball",
+          "name": "parsers/qball",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/qball"
+        },
+        "parsers/qbox": {
+          "plugin_type": "parser",
+          "id": "parsers/qbox",
+          "name": "parsers/qbox",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/qbox"
+        },
+        "parsers/quantum_espresso_epw": {
+          "plugin_type": "parser",
+          "id": "parsers/quantum_espresso_epw",
+          "name": "parsers/quantumespressoepw",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/quantum_espresso_epw"
+        },
+        "parsers/quantum_espresso_phonon": {
+          "plugin_type": "parser",
+          "id": "parsers/quantum_espresso_phonon",
+          "name": "parsers/quantumespressophonon",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/quantum_espresso_phonon"
+        },
+        "parsers/quantum_espresso_xspectra": {
+          "plugin_type": "parser",
+          "id": "parsers/quantum_espresso_xspectra",
+          "name": "parsers/quantumespressoxspectra",
+          "plugin_source_code_url": "https://github.com/nomad-coe/workflow-parsers/tree/master/workflowparsers/quantum_espresso_xpectra"
+        },
+        "parsers/quantumespresso": {
+          "plugin_type": "parser",
+          "id": "parsers/quantumespresso",
+          "name": "parsers/quantumespresso",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/quantumespresso"
+        },
+        "parsers/siesta": {
+          "plugin_type": "parser",
+          "id": "parsers/siesta",
+          "name": "parsers/siesta",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/siesta"
+        },
+        "parsers/soliddmft": {
+          "plugin_type": "parser",
+          "id": "parsers/soliddmft",
+          "name": "parsers/soliddmft",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/soliddmft"
+        },
+        "parsers/tbstudio": {
+          "plugin_type": "parser",
+          "id": "parsers/tbstudio",
+          "name": "parsers/tbstudio"
+        },
+        "parsers/tinker": {
+          "plugin_type": "parser",
+          "id": "parsers/tinker",
+          "name": "parsers/tinker",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/tinker"
+        },
+        "parsers/turbomole": {
+          "plugin_type": "parser",
+          "id": "parsers/turbomole",
+          "name": "parsers/turbomole",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/turbomole"
+        },
+        "parsers/vasp": {
+          "plugin_type": "parser",
+          "id": "parsers/vasp",
+          "name": "parsers/vasp",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/vasp"
+        },
+        "parsers/w2dynamics": {
+          "plugin_type": "parser",
+          "id": "parsers/w2dynamics",
+          "name": "parsers/w2dynamics",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/w2dynamics"
+        },
+        "parsers/wannier90": {
+          "plugin_type": "parser",
+          "id": "parsers/wannier90",
+          "name": "parsers/wannier90",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/wannier90"
+        },
+        "parsers/wien2k": {
+          "plugin_type": "parser",
+          "id": "parsers/wien2k",
+          "name": "parsers/wien2k",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/wien2k"
+        },
+        "parsers/xtb": {
+          "plugin_type": "parser",
+          "id": "parsers/xtb",
+          "name": "parsers/xtb",
+          "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/xtb"
+        },
+        "parsers/yambo": {
+          "plugin_type": "parser",
+          "id": "parsers/yambo",
+          "name": "parsers/yambo",
+          "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/yambo"
+        },
+        "schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database": {
+          "plugin_type": "schema",
+          "id": "schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database",
+          "name": "perovskite_solar_cell_database",
+          "description": "A NOMAD plugin containing the schema for the Perovskite Solar Cell Database."
+        },
+        "schema/simulation/run": {
+          "plugin_type": "schema",
+          "id": "schema/simulation/run",
+          "name": "runschema",
+          "description": "Run schema plugin for NOMAD.\n"
+        },
+        "schema/simulation/workflow": {
+          "plugin_type": "schema",
+          "id": "schema/simulation/workflow",
+          "name": "simulationworkflowschema",
+          "description": "This is a collection of schemas for various types of simulation workflows.\n"
+        }
+      }
+    },
+    "plugin_packages": {}
   }
 }

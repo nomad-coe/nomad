@@ -30,6 +30,7 @@ from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import Normalizer
 from nomad.normalizing.method import MethodNormalizer
 from nomad.normalizing.material import MaterialNormalizer
+from nomad.datamodel import EntryArchive
 from nomad.datamodel.metainfo.workflow import Workflow
 from nomad.datamodel.data import ArchiveSection
 from nomad.normalizing.common import structures_2d
@@ -102,7 +103,10 @@ class ResultsNormalizer(Normalizer):
     domain = None
     normalizer_level = 3
 
-    def normalize(self, logger=None) -> None:
+    def normalize(self, archive: EntryArchive, logger=None) -> None:
+        self.entry_archive = archive
+        self.section_run = archive.run[0] if archive.run else None
+
         # Setup logger
         if logger is not None:
             self.logger = logger.bind(normalizer=self.__class__.__name__)
@@ -118,6 +122,9 @@ class ResultsNormalizer(Normalizer):
 
         for measurement in self.entry_archive.measurement:
             self.normalize_measurement(measurement)
+
+        self.entry_archive = None
+        self.section_run = None
 
     def normalize_sample(self, sample) -> None:
         material = self.entry_archive.m_setdefault('results.material')

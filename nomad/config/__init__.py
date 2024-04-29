@@ -117,7 +117,8 @@ def _merge(*args) -> Dict[str, Any]:
 
     root = args[0]
     for config in args[1:]:
-        root = merge_dicts(root, config)
+        if config:
+            root = merge_dicts(root, config)
     return root
 
 
