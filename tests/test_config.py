@@ -173,20 +173,18 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
             {'plugins': {'include': ['normalizers/simulation/dos']}},
             {
                 'plugins': {
-                    'entry_points': {
-                        'include': ['normalizers/simulation/dos'],
-                        'options': {
-                            'normalizers/simulation/dos': {
-                                'name': 'yaml',
-                                'python_package': 'dosnormalizer',
-                                'description': 'This is the normalizer for DOS in NOMAD.\n',
-                                'plugin_documentation_url': None,
-                                'plugin_source_code_url': None,
-                                'normalizer_class_name': 'dosnormalizer.DosNormalizer',
-                                'plugin_type': 'normalizer',
-                            }
-                        },
-                    }
+                    'include': ['normalizers/simulation/dos'],
+                    'options': {
+                        'normalizers/simulation/dos': {
+                            'name': 'yaml',
+                            'python_package': 'dosnormalizer',
+                            'description': 'This is the normalizer for DOS in NOMAD.\n',
+                            'plugin_documentation_url': None,
+                            'plugin_source_code_url': None,
+                            'normalizer_class_name': 'dosnormalizer.DosNormalizer',
+                            'plugin_type': 'normalizer',
+                        }
+                    },
                 }
             },
             id='dictionary: merges',
@@ -194,7 +192,7 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
         pytest.param(
             {'plugins': {'include': ['a']}},
             {'plugins': {'include': ['b']}},
-            {'plugins': {'entry_points': {'include': ['b']}}},
+            {'plugins': {'include': ['b']}},
             id='list: overrides',
         ),
         pytest.param(
@@ -219,9 +217,9 @@ def test_parser_plugins():
     config = load_config()
     config.load_plugins()
     parsers = [
-        entry_point
-        for entry_point in config.plugins.entry_points.options.values()
-        if isinstance(entry_point, Parser)
+        plugin
+        for plugin in config.plugins.options.values()
+        if isinstance(plugin, Parser)
     ]
     assert len(parsers) == 71
 
@@ -246,5 +244,5 @@ def test_plugin_polymorphism(mockopen, monkeypatch):
     }
     config = load_test_config(plugins, None, mockopen, monkeypatch)
     config.load_plugins()
-    assert isinstance(config.plugins.entry_points.options['schema'], Schema)
-    assert isinstance(config.plugins.entry_points.options['parser'], Parser)
+    assert isinstance(config.plugins.options['schema'], Schema)
+    assert isinstance(config.plugins.options['parser'], Parser)

@@ -17,154 +17,12 @@
 #
 
 import sys
-from abc import ABCMeta, abstractmethod
 import importlib
-from typing import Optional, Dict, Union, List, Literal, TYPE_CHECKING
+from typing_extensions import Annotated
+from typing import Optional, Dict, Union, List, Literal
 from pydantic import BaseModel, Field
 
 from .common import Options
-from .ui import App
-
-if TYPE_CHECKING:
-    from nomad.metainfo import SchemaPackage
-    from nomad.normalizing import Normalizer as NormalizerBaseClass
-    from nomad.parsing import Parser as ParserBaseClass
-
-
-class EntryPoint(BaseModel):
-    """Base model for a NOMAD plugin entry points."""
-
-    id: Optional[str] = Field(
-        description='Unique identifier corresponding to the entry point name. Automatically set to the plugin entry point name in pyproject.toml.'
-    )
-    entry_point_type: str = Field(description='Determines the entry point type.')
-    name: Optional[str] = Field(description='Name of the plugin entry point.')
-    description: Optional[str] = Field(
-        description='A human readable description of the plugin entry point.'
-    )
-    plugin_package: Optional[str] = Field(
-        description='The plugin package from which this entry points comes from.'
-    )
-
-    def dict_safe(self):
-        """Used to serialize the non-confidential parts of a plugin model. This
-        function can be overridden in subclasses to expose more information.
-        """
-        return self.dict(include=EntryPoint.__fields__.keys(), exclude_none=True)
-
-
-class AppEntryPoint(EntryPoint):
-    entry_point_type: Literal['app'] = Field(
-        'app', description='Determines the entry point type.'
-    )
-    app: App = Field(description='The app configuration.')
-
-    def dict_safe(self):
-        return self.dict(include=AppEntryPoint.__fields__.keys(), exclude_none=True)
-
-
-class SchemaPackageEntryPoint(EntryPoint, metaclass=ABCMeta):
-    entry_point_type: Literal['schema_package'] = Field(
-        'schema_package', description='Specifies the entry point type.'
-    )
-
-    @abstractmethod
-    def load(self) -> 'SchemaPackage':
-        """Used to lazy-load a schema package instance. You should override this
-        method in your subclass. Note that any Python module imports required
-        for the schema package should be done within this function as well."""
-        pass
-
-
-class NormalizerEntryPoint(EntryPoint, metaclass=ABCMeta):
-    entry_point_type: Literal['normalizer'] = Field(
-        'normalizer', description='Determines the entry point type.'
-    )
-
-    @abstractmethod
-    def load(self) -> 'NormalizerBaseClass':
-        """Used to lazy-load a normalizer instance. You should override this
-        method in your subclass. Note that any Python module imports required
-        for the normalizer class should be done within this function as well."""
-        pass
-
-
-class ParserEntryPoint(EntryPoint, metaclass=ABCMeta):
-    entry_point_type: Literal['parser'] = Field(
-        'parser', description='Determines the entry point type.'
-    )
-    level: int = Field(
-        0,
-        description="""
-        The order by which the parser is executed with respect to other parsers.
-    """,
-    )
-
-    mainfile_contents_re: Optional[str] = Field(
-        description="""
-        A regular expression that is applied the content of a potential mainfile.
-        If this expression is given, the parser is only considered for a file, if the
-        expression matches.
-    """
-    )
-    mainfile_name_re: str = Field(
-        r'.*',
-        description="""
-        A regular expression that is applied the name of a potential mainfile.
-        If this expression is given, the parser is only considered for a file, if the
-        expression matches.
-    """,
-    )
-    mainfile_mime_re: str = Field(
-        r'.*',
-        description="""
-        A regular expression that is applied the mime type of a potential
-        mainfile. If this expression is given, the parser is only considered
-        for a file, if the expression matches.
-    """,
-    )
-    mainfile_binary_header: Optional[bytes] = Field(
-        description="""
-        Matches a binary file if the given bytes are included in the file.
-    """,
-        exclude=True,
-    )
-    mainfile_binary_header_re: Optional[bytes] = Field(
-        description="""
-        Matches a binary file if the given binary regular expression bytes matches the
-        file contents.
-    """,
-        exclude=True,
-    )
-    mainfile_alternative: bool = Field(
-        False,
-        description="""
-        If True, the parser only matches a file, if no other file in the same directory
-        matches a parser.
-    """,
-    )
-    mainfile_contents_dict: Optional[dict] = Field(
-        description="""
-        Is used to match structured data files like JSON or HDF5.
-    """
-    )
-    supported_compressions: List[str] = Field(
-        [],
-        description="""
-        Files compressed with the given formats (e.g. xz, gz) are uncompressed and
-        matched like normal files.
-    """,
-    )
-
-    @abstractmethod
-    def load(self) -> 'ParserBaseClass':
-        """Used to lazy-load a parser instance. You should override this method
-        in your subclass. Note that any Python module imports required for the
-        parser class should be done within this function as well."""
-        pass
-
-    def dict_safe(self):
-        return self.dict(include=ParserEntryPoint.__fields__.keys(), exclude_none=True)
 
 
 class PluginBase(BaseModel):
@@ -175,10 +33,6 @@ class PluginBase(BaseModel):
     Parser or Schema.
     """
 
-    plugin_type: str = Field(
-        description='The type of the plugin.',
-    )
-    id: Optional[str] = Field(description='The unique identifier for this plugin.')
     name: str = Field(
         description='A short descriptive human readable name for the plugin.'
     )
@@ -191,12 +45,6 @@ class PluginBase(BaseModel):
     plugin_source_code_url: Optional[str] = Field(
         description='The URL of the plugins main source code repository.'
     )
-
-    def dict_safe(self):
-        """Used to serialize the non-confidential parts of a plugin model. This
-        function can be overridden in subclasses to expose more information.
-        """
-        return self.dict(include=PluginBase.__fields__.keys(), exclude_none=True)
 
 
 class PythonPluginBase(PluginBase):
@@ -325,15 +173,13 @@ class Parser(PythonPluginBase):
     mainfile_binary_header: Optional[bytes] = Field(
         description="""
         Matches a binary file if the given bytes are included in the file.
-    """,
-        exclude=True,
+    """
     )
     mainfile_binary_header_re: Optional[bytes] = Field(
         description="""
         Matches a binary file if the given binary regular expression bytes matches the
         file contents.
-    """,
-        exclude=True,
+    """
     )
     mainfile_alternative: bool = Field(
         False,
@@ -385,7 +231,6 @@ class Parser(PythonPluginBase):
         from nomad.parsing.parser import MatchingParserInterface
 
         data = self.dict()
-        del data['id']
         del data['description']
         del data['python_package']
         del data['plugin_type']
@@ -396,57 +241,13 @@ class Parser(PythonPluginBase):
         return MatchingParserInterface(**data)
 
 
-EntryPointType = Union[
-    Schema,
-    Normalizer,
-    Parser,
-    SchemaPackageEntryPoint,
-    ParserEntryPoint,
-    NormalizerEntryPoint,
-    AppEntryPoint,
+Plugin = Annotated[
+    Union[Schema, Normalizer, Parser], Field(discriminator='plugin_type')
 ]
 
 
-class EntryPoints(Options):
-    options: Dict[str, EntryPointType] = Field(
-        dict(), description='The available plugin entry points.'
-    )
-
-
-class PluginPackage(BaseModel):
-    name: str = Field(
-        description='Name of the plugin Python package, read from pyproject.toml.'
-    )
-    description: Optional[str] = Field(
-        description='Package description, read from pyproject.toml.'
-    )
-    version: Optional[str] = Field(
-        description='Plugin package version, read from pyproject.toml.'
-    )
-    homepage: Optional[str] = Field(
-        description='Link to the plugin package homepage, read from pyproject.toml.'
-    )
-    documentation: Optional[str] = Field(
-        description='Link to the plugin package documentation page, read from pyproject.toml.'
-    )
-    repository: Optional[str] = Field(
-        description='Link to the plugin package source code repository, read from pyproject.toml.'
-    )
-    entry_points: List[str] = Field(
-        description='List of entry point ids contained in this package, read form pyproject.toml'
-    )
-
-
-class Plugins(BaseModel):
-    entry_points: EntryPoints = Field(
-        description='Used to control plugin entry points.'
-    )
-    plugin_packages: Dict[str, PluginPackage] = Field(
-        description="""
-        Contains the installed installed plugin packages with the package name
-        used as a key. This is autogenerated and should not be modified.
-        """
-    )
+class Plugins(Options):
+    options: Dict[str, Plugin] = Field(dict(), description='The available plugin.')
 
 
 def add_plugin(plugin: Schema) -> None:
@@ -458,7 +259,7 @@ def add_plugin(plugin: Schema) -> None:
         sys.path.insert(0, plugin.package_path)
 
     # Add plugin to config
-    config.plugins.entry_points.options[plugin.key] = plugin
+    config.plugins.options[plugin.key] = plugin
 
     # Add plugin to Package registry
     package = importlib.import_module(plugin.python_package)
@@ -482,7 +283,7 @@ def remove_plugin(plugin) -> None:
         pass
 
     # Remove package as plugin
-    del config.plugins.entry_points.options[plugin.key]
+    del config.plugins.options[plugin.key]
 
     # Remove plugin from Package registry
     package = importlib.import_module(plugin.python_package).m_package

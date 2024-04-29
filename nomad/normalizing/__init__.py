@@ -42,10 +42,7 @@ from collections import UserList
 
 from nomad.config import config
 
-from nomad.config.models.plugins import (
-    Normalizer as OldNormalizerPlugin,
-    NormalizerEntryPoint,
-)
+from nomad.config.models.plugins import Normalizer as NormalizerPlugin
 from .normalizer import Normalizer
 
 
@@ -67,7 +64,6 @@ class NormalizerInterface:
     def __init__(self, path: str) -> None:
         self._path = path
         self._cls = None
-        self.archive = None
 
     @property
     def normalizer_class(self):
@@ -76,49 +72,21 @@ class NormalizerInterface:
         return self._cls
 
     def normalize(self, logger=None):
-        self.normalizer.normalize(self.archive, logger)
+        self.normalizer_class.normalize(logger)
 
     def __call__(self, *args: Any) -> Any:
-        self.archive = args[0]
-        self.normalizer = self.normalizer_class(*args[1:])
-        return self
+        return self.normalizer_class(*args)
 
     def __getattr__(self, name: str):
         return getattr(self.normalizer_class, name, None)
 
 
-class NormalizerInterfaceNew:
-    def __init__(self, normalizer: Normalizer) -> None:
-        self.normalizer = normalizer
-        self.archive = None
-
-    def normalize(self, logger=None):
-        self.normalizer.normalize(self.archive, logger)
-
-    def __call__(self, *args: Any) -> Any:
-        self.archive = args[0]
-        return self
-
-    def __getattr__(self, name: str):
-        if name == '__name__':
-            return self.normalizer.__class__.__name__
-        return getattr(self.normalizer, name, None)
-
-
-config.load_plugins()
-enabled_entry_points = config.plugins.entry_points.filtered_values()
 normalizers = SortedNormalizers([])
 
-# Load normalizers using old plugin mechanism
-for entry_point in enabled_entry_points:
-    if isinstance(entry_point, OldNormalizerPlugin):
-        normalizers.append(NormalizerInterface(entry_point.normalizer_class_name))
 
-# Load normalizers using old config mechanism
+for plugin_name, plugin in config.plugins.options.items():
+    if isinstance(plugin, NormalizerPlugin) and config.plugins.filter(plugin_name):
+        normalizers.append(NormalizerInterface(plugin.normalizer_class_name))
+
 for normalizer in config.normalize.normalizers.filtered_values():
     normalizers.append(NormalizerInterface(normalizer))
-
-# Load normalizers using new plugin mechanism
-for entry_point in enabled_entry_points:
-    if isinstance(entry_point, NormalizerEntryPoint):
-        normalizers.append(NormalizerInterfaceNew(entry_point.load()))

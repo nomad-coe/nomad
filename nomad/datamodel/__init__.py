@@ -34,7 +34,6 @@ from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 from .results import Results
 from .data import EntryData, ArchiveSection
-from nomad.config.models.plugins import SchemaPackageEntryPoint
 from .context import Context, ClientContext, ServerContext
 
 m_env.m_add_sub_section(
@@ -63,11 +62,9 @@ def all_metainfo_packages():
     from nomad.config import config
 
     config.load_plugins()
-    for entry_point in config.plugins.entry_points.filtered_values():
-        if isinstance(entry_point, PythonPluginBase):
-            entry_point.import_python_package()
-        if isinstance(entry_point, SchemaPackageEntryPoint):
-            entry_point.load()
+    for plugin in config.plugins.filtered_values():
+        if isinstance(plugin, PythonPluginBase):
+            plugin.import_python_package()
 
     # Importing the parsers will also make sure that related schemas will be imported
     # even if they are not part of the plugin's python package as this will import

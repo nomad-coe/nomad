@@ -16,17 +16,15 @@
 # limitations under the License.
 #
 
-from nomad.datamodel import EntryArchive
 from nomad.datamodel.data import ArchiveSection
-from nomad.datamodel import EntryArchive
-from typing import Optional
+from typing import List, Optional
 from . import Normalizer
 
 
 class MetainfoNormalizer(Normalizer):
     domain: Optional[str] = None
 
-    def normalize_section(self, archive: EntryArchive, section, logger):
+    def normalize_section(self, section, logger):
         normalize = None
         try:
             normalize = getattr(section, 'normalize')
@@ -35,7 +33,7 @@ class MetainfoNormalizer(Normalizer):
 
         if normalize:
             try:
-                normalize(archive, logger)
+                normalize(self.entry_archive, logger)
             except Exception as e:
                 logger.error(
                     'could not normalize section',
@@ -43,7 +41,7 @@ class MetainfoNormalizer(Normalizer):
                     exc_info=e,
                 )
 
-    def normalize(self, archive: EntryArchive, logger=None) -> None:
+    def normalize(self, logger=None) -> None:
         if logger is None:
             from nomad import utils
 
@@ -60,6 +58,6 @@ class MetainfoNormalizer(Normalizer):
             )
             for sub_section in sub_sections:
                 _normalize(sub_section)
-            self.normalize_section(archive, section, logger)
+            self.normalize_section(section, logger)
 
-        _normalize(archive)
+        _normalize(self.entry_archive)

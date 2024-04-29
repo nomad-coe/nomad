@@ -25,7 +25,7 @@ import YAML from 'yaml'
 /**
  * Form used for editing a YAML or JSON config.
  */
-const InputConfig = React.memo(({data, format, maxRows, minRows, onChange, error, onError, readOnly}) => {
+const InputConfig = React.memo(({data, format, maxRows, minRows, onChange, error, onError}) => {
   const controlledError = useRef(error !== undefined)
   const [serialized, setSerialized] = useState()
   const [errorInternal, setErrorInternal] = useState()
@@ -78,9 +78,6 @@ const InputConfig = React.memo(({data, format, maxRows, minRows, onChange, error
       minRows={minRows}
       value={serialized}
       onChange={handleChange}
-      InputProps={{
-        readOnly: readOnly
-      }}
     />
   )
 })
@@ -91,8 +88,7 @@ InputConfig.propTypes = {
   minRows: PropTypes.number,
   onChange: PropTypes.func,
   error: PropTypes.string,
-  onError: PropTypes.func,
-  readOnly: PropTypes.bool
+  onError: PropTypes.func
 }
 
 InputConfig.defaultProps = {

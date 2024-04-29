@@ -1038,10 +1038,10 @@ class ElnWithStructureFile(ArchiveSection):
                 if system_normalizer_cls:
                     system_normalizer = system_normalizer_cls(archive)
                     system_normalizer.normalize()
-                optimade_normalizer = OptimadeNormalizer()
-                optimade_normalizer.normalize(archive)
-                results_normalizer = ResultsNormalizer()
-                results_normalizer.normalize(archive)
+                optimade_normalizer = OptimadeNormalizer(archive)
+                optimade_normalizer.normalize()
+                results_normalizer = ResultsNormalizer(archive)
+                results_normalizer.normalize()
 
         # TODO: rewrite it in a way in which the run section is not needed and System is
         # directly added to the archive.data
