@@ -19,3 +19,15 @@ def assert_upload(response_json, **kwargs):
     for key, value in kwargs.items():
         assert data.get(key, None) == value
     return data
+
+
+def assert_entry(entry, has_metadata=True, **kwargs):
+    """Checks the content of a returned entry dictionary."""
+    assert 'upload_id' in entry
+    assert 'entry_id' in entry
+    assert 'entry_create_time' in entry
+    assert not entry['process_running']
+    for key, value in kwargs.items():
+        assert entry.get(key, None) == value
+    if has_metadata:
+        assert 'entry_metadata' in entry

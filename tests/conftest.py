@@ -63,6 +63,7 @@ pytest_plugins = (
     'celery.contrib.pytest',
     'tests.fixtures.data',
     'tests.fixtures.groups',
+    'tests.fixtures.group_uploads',
     'tests.fixtures.infrastructure',
     'tests.fixtures.mails',
     'tests.fixtures.users',
@@ -72,11 +73,21 @@ pytest_plugins = (
 def pytest_addoption(parser):
     help = 'Set this < 1.0 to speed up worker cleanup. May leave tasks running.'
     parser.addoption('--celery-inspect-timeout', type=float, default=1.0, help=help)
-    help = 'Only run tests with these fixtures and exclude ones prefixed with "!".'
+    help = (
+        'Only run tests with these fixtures and exclude ones prefixed with "!".'
+        'Does not consider dynamically loaded fixtures (e.g. `request.getfixturevalue`).'
+    )
     parser.addoption('--fixture-filters', nargs='+', help=help)
 
 
-def pytest_collection_modifyitems(items, config):
+def filter_tests_by_fixtures(items, config):
+    """Filter tests by fixture names based on CLI argument `--fixture-filters`.
+
+    Will include tests that have all the fixtures in `--fixture-filters`
+    and exclude tests that have any of the fixtures prefixed with '!'.
+
+    Does not consider dynamically loaded fixtures (e.g. `request.getfixturevalue`)."""
+
     fixture_filters = config.getoption('fixture_filters')
     if not fixture_filters:
         return
@@ -93,8 +104,14 @@ def pytest_collection_modifyitems(items, config):
             selected_items.append(item)
         else:
             deselected_items.append(item)
+
     config.hook.pytest_deselected(items=deselected_items)
     items[:] = selected_items
+
+
+def pytest_collection_modifyitems(items, config):
+    """Manipulate the list of test items (pytest hook)."""
+    filter_tests_by_fixtures(items, config)
 
 
 @pytest.fixture(scope='function')

@@ -27,8 +27,8 @@ def assert_user(user, expected_user):
     assert 'email' not in user
 
 
-def test_me(client, user1_auth, app_token_auth):
-    response = client.get('users/me', headers=user1_auth)
+def test_me(auth_headers, client, app_token_auth):
+    response = client.get('users/me', headers=auth_headers['user1'])
     assert response.status_code == 200
     response = client.get('users/me', headers=app_token_auth)
     assert response.status_code == 200
@@ -44,10 +44,10 @@ def test_me_auth_bad_token(client):
     assert response.status_code == 401
 
 
-def test_invite(client, user1_auth, no_warn):
+def test_invite(auth_headers, client, no_warn):
     rv = client.put(
         'users/invite',
-        headers=user1_auth,
+        headers=auth_headers['user1'],
         json={
             'first_name': 'John',
             'last_name': 'Doe',

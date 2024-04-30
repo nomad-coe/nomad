@@ -16,46 +16,47 @@
 # limitations under the License.
 #
 
-import pytest
 import io
 import os
-import requests
 import time
 import zipfile
 from datetime import datetime
-from typing import List, Dict, Any, Iterable
-from tests.app.v1.routers.uploads.common import assert_upload
+from typing import Any, Dict, Iterable, List
 
-from tests.utils import build_url, set_upload_entry_metadata
-from tests.test_files import (
-    example_file_mainfile_different_atoms,
-    example_file_vasp_with_binary,
-    example_file_aux,
-    example_file_unparsable,
-    example_file_corrupt_zip,
-    empty_file,
-    assert_upload_files,
-)
-from tests.test_search import assert_search_upload
-from tests.processing.test_edit_metadata import (
-    assert_metadata_edited,
-    all_coauthor_metadata,
-    all_admin_metadata,
-)
-from tests.app.v1.routers.common import (
-    assert_response,
-    assert_browser_download_headers,
-    perform_get,
-)
+import pytest
+import requests
+
 from nomad import files, infrastructure
+from nomad.bundles import BundleExporter
 from nomad.config import config
 from nomad.config.models.config import BundleImportSettings
-from nomad.processing import Upload, Entry, ProcessStatus
-from nomad.files import UploadFiles, StagingUploadFiles, PublicUploadFiles
-from nomad.bundles import BundleExporter
 from nomad.datamodel import EntryMetadata
+from nomad.files import PublicUploadFiles, StagingUploadFiles, UploadFiles
+from nomad.processing import Entry, ProcessStatus, Upload
+from tests.app.v1.routers.common import (
+    assert_browser_download_headers,
+    assert_response,
+    perform_get,
+)
+from tests.processing.test_edit_metadata import (
+    all_admin_metadata,
+    all_coauthor_metadata,
+    assert_metadata_edited,
+)
+from tests.test_files import (
+    assert_upload_files,
+    empty_file,
+    example_file_aux,
+    example_file_corrupt_zip,
+    example_file_mainfile_different_atoms,
+    example_file_unparsable,
+    example_file_vasp_with_binary,
+)
+from tests.test_search import assert_search_upload
+from tests.utils import build_url, set_upload_entry_metadata
 
 from ..test_entries import assert_archive_response
+from .common import assert_entry, assert_upload
 
 """
 These are the tests for all API operations below ``uploads``. The tests are organized
@@ -142,12 +143,13 @@ def perform_post_upload_action(
 
 
 def assert_file_upload_and_processing(
+    auth_headers,
+    upload_tokens,
     client,
     action,
     url,
     mode,
     user,
-    auth_dict,
     upload_id,
     source_paths,
     target_path,
@@ -167,10 +169,11 @@ def assert_file_upload_and_processing(
     source_paths = source_paths or []
     if isinstance(source_paths, str):
         source_paths = [source_paths]
-    user_auth, token = auth_dict[user]
+    user_auth = auth_headers[user]
     # Use either token or bearer token for the post operation (never both)
     user_auth_action = user_auth
     if use_upload_token:
+        token = upload_tokens[user]
         user_auth_action = None
     else:
         token = None
@@ -355,17 +358,6 @@ def assert_gets_published(
             assert entry.with_embargo == (embargo_length > 0)
 
     assert_upload_files(upload_id, entries, files.PublicUploadFiles, published=True)
-
-
-def assert_entry(entry, **kwargs):
-    """Checks the content of a returned entry dictionary."""
-    assert 'upload_id' in entry
-    assert 'entry_id' in entry
-    assert 'entry_create_time' in entry
-    assert not entry['process_running']
-    for key, value in kwargs.items():
-        assert entry.get(key, None) == value
-    assert 'entry_metadata' in entry
 
 
 def assert_pagination(pagination, expected_pagination):
@@ -659,7 +651,7 @@ def get_upload_entries_metadata(
         ),
     ],
 )
-def test_get_uploads(client, mongo_module, auth_dict, example_data, kwargs):
+def test_get_uploads(auth_headers, client, mongo_module, example_data, kwargs):
     """Makes a get request to uploads in various different ways."""
     # Extract kwargs
     user = kwargs.get('user', 'user1')
@@ -667,9 +659,8 @@ def test_get_uploads(client, mongo_module, auth_dict, example_data, kwargs):
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth, __token = auth_dict[user]
     # Api call
-    response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
+    response = perform_get(client, 'uploads', auth_headers[user], **query_params)
     # Verify result
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -703,16 +694,15 @@ def test_get_uploads(client, mongo_module, auth_dict, example_data, kwargs):
     ],
 )
 def test_get_upload(
+    auth_headers,
     client,
     mongo_module,
-    auth_dict,
     user,
     upload_id,
     expected_status_code,
 ):
     """Tests the endpoint for getting an upload by upload_id."""
-    user_auth, __token = auth_dict[user]
-    response = perform_get(client, f'uploads/{upload_id}', user_auth)
+    response = perform_get(client, f'uploads/{upload_id}', auth_headers[user])
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_upload(response.json())
@@ -913,7 +903,7 @@ def test_get_upload(
         ),
     ],
 )
-def test_get_upload_entries(client, mongo_module, auth_dict, example_data, kwargs):
+def test_get_upload_entries(auth_headers, client, mongo_module, example_data, kwargs):
     """
     Fetches the entries for a specific upload, by calling uploads/{upload_id}/entries,
     with the provided query paramters, and checks the result.
@@ -925,10 +915,9 @@ def test_get_upload_entries(client, mongo_module, auth_dict, example_data, kwarg
     expected_data_len = kwargs.get('expected_data_len', 1)
     expected_response = kwargs.get('expected_response', {})
     expected_pagination = kwargs.get('expected_pagination', {})
-    user_auth, __token = auth_dict[user]
 
     response = perform_get(
-        client, f'uploads/{upload_id}/entries', user_auth, **query_args
+        client, f'uploads/{upload_id}/entries', auth_headers[user], **query_args
     )
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -972,9 +961,9 @@ def test_get_upload_entries(client, mongo_module, auth_dict, example_data, kwarg
     ],
 )
 def test_get_upload_entry(
+    auth_headers,
     client,
     mongo_module,
-    auth_dict,
     example_data,
     upload_id,
     entry_id,
@@ -984,7 +973,7 @@ def test_get_upload_entry(
     """
     Fetches an entry via a call to uploads/{upload_id}/entries/{entry_id} and checks it.
     """
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
     response = perform_get(client, f'uploads/{upload_id}/entries/{entry_id}', user_auth)
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -1027,16 +1016,16 @@ def test_get_upload_entry(
     ],
 )
 def test_get_upload_raw(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     args,
     expected_status_code,
     expected_content,
 ):
     user = args['user']
     upload_id = args['upload_id']
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
 
     response = perform_get(client, f'uploads/{upload_id}/raw', user_auth=user_auth)
 
@@ -1345,9 +1334,9 @@ def test_get_upload_raw(
     ],
 )
 def test_get_upload_raw_path(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     args,
     expected_status_code,
     expected_mime_type,
@@ -1362,7 +1351,6 @@ def test_get_upload_raw_path(
     offset = args.get('offset', None)
     length = args.get('length', None)
     ignore_mime_type = args.get('ignore_mime_type', None)
-    user_auth, __token = auth_dict[user]
     query_args = dict(
         ignore_mime_type=ignore_mime_type,
         compress=compress,
@@ -1374,7 +1362,7 @@ def test_get_upload_raw_path(
     response = perform_get(
         client,
         f'uploads/{upload_id}/raw/{path}',
-        user_auth=user_auth,
+        user_auth=auth_headers[user],
         accept=accept,
         **query_args,
     )
@@ -1618,9 +1606,9 @@ def test_get_upload_raw_path(
     ],
 )
 def test_get_upload_rawdir_path(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     user,
     upload_id,
     path,
@@ -1630,10 +1618,11 @@ def test_get_upload_rawdir_path(
     expected_file_metadata,
     expected_pagination,
 ):
-    user_auth, __token = auth_dict[user]
-
     response = perform_get(
-        client, f'uploads/{upload_id}/rawdir/{path}', user_auth=user_auth, **query_args
+        client,
+        f'uploads/{upload_id}/rawdir/{path}',
+        user_auth=auth_headers[user],
+        **query_args,
     )
 
     assert_response(response, expected_status_code)
@@ -1719,17 +1708,16 @@ def test_get_upload_rawdir_path(
     ],
 )
 def test_get_upload_entry_archive_mainfile(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     upload_id: str,
     mainfile: str,
     user: str,
     status_code: int,
 ):
-    user_auth, _ = auth_dict[user]
     response = client.get(
-        f'uploads/{upload_id}/archive/mainfile/{mainfile}', headers=user_auth
+        f'uploads/{upload_id}/archive/mainfile/{mainfile}', headers=auth_headers[user]
     )
     assert_response(response, status_code)
     if status_code == 200:
@@ -1754,16 +1742,16 @@ def test_get_upload_entry_archive_mainfile(
     ],
 )
 def test_get_upload_entry_archive(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     upload_id: str,
     entry_id: str,
     user: str,
     status_code: int,
 ):
-    user_auth, _ = auth_dict[user]
-    response = client.get(f'uploads/{upload_id}/archive/{entry_id}', headers=user_auth)
+    url = f'uploads/{upload_id}/archive/{entry_id}'
+    response = client.get(url, headers=auth_headers[user])
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())
@@ -2249,11 +2237,12 @@ def test_get_upload_entry_archive(
     ],
 )
 def test_put_upload_raw_path(
+    auth_headers,
+    upload_tokens,
     client,
     proc_infra,
     non_empty_processed,
     example_data_writeable,
-    auth_dict,
     mode,
     user,
     upload_id,
@@ -2276,12 +2265,13 @@ def test_put_upload_raw_path(
     )
 
     response, _ = assert_file_upload_and_processing(
+        auth_headers,
+        upload_tokens,
         client,
         action,
         url,
         mode,
         user,
-        auth_dict,
         upload_id,
         source_paths,
         target_path,
@@ -2332,11 +2322,12 @@ def test_put_upload_raw_path(
     [pytest.param('multipart', 'user1', 409, id='conflict_in_concurrent_editing')],
 )
 def test_editing_raw_file(
+    auth_headers,
+    upload_tokens,
     client,
     proc_infra,
     non_empty_processed,
     example_data_writeable,
-    auth_dict,
     mode,
     user,
     expected_status_code,
@@ -2344,14 +2335,13 @@ def test_editing_raw_file(
     upload_id = 'examples_template'
     target_path = 'examples_template'
     action = 'PUT'
-    url = f'uploads/{upload_id}/raw/{target_path}'
     path = 'examples_template/template.json'
-    user_auth, __token = auth_dict[user]
+    archive_url = f'uploads/{upload_id}/archive/mainfile/{path}'
+    target_url = f'uploads/{upload_id}/raw/{target_path}'
+    user_auth = auth_headers[user]
 
     # Get an existing upload with entries
-    response = perform_get(
-        client, f'uploads/{upload_id}/archive/mainfile/{path}', user_auth=user_auth
-    )
+    response = perform_get(client, archive_url, user_auth=user_auth)
     assert response.status_code == 200
     response_json = response.json()
     entry_hash = response_json['data']['archive']['metadata']['entry_hash']
@@ -2364,12 +2354,13 @@ def test_editing_raw_file(
         'entry_hash': entry_hash,
     }
     response, _ = assert_file_upload_and_processing(
+        auth_headers,
+        upload_tokens,
         client,
         action,
-        url,
+        target_url,
         mode,
         user,
-        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2390,12 +2381,13 @@ def test_editing_raw_file(
         'entry_hash': entry_hash,
     }
     response, _ = assert_file_upload_and_processing(
+        auth_headers,
+        upload_tokens,
         client,
         action,
-        url,
+        target_url,
         mode,
         user,
-        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2425,12 +2417,13 @@ def test_editing_raw_file(
         'entry_hash': entry_hash,
     }
     response, _ = assert_file_upload_and_processing(
+        auth_headers,
+        upload_tokens,
         client,
         action,
-        url,
+        target_url,
         mode,
         user,
-        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2464,12 +2457,13 @@ def test_editing_raw_file(
         'entry_hash': entry_hash,
     }
     response, _ = assert_file_upload_and_processing(
+        auth_headers,
+        upload_tokens,
         client,
         action,
-        url,
+        target_url,
         mode,
         user,
-        auth_dict,
         upload_id,
         example_file_mainfile_different_atoms,
         target_path,
@@ -2531,20 +2525,17 @@ def test_editing_raw_file(
     ],
 )
 def test_post_upload_raw_create_dir_path(
+    auth_headers,
     client,
     proc_infra,
     example_data_writeable,
-    auth_dict,
     user,
     upload_id,
     path,
     expected_status_code,
 ):
-    user_auth, _token = auth_dict[user]
-    response = client.post(
-        f'uploads/{upload_id}/raw-create-dir/{requests.utils.quote(path)}',
-        headers=user_auth,
-    )
+    url = f'uploads/{upload_id}/raw-create-dir/{requests.utils.quote(path)}'
+    response = client.post(url, headers=auth_headers[user])
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         upload = Upload.get(upload_id)
@@ -2660,11 +2651,12 @@ def test_post_upload_raw_create_dir_path(
     ],
 )
 def test_delete_upload_raw_path(
+    auth_headers,
     client,
     proc_infra,
     non_empty_processed,
     example_data_writeable,
-    auth_dict,
+    upload_tokens,
     user,
     upload_id,
     path,
@@ -2672,10 +2664,11 @@ def test_delete_upload_raw_path(
     expected_status_code,
     expected_mainfiles,
 ):
-    user_auth, token = auth_dict[user]
+    user_auth = auth_headers[user]
     # Use either token or bearer token for the post operation (never both)
     user_auth_action = user_auth
     if use_upload_token:
+        token = upload_tokens[user]
         user_auth_action = None
     else:
         token = None
@@ -2843,11 +2836,11 @@ def test_delete_upload_raw_path(
     ],
 )
 def test_post_upload_edit(
+    auth_headers,
     client,
     proc_infra,
     example_data_writeable,
     example_datasets,
-    auth_dict,
     users_dict,
     user,
     upload_id,
@@ -2858,7 +2851,7 @@ def test_post_upload_edit(
     `MetadataEditRequestHandler.edit_metadata`, we only do very simple verification here,
     the more extensive testnig is done in `tests.processing.test_edit_metadata`.
     """
-    user_auth, _token = auth_dict[user]
+    user_auth = auth_headers[user]
     user = users_dict.get(user)
     query = kwargs.get('query')
     owner = kwargs.get('owner')
@@ -3150,11 +3143,12 @@ def test_post_upload_edit(
     ],
 )
 def test_post_upload(
+    auth_headers,
+    upload_tokens,
     client,
     mongo_function,
     proc_infra,
     monkeypatch,
-    auth_dict,
     empty_upload,
     non_empty_example_upload,
     mode,
@@ -3184,12 +3178,13 @@ def test_post_upload(
     expected_process_status = None
 
     _, processed_response_data = assert_file_upload_and_processing(
+        auth_headers,
+        upload_tokens,
         client,
         action,
         url,
         mode,
         user,
-        auth_dict,
         upload_id,
         source_paths,
         target_path,
@@ -3220,7 +3215,7 @@ def test_post_upload(
             assert not upload_proc.published
         else:
             assert_gets_published(
-                client, upload_id, auth_dict['user1'][0], **query_args
+                client, upload_id, auth_headers['user1'], **query_args
             )
 
 
@@ -3262,14 +3257,14 @@ def test_post_upload(
     ],
 )
 def test_post_upload_action_publish(
-    client, proc_infra, example_data_writeable, auth_dict, kwargs
+    auth_headers, client, proc_infra, example_data_writeable, kwargs
 ):
     """Tests the publish action with various arguments."""
     upload_id = kwargs.get('upload_id', 'id_unpublished_w')
     query_args = kwargs.get('query_args', {})
     expected_status_code = kwargs.get('expected_status_code', 200)
     user = kwargs.get('user', 'user1')
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
 
     response = perform_post_upload_action(
         client, user_auth, upload_id, 'publish', **query_args
@@ -3302,12 +3297,12 @@ def test_post_upload_action_publish(
     ],
 )
 def test_post_upload_action_publish_to_central_nomad(
+    auth_headers,
     client,
     proc_infra,
     monkeypatch,
     oasis_publishable_upload,
     users_dict,
-    auth_dict,
     import_settings,
     query_args,
 ):
@@ -3317,7 +3312,7 @@ def test_post_upload_action_publish_to_central_nomad(
     embargo_length = query_args.get('embargo_length')
     expected_status_code = 200
     user = 'user0'
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
     old_upload = Upload.get(upload_id)
 
     import_settings = config.bundle_import.default_settings.customize(import_settings)
@@ -3399,6 +3394,7 @@ def test_post_upload_action_publish_to_central_nomad(
     ],
 )
 def test_post_upload_action_process(
+    auth_headers,
     client,
     mongo_function,
     proc_infra,
@@ -3406,7 +3402,6 @@ def test_post_upload_action_process(
     example_data_writeable,
     non_empty_processed,
     internal_example_user_metadata,
-    auth_dict,
     upload_id,
     publish,
     user,
@@ -3422,17 +3417,13 @@ def test_post_upload_action_process(
 
     monkeypatch.setattr('nomad.config.meta.version', 're_process_test_version')
     monkeypatch.setattr('nomad.config.meta.commit', 're_process_test_commit')
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
 
     response = perform_post_upload_action(client, user_auth, upload_id, 'process')
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         assert_processing(
-            client,
-            upload_id,
-            auth_dict['user1'][0],
-            check_files=False,
-            published=True,
+            client, upload_id, auth_headers['user1'], check_files=False, published=True
         )
 
 
@@ -3508,11 +3499,11 @@ def test_post_upload_action_process(
     ],
 )
 def test_post_upload_action_delete_entry_files(
+    auth_headers,
     client,
     mongo_function,
     proc_infra,
     example_data_writeable,
-    auth_dict,
     upload_id,
     user,
     owner,
@@ -3522,7 +3513,6 @@ def test_post_upload_action_delete_entry_files(
     expect_exists,
     expect_not_exists,
 ):
-    user_auth, __token = auth_dict[user]
     json = {}
     if include_parent_folders is not None:
         json.update(include_parent_folders=include_parent_folders)
@@ -3532,7 +3522,7 @@ def test_post_upload_action_delete_entry_files(
         json.update(query=query)
 
     response = perform_post_upload_action(
-        client, user_auth, upload_id, 'delete-entry-files', json=json
+        client, auth_headers[user], upload_id, 'delete-entry-files', json=json
     )
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
@@ -3561,17 +3551,17 @@ def test_post_upload_action_delete_entry_files(
     ],
 )
 def test_post_upload_action_lift_embargo(
+    auth_headers,
     client,
     proc_infra,
     example_data_writeable,
-    auth_dict,
     users_dict,
     upload_id,
     user,
     preprocess,
     expected_status_code,
 ):
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
     user = users_dict.get(user)
 
     if preprocess:
@@ -3607,21 +3597,19 @@ def test_post_upload_action_lift_embargo(
     ],
 )
 def test_delete_upload(
+    auth_headers,
     client,
     proc_infra,
     example_data_writeable,
-    auth_dict,
     upload_id,
     user,
     expected_status_code,
 ):
     """Uploads a file, and then tries to delete it, with different parameters and users."""
-    user_auth, __token = auth_dict[user]
-
-    response = client.delete(f'uploads/{upload_id}', headers=user_auth)
+    response = client.delete(f'uploads/{upload_id}', headers=auth_headers[user])
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
-        assert_upload_does_not_exist(client, upload_id, auth_dict['user1'][0])
+        assert_upload_does_not_exist(client, upload_id, auth_headers['user1'])
 
 
 @pytest.mark.parametrize(
@@ -3656,10 +3644,10 @@ def test_delete_upload(
     ],
 )
 def test_get_upload_bundle(
+    auth_headers,
     client,
     proc_infra,
     example_data_writeable,
-    auth_dict,
     upload_id,
     user,
     query_args,
@@ -3669,7 +3657,7 @@ def test_get_upload_bundle(
     include_archive_files = query_args.get('include_archive_files', True)
 
     url = build_url(f'uploads/{upload_id}/bundle', query_args)
-    response = perform_get(client, url, user_auth=auth_dict[user][0])
+    response = perform_get(client, url, user_auth=auth_headers[user])
     assert_response(response, expected_status_code)
     if expected_status_code == 200:
         with zipfile.ZipFile(io.BytesIO(response.content)) as zip_file:
@@ -3705,11 +3693,11 @@ def test_get_upload_bundle(
     ],
 )
 def test_post_upload_bundle(
+    auth_headers,
     client,
     proc_infra,
     non_empty_processed,
     internal_example_user_metadata,
-    auth_dict,
     publish,
     test_duplicate,
     user,
@@ -3739,7 +3727,7 @@ def test_post_upload_bundle(
         # Delete the upload so we can import the bundle without id collisions
         upload.delete_upload_local()
     # Finally, import the bundle
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
     response = perform_post_put_file(
         client, 'POST', 'uploads/bundle', 'stream', export_path, user_auth, **query_args
     )
@@ -3754,11 +3742,11 @@ def test_post_upload_bundle(
     'authorized, expected_status_code',
     [pytest.param(True, 200, id='ok'), pytest.param(False, 401, id='not-authorized')],
 )
-def test_get_command_examples(client, user1_auth, authorized, expected_status_code):
+def test_get_command_examples(auth_headers, client, authorized, expected_status_code):
     response = perform_get(
         client,
         'uploads/command-examples',
-        user_auth=user1_auth if authorized else None,
+        user_auth=auth_headers['user1'] if authorized else None,
     )
     assert_response(response, expected_status_code)
     if expected_status_code == 200:

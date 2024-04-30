@@ -2,7 +2,7 @@
 User fixtures:
 - user0: admin user
 - user1: default user to use
-- user2, user3: additional users for access or interaction tests
+- user2, user3, ...: additional users for access or interaction tests
 """
 
 import pytest
@@ -10,71 +10,88 @@ import pytest
 from nomad import infrastructure
 from nomad.config import config
 from nomad.datamodel import User
-from tests.utils import fake_user_uuid
+from tests.utils import fake_user_uuid, generate_convert_label
 
 admin_user_id = fake_user_uuid(0)
 
+
+def fake_user(num, first_name, last_name, *, email=None, **kwargs):
+    """Return a dict with test user data based on the number and name."""
+    if email is None:
+        email = f'{first_name}.{last_name}@nomad-fairdi.tests.de'.lower()
+
+    username = f'{first_name[0]}{last_name}'.lower()
+
+    return dict(
+        user_id=fake_user_uuid(num),
+        username=username,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        **kwargs,
+    )
+
+
 users = {
     fake_user_uuid(0): dict(username='admin', email='admin', user_id=fake_user_uuid(0)),
-    fake_user_uuid(1): dict(
-        username='scooper',
-        email='sheldon.cooper@nomad-coe.eu',
-        first_name='Sheldon',
-        last_name='Cooper',
-        user_id=fake_user_uuid(1),
+    fake_user_uuid(1): fake_user(
+        1,
+        'Sheldon',
+        'Cooper',
+        email='sheldon.cooper@nomad-coe.eu',  # domain differs from default
         is_oasis_admin=True,
     ),
-    fake_user_uuid(2): dict(
-        username='lhofstadter',
-        email='leonard.hofstadter@nomad-fairdi.tests.de',
-        first_name='Leonard',
-        last_name='Hofstadter',
-        user_id=fake_user_uuid(2),
-    ),
-    fake_user_uuid(3): dict(
-        username='hwolowitz',
-        email='howard.wolowitz@nomad-fairdi.tests.de',
-        first_name='Howard',
-        last_name='Wolowitz',
-        user_id=fake_user_uuid(3),
-    ),
+    fake_user_uuid(2): fake_user(2, 'Leonard', 'Hofstadter'),
+    fake_user_uuid(3): fake_user(3, 'Howard', 'Wolowitz'),
+    fake_user_uuid(4): fake_user(4, 'Rajesh', 'Koothrappali'),
+    fake_user_uuid(5): fake_user(5, 'Penny', 'Hofstadter'),
+    fake_user_uuid(6): fake_user(6, 'Bernadette', 'Rostenkowski-Wolowitz'),
+    fake_user_uuid(7): fake_user(7, 'Amy', 'Fowler'),
+    fake_user_uuid(8): fake_user(8, 'Stuart', 'Bloom'),
+    fake_user_uuid(9): fake_user(9, 'Emily', 'Sweeney'),
 }
 
 
 @pytest.fixture(scope='session')
 def user_molds():
-    label_num = {f'user{i}': i for i in range(4)}
-    return {label: users[fake_user_uuid(num)] for label, num in label_num.items()}
+    """Return a dict: user labels -> user data (dict)."""
+    return {f'user{i}': user for i, user in enumerate(users.values())}
 
 
 @pytest.fixture(scope='session')
 def user0():
+    """Return the admin user object."""
     return User(**users[fake_user_uuid(0)])
 
 
 @pytest.fixture(scope='session')
 def user1():
+    """Return the default user object."""
     return User(**users[fake_user_uuid(1)])
 
 
 @pytest.fixture(scope='session')
 def user2():
+    """Return an alternative user object."""
     return User(**users[fake_user_uuid(2)])
 
 
 @pytest.fixture(scope='session')
-def user3():
-    return User(**users[fake_user_uuid(3)])
+def users_dict(user_molds):
+    """Return a dict: user labels -> user objects."""
+    return {k: User(**v) for k, v in user_molds.items()}
 
 
 @pytest.fixture(scope='session')
-def users_dict(user0, user1, user2, user3):
-    return {
-        'user0': user0,
-        'user1': user1,
-        'user2': user2,
-        'user3': user3,
-    }
+def user_label_id_mapping(user_molds):
+    """Return a dict: user labels -> user ids."""
+    return {label: value.get('user_id') for label, value in user_molds.items()}
+
+
+@pytest.fixture(scope='session')
+def convert_user_labels_to_ids(user_label_id_mapping):
+    """Returned function converts user labels to ids, also in lists and dicts."""
+    return generate_convert_label(user_label_id_mapping)
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -84,7 +101,7 @@ def configure_admin_user_id(monkeysession):
 
 class KeycloakMock:
     def __init__(self):
-        self.id_counter = 3
+        self.id_counter = len(users)
         self.users = dict(**users)
 
     def tokenauth(self, access_token: str):

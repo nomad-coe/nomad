@@ -402,12 +402,12 @@ def test_entries_all_metrics(client, example_data):
     aggregation_test_parameters_default('entries'),
 )
 def test_entries_aggregations(
-    client, example_data, user1_auth, aggregation, total, size, status_code, user
+    auth_headers, client, example_data, aggregation, total, size, status_code, user
 ):
     """Tests aggregation calls for regular statically mapped quantities."""
     assert_aggregation_response(
+        auth_headers,
         client,
-        user1_auth,
         aggregation,
         total,
         size,
@@ -474,10 +474,10 @@ def test_entries_aggregations(
     ),
 )
 def test_entries_aggregations_dynamic(
+    auth_headers,
     plugin_schema,
     client,
     example_data_schema_python,
-    user1_auth,
     aggregation,
     total,
     size,
@@ -488,8 +488,8 @@ def test_entries_aggregations_dynamic(
     search_quantities).
     """
     assert_aggregation_response(
+        auth_headers,
         client,
-        user1_auth,
         aggregation,
         total,
         size,
@@ -587,11 +587,11 @@ def test_entries_required(client, example_data, required, status_code, http_meth
     ],
 )
 def test_entry_metadata(
-    client, example_data, auth_dict, user, entry_id, required, status_code
+    auth_headers, client, example_data, user, entry_id, required, status_code
 ):
-    user_auth, _ = auth_dict[user]
     response = client.get(
-        'entries/%s?%s' % (entry_id, urlencode(required, doseq=True)), headers=user_auth
+        'entries/%s?%s' % (entry_id, urlencode(required, doseq=True)),
+        headers=auth_headers[user],
     )
     response_json = assert_metadata_response(response, status_code=status_code)
 
@@ -623,9 +623,9 @@ def test_entry_metadata(
 )
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 def test_entries_rawdir(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     user,
     owner,
     query,
@@ -635,7 +635,6 @@ def test_entries_rawdir(
     status_code,
     http_method,
 ):
-    user_auth, _ = auth_dict[user]
     perform_entries_rawdir_test(
         client,
         owner=owner,
@@ -645,7 +644,7 @@ def test_entries_rawdir(
         total=total,
         files_per_entry=files_per_entry,
         http_method=http_method,
-        headers=user_auth,
+        headers=auth_headers[user],
     )
 
 
@@ -721,9 +720,9 @@ def test_entries_rawdir(
 )
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 def test_entries_raw(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     user,
     owner,
     query,
@@ -733,10 +732,9 @@ def test_entries_raw(
     status_code,
     http_method,
 ):
-    user_auth, _ = auth_dict[user]
     perform_entries_raw_test(
         client,
-        headers=user_auth,
+        headers=auth_headers[user],
         owner=owner,
         status_code=status_code,
         query=query,
@@ -773,10 +771,9 @@ def test_entries_download_max(
     ],
 )
 def test_entry_rawdir(
-    client, example_data, auth_dict, user, entry_id, files_per_entry, status_code
+    auth_headers, client, example_data, user, entry_id, files_per_entry, status_code
 ):
-    user_auth, _ = auth_dict[user]
-    response = client.get('entries/%s/rawdir' % entry_id, headers=user_auth)
+    response = client.get('entries/%s/rawdir' % entry_id, headers=auth_headers[user])
     assert_response(response, status_code)
     if status_code == 200:
         assert_entry_rawdir_response(response.json(), files_per_entry=files_per_entry)
@@ -799,19 +796,18 @@ def test_entry_rawdir(
     ],
 )
 def test_entry_raw(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     user,
     entry_id,
     files,
     files_per_entry,
     status_code,
 ):
-    user_auth, _ = auth_dict[user]
     response = client.get(
         'entries/%s/raw?%s' % (entry_id, urlencode(files, doseq=True)),
-        headers=user_auth,
+        headers=auth_headers[user],
     )
     assert_response(response, status_code)
     if status_code == 200:
@@ -972,24 +968,23 @@ def example_data_with_compressed_files(
     ],
 )
 def test_entry_raw_file(
+    auth_headers,
     client,
     example_data,
     example_data_with_compressed_files,
     example_mainfile_contents,
-    auth_dict,
     entry_id,
     path,
     params,
     status_code,
 ):
     user = params.get('user')
-    user_auth, _ = auth_dict[user]
     if user:
         del params['user']
 
     response = client.get(
         f'entries/{entry_id}/raw/{path}?{urlencode(params, doseq=True)}',
-        headers=user_auth,
+        headers=auth_headers[user],
     )
 
     assert_response(response, status_code)
@@ -1026,9 +1021,9 @@ def test_entry_raw_file(
 )
 @pytest.mark.parametrize('http_method', ['post', 'get'])
 def test_entries_archive_download(
+    auth_headers,
     client,
     example_data,
-    auth_dict,
     user,
     owner,
     query,
@@ -1038,10 +1033,9 @@ def test_entries_archive_download(
     status_code,
     http_method,
 ):
-    user_auth, _ = auth_dict[user]
     perform_entries_archive_download_test(
         client,
-        headers=user_auth,
+        headers=auth_headers[user],
         owner=owner,
         status_code=status_code,
         query=query,
@@ -1079,9 +1073,8 @@ def test_entries_archive(client, example_data, required, status_code):
         pytest.param(None, 'doesnotexist', 404, id='404-does-not-exist'),
     ],
 )
-def test_entry_archive(client, example_data, auth_dict, user, entry_id, status_code):
-    user_auth, _ = auth_dict[user]
-    response = client.get('entries/%s/archive' % entry_id, headers=user_auth)
+def test_entry_archive(auth_headers, client, example_data, user, entry_id, status_code):
+    response = client.get('entries/%s/archive' % entry_id, headers=auth_headers[user])
     assert_response(response, status_code)
     if status_code == 200:
         assert_archive_response(response.json())
@@ -1099,13 +1092,12 @@ def test_entry_archive(client, example_data, auth_dict, user, entry_id, status_c
     ],
 )
 def test_entry_archive_download(
-    client, example_data, auth_dict, user, entry_id, ignore_mime_type, status_code
+    auth_headers, client, example_data, user, entry_id, ignore_mime_type, status_code
 ):
-    user_auth, _ = auth_dict[user]
     response = client.get(
         f'entries/{entry_id}/archive/download'
         + ('?ignore_mime_type=true' if ignore_mime_type else ''),
-        headers=user_auth,
+        headers=auth_headers[user],
     )
     assert_response(response, status_code)
     if status_code == 200:
@@ -1158,13 +1150,12 @@ def test_entry_archive_download(
     ],
 )
 def test_entry_archive_query(
-    client, example_data, auth_dict, user, entry_id, required, status_code
+    auth_headers, client, example_data, user, entry_id, required, status_code
 ):
-    user_auth, _ = auth_dict[user]
     response = client.post(
         'entries/%s/archive/query' % entry_id,
         json={'required': required},
-        headers=user_auth,
+        headers=auth_headers[user],
     )
     assert_response(response, status_code)
     if status_code == 200:
@@ -1343,11 +1334,9 @@ def test_entries_get_query_dynamic(
     ],
 )
 def test_entries_owner(
+    auth_headers,
     client,
     example_data,
-    user0_auth,
-    user1_auth,
-    user2_auth,
     owner,
     user,
     status_code,
@@ -1363,10 +1352,8 @@ def test_entries_owner(
         else total_entries
     )
     perform_owner_test(
+        auth_headers,
         client,
-        user0_auth,
-        user1_auth,
-        user2_auth,
         owner,
         user,
         status_code,

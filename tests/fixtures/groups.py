@@ -7,19 +7,19 @@ Group fixtures:
 
 import pytest
 
-from nomad.groups import UserGroup, create_user_group
-from nomad.utils.exampledata import ExampleData
-from tests.utils import fake_group_uuid, fake_user_uuid
+from nomad.groups import create_user_group
+from tests.utils import fake_group_uuid, fake_user_uuid, generate_convert_label
 
 
 @pytest.fixture(scope='session')
 def group_molds():
-    """Returns mapping from group label to field value dictionary."""
+    """Return a dict: group label -> group data (dict)."""
 
-    def old_group(group_id, group_name, owner, members):
+    def old_group(owner, members):
+        group_str = str(owner) + ''.join(str(m) for m in members)
         return dict(
-            group_id=fake_group_uuid(group_id),
-            group_name=group_name,
+            group_id=fake_group_uuid(group_str),
+            group_name=f'Group {group_str}',
             owner=fake_user_uuid(owner),
             members=[fake_user_uuid(member) for member in members],
         )
@@ -30,13 +30,23 @@ def group_molds():
             members=[fake_user_uuid(member) for member in members],
         )
 
-    return {
-        'group0': old_group(0, 'User0 Group', 0, []),
-        'group1': old_group(1, 'User1 Group', 1, []),
-        'group2': old_group(2, 'User2 Group', 2, []),
-        'group3': old_group(3, 'User3 Group', 3, []),
-        'group012': old_group(9012, 'Mixed Group', 0, [1, 2]),
-        'new_group': new_group('New Group', [2, 3]),
+    old_groups = {
+        'group0': old_group(0, []),
+        'group1': old_group(1, []),
+        'group2': old_group(2, []),
+        'group3': old_group(3, []),
+        'group6': old_group(6, []),
+        'group8': old_group(8, []),
+        'group9': old_group(9, []),
+        'group14': old_group(1, [4]),
+        'group15': old_group(1, [5]),
+        'group18': old_group(1, [8]),
+        'group19': old_group(1, [9]),
+        'group123': old_group(1, [2, 3]),
+    }
+
+    new_groups = {
+        'new_group': new_group('New Group X23', [2, 3]),
         'short_name': new_group('GG', []),
         'long_name': new_group('G' * 33, []),
         'double_member': new_group('Double Member', [2, 3, 2]),
@@ -44,55 +54,37 @@ def group_molds():
         'special_char': new_group('G!G', []),
     }
 
-
-@pytest.fixture(scope='session')
-def convert_group_labels_to_ids(group_molds):
-    mapping = {label: group.get('group_id') for label, group in group_molds.items()}
-
-    def convert(raw):
-        if isinstance(raw, str):
-            return mapping.get(raw, raw)
-
-        if isinstance(raw, list):
-            return [convert(v) for v in raw]
-
-        if isinstance(raw, dict):
-            return {k: convert(v) for k, v in raw.items()}
-
-        return raw
-
-    return convert
+    return {**old_groups, **new_groups}
 
 
 @pytest.fixture(scope='session')
-def group1(group_molds):
-    return UserGroup(**group_molds['group1'])
+def group_label_id_mapping(group_molds):
+    """Return a dict: group label -> group id."""
+    return {label: value.get('group_id') for label, value in group_molds.items()}
 
 
 @pytest.fixture(scope='session')
-def group2(group_molds):
-    return UserGroup(**group_molds['group2'])
+def convert_group_labels_to_ids(group_label_id_mapping):
+    """Returned function converts group labels to ids, also in lists and dicts."""
+    return generate_convert_label(group_label_id_mapping)
 
 
 @pytest.fixture(scope='session')
-def group012(group_molds):
-    return UserGroup(**group_molds['group012'])
+def convert_agent_labels_to_ids(user_label_id_mapping, group_label_id_mapping):
+    """Returned function converts agent labels to ids, also in lists and dicts."""
+    is_disjoint = set(user_label_id_mapping).isdisjoint(group_label_id_mapping)
+    assert is_disjoint, 'Duplicate labels in users and groups.'
+    mapping = {**user_label_id_mapping, **group_label_id_mapping}
+    return generate_convert_label(mapping)
 
 
 @pytest.fixture(scope='session')
 def create_user_groups(group_molds):
+    """Returned function creates and returns predefined user groups for testing."""
+
     def create():
-        user_groups = {}
-        for label in [
-            'group0',
-            'group1',
-            'group2',
-            'group3',
-            'group012',
-        ]:
-            group = group_molds[label]
-            user_group = create_user_group(**group)
-            user_groups[label] = user_group
+        groups_with_id = {k: v for k, v in group_molds.items() if 'group_id' in v}
+        user_groups = {k: create_user_group(**v) for k, v in groups_with_id.items()}
 
         return user_groups
 
@@ -100,90 +92,12 @@ def create_user_groups(group_molds):
 
 
 @pytest.fixture(scope='module')
-def user_groups_module(mongo_module, create_user_groups):
+def groups_module(mongo_module, create_user_groups):
+    """Create and return predefined user groups for testing (module scope)."""
     return create_user_groups()
 
 
-@pytest.fixture(scope='function')
-def user_groups_function(mongo_function, create_user_groups):
+@pytest.fixture
+def groups_function(mongo_function, create_user_groups):
+    """Create and return predefined user groups for testing (function scope)."""
     return create_user_groups()
-
-
-@pytest.fixture('module')
-def fill_group_data(convert_group_labels_to_ids):
-    def fill(data: ExampleData, id_label, c_groups, r_groups, **kwargs):
-        upload_id = f'id_{id_label}'
-        entry_id = f'{upload_id}_1'
-
-        d = kwargs.copy()
-        d['upload_id'] = upload_id
-        d['coauthor_groups'] = convert_group_labels_to_ids(c_groups)
-        d['reviewer_groups'] = convert_group_labels_to_ids(r_groups)
-        d.setdefault('published', d.get('embargo_length') is not None)
-        if d.get('embargo_length') is None:
-            d['embargo_length'] = 0
-
-        data.create_upload(**d)
-        data.create_entry(upload_id=upload_id, entry_id=entry_id)
-
-    return fill
-
-
-@pytest.fixture(scope='module')
-def example_data_groups(
-    elastic_module, mongo_module, user_groups_module, user1, fill_group_data
-):
-    data = ExampleData(main_author=user1)
-    fill_group_data(data, 'no_group', [], [])
-    fill_group_data(data, 'coauthor_group2', ['group2'], [])
-    fill_group_data(data, 'reviewer_group2', [], ['group2'])
-    fill_group_data(data, 'coauthor_group012', ['group012'], [])
-    fill_group_data(data, 'reviewer_group012', [], ['group012'])
-    fill_group_data(data, 'reviewer_all', [], ['all'])
-
-    data.save(with_files=False)
-
-    yield data
-
-    data.delete()
-
-
-@pytest.fixture(scope='function')
-def upload_no_group(mongo_function, user1):
-    data = ExampleData(main_author=user1)
-    data.create_upload(upload_id='id_no_group')
-    data.save()
-
-    yield data
-
-    data.delete()
-
-
-@pytest.fixture(scope='function')
-def upload_coauthor_group2_and_group012(
-    mongo_function,
-    user1,
-    group2,
-    group012,
-):
-    data = ExampleData(main_author=user1)
-    data.create_upload(
-        upload_id='id_coauthor_ogroup_mgroup',
-        coauthor_groups=[group2.group_id, group012.group_id],
-    )
-    data.save()
-
-    yield data
-
-    data.delete()
-
-
-@pytest.fixture(scope='function')
-def upload_reviewer_all_group(mongo_function, user1):
-    data = ExampleData(main_author=user1)
-    data.create_upload(upload_id='id_reviewer_all', reviewer_groups=['all'])
-    data.save()
-
-    yield data
-
-    data.delete()

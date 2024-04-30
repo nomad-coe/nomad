@@ -42,8 +42,8 @@ def assert_path_exists(path, response):
         raise KeyError
 
 
-def test_graph_query_random(client, auth_dict, example_data):
-    user_auth, _ = auth_dict['user1']
+def test_graph_query_random(auth_headers, client, example_data):
+    user_auth = auth_headers['user1']
     response = client.post(
         'graph/raw_query',
         json={
@@ -92,9 +92,9 @@ def test_graph_query_random(client, auth_dict, example_data):
     ],
 )
 def test_graph_query(
-    client, auth_dict, example_data, upload_id, entry_id, user, status_code
+    auth_headers, client, example_data, upload_id, entry_id, user, status_code
 ):
-    user_auth, _ = auth_dict[user]
+    user_auth = auth_headers[user]
     response = client.post(
         'graph/query',
         json={Token.UPLOADS: {upload_id: {Token.ENTRIES: {entry_id: '*'}}}},
@@ -122,10 +122,10 @@ def test_graph_query(
         pytest.param({'DOESNOTEXIST': '*'}, 422, id='bad-required-3'),
     ],
 )
-def test_graph_archive_query(client, example_data, required, status_code, user1_auth):
+def test_graph_archive_query(auth_headers, client, example_data, required, status_code):
     response = client.post(
         'graph/archive/query',
-        headers=user1_auth,
+        headers=auth_headers['user1'],
         json={'owner': 'user', 'required': required},
     )
 
@@ -382,13 +382,13 @@ def example_upload(example_archive, user1, mongo_function, elastic_function):
     ],
 )
 @pytest.mark.skipif(simulationworkflowschema is None, reason=SCHEMA_IMPORT_ERROR)
-def test_get_uploads_graph(client, auth_dict, example_data, kwargs):
+def test_get_uploads_graph(auth_headers, client, example_data, kwargs):
     user = kwargs.get('user', 'user1')
     query_params = kwargs.get('query_params', None)
     pagination = kwargs.get('pagination', None)
     expected_status_code = kwargs.get('expected_status_code', 200)
     expected_upload_ids = kwargs.get('expected_upload_ids', None)
-    user_auth, _ = auth_dict[user]
+    user_auth = auth_headers[user]
 
     query_body = {Token.UPLOADS: {'m_request': {}}}
 
@@ -515,8 +515,8 @@ def test_get_uploads_graph(client, auth_dict, example_data, kwargs):
         ),
     ],
 )
-def test_fs_graph(client, auth_dict, example_data, depth, result):
-    user_auth, _ = auth_dict['user1']
+def test_fs_graph(auth_headers, client, example_data, depth, result):
+    user_auth = auth_headers['user1']
 
     response = client.post(
         'graph/query',
@@ -666,9 +666,9 @@ def test_entry_reader_with_reference(
     ],
 )
 def test_graph_query_archive_functionality(
-    client, auth_dict, example_upload, required, result
+    auth_headers, client, example_upload, required, result
 ):
-    user_auth, _ = auth_dict['user1']
+    user_auth = auth_headers['user1']
     response = client.post(
         'graph/query',
         json={'uploads': {'test_id': {'entries': {'test_id': {'archive': required}}}}},
