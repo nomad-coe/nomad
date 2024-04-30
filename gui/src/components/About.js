@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useLayoutEffect, useRef, useCallback, useEffect, useState } from 'react'
+import React, { useLayoutEffect, useRef, useCallback, useEffect, useState, useMemo } from 'react'
 import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
@@ -35,8 +35,113 @@ import {
   Typography
 } from '@material-ui/core'
 import { Link as RouterLink, useHistory } from 'react-router-dom'
+import InputConfig from './search/input/InputConfig'
 import { useInfo } from './api'
 import { pluralize } from '../utils'
+
+/**
+ * Displays an info dialog.
+ */
+function InfoDialog({title, data, DialogProps, onClose}) {
+  if (!data) return null
+
+  return <Dialog maxWidth='md' fullWidth open={true} {...DialogProps}>
+    <DialogTitle>{title}</DialogTitle>
+    <DialogContent>
+      <InputConfig data={data} format="YAML" readOnly/>
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={() => onClose?.()} color="primary">
+        close
+      </Button>
+    </DialogActions>
+  </Dialog>
+}
+InfoDialog.propTypes = {
+  title: PropTypes.string,
+  data: PropTypes.object,
+  DialogProps: PropTypes.object,
+  onClose: PropTypes.func
+}
+
+/**
+ * Displays a list of information about the version, plugin package and plugin
+ * entry points.
+ */
+export const DistributionInfo = React.memo(({data}) => {
+  const [selected, setSelected] = useState()
+  const [title, setTitle] = useState()
+
+  const categories = useMemo(() => {
+    if (!data) return {}
+
+    const categories = {}
+    data.plugin_entry_points
+      .forEach((entryPoint) => {
+        let category = entryPoint.entry_point_type || entryPoint.plugin_type
+        // TODO: Schema plugins are recategorized as package plugins. This can be
+        // removed once all plugins have been migrated and we remove the old plugin
+        // models.
+        if (category === 'schema') {
+          category = 'schema_package'
+        }
+        category = category.replace('_', ' ')
+        if (categories[category]) {
+          categories[category].push(entryPoint)
+        } else {
+          categories[category] = [entryPoint]
+        }
+      })
+
+    Object.keys(categories).forEach(category => {
+      categories[category] = categories[category].sort((a, b) => {
+        const nameA = a.name
+        const nameB = b.name
+        return (nameA > nameB) ? 1 : -1
+      })
+    })
+
+    return categories
+  }, [data])
+
+  return data
+    ? <ul>
+        <li>version: {data.version}</li>
+        {data?.plugin_packages?.length
+          ? <li>{"plugin packages: "}
+            {data.plugin_packages.map(pluginPackage => <>
+              <Link key={pluginPackage.name} href="#" onClick={() => {
+                setSelected(pluginPackage)
+                setTitle('Plugin package')
+              }}>{pluginPackage.name}</Link>
+              {", "}
+            </>)}
+          </li>
+          : null
+        }
+      {Object.keys(categories)
+        .sort()
+        .map((category) => {
+          const entryPoints = categories[category]
+          return <li key={category}>
+            {`${pluralize(category, 2)}: `}
+            {entryPoints.map(entryPoint => <>
+              <Link key={entryPoint.id} href="#" onClick={() => {
+                setSelected(entryPoint)
+                setTitle('Plugin entry point')
+              }}>{entryPoint.id}</Link>
+              {", "}
+            </>)}
+          </li>
+      })}
+      <InfoDialog title={title} data={selected} onClose={() => setSelected(null)} />
+    </ul>
+    : 'Loading...'
+})
+
+DistributionInfo.propTypes = {
+  data: PropTypes.object
+}
 
 function CodeInfo({code, ...props}) {
   if (!code) {
@@ -207,6 +312,9 @@ const useStyles = makeStyles(theme => ({
     maxWidth: 1024,
     margin: 'auto',
     width: '100%'
+  },
+  header: {
+    margin: '24px 0px'
   }
 }))
 
@@ -416,12 +524,11 @@ export default function About() {
         with password \`password\`. The user \`sheldon.cooper@nomad-fairdi.tests.de\` is
         used for data that has no provenance with the original NOMAD CoE database.
         ` : ''}
-
-        ### About this version
-        - version: \`${info ? info.version : 'loading'}\`
-        - parsers: ${info ? info.parsers.join(', ') : 'loading'}
-        - normalizers: ${info ? info.normalizers.join(', ') : 'loading'}
         `}</Markdown>
+      </Grid>
+      <Grid item xs={12}>
+        <Typography variant='h5' className={classes.header}>About this distribution</Typography>
+        <DistributionInfo data={info} />
       </Grid>
     </Grid>
   </div>

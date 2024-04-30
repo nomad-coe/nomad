@@ -11,9 +11,10 @@ fs:
   staging: '.volumes/test_fs/staging'
   public: '.volumes/test_fs/public'
 plugins:
-  include:
-    - schema/simulation/run
-    - schema/simulation/workflow
-    - parsers/vasp
+  entry_points:
+    include:
+      - schema/simulation/run
+      - schema/simulation/workflow
+      - parsers/vasp
 services:
   aitoolkit_enabled: true

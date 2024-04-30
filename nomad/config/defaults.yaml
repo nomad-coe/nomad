@@ -2001,440 +2001,441 @@ ui:
             showinput: true
             type: terms
 plugins:
-  options:
-    normalizers/simulation/band_structure:
-      plugin_type: normalizer
-      python_package: bandstructurenormalizer
-    normalizers/simulation/dos:
-      plugin_type: normalizer
-      python_package: dosnormalizer
-    normalizers/simulation/soap:
-      plugin_type: normalizer
-      python_package: soapnormalizer
-    normalizers/simulation/spectra:
-      plugin_type: normalizer
-      python_package: spectranormalizer
-    normalizers/simulation/system:
-      plugin_type: normalizer
-      python_package: systemnormalizer
-    normalizers/simulation/workflow:
-      plugin_type: normalizer
-      python_package: simulationworkflownormalizer
-    parsers/abacus:
-      plugin_type: parser
-      mainfile_contents_re: \s*\n\s*WELCOME TO ABACUS
-      python_package: electronicparsers.abacus
-    parsers/abinit:
-      plugin_type: parser
-      mainfile_contents_re: ^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*
-      python_package: electronicparsers.abinit
-    parsers/aflow:
-      plugin_type: parser
-      python_package: workflowparsers.aflow
-      mainfile_contents_re: ^\s*\[AFLOW\] \*+\s*\[AFLOW\]\s*\[AFLOW\]                     .o.        .o88o.
-        oooo\s*\[AFLOW\]                    .888.       888 `` `888\s*\[AFLOW\]                   .8'888.     o888oo   888   .ooooo.  oooo
-        oooo    ooo\s*\[AFLOW\]                  .8' `888.     888     888  d88' `88b  `88.
-        `88.  .8'\s*\[AFLOW\]                 .88ooo8888.    888     888  888   888   `88..]88..8'\s*\[AFLOW\]                .8'     `888.   888     888  888   888    `888'`888'\s*\[AFLOW\]               o88o     o8888o
-        o888o   o888o `Y8bod8P'     `8'  `8'  .in|^\s*\{\"aurl\"\:\"aflowlib\.duke\.edu\:AFLOWDATA
-      mainfile_mime_re: (application/json)|(text/.*)
-      mainfile_name_re: .*aflowlib\.json.*
-      mainfile_alternative: true
-      supported_compressions:
-      - gz
-      - bz2
-      - xz
-    parsers/amber:
-      plugin_type: parser
-      python_package: atomisticparsers.amber
-      mainfile_contents_re: \s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+
-    parsers/ams:
-      plugin_type: parser
-      python_package: electronicparsers.ams
-      mainfile_contents_re: \* +\| +A M S +\| +\*
-    parsers/asap:
-      plugin_type: parser
-      python_package: atomisticparsers.asap
-      mainfile_binary_header_re: !!binary |
-        QUZGb3JtYXRBU0VcLVRyYWplY3Rvcnk=
-      mainfile_mime_re: application/octet-stream
-      mainfile_name_re: .*.traj$
-    parsers/asr:
-      plugin_type: parser
-      python_package: workflowparsers.asr
-      mainfile_contents_re: '"name": "ASR"'
-      mainfile_mime_re: (application/json)|(text/.*)
-      mainfile_name_re: .*archive_.*\.json
-    parsers/atk:
-      plugin_type: parser
-      python_package: electronicparsers.atk
-      mainfile_mime_re: application/octet-stream
-      mainfile_name_re: ^.*\.nc
-    parsers/atomate:
-      plugin_type: parser
-      python_package: workflowparsers.atomate
-      mainfile_contents_re: '"pymatgen_version":'
-      mainfile_mime_re: (application/json)|(text/.*)
-      mainfile_name_re: .*mp.+materials\.json
-    parsers/bigdft:
-      plugin_type: parser
-      python_package: electronicparsers.bigdft
-      mainfile_contents_re: \|_____\|__:__\|__:__\|_____\|_____\|___ BBBBB          i     g         g\s*
-    parsers/bopfox:
-      plugin_type: parser
-      python_package: atomisticparsers.bopfox
-      mainfile_contents_re: \-+\s+BOPfox \(v
-    parsers/castep:
-      plugin_type: parser
-      python_package: electronicparsers.castep
-      mainfile_contents_re: \s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*
-    parsers/charmm:
-      plugin_type: parser
-      python_package: electronicparsers.charmm
-      mainfile_contents_re: \s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*
-      mainfile_mime_re: text/.*
-    parsers/chemotion/chemotion:
-      plugin_type: parser
-      python_package: nomad.parsing.chemotion
-      parser_as_interface: true
-    parsers/cp2k:
-      plugin_type: parser
-      python_package: electronicparsers.cp2k
-      mainfile_contents_re: \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED
-        AT\s.*\n \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM
-        STARTED BY .*\n \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n  \*\*\*\*
-        \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n
-    parsers/cpmd:
-      plugin_type: parser
-      python_package: electronicparsers.cpmd
-      mainfile_contents_re: \*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*
-    parsers/crystal:
-      plugin_type: parser
-      python_package: electronicparsers.crystal
-      mainfile_contents_re: '(\r?\n \*\s+CRYSTAL[\d]+\s+\*\r?\n \*\s*[a-zA-Z]+ : \d+[\.\d+]*)'
-    parsers/dftbplus:
-      plugin_type: parser
-      python_package: atomisticparsers.dftbplus
-      mainfile_contents_re: \|  DFTB\+
-      mainfile_mime_re: text/.*
-    parsers/dlpoly:
-      plugin_type: parser
-      python_package: atomisticparsers.dlpoly
-      mainfile_contents_re: \*\*\s+DL_POLY.+\*\*
-    parsers/dmol3:
-      plugin_type: parser
-      python_package: electronicparsers.dmol3
-      mainfile_contents_re: Materials Studio DMol\^3
-      mainfile_name_re: .*\.outmol
-    parsers/edmft:
-      plugin_type: parser
-      python_package: electronicparsers.edmft
-      mainfile_contents_re: \-\-\-\s*Preparing GF calculation\s*\-\-\-
-      mainfile_name_re: ^.*\.(out)$
-    parsers/eelsdbparser:
-      plugin_type: parser
-      python_package: eelsdbparser
-      mainfile_contents_re: https://eelsdb.eu/spectra
-      mainfile_mime_re: application/json
-      name: parsers/eels
-    parsers/elabftw/elabftw:
-      plugin_type: parser
-      python_package: nomad.parsing.elabftw
-      parser_as_interface: true
-    parsers/elastic:
-      plugin_type: parser
-      python_package: workflowparsers.elastic
-      mainfile_contents_re: \s*Order of elastic constants\s*=\s*[0-9]+\s*
-      mainfile_name_re: .*/INFO_ElaStic
-    parsers/elk:
-      plugin_type: parser
-      python_package: electronicparsers.elk
-      mainfile_contents_re: \| Elk version [0-9.a-zA-Z]+ started \|
-    parsers/exciting:
-      plugin_type: parser
-      python_package: electronicparsers.exciting
-      mainfile_contents_re: 'EXCITING.*started[\s\S]+?All units are atomic '
-      mainfile_name_re: ^.*.OUT(\.[^/]*)?$
-    parsers/fhi-aims:
-      plugin_type: parser
-      python_package: electronicparsers.fhiaims
-      mainfile_contents_re: ^(.*\n)*?\s*Invoking FHI-aims \.\.\.
-    parsers/fhivibes:
-      plugin_type: parser
-      python_package: workflowparsers.fhivibes
-      mainfile_binary_header_re: !!binary |
-        Xlx4ODlIREY=
-      mainfile_contents_dict:
-        __has_all_keys:
-        - I
-        - a
-        - b
-      mainfile_mime_re: (application/x-hdf)
-      mainfile_name_re: ^.*\.(nc)$
-    parsers/fleur:
-      plugin_type: parser
-      python_package: electronicparsers.fleur
-      mainfile_alternative: true
-      mainfile_contents_re: This output is generated by fleur.|\<fleurOutput
-      mainfile_mime_re: (application/.*)|(text/.*)
-      mainfile_name_re: .*[^/]*\.xml[^/]*
-    parsers/fplo:
-      plugin_type: parser
-      python_package: electronicparsers.fplo
-      mainfile_contents_re: \s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE
-        CODE\s*\|\s*
-      mainfile_mime_re: text/.*
-    parsers/gamess:
-      plugin_type: parser
-      python_package: electronicparsers.gamess
-      mainfile_contents_re: \s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*\s*\*\s*GAMESS
-        VERSION =\s*(.*)\*\s*\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*
-    parsers/gaussian:
-      plugin_type: parser
-      python_package: electronicparsers.gaussian
-      mainfile_contents_re: \s*Cite this work as:\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,
-      mainfile_mime_re: .*
-    parsers/gpaw:
-      plugin_type: parser
-      python_package: electronicparsers.gpaw
-      mainfile_mime_re: application/(x-tar|octet-stream)
-      mainfile_name_re: ^.*\.(gpw2|gpw)$
-    parsers/gromacs:
-      plugin_type: parser
-      python_package: atomisticparsers.gromacs
-      mainfile_contents_re: 'gmx mdrun, (VERSION|version)[\s\S]*Input Parameters:'
-    parsers/gromos:
-      plugin_type: parser
-      python_package: atomisticparsers.gromos
-      mainfile_contents_re: Bugreports to http://www.gromos.net
-    parsers/gulp:
-      plugin_type: parser
-      python_package: atomisticparsers.gulp
-      mainfile_contents_re: \s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\s*\s*\*\s*GENERAL
-        UTILITY LATTICE PROGRAM\s*\*\s*
-    parsers/h5md:
-      plugin_type: parser
-      python_package: atomisticparsers.h5md
-      mainfile_binary_header_re: !!binary |
-        Xlx4ODlIREY=
-      mainfile_contents_dict:
-        __has_all_keys:
-        - h5md
-      mainfile_mime_re: (application/x-hdf)
-      mainfile_name_re: ^.*\.(h5|hdf5)$
-    parsers/lammps:
-      plugin_type: parser
-      python_package: atomisticparsers.lammps
-      mainfile_contents_re: ^LAMMPS\s+\(.+\)
-    parsers/libatoms:
-      plugin_type: parser
-      python_package: atomisticparsers.libatoms
-      mainfile_contents_re: \s*<GAP_params\s
-    parsers/lobster:
-      plugin_type: parser
-      python_package: workflowparsers.lobster
-      mainfile_contents_re: ^LOBSTER\s*v[\d\.]+.*
-      mainfile_name_re: .*lobsterout.*
-      supported_compressions:
-      - gz
-      - bz2
-      - xz
-    parsers/magres:
-      plugin_type: parser
-      python_package: electronicparsers.magres
-      mainfile_contents_re: \$magres-abinitio-v(\d\.)+
-      mainfile_name_re: ^.*\.magres
-    parsers/molcas:
-      plugin_type: parser
-      python_package: electronicparsers.molcas
-      mainfile_contents_re: M O L C A S
-    parsers/mopac:
-      plugin_type: parser
-      python_package: electronicparsers.mopac
-      mainfile_contents_re: \s*\*\*\s*MOPAC\s*([0-9a-zA-Z\.]*)\s*\*\*\s*
-      mainfile_mime_re: text/.*
-    parsers/namd:
-      plugin_type: parser
-      python_package: atomisticparsers.namd
-      mainfile_contents_re: \s*Info:\s*NAMD\s*[0-9.]+\s*for\s*
-      mainfile_mime_re: text/.*
-    parsers/nexus:
-      plugin_type: parser
-      python_package: nomad.parsing.nexus
-      mainfile_mime_re: (application/.*)|(text/.*)
-      mainfile_name_re: .*\.nxs
-      supported_compressions:
-      - gz
-      - bz2
-      - xz
-    parsers/nwchem:
-      plugin_type: parser
-      python_package: electronicparsers.nwchem
-      mainfile_contents_re: Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+
-    parsers/ocean:
-      plugin_type: parser
-      python_package: electronicparsers.ocean
-      mainfile_contents_dict:
-        __has_all_keys:
-        - bse
-        - structure
-        - screen
-        - calc
-      mainfile_mime_re: (application/.*)|(text/.*)
-    parsers/octopus:
-      plugin_type: parser
-      python_package: electronicparsers.octopus
-      mainfile_contents_re: \|0\) ~ \(0\) \|
-    parsers/onetep:
-      plugin_type: parser
-      python_package: electronicparsers.onetep
-      mainfile_contents_re: '####### #     # ####### ####### ####### ######'
-    parsers/openkim:
-      plugin_type: parser
-      python_package: databaseparsers.openkim
-      mainfile_contents_re: openkim|OPENKIM|OpenKIM
-      mainfile_mime_re: (application/json)|(text/.*)
-    parsers/openmx:
-      plugin_type: parser
-      python_package: electronicparsers.openmx
-      mainfile_contents_re: ^\*{59}\s+\*{59}\s+This calculation was performed by OpenMX
-      mainfile_mime_re: (text/.*)
-      mainfile_name_re: .*\.out$
-    parsers/orca:
-      plugin_type: parser
-      python_package: electronicparsers.orca
-      mainfile_contents_re: \s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*\s+\* O   R   C   A
-        \*\s*\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*\s*
-    parsers/phonopy:
-      plugin_type: parser
-      python_package: workflowparsers.phonopy
-      mainfile_name_re: (.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon[^/]+yaml)
-    parsers/psi4:
-      plugin_type: parser
-      python_package: electronicparsers.psi4
-      mainfile_contents_re: 'Psi4: An Open-Source Ab Initio Electronic Structure Package'
-    parsers/qball:
-      plugin_type: parser
-      python_package: electronicparsers.qball
-      mainfile_contents_re: qball
-      supported_compressions:
-      - gz
-      - bz2
-      - xz
-    parsers/qbox:
-      plugin_type: parser
-      python_package: electronicparsers.qbox
-      mainfile_contents_re: http://qboxcode.org
-      mainfile_mime_re: (application/xml)|(text/.*)
-    parsers/quantum_espresso_epw:
-      plugin_type: parser
-      python_package: workflowparsers.quantum_espresso_epw
-      mainfile_contents_re: Program EPW.+\s*This program is part of the open-source
-        Quantum ESPRESSO suite
-    parsers/quantum_espresso_phonon:
-      plugin_type: parser
-      python_package: workflowparsers.quantum_espresso_phonon
-      mainfile_contents_re: Program PHONON.+\s*This program is part of the open-source
-        Quantum ESPRESSO suite
-    parsers/quantum_espresso_xspectra:
-      plugin_type: parser
-      python_package: workflowparsers.quantum_espresso_xspectra
-      mainfile_contents_re: \s*Program XSpectra\s*
-      mainfile_mime_re: (application/.*)|(text/.*)
-    parsers/quantumespresso:
-      plugin_type: parser
-      python_package: electronicparsers.quantumespresso
-      mainfile_contents_re: (Program PWSCF.*starts)|(Current dimensions of program
-        PWSCF are)
-      supported_compressions:
-      - gz
-      - bz2
-      - xz
-    parsers/siesta:
-      plugin_type: parser
-      python_package: electronicparsers.siesta
-      mainfile_contents_re: '(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|(\*\s*WELCOME
-        TO SIESTA\s*\*)'
-    parsers/soliddmft:
-      plugin_type: parser
-      python_package: electronicparsers.soliddmft
-      mainfile_binary_header_re: !!binary |
-        Xlx4ODlIREY=
-      mainfile_contents_dict:
-        __has_all_keys:
-        - dft_input
-        - DMFT_input
-        - DMFT_results
-      mainfile_mime_re: (application/x-hdf)
-      mainfile_name_re: ^.*\.(h5|hdf5)$
-    parsers/tbstudio:
-      plugin_type: parser
-      python_package: electronicparsers.tbstudio
-      mainfile_contents_re: '"ApplicationFullName": "Tight Binding Studio"'
-      mainfile_mime_re: (application/json)|(text/.*)
-      mainfile_name_re: .*\.tbm
-    parsers/tinker:
-      plugin_type: parser
-      python_package: atomisticparsers.tinker
-      mainfile_contents_re: TINKER  ---  Software Tools for Molecular Design
-    parsers/turbomole:
-      plugin_type: parser
-      python_package: electronicparsers.turbomole
-      mainfile_contents_re: Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe
-    parsers/vasp:
-      plugin_type: parser
-      python_package: electronicparsers.vasp
-      mainfile_contents_re: ^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*?\s*<modeling>?\s*<generator>?\s*<i
-        name="program" type="string">\s*vasp\s*</i>?|^\svasp[\.\d]+.+?(?:\(build|complex)[\s\S]+?executed
-        on
-      mainfile_mime_re: (application/.*)|(text/.*)
-      mainfile_name_re: .*[^/]*xml[^/]*
-      mainfile_alternative: true
-      supported_compressions:
-      - gz
-      - bz2
-      - xz
-    parsers/w2dynamics:
-      plugin_type: parser
-      python_package: electronicparsers.w2dynamics
-      mainfile_binary_header_re: !!binary |
-        Xlx4ODlIREY=
-      mainfile_contents_dict:
-        __has_all_keys:
-        - .axes
-        - .config
-        - .quantities
-      mainfile_mime_re: (application/x-hdf)
-      mainfile_name_re: ^.*\.(h5|hdf5)$
-    parsers/wannier90:
-      plugin_type: parser
-      python_package: electronicparsers.wannier90
-      mainfile_contents_re: \|\s*WANNIER90\s*\|
-    parsers/wien2k:
-      plugin_type: parser
-      python_package: electronicparsers.wien2k
-      mainfile_contents_re: \s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------
-      mainfile_name_re: .*\.scf$
-      mainfile_alternative: true
-    parsers/xtb:
-      plugin_type: parser
-      python_package: atomisticparsers.xtb
-      mainfile_contents_re: x T B\s+\|\s+\|\s+=
-    parsers/yambo:
-      plugin_type: parser
-      python_package: electronicparsers.yambo
-      mainfile_contents_re: Build.+\s+http://www\.yambo-code\.org
-    schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database:
-      plugin_type: schema
-      python_package: perovskite_solar_cell_database
-      key: perovskite_solar_cell_database
-      name: perovskite_solar_cell_database
-    schema/simulation/run:
-      plugin_type: schema
-      python_package: runschema
-      key: runschema
-      name: runschema
-    schema/simulation/workflow:
-      plugin_type: schema
-      python_package: simulationworkflowschema
-      key: simulationworkflowschema
-      name: simulationworkflowschema
+  entry_points:
+    options:
+      normalizers/simulation/band_structure:
+        plugin_type: normalizer
+        python_package: bandstructurenormalizer
+      normalizers/simulation/dos:
+        plugin_type: normalizer
+        python_package: dosnormalizer
+      normalizers/simulation/soap:
+        plugin_type: normalizer
+        python_package: soapnormalizer
+      normalizers/simulation/spectra:
+        plugin_type: normalizer
+        python_package: spectranormalizer
+      normalizers/simulation/system:
+        plugin_type: normalizer
+        python_package: systemnormalizer
+      normalizers/simulation/workflow:
+        plugin_type: normalizer
+        python_package: simulationworkflownormalizer
+      parsers/abacus:
+        plugin_type: parser
+        mainfile_contents_re: \s*\n\s*WELCOME TO ABACUS
+        python_package: electronicparsers.abacus
+      parsers/abinit:
+        plugin_type: parser
+        mainfile_contents_re: ^\n*\.Version\s*[0-9.]*\s*of ABINIT\s*
+        python_package: electronicparsers.abinit
+      parsers/aflow:
+        plugin_type: parser
+        python_package: workflowparsers.aflow
+        mainfile_contents_re: ^\s*\[AFLOW\] \*+\s*\[AFLOW\]\s*\[AFLOW\]                     .o.        .o88o.
+          oooo\s*\[AFLOW\]                    .888.       888 `` `888\s*\[AFLOW\]                   .8'888.     o888oo   888   .ooooo.  oooo
+          oooo    ooo\s*\[AFLOW\]                  .8' `888.     888     888  d88' `88b  `88.
+          `88.  .8'\s*\[AFLOW\]                 .88ooo8888.    888     888  888   888   `88..]88..8'\s*\[AFLOW\]                .8'     `888.   888     888  888   888    `888'`888'\s*\[AFLOW\]               o88o     o8888o
+          o888o   o888o `Y8bod8P'     `8'  `8'  .in|^\s*\{\"aurl\"\:\"aflowlib\.duke\.edu\:AFLOWDATA
+        mainfile_mime_re: (application/json)|(text/.*)
+        mainfile_name_re: .*aflowlib\.json.*
+        mainfile_alternative: true
+        supported_compressions:
+        - gz
+        - bz2
+        - xz
+      parsers/amber:
+        plugin_type: parser
+        python_package: atomisticparsers.amber
+        mainfile_contents_re: \s*Amber\s[0-9]+\s[A-Z]+\s*[0-9]+
+      parsers/ams:
+        plugin_type: parser
+        python_package: electronicparsers.ams
+        mainfile_contents_re: \* +\| +A M S +\| +\*
+      parsers/asap:
+        plugin_type: parser
+        python_package: atomisticparsers.asap
+        mainfile_binary_header_re: !!binary |
+          QUZGb3JtYXRBU0VcLVRyYWplY3Rvcnk=
+        mainfile_mime_re: application/octet-stream
+        mainfile_name_re: .*.traj$
+      parsers/asr:
+        plugin_type: parser
+        python_package: workflowparsers.asr
+        mainfile_contents_re: '"name": "ASR"'
+        mainfile_mime_re: (application/json)|(text/.*)
+        mainfile_name_re: .*archive_.*\.json
+      parsers/atk:
+        plugin_type: parser
+        python_package: electronicparsers.atk
+        mainfile_mime_re: application/octet-stream
+        mainfile_name_re: ^.*\.nc
+      parsers/atomate:
+        plugin_type: parser
+        python_package: workflowparsers.atomate
+        mainfile_contents_re: '"pymatgen_version":'
+        mainfile_mime_re: (application/json)|(text/.*)
+        mainfile_name_re: .*mp.+materials\.json
+      parsers/bigdft:
+        plugin_type: parser
+        python_package: electronicparsers.bigdft
+        mainfile_contents_re: \|_____\|__:__\|__:__\|_____\|_____\|___ BBBBB          i     g         g\s*
+      parsers/bopfox:
+        plugin_type: parser
+        python_package: atomisticparsers.bopfox
+        mainfile_contents_re: \-+\s+BOPfox \(v
+      parsers/castep:
+        plugin_type: parser
+        python_package: electronicparsers.castep
+        mainfile_contents_re: \s\|\s*CCC\s*AA\s*SSS\s*TTTTT\s*EEEEE\s*PPPP\s*\|\s*
+      parsers/charmm:
+        plugin_type: parser
+        python_package: electronicparsers.charmm
+        mainfile_contents_re: \s*Chemistry\s*at\s*HARvard\s*Macromolecular\s*Mechanics\s*
+        mainfile_mime_re: text/.*
+      parsers/chemotion/chemotion:
+        plugin_type: parser
+        python_package: nomad.parsing.chemotion
+        parser_as_interface: true
+      parsers/cp2k:
+        plugin_type: parser
+        python_package: electronicparsers.cp2k
+        mainfile_contents_re: \*\*\*\* \*\*\*\* \*\*\*\*\*\*  \*\*  PROGRAM STARTED
+          AT\s.*\n \*\*\*\*\* \*\* \*\*\*  \*\*\* \*\*   PROGRAM STARTED ON\s*.*\n \*\*    \*\*\*\*   \*\*\*\*\*\*    PROGRAM
+          STARTED BY .*\n \*\*\*\*\* \*\*    \*\* \*\* \*\*   PROGRAM PROCESS ID .*\n  \*\*\*\*
+          \*\*  \*\*\*\*\*\*\*  \*\*  PROGRAM STARTED IN .*\n
+      parsers/cpmd:
+        plugin_type: parser
+        python_package: electronicparsers.cpmd
+        mainfile_contents_re: \*\*\*       \*\*   \*\*\*  \*\* \*\*\*\* \*\*  \*\*   \*\*\*
+      parsers/crystal:
+        plugin_type: parser
+        python_package: electronicparsers.crystal
+        mainfile_contents_re: '(\r?\n \*\s+CRYSTAL[\d]+\s+\*\r?\n \*\s*[a-zA-Z]+ : \d+[\.\d+]*)'
+      parsers/dftbplus:
+        plugin_type: parser
+        python_package: atomisticparsers.dftbplus
+        mainfile_contents_re: \|  DFTB\+
+        mainfile_mime_re: text/.*
+      parsers/dlpoly:
+        plugin_type: parser
+        python_package: atomisticparsers.dlpoly
+        mainfile_contents_re: \*\*\s+DL_POLY.+\*\*
+      parsers/dmol3:
+        plugin_type: parser
+        python_package: electronicparsers.dmol3
+        mainfile_contents_re: Materials Studio DMol\^3
+        mainfile_name_re: .*\.outmol
+      parsers/edmft:
+        plugin_type: parser
+        python_package: electronicparsers.edmft
+        mainfile_contents_re: \-\-\-\s*Preparing GF calculation\s*\-\-\-
+        mainfile_name_re: ^.*\.(out)$
+      parsers/eelsdbparser:
+        plugin_type: parser
+        python_package: eelsdbparser
+        mainfile_contents_re: https://eelsdb.eu/spectra
+        mainfile_mime_re: application/json
+        name: parsers/eels
+      parsers/elabftw/elabftw:
+        plugin_type: parser
+        python_package: nomad.parsing.elabftw
+        parser_as_interface: true
+      parsers/elastic:
+        plugin_type: parser
+        python_package: workflowparsers.elastic
+        mainfile_contents_re: \s*Order of elastic constants\s*=\s*[0-9]+\s*
+        mainfile_name_re: .*/INFO_ElaStic
+      parsers/elk:
+        plugin_type: parser
+        python_package: electronicparsers.elk
+        mainfile_contents_re: \| Elk version [0-9.a-zA-Z]+ started \|
+      parsers/exciting:
+        plugin_type: parser
+        python_package: electronicparsers.exciting
+        mainfile_contents_re: 'EXCITING.*started[\s\S]+?All units are atomic '
+        mainfile_name_re: ^.*.OUT(\.[^/]*)?$
+      parsers/fhi-aims:
+        plugin_type: parser
+        python_package: electronicparsers.fhiaims
+        mainfile_contents_re: ^(.*\n)*?\s*Invoking FHI-aims \.\.\.
+      parsers/fhivibes:
+        plugin_type: parser
+        python_package: workflowparsers.fhivibes
+        mainfile_binary_header_re: !!binary |
+          Xlx4ODlIREY=
+        mainfile_contents_dict:
+          __has_all_keys:
+          - I
+          - a
+          - b
+        mainfile_mime_re: (application/x-hdf)
+        mainfile_name_re: ^.*\.(nc)$
+      parsers/fleur:
+        plugin_type: parser
+        python_package: electronicparsers.fleur
+        mainfile_alternative: true
+        mainfile_contents_re: This output is generated by fleur.|\<fleurOutput
+        mainfile_mime_re: (application/.*)|(text/.*)
+        mainfile_name_re: .*[^/]*\.xml[^/]*
+      parsers/fplo:
+        plugin_type: parser
+        python_package: electronicparsers.fplo
+        mainfile_contents_re: \s*\|\s*FULL-POTENTIAL LOCAL-ORBITAL MINIMUM BASIS BANDSTRUCTURE
+          CODE\s*\|\s*
+        mainfile_mime_re: text/.*
+      parsers/gamess:
+        plugin_type: parser
+        python_package: electronicparsers.gamess
+        mainfile_contents_re: \s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*\s*\*\s*GAMESS
+          VERSION =\s*(.*)\*\s*\s*\*\s*FROM IOWA STATE UNIVERSITY\s*\*\s*
+      parsers/gaussian:
+        plugin_type: parser
+        python_package: electronicparsers.gaussian
+        mainfile_contents_re: \s*Cite this work as:\s*Gaussian [0-9]+, Revision [A-Za-z0-9\.]*,
+        mainfile_mime_re: .*
+      parsers/gpaw:
+        plugin_type: parser
+        python_package: electronicparsers.gpaw
+        mainfile_mime_re: application/(x-tar|octet-stream)
+        mainfile_name_re: ^.*\.(gpw2|gpw)$
+      parsers/gromacs:
+        plugin_type: parser
+        python_package: atomisticparsers.gromacs
+        mainfile_contents_re: 'gmx mdrun, (VERSION|version)[\s\S]*Input Parameters:'
+      parsers/gromos:
+        plugin_type: parser
+        python_package: atomisticparsers.gromos
+        mainfile_contents_re: Bugreports to http://www.gromos.net
+      parsers/gulp:
+        plugin_type: parser
+        python_package: atomisticparsers.gulp
+        mainfile_contents_re: \s*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\s*\s*\*\s*GENERAL
+          UTILITY LATTICE PROGRAM\s*\*\s*
+      parsers/h5md:
+        plugin_type: parser
+        python_package: atomisticparsers.h5md
+        mainfile_binary_header_re: !!binary |
+          Xlx4ODlIREY=
+        mainfile_contents_dict:
+          __has_all_keys:
+          - h5md
+        mainfile_mime_re: (application/x-hdf)
+        mainfile_name_re: ^.*\.(h5|hdf5)$
+      parsers/lammps:
+        plugin_type: parser
+        python_package: atomisticparsers.lammps
+        mainfile_contents_re: ^LAMMPS\s+\(.+\)
+      parsers/libatoms:
+        plugin_type: parser
+        python_package: atomisticparsers.libatoms
+        mainfile_contents_re: \s*<GAP_params\s
+      parsers/lobster:
+        plugin_type: parser
+        python_package: workflowparsers.lobster
+        mainfile_contents_re: ^LOBSTER\s*v[\d\.]+.*
+        mainfile_name_re: .*lobsterout.*
+        supported_compressions:
+        - gz
+        - bz2
+        - xz
+      parsers/magres:
+        plugin_type: parser
+        python_package: electronicparsers.magres
+        mainfile_contents_re: \$magres-abinitio-v(\d\.)+
+        mainfile_name_re: ^.*\.magres
+      parsers/molcas:
+        plugin_type: parser
+        python_package: electronicparsers.molcas
+        mainfile_contents_re: M O L C A S
+      parsers/mopac:
+        plugin_type: parser
+        python_package: electronicparsers.mopac
+        mainfile_contents_re: \s*\*\*\s*MOPAC\s*([0-9a-zA-Z\.]*)\s*\*\*\s*
+        mainfile_mime_re: text/.*
+      parsers/namd:
+        plugin_type: parser
+        python_package: atomisticparsers.namd
+        mainfile_contents_re: \s*Info:\s*NAMD\s*[0-9.]+\s*for\s*
+        mainfile_mime_re: text/.*
+      parsers/nexus:
+        plugin_type: parser
+        python_package: nomad.parsing.nexus
+        mainfile_mime_re: (application/.*)|(text/.*)
+        mainfile_name_re: .*\.nxs
+        supported_compressions:
+        - gz
+        - bz2
+        - xz
+      parsers/nwchem:
+        plugin_type: parser
+        python_package: electronicparsers.nwchem
+        mainfile_contents_re: Northwest Computational Chemistry Package \(NWChem\) (\d+\.)+\d+
+      parsers/ocean:
+        plugin_type: parser
+        python_package: electronicparsers.ocean
+        mainfile_contents_dict:
+          __has_all_keys:
+          - bse
+          - structure
+          - screen
+          - calc
+        mainfile_mime_re: (application/.*)|(text/.*)
+      parsers/octopus:
+        plugin_type: parser
+        python_package: electronicparsers.octopus
+        mainfile_contents_re: \|0\) ~ \(0\) \|
+      parsers/onetep:
+        plugin_type: parser
+        python_package: electronicparsers.onetep
+        mainfile_contents_re: '####### #     # ####### ####### ####### ######'
+      parsers/openkim:
+        plugin_type: parser
+        python_package: databaseparsers.openkim
+        mainfile_contents_re: openkim|OPENKIM|OpenKIM
+        mainfile_mime_re: (application/json)|(text/.*)
+      parsers/openmx:
+        plugin_type: parser
+        python_package: electronicparsers.openmx
+        mainfile_contents_re: ^\*{59}\s+\*{59}\s+This calculation was performed by OpenMX
+        mainfile_mime_re: (text/.*)
+        mainfile_name_re: .*\.out$
+      parsers/orca:
+        plugin_type: parser
+        python_package: electronicparsers.orca
+        mainfile_contents_re: \s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*\s+\* O   R   C   A
+          \*\s*\s+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\**\s*\s*
+      parsers/phonopy:
+        plugin_type: parser
+        python_package: workflowparsers.phonopy
+        mainfile_name_re: (.*/phonopy-FHI-aims-displacement-0*1/control.in$)|(.*/phon[^/]+yaml)
+      parsers/psi4:
+        plugin_type: parser
+        python_package: electronicparsers.psi4
+        mainfile_contents_re: 'Psi4: An Open-Source Ab Initio Electronic Structure Package'
+      parsers/qball:
+        plugin_type: parser
+        python_package: electronicparsers.qball
+        mainfile_contents_re: qball
+        supported_compressions:
+        - gz
+        - bz2
+        - xz
+      parsers/qbox:
+        plugin_type: parser
+        python_package: electronicparsers.qbox
+        mainfile_contents_re: http://qboxcode.org
+        mainfile_mime_re: (application/xml)|(text/.*)
+      parsers/quantum_espresso_epw:
+        plugin_type: parser
+        python_package: workflowparsers.quantum_espresso_epw
+        mainfile_contents_re: Program EPW.+\s*This program is part of the open-source
+          Quantum ESPRESSO suite
+      parsers/quantum_espresso_phonon:
+        plugin_type: parser
+        python_package: workflowparsers.quantum_espresso_phonon
+        mainfile_contents_re: Program PHONON.+\s*This program is part of the open-source
+          Quantum ESPRESSO suite
+      parsers/quantum_espresso_xspectra:
+        plugin_type: parser
+        python_package: workflowparsers.quantum_espresso_xspectra
+        mainfile_contents_re: \s*Program XSpectra\s*
+        mainfile_mime_re: (application/.*)|(text/.*)
+      parsers/quantumespresso:
+        plugin_type: parser
+        python_package: electronicparsers.quantumespresso
+        mainfile_contents_re: (Program PWSCF.*starts)|(Current dimensions of program
+          PWSCF are)
+        supported_compressions:
+        - gz
+        - bz2
+        - xz
+      parsers/siesta:
+        plugin_type: parser
+        python_package: electronicparsers.siesta
+        mainfile_contents_re: '(Siesta Version: siesta-|SIESTA [0-9]\.[0-9]\.[0-9])|(\*\s*WELCOME
+          TO SIESTA\s*\*)'
+      parsers/soliddmft:
+        plugin_type: parser
+        python_package: electronicparsers.soliddmft
+        mainfile_binary_header_re: !!binary |
+          Xlx4ODlIREY=
+        mainfile_contents_dict:
+          __has_all_keys:
+          - dft_input
+          - DMFT_input
+          - DMFT_results
+        mainfile_mime_re: (application/x-hdf)
+        mainfile_name_re: ^.*\.(h5|hdf5)$
+      parsers/tbstudio:
+        plugin_type: parser
+        python_package: electronicparsers.tbstudio
+        mainfile_contents_re: '"ApplicationFullName": "Tight Binding Studio"'
+        mainfile_mime_re: (application/json)|(text/.*)
+        mainfile_name_re: .*\.tbm
+      parsers/tinker:
+        plugin_type: parser
+        python_package: atomisticparsers.tinker
+        mainfile_contents_re: TINKER  ---  Software Tools for Molecular Design
+      parsers/turbomole:
+        plugin_type: parser
+        python_package: electronicparsers.turbomole
+        mainfile_contents_re: Copyright \(C\) [0-9]+ TURBOMOLE GmbH, Karlsruhe
+      parsers/vasp:
+        plugin_type: parser
+        python_package: electronicparsers.vasp
+        mainfile_contents_re: ^\s*<\?xml version="1\.0" encoding="ISO-8859-1"\?>\s*?\s*<modeling>?\s*<generator>?\s*<i
+          name="program" type="string">\s*vasp\s*</i>?|^\svasp[\.\d]+.+?(?:\(build|complex)[\s\S]+?executed
+          on
+        mainfile_mime_re: (application/.*)|(text/.*)
+        mainfile_name_re: .*[^/]*xml[^/]*
+        mainfile_alternative: true
+        supported_compressions:
+        - gz
+        - bz2
+        - xz
+      parsers/w2dynamics:
+        plugin_type: parser
+        python_package: electronicparsers.w2dynamics
+        mainfile_binary_header_re: !!binary |
+          Xlx4ODlIREY=
+        mainfile_contents_dict:
+          __has_all_keys:
+          - .axes
+          - .config
+          - .quantities
+        mainfile_mime_re: (application/x-hdf)
+        mainfile_name_re: ^.*\.(h5|hdf5)$
+      parsers/wannier90:
+        plugin_type: parser
+        python_package: electronicparsers.wannier90
+        mainfile_contents_re: \|\s*WANNIER90\s*\|
+      parsers/wien2k:
+        plugin_type: parser
+        python_package: electronicparsers.wien2k
+        mainfile_contents_re: \s*---------\s*:ITE[0-9]+:\s*[0-9]+\.\s*ITERATION\s*---------
+        mainfile_name_re: .*\.scf$
+        mainfile_alternative: true
+      parsers/xtb:
+        plugin_type: parser
+        python_package: atomisticparsers.xtb
+        mainfile_contents_re: x T B\s+\|\s+\|\s+=
+      parsers/yambo:
+        plugin_type: parser
+        python_package: electronicparsers.yambo
+        mainfile_contents_re: Build.+\s+http://www\.yambo-code\.org
+      schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database:
+        plugin_type: schema
+        python_package: perovskite_solar_cell_database
+        key: perovskite_solar_cell_database
+        name: perovskite_solar_cell_database
+      schema/simulation/run:
+        plugin_type: schema
+        python_package: runschema
+        key: runschema
+        name: runschema
+      schema/simulation/workflow:
+        plugin_type: schema
+        python_package: simulationworkflowschema
+        key: simulationworkflowschema
+        name: simulationworkflowschema

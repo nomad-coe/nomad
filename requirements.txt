@@ -96,7 +96,7 @@ idna==3.7                 # via anyio, email-validator, httpx, jsonschema, reque
 ifes-apt-tc-data-modeling==0.1  # via pynxtools
 imageio==2.27.0           # via hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
 imagesize==1.4.1          # via sphinx
-importlib-metadata==7.1.0  # via dask, flask, hyperspy, jupyter-client, jupyterhub, pynxtools, sphinx
+importlib-metadata==7.1.0  # via dask, flask, hyperspy, jupyter-client, jupyterhub, nomad-lab (pyproject.toml), pynxtools, sphinx
 importlib-resources==6.4.0  # via matplotlib, spglib
 inflection==0.5.1         # via nomad-lab (pyproject.toml)
 ipykernel==6.29.4         # via ipyparallel

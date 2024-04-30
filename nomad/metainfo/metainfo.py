@@ -5264,3 +5264,4 @@ class AnnotationModel(Annotation, BaseModel):
 
 
 AnnotationModel.update_forward_refs()
+SchemaPackage = Package

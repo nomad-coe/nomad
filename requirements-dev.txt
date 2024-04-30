@@ -107,7 +107,7 @@ idna==3.7                 # via -r requirements.txt, anyio, email-validator, htt
 ifes-apt-tc-data-modeling==0.1  # via -r requirements.txt, pynxtools
 imageio==2.27.0           # via -r requirements.txt, hyperspy, kikuchipy, nionswift, nionswift-io, nionui, scikit-image
 imagesize==1.4.1          # via -r requirements.txt, sphinx
-importlib-metadata==7.1.0  # via -r requirements.txt, build, dask, flask, hyperspy, jupyter-client, jupyterhub, keyring, markdown, mkdocs, mkdocs-get-deps, pynxtools, sphinx, twine
+importlib-metadata==7.1.0  # via -r requirements.txt, build, dask, flask, hyperspy, jupyter-client, jupyterhub, keyring, markdown, mkdocs, mkdocs-get-deps, nomad-lab (pyproject.toml), pynxtools, sphinx, twine
 importlib-resources==6.4.0  # via -r requirements.txt, matplotlib, spglib
 inflection==0.5.1         # via -r requirements.txt, nomad-lab (pyproject.toml)
 ipykernel==6.29.4         # via -r requirements.txt, ipyparallel

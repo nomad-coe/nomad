@@ -23,6 +23,7 @@ import ase.data
 import ase.formula
 import pint.quantity
 
+from nomad.datamodel import EntryArchive
 from nomad.atomutils import Formula
 from nomad.normalizing.normalizer import SystemBasedNormalizer
 from nomad.units import ureg
@@ -88,18 +89,18 @@ class OptimadeNormalizer(SystemBasedNormalizer):
     It assumes that the :class:`SystemNormalizer` was run before.
     """
 
-    def __init__(self, archive):
-        super().__init__(archive, only_representatives=True)
+    def __init__(self):
+        super().__init__(only_representatives=True)
 
-    def add_optimade_data(self, index) -> OptimadeEntry:
+    def add_optimade_data(self, archive: EntryArchive) -> OptimadeEntry:
         """
         The 'main' method of this :class:`SystemBasedNormalizer`.
         Normalizes the section with the given `index`.
         Normalizes geometry, classifies, system_type, and runs symmetry analysis.
         """
-        if self.entry_archive.metadata is None:
-            self.entry_archive.m_create(EntryMetadata)
-        optimade = self.entry_archive.metadata.m_create(OptimadeEntry)
+        if archive.metadata is None:
+            archive.m_create(EntryMetadata)
+        optimade = archive.metadata.m_create(OptimadeEntry)
 
         def get_value(
             quantity_def,
@@ -109,7 +110,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             source: Any = None,
         ) -> Any:
             try:
-                source = source if source is not None else self.section_run.system[-1]
+                source = source if source is not None else archive.run[0].system[-1]
                 value = source.m_get(quantity_def)
                 if value is None:
                     return
@@ -128,7 +129,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
             except KeyError:
                 return default
 
-        system = self.section_run.system[-1] if self.section_run.system else None
+        system = archive.run[0].system[-1] if archive.run[0].system else None
         if system is None:
             return optimade
 
@@ -153,9 +154,9 @@ class OptimadeNormalizer(SystemBasedNormalizer):
         ]
 
         # formulas
-        system_cls = self.section_run.m_def.all_sub_sections[
-            'system'
-        ].sub_section.section_cls
+        system_cls = (
+            archive.run[0].m_def.all_sub_sections['system'].sub_section.section_cls
+        )
         original_formula = get_value(
             system_cls.chemical_composition_hill, source=system
         )
@@ -198,12 +199,12 @@ class OptimadeNormalizer(SystemBasedNormalizer):
 
         return optimade
 
-    def normalize_system(self, system, is_representative):
+    def normalize_system(self, archive: EntryArchive, system, is_representative):
         if not is_representative:
             return False
 
         try:
-            self.add_optimade_data(system.m_parent_index)
+            self.add_optimade_data(archive)
             return True
 
         except Exception as e:

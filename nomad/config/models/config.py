@@ -17,13 +17,14 @@
 #
 
 import warnings
+import sys
 import os
 import logging
-from importlib.metadata import version
+from importlib.metadata import version, metadata
 
 import yaml
 from typing import List, Union, Optional, Dict, Any
-from pydantic import Field, root_validator, validator, parse_obj_as
+from pydantic import Field, root_validator, validator
 import pkgutil
 
 try:
@@ -32,11 +33,17 @@ except Exception:  # noqa
     # package is not installed
     pass
 
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
+
+
 from .common import (
     ConfigBaseModel,
     Options,
 )
-from .plugins import Plugins
+from .plugins import Plugins, EntryPointType, PluginPackage
 from .north import NORTH
 from .ui import UI
 
@@ -1001,6 +1008,24 @@ class Config(ConfigBaseModel):
 
         return values
 
+    def get_plugin_entry_point(self, id: str) -> EntryPointType:
+        """Returns the plugin entry point with the given id. It will
+        contain also any overrides included through nomad.yaml.
+
+        Args:
+            id: The entry point identifier. Use the identifier given in the
+            plugin package pyproject.toml.
+        """
+        try:
+            return self.plugins.entry_points.options[id]
+        except KeyError:
+            raise KeyError(
+                f'Could not find plugin entry point with id "{id}". Make sure that '
+                'the plugin package with an up-to-date pyproject.toml is installed and '
+                'that you are using the entry point id given in the plugin '
+                'pyproject.toml'
+            )
+
     def load_plugins(self):
         """Used to lazy-load the plugins. We cannot instantiate the plugins
         during the initialization of the nomad.config package, because it may
@@ -1013,38 +1038,94 @@ class Config(ConfigBaseModel):
         cached_property decorator to the 'plugins' field instead of using this
         function.
         """
-        if self.plugins is None:
-            from nomad.config import _plugins
-            from nomad.config.models.plugins import Plugin
+        from nomad.config import _plugins, _merge
+        from nomad.config.models.plugins import Parser, Normalizer, Schema
 
-            def load_plugin(values: Dict[str, Any]):
+        if self.plugins is None:
+
+            def get_config(key):
+                has_old = True
+                value_new = None
+                value_old = None
+                try:
+                    value_old = _plugins[key]
+                except KeyError:
+                    has_old = False
+                try:
+                    value_new = _plugins['entry_points'][key]
+                except KeyError:
+                    pass
+
+                return value_old if has_old else value_new
+
+            # Any plugins options defined at the 'plugin' level are merged with
+            # the new values. 'plugins.include/exclude' will completely replace
+            # the new values in 'plugin.entry_points.include/exclude'.
+            entry_points_config = _plugins.setdefault('entry_points', {})
+            entry_points_config['include'] = get_config('include')
+            entry_points_config['exclude'] = get_config('exclude')
+            entry_points_config['options'] = _merge(
+                entry_points_config.get('options', {}), _plugins.get('options', {})
+            )
+
+            # Handle plugin entry_points (new plugin mechanism)
+            plugin_entry_point_ids = set()
+            plugin_entry_points = entry_points(group='nomad.plugin')
+            plugin_packages = {}
+
+            for entry_point in plugin_entry_points:
+                key = entry_point.value
+                if key in plugin_entry_point_ids:
+                    raise ValueError(
+                        f'Could not load plugins due to duplicate entry_point name: "{key}".'
+                    )
+                package_name = entry_point.value.split('.', 1)[0]
+                config_override = (
+                    _plugins.get('entry_points', {}).get('options', {}).get(key, {})
+                )
+                config_override['id'] = key
+                config_instance = entry_point.load()
+                package_metadata = metadata(package_name)
+                url_list = package_metadata.get_all('Project-URL')
+                url_dict = {}
+                for url in url_list:
+                    name, value = url.split(',')
+                    url_dict[name.lower()] = value.strip()
+                if package_name not in plugin_packages:
+                    plugin_package = PluginPackage(
+                        name=package_name,
+                        description=package_metadata.get('Summary'),
+                        version=version(package_name),
+                        homepage=url_dict.get('homepage'),
+                        documentation=url_dict.get('documentation'),
+                        repository=url_dict.get('repository'),
+                        entry_points=[key],
+                    )
+                    plugin_packages[package_name] = plugin_package
+                else:
+                    plugin_packages[package_name].entry_points.append(key)
+                config_default = config_instance.dict(exclude_unset=True)
+                config_default['plugin_package'] = package_name
+                config_class = config_instance.__class__
+                config_final = config_class.parse_obj(
+                    _merge(config_default, config_override)
+                )
+                _plugins['entry_points']['options'][key] = config_final
+                plugin_entry_point_ids.add(key)
+            _plugins['plugin_packages'] = plugin_packages
+
+            # Handle plugins defined in nomad.yaml (old plugin mechanism)
+            def load_plugin_yaml(name, values: Dict[str, Any]):
                 """Loads plugin metadata from nomad_plugin.yaml"""
                 python_package = values.get('python_package')
                 if not python_package:
-                    raise ValueError('Python plugins must provide a python_package.')
+                    raise ValueError(
+                        f'Could not find python_package for plugin entry point: {name}.'
+                    )
 
                 package_path = values.get('package_path')
                 if package_path is None:
-                    try:
-                        # We try to deduce the package path from the top-level package
-                        package_path_segments = python_package.split('.')
-                        root_package = package_path_segments[0]
-                        package_dirs = package_path_segments[1:]
-                        package_path = os.path.join(
-                            os.path.dirname(
-                                pkgutil.get_loader(root_package).get_filename()  # type: ignore
-                            ),
-                            *package_dirs,
-                        )
-                        if not os.path.isdir(package_path):
-                            # We could not find it this way. Let's try to official way
-                            package_path = os.path.dirname(
-                                pkgutil.get_loader(python_package).get_filename()  # type: ignore
-                            )
-                    except Exception as e:
-                        raise ValueError(
-                            f'The python package {python_package} cannot be loaded.', e
-                        )
+                    package_path = get_package_path(python_package)
                     values['package_path'] = package_path
 
                 metadata_path = os.path.join(package_path, 'nomad_plugin.yaml')
@@ -1063,6 +1144,42 @@ class Config(ConfigBaseModel):
 
                 return values
 
-            for key, plugin in _plugins['options'].items():
-                _plugins['options'][key] = parse_obj_as(Plugin, load_plugin(plugin))
+            for key, plugin in _plugins['entry_points']['options'].items():
+                if key not in plugin_entry_point_ids:
+                    plugin_config = load_plugin_yaml(key, plugin)
+                    plugin_config['id'] = key
+                    plugin_class = {
+                        'parser': Parser,
+                        'normalizer': Normalizer,
+                        'schema': Schema,
+                    }.get(plugin_config['plugin_type'])
+                    _plugins['entry_points']['options'][key] = plugin_class.parse_obj(
+                        plugin_config
+                    )
+
             self.plugins = Plugins.parse_obj(_plugins)
+
+
+def get_package_path(package_name: str) -> str:
+    """Given a python package name, returns the filepath of the package root folder."""
+    package_path = None
+    try:
+        # We try to deduce the package path from the top-level package
+        package_path_segments = package_name.split('.')
+        root_package = package_path_segments[0]
+        package_dirs = package_path_segments[1:]
+        package_path = os.path.join(
+            os.path.dirname(
+                pkgutil.get_loader(root_package).get_filename()  # type: ignore
+            ),
+            *package_dirs,
+        )
+        if not os.path.isdir(package_path):
+            # We could not find it this way. Let's try to official way
+            package_path = os.path.dirname(
+                pkgutil.get_loader(package_name).get_filename()  # type: ignore
+            )
+    except Exception as e:
+        raise ValueError(f'The python package {package_name} cannot be loaded.', e)
+
+    return package_path

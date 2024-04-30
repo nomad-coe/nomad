@@ -177,6 +177,7 @@ from elasticsearch_dsl import Q
 
 from nomad import utils
 from nomad.config import config
+from nomad.config.models.plugins import Schema, Parser, SchemaPackageEntryPoint
 from nomad.metainfo.util import MTypes
 
 from .metainfo import (
@@ -501,14 +502,27 @@ class DocumentType:
 
         # Gather the list of enabled schema plugins. Raise error if duplicate
         # package name is encountered.
-        packages = set()
-        for plugin in config.plugins.filtered_values():
-            if plugin.plugin_type in ['schema', 'parser']:
-                if plugin.python_package in packages:
+        package_names = set()
+        packages_from_plugins = {}
+        for plugin in config.plugins.entry_points.filtered_values():
+            if isinstance(plugin, (Schema, Parser)):
+                package_name = plugin.python_package
+                if package_name in package_names:
                     raise ValueError(
                         f'Your plugin configuration contains two packages with the same name: {plugin.python_package}.'
                     )
-                packages.add(plugin.python_package)
+                package_names.add(package_name)
+            elif isinstance(plugin, SchemaPackageEntryPoint):
+                packages_from_plugins[plugin.id] = plugin.load()
+        for name, package in Package.registry.items():
+            if not name:
+                logger.warning(
+                    f'no name defined for package {package}, could not load dynamic quantities'
+                )
+                continue
+            package_name = name.split('.')[0]
+            if package_name in package_names:
+                packages_from_plugins[name] = package
 
         # Use to get all quantities from the given definition, TODO: Circular
         # definitions are here avoided by simply keeping track of which
@@ -536,30 +550,21 @@ class DocumentType:
                     yield item
 
         quantities_dynamic = {}
-        for name, package in Package.registry.items():
-            if not name:
-                logger.warning(
-                    f'no name defined for package {package}, could not load dynamic quantities'
-                )
-                continue
-            package_name = name.split('.')[0]
-            if package_name in packages:
-                for section in package.section_definitions:
-                    if isinstance(section, Section) and issubclass(
-                        section.section_cls, EntryData
-                    ):
-                        schema_name = section.qualified_name()
-                        for quantity_def, path, repeats in get_all_quantities(section):
-                            annotation = create_dynamic_quantity_annotation(
-                                quantity_def
-                            )
-                            if not annotation:
-                                continue
-                            full_name = f'data.{path}{schema_separator}{schema_name}'
-                            search_quantity = SearchQuantity(
-                                annotation, qualified_name=full_name, repeats=repeats
-                            )
-                            quantities_dynamic[full_name] = search_quantity
+        for package in packages_from_plugins.values():
+            for section in package.section_definitions:
+                if isinstance(section, Section) and issubclass(
+                    section.section_cls, EntryData
+                ):
+                    schema_name = section.qualified_name()
+                    for quantity_def, path, repeats in get_all_quantities(section):
+                        annotation = create_dynamic_quantity_annotation(quantity_def)
+                        if not annotation:
+                            continue
+                        full_name = f'data.{path}{schema_separator}{schema_name}'
+                        search_quantity = SearchQuantity(
+                            annotation, qualified_name=full_name, repeats=repeats
+                        )
+                        quantities_dynamic[full_name] = search_quantity
         self.quantities.update(quantities_dynamic)
 
     def _register(self, annotation, prefix, repeats):

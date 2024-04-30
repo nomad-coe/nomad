@@ -24,6 +24,7 @@ dependencies = [
     'h5py>=3.6.0',
     'hjson>=3.0.2',
     'httpx>=0.23.3',
+    'importlib_metadata~=7.1.0',
     'jmespath>=0.10.0',
     'lxml>=5.2',
     'lxml-html-clean>=0.1.0',

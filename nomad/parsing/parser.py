@@ -216,6 +216,7 @@ class MatchingParser(Parser):
         domain='dft',
         metadata: dict = None,
         supported_compressions: List[str] = [],
+        **kwargs,
     ) -> None:
         super().__init__()
 
