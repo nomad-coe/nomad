@@ -33,6 +33,8 @@ from ase.data import (
 )
 import requests
 
+from unidecode import unidecode
+
 from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 
 if TYPE_CHECKING:
@@ -1919,8 +1921,6 @@ class ReadableIdentifiers(ArchiveSection):
         super(ReadableIdentifiers, self).normalize(archive, logger)
 
         if self.owner is None or self.institute is None:
-            from unidecode import unidecode
-
             author = archive.metadata.main_author
             if author and self.owner is None:
                 first_short = unidecode(author.first_name)[:2]
