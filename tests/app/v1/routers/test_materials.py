@@ -66,11 +66,11 @@ n_code_names = results.Simulation.program_name.a_elasticsearch[
     aggregation_test_parameters_default('materials'),
 )
 def test_materials_aggregations(
-    client, example_data, user1_auth, aggregation, total, size, status_code, user
+    auth_headers, client, example_data, aggregation, total, size, status_code, user
 ):
     assert_aggregation_response(
+        auth_headers,
         client,
-        user1_auth,
         aggregation,
         total,
         size,
@@ -326,11 +326,9 @@ def test_materials_get_query(client, example_data, query, status_code, total):
     'test_method', [pytest.param(perform_materials_metadata_test, id='metadata')]
 )
 def test_materials_owner(
+    auth_headers,
     client,
     example_data,
-    user0_auth,
-    user1_auth,
-    user2_auth,
     owner,
     user,
     status_code,
@@ -341,10 +339,8 @@ def test_materials_owner(
     test_method,
 ):
     perform_owner_test(
+        auth_headers,
         client,
-        user0_auth,
-        user1_auth,
-        user2_auth,
         owner,
         user,
         status_code,

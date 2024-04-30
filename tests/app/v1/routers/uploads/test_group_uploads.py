@@ -51,17 +51,15 @@ def get_agents_from_upload(upload):
     ],
 )
 def test_get_group_uploads(
+    auth_headers,
     client,
     uploads_get_groups,
-    auth_dict,
     user,
     query_params,
     expected_upload_ids,
     expected_status_code,
 ):
-    user_auth, __token = auth_dict[user]
-
-    response = perform_get(client, 'uploads', user_auth=user_auth, **query_params)
+    response = perform_get(client, 'uploads', auth_headers[user], **query_params)
     assert_response(response, expected_status_code)
     if expected_status_code != 200:
         return
@@ -90,14 +88,14 @@ def test_get_group_uploads(
     ],
 )
 def test_get_group_upload_and_entries(
+    auth_headers,
     client,
     uploads_get_groups,
-    auth_dict,
     user,
     upload_id,
     expected_status_code,
 ):
-    user_auth, __token = auth_dict[user]
+    user_auth = auth_headers[user]
     response = perform_get(client, f'uploads/{upload_id}', user_auth)
     assert_response(response, expected_status_code)
 
@@ -119,14 +117,13 @@ def test_get_group_upload_and_entries(
 
 @pytest.fixture(scope='function')
 def perform_edit_upload_agents_test(
-    auth_dict,
+    auth_headers,
     client,
     convert_agent_labels_to_ids,
     proc_infra,
     groups_function,
 ):
     def perform(upload_fixture, user, metadata, expected_status_code, changed_agents):
-        user_auth, _ = auth_dict[user]
         upload = list(upload_fixture.uploads.values())[0]
         expected_agents = get_agents_from_upload(upload)
         expected_agents.update(changed_agents)
@@ -136,7 +133,7 @@ def perform_edit_upload_agents_test(
         url = f'uploads/{upload_id}/edit'
         metadata = convert_agent_labels_to_ids(metadata)
         edit_request = dict(metadata=metadata)
-        response = perform_post(client, url, user_auth, json=edit_request)
+        response = perform_post(client, url, auth_headers[user], json=edit_request)
         assert_response(response, expected_status_code)
 
         upload = Upload.get(upload_id)
@@ -280,7 +277,7 @@ def test_edit_upload_agents(
     ],
 )
 def test_upload_agents_write_access(
-    auth_dict,
+    auth_headers,
     client,
     convert_agent_labels_to_ids,
     uploads_agent_write_access,
@@ -288,12 +285,10 @@ def test_upload_agents_write_access(
     user,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user]
-
     url = f'uploads/{upload_id}/edit'
     metadata = convert_agent_labels_to_ids(
         {'coauthor_groups': ['group9'], 'reviewer_groups': ['group9']}
     )
     edit_request = dict(metadata=metadata, verify_only=True)
-    response = perform_post(client, url, user_auth, json=edit_request)
+    response = perform_post(client, url, auth_headers[user], json=edit_request)
     assert_response(response, expected_status_code)

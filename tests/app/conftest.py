@@ -24,51 +24,46 @@ from nomad.app.v1.routers.auth import generate_simple_token, generate_upload_tok
 from nomad.datamodel import User
 
 
-def create_auth_headers(token: str):
+def create_auth_header(token: str):
     return {'Authorization': f'Bearer {token}'}
-
-
-@pytest.fixture(scope='session')
-def user0_auth(user0: User):
-    return create_auth_headers(user0.user_id)
-
-
-@pytest.fixture(scope='session')
-def user1_auth(user1: User):
-    return create_auth_headers(user1.user_id)
-
-
-@pytest.fixture(scope='session')
-def user2_auth(user2: User):
-    return create_auth_headers(user2.user_id)
-
-
-@pytest.fixture(scope='session')
-def invalid_user_auth():
-    return create_auth_headers('invalid.bearer.token')
 
 
 @pytest.fixture(scope='module')
 def app_token_auth(user1: User):
     app_token = generate_simple_token(user1.user_id, expires_in=3600)
-    return create_auth_headers(app_token)
+    return create_auth_header(app_token)
 
 
 @pytest.fixture(scope='session')
-def auth_dict(users_dict, invalid_user_auth):
-    """
-    Return a dict: user label -> (auth headers, token).
+def auth_headers(users_dict):
+    """Return a dict: user label -> auth header.
 
-    The key 'invalid' contains invalid credentials.
-    The key None contains (None, None).
+    The key 'invalid' contains an invalid header.
+    The key 'empty' contains an empty header.
+    The key None contains None.
     """
-    auths = {
-        label: (create_auth_headers(user.user_id), generate_upload_token(user))
-        for label, user in users_dict.items()
+    headers = {
+        label: create_auth_header(user.user_id) for label, user in users_dict.items()
     }
-    auths['invalid'] = (invalid_user_auth, 'invalid.upload.token')
-    auths[None] = (None, None)
-    return auths
+    headers['empty'] = {}
+    headers['invalid'] = create_auth_header('invalid.bearer.token')
+    headers[None] = None
+    return headers
+
+
+@pytest.fixture(scope='session')
+def upload_tokens(users_dict):
+    """Return a dict: user label -> upload token.
+
+    The key 'invalid' contains an invalid token.
+    The key 'empty' contains an empty token.
+    The key None contains None.
+    """
+    headers = {label: generate_upload_token(user) for label, user in users_dict.items()}
+    headers['empty'] = {}
+    headers['invalid'] = 'invalid.upload.token'
+    headers[None] = None
+    return headers
 
 
 @pytest.fixture(scope='session')

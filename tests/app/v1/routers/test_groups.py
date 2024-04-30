@@ -43,15 +43,13 @@ def assert_group(group, ref_group, keys=None):
     ],
 )
 def test_get_groups(
+    auth_headers,
     client,
-    auth_dict,
     groups_module,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
-
-    response = perform_get(client, base_url, user_auth)
+    response = perform_get(client, base_url, auth_headers[user_label])
     assert_response(response, expected_status_code)
 
     response_groups = UserGroups.parse_raw(response.content)
@@ -70,13 +68,13 @@ def test_get_groups(
     ],
 )
 def test_get_group(
+    auth_headers,
     client,
-    auth_dict,
     groups_module,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
+    user_auth = auth_headers[user_label]
     ref_group = groups_module['group2']
 
     response = perform_get(client, f'{base_url}/{ref_group.group_id}', user_auth)
@@ -98,13 +96,13 @@ def test_get_group(
     ],
 )
 def test_get_group_invalid(
+    auth_headers,
     client,
-    auth_dict,
     groups_module,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
+    user_auth = auth_headers[user_label]
 
     response = perform_get(client, f'{base_url}/invalid-group-id', user_auth)
     assert_response(response, expected_status_code)
@@ -129,20 +127,19 @@ def test_get_group_invalid(
     ],
 )
 def test_create_group(
+    auth_headers,
     client,
     mongo_function,
     request,
-    auth_dict,
     group_molds,
     user_label,
     new_group_label,
     ref_group_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
     new_group = group_molds[new_group_label]
 
-    response = perform_post(client, base_url, user_auth, json=new_group)
+    response = perform_post(client, base_url, auth_headers[user_label], json=new_group)
     assert_response(response, expected_status_code)
 
     if response.status_code != 201:
@@ -175,8 +172,8 @@ def test_create_group(
     ],
 )
 def test_update_user_group(
+    auth_headers,
     client,
-    auth_dict,
     group_molds,
     groups_function,
     user_label,
@@ -184,12 +181,11 @@ def test_update_user_group(
     ref_group_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
     group_before = get_user_group(groups_function['group1'].group_id)
     group_edit = group_molds[group_edit_label]
 
     url = f'{base_url}/{group_before.group_id}/edit'
-    response = perform_post(client, url, user_auth, json=group_edit)
+    response = perform_post(client, url, auth_headers[user_label], json=group_edit)
     assert_response(response, expected_status_code)
     group_after = get_user_group(group_before.group_id)
 
@@ -213,13 +209,13 @@ def test_update_user_group(
     ],
 )
 def test_delete_group(
-    auth_dict,
+    auth_headers,
     client,
     groups_function,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
+    user_auth = auth_headers[user_label]
     group1_id = groups_function['group1'].group_id
     group2_id = groups_function['group2'].group_id
 
@@ -244,13 +240,13 @@ def test_delete_group(
     ],
 )
 def test_delete_group_invalid(
+    auth_headers,
     client,
-    auth_dict,
     groups_function,
     user_label,
     expected_status_code,
 ):
-    user_auth, _ = auth_dict[user_label]
+    user_auth = auth_headers[user_label]
     group_id = groups_function['group1'].group_id
 
     response = client.delete(f'{base_url}/invalid-group-id', headers=user_auth)

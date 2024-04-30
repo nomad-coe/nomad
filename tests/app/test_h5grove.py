@@ -58,16 +58,15 @@ def example_data_nxs(user1, upload_id):
     ],
 )
 def test_h5grove(
+    auth_headers,
     h5grove_api,
     upload_id,
     proc_infra,
     example_data_nxs,
-    auth_dict,
     user,
     status_code,
     file_name,
 ):
-    user_auth, _ = auth_dict[user]
     test_file = 'test.h5'
     file_path = f'{StagingUploadFiles(upload_id=upload_id, create=True)._raw_dir}{os.sep}{test_file}'
     h5file = h5py.File(file_path, 'w')
@@ -75,7 +74,7 @@ def test_h5grove(
     h5file.close()
     resp = h5grove_api.get(
         f'/data/?file={file_name}&path=/entry&upload_id={upload_id}&source=raw',
-        headers=user_auth,
+        headers=auth_headers[user],
     )
     assert resp.status_code == status_code
     if status_code == 200:

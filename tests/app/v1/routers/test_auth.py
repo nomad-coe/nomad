@@ -43,16 +43,16 @@ def test_get_token_bad_credentials(client, http_method):
     perform_get_token_test(client, http_method, 401, 'bad', 'credentials')
 
 
-def test_get_signature_token(client, user1_auth):
-    response = client.get('auth/signature_token', headers=user1_auth)
+def test_get_signature_token(auth_headers, client):
+    response = client.get('auth/signature_token', headers=auth_headers['user1'])
     assert response.status_code == 200
     assert response.json().get('signature_token') is not None
 
 
-def test_get_signature_token_unauthorized(client, invalid_user_auth):
+def test_get_signature_token_unauthorized(auth_headers, client):
     response = client.get('auth/signature_token', headers=None)
     assert response.status_code == 401
-    response = client.get('auth/signature_token', headers=invalid_user_auth)
+    response = client.get('auth/signature_token', headers=auth_headers['invalid'])
     assert response.status_code == 401
 
 
@@ -66,19 +66,20 @@ def test_get_signature_token_unauthorized(client, invalid_user_auth):
         (None, 422),
     ],
 )
-def test_get_app_token(client, user1_auth, expires_in, status_code):
+def test_get_app_token(auth_headers, client, expires_in, status_code):
     response = client.get(
-        'auth/app_token', headers=user1_auth, params={'expires_in': expires_in}
+        'auth/app_token',
+        headers=auth_headers['user1'],
+        params={'expires_in': expires_in},
     )
     assert response.status_code == status_code
     if status_code == 200:
         assert response.json().get('app_token') is not None
 
 
-def test_get_app_token_unauthorized(client, invalid_user_auth):
+def test_get_app_token_unauthorized(auth_headers, client):
     response = client.get('auth/app_token', headers=None, params={'expires_in': 60})
     assert response.status_code == 401
-    response = client.get(
-        'auth/app_token', headers=invalid_user_auth, params={'expires_in': 60}
-    )
+    headers = auth_headers['invalid']
+    response = client.get('auth/app_token', headers=headers, params={'expires_in': 60})
     assert response.status_code == 401

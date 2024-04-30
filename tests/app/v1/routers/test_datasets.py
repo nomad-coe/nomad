@@ -233,7 +233,7 @@ def test_dataset(client, data, dataset_id, result, status_code):
 
 
 @pytest.mark.parametrize(
-    'dataset_name, dataset_type, query, entries, user, status_code',
+    'dataset_name, dataset_type, query, entries, user_label, status_code',
     [
         pytest.param(
             'another test dataset', 'foreign', None, None, 'user1', 200, id='plain'
@@ -304,18 +304,16 @@ def test_dataset(client, data, dataset_id, result, status_code):
     ],
 )
 def test_post_datasets(
+    auth_headers,
     client,
     data,
     example_data,
-    user1,
-    user1_auth,
-    user2,
-    user2_auth,
+    users_dict,
     dataset_name,
     dataset_type,
     query,
     entries,
-    user,
+    user_label,
     status_code,
 ):
     dataset = {'dataset_name': dataset_name, 'dataset_type': dataset_type}
@@ -323,14 +321,10 @@ def test_post_datasets(
         dataset['query'] = query
     if entries is not None:
         dataset['entries'] = entries
-    auth = None
-    if user == 'user1':
-        auth = user1_auth
-        user = user1
-    elif user == 'user2':
-        auth = user2_auth
-        user = user2
-    response = client.post('datasets/', headers=auth, json=dataset)
+    headers = auth_headers[user_label]
+    user = users_dict.get(user_label, user_label)
+
+    response = client.post('datasets/', headers=headers, json=dataset)
 
     assert_response(response, status_code=status_code)
     if status_code != 200:
@@ -359,15 +353,8 @@ def test_post_datasets(
         pytest.param('dataset_doi', 'user1', 400, id='with-doi'),
     ],
 )
-def test_delete_dataset(
-    client, data, user1_auth, user2_auth, dataset_id, user, status_code
-):
-    auth = None
-    if user == 'user1':
-        auth = user1_auth
-    if user == 'user2':
-        auth = user2_auth
-    response = client.delete('datasets/%s' % dataset_id, headers=auth)
+def test_delete_dataset(auth_headers, client, data, dataset_id, user, status_code):
+    response = client.delete('datasets/%s' % dataset_id, headers=auth_headers[user])
 
     assert_response(response, status_code=status_code)
     if status_code != 200:
@@ -389,11 +376,10 @@ def test_delete_dataset(
     ],
 )
 def test_assign_doi_dataset(
+    auth_headers,
     client,
     data,
     user1,
-    user1_auth,
-    user2_auth,
     dataset_id,
     user,
     status_code,
@@ -423,12 +409,8 @@ def test_assign_doi_dataset(
 
     more_data.save(with_files=False)
 
-    auth = None
-    if user == 'user1':
-        auth = user1_auth
-    if user == 'user2':
-        auth = user2_auth
-    response = client.post('datasets/%s/action/doi' % dataset_id, headers=auth)
+    headers = auth_headers[user]
+    response = client.post('datasets/%s/action/doi' % dataset_id, headers=headers)
 
     assert_response(response, status_code=status_code)
     if status_code != 200:

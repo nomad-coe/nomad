@@ -301,7 +301,7 @@ def owner_test_parameters():
         pytest.param('all', 'user1', 200, 32, 30, 13, id='metadata-all-user1'),
         pytest.param('all', 'user2', 200, 28, 28, 11, id='metadata-all-user2'),
         pytest.param('admin', 'user0', 200, 32, 30, 13, id='admin-user0'),
-        pytest.param('all', 'bad_user', 401, -1, -1, -1, id='bad-credentials'),
+        pytest.param('all', 'invalid', 401, -1, -1, -1, id='bad-credentials'),
     ]
 
 
@@ -1362,8 +1362,8 @@ def assert_query_response(client, test_method, query, total, status_code):
 
 
 def assert_aggregation_response(
+    auth_headers,
     client,
-    user1_auth,
     aggregation,
     total,
     size,
@@ -1372,9 +1372,6 @@ def assert_aggregation_response(
     resource: Literal['entries', 'materials'],
 ):
     """Checks that the aggregation response is as expected."""
-    headers = {}
-    if user == 'user1':
-        headers = user1_auth
 
     agg_id = 'test_agg_name'
     aggregations = {agg_id: aggregation}
@@ -1387,7 +1384,7 @@ def assert_aggregation_response(
 
     response_json = metadata_test(
         client,
-        headers=headers,
+        headers=auth_headers[user],
         owner='visible',
         aggregations=aggregations,
         pagination=dict(page_size=0),
@@ -1519,10 +1516,8 @@ def perform_materials_metadata_test(*args, **kwargs):
 
 
 def perform_owner_test(
+    auth_headers,
     client,
-    user0_auth,
-    user1_auth,
-    user2_auth,
     owner,
     user,
     status_code,
@@ -1530,19 +1525,9 @@ def perform_owner_test(
     http_method,
     test_method,
 ):
-    headers = None
-    if user == 'user1':
-        headers = user1_auth
-    elif user == 'user2':
-        headers = user2_auth
-    elif user == 'user0':
-        headers = user0_auth
-    elif user == 'bad_user':
-        headers = {'Authorization': 'Bearer NOTATOKEN'}
-
     test_method(
         client,
-        headers=headers,
+        headers=auth_headers[user],
         owner=owner,
         status_code=status_code,
         total=total,

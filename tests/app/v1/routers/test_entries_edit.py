@@ -88,8 +88,8 @@ class TestEditRepo:
         example_data.save()
 
     @pytest.fixture(autouse=True)
-    def auth(self, user1_auth):
-        self.user_auth = user1_auth
+    def auth(self, auth_headers):
+        self.user_auth = auth_headers['user1']
 
     def perform_edit(self, query=None, verify=False, **kwargs):
         actions = {}
@@ -483,11 +483,11 @@ class TestEditRepo:
     ],
 )
 def test_post_entries_edit(
+    auth_headers,
     client,
     proc_infra,
     example_data_writeable,
     example_datasets,
-    auth_dict,
     users_dict,
     user,
     kwargs,
@@ -497,7 +497,7 @@ def test_post_entries_edit(
     `MetadataEditRequestHandler.edit_metadata`, we only do very simple verification here,
     the more extensive testnig is done in `tests.processing.test_edit_metadata`.
     """
-    user_auth, _token = auth_dict[user]
+    user_auth = auth_headers[user]
     user = users_dict.get(user)
     query = kwargs.get('query')
     owner = kwargs.get('owner', 'visible')
