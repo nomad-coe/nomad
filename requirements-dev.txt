@@ -239,7 +239,7 @@ pygments==2.17.2          # via -r requirements.txt, devtools, ipython, mkdocs-m
 pyjwt[crypto]==2.6.0      # via -r requirements.txt, nomad-lab (pyproject.toml)
 pymatgen==2023.9.25       # via -r requirements.txt, asr, nomad-lab (pyproject.toml)
 pymdown-extensions==10.8.1  # via mkdocs-material
-pymongo==4.7.0            # via -r requirements.txt, mongoengine, optimade
+pymongo==4.6.3            # via -r requirements.txt, mongoengine, nomad-lab (pyproject.toml), optimade
 pynxtools[convert,mpes,stm,xps]==0.1.1  # via -r requirements.txt, nomad-lab (pyproject.toml), pynxtools-mpes, pynxtools-stm, pynxtools-xps
 pynxtools-mpes==0.0.3     # via -r requirements.txt, pynxtools
 pynxtools-stm==1.0.1      # via -r requirements.txt, pynxtools

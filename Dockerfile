@@ -175,9 +175,13 @@ RUN pip install --progress-bar off --prefer-binary -r requirements.txt
 COPY --from=dev_python /app/dist/nomad-lab-*.tar.gz .
 RUN pip install nomad-lab-*.tar.gz
 # This is a temporary workaround because atomisticparsers installs an older version
-# of nomad-lab via pip install git+...still containing pynxtools as a submodule
+# of nomad-lab via pip install git+...still containing pynxtools as a submodule.
 RUN pip uninstall -y pynxtools
 RUN pip install pynxtools[convert]
+# This is a temporary workaround because pynxtools installs an incompatible
+# version of h5grove
+RUN pip uninstall -y h5grove
+RUN pip install h5grove[fastapi]==1.3.0
 
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
