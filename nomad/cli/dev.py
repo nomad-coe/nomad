@@ -216,6 +216,13 @@ def get_gui_config() -> str:
     """
     from nomad.config import config
 
+    config.load_plugins()
+    plugins = config.plugins.dict(exclude_unset=True)
+    for key in plugins['entry_points']['options'].keys():
+        plugins['entry_points']['options'][key] = config.plugins.entry_points.options[
+            key
+        ].dict_safe()
+
     data = {
         'appBase': config.ui.app_base,
         'northBase': config.ui.north_base,
@@ -233,6 +240,7 @@ def get_gui_config() -> str:
         'servicesUploadLimit': config.services.upload_limit,
         'appTokenMaxExpiresIn': config.services.app_token_max_expires_in,
         'ui': config.ui.dict(exclude_none=True) if config.ui else {},
+        'plugins': plugins,
     }
 
     return f'window.nomadEnv = {json.dumps(data, indent=2)}'

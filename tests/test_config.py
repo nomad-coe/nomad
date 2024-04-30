@@ -173,18 +173,20 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
             {'plugins': {'include': ['normalizers/simulation/dos']}},
             {
                 'plugins': {
-                    'include': ['normalizers/simulation/dos'],
-                    'options': {
-                        'normalizers/simulation/dos': {
-                            'name': 'yaml',
-                            'python_package': 'dosnormalizer',
-                            'description': 'This is the normalizer for DOS in NOMAD.\n',
-                            'plugin_documentation_url': None,
-                            'plugin_source_code_url': None,
-                            'normalizer_class_name': 'dosnormalizer.DosNormalizer',
-                            'plugin_type': 'normalizer',
-                        }
-                    },
+                    'entry_points': {
+                        'include': ['normalizers/simulation/dos'],
+                        'options': {
+                            'normalizers/simulation/dos': {
+                                'name': 'yaml',
+                                'python_package': 'dosnormalizer',
+                                'description': 'This is the normalizer for DOS in NOMAD.\n',
+                                'plugin_documentation_url': None,
+                                'plugin_source_code_url': None,
+                                'normalizer_class_name': 'dosnormalizer.DosNormalizer',
+                                'plugin_type': 'normalizer',
+                            }
+                        },
+                    }
                 }
             },
             id='dictionary: merges',
@@ -192,7 +194,7 @@ def test_config_priority(conf_yaml, conf_env, value, mockopen, monkeypatch):
         pytest.param(
             {'plugins': {'include': ['a']}},
             {'plugins': {'include': ['b']}},
-            {'plugins': {'include': ['b']}},
+            {'plugins': {'entry_points': {'include': ['b']}}},
             id='list: overrides',
         ),
         pytest.param(
@@ -213,13 +215,101 @@ def test_config_merge(conf_yaml, conf_env, conf_expected, mockopen, monkeypatch)
     assert_config(config, conf_expected)
 
 
+@pytest.mark.parametrize(
+    'conf_yaml, conf_expected',
+    [
+        pytest.param(
+            {
+                'plugins': {
+                    'include': ['a'],
+                    'exclude': ['a'],
+                },
+            },
+            {'plugins': {'entry_points': {'include': ['a'], 'exclude': ['a']}}},
+            id='only old values',
+        ),
+        pytest.param(
+            {
+                'plugins': {
+                    'entry_points': {'include': ['b'], 'exclude': ['b']},
+                },
+            },
+            {'plugins': {'entry_points': {'include': ['b'], 'exclude': ['b']}}},
+            id='only new values',
+        ),
+        pytest.param(
+            {
+                'plugins': {
+                    'include': ['a'],
+                    'exclude': ['a'],
+                    'entry_points': {'include': ['b'], 'exclude': ['b']},
+                },
+            },
+            {'plugins': {'entry_points': {'include': ['a'], 'exclude': ['a']}}},
+            id='old include and exclude have precedence: non-empty lists',
+        ),
+        pytest.param(
+            {
+                'plugins': {
+                    'include': [],
+                    'exclude': [],
+                    'entry_points': {'include': ['b'], 'exclude': ['b']},
+                },
+            },
+            {'plugins': {'entry_points': {'include': [], 'exclude': []}}},
+            id='old include and exclude have precedence: empty lists',
+        ),
+        pytest.param(
+            {
+                'plugins': {
+                    'include': None,
+                    'exclude': None,
+                    'entry_points': {'include': ['b'], 'exclude': ['b']},
+                },
+            },
+            {'plugins': {'entry_points': {'include': None, 'exclude': None}}},
+            id='old include and exclude have precedence: None',
+        ),
+        pytest.param(
+            {
+                'plugins': {
+                    'options': {'parsers/vasp': {'mainfile_name_re': 'a'}},
+                    'entry_points': {
+                        'options': {'parsers/vasp': {'mainfile_name_re': 'b'}}
+                    },
+                },
+            },
+            {
+                'plugins': {
+                    'entry_points': {
+                        'options': {
+                            'parsers/vasp': {
+                                'mainfile_name_re': 'a',
+                                'python_package': 'electronicparsers.vasp',
+                            }
+                        }
+                    }
+                }
+            },
+            id='old, new and default options are merged with old config having precendence over new values.',
+        ),
+    ],
+)
+def test_plugin_entry_points(conf_yaml, conf_expected, mockopen, monkeypatch):
+    """Tests that any conflicts between old and new plugin configs are resolved
+    correctly."""
+    config = load_test_config(conf_yaml, None, mockopen, monkeypatch)
+    config.load_plugins()
+    assert_config(config, conf_expected)
+
+
 def test_parser_plugins():
     config = load_config()
     config.load_plugins()
     parsers = [
-        plugin
-        for plugin in config.plugins.options.values()
-        if isinstance(plugin, Parser)
+        entry_point
+        for entry_point in config.plugins.entry_points.options.values()
+        if isinstance(entry_point, Parser)
     ]
     assert len(parsers) == 71
 
@@ -244,5 +334,5 @@ def test_plugin_polymorphism(mockopen, monkeypatch):
     }
     config = load_test_config(plugins, None, mockopen, monkeypatch)
     config.load_plugins()
-    assert isinstance(config.plugins.options['schema'], Schema)
-    assert isinstance(config.plugins.options['parser'], Parser)
+    assert isinstance(config.plugins.entry_points.options['schema'], Schema)
+    assert isinstance(config.plugins.entry_points.options['parser'], Parser)
