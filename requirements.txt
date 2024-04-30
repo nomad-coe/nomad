@@ -200,7 +200,7 @@ pyfai==2024.2.0           # via pyxem
 pygments==2.17.2          # via ipython, sphinx
 pyjwt[crypto]==2.6.0      # via nomad-lab (pyproject.toml)
 pymatgen==2023.9.25       # via asr, nomad-lab (pyproject.toml)
-pymongo==4.7.0            # via mongoengine, optimade
+pymongo==4.6.3            # via mongoengine, nomad-lab (pyproject.toml), optimade
 pynxtools[convert,mpes,stm,xps]==0.1.1  # via nomad-lab (pyproject.toml), pynxtools-mpes, pynxtools-stm, pynxtools-xps
 pynxtools-mpes==0.0.3     # via pynxtools
 pynxtools-stm==1.0.1      # via pynxtools

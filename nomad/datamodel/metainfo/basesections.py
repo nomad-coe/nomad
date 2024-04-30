@@ -24,6 +24,7 @@ from typing import (
     List,
 )
 
+from unidecode import unidecode
 import numpy as np
 import h5py
 from ase.data import (
@@ -32,8 +33,6 @@ from ase.data import (
     atomic_masses,
 )
 import requests
-
-from unidecode import unidecode
 
 from nomad.datamodel.metainfo.workflow import Link, Task, TaskReference, Workflow
 
