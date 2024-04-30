@@ -51,6 +51,7 @@ dependencies = [
     'toposort',
     'wrapt>=1.12.1',
     'xarray>=0.20.2',
+    'unidecode==1.3.2',
 ]
 
 [project.urls]
@@ -101,7 +102,6 @@ infrastructure = [
     'runstats==2.0.0',
     'structlog',
     'tabulate==0.8.9',
-    'unidecode==1.3.2',
     'uvicorn[standard]',
     'validators==0.18.2',
     'zipstream-new==1.1.5',

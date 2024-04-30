@@ -21,6 +21,8 @@ import datetime
 import re
 from typing import Any, Dict, List, TYPE_CHECKING
 
+from unidecode import unidecode
+
 from nomad.datamodel.metainfo.plot import PlotSection
 
 if TYPE_CHECKING:
@@ -525,8 +527,6 @@ class SampleID(ArchiveSection):
         super(SampleID, self).normalize(archive, logger)
 
         if self.sample_owner is None or self.institute is None:
-            from unidecode import unidecode
-
             author = archive.metadata.main_author
             if author and self.sample_owner is None:
                 first_short = unidecode(author.first_name)[:2]
