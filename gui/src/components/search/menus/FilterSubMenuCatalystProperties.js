@@ -100,6 +100,10 @@ const FilterSubMenuCatalyst = React.memo(({
             quantity="results.properties.catalytic.catalyst_synthesis.preparation_method"
             visible={visible}
           />
+          <InputField
+            quantity="results.properties.catalytic.catalyst_synthesis.catalyst_name"
+            visible={visible}
+          />
         </InputSection>
         <InputSection
           section="results.properties.catalytic.catalyst_characterization"

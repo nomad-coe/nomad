@@ -3354,7 +3354,10 @@ class Reagent(MSection):
         description="""
         IUPAC name of the reagent.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
     gas_concentration_in = Quantity(
         type=np.float64,
@@ -3408,7 +3411,10 @@ class Product(Reagent):
         description="""
         Name of the product, preferably the IUPAC name.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
     selectivity = Quantity(
         type=np.float64,
@@ -3444,7 +3450,10 @@ class Rate(MSection):
         description="""
         IUPAC name of the reagent whose rate is captured.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
     reaction_rate = Quantity(
         type=np.float64,
@@ -3509,7 +3518,10 @@ class Reaction(MSection):
         Name of the catalytic test reaction.
         """,
         links=['https://w3id.org/nfdi4cat/voc4cat_0007009'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
     type = Quantity(
@@ -3520,7 +3532,10 @@ class Reaction(MSection):
         Isomerization, Coupling...
         """,
         links=['https://w3id.org/nfdi4cat/voc4cat_0007010'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
     reactants = SubSection(
@@ -3628,7 +3643,10 @@ class CatalystSynthesis(MSection):
         description="""
         Custom name of catalyst.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
     preparation_method = Quantity(
@@ -3638,7 +3656,10 @@ class CatalystSynthesis(MSection):
         The main preparation method of the sample.
         """,
         links=['https://w3id.org/nfdi4cat/voc4cat_0007016'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
     catalyst_type = Quantity(
@@ -3648,7 +3669,10 @@ class CatalystSynthesis(MSection):
         The type of catalyst, wether metal or oxide, ...
         """,
         links=['https://w3id.org/nfdi4cat/voc4cat_0007014'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
 
@@ -3664,7 +3688,10 @@ class CatalystCharacterization(MSection):
         description="""
         A method used to characterize the catalyst.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
     surface_area = Quantity(
@@ -3684,7 +3711,10 @@ class CatalystCharacterization(MSection):
         description="""
         The method with which the surface area per catalyst mass was determined, e.g. BET.
         """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
     )
 
 

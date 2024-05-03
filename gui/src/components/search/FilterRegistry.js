@@ -230,6 +230,7 @@ registerFilter(
     {name: 'dimensionality', ...termQuantity},
     {name: 'building_block', ...termQuantity},
     {name: 'material_id', ...termQuantity},
+    {name: 'material_name', ...termQuantity},
     {name: 'symmetry.prototype_name', ...termQuantity},
     {name: 'symmetry.prototype_label_aflow', ...termQuantity},
     {name: 'n_atoms', ...numberHistogramQuantity},
@@ -500,8 +501,9 @@ registerFilter(
   idCatalyst,
   nestedQuantity,
   [
+    {name: 'catalyst_name', ...termQuantity},
     {name: 'catalyst_type', ...termQuantity},
-    {name: 'preparation_method', ...termQuantityAllNonExclusive}
+    {name: 'preparation_method', ...termQuantity}
   ]
 )
 registerFilter(

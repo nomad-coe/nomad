@@ -32,6 +32,7 @@ const CatalystSample = React.memo(({data}) => {
     ? data
       ? <QuantityTable>
         <QuantityRow>
+          <QuantityCell value={data?.catalyst_name} quantity={`${prefix}.catalyst_name`}/>
           <QuantityCell value={data?.surface_area} quantity={`${prefix}.surface_area`}/>
           <QuantityCell value={data?.catalyst_type} quantity={`${prefix1}.catalyst_type`}/>
           <QuantityCell value={data?.preparation_method} quantity={`${prefix1}.preparation_method`}/>
