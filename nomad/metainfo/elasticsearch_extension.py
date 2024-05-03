@@ -515,10 +515,8 @@ class DocumentType:
             elif isinstance(plugin, SchemaPackageEntryPoint):
                 packages_from_plugins[plugin.id] = plugin.load()
         for name, package in Package.registry.items():
+            # If package has no name, it is empty and can be skipped.
             if not name:
-                logger.warning(
-                    f'no name defined for package {package}, could not load dynamic quantities'
-                )
                 continue
             package_name = name.split('.')[0]
             if package_name in package_names:
