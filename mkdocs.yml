@@ -29,20 +29,21 @@ nav:
     - NOMAD Oasis:
       - Install an Oasis: howto/oasis/install.md
       - Customize an Oasis: howto/oasis/customize.md
-      - Mount plugins: howto/oasis/plugins_install.md
-      - Configure custom apps: howto/oasis/apps.md
+      - Install plugins: howto/oasis/plugins_install.md
       - Migrate Oasis versions: howto/oasis/migrate.md
       - Perform admin tasks: howto/oasis/admin.md
+    - Plugins:
+      - Get started with plugins: howto/plugins/plugins.md
+      - Write an app: howto/plugins/apps.md
+      - Write a normalizer: howto/plugins/normalizers.md
+      - Write a parser: howto/plugins/parsers.md
+      - Write a schema package: howto/plugins/schema_packages.md
     - Customization:
-      - Write a schema: howto/customization/basics.md
+      - Write a YAML schema package: howto/customization/basics.md
       - Define ELNs: howto/customization/elns.md
       - Use base sections: howto/customization/base_sections.md
       - Parse tabular data: howto/customization/tabular.md
       - Define workflows: howto/customization/workflows.md
-      - Write plugins: howto/customization/plugins.md
-      - Write a schema plugin: howto/customization/schemas.md
-      - Write a parser: howto/customization/parsers.md
-      - Write a normalizer: howto/customization/normalizers.md
       - Work with units: howto/customization/units.md
       - Use HDF5 to handle large quantities: howto/customization/hdf5.md
     - Development:

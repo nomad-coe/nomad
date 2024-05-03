@@ -1,5 +1,5 @@
 data:
-  m_def: '../upload/raw/schema.archive.yaml#Composition'
+  m_def: '../upload/raw/package.archive.yaml#Composition'
   composition: 'H2O'
   elements:
     - label: H

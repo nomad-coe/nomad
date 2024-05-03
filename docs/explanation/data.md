@@ -134,7 +134,7 @@ Contributions here are only possible through merge requests.
 
 Base sections can be contributed via plugins. Here they can be explored in the Metainfo
 browser, your plugin can provide more tools, and you can make use of normalize functions.
-See also our [how-to on writing schema plugins](../howto/customization/schemas.md#how-to-write-a-schema-plugin). You could
+See also our [how-to on writing schema packages](../howto/plugins/schema_packages.md). You could
 also provide base sections via uploaded schemas, but those are harder to explore and
 distribute to other NOMAD installations.
 
@@ -143,7 +143,7 @@ schemas, you most likely also upload data in archive files (or use ELNs to edit 
 Here you can also provide schemas and data in the same file. In many case
 specific schemas will be small and only re-combine existing base sections.
 See also our
-[how-to on writing schemas](../howto/customization/basics.md).
+[how-to on writing YAML schemas](../howto/customization/basics.md).
 
 ## Data
 
@@ -156,7 +156,7 @@ The Metainfo has many serialized forms. You can write `.archive.json` or `.archi
 files yourself. NOMAD internally stores all processed data in [message pack](https://msgpack.org/){:target="_blank"}. Some
 of the data is stored in mongodb or elasticsearch. When you request processed data via
 API, you receive it in JSON. When you use the [ArchiveQuery](../howto/programmatic/archive_query.md), all data is represented
-as Python objects (see also [a starting example](../howto/customization/schemas.md#starting-example)).
+as Python objects (see also [example in schema package documentation](../howto/plugins/schema_packages.md#schemapackage-class)).
 
 No matter what the representation is, you can rely on the structure, names, types, shapes, and units
 defined in the schema to interpret the data.

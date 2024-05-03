@@ -1,19 +1,72 @@
-# How to write a schema plugin
+# How to write a schema package
+
+Schema packages are used to define and distribute custom data definitions that can be used within NOMAD. These schema packages typically contain [schemas](../../reference/glossary.md#schema) that users can select to instantiate manually filled entries using our ELN functionality, or that parsers when organizing data they extract from files. Schema packages may also contain more abstract base classes that other schema packages use.
+
+This documentation shows you how to write a plugin entry point for a schema package. You should read the [documentation on getting started with plugins](./plugins.md) to have a basic understanding of how plugins and plugin entry points work in the NOMAD ecosystem.
 
 ## Getting started
 
-Fork and clone the [schema example project](https://github.com/nomad-coe/nomad-schema-plugin-example){:target="_blank"} as described in [How-to mount a plugin](../oasis/plugins_install.md).
+You can use our [template repository](https://github.com/FAIRmat-NFDI/nomad-plugin-template) to create an initial structure for a plugin containing a schema package. The relevant part of the repository layout will look something like this:
 
-## Writing schemas in Python compared to YAML schemas
+```txt
+nomad-example
+   ├── src
+   │   ├── nomad_example
+   │   │   ├── schema_packages
+   │   │   │   ├── __init__.py
+   │   │   │   ├── mypackage.py
+   ├── LICENSE.txt
+   ├── README.md
+   └── pyproject.toml
+```
 
-In this [guide](basics.md), we explain how to write and upload schemas in the `.archive.yaml` format. Writing and uploading such YAML schemas is a good way for NOMAD users to add schemas. But it has limitations. As a NOMAD developer or Oasis administrator you can add Python schemas to NOMAD. All built-in NOMAD schemas (e.g. for electronic structure code data) are written in Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
+See the documentation on [plugin development guidelines](./plugins.md#plugin-development-guidelines) for more details on the best development practices for plugins, including linting, testing and documenting.
 
-There is a 1-1 translation between Python schemas (written in classes) and YAML (or JSON) schemas (written in objects). Both use the same fundamental concepts, like *section*, *quantity*, or *subsection*, introduced in [YAML schemas](basics.md).
+## Schema package entry point
 
-## Starting example
+The entry point defines basic information about your schema package and is used to automatically load it into a NOMAD distribution. It is an instance of a `SchemaPackageEntryPoint` or its subclass and it contains a `load` method which returns a `nomad.metainfo.SchemaPackage` instance that contains section and schema definitions. You will learn more about the `SchemaPackage` class in the next sections. The entry point should be defined in `*/schema_packages/__init__.py` like this:
 
 ```python
-from nomad.metainfo import MSection, Quantity, SubSection, Units
+from pydantic import Field
+from nomad.config.models.plugins import SchemaPackageEntryPoint
+
+
+class MySchemaPackageEntryPoint(SchemaPackageEntryPoint):
+
+    def load(self):
+        from nomad_example.schema_packages.mypackage import m_package
+
+        return m_package
+
+
+mypackage = MySchemaPackageEntryPoint(
+    name = 'MyPackage',
+    description = 'My custom schema package.',
+)
+```
+
+Here you can see that a new subclass of `SchemaPackageEntryPoint` was defined. In this new class you can override the `load` method to determine how the `SchemaPackage` class is loaded, but you can also extend the `SchemaPackageEntryPoint` model to add new configurable parameters for this schema package as explained [here](./plugins.md#extending-and-using-the-entry-point).
+
+We also instantiate an object `mypackage` from the new subclass. This is the final entry point instance in which you specify the default parameterization and other details about the schema package. In the reference you can see all of the available [configuration options for a `SchemaPackageEntryPoint`](../../reference/plugins.md#schemapackageentrypoint).
+
+The entry point instance should then be added to the `[project.entry-points.'nomad.plugin']` table in `pyproject.toml` in order for it to be automatically detected:
+
+```toml
+[project.entry-points.'nomad.plugin']
+mypackage = "nomad_example.schema_packages:mypackage"
+```
+
+## `SchemaPackage` class
+
+The `load`-method of a schema package entry point returns an instance of a `nomad.metainfo.SchemaPackage` class. This definition should be contained in a separate file (e.g. `*/schema_packages/mypackage.py`) and could look like this:
+
+```python
+from nomad.datamodel.data import Schema
+from nomad.datamodel.metainfo.annotations import ELNAnnotation, ELNComponentEnum
+from nomad.metainfo import SchemaPackage, Quantity, MSection
+
+m_package = SchemaPackage()
+
 
 class System(MSection):
     '''
@@ -23,30 +76,29 @@ class System(MSection):
 
     n_atoms = Quantity(
         type=int, description='''
-        A Defines the number of atoms in the system.
+        Defines the number of atoms in the system.
         ''')
 
     atom_labels = Quantity(
         type=MEnum(ase.data.chemical_symbols), shape['n_atoms'])
-    atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit=Units.m)
-    simulation_cell = Quantity(type=float, shape=[3, 3], unit=Units.m)
+    atom_positions = Quantity(type=float, shape=['n_atoms', 3], unit='angstrom')
+    simulation_cell = Quantity(type=float, shape=[3, 3], unit='angstrom')
     pbc = Quantity(type=bool, shape=[3])
 
-class Run(MSection):
-    section_system = SubSection(sub_section=System, repeats=True)
+
+class Simulation(Schema):
+    system = SubSection(sub_section=System, repeats=True)
+
+m_package.__init_metainfo__()
 ```
 
-We define a simple metainfo schema with two *sections* called `System` and `Run`.
-Each section can have two types of properties: *quantities* and *subsections*. Sections and their properties are defined with
-Python classes and their attributes. Each *quantity* defines a piece of data. Basic quantity attributes are `type`, `shape`,
-`unit`, and `description`.
+Schema packages typically contain one or several [schema](../../reference/glossary.md#schema) definitions, that can the be used to manually create new entries through the ELN functionality, or also by parsers to create instances of this schema fully automatically. All of the definitions contained in the package should be placed between the contructor call (`m_package = SchemaPackage()`) and the initialization (`m_package.__init_metainfo__()`).
 
-*Subsections* allow the placement of sections within each other, forming containment
-hierarchies. Basic subsection attributes are
-`sub_section`&mdash;a reference to the section definition of the subsection&mdash;and `repeats`&mdash;determines whether a subsection can be included once or multiple times.
+In this basic example we defined two *sections*: `System` and `Simulation`. `System` inherits from most primitive type of section - `MSection` - whereas `Simulation` is defined as a subclass of `Schema` which makes it possible to use this as the root section of an entry. Each section can have two types of properties: *quantities* and *subsections*. Sections and their properties are defined with Python classes and their attributes. Each *quantity* defines a piece of data. Basic quantity attributes are `type`, `shape`, `unit`, and `description`.
 
-To use the above-defined schema and create actual data, we have to
-instantiate the classes:
+*Subsections* allow the placement of sections within each other, forming containment hierarchies. Basic subsection attributes are `sub_section`&mdash;a reference to the section definition of the subsection&mdash;and `repeats`&mdash;determines whether a subsection can be included once or multiple times.
+
+To use the above-defined schema and create actual data, we have to instantiate the classes:
 
 ```python
 run = Run()
@@ -87,6 +139,44 @@ This will convert the data into JSON:
     ]
 }
 ```
+
+## Schema packages: Python vs. YAML
+
+In this [guide](../customization/basics.md), we explain how to write and upload schema packages in the `.archive.yaml` format. Writing and uploading such YAML schema packages is a good way for NOMAD users to start exploring schemas, but it has limitations. As a NOMAD developer or Oasis administrator you can add Python schema packages to NOMAD. All built-in NOMAD schemas (e.g. for electronic structure code data) are written in Python and are part of the NOMAD sources (`nomad.datamodel.metainfo.*`).
+
+There is a 1-1 translation between the structure in Python schema packages (written in classes) and YAML (or JSON) schema packages (written in objects). Both use the same fundamental concepts, like *section*, *quantity*, or *subsection*, introduced in [YAML schemas](../customization/basics.md). The main benefit of Python schema packages is the ability to define custom `normalize`-functions.
+
+`normalize`-functions are attached to sections and are are called when instances of these sections are processed. All files are processed when they are uploaded or changed. To add a `normalize` function, your section has to inherit from `Schema` or `ArchiveSection` which provides the base for this functionality. Here is an example:
+
+```python
+--8<-- "examples/archive/custom_schema.py"
+```
+
+Make sure to call the `super` implementation properly to support multiple inheritance. In order to control the order by which the `normalize` calls are executed, one can define `normalizer_level` which is set to 0 by default. The normalize functions are always called for any sub section before the parent section. However, the order for any sections on the same level will be from low values of `normalizer_level` to high.
+
+If we parse an archive like this:
+
+```yaml
+--8<-- "examples/archive/custom_data.archive.yaml"
+```
+
+we will get a final normalized archive that contains our data like this:
+
+```json
+{
+  "data": {
+    "m_def": "examples.archive.custom_schema.SampleDatabase",
+    "samples": [
+      {
+        "added_date": "2022-06-18T00:00:00+00:00",
+        "formula": "NaCl",
+        "sample_id": "2022-06-18 00:00:00+00:00--NaCl"
+      }
+    ]
+  }
+}
+```
+
 
 ## Definitions
 
@@ -226,19 +316,6 @@ class CategoryName(MCategory):
     m_def = Category(links=['http://further.explanation.eu'], categories=[ParentCategory])
 ```
 
-### Packages
-
-Metainfo packages correspond to Python packages. Typically your metainfo Python files should follow this pattern:
-```python
-from nomad.metainfo import Package
-
-m_package = Package()
-
-# Your section classes and categories
-
-m_package.__init_metainfo__()
-```
-
 ## Adding Python schemas to NOMAD
 
 The following describes how to integrate new schema modules into the existing code according
@@ -304,7 +381,7 @@ short handle of a code name or other special method prefix.
 ### Access structured data via API
 
 The [API section](../programmatic/api.md#access-archives) demonstrates how to access an Archive, i.e.
-retrieve the processed data from a NOAMD entry. This API will give you JSON data likes this:
+retrieve the processed data from a NOMAD entry. This API will give you JSON data likes this:
 
 ```json title="https://nomad-lab.eu/prod/v1/api/v1/entries/--dLZstNvL_x05wDg2djQmlU_oKn/archive"
 {
@@ -353,7 +430,6 @@ To learn what each key means, you need to look up its definition in the Metainfo
 
 {{ metainfo_data() }}
 
-
 ### Wrap data with Python schema classes
 
 In Python, JSON data is typically represented as nested combinations of dictionaries
@@ -392,55 +468,9 @@ The NOMAD Python package provides utilities to [query large amounts of
 archive data](../programmatic/archive_query.md). This uses the built-in Python schema classes as
 an interface to the data.
 
-## Custom normalizers
+## Schema packages developed by FAIRmat
 
-For custom schemas, you might want to add custom normalizers. All files are parsed
-and normalized when they are uploaded or changed. The NOMAD metainfo Python interface
-allows you to add functions that are called when your data is normalized.
-
-Here is an example:
-
-```python
---8<-- "examples/archive/custom_schema.py"
-```
-
-To add a `normalize` function, your section has to inherit from `ArchiveSection` which
-provides the base for this functionality. Now you can overwrite the `normalize` function
-and add you own behavior. Make sure to call the `super` implementation properly to
-support schemas with multiple inheritance. In order to control the order by which the
-normalizations are executed, one can define `normalizer_level` which is set to 0 by
-default. The normalize functions are always called for any sub section before the parent section.
-However, the order for any sections on the same level will be from low values of `normalizer_level`
-to high.
-
-If we parse an archive like this:
-
-```yaml
---8<-- "examples/archive/custom_data.archive.yaml"
-```
-
-we will get a final normalized archive that contains our data like this:
-
-```json
-{
-  "data": {
-    "m_def": "examples.archive.custom_schema.SampleDatabase",
-    "samples": [
-      {
-        "added_date": "2022-06-18T00:00:00+00:00",
-        "formula": "NaCl",
-        "sample_id": "2022-06-18 00:00:00+00:00--NaCl"
-      }
-    ]
-  }
-}
-```
-## Schema plugin metadata
-{{pydantic_model('nomad.config.models.plugins.Schema')}}
-
-## Pre-defined schemas in NOMAD
-Several schemas are currently being developed in NOMAD for various metadata.
-The following lists these projects:
+The following is a list of plugins containing schema packages developed by FAIRmat:
 
 | Description                  | Project url                                                                |
 | ---------------------------- | -------------------------------------------------------------------------- |

@@ -445,7 +445,7 @@ def define_env(env):
         )
 
     @env.macro
-    def plugin_list():  # pylint: disable=unused-variable
+    def plugin_entry_point_list():  # pylint: disable=unused-variable
         plugins = [plugin for plugin in config.plugins.entry_points.options.values()]
 
         def render_plugin(plugin: EntryPointType) -> str:
@@ -459,7 +459,7 @@ def define_env(env):
             ]:
                 value = getattr(plugin, field, None)
                 if value:
-                    dosc_or_code_url = value
+                    docs_or_code_url = value
                     break
             if docs_or_code_url:
                 result = f'[{plugin.name}]({docs_or_code_url})'
@@ -473,6 +473,8 @@ def define_env(env):
             category = getattr(
                 plugin, 'plugin_type', getattr(plugin, 'entry_point_type', None)
             )
+            if category == 'schema':
+                category = 'schema package'
             categories.setdefault(category, []).append(plugin)
 
         return '\n\n'.join(

@@ -1,87 +1,133 @@
 # How to write a parser
 
-NOMAD uses parsers to convert raw code input and output files into NOMAD's common archive
-format. This is the documentation on how to develop such a parser.
+NOMAD uses parsers to automatically extract information from raw files and output that information into structured [archives](../../reference/glossary.md#archive). Parsers can decide which files act upon based on the filename, mime type or file contents and can also decide into which schema the information should be populated into.
+
+This documentation shows you how to write a plugin entry point for a parser. You should read the [documentation on getting started with plugins](./plugins.md) to have a basic understanding of how plugins and plugin entry points work in the NOMAD ecosystem.
 
 ## Getting started
 
-We have prepared an example parser in a github repository to learn how to write parsers. To explore the example, you can clone the project with the command:
-
-```shell
-git clone https://github.com/nomad-coe/nomad-parser-example.git --branch hello-world
-```
-
-Alternatively, fork the example project on Github and create your own parser.
-
-Once you clone the example project, the file structure is:
+You can use our [template repository](https://github.com/FAIRmat-NFDI/nomad-plugin-template) to create an initial structure for a plugin containing a parser. The relevant part of the repository layout will look something like this:
 
 ```txt
-example
-   ├── exampleparser
-   │   ├── __init__.py
-   │   ├── __main__.py
-   │   ├── metainfo.py
-   │   └── parser.py
+nomad-example
+   ├── src
+   │   ├── nomad_example
+   │   │   ├── parsers
+   │   │   │   ├── __init__.py
+   │   │   │   ├── myparser.py
    ├── LICENSE.txt
    ├── README.md
    └── pyproject.toml
 ```
 
-Create a virtual environment (**make sure to use Python 3.9**) and install the new parser:
+See the documentation on [plugin development guidelines](./plugins.md#plugin-development-guidelines) for more details on the best development practices for plugin, including linting, testing and documenting.
 
-```shell
-cd nomad-parser-example/
-python3.9 -m venv .pyenv
-source .pyenv/bin/activate
-pip install --upgrade pip
-pip install -e .
-```
+## Parser entry point
 
-The last command will install both the `nomad-lab` Python package and the new parser.
-The `-e` parameter installs the parser in *development* mode, which allows you to change the sources without having to reinstall.
-
-The main parser class is found in `exampleparser/parser.py`:
+The entry point defines basic information about your parser and is used to automatically load the parser code into a NOMAD distribution. It is an instance of a `ParserEntryPoint` or its subclass and it contains a `load` method which returns a `nomad.parsing.Parser` instance that will perform the actual parsing. You will learn more about the `Parser` class in the next sections. The entry point should be defined in `*/parsers/__init__.py` like this:
 
 ```python
-class ExampleParser:
-    def parse(self, mainfile: str, archive: EntryArchive, logger):
-        # Log a hello world, just to get us started. TODO remove from an actual parser.
-        logger.info('Hello World')
+from pydantic import Field
+from nomad.config.models.plugins import ParserEntryPoint
 
-        archive.workflow2 = Workflow(name='EXAMPLE')
+
+class MyParserEntryPoint(ParserEntryPoint):
+
+    def load(self):
+        from nomad_example.parsers.myparser import MyParser
+
+        return MyParser(**self.dict())
+
+
+myparser = MyParserEntryPoint(
+    name = 'MyParser',
+    description = 'My custom parser.',
+    mainfile_name_re = '.*\.myparser',
+)
 ```
 
-A parser is a simple Python module containing a single class. The convention
-for the class name is `<Name>Parser` where `Name` is the file type or code name
-e.g. `VASPParser`. It has a main function, `parse` which takes the path to the mainfile
-and an empty [`EntryArchive` object](../../reference/glossary.md#archive) as input to be
-populated with the parsed quantities. The development of parsers is up to each user, and
-will heavily depend on what the user wants to parse. In the simple example above, we created
-a logger info entry and populated the archive with a root section called [`Workflow`](../../explanation/data.md#archive-files-a-shared-entry-structure). We then set the workflow name to `EXAMPLE`.
+Here you can see that a new subclass of `ParserEntryPoint` was defined. In this new class you can override the `load` method to determine how the `Parser` class is instantiated, but you can also extend the `ParserEntryPoint` model to add new configurable parameters for this parser as explained [here](./plugins.md#extending-and-using-the-entry-point).
 
-You can run the parser (see the included `__main__.py`) with the path to the file to be
-parsed as an argument:
+We also instantiate an object `myparser` from the new subclass. This is the final entry point instance in which you specify the default parameterization and other details about the parser. In the reference you can see all of the available [configuration options for a `ParserEntryPoint`](../../reference/plugins.md#parserentrypoint).
+
+The entry point instance should then be added to the `[project.entry-points.'nomad.plugin']` table in `pyproject.toml` in order for the parser to be automatically detected:
+
+```toml
+[project.entry-points.'nomad.plugin']
+myparser = "nomad_example.parsers:myparser"
+```
+
+## `Parser` class
+
+The resource returned by a parser entry point must be an instance of a `nomad.parsing.Parser` class. In many cases you will, however, want to use the already existing `nomad.parsing.MatchingParser` subclass that takes care of the file matching process for you. This parser definition should be contained in a separate file (e.g. `*/parsers/myparser.py`) and could look like this:
+
+```python
+from typing import Dict
+
+from nomad.datamodel import EntryArchive
+from nomad.parsing import MatchingParser
+
+
+class MyParser(MatchingParser):
+    def parse(
+        self,
+        mainfile: str,
+        archive: EntryArchive,
+        logger=None,
+        child_archives: Dict[str, EntryArchive] = None,
+    ) -> None:
+        logger.info('MyParser called')
+```
+
+If you are using the `MatchingParser` interface, the minimal requirement is
+that your class has a `parse` function, which will take as input:
+
+ - `mainfile`: Filepath to a raw file that the parser should open and run on
+ - `archive`: The [`EntryArchive` object](../../reference/glossary.md#archive) in which the parsing results will be stored
+ - `logger`: Logger that you can use to log parsing events into
+
+Note here that if using `MatchingParser`, the process of identifying which files the `parse` method is run against is take care of by passing in the required parameters to the instance in the `load` mehod. In the previous section, the `load` method looked something like this:
+
+```python
+    def load(self):
+        from nomad_example.parsers.myparser import MyParser
+
+        return MyParser(**self.dict())
+```
+
+There we are passing all of the entry configuration options to the parser instance, including things like `mainfile_name_re` and `mainfile_contents_re`. The `MatchingParser` constructor uses these parameters to set up the file matching appropriately. If you wish to take full control of the file matching process, you can use the `nomad.parsing.Parser` class and override the `is_mainfile` function.
+
+## Match your raw file
+
+If you are using the `MatchingParser` interface you can configure which files
+are matched directly in the `ParserEntryPoint`. For example to match only certain file extensions and file contents, you can use the `mainfile_name_re` and `mainfile_contents_re` fields:
+
+```python
+myparser = MyParserEntryPoint(
+    name = 'MyParser',
+    description = 'My custom parser.',
+    mainfile_name_re = '.*\.myparser',
+    mainfile_contents_re = '\s*\n\s*HELLO WORLD',
+)
+```
+
+You can find all of the available matching criteria in the [`ParserEntryPoint` reference](../../reference/plugins.md#parserentrypoint)
+
+## Running the parser
+
+If you have the plugin package and `nomad-lab` installed in your Python environment, you can run the parser against a file using the NOMAD CLI:
 
 ```shell
-python -m exampleparser tests/data/example.out
+nomad parse <filepath> --show-archive
 ```
 
-The output show the log entry and the minimal archive with a `workflow2` section with the
-quantity `name` as in the following:
-
-```json
-{
-  "workflow2": {
-    "name": "EXAMPLE"
-  }
-}
-```
+The output will return the final archive in JSON format.
 
 Parsing can also be run within a python script (or Jupyter notebook), e.g., to facilate debugging, with the following code:
 
 ```python
-from exampleparser import ExampleParser
 from nomad.datamodel import EntryArchive
+from nomad_example.parsers.myparser import MyParser
 import logging
 
 p = ExampleParser()
@@ -89,9 +135,7 @@ a = EntryArchive()
 p.parse('tests/data/example.out', a, logger=logging.getLogger())
 
 print(a.m_to_dict())
-{'workflow2': {'name': 'EXAMPLE'}}
 ```
-<!-- TODO Add some tips for working with archives in python somewhere -->
 
 ## Parsing text files
 
@@ -227,8 +271,8 @@ mainfile_parser.calculation
 ```
 
 The next step is to write the parsed data into the NOMAD archive. We can use one of the
-[predefined schemas plugins](schemas.md#pre-defined-schemas-in-nomad) in NOMAD.
-However, to better illustrate the connection between a parser and a schema we will define our own schema in this example (See [How to write a schema in python](./schemas.md#writing-schemas-in-python-compared-to-yaml-schemas) for additional information on this topic). We define a root section called `Simulation` containing two subsections, `Model` and `Output`. The definitions are found in `exampleparser/metainfo/example.py`:
+[predefined plugins containing schema packages](schema_packages.md#schema-packages-developed-by-fairmat) in NOMAD.
+However, to better illustrate the connection between a parser and a schema we will define our own schema in this example (See [How to write a schema in python](./schema_packages.md#writing-schemas-in-python-compared-to-yaml-schemas) for additional information on this topic). We define a root section called `Simulation` containing two subsections, `Model` and `Output`. The definitions are found in `exampleparser/metainfo/example.py`:
 
 ```python
 class Model(ArchiveSection):
@@ -281,7 +325,7 @@ class Simulation(ArchiveSection):
 
     output = SubSection(sub_section=Output, repeats=True)
 ```
-Each of the classes innherit from the base class `ArchiveSection`. This is the abstract class used in NOMAD to define sections and subsections in a schema. The `Model` section is used to store the `sites` and `lattice/cell` information, while the `Output` section is used to store the `energy` quantity.
+Each of the classes inherit from the base class `ArchiveSection`. This is the abstract class used in NOMAD to define sections and subsections in a schema. The `Model` section is used to store the `sites` and `lattice/cell` information, while the `Output` section is used to store the `energy` quantity.
 Each of the classes that we defined is a sub-class of `ArchiveSection`. This is required in order to assign these sections to the `data` section
 of the NOMAD archive.
 
@@ -341,35 +385,7 @@ class ExampleWorkflow(Workflow):
     )
 ```
 <!-- TODO remove x_ notation in the future -->
-This is the approach for domain-specific schemas such as for [simulation workflows](https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git). Refer to [how to extend schemas](schemas.md#extending-existing-sections).
-
-
-## Testing a parser
-
-Good software development practice involves adding tests during parser development in order to catch bugs and extend the maintainaibility of the parser in the future. For this purpose, we use the Python unit test framework `pytest`. A typical test would take one example file,
-parse it, and check assertions about the output:
-
-<!-- TODO suggest a more compartmentalized testing framework -->
-```python
-def test_example():
-    parser = ExampleParser()
-    archive = EntryArchive()
-    parser.parse('tests/data/example.out', archive, logging)
-
-    sim = archive.data
-    assert len(sim.model) == 2
-    assert len(sim.output) == 2
-    assert archive.workflow2.x_example_magic_value == 42
-```
-
-Run all the tests in the `tests/` directory with:
-
-```shell
-python -m pytest -svx tests
-```
-
-You should follow good [python testing best practices](https://realpython.com/python-testing/).
-<!-- TODO add some specific guidance here!  -->
+This is the approach for domain-specific schemas such as for [simulation workflows](https://github.com/nomad-coe/nomad-schema-plugin-simulation-workflow.git). Refer to [how to extend schemas](schema_packages.md#extending-existing-sections).
 
 ## Other FileParser classes
 Aside from `TextParser`, other `FileParser` classes are also defined. These include:
@@ -381,59 +397,9 @@ the parser takes in an XPath-style key to access individual quantities. By defau
 automatic data type conversion is performed, which can be switched off by setting
 `convert=False`.
 
-## Adding the parser to NOMAD
-NOMAD has to manage multiple parsers and must decide during processing which parsers to run
-on which files. To accomplish this, specific parser attributes are matched to a
-file. These are specified by interfacing the parser with `MatchingParser`. This can be achieved
-by either 1. adding it as a plugin (`nomad.config.__init__.py::plugins`) or 2. directly adding it to the list of parsers (`nomad.parsing.parsers.py::parsers`),
-the former being the preferred route. See [How to add a plugin to your NOMAD](plugins.md#add-a-plugin-to-your-nomad)
-to learn more.
+## Parsers developed by FAIRmat
 
-```python
-MatchingParserInterface(
-    'parsers/example',
-    mainfile_contents_re=(r'^\s*#\s*This is example output'),
-    mainfile_mime_re=r'(application/.*)|(text/.*)',
-    supported_compressions=["gz", "bz2", "xz"],
-    mainfile_alternative=False,
-    mainfile_contents_dict={'program': {'version': '1', 'name': 'EXAMPLE'}})
-```
-
-- `mainfile_mime_re`: A regular expression on the MIME type of files. The parser is run
-  only on files with matching MIME type. The MIME type is *guessed* with libmagic.
-
-- `mainfile_contents_re`: A regular expression that is applied to the first 4k characters of a file.
-  The parser is run only on files where this matches.
-
-- `mainfile_name_re`: A regular expression that can be used to match against the name and
-  path of the file.
-
-- `supported compressions`: A list of [`gz`, `bz2`] if the parser supports compressed
-  files.
-
-- `mainfile_alternative`: If `True`, a file is `mainfile` unless another file in the same
-  directory matches `mainfile_name_re`.
-
-- `mainfile_contents_dict`: A dictionary to match the contents of the file. If provided,
-  it will load the file and match the value of the key(s) provided. One can also specify
-  the keys that should be present by using the tags `__has_key`, `__has_all_keys`
-  and `__has_only_keys`. For example, one can have
-  `{'program': {'__has_all_keys': ['version', 'name']}}` to specify that `version` and `name`
-  must be present in the file to be matched.
-
-The NOMAD infrastructure keeps a list of [Supported Parsers](../../reference/parsers.md#supported-parsers) in
-`nomad/parsing/parsers.py::parsers`. These parsers are considered in the order they
-appear in the list. The first matching parser is used to parse a given file.
-
-Once the parser is successfully installed and added, it will also become available through the NOMAD [Command Line Interface (CLI)](../../reference/cli.md):
-
-```shell
-nomad parse tests/data/example.out
-```
-
-## Developing an existing parser
-
-A number of parsers are constantly being developed in NOMAD.
+The following is a list of plugins containin parsers developed by FAIRmat:
 
 | Description                  | Project url                                            |
 | ---------------------------- | ------------------------------------------------------ |
@@ -470,11 +436,3 @@ PYTHONPATH=. nomad parse <path-to-example-file>
 
 Alternatively, you can also do a full [developer setup](../develop/setup.md) of the NOMAD infrastructure and
 enhance the parser there.
-
-## Developing a Parser plugin
-In order to make a parser into a [plugin](plugins.md#add-a-plugin-to-your-nomad), one needs to provide the parser metadata. We provide a separate project for the example parser as plugin.
-Fork and clone the [parser example project](https://github.com/nomad-coe/nomad-parser-plugin-example){:target="_blank"} as described in [How to install a plugin](plugins.md).
-
-## Parser plugin metadata
-{{pydantic_model('nomad.config.models.plugins.Parser', hide=['code_name','code_category','code_homepage','metadata'])}}
-

@@ -88,9 +88,10 @@ class NormalizerInterface:
 
 
 class NormalizerInterfaceNew:
-    def __init__(self, normalizer: Normalizer) -> None:
+    def __init__(self, normalizer: Normalizer, level: int) -> None:
         self.normalizer = normalizer
         self.archive = None
+        self.level = level
 
     def normalize(self, logger=None):
         self.normalizer.normalize(self.archive, logger)
@@ -102,6 +103,8 @@ class NormalizerInterfaceNew:
     def __getattr__(self, name: str):
         if name == '__name__':
             return self.normalizer.__class__.__name__
+        if name == 'normalizer_level':
+            return self.level
         return getattr(self.normalizer, name, None)
 
 
@@ -121,4 +124,6 @@ for normalizer in config.normalize.normalizers.filtered_values():
 # Load normalizers using new plugin mechanism
 for entry_point in enabled_entry_points:
     if isinstance(entry_point, NormalizerEntryPoint):
-        normalizers.append(NormalizerInterfaceNew(entry_point.load()))
+        normalizers.append(
+            NormalizerInterfaceNew(entry_point.load(), entry_point.level)
+        )

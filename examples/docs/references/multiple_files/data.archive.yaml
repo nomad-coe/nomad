@@ -1,9 +1,9 @@
 data:
   # Instantiating the definition from another entry
-  m_def: '../upload/raw/schema.archive.yaml#Solution'
+  m_def: '../upload/raw/package.archive.yaml#Solution'
   composition: 'H2O'
   # Referencing data in another entry
-  solvent: '../upload/raw/data-and-schema.archive.yaml#data'
+  solvent: '../upload/raw/data-and-package.archive.yaml#data'
   solute:
     elements:
       - label: Na

@@ -100,7 +100,7 @@ The following is a reference of all configuration sections and attributes.
 
 ## User Interface
 
-These settings affect the behaviour of the user interface. Note that the configuration of apps is documented in more detail in the guide on [how to define apps](../howto/oasis/apps.md).
+These settings affect the behaviour of the user interface. Note that the preferred way for creating custom apps is by using [app plugin entry points](../howto/plugins/apps.md).
 
 {{ config_models(['ui'])}}
 
