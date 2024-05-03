@@ -280,7 +280,8 @@ export class Metainfo {
       return this._packagePrefixCache
     }
     this._packagePrefixCache = this.getDefs()
-      .filter(def => def.m_def === PackageMDef)
+      // The definition needs to point to a Package which has a name
+      .filter(def => def.m_def === PackageMDef && def.name)
       .reduce((results, pkg) => {
         const packageName = pkg.name
         if (packageName !== '*') {
