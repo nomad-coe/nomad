@@ -25,6 +25,9 @@ import {getUnits} from '../units/UnitContext'
 import {debounce, isNil} from 'lodash'
 import {TextFieldWithHelp, getFieldProps} from './StringEditQuantity'
 import {useDisplayUnit} from "../units/useDisplayUnit"
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const NumberField = React.memo((props) => {
   const {onChange, onInputChange, dimension, value, dataType, minValue, unit, maxValue, displayUnit, convertInPlace, debounceTime, ...otherProps} = props
@@ -212,6 +215,8 @@ export const NumberEditQuantity = React.memo((props) => {
   const [displayedValue, setDisplayedValue] = useState(true)
   const {defaultDisplayUnit: deprecatedDefaultDisplayUnit, ...fieldProps} = getFieldProps(quantityDef)
   const displayUnit = useDisplayUnit(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
   const [unit, setUnit] = useState(displayUnit)
 
   // Set the unit if display unit changes
@@ -260,6 +265,7 @@ export const NumberEditQuantity = React.memo((props) => {
       dataType={quantityDef.type?.type_data}
       {...fieldProps}
       {...otherProps}
+      label={label}
     />
     {unit && (
       <Box display='flex'>

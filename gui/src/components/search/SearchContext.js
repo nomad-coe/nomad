@@ -250,6 +250,7 @@ export const SearchContextRaw = React.memo(({
     let options = config?.options ? Object.values(config.options) : []
     options.forEach(option => {
       const unit = option.unit
+      option.label = option.label || initialFilterData[option.quantity || option.key]?.label
       if (unit) {
         option.unit = new Unit(unit)
         option.label = `${option.label} (${option.unit.label()})`
@@ -302,10 +303,12 @@ export const SearchContextRaw = React.memo(({
           : <i>no entry time</i>
       },
       authors: {
+        sortable: false,
         render: row => authorList(row),
         align: 'left'
       },
       references: {
+        sortable: false,
         render: row => {
           const refs = row.references || []
           if (refs.length > 0) {
@@ -322,6 +325,7 @@ export const SearchContextRaw = React.memo(({
         }
       },
       datasets: {
+        sortable: false,
         render: entry => {
           const datasets = entry.datasets || []
           if (datasets.length > 0) {

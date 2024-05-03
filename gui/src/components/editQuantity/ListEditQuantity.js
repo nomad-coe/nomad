@@ -18,8 +18,10 @@
 import React, {useCallback, useState} from 'react'
 import PropTypes from 'prop-types'
 import {Box, makeStyles} from '@material-ui/core'
-import {FoldableList} from '../archive/ArchiveBrowser'
+import {configState, FoldableList} from '../archive/ArchiveBrowser'
 import grey from "@material-ui/core/colors/grey"
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
 
 const useListEditQuantityStyles = makeStyles(theme => ({
   root: {
@@ -56,6 +58,8 @@ const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, 
   const [open, setOpen] = useState(true)
   const fixedLength = Number(quantityDef.shape?.[0])
   const hasFixedLength = !isNaN(fixedLength)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   let renderValue
   if (hasFixedLength) {
@@ -94,7 +98,7 @@ const ListEditQuantity = React.memo(function ListEditQuantity({value, onChange, 
 
   return <Box marginTop={1} marginBottom={1}>
     <FoldableList
-      label={quantityDef.name}
+      label={label}
       className={classes}
       open={open}
       onClick={handleClick}

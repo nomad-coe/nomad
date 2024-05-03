@@ -27,7 +27,7 @@ test.each([
     },
     {
       quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
-      label: 'U Effective',
+      label: 'U effective',
       description: 'Value of the effective U parameter (u - j).',
       unit: 'eV'
     }
@@ -52,7 +52,7 @@ test.each([
     },
     {
       quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
-      label: 'U Effective',
+      label: 'U effective',
       description: 'This is a custom description.',
       unit: 'eV'
     }
@@ -77,7 +77,7 @@ test.each([
     },
     {
       quantity: 'results.method.simulation.dft.hubbard_kanamori_model.u_effective',
-      label: 'U Effective',
+      label: 'U effective',
       unit: undefined
     }
   ]

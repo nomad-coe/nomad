@@ -20,11 +20,15 @@ import PropTypes from 'prop-types'
 import {dateFormat} from '../../config'
 import {KeyboardDatePicker, KeyboardTimePicker} from '@material-ui/pickers'
 import AccessTimeIcon from '@material-ui/icons/AccessTime'
-import {getFieldProps} from './StringEditQuantity'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const DateTimeEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, format, time, ...otherProps} = props
   const [dateValue, setDateValue] = useState(value || null)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   useEffect(() => {
     setDateValue(date => value
@@ -52,7 +56,7 @@ export const DateTimeEditQuantity = React.memo((props) => {
     variant: 'inline',
     inputVariant: 'filled',
     fullWidth: true,
-    label: getFieldProps(quantityDef).label,
+    label: label,
     value: dateValue,
     onChange: handleChange,
     ...otherProps

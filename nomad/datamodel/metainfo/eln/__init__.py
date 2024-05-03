@@ -106,7 +106,7 @@ class ElnBaseSection(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short human readable and descriptive name.',
-        a_eln=dict(component='StringEditQuantity', label='Short name'),
+        a_eln=dict(component='StringEditQuantity', label='short name'),
     )
 
     datetime = Quantity(
@@ -624,7 +624,7 @@ class Substance(System):
     name = Quantity(
         type=str,
         description='The name of the substance entry.',
-        a_eln=dict(component='StringEditQuantity', label='Substance name'),
+        a_eln=dict(component='StringEditQuantity', label='substance name'),
     )
 
     lab_id = Quantity(
@@ -632,7 +632,7 @@ class Substance(System):
         description="""
         A human human readable substance ID that is at least unique for the lab.
         """,
-        a_eln=dict(component='StringEditQuantity', label='Substance ID'),
+        a_eln=dict(component='StringEditQuantity', label='substance ID'),
     )
 
     cas_uri = Quantity(
@@ -657,7 +657,7 @@ class Substance(System):
         type=str,
         description='CAS image.',
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'),
+        a_browser=dict(adaptor='RawFileAdaptor', label='image of substance'),
     )
 
     inchi = Quantity(
@@ -708,7 +708,7 @@ class Substance(System):
         by the other quantities and subsections.
         """,
         a_eln=dict(
-            component='RichTextEditQuantity', label='Detailed substance description'
+            component='RichTextEditQuantity', label='detailed substance description'
         ),
     )
 

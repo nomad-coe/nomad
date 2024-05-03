@@ -19,8 +19,10 @@ import React, { useCallback, useState, useRef } from 'react'
 import { Editor } from '@tinymce/tinymce-react'
 import PropTypes from 'prop-types'
 import { Box, FormControl, FormLabel, makeStyles } from '@material-ui/core'
-import { getFieldProps } from './StringEditQuantity'
 import DOMPurify from 'dompurify'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 const useStyle = makeStyles(theme => ({
   root: {
@@ -41,7 +43,8 @@ const RichTextEditQuantity = React.memo((props) => {
   const classes = useStyle()
   const {quantityDef, value, onChange, height} = props
   const initialHeight = height || 500
-  const {label} = getFieldProps(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
   const initialValue = useRef(value)
   const editedValue = useRef(value)
   const [focus, setFocus] = useState(false)

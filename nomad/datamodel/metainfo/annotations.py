@@ -275,13 +275,19 @@ class ELNAnnotation(AnnotationModel):
     )
 
     label: str = Field(
-        None, description='Custom label for the quantity shown on the form field.'
+        None,
+        description="""
+        [Deprecated] ELN label annotation has been deprecated and it is advised to
+        utilize display annotation instead. Custom label for the quantity shown on the form field.
+        It is recommended to adhere to the convention of using lowercase letters for the label,
+        except for abbreviations which could be capitalized.
+    """,
     )
 
     props: Dict[str, Any] = Field(
         None,
         description="""
-        A dictionary with additional props that are passed to the  editcomponent.
+        A dictionary with additional props that are passed to the edit component.
     """,
     )
 

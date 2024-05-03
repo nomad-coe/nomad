@@ -22,10 +22,15 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {getFieldProps, WithHelp} from './StringEditQuantity'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const BoolEditQuantity = React.memo(function BoolEditQuantity(props) {
   const {quantityDef, value, onChange, ...otherProps} = props
   const fieldProps = getFieldProps(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleChange = useCallback((event) => {
     const value = event.target.checked
@@ -34,7 +39,7 @@ export const BoolEditQuantity = React.memo(function BoolEditQuantity(props) {
     }
   }, [onChange])
 
-  return <WithHelp {...fieldProps}>
+  return <WithHelp {...fieldProps} label={label}>
     <FormControlLabel
       control={(
         <Checkbox
@@ -43,7 +48,7 @@ export const BoolEditQuantity = React.memo(function BoolEditQuantity(props) {
           checked={!!value}
           {...otherProps}
         />)}
-      label={fieldProps.label}
+      label={label}
     />
   </WithHelp>
 })

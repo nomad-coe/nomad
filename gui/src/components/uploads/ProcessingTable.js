@@ -119,7 +119,7 @@ export default function ProcessingTable(props) {
     return {entry_id: [...selected]}
   }, [selected, upload])
 
-  return <Paper>
+  return <Paper data-testid={'processing-table'}>
     <Datatable
       columns={columns} shownColumns={defaultSelectedColumns} {...props}
       selected={selected} getId={option => option.entry_id} onSelectedChanged={setSelected}

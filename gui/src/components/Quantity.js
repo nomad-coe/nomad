@@ -40,7 +40,7 @@ import { searchQuantities } from '../config'
 import Placeholder from './visualization/Placeholder'
 import Ellipsis from './visualization/Ellipsis'
 import NoData from './visualization/NoData'
-import { formatNumber, formatTimestamp, authorList, serializeMetainfo } from '../utils'
+import {formatNumber, formatTimestamp, authorList, serializeMetainfo, getDisplayLabel} from '../utils'
 import { Quantity as Q } from './units/Quantity'
 import { Unit } from './units/Unit'
 import { useUnitContext } from './units/UnitContext'
@@ -179,10 +179,10 @@ const Quantity = React.memo((props) => {
     if (!useLabel) {
       // Primarily use a lowercase 'pretty' label if one is defined in FilterRegistry
       if (isQuantityString && defaultFilterData?.[quantity]?.label) {
-        useLabel = defaultFilterData?.[quantity]?.label.toLowerCase()
+        useLabel = defaultFilterData?.[quantity]?.label
       // Alternatively use the original name in metainfo, underscores replaced by spaces
       } else if (def?.name) {
-        useLabel = def.name.replace(/_/g, ' ')
+        useLabel = getDisplayLabel(def)
       } else if (isQuantityString) {
         useLabel = quantity
       } else {
@@ -343,7 +343,7 @@ const nElementMap = {
 }
 const quantityPresets = {
   datasets: {
-    label: 'datasets',
+    label: 'Datasets',
     placeholder: 'no datasets',
     render: (data) => (data.datasets && data.datasets.length !== 0) &&
       <div>
@@ -355,14 +355,14 @@ const quantityPresets = {
       </div>
   },
   authors: {
-    label: 'authors',
+    label: 'Authors',
     placeholder: 'no authors',
     render: (data) => <Typography>
       {authorList(data || [], true)}
     </Typography>
   },
   references: {
-    label: 'references',
+    label: 'References',
     placeholder: 'no references',
     render: (data) => (data?.references && <div style={{display: 'inline-grid'}}>
       {data.references.map(ref => <Typography key={ref} noWrap>
@@ -371,7 +371,7 @@ const quantityPresets = {
     </div>)
   },
   comment: {
-    label: 'comment',
+    label: 'Comment',
     placeholder: 'no comment'
   },
   upload_id: {
@@ -394,7 +394,7 @@ const quantityPresets = {
   },
   last_processing_version: {
     description: 'Version used in the last processing',
-    label: 'processing version',
+    label: 'Processing version',
     noWrap: true,
     placeholder: 'not processed',
     render: (data) => <Typography noWrap>
@@ -450,7 +450,7 @@ const quantityPresets = {
   },
   'results.material.n_elements': {
     noWrap: true,
-    label: "number of elements",
+    label: "Number of elements",
     render: (data) => {
       const n = get(data, 'results.material.n_elements')
       const label = nElementMap[n]

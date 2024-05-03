@@ -19,9 +19,14 @@ import React, {useCallback} from 'react'
 import PropTypes from 'prop-types'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const AutocompleteEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, ...otherProps} = props
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleChange = useCallback((event, value) => {
     value = value || event.target.value
@@ -41,6 +46,7 @@ export const AutocompleteEditQuantity = React.memo((props) => {
         variant='filled' size='small' fullWidth
         {...getFieldProps(quantityDef)}
         {...otherProps}
+        label={label}
       />
     )}
   />

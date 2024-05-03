@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event'
 import { SearchContext } from './SearchContext'
 import { defaultFilterData } from './FilterRegistry'
 import { format } from 'date-fns'
-import { DType, parseJMESPath } from '../../utils'
+import { DType, getDisplayLabel, parseJMESPath } from '../../utils'
 import { Unit } from '../units/Unit'
 import { ui } from '../../config'
 import { menuMap } from './menus/FilterMainMenu'
@@ -337,7 +337,7 @@ export async function expectSearchResults(context, root = screen) {
     const columnLabels = columnConfig.selected.map(key => {
       const config = columnConfig.options[key]
       const unit = config.unit
-      const label = config.label
+      const label = config.label || defaultFilterData[key]?.label || getDisplayLabel({name: key.split('.').slice(-1)[0]})
       return unit
         ? `${label} (${new Unit(unit).label()})`
         : label

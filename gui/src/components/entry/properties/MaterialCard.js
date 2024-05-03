@@ -41,7 +41,7 @@ export function Formula({data}) {
   }
 
   return <Quantity
-    quantity={formula} label='formula' noWrap data={data}
+    quantity={formula} label='Formula' noWrap data={data}
     description="The chemical formula that describes the simulated system or experimental sample."
   />
 }

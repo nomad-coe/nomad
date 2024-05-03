@@ -129,9 +129,9 @@ describe('test custom axis titles', () => {
 
 describe('test custom axis units', () => {
   test.each([
-    ['x', {x: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final Energy Difference (Ha)'],
-    ['y', {y: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final Energy Difference (Ha)'],
-    ['color', {markers: {color: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}}, 'Final Energy Difference (Ha)']
+    ['x', {x: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final energy difference (Ha)'],
+    ['y', {y: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}, 'Final energy difference (Ha)'],
+    ['color', {markers: {color: {unit: 'Ha', quantity: 'results.properties.geometry_optimization.final_energy_difference'}}}, 'Final energy difference (Ha)']
   ])('%s', async (name, config, title) => {
     const configFinal = {
       id: '0',

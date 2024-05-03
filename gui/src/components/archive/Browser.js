@@ -27,6 +27,8 @@ import { useDataStore } from '../DataStore'
 import { useApi } from '../api'
 import NavigateIcon from '@material-ui/icons/ArrowRight'
 import H5Web from '../visualization/H5Web'
+import {CopyToClipboard} from "react-copy-to-clipboard"
+import ClipboardIcon from "@material-ui/icons/Assignment"
 
 function escapeBadPathChars(s) {
   return s.replace(/!/g, '!0').replace(/\?/g, '!1').replace(/#/g, '!2').replace(/%/g, '!3').replace(/\\/g, '!4')
@@ -34,10 +36,6 @@ function escapeBadPathChars(s) {
 
 function unescapeBadPathChars(s) {
   return s.replace(/!4/g, '\\').replace(/!3/g, '%').replace(/!2/g, '#').replace(/!1/g, '?').replace(/!0/g, '!')
-}
-
-export function formatSubSectionName(name) {
-  return name
 }
 
 /**
@@ -630,7 +628,52 @@ const useTitleStyles = makeStyles(theme => ({
   }
 }))
 
-export function Title({title, label, tooltip, actions, ...moreProps}) {
+function LinkWithCopyToClipboard(props) {
+  const {label, name, itemKey, ...moreProps} = props
+  const lane = useLane()
+  const selected = lane?.next && lane?.next.key
+  const isSelected = itemKey && (selected === itemKey)
+
+  return <Box display={'flex'} alignItems={'center'} marginBottom={1}>
+    {label && (
+      <Typography color={moreProps.color}>
+        {label}
+      </Typography>
+    )}
+    {name && (
+      <ItemLink itemKey={itemKey} style={{ textDecoration: 'none', marginLeft: 3 }}>
+        {isSelected
+          ? <Chip
+            label={name}
+            color="primary"
+            size="small"
+          />
+          : <Typography color={'primary'}>
+            {name}
+          </Typography>}
+      </ItemLink>
+    )}
+    {name && (
+      <CopyToClipboard
+        text={name}
+        onCopy={() => null}
+      >
+        <Tooltip title={`Copy "${name}" to clipboard`}>
+          <IconButton style={{ padding: 0, marginLeft: 3 }}>
+            <ClipboardIcon fontSize="small"/>
+          </IconButton>
+        </Tooltip>
+      </CopyToClipboard>
+    )}
+  </Box>
+}
+LinkWithCopyToClipboard.propTypes = ({
+  label: PropTypes.string,
+  name: PropTypes.string,
+  itemKey: PropTypes.string
+})
+
+export function Title({title, label, definitionName, subSectionName, tooltip, actions, ...moreProps}) {
   const classes = useTitleStyles()
   return <Compartment>
     <Grid container justifyContent="space-between" wrap="nowrap" spacing={1}>
@@ -642,11 +685,10 @@ export function Title({title, label, tooltip, actions, ...moreProps}) {
         ) : (
           <Typography variant="h6" noWrap {...moreProps}>{title || <i>unnamed</i>}</Typography>
         )}
-        {label && (
-          <Typography variant="caption" color={moreProps.color}>
-            {label}
-          </Typography>
-        )}
+        <Box display={'flex'} flexDirection={'column'}>
+          {definitionName ? <LinkWithCopyToClipboard label={label} name={definitionName} itemKey={'_metainfo'} {...moreProps}/> : <LinkWithCopyToClipboard label={label} {...moreProps}/>}
+          {subSectionName && <LinkWithCopyToClipboard label={'sub section'} name={subSectionName} itemKey={'_subsectionmetainfo'} {...moreProps}/>}
+        </Box>
       </Grid>
       {actions && (
         <Grid item>
@@ -659,6 +701,8 @@ export function Title({title, label, tooltip, actions, ...moreProps}) {
 Title.propTypes = ({
   title: PropTypes.string,
   label: PropTypes.string,
+  definitionName: PropTypes.string,
+  subSectionName: PropTypes.string,
   tooltip: PropTypes.string,
   actions: PropTypes.oneOfType([
     PropTypes.arrayOf(PropTypes.node),

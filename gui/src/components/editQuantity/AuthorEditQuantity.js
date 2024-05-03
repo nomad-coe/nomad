@@ -24,6 +24,9 @@ import {debounce} from 'lodash'
 import {fetchUsers} from '../uploads/EditMembersDialog'
 import {useApi} from '../api'
 import {useErrors} from '../errors'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 const useStyles = makeStyles(theme => ({
   label: {
@@ -48,6 +51,8 @@ export const AuthorEditQuantity = React.memo((props) => {
   const [suggestions, setSuggestions] = useState([])
   const [searching, setSearching] = useState(false)
   const userOnly = useMemo(() => quantityDef.type?.type_kind === 'User', [quantityDef])
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const searchUsers = useCallback((value) => {
     const newQuery = value.toLowerCase()
@@ -167,7 +172,7 @@ export const AuthorEditQuantity = React.memo((props) => {
           margin='normal'
           fullWidth
           {...getFieldProps(quantityDef)}
-          label={(userOnly ? getFieldProps(quantityDef).label : 'User account')}
+          label={(userOnly ? label : 'User account')}
         />
       )}
       data-testid='user-edit-quantity'
@@ -178,7 +183,7 @@ export const AuthorEditQuantity = React.memo((props) => {
     {userOnly ? userField : (
       <Box marginTop={2} marginBottom={2}>
         <FormLabel component="legend">
-          {getFieldProps(quantityDef).label}
+          {label}
         </FormLabel>
         {userField}
         <Typography className={classes.label} variant={'caption'}>

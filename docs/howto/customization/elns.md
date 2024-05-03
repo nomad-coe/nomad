@@ -26,3 +26,11 @@ The is the commented ELN schema from our ELN example upload that can be created 
 --8<-- "examples/data/eln/schema.archive.yaml"
 ```
 
+---
+**NOTE: Defining Labels for Quantities**
+
+When defining labels for quantities, utilize the
+[display annotations](../../reference/annotations.md#display-annotations)
+and ensure that you follow the conventions as described 
+[here](./basics.md#conventions-for-labels).
+---

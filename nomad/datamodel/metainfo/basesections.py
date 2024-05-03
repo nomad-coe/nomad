@@ -318,7 +318,7 @@ class ActivityStep(ArchiveSection):
         """,
         a_eln=ELNAnnotation(
             component='StringEditQuantity',
-            label='Step name',
+            label='step name',
         ),
     )
     start_time = Quantity(
@@ -327,7 +327,7 @@ class ActivityStep(ArchiveSection):
         Optionally, the starting time of the activity step. If omitted, it is assumed to
         follow directly after the previous step.
         """,
-        a_eln=ELNAnnotation(component='DateTimeEditQuantity', label='Starting time'),
+        a_eln=ELNAnnotation(component='DateTimeEditQuantity', label='starting time'),
     )
     comment = Quantity(
         type=str,
@@ -360,7 +360,7 @@ class Activity(BaseSection):
     datetime = Quantity(
         type=Datetime,
         description='The date and time when this activity was started.',
-        a_eln=dict(component='DateTimeEditQuantity', label='Starting Time'),
+        a_eln=dict(component='DateTimeEditQuantity', label='starting Time'),
     )
     method = Quantity(
         type=str,
@@ -418,7 +418,7 @@ class SectionReference(ArchiveSection):
         description='A reference to a NOMAD archive section.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='Section Reference',
+            label='section reference',
         ),
     )
 
@@ -433,7 +433,7 @@ class EntityReference(SectionReference):
         description='A reference to a NOMAD `Entity` entry.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='Entity Reference',
+            label='entity reference',
         ),
     )
     lab_id = Quantity(
@@ -503,7 +503,7 @@ class ExperimentStep(ActivityStep):
         """,
         a_eln=ELNAnnotation(
             component='StringEditQuantity',
-            label='Activity ID',
+            label='activity ID',
         ),
     )
 
@@ -782,7 +782,7 @@ class InstrumentReference(EntityReference):
         description='A reference to a NOMAD `Instrument` entry.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='Instrument Reference',
+            label='instrument reference',
         ),
     )
 
@@ -795,7 +795,7 @@ class Component(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short name for the component.',
-        a_eln=dict(component='StringEditQuantity', label='Component label'),
+        a_eln=dict(component='StringEditQuantity', label='component label'),
     )
     mass = Quantity(
         type=np.float64,
@@ -845,7 +845,7 @@ class PureSubstanceSection(ArchiveSection):
     name = Quantity(
         type=str,
         description='A short name for the substance.',
-        a_eln=dict(component='StringEditQuantity', label='Substance name'),
+        a_eln=dict(component='StringEditQuantity', label='substance name'),
     )
     iupac_name = Quantity(
         type=str,
@@ -1119,7 +1119,7 @@ class CompositeSystemReference(EntityReference):
         description='A reference to a NOMAD `CompositeSystem` entry.',
         a_eln=ELNAnnotation(
             component='ReferenceEditQuantity',
-            label='Composite System Reference',
+            label='composite system reference',
         ),
     )
 
@@ -1160,7 +1160,7 @@ class Process(Activity):
     end_time = Quantity(
         type=Datetime,
         description='The date and time when this process was finished.',
-        a_eln=dict(component='DateTimeEditQuantity', label='Ending Time'),
+        a_eln=dict(component='DateTimeEditQuantity', label='ending time'),
     )
     steps = SubSection(
         section_def=ProcessStep,
@@ -1348,14 +1348,14 @@ class PureSubstance(System):
     name = Quantity(
         type=str,
         description='The name of the substance entry.',
-        a_eln=dict(component='StringEditQuantity', label='Substance name'),
+        a_eln=dict(component='StringEditQuantity', label='substance name'),
     )
     lab_id = Quantity(
         type=str,
         description="""
         A human human readable substance ID that is at least unique for the lab.
         """,
-        a_eln=dict(component='StringEditQuantity', label='Substance ID'),
+        a_eln=dict(component='StringEditQuantity', label='substance ID'),
     )
     description = Quantity(
         type=str,
@@ -1365,7 +1365,7 @@ class PureSubstance(System):
         """,
         a_eln=dict(
             component='RichTextEditQuantity',
-            label='Detailed substance description',
+            label='detailed substance description',
         ),
     )
     pure_substance = SubSection(
@@ -1650,7 +1650,7 @@ class CASPureSubstanceSection(PureSubstanceSection):
         type=str,
         description='CAS image.',
         a_eln=dict(component='FileEditQuantity'),
-        a_browser=dict(adaptor='RawFileAdaptor', label='Image of substance'),
+        a_browser=dict(adaptor='RawFileAdaptor', label='image of substance'),
     )
     cas_experimental_properties = SubSection(
         section_def=CASExperimentalProperty,

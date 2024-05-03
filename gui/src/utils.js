@@ -1738,3 +1738,31 @@ export function cleanse(obj) {
     }
   }
 }
+
+/**
+ * Get the display label of the quantity
+ * @param {*} def The quantity definition
+ * @param {*} isArchive Determines the archive scope
+ * @param {*} technicalView Returns the technical exploring name
+ */
+export function getDisplayLabel(def, isArchive = false, technicalView = false) {
+  if (!def) {
+    return undefined
+  }
+  if (technicalView) {
+    return def.name
+  }
+  const labelAnnotation = def?.m_annotations?.display?.[0]?.label
+  const eln = def?.m_annotations?.eln
+  if (labelAnnotation) {
+    if (typeof labelAnnotation === 'string') {
+      return labelAnnotation
+    } else {
+      throw new Error('Unsupported format for label annotation')
+    }
+  }
+  const name = def.m_def === 'nomad.metainfo.metainfo.Section' || def.m_def === 'nomad.metainfo.metainfo.SubSection'
+    ? def.name.replace(/([a-z])([A-Z])/g, '$1 $2')
+    : def.name.replace(/_/g, ' ')
+  return eln?.[0].label || def?.more?.label || def?.label || (isArchive ? name : capitalize(name))
+}

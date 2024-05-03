@@ -23,6 +23,7 @@ import { useSearchContext } from '../SearchContext'
 import { Widget, schemaWidget } from './Widget'
 import { ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
+import { InputTextField } from '../input/InputText'
 import { PeriodicTable } from '../input/InputPeriodicTable'
 import { scales } from '../../plotting/common'
 
@@ -32,7 +33,7 @@ import { scales } from '../../plotting/common'
 export const WidgetPeriodicTable = React.memo((
 {
   id,
-  label,
+  title,
   description,
   quantity,
   scale,
@@ -52,7 +53,7 @@ export const WidgetPeriodicTable = React.memo((
   return <Widget
     id={id}
     quantity={quantity}
-    label={label}
+    title={title}
     description={description}
     onEdit={handleEdit}
     className={className}
@@ -81,7 +82,7 @@ export const WidgetPeriodicTable = React.memo((
 
 WidgetPeriodicTable.propTypes = {
   id: PropTypes.string.isRequired,
-  label: PropTypes.string,
+  title: PropTypes.string,
   description: PropTypes.string,
   quantity: PropTypes.string,
   scale: PropTypes.string,
@@ -158,6 +159,16 @@ export const WidgetPeriodicTableEdit = React.memo((props) => {
               <MenuItem value={key} key={key}>{key}</MenuItem>
             )}
           </TextField>
+        </WidgetEditOption>
+      </WidgetEditGroup>
+      <WidgetEditGroup title="General">
+        <WidgetEditOption>
+          <InputTextField
+            label="title"
+            fullWidth
+            value={settings?.title}
+            onChange={(event) => handleChange('title', event.target.value)}
+          />
         </WidgetEditOption>
       </WidgetEditGroup>
     </WidgetEditDialog>

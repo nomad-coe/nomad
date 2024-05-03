@@ -25,6 +25,7 @@ import { IconButton, makeStyles, lighten, TableHead, TableRow, TableCell, TableS
 import TooltipButton from '../utils/TooltipButton'
 import EditColumnsIcon from '@material-ui/icons/ViewColumn'
 import InfiniteScroll from 'react-infinite-scroller'
+import {capitalize} from "../../utils"
 
 const DatatableContext = React.createContext({})
 const StaticDatatableContext = React.createContext({})
@@ -280,7 +281,7 @@ const DatatableHeader = React.memo(function DatatableHeader({actions}) {
         />
       </TableCell>}
       {columns.map(column => {
-        const label = column.label || column.key
+        const label = column.label || capitalize(column.key)
         const description = column.description || ''
         const columnLabel = <Tooltip title={description} placement="top">
           <span>{label}</span>
@@ -645,7 +646,7 @@ const DatatableColumnSelector = React.memo(function DatatableColumnSelector({chi
   }
   return <React.Fragment>
     <TooltipButton
-      title="Change the shown columns."
+      title="Change the shown columns"
       component={IconButton}
       onClick={(event) => setAnchorEl(anchorEl ? null : event.currentTarget)}
     >
@@ -663,6 +664,7 @@ const DatatableColumnSelector = React.memo(function DatatableColumnSelector({chi
         vertical: 'top',
         horizontal: 'center'
       }}
+      data-testid={'column-select-menu'}
     >
       <List>
         {columns.map(column => <ListItem

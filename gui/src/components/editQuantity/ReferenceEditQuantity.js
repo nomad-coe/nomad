@@ -32,7 +32,7 @@ import {
 import { useEntryStore } from '../entry/EntryContext'
 import {ItemButton, useLane} from '../archive/Browser'
 import { getFieldProps } from './StringEditQuantity'
-import { refType, resolveNomadUrl } from '../../utils'
+import { refType, resolveNomadUrl, getDisplayLabel } from '../../utils'
 import AddIcon from '@material-ui/icons/AddCircle'
 import { getUrlFromDefinition, QuantityMDef } from '../archive/metainfo'
 import EditIcon from '@material-ui/icons/Edit'
@@ -44,6 +44,8 @@ import SectionSelectAutocomplete from '../uploads/SectionSelectAutocomplete'
 import {Link} from "react-router-dom"
 import DetailsIcon from '@material-ui/icons/ArrowForward'
 import OverwriteExistingFileDialog from './OverwriteExistingFileDialog'
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 const referenceEditQuantityContext = React.createContext(undefined)
 
@@ -67,7 +69,7 @@ function useReferecedSectionDef(quantityDef) {
 
 const CreateNewReferenceDialog = React.memo(({allEntryDataSections, open, onSuccess, onFailed, onCanceled}) => {
   const classes = useStyles()
-  const {deploymentUrl, uploadId} = useEntryStore('*')
+  const {deploymentUrl, uploadId} = useEntryStore('*') || {}
   const {user, api} = useApi()
   const {raiseError} = useErrors()
   const [value, setValue] = useState('')
@@ -244,7 +246,7 @@ ItemLink.propTypes = {
 }
 
 const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
-  const {url} = useEntryStore('*')
+  const {url} = useEntryStore('*') || {}
   const {quantityDef, value, onChange, index} = props
   const [entry, setEntry] = useState(null)
   const [open, setOpen] = useState(false)
@@ -342,6 +344,8 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
   }, [quantityDef, index])
 
   const {helpDescription, showSectionLabel, ...otherProps} = getFieldProps(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleSuccess = useCallback((value) => {
     setCreateEntryDialogOpen(false)
@@ -445,6 +449,7 @@ const ReferenceEditQuantity = React.memo(function ReferenceEditQuantity(props) {
                   endAdornment: addIconButtonToEndAdornment(params.InputProps.endAdornment, actions)
                 }}
                 {...otherProps}
+                label={label}
                 placeholder={'search by entry name or file name'}
                 data-testid='reference-edit-quantity'
               />

@@ -17,20 +17,16 @@
  */
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import PropTypes from 'prop-types'
-import { number, bool, reach } from 'yup'
+import { number, bool } from 'yup'
 import jmespath from 'jmespath'
-import { isEmpty, isArray, isEqual, cloneDeep, range, isNil, flattenDeep } from 'lodash'
+import { isEmpty, isArray, isEqual, range, isNil, flattenDeep } from 'lodash'
 import {
   Divider,
   Tooltip,
-  makeStyles,
-  Checkbox,
-  FormControlLabel
+  makeStyles
 } from '@material-ui/core'
 import { ToggleButton, ToggleButtonGroup, Alert } from '@material-ui/lab'
-import { InputJMESPath } from '../input/InputMetainfo'
 import { Widget, schemaWidget, schemaAxis, schemaMarkers } from './Widget'
-import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption, WidgetEditSelect } from './WidgetEdit'
 import { useSearchContext } from '../SearchContext'
 import Floatable from '../../visualization/Floatable'
 import PlotScatter from '../../plotting/PlotScatter'
@@ -38,21 +34,10 @@ import { Action, ActionCheckbox } from '../../Actions'
 import { CropFree, PanTool, Fullscreen, Replay } from '@material-ui/icons'
 import { autorangeDescription } from './WidgetHistogram'
 import { styled } from '@material-ui/core/styles'
-import { DType, setDeep, parseJMESPath } from '../../../utils'
+import {DType, parseJMESPath, getDisplayLabel} from '../../../utils'
 import { Quantity } from '../../units/Quantity'
 import { Unit } from '../../units/Unit'
 import { useUnitContext } from '../../units/UnitContext'
-import { InputTextField } from '../input/InputText'
-import UnitInput from '../../units/UnitInput'
-
-// Predefined in order to not break memoization
-const dtypesNumeric = new Set([DType.Int, DType.Float])
-const dtypesColor = new Set([DType.String, DType.Enum, DType.Float, DType.Int])
-const nPointsOptions = {
-  100: 100,
-  1000: 1000,
-  10000: 10000
-}
 
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   '& .MuiToggleButtonGroup-grouped': {
@@ -89,7 +74,7 @@ const useStyles = makeStyles((theme) => ({
 export const WidgetScatterPlot = React.memo((
 {
   id,
-  label,
+  title,
   description,
   x,
   y,
@@ -137,11 +122,11 @@ export const WidgetScatterPlot = React.memo((
     const xFilter = filterData[xParsed.quantity]
     const yFilter = filterData[yParsed.quantity]
     const colorFilter = filterData[colorParsed.quantity]
-    const xTitle = x.title || xFilter?.label
-    const yTitle = y.title || yFilter?.label
+    const xTitle = x.title || xFilter?.label || getDisplayLabel(xFilter)
+    const yTitle = y.title || yFilter?.label || getDisplayLabel(yFilter)
     const xType = xFilter?.dtype
     const yType = yFilter?.dtype
-    const colorTitle = markers?.color?.title || colorFilter?.label
+    const colorTitle = markers?.color?.title || colorFilter?.label || getDisplayLabel(colorFilter)
     const unitLabelX = displayUnitX.label()
     const unitLabelY = displayUnitY.label()
     const unitLabelColor = displayUnitColor.label()
@@ -391,7 +376,7 @@ export const WidgetScatterPlot = React.memo((
     >
     <Widget
       id={id}
-      label={label || "Scatter plot"}
+      title={title || "Scatter plot"}
       description={description || 'Custom scatter plot'}
       onEdit={handleEdit}
       actions={actions}
@@ -422,7 +407,7 @@ export const WidgetScatterPlot = React.memo((
 
 WidgetScatterPlot.propTypes = {
   id: PropTypes.string.isRequired,
-  label: PropTypes.string,
+  title: PropTypes.string,
   description: PropTypes.string,
   x: PropTypes.object,
   y: PropTypes.object,
@@ -432,186 +417,6 @@ WidgetScatterPlot.propTypes = {
   dragmode: PropTypes.string,
   className: PropTypes.string,
   onSelected: PropTypes.func
-}
-
-/**
- * A dialog that is used to configure a scatter plot widget.
- */
-export const WidgetScatterPlotEdit = React.memo(({widget}) => {
-    const { filterData, useSetWidget } = useSearchContext()
-    const [settings, setSettings] = useState(cloneDeep(widget))
-    const [errors, setErrors] = useState({})
-    const [dimensions, setDimensions] = useState({})
-    const setWidget = useSetWidget(widget.id)
-
-    const handleError = useCallback((key, value) => {
-      setErrors(old => ({...old, [key]: value}))
-    }, [setErrors])
-
-    const handleErrorQuantity = useCallback((key, value) => {
-      handleError(key, value)
-      setDimensions((old) => ({...old, [key]: null}))
-    }, [handleError])
-
-    const handleChange = useCallback((key, value) => {
-      setSettings(old => {
-        const newValue = {...old}
-        setDeep(newValue, key, value)
-        return newValue
-      })
-    }, [setSettings])
-
-    const handleClose = useCallback(() => {
-      setWidget(old => ({...old, editing: false}))
-    }, [setWidget])
-
-    const handleAccept = useCallback((key, value) => {
-      try {
-        reach(schemaWidgetScatterPlot, key).validateSync(value)
-      } catch (e) {
-        handleError(key, e.message)
-        return
-      }
-      setErrors(old => ({...old, [key]: undefined}))
-      handleChange(key, value)
-    }, [handleError, handleChange])
-
-    const handleAcceptQuantity = useCallback((key, value) => {
-      handleAccept(key, value)
-      const { quantity } = parseJMESPath(value)
-      const dimension = filterData[quantity]?.dimension
-      setDimensions((old) => ({...old, [key]: dimension}))
-    }, [handleAccept, filterData])
-
-    // Upon accepting the entire form, we perform final validation that also
-    // takes into account cross-field incompatibilities
-    const handleEditAccept = useCallback(() => {
-      // Check for independent errors from components
-      const independentErrors = Object.values(errors).some(x => !!x)
-      if (!independentErrors) {
-        setWidget(old => ({...old, ...{...settings, editing: false, visible: true}}))
-      }
-    }, [settings, setWidget, errors])
-
-    return <WidgetEditDialog
-        id={widget.id}
-        open={widget.editing}
-        visible={widget.visible}
-        title="Edit scatter plot widget"
-        onClose={handleClose}
-        onAccept={handleEditAccept}
-      >
-      <WidgetEditGroup title="x axis">
-        <WidgetEditOption>
-          <InputJMESPath
-            label="quantity"
-            value={settings.x?.quantity}
-            onChange={(value) => handleChange('x.quantity', value)}
-            onSelect={(value) => handleAcceptQuantity('x.quantity', value)}
-            onAccept={(value) => handleAcceptQuantity('x.quantity', value)}
-            error={errors['x.quantity']}
-            onError={(value) => handleErrorQuantity('x.quantity', value)}
-            dtypes={dtypesNumeric}
-            dtypesRepeatable={dtypesNumeric}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <InputTextField
-            label="title"
-            fullWidth
-            value={settings.x?.title}
-            onChange={(event) => handleChange('x.title', event.target.value)}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <UnitInput
-            label='unit'
-            value={settings.x?.unit}
-            onChange={(value) => handleChange('x.unit', value)}
-            onSelect={(value) => handleAccept('x.unit', value)}
-            onAccept={(value) => handleAccept('x.unit', value)}
-            error={errors['x.unit']}
-            onError={(value) => handleError('x.unit', value)}
-            dimension={dimensions['x.quantity'] || null}
-            optional
-            disableGroup
-          />
-        </WidgetEditOption>
-      </WidgetEditGroup>
-      <WidgetEditGroup title="y axis">
-        <WidgetEditOption>
-          <InputJMESPath
-            label="quantity"
-            value={settings.y?.quantity}
-            onChange={(value) => handleChange('y.quantity', value)}
-            onSelect={(value) => handleAcceptQuantity('y.quantity', value)}
-            onAccept={(value) => handleAcceptQuantity('y.quantity', value)}
-            error={errors['y.quantity']}
-            onError={(value) => handleErrorQuantity('y.quantity', value)}
-            dtypes={dtypesNumeric}
-            dtypesRepeatable={dtypesNumeric}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <InputTextField
-            label="title"
-            fullWidth
-            value={settings.y?.title}
-            onChange={(event) => handleChange('y.title', event.target.value)}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <UnitInput
-            label='unit'
-            value={settings.y?.unit}
-            onChange={(value) => handleChange('y.unit', value)}
-            onSelect={(value) => handleAccept('y.unit', value)}
-            onAccept={(value) => handleAccept('y.unit', value)}
-            error={errors['y.unit']}
-            onError={(value) => handleError('y.unit', value)}
-            dimension={dimensions['y.quantity'] || null}
-            optional
-            disableGroup
-          />
-        </WidgetEditOption>
-      </WidgetEditGroup>
-      <WidgetEditGroup title="marker color">
-        <WidgetEditOption>
-          <InputJMESPath
-            label="quantity"
-            value={settings?.markers?.color?.quantity}
-            onChange={(value) => handleChange('markers.color.quantity', value)}
-            onSelect={(value) => handleAccept('markers.color.quantity', value)}
-            onAccept={(value) => handleAccept('markers.color.quantity', value)}
-            error={errors['markers.color.quantity']}
-            onError={(value) => handleError('markers.color.quantity', value)}
-            dtypes={dtypesColor}
-            dtypesRepeatable={dtypesColor}
-            optional
-          />
-        </WidgetEditOption>
-      </WidgetEditGroup>
-      <WidgetEditGroup title="general">
-        <WidgetEditOption>
-          <WidgetEditSelect
-            label="Maximum number of entries to load"
-            options={nPointsOptions}
-            value={settings.size}
-            onChange={(event) => { handleChange('size', event.target.value) }}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
-            label={autorangeDescription}
-          />
-        </WidgetEditOption>
-      </WidgetEditGroup>
-    </WidgetEditDialog>
-})
-
-WidgetScatterPlotEdit.propTypes = {
-  widget: PropTypes.object
 }
 
 export const schemaWidgetScatterPlot = schemaWidget.shape({
