@@ -20,6 +20,10 @@ out the application and this documentation.
 directly defining the type or shape of data. They often allow to alter how certain data is
 managed, represented, or edited. See [annotations in the schema documentation](../howto/customization/elns.md#annotations).
 
+### App
+
+Apps allow you to build customized user interfaces for specific research domains, making it easier to navigate and understand the data. This typically means that certain domain-specific properties are highlighted, different units may be used for physical properties, and specialized dashboards may be presented. This becomes crucial for NOMAD installations to be able to scale with data that contains a mixture of experiments and simulations, different techniques, and physical properties spanning different time and length scales.
+
 ### Archive
 
 NOMAD processes (parses and normalizes) all data.
@@ -104,6 +108,14 @@ can open and read data from other files (e.g. those referenced in the mainfile).
 a parser is associated with a certain file-format and is only applied to files of that
 format.
 
+### Plugin
+
+NOMAD installations can be customized through plugins, which are Git repositories containing an installable python package that will add new features upon being installed. Plugins can contain one or many plugin entry points, which represent individual customizations.
+
+### Plugin entry point
+
+Plugin entry points are used to configure and load different types of NOMAD customizations. There are several entry point types, including entry points for parsers, schema packages and apps. A single plugin may contain multiple entry points.
+
 ### Processed data
 
 NOMAD processes (parses and normalizes) all data. The *processed data* is the outcome of this process.
@@ -158,8 +170,11 @@ are similar to *ontologies* as they define possible relationships between data o
 within them.
 
 A schema is a collection of [section](#section-and-subsection) and [quantity](#quantity)
-definitions. Schemas are organized in *packages*, i.e. collections of definitions.
-All schemas combined form the [metainfo](#metainfo).
+definitions. Schemas are organized in [schema packages](#schema-package), i.e. collections of definitions. All schemas combined form the [metainfo](#metainfo).
+
+### Schema package
+
+*Schema packages* contain a collection of [schema](#schema) definitions. Schema packages may be defined as [YAML files](../howto/customization/basics.md) or in Python as [plugin entry points](../howto/plugins/schema_packages.md).
 
 ### Section and Subsection
 

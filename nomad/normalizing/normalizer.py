@@ -33,9 +33,9 @@ class Normalizer(metaclass=ABCMeta):
     """
 
     domain: Optional[str] = 'dft'
-    """ The domain this normalizer should be used in. Default for all normalizer is 'DFT'. """
+    """Deprecated: The domain this normalizer should be used in. Default for all normalizer is 'DFT'."""
     normalizer_level = 0
-    """ Specifies the order of normalization with respect to other normalizers. Lower level
+    """Deprecated: Specifies the order of normalization with respect to other normalizers. Lower level
     is executed first."""
 
     def __init__(self, **kwargs) -> None:

@@ -54,6 +54,8 @@ class EntryPoint(BaseModel):
 
 
 class AppEntryPoint(EntryPoint):
+    """Base model for a app plugin entry points."""
+
     entry_point_type: Literal['app'] = Field(
         'app', description='Determines the entry point type.'
     )
@@ -64,6 +66,8 @@ class AppEntryPoint(EntryPoint):
 
 
 class SchemaPackageEntryPoint(EntryPoint, metaclass=ABCMeta):
+    """Base model for schema package plugin entry points."""
+
     entry_point_type: Literal['schema_package'] = Field(
         'schema_package', description='Specifies the entry point type.'
     )
@@ -77,8 +81,17 @@ class SchemaPackageEntryPoint(EntryPoint, metaclass=ABCMeta):
 
 
 class NormalizerEntryPoint(EntryPoint, metaclass=ABCMeta):
+    """Base model for normalizer plugin entry points."""
+
     entry_point_type: Literal['normalizer'] = Field(
         'normalizer', description='Determines the entry point type.'
+    )
+    level: int = Field(
+        0,
+        description="""
+        Integer that determines the execution order of this normalizer. Normalizers are
+        run in order from lowest level to highest level.
+        """,
     )
 
     @abstractmethod
@@ -90,13 +103,16 @@ class NormalizerEntryPoint(EntryPoint, metaclass=ABCMeta):
 
 
 class ParserEntryPoint(EntryPoint, metaclass=ABCMeta):
+    """Base model for parser plugin entry points."""
+
     entry_point_type: Literal['parser'] = Field(
         'parser', description='Determines the entry point type.'
     )
     level: int = Field(
         0,
         description="""
-        The order by which the parser is executed with respect to other parsers.
+        Integer that determines the execution order of this parser. Parser with lowest
+        level will attempt to match raw files first.
     """,
     )
 

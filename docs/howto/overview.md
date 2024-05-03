@@ -49,7 +49,6 @@ Host NOMAD for your lab or institution.
 - [Install an Oasis](oasis/install.md)
 - [Customize an Oasis](oasis/customize.md)
 - [Install plugins](oasis/plugins_install.md)
-- [Configure custom apps](oasis/apps.md)
 - [Migrate Oasis versions](oasis/migrate.md)
 - [Administrate and maintain an Oasis](oasis/admin.md)
 
@@ -65,10 +64,11 @@ Customize NOMAD, write plugins, and tailor NOMAD Oasis.
 - [Use base sections](customization/base_sections.md)
 - [Parse tabular data](customization/tabular.md)
 - [Define workflows](customization/workflows.md)
-- [Write plugins](customization/plugins.md)
-- [Write a python schema](customization/schemas.md)
-- [Write a parser](customization/parsers.md)
-- [Write a normalizer](customization/normalizers.md)
+- [Write plugins](plugins/plugins.md)
+- [Write an app](plugins/apps.md)
+- [Write a normalizer](plugins/normalizers.md)
+- [Write a parser](plugins/parsers.md)
+- [Write a schema packages](plugins/schema_packages.md)
 - [Work with units](customization/units.md)
 - [Use HDF5 to handle large quantities](customization/hdf5.md)
 

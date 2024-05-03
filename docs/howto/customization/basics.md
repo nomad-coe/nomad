@@ -1,8 +1,6 @@
-# How to write a schema
+# How to write a YAML schema package
 
-<!-- # Write NOMAD Schemas in YAML -->
-
-This guide explains how to write and upload NOMAD schemas in our `.archive.yaml` format. For more information on how an archive file is composed, visit [Explanation > Data structure](../../explanation/data.md).
+This guide explains how to write and upload NOMAD schema packages in the YAML format that can be uploaded as part of your data. This is a good way to start out experimenting with custom data structures in NOMAD, but for more advanced use cases you may need to use [Python schema packages](../plugins/schema_packages.md). For more information on how an archive file is composed, visit [Explanation > Data structure](../../explanation/data.md).
 
 ## Example data
 
@@ -17,23 +15,23 @@ of *primitive values* (e.g. `'H2O'`, `1.141`), *objects* (a set of *keys* and *v
 
 ## Sections
 
-In a schema, we want to describe the structure of data, i.e. what are the allowed combinations of *objects*, *lists*, and *primitive values*.
+In a schema package, we want to describe the structure of data, i.e. what are the allowed combinations of *objects*, *lists*, and *primitive values*.
 The crucial task here is to define what *keys* certain *types of objects* can have and what possible *values* might exist for each of these keys.
 
 In NOMAD, we call *objects* **sections** and we define *types of objects* with **section
 definitions**. Since *objects* can be nested, **sections** become like the sections and
 subsections of a book or paper. Sections are a representation of data and they are
-the building blocks for [**archives**](../../reference/glossary.md#archive). Section definitions form a schema and they are
+the building blocks for [**archives**](../../reference/glossary.md#archive). Section definitions form a schema package and they are
 the building blocks for the [**metainfo**](../../reference/glossary.md#metainfo).
 
 In the above example, we have two *types* of *objects*: an overaching object for the entire structure
 (with *keys* for `composition` and `elements`), and an additional object which describes the internal structure of
 `elements` (with *keys* for `label`, `density`, and `isotopes`). Let's start with
-the *definition* for elements. This is what the *section definition* looks like in NOMAD's yaml-based schema format:
+the *definition* for elements. This is what the *section definition* looks like in NOMAD's yaml-based schema package format:
 
 ```yaml
 Element:
-{{ yaml_snippet('examples/docs/basic_schema/schema.archive.yaml:definitions/sections/Element', '  ') }}
+{{ yaml_snippet('examples/docs/basic_schema/package.archive.yaml:definitions/sections/Element', '  ') }}
 ```
 
 A *section definition* provides all the available *keys* for a *section* that instantiates
@@ -44,7 +42,7 @@ Let's have a look at the overall definition for our chemical composition:
 
 ```yaml
 Composition:
-{{ yaml_snippet('examples/docs/basic_schema/schema.archive.yaml:definitions/sections/Composition', '  ') }}
+{{ yaml_snippet('examples/docs/basic_schema/package.archive.yaml:definitions/sections/Composition', '  ') }}
 ```
 
 Again, all possible *keys* (`composition` and `elements`) are defined. But now we see
@@ -103,7 +101,7 @@ NOMAD manages units and data with units via the [Pint](https://pint.readthedocs.
 be simple units (or their aliases) or complex expressions. Here are a few examples:
 `m`, `meter`, `mm`, `millimeter`, `m/s`, `m/s**2`.
 
-While you can use all kinds of units in your uploaded schemas, the built-in NOMAD schema (Metainfo) uses only SI units.
+While you can use all kinds of units in your uploaded schema packages, the built-in NOMAD schema (Metainfo) uses only SI units.
 
 ## Subsections
 
@@ -114,17 +112,17 @@ one `Composition` can contain many `Elements`.
 
 The *names* of *subsection definitions* serve as the *key*, used in respective *section objects*.
 
-## Uploading schemas
+## Uploading schema packages
 
 NOMAD archive files allow you to upload data in NOMAD's native file format. An archive
 file can be a .yaml or .json file. It ends with `.archive.json` or `.archive.yaml`.
-Archive files are mainly used to convey data. Since schemas are also "just" data, archive
-files can also be used to convey a schema.
+Archive files are mainly used to convey data. Since YAML schema packages are also "just" data, archive
+files can also be used to convey a schema package.
 
-You can upload schemas and data in separate files.
-`schema.archive.yaml`
+You can upload schema packages and data in separate files.
+`schema_package.archive.yaml`
 ```yaml
---8<-- "examples/docs/basic_schema/schema.archive.yaml"
+--8<-- "examples/docs/basic_schema/package.archive.yaml"
 ```
 
 and `data.archive.yaml`
@@ -132,9 +130,9 @@ and `data.archive.yaml`
 --8<-- "examples/docs/basic_schema/data.archive.yaml"
 ```
 
-Or, you can upload schemas and data in the same file:
+Or, you can upload the schema package and data in the same file:
 ```yaml
---8<-- "examples/docs/basic_schema/schema.archive.yaml"
+--8<-- "examples/docs/basic_schema/package.archive.yaml"
 data:
   m_def: Composition
 {{ yaml_snippet('examples/docs/basic_schema/data.archive.yaml:data', '  ', 'm_def') }}
@@ -148,7 +146,7 @@ want to represent highly inter-linked data, this is often insufficient. *Referen
 allow us to create a more lose relationship between sections.
 
 A reference is a uni-directional link between a *source* section and a *target* section.
-References can be defined in a schema as a quantity in the *source* section definition
+References can be defined in a schema package as a quantity in the *source* section definition
 that uses the *target* section definition as a type.
 
 Instead of connecting the elements in a composition with subsections, we can also
@@ -183,10 +181,10 @@ data:
 If you follow the *keys* `data`, `periodic_table`, `elements`, `0`, you reach the
 section that represent hydrogen. Keep in mind that *lists* use index-numbers as *keys*.
 
-### Schema references
+### Schema package references
 References can look different depending on the context. Above we saw simple references
 that point from one data section to another. But, you also already a saw a different
-type of reference. Schema's themselves contain references: when we
+type of reference. Schema packages themselves contain references: when we
 used `type: Element` or `section: Element` to refer to a *section definition*, we were
 writing down references that point to a *section definition*. Here we can use a convenience representation: `Element` simply replaces the otherwise cryptic `#/definitions/sections/0`.
 
@@ -227,9 +225,9 @@ between two NOMAD entries.
 These inter-entry references have two parts: `<entry>#<section>`, where *entry*
 is a path or URL denoting the *target* entry and *section* a path within the *target* entry's subsection containment hierarchy.
 
-Please note that also schemas can be spread over multiple files. In the above example,
-one file contained the schema and data for a periodic table and another file contained
-schema and data for the composition of water (using the periodic table).
+Please note that also schema packages can be spread over multiple files. In the above example,
+one file contained the schema package and data for a periodic table and another file contained
+schema package and data for the composition of water (using the periodic table).
 
 ## Base sections and inheritance
 
@@ -240,7 +238,7 @@ definitions*
 
 ### Base sections
 
-Here is a simple schema with two *specialization* of the same *abstract* section
+Here is a simple schema package with two *specialization* of the same *abstract* section
 definition:
 ```yaml
 definitions:
@@ -305,13 +303,7 @@ EntryData:
 ```
 
 Compare this to the previous examples: we used the top-level *keys* `definitions`
-and `data` without really explaining why. Here you can see why. The `EntryArchive` *property* `definitions` allows
-us to put a *metainfo package* (i.e. a NOMAD *schema*) into our archives. And
-the `EntryArchive` *property* `data` allows us to put *data* into archives that is a
-*specialization* of `EntryData`. The `EntryData` definition is empty. It is merely an *abstract* placeholder that allows you to add *specialized* data sections to your archive.
-Therefore, all *section definitions* that define a top-level data section, should
-correctly use `nomad.datamodel.EntryData` as a base section. This would be the first "correct"
-example:
+and `data` without really explaining why. Here you can see why. The `EntryArchive` *property* `definitions` allows us to put a *schema package* into our archives. And the `EntryArchive` *property* `data` allows us to put *data* into archives that is a *specialization* of `Schema`. The `Schema` definition is empty. It is merely an *abstract* placeholder that allows you to add *specialized* data sections to your archive. Therefore, all *section definitions* that define a top-level data section, should correctly use `nomad.datamodel.Schema` as a base section. This would be the first "correct" example:
 
 ```yaml
 --8<-- "examples/docs/inheritance/hello.archive.yaml"
@@ -331,35 +323,33 @@ Here are a few other built-in section definitions and packages of definitions:
 |nomad.metainfo.*|A package that contains all *definitions* of *definitions*, e.g. NOMAD's "schema language". Here you find *definitions* for what a sections, quantity, subsections, etc. is.|
 
 
-## Separating data and schema
+## Separating data and schema package
 
-As we saw above, a NOMAD entry can contain schema `definitions` and `data` at the
-same time. To organize your schemas and data efficiently, it is often necessary to re-use
-schemas and certain data in other entries. You can use *references* to spread your
-schemas and data over multiple entries and connect the pieces via *references*.
+As we saw above, a NOMAD entry can contain schema package `definitions` and `data` at the
+same time. To organize your schema package and data efficiently, it is often necessary to re-use
+schema packages and certain data in other entries. You can use *references* to spread your
+schema packages and data over multiple entries and connect the pieces via *references*.
 
-Here is a simple schema, stored in a NOMAD entry with mainfile name `schema.archive.yaml`:
+Here is a simple schema package, stored in a NOMAD entry with mainfile name `package.archive.yaml`:
 
 ```yaml
---8<-- "examples/docs/references/multiple_files/schema.archive.yaml"
+--8<-- "examples/docs/references/multiple_files/package.archive.yaml"
 ```
 
-Now, we can re-use this schema in many entries via *references*. Here, we extend
-the schema and instantiate definitions is a separate mainfile `data-and-schema.archive.yaml`:
+Now, we can re-use this schema package in many entries via *references*. Here, we extend
+a schema contained in the package and instantiate definitions is a separate mainfile `data-and-package.archive.yaml`:
 
 ```yaml
---8<-- "examples/docs/references/multiple_files/data-and-schema.archive.yaml"
+--8<-- "examples/docs/references/multiple_files/data-and-package.archive.yaml"
 ```
 
 Here is a last example that re-uses the schema and references data from the two entries
 above:
 
 ```yaml
---8<-- "examples/docs/references/multiple_files/data.archive.yaml"
+--8<-- "examples/docs/references/multiple_files/package.archive.yaml"
 ```
 
 !!! warning "Attention"
     You cannot create definitions that lead to circular loading of `*.archive.yaml` files.
-    Each `definitions` section in an NOMAD entry represents a schema *package*. Each *package*
-    needs to be fully loaded and analyzed before it can be used by other *packages* in other entries.
-    Therefore, two *packages* in two entries cannot reference each other.
+    Each `definitions` section in an NOMAD entry represents a *schema package*. Each *schema package* needs to be fully loaded and analyzed before it can be used by other *schema packages* in other entries. Therefore, two *schema packages* in two entries cannot reference each other.

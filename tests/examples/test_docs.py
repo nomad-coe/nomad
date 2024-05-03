@@ -28,14 +28,14 @@ def test_python_schema():
     yaml_data = _load_yaml('basic_schema/data.archive.yaml')['data']
     del yaml_data['m_def']
 
-    from examples.docs.basic_schema.schema import Sample
+    from examples.docs.basic_schema.package import Sample
 
     sample = Sample.m_from_dict(yaml_data)
     assert json.dumps(sample.m_to_dict()) == json.dumps(yaml_data)
 
 
 def test_yaml_schema():
-    yaml_package = _load_yaml('basic_schema/schema.archive.yaml')['definitions']
+    yaml_package = _load_yaml('basic_schema/package.archive.yaml')['definitions']
     yaml_data = _load_yaml('basic_schema/data.archive.yaml')['data']
     del yaml_data['m_def']
 
@@ -73,10 +73,10 @@ def test_inheritance():
 
 
 def test_multiple_files():
-    archive = _parse_archive('references/multiple_files/schema.archive.yaml')
+    archive = _parse_archive('references/multiple_files/package.archive.yaml')
     assert len(archive.definitions.sections) == 3
 
-    archive = _parse_archive('references/multiple_files/data-and-schema.archive.yaml')
+    archive = _parse_archive('references/multiple_files/data-and-package.archive.yaml')
     assert archive.data.elements[0].label == 'H'
     assert archive.data.elements[1].label == 'O'
 

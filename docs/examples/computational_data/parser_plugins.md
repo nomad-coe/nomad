@@ -18,7 +18,7 @@ The NOMAD computational parsers can be found within your local NOMAD distributio
 * [nexus](https://github.com/nomad-coe/nomad-parser-nexus) - Parsers for combining various instrument output formats and electronic lab notebooks.
 * [workflow](https://github.com/nomad-coe/workflow-parsers) - Parsers for output from task managers and workflow schedulers.
 
-You can also examine the source code of the parsers by following the above links to the corresponding GitHub repository for each project. Within each project folder you will find a `test/` directory, containing the [parser tests](../../howto/customization/parsers.md#testing-a-parser), and also a directory containing the parsers' source code,
+You can also examine the source code of the parsers by following the above links to the corresponding GitHub repository for each project. Within each project folder you will find a `test/` directory, containing the [parser tests](../../howto/plugins/plugins.md#testing), and also a directory containing the parsers' source code,
 `<parserproject>parser` or `<parserproject>parsers`, depending on if one or more
 parsers are contained within the project, respectively. In the case of multiple parsers, the files
 for individual parsers are contained within a corresponding subdirectory: `<parserproject>parsers/<parsername>`
@@ -31,9 +31,9 @@ For example, the Quantum Espresso parser files are found in `dependencies/parser
 
 The general docs contain information about the nuts and bolts of developing a plugin:
 
-- [How to install plugins](../../howto/customization/plugins.md): Some basic information about different types of plugins, plugin anatomy, and creating a plugin project.
+- [How to write a plugin](../../howto/plugins/plugins.md): Some basic information about different types of plugins, plugin anatomy, and creating a plugin project.
 
-- [How to write a parser](../../howto/customization/parsers.md): The basics of how NOMAD parsers work, how to utlize existing parser classes, and how to customize your parser metadata.
+- [How to write a parser](../../howto/plugins/parsers.md): The basics of how NOMAD parsers work, how to configure the files that your parser will match, and how to utilize existing parser classes.
 
 !!! Attention
     This page is under construction as we convert NOMAD's standard computational parsers to parser plugins. Along the way, we will add content below to guide you in the development of your own computational parser plugins.

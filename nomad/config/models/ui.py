@@ -378,7 +378,7 @@ class SearchSyntaxes(ConfigBaseModel):
      - `equality`: Used to query for a specific value with exact match.
      - `range_bounded`: Queries values that are between two numerical limits, inclusive or exclusive.
      - `range_half_bounded`: Queries values that are above/below a numerical limit, inclusive or exclusive.
-     - `free_text`: For inexact, queries. Requires that a set of keywords has been filled in the entry.
+     - `free_text`: For inexact, free-text queries. Requires that a set of keywords has been filled in the entry.
     """
 
     exclude: Optional[List[str]] = Field(

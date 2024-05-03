@@ -225,7 +225,7 @@ The result will look like this:
 You can work with the results in the given JSON (or respective Python dict/list) data already.
 If you have [NOMAD's Python library](./pythonlib.md) installed ,
 you can take the archive data and use the Python interface.
-The [Python interface](../customization/schemas.md#wrap-data-with-python-schema-classes) will help with code-completion (e.g. in notebook environments),
+The [Python interface](../plugins/schema_packages.md#wrap-data-with-python-schema-classes) will help with code-completion (e.g. in notebook environments),
 resolve archive references (e.g. from workflow to calculation to system), and allow unit conversion:
 ```py
 from nomad.datamodel import EntryArchive

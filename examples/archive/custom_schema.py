@@ -1,4 +1,4 @@
-from nomad.datamodel import EntryData, ArchiveSection
+from nomad.datamodel import Schema, ArchiveSection
 from nomad.metainfo.metainfo import Quantity, Datetime, SubSection
 
 
@@ -15,5 +15,5 @@ class Sample(ArchiveSection):
             self.sample_id = f'{self.added_date}--{self.formula}'
 
 
-class SampleDatabase(EntryData):
+class SampleDatabase(Schema):
     samples = SubSection(section=Sample, repeats=True)

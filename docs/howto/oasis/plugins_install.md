@@ -1,15 +1,12 @@
-# How to mount a plugin into a NOMAD Oasis
-[Plugins](../customization/plugins.md#register-your-plugin) allow the customization of a
-NOMAD deployment in terms of which parsers, schemas, and normalizers are included or excluded.
-In the following we will show to how to mount specific plugins in a NOMAD Oasis.
+# How to install plugins into a NOMAD Oasis
 
-The NOMAD docker image adds the folder `/app/plugins` to the `PYTHONPATH`. You simply have
-to add the *plugin metadata* to your Oasis' `nomad.yaml` and mount your code into the `/app/plugins`
-directory via the volumes section of the `app` and `worker` services in your `docker-compose.yaml`.
+[Plugins](../plugins/plugins.md) allow the customization of a NOMAD deployment in terms of which apps, normalizers, parsers and schema packages are available. In the following we will show to how to install plugins into a NOMAD Oasis.
 
-For example, you can do this by adding an extension to the `docker-compose.yaml`, e.g. a file called
-`docker-compose.plugins.yaml`. Assuming you cloned the example plugins above into the Oasis folder as
-`./nomad-schema-plugin-example`, `./nomad-parser-plugin-example` and `./nomad-normalizer-plugin-example`,
+## Option 1: Mount the plugin code
+
+The NOMAD docker image adds the folder `/app/plugins` to the `PYTHONPATH`. This means that you can mount your code into the `/app/plugins` directory via the volumes section of the `app` and `worker` services in your `docker-compose.yaml`.
+
+For example, you can do this by adding an extension to the `docker-compose.yaml`, e.g. a file called `docker-compose.plugins.yaml`. Assuming you have cloned three plugins into the Oasis folder as `./nomad-schema-plugin-example`, `./nomad-parser-plugin-example` and `./nomad-normalizer-plugin-example`,
 your `docker-compose.plugins.yaml` should look like this:
 
 ```yaml
@@ -26,16 +23,14 @@ services:
       - ./nomad-normalizer-plugin-example/nomadparserexample:/app/plugins/nomadparserexample
 ```
 
-You have to tell docker that there are now two compose files. This can be done via the
-`COMPOSE_FILE` environment variable. This is how you can start the Oasis with the plugins:
+You have to tell docker that there are now two compose files. This can be done via the `COMPOSE_FILE` environment variable. This is how you can start the Oasis with the plugins:
 
 ```sh
 export COMPOSE_FILE=docker-compose.yaml:docker-compose.plugins.yaml
 docker compose up -d
 ```
 
-Here is a complete Oasis setup [nomad-oasis-with-plugins.zip](../../assets/nomad-oasis-with-plugins.zip).
-Simply download, extract, and start like any other Oasis:
+Here is a complete Oasis setup [nomad-oasis-with-plugins.zip](../../assets/nomad-oasis-with-plugins.zip). Simply download, extract, and start like any other Oasis:
 
 ```sh
 unzip nomad-oasis-with-plugins.zip
@@ -60,33 +55,54 @@ curl localhost/nomad-oasis/alive
 
 Read the [Oasis install guide](install.md) for more details.
 
-### Install PyPI/pip package
+## Option 2: Create a derived Docker image with plugin installed via `pip`
 
-If the plugin is published on PyPI, you can simply install it with pip. If the
-plugin was published to our MPCDF GitLab registry, you have to use the `--index-url`
-parameter:
-
-```
-pip install nomad-example-schema-plugin --index-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple
-```
-
-Installing via pip works for NOMAD developers, but how to pip install into an Oasis?
-The package could either be installed when NOMAD is started or via
-a customized docker image.
-
-!!! warning "Attention"
-    We still need to implement that configured plugins, if not already installed,
-    get automatically installed during NOMAD start.
-
-You can build a custom NOMAD docker image that has your packages already installed.
-Here is an example `Dockerfile`:
+Instead of mounting the code into an existing image, you can also create a new, derived image which has your plugin installed as a `pip` package. For this you will to create a new `Dockerfile`, which runs the installation step. The basic idea is that your Dockerfile looks something like this:
 
 ```Dockerfile
 --8<-- "examples/plugins/schema/Dockerfile"
 ```
 
-The image can be build like this:
+The image can then be build like this:
 
 ```
 docker build -t nomad-with-plugins .
 ```
+
+Depending on how your plugin code is distributed, you have several options for the actual install steps:
+
+1. Plugin published in PyPI:
+
+    ```sh
+    RUN pip install <package_name>`
+    ```
+
+2. Plugin code available in GitHub:
+
+    ```sh
+    RUN pip install git+https://<repository_url>
+    ```
+
+3. Plugin published in MPCDF GitLab registry:
+
+    ```sh
+    RUN pip install nomad-example-schema-plugin --index-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple
+    ```
+
+4. Copy plugin code from host machine:
+
+    ```sh
+    RUN pip install build
+
+    COPY \
+        nomadschemaexample \
+        tests \
+        README.md \
+        LICENSE \
+        pyproject.toml \
+        .
+
+    RUN python -m build --sdist
+
+    RUN pip install dist/nomad-schema-plugin-example-*.tar.gz
+    ```
