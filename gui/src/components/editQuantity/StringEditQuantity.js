@@ -32,6 +32,9 @@ import Markdown from '../Markdown'
 import DialogActions from '@material-ui/core/DialogActions'
 import Button from '@material-ui/core/Button'
 import LaunchIcon from '@material-ui/icons/Launch'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 const HelpDialog = React.memo(({title, description}) => {
   const [open, setOpen] = useState(false)
@@ -114,19 +117,11 @@ WithHelp.propTypes = {
   helpDescription: PropTypes.string
 }
 
-const capitalize = (s) => {
-  if (typeof s !== 'string') return ''
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
 export function getFieldProps(quantityDef) {
   const eln = quantityDef?.m_annotations?.eln
-  const name = quantityDef.name.replace(/_/g, ' ')
-  const label = eln?.[0].label || capitalize(name)
   const {component, ...elnProps} = eln?.[0] || {}
   elnProps.unit = elnProps.unit || quantityDef.unit
   return {
-    label: label,
     helpDescription: quantityDef.description,
     ...elnProps
   }
@@ -159,6 +154,8 @@ TextFieldWithHelp.propTypes = {
 
 export const StringEditQuantity = React.memo((props) => {
   const {quantityDef, onChange, ...otherProps} = props
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleChange = useCallback((value) => {
     if (onChange) {
@@ -170,6 +167,7 @@ export const StringEditQuantity = React.memo((props) => {
     onChange={event => handleChange(event.target.value)}
     {...getFieldProps(quantityDef)}
     {...otherProps}
+    label={label}
   />
 })
 StringEditQuantity.propTypes = {
@@ -246,6 +244,8 @@ TextFieldWithLinkButton.propTypes = {
 
 export const URLEditQuantity = React.memo((props) => {
   const {quantityDef, onChange, ...otherProps} = props
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleChange = useCallback((value) => {
     if (onChange) {
@@ -258,6 +258,7 @@ export const URLEditQuantity = React.memo((props) => {
     onChange={event => handleChange(event.target.value)}
     {...getFieldProps(quantityDef)}
     {...otherProps}
+    label={label}
   />
 })
 URLEditQuantity.propTypes = {

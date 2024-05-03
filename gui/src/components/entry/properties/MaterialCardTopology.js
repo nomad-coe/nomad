@@ -381,7 +381,6 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
         <QuantityRow>
           <QuantityCell value={node?.elements} quantity="results.material.topology.elements"/>
           <QuantityCell
-            label="number of elements"
             quantity="results.material.topology.n_elements"
             value={n_elements}
             format={false}
@@ -492,7 +491,7 @@ const MaterialTabs = React.memo(({value, onChange, node}) => {
           <QuantityCell
               value={node?.active_orbitals?.ms_quantum_symbol}
               quantity="results.material.topology.active_orbitals.ms_quantum_symbol"
-              label="spin"
+              label="Spin"
               hideIfUnavailable={true}
             />
         </QuantityRow>

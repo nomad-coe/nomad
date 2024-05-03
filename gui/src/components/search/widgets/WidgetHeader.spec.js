@@ -38,7 +38,7 @@ test.each([
     {quantity: 'results.properties.electronic.band_structure_electronic.band_gap.value'},
     {
       quantity: 'results.properties.electronic.band_structure_electronic.band_gap.value',
-      label: 'Band Gap Value',
+      label: 'Value',
       unit: 'eV'
     }
   ]

@@ -105,7 +105,6 @@ describe('reading query from URL', function() {
     const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: WrapperSearch })
     const { result: resultUseQuery } = renderHook(() => resultUseSearchContext.current.useQuery(), { wrapper: WrapperDefault})
     const query = resultUseQuery.current
-    console.log(query)
     expect(query).toMatchObject(expected_query)
   })
 })

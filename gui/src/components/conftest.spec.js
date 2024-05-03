@@ -46,6 +46,7 @@ import { defaultFilterData } from './search/FilterRegistry'
 import { keycloakBase, searchQuantities, ui } from '../config'
 import { useKeycloak } from '@react-keycloak/web'
 import { GlobalMetainfo } from './archive/metainfo'
+import {capitalize} from "../utils"
 
 beforeEach(async () => {
   // For some strange reason, the useKeycloak mock gets reset if we set it earlier
@@ -350,7 +351,7 @@ export function within(element, queriesToBind = defaultAndCustomQueries) {
 */
 export function expectQuantity(name, data, label = undefined, description = undefined, root = customScreen) {
   description = description || searchQuantities[name].description
-  label = label || defaultFilterData?.[name]?.label?.toLowerCase() || searchQuantities[name].name.replace(/_/g, ' ')
+  label = label || defaultFilterData?.[name]?.label || capitalize(searchQuantities[name].name.replace(/_/g, ' '))
   const value = isPlainObject(data) ? get(data, name) : data
   const element = root.getByTooltip(description)
   expect(root.getByText(label)).toBeInTheDocument()

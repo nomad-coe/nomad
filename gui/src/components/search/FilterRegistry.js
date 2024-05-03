@@ -99,6 +99,9 @@ function addToGroup(groups, groupName, quantityName) {
  * @param {obj} config Data object containing options for the filter.
  */
 function saveFilter(name, group, config, parent) {
+  if (defaultFilterData[name]) {
+    throw Error(`Trying to register filter "${name}"" multiple times.`)
+  }
   const def = searchQuantities[name]
   const {path: quantity, schema} = parseQuantityName(name)
   const newConf = {...(config || {}), quantity, schema, name: config?.name || def?.name || name, aggregatable: def?.aggregatable, group: group}
@@ -201,10 +204,10 @@ registerFilter('results.material.functional_type', idStructure, termQuantityNonE
 registerFilter('results.material.compound_type', idStructure, termQuantityNonExclusive)
 registerFilter('results.material.material_name', idStructure, termQuantity)
 registerFilter('results.material.chemical_formula_hill', idElements, {...termQuantity, placeholder: "E.g. H2O2, C2H5Br"})
-registerFilter('results.material.chemical_formula_iupac', idElements, {...termQuantity, placeholder: "E.g. GaAs, SiC", label: 'Chemical Formula IUPAC'})
+registerFilter('results.material.chemical_formula_iupac', idElements, {...termQuantity, placeholder: "E.g. GaAs, SiC", label: 'Chemical formula IUPAC'})
 registerFilter('results.material.chemical_formula_reduced', idElements, {...termQuantity, placeholder: "E.g. H2NaO, ClNa"})
 registerFilter('results.material.chemical_formula_anonymous', idElements, {...termQuantity, placeholder: "E.g. A2B, A3B2C2"})
-registerFilter('results.material.n_elements', idElements, {...numberHistogramQuantity, label: 'Number of Elements'})
+registerFilter('results.material.n_elements', idElements, {...numberHistogramQuantity})
 registerFilter('results.material.symmetry.bravais_lattice', idStructure, termQuantity)
 registerFilter('results.material.symmetry.crystal_system', idStructure, termQuantity)
 registerFilter(
@@ -299,13 +302,13 @@ registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale
 registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: '1/4'})
 registerFilter('results.method.simulation.program_version', idMethod, termQuantity)
 registerFilter('results.method.simulation.program_version_internal', idMethod, termQuantity)
-registerFilter('results.method.simulation.precision.native_tier', idPrecision, {...termQuantity, placeholder: "E.g. VASP - accurate", label: 'Code-specific Tier'})
-registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.precision.native_tier', idPrecision, {...termQuantity, placeholder: "E.g. VASP - accurate", label: 'Code-specific tier'})
+registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...numberHistogramQuantity, scale: '1/2', label: 'k-line density'})
 registerFilter('results.method.simulation.precision.basis_set', idPrecision, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.precision.planewave_cutoff', idPrecision, {...numberHistogramQuantity, label: 'Plane-wave Cutoff', scale: '1/2'})
-registerFilter('results.method.simulation.precision.apw_cutoff', idPrecision, {...numberHistogramQuantity, label: 'APW Cutoff', scale: '1/2'})
+registerFilter('results.method.simulation.precision.planewave_cutoff', idPrecision, {...numberHistogramQuantity, label: 'Plane-wave cutoff', scale: '1/2'})
+registerFilter('results.method.simulation.precision.apw_cutoff', idPrecision, {...numberHistogramQuantity, label: 'APW cutoff', scale: '1/2'})
 registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
-registerFilter('results.method.simulation.dft.jacobs_ladder', idDFT, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.dft.jacobs_ladder', idDFT, {...termQuantity, scale: '1/2', label: 'Jacob\'s ladder'})
 registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
   ...termQuantity,
   scale: '1/2',
@@ -318,13 +321,13 @@ registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
     'hybrid': {label: 'Hybrid'}
   }
 })
-registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC Functional Names'})
+registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC functional names'})
 registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', idDFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
 registerFilter('results.method.simulation.tb.type', idTB, {...termQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.tb.localization_type', idTB, {...termQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW Type'})
+registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW type'})
 registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
   ...termQuantity,
   scale: '1/2',
@@ -353,26 +356,25 @@ registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
   }
 })
 registerFilter('results.method.simulation.bse.basis_set_type', idBSE, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: '1/4', label: `GW Type`})
+registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: '1/4', label: `GW type`})
 registerFilter('results.method.simulation.dmft.impurity_solver_type', idDMFT, {...termQuantity})
 registerFilter('results.method.simulation.dmft.magnetic_state', idDMFT, {...termQuantity})
 registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dmft.u', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('results.method.simulation.dmft.jh', idDMFT, {...numberHistogramQuantity, label: `JH`, scale: '1/2'})
 registerFilter('results.method.simulation.dmft.analytical_continuation', idDMFT, {...termQuantity})
-registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...termQuantity, label: 'k-line Density'})
 registerFilter('results.eln.sections', idELN, termQuantity)
 registerFilter('results.eln.tags', idELN, termQuantity)
 registerFilter('results.eln.methods', idELN, termQuantity)
 registerFilter('results.eln.instruments', idELN, termQuantity)
-registerFilter('results.eln.lab_ids', idELN, termQuantity)
+registerFilter('results.eln.lab_ids', idELN, {...termQuantity, label: 'Lab IDs'})
 registerFilter('results.eln.names', idELN, noAggQuantity)
 registerFilter('results.eln.descriptions', idELN, noAggQuantity)
-registerFilter('external_db', idAuthor, {...termQuantity, label: 'External Database', scale: '1/4'})
-registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author Name'})
+registerFilter('external_db', idAuthor, {...termQuantity, label: 'External database', scale: '1/4'})
+registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author name'})
 registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})
 registerFilter('entry_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('datasets.dataset_name', idAuthor, {...termQuantityLarge, label: 'Dataset Name'})
+registerFilter('datasets.dataset_name', idAuthor, {...termQuantityLarge, label: 'Dataset name'})
 registerFilter('datasets.doi', idAuthor, {...termQuantity, label: 'Dataset DOI'})
 registerFilter('datasets.dataset_id', idAuthor, termQuantity)
 registerFilter('domain', idMetadata, termQuantity)
@@ -386,7 +388,7 @@ registerFilter('main_author.user_id', idMetadata, termQuantity)
 registerFilter('quantities', idMetadata, {...noAggQuantity, label: 'Metainfo definition', queryMode: 'all'})
 registerFilter('sections', idMetadata, {...noAggQuantity, label: 'Metainfo sections', queryMode: 'all'})
 registerFilter('section_defs.definition_qualified_name', idMetadata, {...noAggQuantity, label: 'Section defs qualified name', queryMode: 'all'})
-registerFilter('entry_references.target_entry_id', idMetadata, {...noAggQuantity, label: 'Entry References Target entry id', queryMode: 'all'})
+registerFilter('entry_references.target_entry_id', idMetadata, {...noAggQuantity, label: 'Entry references target entry id', queryMode: 'all'})
 registerFilter('entry_type', idMetadata, {...noAggQuantity, label: 'Entry type', queryMode: 'all'})
 registerFilter('entry_name.prefix', idMetadata, {...noAggQuantity, label: 'Entry name', queryMode: 'all'})
 registerFilter('results.material.material_id', idMetadata, termQuantity)
@@ -422,7 +424,7 @@ registerFilter('custom_quantities', idCustomQuantities, {
 registerFilter(
   'results.properties.spectroscopic.spectra.provenance.eels',
   idSpectroscopic,
-  {...nestedQuantity, label: 'Electron Energy Loss Spectrum (EELS)'},
+  {...nestedQuantity, label: 'Electron energy loss spectrum (EELS)'},
   [
     {name: 'detector_type', ...termQuantity},
     {name: 'resolution', ...numberHistogramQuantity},
@@ -433,7 +435,7 @@ registerFilter(
 registerFilter(
   'results.properties.electronic.band_structure_electronic',
   idElectronic,
-  {...nestedQuantity, label: 'Band Structure'},
+  {...nestedQuantity, label: 'Band structure'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
   ]
@@ -441,7 +443,7 @@ registerFilter(
 registerFilter(
   'results.properties.electronic.dos_electronic',
   idElectronic,
-  {...nestedQuantity, label: 'Density of States'},
+  {...nestedQuantity, label: 'Density of states'},
   [
     {name: 'spin_polarized', label: 'Spin-polarized', ...termQuantityBool}
   ]
@@ -594,8 +596,8 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'available_properties', ...termQuantityAll},
-    {name: 'provenance.molecular_dynamics.ensemble_type', ...termQuantity, label: 'Ensemble Type'},
-    {name: 'provenance.molecular_dynamics.time_step', ...numberHistogramQuantity, label: 'Time Step'}
+    {name: 'provenance.molecular_dynamics.ensemble_type', ...termQuantity},
+    {name: 'provenance.molecular_dynamics.time_step', ...numberHistogramQuantity}
   ]
 )
 
@@ -664,7 +666,7 @@ registerFilterOptions(
   'electronic_properties',
   idElectronic,
   'results.properties.available_properties',
-  'Electronic Properties',
+  'Electronic properties',
   'The electronic properties that are present in an entry.',
   {
     'electronic.band_structure_electronic.band_gap': {label: 'Band gap'},
@@ -680,7 +682,7 @@ registerFilterOptions(
   'vibrational_properties',
   idVibrational,
   'results.properties.available_properties',
-  'Vibrational Properties',
+  'Vibrational properties',
   'The vibrational properties that are present in an entry.',
   {
     dos_phonon: {label: 'Phonon density of states'},
@@ -695,7 +697,7 @@ registerFilterOptions(
   'mechanical_properties',
   idMechanical,
   'results.properties.available_properties',
-  'Mechanical Properties',
+  'Mechanical properties',
   'The mechanical properties that are present in an entry.',
   {
     bulk_modulus: {label: 'Bulk modulus'},
@@ -709,7 +711,7 @@ registerFilterOptions(
   'spectroscopic_properties',
   idSpectroscopic,
   'results.properties.available_properties',
-  'Spectroscopic Properties',
+  'Spectroscopic properties',
   'The spectroscopic properties that are present in an entry.',
   {
     eels: {label: 'Electron energy loss spectrum'}
@@ -721,7 +723,7 @@ registerFilterOptions(
   'thermodynamic_properties',
   idMolecularDynamics,
   'results.properties.available_properties',
-  'Thermodynamic Properties',
+  'Thermodynamic properties',
   'The thermodynamic properties that are present.',
   {
     trajectory: {label: 'Trajectory'}

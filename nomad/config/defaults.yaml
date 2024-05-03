@@ -744,66 +744,36 @@ ui:
           - upload_create_time
           - authors
           options:
-            entry_name:
-              label: Name
-            results.material.chemical_formula_hill:
-              label: Formula
-            entry_type:
-              label: Entry type
-            entry_create_time:
-              label: Entry creation time
-            upload_name:
-              label: Upload name
-            upload_id:
-              label: Upload id
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            results.method.method_name:
-              label: Method name
-            results.method.simulation.program_name:
-              label: Program name
-            results.method.simulation.dft.xc_functional_type:
-              label: XC Functional Type
-            results.method.simulation.precision.apw_cutoff:
-              label: APW Cutoff
-            results.method.simulation.precision.basis_set:
-              label: Basis Set
-            results.method.simulation.precision.k_line_density:
-              label: k-line Density
-            results.method.simulation.precision.native_tier:
-              label: Code-specific tier
-            results.method.simulation.precision.planewave_cutoff:
-              label: Plane-wave cutoff
-            results.material.structural_type:
-              label: Dimensionality
-            results.material.symmetry.crystal_system:
-              label: Crystal system
-            results.material.symmetry.space_group_symbol:
-              label: Space group symbol
-            results.material.symmetry.space_group_number:
-              label: Space group number
-            results.eln.lab_ids:
-              label: Lab IDs
-            results.eln.sections:
-              label: Sections
-            results.eln.methods:
-              label: Methods
-            results.eln.tags:
-              label: Tags
-            results.eln.instruments:
-              label: Instruments
-            mainfile:
-              label: Mainfile
-            comment:
-              label: Comment
-            references:
-              label: References
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+            entry_name: {label: Name}
+            results.material.chemical_formula_hill: {label: Formula}
+            entry_type: {}
+            entry_create_time: {}
+            upload_name: {}
+            upload_id: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            results.method.method_name: {}
+            results.method.simulation.program_name: {}
+            results.method.simulation.dft.xc_functional_type: {}
+            results.method.simulation.precision.apw_cutoff: {}
+            results.method.simulation.precision.basis_set: {}
+            results.method.simulation.precision.k_line_density: {}
+            results.method.simulation.precision.native_tier: {}
+            results.method.simulation.precision.planewave_cutoff: {}
+            results.material.structural_type: {}
+            results.material.symmetry.crystal_system: {}
+            results.material.symmetry.space_group_symbol: {}
+            results.material.symmetry.space_group_number: {}
+            results.eln.lab_ids: {}
+            results.eln.sections: {}
+            results.eln.methods: {}
+            results.eln.tags: {}
+            results.eln.instruments: {}
+            mainfile: {}
+            comment: {}
+            references: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:
@@ -901,48 +871,27 @@ ui:
           - upload_create_time
           - authors
           options:
-            results.material.chemical_formula_hill:
-              label: Formula
-            results.method.simulation.program_name:
-              label: Program name
-            results.method.method_name:
-              label: Method name
-            results.method.simulation.dft.xc_functional_type:
-              label: Jacob's ladder
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            results.method.simulation.precision.apw_cutoff:
-              label: APW Cutoff
-            results.method.simulation.precision.basis_set:
-              label: Basis Set
-            results.method.simulation.precision.k_line_density:
-              label: k-line Density
-            results.method.simulation.precision.native_tier:
-              label: Code-specific tier
-            results.method.simulation.precision.planewave_cutoff:
-              label: Plane-wave cutoff
-            results.material.structural_type:
-              label: Dimensionality
-            results.material.symmetry.crystal_system:
-              label: Crystal system
-            results.material.symmetry.space_group_symbol:
-              label: Space group symbol
-            results.material.symmetry.space_group_number:
-              label: Space group number
-            entry_name:
-              label: Name
-            mainfile:
-              label: Mainfile
-            comment:
-              label: Comment
-            references:
-              label: References
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+            results.material.chemical_formula_hill: {label: Formula}
+            results.method.simulation.program_name: {}
+            results.method.method_name: {}
+            results.method.simulation.dft.xc_functional_type: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            results.method.simulation.precision.apw_cutoff: {}
+            results.method.simulation.precision.basis_set: {}
+            results.method.simulation.precision.k_line_density: {}
+            results.method.simulation.precision.native_tier: {}
+            results.method.simulation.precision.planewave_cutoff: {}
+            results.material.structural_type: {}
+            results.material.symmetry.crystal_system: {}
+            results.material.symmetry.space_group_symbol: {}
+            results.material.symmetry.space_group_number: {}
+            entry_name: {label: Name}
+            mainfile: {}
+            comment: {}
+            references: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:
@@ -1102,20 +1051,13 @@ ui:
           - symmetry.space_group_number
           - symmetry.crystal_system
           options:
-            chemical_formula_hill:
-              label: Formula
-            structural_type:
-              label: Dimensionality
-            symmetry.structure_name:
-              label: Structure name
-            symmetry.space_group_number:
-              label: Space group number
-            symmetry.crystal_system:
-              label: Crystal system
-            symmetry.space_group_symbol:
-              label: Space group symbol
-            material_id:
-              label: Material ID
+            chemical_formula_hill: {label: Formula}
+            structural_type: {}
+            symmetry.structure_name: {}
+            symmetry.space_group_number: {}
+            symmetry.crystal_system: {}
+            symmetry.space_group_symbol: {}
+            material_id: {}
         filter_menus:
           options:
             material:
@@ -1201,38 +1143,22 @@ ui:
           - upload_create_time
           - authors
           options:
-            entry_name:
-              label: Name
-            entry_type:
-              label: Entry type
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            results.material.chemical_formula_hill:
-              label: Formula
-            results.method.method_name:
-              label: Method name
-            results.eln.lab_ids:
-              label: Lab IDs
-            results.eln.sections:
-              label: Sections
-            results.eln.methods:
-              label: Methods
-            results.eln.tags:
-              label: Tags
-            results.eln.instruments:
-              label: Instruments
-            mainfile:
-              label: Mainfile
-            comment:
-              label: Comment
-            references:
-              label: References
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+            entry_name: {label: Name}
+            entry_type: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            results.material.chemical_formula_hill: {label: Formula}
+            results.method.method_name: {}
+            results.eln.lab_ids: {}
+            results.eln.sections: {}
+            results.eln.methods: {}
+            results.eln.tags: {}
+            results.eln.instruments: {}
+            mainfile: {}
+            comment: {}
+            references: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:
@@ -1282,34 +1208,20 @@ ui:
           - upload_create_time
           - authors
           options:
-            results.material.chemical_formula_hill:
-              label: Formula
-            results.properties.spectroscopic.spectra.provenance.eels.detector_type:
-              label: Detector type
-            results.properties.spectroscopic.spectra.provenance.eels.resolution:
-              label: Resolution
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            results.properties.spectroscopic.spectra.provenance.eels.min_energy:
-              label: Min energy
-            results.properties.spectroscopic.spectra.provenance.eels.max_energy:
-              label: Max energy
-            entry_name:
-              label: Name
-            entry_type:
-              label: Entry type
-            mainfile:
-              label: Mainfile
-            comment:
-              label: Comment
-            references:
-              label: References
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+            results.material.chemical_formula_hill: {label: Formula}
+            results.properties.spectroscopic.spectra.provenance.eels.detector_type: {}
+            results.properties.spectroscopic.spectra.provenance.eels.resolution: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            results.properties.spectroscopic.spectra.provenance.eels.min_energy: {}
+            results.properties.spectroscopic.spectra.provenance.eels.max_energy: {}
+            entry_name: {label: Name}
+            entry_type: {}
+            mainfile: {}
+            comment: {}
+            references: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:
@@ -1364,8 +1276,7 @@ ui:
           - results.properties.optoelectronic.solar_cell.fill_factor
           - references
           options:
-            results.material.chemical_formula_descriptive:
-              label: Descriptive Formula
+            results.material.chemical_formula_descriptive: {label: Descriptive formula}
             results.properties.optoelectronic.solar_cell.efficiency:
               format:
                 decimals: 2
@@ -1375,57 +1286,39 @@ ui:
               format:
                 decimals: 3
                 mode: standard
-              label: Open circuit voltage
               unit: V
             results.properties.optoelectronic.solar_cell.short_circuit_current_density:
               format:
                 decimals: 3
                 mode: standard
-              label: Short circuit current density
               unit: A/m**2
             results.properties.optoelectronic.solar_cell.fill_factor:
               format:
                 decimals: 3
                 mode: standard
-              label: Fill factor
-            references:
-              label: References
+            references: {}
             results.material.chemical_formula_hill:
               label: Formula
-            results.material.structural_type:
-              label: Dimensionality
+            results.material.structural_type: {}
             results.properties.optoelectronic.solar_cell.illumination_intensity:
               format:
                 decimals: 3
                 mode: standard
               label: Illum. intensity
               unit: W/m**2
-            results.eln.lab_ids:
-              label: Lab IDs
-            results.eln.sections:
-              label: Sections
-            results.eln.methods:
-              label: Methods
-            results.eln.tags:
-              label: Tags
-            results.eln.instruments:
-              label: Instruments
-            entry_name:
-              label: Name
-            entry_type:
-              label: Entry type
-            mainfile:
-              label: Mainfile
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            comment:
-              label: Comment
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+            results.eln.lab_ids: {}
+            results.eln.sections: {}
+            results.eln.methods: {}
+            results.eln.tags: {}
+            results.eln.instruments: {}
+            entry_name: {label: Name}
+            entry_type: {}
+            mainfile: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            comment: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:
@@ -1541,6 +1434,7 @@ ui:
               xxl: {h: 3, minH: 3, minW: 8, w: 8, x: 0, y: 11}
             nbins: 30
             quantity: results.properties.electronic.band_structure_electronic.band_gap.value
+            title: 'Band gap'
             scale: 1/4
             showinput: false
             type: histogram
@@ -1590,20 +1484,13 @@ ui:
           - mainfile
           - authors
           options:
-            results.material.chemical_formula_iupac:
-              label: Formula
-            mainfile:
-              label: Mainfile
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            comment:
-              label: Comment
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+            results.material.chemical_formula_iupac: {label: Formula}
+            mainfile: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            comment: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:
@@ -1643,6 +1530,7 @@ ui:
               xl: {h: 9, minH: 3, minW: 3, w: 11, x: 19, y: 0}
               xxl: {h: 10, minH: 3, minW: 3, w: 11, x: 25, y: 0}
             quantity: results.material.topology.sbu_type
+            title: 'SBU type'
             scale: linear
             showinput: true
             type: terms
@@ -1722,59 +1610,35 @@ ui:
           - results.properties.catalytic.catalyst_synthesis.preparation_method
           - results.properties.catalytic.catalyst_characterization.surface_area
           options:
-            results.material.elements:
-              label: Elements
-            results.properties.catalytic.catalyst_synthesis.catalyst_type:
-              label: Catalyst Type
-            results.properties.catalytic.catalyst_synthesis.catalyst_name:
-              label: Catalyst Name
-            results.properties.catalytic.catalyst_synthesis.preparation_method:
-              label: Preparation
+            results.material.elements: {}
+            results.properties.catalytic.catalyst_synthesis.catalyst_type: {}
+            results.properties.catalytic.catalyst_synthesis.catalyst_name: {}
+            results.properties.catalytic.catalyst_synthesis.preparation_method: {label: Preparation}
             results.properties.catalytic.catalyst_characterization.surface_area:
               format:
                 decimals: 2
                 mode: standard
-              label: Surface Area (m^2/g)
-            results.properties.catalytic.reaction.name:
-              label: Reaction Name
-            results.properties.catalytic.reaction.type:
-              label: Reaction Class
-            results.properties.catalytic.reaction.reactants.name:
-              label: Reactants
-            results.properties.catalytic.reaction.products.name:
-              label: Products
-            references:
-              label: References
-            results.material.chemical_formula_hill:
-              label: Formula
-            results.material.structural_type:
-              label: Dimensionality
-            results.eln.lab_ids:
-              label: Lab IDs
-            results.eln.sections:
-              label: Sections
-            results.eln.methods:
-              label: Methods
-            results.eln.tags:
-              label: Tags
-            results.eln.instruments:
-              label: Instruments
-            entry_name:
-              label: Name
-            entry_type:
-              label: Entry type
-            mainfile:
-              label: Mainfile
-            upload_create_time:
-              label: Upload time
-            authors:
-              label: Authors
-            comment:
-              label: Comment
-            datasets:
-              label: Datasets
-            published:
-              label: Access
+              label: Surface area (m^2/g)
+            results.properties.catalytic.reaction.name: {label: Reaction name}
+            results.properties.catalytic.reaction.type: {label: Reaction class}
+            results.properties.catalytic.reaction.reactants.name: {label: Reactants}
+            results.properties.catalytic.reaction.products.name: {label: Products}
+            references: {}
+            results.material.chemical_formula_hill: {label: Formula}
+            results.material.structural_type: {}
+            results.eln.lab_ids: {}
+            results.eln.sections: {}
+            results.eln.methods: {}
+            results.eln.tags: {}
+            results.eln.instruments: {}
+            entry_name: {label: Name}
+            entry_type: {}
+            mainfile: {}
+            upload_create_time: {label: Upload time}
+            authors: {}
+            comment: {}
+            datasets: {}
+            published: {label: Access}
         filter_menus:
           options:
             material:

@@ -192,6 +192,8 @@ def _generate_search_quantities():
 
 @dev.command(help='Generates a JSON with all search quantities.')
 def search_quantities():
+    from nomad.datamodel import all_metainfo_packages
+
     all_metainfo_packages()
     print(json.dumps(_generate_search_quantities(), indent=2))
 

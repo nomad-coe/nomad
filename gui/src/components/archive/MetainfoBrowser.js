@@ -19,7 +19,7 @@ import React, {useMemo, useEffect, useRef, useLayoutEffect, useContext, useState
 import PropTypes from 'prop-types'
 import { useRecoilValue, useRecoilState, atom } from 'recoil'
 import { configState } from './ArchiveBrowser'
-import Browser, { Item, Content, Compartment, Adaptor, laneContext, formatSubSectionName, Title, ItemChip } from './Browser'
+import Browser, { Item, Content, Compartment, Adaptor, laneContext, Title, ItemChip } from './Browser'
 import { Typography, Box, makeStyles, FormGroup, TextField, Button, Link } from '@material-ui/core'
 import { vicinityGraph, SubSectionMDef, SectionMDef, QuantityMDef, CategoryMDef, useGlobalMetainfo, PackageMDef, AttributeMDef, getMetainfoFromDefinition } from './metainfo'
 import * as d3 from 'd3'
@@ -38,6 +38,7 @@ import { useErrors } from '../errors'
 import { SourceJsonDialogButton } from '../buttons/SourceDialogButton'
 import ReactJson from 'react-json-view'
 import ArchiveSearchBar from './ArchiveSearchBar'
+import {getDisplayLabel} from "../../utils"
 
 export const help = `
 The NOMAD *metainfo* defines all quantities used to represent archive data in
@@ -520,7 +521,7 @@ function SectionDefContent({def, inheritingSections}) {
           return <Item key={key} itemKey={key}>
             <Typography component="span" color={unused && 'error'}>
               <Box fontWeight="bold" component="span">
-                {formatSubSectionName(subSectionDef.more?.label || subSectionDef.name)}
+                {subSectionDef.name}
               </Box>
               {subSectionDef.repeats && <ItemChip label="repeats"/>}
               {subSectionDef._overwritten && <ItemChip label="overwritten" />}
@@ -541,7 +542,7 @@ function SectionDefContent({def, inheritingSections}) {
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
-                  {quantityDef.more?.label || quantityDef.name}
+                  {quantityDef.name}
                 </Box>
               </Typography>
               {quantityDef._overwritten && <ItemChip label="overwritten" />}
@@ -561,7 +562,7 @@ function SectionDefContent({def, inheritingSections}) {
             <Box component="span" whiteSpace="nowrap">
               <Typography component="span" color={unused && 'error'}>
                 <Box fontWeight="bold" component="span">
-                  {innerSectionDef.more?.label || innerSectionDef.name}
+                  {getDisplayLabel(innerSectionDef, true)}
                 </Box>
               </Typography>
             </Box>
@@ -580,8 +581,15 @@ SectionDefContent.propTypes = ({
 })
 
 function SectionDef({def, inheritingSections}) {
+  const label = getDisplayLabel(def, true)
   return <Content>
     <Definition def={def} kindLabel="section definition" />
+    <DefinitionProperties def={def}>
+      <Typography>
+        <b>label</b>:&nbsp;
+        {label}
+      </Typography>
+    </DefinitionProperties>
     <SectionDefContent def={def} inheritingSections={inheritingSections}/>
   </Content>
 }
@@ -592,9 +600,16 @@ SectionDef.propTypes = ({
 
 function SubSectionDef({def, inheritingSections}) {
   const sectionDef = def.sub_section
+  const label = getDisplayLabel(def, true)
   return <React.Fragment>
     <Content>
       <ArchiveTitle def={def} useName isDefinition kindLabel="sub section definition" />
+      <DefinitionProperties def={def}>
+        <Typography>
+          <b>label</b>:&nbsp;
+          {label}
+        </Typography>
+      </DefinitionProperties>
       <DefinitionDocs def={sectionDef} />
       <Attributes def={def}/>
       <Annotations def={def}/>
@@ -636,9 +651,14 @@ DefinitionProperties.propTypes = ({
 })
 
 function QuantityDef({def}) {
+  const label = getDisplayLabel(def, true)
   return <Content>
     <Definition def={def} kindLabel="quantity definition"/>
     <DefinitionProperties def={def}>
+      <Typography>
+        <b>label</b>:&nbsp;
+        {label}
+      </Typography>
       {def.type.type_kind !== 'reference'
         ? <Typography>
           <b>type</b>:&nbsp;
@@ -843,17 +863,20 @@ const definitionLabels = {
   [AttributeMDef]: 'attribute'
 }
 
-export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actions}) {
+export function ArchiveTitle({def, property, isDefinition, data, kindLabel, useName, actions}) {
   const color = isDefinition ? 'primary' : 'initial'
   let label = definitionLabels[def.m_def]
   if (def.extends_base_section) {
     label += ' extension'
   }
+  const title = isDefinition || useName ? def.name : getDisplayLabel(def)
   return <Title
-    title={(!useName && def.more?.label) || def.label || def.name}
+    title={title}
     tooltip={def._qualifiedName || def.name}
     label={`${label}${isDefinition ? ' definition' : ''}`}
     color={color}
+    definitionName={!isDefinition && def.name}
+    subSectionName={!isDefinition && property && property.m_def === 'nomad.metainfo.metainfo.SubSection' && property.name}
     actions={actions ||
       <SourceJsonDialogButton
         buttonProps={{size: 'small'}}
@@ -866,6 +889,7 @@ export function ArchiveTitle({def, isDefinition, data, kindLabel, useName, actio
 }
 ArchiveTitle.propTypes = ({
   def: PropTypes.object.isRequired,
+  property: PropTypes.object,
   data: PropTypes.any,
   isDefinition: PropTypes.bool,
   kindLabel: PropTypes.string,

@@ -442,6 +442,9 @@ class Markers(ConfigBaseModel):
 class Widget(ConfigBaseModel):
     """Common configuration for all widgets."""
 
+    title: Optional[str] = Field(
+        description='Custom widget title. If not specified, a widget-specific default title is used.'
+    )
     type: str = Field(description='Used to identify the widget type.')
     layout: Dict[BreakpointEnum, Layout] = Field(
         description="""

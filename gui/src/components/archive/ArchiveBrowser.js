@@ -24,7 +24,7 @@ import {
 } from '@material-ui/core'
 import {useHistory, useRouteMatch} from 'react-router-dom'
 import Browser, {
-  Adaptor, browserContext, Compartment, Content, formatSubSectionName, Item, ItemChip, laneContext, useLane
+  Adaptor, browserContext, Compartment, Content, Item, ItemChip, laneContext, useLane
 } from './Browser'
 import { RawFileAdaptor } from './FileBrowser'
 import {
@@ -55,7 +55,8 @@ import SectionEditor from './SectionEditor'
 import PlotlyFigure from './PlotlyFigure'
 import {
   appendDataUrl, createEntryUrl, createUploadUrl, formatTimestamp, parseNomadUrl, refType, resolveInternalRef,
-  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId, resolveNomadUrlNoThrow, getOptions
+  resolveNomadUrl, systemMetainfoUrl, titleCase, isWaitingForUpdateTestId, resolveNomadUrlNoThrow, getOptions,
+  getDisplayLabel
 } from '../../utils'
 import { EntryButton } from '../nav/Routes'
 import NavigateIcon from '@material-ui/icons/ArrowForward'
@@ -271,7 +272,7 @@ const ArchiveConfigForm = React.memo(function ArchiveConfigForm({searchOptions, 
                 onChange={handleConfigChange}
                 name="showMeta"/>
             }
-            label="definitions"
+            label="technical view"
           />
         </Tooltip>
         {entryId && <Download
@@ -415,7 +416,7 @@ class ArchiveAdaptor extends Adaptor {
    * @param {*} obj The data that objUrl points to = a location in some archive.
    * @param {*} def The metainfo definition of obj
    */
-  constructor(objUrl, obj, def, isInEln) {
+  constructor(objUrl, obj, def, property, isInEln) {
     super()
     this.objUrl = objUrl
     this.parsedObjUrl = parseNomadUrl(objUrl)
@@ -428,6 +429,7 @@ class ArchiveAdaptor extends Adaptor {
     this.isInEln = isInEln === undefined && def.m_def === SectionMDef ? isEditable(def) : isInEln
     this.obj = obj // The data in the archive tree to display
     this.def = def
+    this.property = property
     this.external_refs = {}
   }
 
@@ -439,7 +441,16 @@ class ArchiveAdaptor extends Adaptor {
     this.entryIsEditable = editable
   }
 
-  async adaptorFactory(objUrl, obj, def) {
+  async adaptorFactory(objUrl, obj, property) {
+    let def
+    if (property.m_def === SubSectionMDef) {
+      def = property.sub_section
+    } else if (property.m_def === QuantityMDef) {
+      def = property
+    } else if (property.m_def === AttributeMDef) {
+      def = property
+    }
+
     if (obj.m_def === PackageMDef) {
       // We're viewing an archive which contains metainfo definitions, and open the definitions node
       const metainfo = await this.dataStore.getMetainfoAsync(objUrl)
@@ -455,7 +466,7 @@ class ArchiveAdaptor extends Adaptor {
         def = await this.dataStore.getMetainfoDefAsync(newDefUrl)
       }
       const isInEln = this.isInEln || isEditable(def)
-      return new SectionAdaptor(objUrl, obj, def, isInEln)
+      return new SectionAdaptor(objUrl, obj, def, property, isInEln)
     }
 
     if (def.m_def === QuantityMDef) {
@@ -478,6 +489,10 @@ class ArchiveAdaptor extends Adaptor {
   async itemAdaptor(key) {
     if (key === '_metainfo') {
       return metainfoAdaptorFactory(this.def)
+    }
+
+    if (key === '_subsectionmetainfo') {
+      return metainfoAdaptorFactory(this.property)
     }
 
     if (key.startsWith('_external_ref')) {
@@ -511,16 +526,15 @@ class SectionAdaptor extends ArchiveAdaptor {
     if (!property) {
       return super.itemAdaptor(key)
     } else if (property.m_def === SubSectionMDef) {
-      const sectionDef = property.sub_section
       let subSectionAdaptor
       let subSectionIndex = -1
       if (property.repeats) {
         subSectionIndex = index || 0
         subSectionAdaptor = await this.adaptorFactory(
-          appendDataUrl(this.parsedObjUrl, `${name}/${subSectionIndex}`), value[subSectionIndex], sectionDef)
+          appendDataUrl(this.parsedObjUrl, `${name}/${subSectionIndex}`), value[subSectionIndex], property)
       } else {
         subSectionAdaptor = await this.adaptorFactory(
-          appendDataUrl(this.parsedObjUrl, name), value, sectionDef)
+          appendDataUrl(this.parsedObjUrl, name), value, property)
       }
       subSectionAdaptor.parentRelation = {
         parent: this.obj,
@@ -602,6 +616,7 @@ class SectionAdaptor extends ArchiveAdaptor {
     return <Section
       section={this.obj}
       def={this.def}
+      property={this.property}
       parentRelation={this.parentRelation}
       sectionIsInEln={this.isInEln}
       sectionIsEditable={this.entryIsEditable && this.isInEln}
@@ -920,7 +935,7 @@ export function getAllVisibleProperties(sectionDef) {
   return [...quantities, ...sub_sections]
 }
 
-export function Section({section, def, parentRelation, sectionIsEditable, sectionIsInEln}) {
+export function Section({section, def, property, parentRelation, sectionIsEditable, sectionIsInEln}) {
   const {handleArchiveChanged, uploadId, entryId} = useEntryStore() || {}
   const config = useRecoilValue(configState)
   const [showJson, setShowJson] = useState(false)
@@ -1002,13 +1017,14 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
   const renderQuantityItem = useCallback((key, quantityName, quantityDef, value, disabled) => {
     const itemKey = quantityName ? `${key}:${quantityName}` : key
     const isDefault = value !== undefined && value !== null && (section[key] === undefined || section[key] === null)
+    const label = getDisplayLabel(quantityDef, true, config?.showMeta)
     return (
       <Box key={itemKey} data-testid={"visible-quantity"}>
         <Item itemKey={itemKey} disabled={disabled}>
           <Box component="span" whiteSpace="nowrap" style={{maxWidth: 100, overflow: 'ellipses'}}>
             <Typography component="span">
               <Box fontWeight="bold" component="span">
-                {quantityName || quantityDef.name}
+                {quantityName || label}
               </Box>
             </Typography>{!disabled &&
             <span>&nbsp;=&nbsp;
@@ -1023,7 +1039,7 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
         </Item>
       </Box>
     )
-  }, [section])
+  }, [config?.showMeta, section])
 
   const renderQuantity = useCallback(quantityDef => {
     const key = quantityDef.name
@@ -1087,7 +1103,7 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
           <Box marginTop={2}>
             {quantities
               .filter(filter)
-              .filter(quantityDef => !quantityDef.m_annotations?.eln)
+              .filter(quantityDef => !quantityDef.m_annotations?.eln?.[0]?.component)
               .map(renderQuantity)
             }
           </Box>
@@ -1123,11 +1139,10 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
       {isEditable && sectionIsInEln && (
         <InheritingSections def={def} section={section} lane={lane}/>
       )}
-      <ArchiveTitle def={def} data={section} kindLabel="section" actions={actions}/>
+      <ArchiveTitle def={def} property={property} data={section} kindLabel="section" actions={actions}/>
       <Overview section={section} def={def}/>
       {contents}
       <ExternalReferences/>
-      <Meta def={def}/>
     </Content>
   )
 }
@@ -1135,6 +1150,7 @@ export function Section({section, def, parentRelation, sectionIsEditable, sectio
 Section.propTypes = ({
   section: PropTypes.object.isRequired,
   def: PropTypes.object.isRequired,
+  property: PropTypes.object,
   parentRelation: PropTypes.object,
   sectionIsEditable: PropTypes.bool,
   sectionIsInEln: PropTypes.bool
@@ -1155,6 +1171,7 @@ function SubSection({subSectionDef, section, editable}) {
   const lane = useLane()
   const history = useHistory()
   const [open, setOpen] = useState(false)
+  const config = useRecoilValue(configState)
 
   const {itemKey, label, getItemLabel} = useMemo(() => {
     const sectionDef = subSectionDef.sub_section
@@ -1178,10 +1195,10 @@ function SubSection({subSectionDef, section, editable}) {
     }
     return {
       itemKey: subSectionDef.name,
-      label: formatSubSectionName(subSectionDef.name),
+      label: getDisplayLabel(subSectionDef, true, config?.showMeta),
       getItemLabel: getItemLabel
     }
-  }, [subSectionDef])
+  }, [subSectionDef, config?.showMeta])
 
   const handleAdd = useCallback(() => {
     let subSectionKey = subSectionDef.name
@@ -1220,7 +1237,8 @@ function SubSection({subSectionDef, section, editable}) {
   if (showList) {
     return <PropertyValuesList
       itemKey={itemKey}
-      label={label || 'list'} actions={actions}
+      label={label || 'list'}
+      actions={actions}
       values={values.map(getItemLabel)}
       open={open}
       onClick={handleClick}
@@ -1253,14 +1271,17 @@ function ReferenceValuesList({quantityDef}) {
   const lane = useContext(laneContext)
   const values = useMemo(() => lane.adaptor.obj[quantityDef.name].map(() => null), [lane.adaptor.obj, quantityDef.name])
   const [open, setOpen] = useState(false)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleClick = useCallback(() => {
     setOpen(open => !open)
   }, [])
 
   return <PropertyValuesList
-    values={values}
     itemKey={quantityDef.name}
+    values={values}
+    label={label}
     open={open}
     onClick={handleClick}
   />
@@ -1597,7 +1618,6 @@ function Quantity({value, def, unit, children}) {
       />
     </Compartment>
     {children}
-    <Meta def={def}/>
     <ExternalReferences/>
   </Content>
 }

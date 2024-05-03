@@ -26,6 +26,7 @@ import {
 } from '@material-ui/core'
 import { useSearchContext } from '../SearchContext'
 import { InputMetainfo } from '../input/InputMetainfo'
+import { InputTextField } from '../input/InputText'
 import { Widget, schemaWidget } from './Widget'
 import { ActionCheckbox, ActionSelect } from '../../Actions'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
@@ -43,7 +44,7 @@ export const autorangeDescription = 'Automatically center the view on the data'
 export const WidgetHistogram = React.memo((
 {
   id,
-  label,
+  title,
   description,
   quantity,
   nbins,
@@ -66,7 +67,7 @@ export const WidgetHistogram = React.memo((
   return <Widget
     id={id}
     quantity={quantity}
-    label={label}
+    title={title}
     description={description}
     onEdit={handleEdit}
     className={className}
@@ -101,7 +102,7 @@ export const WidgetHistogram = React.memo((
 
 WidgetHistogram.propTypes = {
   id: PropTypes.string.isRequired,
-  label: PropTypes.string,
+  title: PropTypes.string,
   description: PropTypes.string,
   quantity: PropTypes.string,
   nbins: PropTypes.number,
@@ -209,6 +210,14 @@ export const WidgetHistogramEdit = React.memo((props) => {
         </WidgetEditOption>
       </WidgetEditGroup>
       <WidgetEditGroup title="general">
+        <WidgetEditOption>
+          <InputTextField
+            label="title"
+            fullWidth
+            value={settings?.title}
+            onChange={(event) => handleChange('title', event.target.value)}
+          />
+        </WidgetEditOption>
         <WidgetEditOption>
           <FormControlLabel
             control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}

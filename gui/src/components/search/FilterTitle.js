@@ -58,7 +58,6 @@ const FilterTitle = React.memo(({
   description,
   unit,
   variant,
-  full,
   TooltipProps,
   onMouseDown,
   onMouseUp,
@@ -75,9 +74,7 @@ const FilterTitle = React.memo(({
 
   // Create the final label
   const finalLabel = useMemo(() => {
-    let finalLabel = label || (full
-      ? filterData[quantity]?.labelFull
-      : filterData[quantity]?.label)
+    let finalLabel = label || filterData[quantity]?.label
     if (!disableUnit) {
       let finalUnit
       if (unit) {
@@ -90,7 +87,7 @@ const FilterTitle = React.memo(({
       }
     }
     return finalLabel
-  }, [filterData, quantity, units, unit, label, disableUnit, full])
+  }, [filterData, quantity, units, label, unit, disableUnit])
 
   // Determine the final description
   const finalDescription = description || filterData[quantity]?.description || ''
@@ -120,7 +117,6 @@ FilterTitle.propTypes = {
   unit: PropTypes.string,
   description: PropTypes.string,
   variant: PropTypes.string,
-  full: PropTypes.bool,
   className: PropTypes.string,
   classes: PropTypes.object,
   rotation: PropTypes.oneOf(['up', 'right', 'down']),

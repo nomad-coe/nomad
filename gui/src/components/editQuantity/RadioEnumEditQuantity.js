@@ -23,10 +23,15 @@ import {
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {getFieldProps, WithHelp} from './StringEditQuantity'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const RadioEnumEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, ...otherProps} = props
   const fieldProps = getFieldProps(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleChange = useCallback((value) => {
     if (onChange) {
@@ -35,9 +40,9 @@ export const RadioEnumEditQuantity = React.memo((props) => {
   }, [onChange])
 
   return (
-    <WithHelp {...fieldProps}>
+    <WithHelp {...fieldProps} label={label}>
       <FormControl>
-        <FormLabel>{fieldProps.label}</FormLabel>
+        <FormLabel>{label}</FormLabel>
         <RadioGroup row>
           {quantityDef.type?.type_data.map(item => (
             <FormControlLabel

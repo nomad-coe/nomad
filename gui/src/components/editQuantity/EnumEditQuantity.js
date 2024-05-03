@@ -20,10 +20,15 @@ import {MenuItem} from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {getFieldProps, TextFieldWithHelp} from './StringEditQuantity'
 import AutoComplete from '@material-ui/lab/Autocomplete'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const EnumEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, suggestions, ...otherProps} = props
   const fieldProps = getFieldProps(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const handleChange = useCallback(value => {
     if (onChange) {
@@ -45,6 +50,7 @@ export const EnumEditQuantity = React.memo((props) => {
           variant='filled' size='small' fullWidth
           {...fieldProps}
           {...otherProps}
+          label={label}
         />
       )}
     />

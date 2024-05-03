@@ -21,7 +21,7 @@ import {
   getDatatype,
   getSerializer,
   getDeserializer,
-  formatLabel,
+  getDisplayLabel,
   DType,
   multiTypes
 } from '../../utils'
@@ -47,7 +47,6 @@ export class Filter {
   dimension
   deserializer
   label
-  labelFull
   nested
   aggregatable
   section
@@ -74,7 +73,6 @@ export class Filter {
   *      from the metainfo.
   *  - quantity: The quantity that this filter targets in the metainfo.
   *  - schema: The schema in which the filter quantity is defined in
-  *  - labelFull: Long name displayed for this filter.
   *  - placeholder: Placeholder displayed for this filter in input fields.
   *  - multiple: Whether the user can simultaneously provide multiple values for
   *      this filter.
@@ -121,6 +119,7 @@ export class Filter {
   * @param {Filter} parent Optional parent filter
   */
   constructor(def, params, parent) {
+    this.def = def
     this.name = params?.name || def?.name
     this.quantity = params?.quantity || def?.quantity
     this.schema = params?.schema || def?.schema
@@ -139,17 +138,7 @@ export class Filter {
     this.description = params?.description || def?.description
     this.unit = params?.unit || def?.unit
     this.dimension = def?.unit ? new Unit(def?.unit).dimension() : 'dimensionless'
-    this.label = params?.label || formatLabel(this.name)
-    let parentName
-    if (parent) {
-      const sections = this.quantity.split('.')
-      const nSections = sections.length
-      if (sections.length > 1) {
-        parentName = formatLabel(sections[nSections - 2])
-      }
-    }
-    this.labelFull = parentName ? `${parentName} ${this.label}` : this.label
-
+    this.label = params?.label || getDisplayLabel(def)
     this.parent = parent
     this.group = params.group
     this.placeholder = params?.placeholder

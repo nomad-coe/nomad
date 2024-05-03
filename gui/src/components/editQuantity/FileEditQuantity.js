@@ -27,6 +27,9 @@ import {ItemButton, useLane} from '../archive/Browser'
 import { useEntryStore } from '../entry/EntryContext'
 import OverwriteExistingFileDialog from './OverwriteExistingFileDialog'
 import UploadProgressDialog from '../uploads/UploadProgressDialog'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 const useFileEditQuantityStyles = makeStyles(theme => ({
   dropzone: {
@@ -45,12 +48,14 @@ const FileEditQuantity = React.memo(props => {
   const classes = useFileEditQuantityStyles()
   const {onChange, onFailed, quantityDef, value, ...otherProps} = props
   const {index} = otherProps
-  const {uploadId, metadata} = useEntryStore()
+  const {uploadId, metadata} = useEntryStore() || {}
   const {api} = useApi()
   const [askForOverwrite, setAskForOverwrite] = useState(false)
   const dropedFiles = useRef([])
   const [uploading, setUploading] = useState(null)
   const lane = useLane()
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const uploadFile = useCallback((files, overwrite = false) => {
     const mainfilePathSegments = metadata.mainfile.split('/')
@@ -139,7 +144,7 @@ const FileEditQuantity = React.memo(props => {
       <TextField
         value={value || ''} onChange={handleChange}
         size="small" variant="filled" fullWidth
-        label={quantityDef.name}
+        label={label}
         {...otherProps}
         InputProps={{
           endAdornment: (

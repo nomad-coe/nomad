@@ -353,3 +353,24 @@ above:
 !!! warning "Attention"
     You cannot create definitions that lead to circular loading of `*.archive.yaml` files.
     Each `definitions` section in an NOMAD entry represents a *schema package*. Each *schema package* needs to be fully loaded and analyzed before it can be used by other *schema packages* in other entries. Therefore, two *schema packages* in two entries cannot reference each other.
+
+## Conventions
+
+### Conventions for labels
+
+When assigning labels within your codebase, it's essential to follow consistent naming
+conventions for clarity and maintainability. The following guidelines outline the
+conventions for labeling different elements:
+
+- **Sections**: Labels for sections should adhere to Python convention of CapitalizedCamelCase.
+This means that each word in the label should begin with a capital letter, and there should be
+no spaces between words. For example: `SectionLabelOne`, `SectionLabelTwo`.
+
+- **Quantities and Subsections**: Labels for quantities and subsections should be in
+lower_case. This convention involves writing all lowercase letters and separating
+words with whitespace. Abbreviations within these labels may be capitalized to
+enhance scientific readability. For example: `quantity label`, `subsection label`, `IV label`.
+
+
+
+

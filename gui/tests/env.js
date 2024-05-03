@@ -453,19 +453,15 @@ window.nomadEnv = {
                 "align": "left"
               },
               "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "entry_create_time": {
-                "label": "Entry creation time",
                 "align": "left"
               },
               "upload_name": {
-                "label": "Upload name",
                 "align": "left"
               },
               "upload_id": {
-                "label": "Upload id",
                 "align": "left"
               },
               "upload_create_time": {
@@ -473,91 +469,69 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "results.method.method_name": {
-                "label": "Method name",
                 "align": "left"
               },
               "results.method.simulation.program_name": {
-                "label": "Program name",
                 "align": "left"
               },
               "results.method.simulation.dft.xc_functional_type": {
-                "label": "XC Functional Type",
                 "align": "left"
               },
               "results.method.simulation.precision.apw_cutoff": {
-                "label": "APW Cutoff",
                 "align": "left"
               },
               "results.method.simulation.precision.basis_set": {
-                "label": "Basis Set",
                 "align": "left"
               },
               "results.method.simulation.precision.k_line_density": {
-                "label": "k-line Density",
                 "align": "left"
               },
               "results.method.simulation.precision.native_tier": {
-                "label": "Code-specific tier",
                 "align": "left"
               },
               "results.method.simulation.precision.planewave_cutoff": {
-                "label": "Plane-wave cutoff",
                 "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality",
                 "align": "left"
               },
               "results.material.symmetry.crystal_system": {
-                "label": "Crystal system",
                 "align": "left"
               },
               "results.material.symmetry.space_group_symbol": {
-                "label": "Space group symbol",
                 "align": "left"
               },
               "results.material.symmetry.space_group_number": {
-                "label": "Space group number",
                 "align": "left"
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs",
                 "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections",
                 "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods",
                 "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags",
                 "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments",
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "references": {
-                "label": "References",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {
@@ -740,15 +714,12 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.method.simulation.program_name": {
-                "label": "Program name",
                 "align": "left"
               },
               "results.method.method_name": {
-                "label": "Method name",
                 "align": "left"
               },
               "results.method.simulation.dft.xc_functional_type": {
-                "label": "Jacob's ladder",
                 "align": "left"
               },
               "upload_create_time": {
@@ -756,43 +727,33 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "results.method.simulation.precision.apw_cutoff": {
-                "label": "APW Cutoff",
                 "align": "left"
               },
               "results.method.simulation.precision.basis_set": {
-                "label": "Basis Set",
                 "align": "left"
               },
               "results.method.simulation.precision.k_line_density": {
-                "label": "k-line Density",
                 "align": "left"
               },
               "results.method.simulation.precision.native_tier": {
-                "label": "Code-specific tier",
                 "align": "left"
               },
               "results.method.simulation.precision.planewave_cutoff": {
-                "label": "Plane-wave cutoff",
                 "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality",
                 "align": "left"
               },
               "results.material.symmetry.crystal_system": {
-                "label": "Crystal system",
                 "align": "left"
               },
               "results.material.symmetry.space_group_symbol": {
-                "label": "Space group symbol",
                 "align": "left"
               },
               "results.material.symmetry.space_group_number": {
-                "label": "Space group number",
                 "align": "left"
               },
               "entry_name": {
@@ -800,19 +761,15 @@ window.nomadEnv = {
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "references": {
-                "label": "References",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {
@@ -1222,27 +1179,21 @@ window.nomadEnv = {
                 "align": "left"
               },
               "structural_type": {
-                "label": "Dimensionality",
                 "align": "left"
               },
               "symmetry.structure_name": {
-                "label": "Structure name",
                 "align": "left"
               },
               "symmetry.space_group_number": {
-                "label": "Space group number",
                 "align": "left"
               },
               "symmetry.crystal_system": {
-                "label": "Crystal system",
                 "align": "left"
               },
               "symmetry.space_group_symbol": {
-                "label": "Space group symbol",
                 "align": "left"
               },
               "material_id": {
-                "label": "Material ID",
                 "align": "left"
               }
             },
@@ -1408,7 +1359,6 @@ window.nomadEnv = {
                 "align": "left"
               },
               "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "upload_create_time": {
@@ -1416,7 +1366,6 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "results.material.chemical_formula_hill": {
@@ -1424,43 +1373,33 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.method.method_name": {
-                "label": "Method name",
                 "align": "left"
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs",
                 "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections",
                 "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods",
                 "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags",
                 "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments",
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "references": {
-                "label": "References",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {
@@ -1555,11 +1494,9 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.properties.spectroscopic.spectra.provenance.eels.detector_type": {
-                "label": "Detector type",
                 "align": "left"
               },
               "results.properties.spectroscopic.spectra.provenance.eels.resolution": {
-                "label": "Resolution",
                 "align": "left"
               },
               "upload_create_time": {
@@ -1567,15 +1504,12 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "results.properties.spectroscopic.spectra.provenance.eels.min_energy": {
-                "label": "Min energy",
                 "align": "left"
               },
               "results.properties.spectroscopic.spectra.provenance.eels.max_energy": {
-                "label": "Max energy",
                 "align": "left"
               },
               "entry_name": {
@@ -1583,23 +1517,18 @@ window.nomadEnv = {
                 "align": "left"
               },
               "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "references": {
-                "label": "References",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {
@@ -1696,7 +1625,7 @@ window.nomadEnv = {
           "columns": {
             "options": {
               "results.material.chemical_formula_descriptive": {
-                "label": "Descriptive Formula",
+                "label": "Descriptive formula",
                 "align": "left"
               },
               "results.properties.optoelectronic.solar_cell.efficiency": {
@@ -1708,7 +1637,6 @@ window.nomadEnv = {
                 }
               },
               "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
-                "label": "Open circuit voltage",
                 "align": "left",
                 "unit": "V",
                 "format": {
@@ -1717,7 +1645,6 @@ window.nomadEnv = {
                 }
               },
               "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
-                "label": "Short circuit current density",
                 "align": "left",
                 "unit": "A/m**2",
                 "format": {
@@ -1726,7 +1653,6 @@ window.nomadEnv = {
                 }
               },
               "results.properties.optoelectronic.solar_cell.fill_factor": {
-                "label": "Fill factor",
                 "align": "left",
                 "format": {
                   "decimals": 3,
@@ -1734,7 +1660,6 @@ window.nomadEnv = {
                 }
               },
               "references": {
-                "label": "References",
                 "align": "left"
               },
               "results.material.chemical_formula_hill": {
@@ -1742,7 +1667,6 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality",
                 "align": "left"
               },
               "results.properties.optoelectronic.solar_cell.illumination_intensity": {
@@ -1755,23 +1679,18 @@ window.nomadEnv = {
                 }
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs",
                 "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections",
                 "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods",
                 "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags",
                 "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments",
                 "align": "left"
               },
               "entry_name": {
@@ -1779,11 +1698,9 @@ window.nomadEnv = {
                 "align": "left"
               },
               "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "upload_create_time": {
@@ -1791,15 +1708,12 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {
@@ -2206,6 +2120,7 @@ window.nomadEnv = {
                 "showinput": true
               },
               {
+                "title": "Band gap",
                 "type": "histogram",
                 "layout": {
                   "lg": {
@@ -2381,7 +2296,6 @@ window.nomadEnv = {
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "upload_create_time": {
@@ -2389,15 +2303,12 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {
@@ -2518,6 +2429,7 @@ window.nomadEnv = {
                 "scale": "linear"
               },
               {
+                "title": "SBU type",
                 "type": "terms",
                 "layout": {
                   "lg": {
@@ -2791,15 +2703,12 @@ window.nomadEnv = {
           "columns": {
             "options": {
               "results.material.elements": {
-                "label": "Elements",
                 "align": "left"
               },
               "results.properties.catalytic.catalyst_synthesis.catalyst_type": {
-                "label": "Catalyst Type",
                 "align": "left"
               },
               "results.properties.catalytic.catalyst_synthesis.catalyst_name": {
-                "label": "Catalyst Name",
                 "align": "left"
               },
               "results.properties.catalytic.catalyst_synthesis.preparation_method": {
@@ -2807,7 +2716,7 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.properties.catalytic.catalyst_characterization.surface_area": {
-                "label": "Surface Area (m^2/g)",
+                "label": "Surface area (m^2/g)",
                 "align": "left",
                 "format": {
                   "decimals": 2,
@@ -2815,11 +2724,11 @@ window.nomadEnv = {
                 }
               },
               "results.properties.catalytic.reaction.name": {
-                "label": "Reaction Name",
+                "label": "Reaction name",
                 "align": "left"
               },
               "results.properties.catalytic.reaction.type": {
-                "label": "Reaction Class",
+                "label": "Reaction class",
                 "align": "left"
               },
               "results.properties.catalytic.reaction.reactants.name": {
@@ -2831,7 +2740,6 @@ window.nomadEnv = {
                 "align": "left"
               },
               "references": {
-                "label": "References",
                 "align": "left"
               },
               "results.material.chemical_formula_hill": {
@@ -2839,27 +2747,21 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.material.structural_type": {
-                "label": "Dimensionality",
                 "align": "left"
               },
               "results.eln.lab_ids": {
-                "label": "Lab IDs",
                 "align": "left"
               },
               "results.eln.sections": {
-                "label": "Sections",
                 "align": "left"
               },
               "results.eln.methods": {
-                "label": "Methods",
                 "align": "left"
               },
               "results.eln.tags": {
-                "label": "Tags",
                 "align": "left"
               },
               "results.eln.instruments": {
-                "label": "Instruments",
                 "align": "left"
               },
               "entry_name": {
@@ -2867,11 +2769,9 @@ window.nomadEnv = {
                 "align": "left"
               },
               "entry_type": {
-                "label": "Entry type",
                 "align": "left"
               },
               "mainfile": {
-                "label": "Mainfile",
                 "align": "left"
               },
               "upload_create_time": {
@@ -2879,15 +2779,12 @@ window.nomadEnv = {
                 "align": "left"
               },
               "authors": {
-                "label": "Authors",
                 "align": "left"
               },
               "comment": {
-                "label": "Comment",
                 "align": "left"
               },
               "datasets": {
-                "label": "Datasets",
                 "align": "left"
               },
               "published": {

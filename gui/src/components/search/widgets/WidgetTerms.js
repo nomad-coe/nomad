@@ -31,7 +31,7 @@ import {
 import { useResizeDetector } from 'react-resize-detector'
 import { useSearchContext } from '../SearchContext'
 import { InputMetainfo } from '../input/InputMetainfo'
-import { InputTextQuantity } from '../input/InputText'
+import { InputTextQuantity, InputTextField } from '../input/InputText'
 import InputItem, { inputItemHeight } from '../input/InputItem'
 import InputUnavailable from '../input/InputUnavailable'
 import InputTooltip from '../input/InputTooltip'
@@ -100,7 +100,7 @@ const useStyles = makeStyles(theme => ({
 export const WidgetTerms = React.memo((
 {
   id,
-  label,
+  title,
   description,
   quantity,
   scale,
@@ -189,7 +189,7 @@ export const WidgetTerms = React.memo((
   return <Widget
     id={id}
     quantity={quantity}
-    label={label}
+    title={title}
     description={description}
     onEdit={handleEdit}
     className={clsx(className)}
@@ -236,7 +236,7 @@ export const WidgetTerms = React.memo((
 
 WidgetTerms.propTypes = {
   id: PropTypes.string.isRequired,
-  label: PropTypes.string,
+  title: PropTypes.string,
   description: PropTypes.string,
   quantity: PropTypes.string,
   nbins: PropTypes.number,
@@ -334,6 +334,14 @@ export const WidgetTermsEdit = React.memo((props) => {
         </WidgetEditOption>
       </WidgetEditGroup>
       <WidgetEditGroup title="general">
+        <WidgetEditOption>
+          <InputTextField
+            label="title"
+            fullWidth
+            value={settings?.title}
+            onChange={(event) => handleChange('title', event.target.value)}
+          />
+        </WidgetEditOption>
         <WidgetEditOption>
           <FormControlLabel
             control={<Checkbox checked={settings.showinput} onChange={(event, value) => handleChange('showinput', value)}/>}

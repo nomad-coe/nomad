@@ -37,7 +37,7 @@ const useStyles = makeStyles(theme => ({
 export const Widget = React.memo(({
   id,
   quantity,
-  label,
+  title,
   description,
   onEdit,
   className,
@@ -63,7 +63,7 @@ export const Widget = React.memo(({
     <WidgetHeader
       id={id}
       quantity={quantity}
-      label={label}
+      label={title}
       description={description}
       actions={actionsFinal}
       anchored
@@ -75,7 +75,7 @@ export const Widget = React.memo(({
 Widget.propTypes = {
   id: PropTypes.string.isRequired,
   quantity: PropTypes.string,
-  label: PropTypes.string,
+  title: PropTypes.string,
   description: PropTypes.string,
   onEdit: PropTypes.func,
   className: PropTypes.string,
@@ -98,6 +98,7 @@ export const schemaLayout = object({
 })
 export const schemaWidget = object({
   type: string().required(),
+  title: string(),
   layout: object({
     sm: schemaLayout,
     md: schemaLayout,

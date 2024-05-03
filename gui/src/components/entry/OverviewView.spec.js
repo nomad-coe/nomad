@@ -91,14 +91,15 @@ test('correctly renders metadata and all properties', async () => {
 
   // Check if all metadata is shown (on the left)
   expectQuantity('results.method.method_name', index)
-  expectQuantity('comment', index)
-  expectQuantity('references', index.references[0])
-  expectQuantity('authors', 'Markus Scheidgen')
   expectQuantity('mainfile', index)
   expectQuantity('entry_id', index)
   expectQuantity('upload_id', index)
   expectQuantity('results.material.material_id', index)
-  expectQuantity(undefined, `${index.nomad_version}/${index.nomad_commit}`, 'processing version', 'Version used in the last processing')
+  expectQuantity(undefined, `${index.nomad_version}/${index.nomad_commit}`, 'Processing version', 'Version used in the last processing')
+  // test the quantities with presets label
+  expectQuantity('comment', index)
+  expectQuantity('references', index.references[0])
+  expectQuantity('authors', 'Markus Scheidgen')
   // TODO: add the following to the state for testing.
   // expectQuantity('datasets', index.datasets[0].dataset_name)
   // expectQuantity('upload_create_time', formatTimestamp(index.upload_create_time))
@@ -209,16 +210,17 @@ test('eln overview as a reviewer', async () => {
 
   expect(within(cardSample).getByText('Sample')).toBeVisible()
   // expectQuantityToBe('chemical_formula', 'chemical formula', undefined, within(cardSample))
-  expectQuantityToBe('name', 'name', 'ELN example sample', within(cardSample))
-  expectQuantityToBe('lab_id', 'lab id', '001', within(cardSample))
-  expectQuantityToBe('description', 'description', undefined, within(cardSample))
-  expectQuantityToBe('tags', 'tags', 'project', within(cardSample))
-  expectQuantityToBe('substrate_type', 'substrate type', 'SLG', within(cardSample))
-  expectQuantityToBe('substrate_thickness', 'substrate thickness', undefined, within(cardSample))
-  expectQuantityToBe('sample_is_from_collaboration', 'sample is from collaboration', undefined, within(cardSample))
+  // test the quantities with deprecated eln annotation label
+  expectQuantityToBe('name', 'Name', 'ELN example sample', within(cardSample))
+  expectQuantityToBe('lab_id', 'ID', '001', within(cardSample))
+  expectQuantityToBe('description', 'Description', undefined, within(cardSample))
+  expectQuantityToBe('tags', 'Tags', 'project', within(cardSample))
+  expectQuantityToBe('substrate_type', 'Substrate type', 'SLG', within(cardSample))
+  expectQuantityToBe('substrate_thickness', 'Substrate thickness', undefined, within(cardSample))
+  expectQuantityToBe('sample_is_from_collaboration', 'Sample is from collaboration', undefined, within(cardSample))
 
   expect(within(cardPvdEvaporation).getByText('PvdEvaporation')).toBeVisible()
-  expectQuantityToBe('data_file', 'data file', 'PVDProcess.csv', within(cardPvdEvaporation))
+  expectQuantityToBe('data_file', 'Data file', 'PVDProcess.csv', within(cardPvdEvaporation))
 
   // Test if the plot is there
   expect(within(cardPvdEvaporation).getByText(/Chamber Pressure \(GPa\)/)).toBeVisible()
@@ -226,10 +228,10 @@ test('eln overview as a reviewer', async () => {
   expect(within(cardPvdEvaporation).getByText(/Time \(fs\)/)).toBeVisible()
 
   expect(within(cardHotplateAnnealing).getByText('HotplateAnnealing')).toBeVisible()
-  expectQuantityToBe('instrument', 'instrument', undefined, within(cardHotplateAnnealing))
-  expectQuantityToBe('method', 'method', undefined, within(cardHotplateAnnealing))
-  expectQuantityToBe('set_temperature', 'set temperature', '373.15', within(cardHotplateAnnealing))
-  expectQuantityToBe('duration', 'duration', '60', within(cardHotplateAnnealing))
+  expectQuantityToBe('instrument', 'Instrument', undefined, within(cardHotplateAnnealing))
+  expectQuantityToBe('method', 'Method', undefined, within(cardHotplateAnnealing))
+  expectQuantityToBe('set_temperature', 'Set temperature', '373.15', within(cardHotplateAnnealing))
+  expectQuantityToBe('duration', 'Duration', '60', within(cardHotplateAnnealing))
 
   // Wait for the last API calls (e.g. reference card) to finish being recorded.
   await waitForGUI(5000)

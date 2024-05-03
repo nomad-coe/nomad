@@ -238,6 +238,14 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
       </WidgetEditGroup>
       <WidgetEditGroup title="general">
         <WidgetEditOption>
+          <InputTextField
+            label="title"
+            fullWidth
+            value={settings?.title}
+            onChange={(event) => handleChange('title', event.target.value)}
+          />
+        </WidgetEditOption>
+        <WidgetEditOption>
           <WidgetEditSelect
             label="Maximum number of entries to load"
             options={nPointsOptions}

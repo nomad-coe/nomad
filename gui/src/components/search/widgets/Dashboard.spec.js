@@ -87,7 +87,7 @@ describe('displaying an initial widget and removing it', () => {
       'scatterplot',
       {
         type: 'scatterplot',
-        label: 'Test label',
+        title: 'Test title',
         description: 'Custom scatter plot',
         x: {quantity: 'results.properties.optoelectronic.solar_cell.open_circuit_voltage'},
         y: {quantity: 'results.properties.optoelectronic.solar_cell.efficiency'},
@@ -148,7 +148,7 @@ describe('displaying an initial widget and removing it', () => {
     // Remove widget, check that it is gone. A test id is used to fetch the
     // remove button since it is an icon that may appear in several locations.
     const removeButton = screen.getByTestId(`0-remove-widget`)
-    const label = widget.label || defaultFilterData[widget.quantity].label
+    const label = widget.title || defaultFilterData[widget.quantity].label
     expect(screen.queryByText(label, {exact: false})).toBeInTheDocument()
     await userEvent.click(removeButton)
     expect(screen.queryByText(label, {exact: false})).not.toBeInTheDocument()

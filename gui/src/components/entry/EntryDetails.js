@@ -51,8 +51,8 @@ export const MethodMetadata = React.memo(({data}) => {
     addMethodQuantities(data.results.eln, 'results.eln', ['names', 'sections', 'descriptions'])
   }
 
-  methodQuantities.push({quantity: 'entry_type', label: 'type'})
-  methodQuantities.push({quantity: 'entry_name', label: 'name'})
+  methodQuantities.push({quantity: 'entry_type'})
+  methodQuantities.push({quantity: 'entry_name'})
 
   return <Quantity flex>
     {methodQuantities.map(({...quantityProps}) => (

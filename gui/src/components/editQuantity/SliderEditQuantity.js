@@ -26,11 +26,14 @@ import {Quantity} from '../units/Quantity'
 import {Unit} from '../units/Unit'
 import {useUnitContext} from '../units/UnitContext'
 import {UnitSelect} from './NumberEditQuantity'
-import {getFieldProps} from './StringEditQuantity'
+import {getDisplayLabel} from "../../utils"
+import {useRecoilValue} from "recoil"
+import {configState} from "../archive/ArchiveBrowser"
 
 export const SliderEditQuantity = React.memo((props) => {
   const {quantityDef, value, onChange, minValue, maxValue, ...sliderProps} = props
-  const {label} = getFieldProps(quantityDef)
+  const config = useRecoilValue(configState)
+  const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
   const {units} = useUnitContext()
   const defaultUnit = useMemo(() => quantityDef.unit && new Unit(quantityDef.unit), [quantityDef])
