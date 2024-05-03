@@ -1726,6 +1726,8 @@ ui:
               label: Elements
             results.properties.catalytic.catalyst_synthesis.catalyst_type:
               label: Catalyst Type
+            results.properties.catalytic.catalyst_synthesis.catalyst_name:
+              label: Catalyst Name
             results.properties.catalytic.catalyst_synthesis.preparation_method:
               label: Preparation
             results.properties.catalytic.catalyst_characterization.surface_area:
@@ -1737,8 +1739,6 @@ ui:
               label: Reaction Name
             results.properties.catalytic.reaction.type:
               label: Reaction Class
-            results.properties.catalytic.catalyst_synthesis.catalyst_name:
-              label: Catalyst Name
             results.properties.catalytic.reaction.reactants.name:
               label: Reactants
             results.properties.catalytic.reaction.products.name:
@@ -1864,45 +1864,38 @@ ui:
             type: terms
           - autorange: false
             layout:
-              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 0, y: 16}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 13}
-              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 0, y: 15}
-              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 16}
-              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 16}
-            nbins: 30
-            quantity: results.properties.catalytic.reaction.temperature
-            scale: linear
-            showinput: false
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 0, y: 21}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 0, y: 16}
-              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 0, y: 18}
-              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 20}
-              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 20}
+              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 12, y: 21}
+              md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 16}
+              sm: {h: 3, minH: 3, minW: 6, w: 6, x: 6, y: 18}
+              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
+              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
             nbins: 30
             quantity: results.properties.catalytic.reaction.weight_hourly_space_velocity
             scale: linear
             showinput: false
             type: histogram
-          - autorange: false
+          - autorange: true
             layout:
-              lg: {h: 5, minH: 3, minW: 8, w: 12, x: 12, y: 21}
-              md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 16}
-              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 6, y: 18}
-              xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
-              xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
-            nbins: 30
-            quantity: results.properties.catalytic.reaction.reactants.gas_concentration_in
-            scale: linear
-            showinput: false
-            type: histogram
+              lg: {h: 10, minH: 3, minW: 8, w: 12, x: 0, y: 16}
+              md: {h: 6, minH: 3, minW: 8, w: 9, x: 0, y: 13}
+              sm: {h: 6, minH: 3, minW: 6, w: 6, x: 0, y: 15}
+              xl: {h: 8, minH: 3, minW: 8, w: 12, x: 0, y: 16}
+              xxl: {h: 8, minH: 6, minW: 8, w: 12, x: 0, y: 16}
+            markers:
+              color:
+                quantity: results.properties.catalytic.reaction.reactants[*].name
+            size: 1000
+            x:
+              quantity: results.properties.catalytic.reaction.reactants[*].gas_concentration_in
+              title: 'gas concentration (%)'
+            y:
+              quantity: results.properties.catalytic.reaction.temperature
+            type: scatterplot
           - autorange: false
             layout:
               lg: {h: 5, minH: 3, minW: 8, w: 12, x: 12, y: 16}
               md: {h: 3, minH: 3, minW: 8, w: 9, x: 9, y: 13}
-              sm: {h: 3, minH: 3, minW: 8, w: 6, x: 6, y: 15}
+              sm: {h: 3, minH: 3, minW: 6, w: 6, x: 6, y: 15}
               xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
             nbins: 30
@@ -1926,6 +1919,7 @@ ui:
               quantity: results.properties.catalytic.reaction.temperature
             y:
               quantity: results.properties.catalytic.reaction.reactants[*].conversion
+              title: 'Conversion (%)'
           - autorange: true
             layout:
               lg: {h: 8, minH: 3, minW: 3, w: 12, x: 12, y: 26}
@@ -1942,6 +1936,7 @@ ui:
               quantity: results.properties.catalytic.reaction.temperature
             y:
               quantity: results.properties.catalytic.reaction.products[*].selectivity
+              title: 'Selectivity (%)'
           - autorange: true
             layout:
               lg: {h: 8, minH: 3, minW: 3, w: 12, x: 0, y: 34}
@@ -1956,10 +1951,10 @@ ui:
             type: scatterplot
             x:
               quantity: results.properties.catalytic.reaction.reactants[? name=='molecular oxygen'].conversion
-              title: 'Oxygen Conversion'
+              title: 'Oxygen Conversion (%)'
             y:
               quantity: results.properties.catalytic.reaction.products[? name=='acetic acid'].selectivity
-              title: 'Acetic Acid Selectivity'
+              title: 'Acetic Acid Selectivity (%)'
           - autorange: true
             layout:
               lg: {h: 8, minH: 3, minW: 3, w: 12, x: 12, y: 34}
@@ -1974,10 +1969,10 @@ ui:
             type: scatterplot
             x:
               quantity: results.properties.catalytic.reaction.reactants[? name=='carbon monoxide'].conversion
-              title: 'Carbon Monoxide Conversion'
+              title: 'Carbon Monoxide Conversion (%)'
             y:
               quantity: results.properties.catalytic.reaction.products[? name=='ethanol'].selectivity
-              title: 'Ethanol Selectivity'
+              title: 'Ethanol Selectivity (%)'
           - autorange: false
             layout:
               lg: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}

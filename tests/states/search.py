@@ -129,6 +129,7 @@ properties_catalysis = {
             'method_surface_area': 'BET',
         },
         'catalyst_synthesis': {
+            'catalyst_name': 'MoVOx',
             'catalyst_type': 'bulk catalyst',
             'preparation_method': 'hydrothermal',
         },

@@ -2798,6 +2798,10 @@ window.nomadEnv = {
                 "label": "Catalyst Type",
                 "align": "left"
               },
+              "results.properties.catalytic.catalyst_synthesis.catalyst_name": {
+                "label": "Catalyst Name",
+                "align": "left"
+              },
               "results.properties.catalytic.catalyst_synthesis.preparation_method": {
                 "label": "Preparation",
                 "align": "left"
@@ -2816,10 +2820,6 @@ window.nomadEnv = {
               },
               "results.properties.catalytic.reaction.type": {
                 "label": "Reaction Class",
-                "align": "left"
-              },
-              "results.properties.catalytic.catalyst_synthesis.catalyst_name": {
-                "label": "Catalyst Name",
                 "align": "left"
               },
               "results.properties.catalytic.reaction.reactants.name": {
@@ -3265,57 +3265,7 @@ window.nomadEnv = {
                   "lg": {
                     "h": 5,
                     "w": 12,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 0,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 6,
-                    "x": 0,
-                    "y": 15,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 4,
-                    "w": 12,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xxl": {
-                    "h": 4,
-                    "w": 12,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "quantity": "results.properties.catalytic.reaction.temperature",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 5,
-                    "w": 12,
-                    "x": 0,
+                    "x": 12,
                     "y": 21,
                     "minH": 3,
                     "minW": 8
@@ -3323,7 +3273,7 @@ window.nomadEnv = {
                   "md": {
                     "h": 3,
                     "w": 9,
-                    "x": 0,
+                    "x": 9,
                     "y": 16,
                     "minH": 3,
                     "minW": 8
@@ -3331,15 +3281,15 @@ window.nomadEnv = {
                   "sm": {
                     "h": 3,
                     "w": 6,
-                    "x": 0,
+                    "x": 6,
                     "y": 18,
                     "minH": 3,
-                    "minW": 8
+                    "minW": 6
                   },
                   "xl": {
                     "h": 4,
                     "w": 12,
-                    "x": 0,
+                    "x": 12,
                     "y": 20,
                     "minH": 3,
                     "minW": 8
@@ -3347,7 +3297,7 @@ window.nomadEnv = {
                   "xxl": {
                     "h": 4,
                     "w": 12,
-                    "x": 0,
+                    "x": 12,
                     "y": 20,
                     "minH": 3,
                     "minW": 8
@@ -3360,54 +3310,63 @@ window.nomadEnv = {
                 "nbins": 30
               },
               {
-                "type": "histogram",
+                "type": "scatterplot",
                 "layout": {
                   "lg": {
-                    "h": 5,
+                    "h": 10,
                     "w": 12,
-                    "x": 12,
-                    "y": 21,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 9,
-                    "x": 9,
+                    "x": 0,
                     "y": 16,
                     "minH": 3,
                     "minW": 8
                   },
-                  "sm": {
-                    "h": 3,
-                    "w": 6,
-                    "x": 6,
-                    "y": 18,
+                  "md": {
+                    "h": 6,
+                    "w": 9,
+                    "x": 0,
+                    "y": 13,
                     "minH": 3,
                     "minW": 8
                   },
+                  "sm": {
+                    "h": 6,
+                    "w": 6,
+                    "x": 0,
+                    "y": 15,
+                    "minH": 3,
+                    "minW": 6
+                  },
                   "xl": {
-                    "h": 4,
+                    "h": 8,
                     "w": 12,
-                    "x": 12,
-                    "y": 20,
+                    "x": 0,
+                    "y": 16,
                     "minH": 3,
                     "minW": 8
                   },
                   "xxl": {
-                    "h": 4,
+                    "h": 8,
                     "w": 12,
-                    "x": 12,
-                    "y": 20,
-                    "minH": 3,
+                    "x": 0,
+                    "y": 16,
+                    "minH": 6,
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.catalytic.reaction.reactants.gas_concentration_in",
-                "scale": "linear",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
+                "x": {
+                  "title": "gas concentration (%)",
+                  "quantity": "results.properties.catalytic.reaction.reactants[*].gas_concentration_in"
+                },
+                "y": {
+                  "quantity": "results.properties.catalytic.reaction.temperature"
+                },
+                "markers": {
+                  "color": {
+                    "quantity": "results.properties.catalytic.reaction.reactants[*].name"
+                  }
+                },
+                "size": 1000,
+                "autorange": true
               },
               {
                 "type": "histogram",
@@ -3434,7 +3393,7 @@ window.nomadEnv = {
                     "x": 6,
                     "y": 15,
                     "minH": 3,
-                    "minW": 8
+                    "minW": 6
                   },
                   "xl": {
                     "h": 4,
@@ -3507,6 +3466,7 @@ window.nomadEnv = {
                   "quantity": "results.properties.catalytic.reaction.temperature"
                 },
                 "y": {
+                  "title": "Conversion (%)",
                   "quantity": "results.properties.catalytic.reaction.reactants[*].conversion"
                 },
                 "markers": {
@@ -3565,6 +3525,7 @@ window.nomadEnv = {
                   "quantity": "results.properties.catalytic.reaction.temperature"
                 },
                 "y": {
+                  "title": "Selectivity (%)",
                   "quantity": "results.properties.catalytic.reaction.products[*].selectivity"
                 },
                 "markers": {
@@ -3620,11 +3581,11 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
-                  "title": "Oxygen Conversion",
+                  "title": "Oxygen Conversion (%)",
                   "quantity": "results.properties.catalytic.reaction.reactants[? name=='molecular oxygen'].conversion"
                 },
                 "y": {
-                  "title": "Acetic Acid Selectivity",
+                  "title": "Acetic Acid Selectivity (%)",
                   "quantity": "results.properties.catalytic.reaction.products[? name=='acetic acid'].selectivity"
                 },
                 "markers": {
@@ -3680,11 +3641,11 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
-                  "title": "Carbon Monoxide Conversion",
+                  "title": "Carbon Monoxide Conversion (%)",
                   "quantity": "results.properties.catalytic.reaction.reactants[? name=='carbon monoxide'].conversion"
                 },
                 "y": {
-                  "title": "Ethanol Selectivity",
+                  "title": "Ethanol Selectivity (%)",
                   "quantity": "results.properties.catalytic.reaction.products[? name=='ethanol'].selectivity"
                 },
                 "markers": {
