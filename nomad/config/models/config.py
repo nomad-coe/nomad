@@ -1068,7 +1068,11 @@ class Config(ConfigBaseModel):
                 entry_points_config.get('options', {}), _plugins.get('options', {})
             )
 
-            # Handle plugin entry_points (new plugin mechanism)
+            # Handle plugin entry_points (new plugin mechanism). NOTE: Due to
+            # this issue: https://github.com/pypa/setuptools/issues/3649 we are
+            # ignoring duplicate entry points. Use of set is avoided because it
+            # does not have a fixed order: we want entry points to behave more
+            # deterministically.
             plugin_entry_point_ids = set()
             plugin_entry_points = entry_points(group='nomad.plugin')
             plugin_packages = {}
@@ -1076,9 +1080,7 @@ class Config(ConfigBaseModel):
             for entry_point in plugin_entry_points:
                 key = entry_point.value
                 if key in plugin_entry_point_ids:
-                    raise ValueError(
-                        f'Could not load plugins due to duplicate entry_point name: "{key}".'
-                    )
+                    continue
                 package_name = entry_point.value.split('.', 1)[0]
                 config_override = (
                     _plugins.get('entry_points', {}).get('options', {}).get(key, {})
