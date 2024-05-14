@@ -227,7 +227,14 @@ def integrationtests(
         assert response.status_code == 200, response.text
 
         print('list datasets')
-        response = api.get('datasets', auth=auth, params=dict(dataset_name=dataset))
+        response = api.get('users/me', auth=auth)
+        assert response.status_code == 200, response.text
+        user = response.json()
+        response = api.get(
+            'datasets',
+            auth=auth,
+            params=dict(dataset_name=dataset, user_id=[user['user_id']]),
+        )
         assert response.status_code == 200, response.text
         response_json = response.json()
         assert len(response_json['data']) == 1, response.text
