@@ -28,7 +28,7 @@ dependencies = [
     'jmespath>=0.10.0',
     'lxml>=5.2',
     'lxml-html-clean>=0.1.0',
-    'matid>=2.0.0.dev2',
+    'matid>=2.0.1',
     'mdanalysis==2.5.0',
     'networkx==2.6.3',
     'nptyping~=1.4.4',
@@ -63,11 +63,11 @@ repository = 'https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR'
 [project.optional-dependencies]
 parsing = [
     'asr==0.4.1',
-    'h5py==3.6.0',
+    'h5py==3.11.0',
     'netCDF4==1.5.4',
     'pybis@git+https://github.com/FAIRmat-NFDI/fairmat-pybis.git',
     'pynxtools[convert]==0.1.1',
-    'pyzeo==0.1.4',
+    'pyzeo==0.1.5',
     'quippy-ase==0.9.14',
     'rdkit',
 ]
