@@ -324,7 +324,7 @@ export const Browser = React.memo(function Browser({adaptor, form}) {
         {hdf5Path && hdf5Filename && adaptor?.obj?.metadata?.upload_id && <Grid item md={4} style={{visibility: (hdf5Path == null ? "hidden" : "visible")}}>
           <Card className={classes.sideLane}>
             {/* We use the key prop in the H5Web component here to force re-render on path changes while browsing with the browser. The prop, initialPath, does not re-render the component. */}
-            <H5Web key={hdf5Path} upload_id={adaptor?.obj?.metadata?.upload_id} filename={hdf5Filename} initialPath={hdf5Path} explorerOpen={false}/>
+            <H5Web key={hdf5Path} upload_id={adaptor?.obj?.metadata?.upload_id} filename={hdf5Filename} initialPath={hdf5Path} sidebarOpen={false}/>
           </Card>
         </Grid>}
       </Grid>
