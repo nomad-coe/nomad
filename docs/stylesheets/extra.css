@@ -3,23 +3,18 @@
     height: 30px;
 }
 
-/* .md-nav--primary .md-nav__title[for=__drawer] {
-    background-color: var(--md-default-fg-color--lightest);
-    color: var(--md-default-fg-color--light);
-} */
-
 .md-header, .md-header__inner {
     background-color: #fff;
     color: #2A4CDF;
 }
 
-.md-header[data-md-state=shadow] {
-    box-shadow: 0px 2px 4px -1px rgb(0 0 0 / 20%), 0px 4px 5px 0px rgb(0 0 0 / 14%), 0px 1px 10px 0px rgb(0 0 0 / 12%);
+.md-header--shadow {
+    box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, .12);
     transition: box-shadow 200ms linear;
 }
 
 .md-header__inner {
-    height: 80px;
+    height: 72px;
 }
 
 .md-header__topic {

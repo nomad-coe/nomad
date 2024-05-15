@@ -88,10 +88,11 @@ theme:
   logo: assets/nomad-logo.png
   favicon: assets/favicon.png
   features:
-    - navigation.instant
+    - navigation.path
+    - navigation.footer
+    - navigation.top
   icon:
     repo: fontawesome/brands/github
-  custom_dir: docs/theme
 # repo_url: https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/
 markdown_extensions:
   - attr_list
