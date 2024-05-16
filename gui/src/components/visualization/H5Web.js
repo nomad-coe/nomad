@@ -10,7 +10,7 @@ import '@h5web/lib/dist/styles.css'
 import '@h5web/app/dist/styles.css'
 import './H5Web.css'
 
-const H5Web = ({upload_id, filename, initialPath, explorerOpen, sidebarOpen, source}) => {
+const H5Web = ({upload_id, filename, initialPath, sidebarOpen, source}) => {
   const {api} = useApi()
   const {raiseError} = useErrors()
   const [filepath, setFilepath] = useState(false)
@@ -48,7 +48,7 @@ const H5Web = ({upload_id, filename, initialPath, explorerOpen, sidebarOpen, sou
         }}
         axiosConfig={{params: {file: filepath, upload_id: upload_id, source: source}, headers: {Authorization: "Bearer " + api?.keycloak?.token}}}
       >
-        <App disableDarkMode initialPath={initialPath} explorerOpen={explorerOpen} sidebarOpen={sidebarOpen}/>
+        <App disableDarkMode initialPath={initialPath} sidebarOpen={sidebarOpen}/>
 
       </H5GroveProvider>
     )
@@ -59,7 +59,6 @@ H5Web.propTypes = {
   upload_id: PropTypes.string.isRequired,
   filename: PropTypes.string.isRequired,
   initialPath: PropTypes.string.isRequired,
-  explorerOpen: PropTypes.bool,
   sidebarOpen: PropTypes.bool,
   source: PropTypes.string
 }
