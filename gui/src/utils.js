@@ -1762,7 +1762,7 @@ export function getDisplayLabel(def, isArchive = false, technicalView = false) {
     }
   }
   const name = def.m_def === 'nomad.metainfo.metainfo.Section' || def.m_def === 'nomad.metainfo.metainfo.SubSection'
-    ? def.name.replace(/([a-z])([A-Z])/g, '$1 $2')
+    ? def.name.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
     : def.name.replace(/_/g, ' ')
   return eln?.[0].label || def?.more?.label || def?.label || (isArchive ? name : capitalize(name))
 }

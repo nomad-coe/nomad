@@ -625,10 +625,26 @@ const useTitleStyles = makeStyles(theme => ({
     flexGrow: 1,
     overflow: 'hidden',
     textOverflow: 'ellipsis'
+  },
+  sectionLabel: {
+    whiteSpace: 'nowrap'
+  },
+  sectionValue: {
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    display: 'flex',
+    marginLeft: 3
+  },
+  sectionName: {
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    flexShrink: 1
   }
 }))
 
 function LinkWithCopyToClipboard(props) {
+  const classes = useTitleStyles()
   const {label, name, itemKey, ...moreProps} = props
   const lane = useLane()
   const selected = lane?.next && lane?.next.key
@@ -636,34 +652,36 @@ function LinkWithCopyToClipboard(props) {
 
   return <Box display={'flex'} alignItems={'center'} marginBottom={1}>
     {label && (
-      <Typography color={moreProps.color}>
+      <Typography className={classes.sectionLabel} color={moreProps.color}>
         {label}
       </Typography>
     )}
     {name && (
-      <ItemLink itemKey={itemKey} style={{ textDecoration: 'none', marginLeft: 3 }}>
-        {isSelected
-          ? <Chip
-            label={name}
-            color="primary"
-            size="small"
-          />
-          : <Typography color={'primary'}>
-            {name}
-          </Typography>}
-      </ItemLink>
-    )}
-    {name && (
-      <CopyToClipboard
-        text={name}
-        onCopy={() => null}
-      >
-        <Tooltip title={`Copy "${name}" to clipboard`}>
-          <IconButton style={{ padding: 0, marginLeft: 3 }}>
-            <ClipboardIcon fontSize="small"/>
-          </IconButton>
-        </Tooltip>
-      </CopyToClipboard>
+      <Box className={classes.sectionValue}>
+        <ItemLink itemKey={itemKey} className={classes.sectionValue} style={{ textDecoration: 'none' }}>
+          {isSelected
+            ? <Chip
+              classes={{label: classes.sectionName}}
+              style={{maxWidth: '100%'}}
+              label={name}
+              color="primary"
+              size="small"
+            />
+            : <Typography className={classes.sectionName} color={'primary'}>
+              {name}
+            </Typography>}
+        </ItemLink>
+        <CopyToClipboard
+          text={name}
+          onCopy={() => null}
+        >
+          <Tooltip title={`Copy "${name}" to clipboard`}>
+            <IconButton style={{ padding: 0, marginLeft: 3 }}>
+              <ClipboardIcon fontSize="small"/>
+            </IconButton>
+          </Tooltip>
+        </CopyToClipboard>
+      </Box>
     )}
   </Box>
 }
@@ -685,10 +703,6 @@ export function Title({title, label, definitionName, subSectionName, tooltip, ac
         ) : (
           <Typography variant="h6" noWrap {...moreProps}>{title || <i>unnamed</i>}</Typography>
         )}
-        <Box display={'flex'} flexDirection={'column'}>
-          {definitionName ? <LinkWithCopyToClipboard label={label} name={definitionName} itemKey={'_metainfo'} {...moreProps}/> : <LinkWithCopyToClipboard label={label} {...moreProps}/>}
-          {subSectionName && <LinkWithCopyToClipboard label={'sub section'} name={subSectionName} itemKey={'_subsectionmetainfo'} {...moreProps}/>}
-        </Box>
       </Grid>
       {actions && (
         <Grid item>
@@ -696,6 +710,10 @@ export function Title({title, label, definitionName, subSectionName, tooltip, ac
         </Grid>
       )}
     </Grid>
+    <Box display={'block'} flexDirection={'column'} width={'100%'}>
+      {definitionName ? <LinkWithCopyToClipboard label={label} name={definitionName} itemKey={'_metainfo'} {...moreProps}/> : <LinkWithCopyToClipboard label={label} {...moreProps}/>}
+      {subSectionName && <LinkWithCopyToClipboard label={'sub section'} name={subSectionName} itemKey={'_subsectionmetainfo'} {...moreProps}/>}
+    </Box>
   </Compartment>
 }
 Title.propTypes = ({
