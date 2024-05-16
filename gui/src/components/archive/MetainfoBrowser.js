@@ -609,6 +609,10 @@ function SubSectionDef({def, inheritingSections}) {
           <b>label</b>:&nbsp;
           {label}
         </Typography>
+        <Typography>
+          <b>repeats</b>:&nbsp;
+          {def.repeats ? 'True' : 'False'}
+        </Typography>
       </DefinitionProperties>
       <DefinitionDocs def={sectionDef} />
       <Attributes def={def}/>

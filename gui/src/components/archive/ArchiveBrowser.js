@@ -442,15 +442,9 @@ class ArchiveAdaptor extends Adaptor {
   }
 
   async adaptorFactory(objUrl, obj, property) {
-    let def
-    if (property.m_def === SectionMDef) {
-      def = property
-    } else if (property.m_def === SubSectionMDef) {
+    let def = property
+    if (property.m_def === SubSectionMDef) {
       def = property.sub_section
-    } else if (property.m_def === QuantityMDef) {
-      def = property
-    } else if (property.m_def === AttributeMDef) {
-      def = property
     }
 
     if (obj.m_def === PackageMDef) {
