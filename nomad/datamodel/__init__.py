@@ -33,7 +33,7 @@ from .datamodel import (
 from .optimade import OptimadeEntry, Species
 from .metainfo import m_env
 from .results import Results
-from .data import EntryData, ArchiveSection
+from .data import EntryData, ArchiveSection, Schema
 from nomad.config.models.plugins import SchemaPackageEntryPoint
 from .context import Context, ClientContext, ServerContext
 
