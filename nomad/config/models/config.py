@@ -1081,7 +1081,7 @@ class Config(ConfigBaseModel):
                 key = entry_point.value
                 if key in plugin_entry_point_ids:
                     continue
-                package_name = entry_point.value.split('.', 1)[0]
+                package_name = entry_point.value.split('.', 1)[0].split(':', 1)[0]
                 config_override = (
                     _plugins.get('entry_points', {}).get('options', {}).get(key, {})
                 )
