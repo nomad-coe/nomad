@@ -458,7 +458,7 @@ class WidgetTerms(Widget):
     """Terms widget configuration."""
 
     type: Literal['terms'] = Field(
-        description='Set as `terms` to get this widget type.'
+        'terms', description='Set as `terms` to get this widget type.'
     )
     quantity: str = Field(description='Targeted quantity.')
     scale: ScaleEnum = Field(description='Statistics scaling.')
@@ -469,7 +469,7 @@ class WidgetHistogram(Widget):
     """Histogram widget configuration."""
 
     type: Literal['histogram'] = Field(
-        description='Set as `histogram` to get this widget type.'
+        'histogram', description='Set as `histogram` to get this widget type.'
     )
     quantity: str = Field(description='Targeted quantity.')
     scale: ScaleEnum = Field(description='Statistics scaling.')
@@ -493,7 +493,7 @@ class WidgetPeriodicTable(Widget):
     """Periodic table widget configuration."""
 
     type: Literal['periodictable'] = Field(
-        description='Set as `periodictable` to get this widget type.'
+        'periodictable', description='Set as `periodictable` to get this widget type.'
     )
     quantity: str = Field(description='Targeted quantity.')
     scale: ScaleEnum = Field(description='Statistics scaling.')
@@ -503,7 +503,7 @@ class WidgetScatterPlot(Widget):
     """Scatter plot widget configuration."""
 
     type: Literal['scatterplot'] = Field(
-        description='Set as `scatterplot` to get this widget type.'
+        'scatterplot', description='Set as `scatterplot` to get this widget type.'
     )
     x: Union[Axis, str] = Field(
         description='Configures the information source and display options for the x-axis.'

@@ -1,7 +1,0 @@
-plugin_type: parser
-plugin_name: parsers/countries
-description: |
-  This is a parser for a Countries of the World file.
-mainfile_name_re: '^.*\.data\.txt$'
-mainfile_contents_re: '#Country=\w+'
-parser_class_name: countriesplugin.parser.Parser
