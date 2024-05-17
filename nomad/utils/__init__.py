@@ -82,7 +82,6 @@ default_hash_len = 28
 
 try:
     from . import structlogging
-    from .structlogging import legacy_logger
     from .structlogging import configure_logging
 
     def get_logger(name, **kwargs):
@@ -137,9 +136,21 @@ class ClassicLogger:
 
 def set_console_log_level(level):
     root = logging.getLogger()
-    for handler in root.handlers:
-        if isinstance(handler, (logging.StreamHandler, logging.FileHandler)):
+    try:
+        from .structlogging import LogstashHandler, LogtransferHandler
+    except ImportError:
+        for handler in root.handlers:
             handler.setLevel(level)
+    else:
+        for handler in root.handlers:
+            if not isinstance(
+                handler,
+                (
+                    LogstashHandler,
+                    LogtransferHandler,
+                ),
+            ):
+                handler.setLevel(level)
 
 
 def decode_handle_id(handle_str: str):

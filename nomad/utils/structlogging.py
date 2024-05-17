@@ -17,28 +17,17 @@
 #
 
 """
-.. autofunc::nomad.utils.create_uuid
-.. autofunc::nomad.utils.hash
-.. autofunc::nomad.utils.timer
-
 Logging in nomad is structured. Structured logging means that log entries contain
 dictionaries with quantities related to respective events. E.g. having the code,
 parser, parser version, entry_id, mainfile, etc. for all events that happen during
-entry processing. This means the :func:`get_logger` and all logger functions
-take keyword arguments for structured data. Otherwise :func:`get_logger` can
-be used similar to the standard *logging.getLogger*.
-
-Depending on the configuration all logs will also be sent to a central logstash.
-
-.. autofunc::nomad.utils.get_logger
-.. autofunc::nomad.utils.hash
-.. autofunc::nomad.utils.create_uuid
-.. autofunc::nomad.utils.timer
-.. autofunc::nomad.utils.lnr
+entry processing. This means the `get_logger` and all logger functions
+take keyword arguments for structured data. Otherwise `get_logger` can
+be used similar to the standard `logging.getLogger`.
 """
 
 from typing import cast, Any
 import logging
+from logging.handlers import WatchedFileHandler
 import structlog
 from structlog.processors import (
     StackInfoRenderer,
@@ -51,6 +40,7 @@ import logstash
 from contextlib import contextmanager
 import json
 import re
+import os.path
 
 from nomad import utils
 from nomad.config import config
@@ -75,32 +65,16 @@ def sanitize_logevent(event: str) -> str:
     return sanitized_event
 
 
-@contextmanager
-def legacy_logger(logger):
-    """Context manager that makes the given logger the logger for legacy log entries."""
-    LogstashHandler.legacy_logger = logger
-    try:
-        yield
-    finally:
-        LogstashHandler.legacy_logger = None
-
-
-class LogstashHandler(logstash.TCPLogstashHandler):
-    """
-    A log handler that emits records to logstash. It also filters logs for being
-    structlog entries. All other entries are diverted to a global `legacy_logger`.
-    This legacy logger is supposed to be a structlog logger that turns legacy
-    records into structlog entries with reasonable binds depending on the current
-    execution context (e.g. parsing/normalizing, etc.). If no legacy logger is
-    set, they get emitted as usual (e.g. non nomad logs, celery, dbs, etc.)
-    """
-
-    legacy_logger = None
-
-    def __init__(self):
-        super().__init__(config.logstash.host, config.logstash.tcp_port, version=1)
+class BaseHandler(logging.Handler):
+    """A Handler base class that filters logs for being structlog entries."""
 
     def filter(self, record):
+        if record.name.startswith('nomad.logtransfer'):
+            # We filter out all logtransfer logs, as they might cause
+            # infinite loops with only logtransfer errors and not transffered
+            # logs.
+            return False
+
         if record.name == 'uvicorn.access':
             http_access_path = record.args[2]
             if 'alive' in http_access_path or 'gui/index.html' in http_access_path:
@@ -113,22 +87,15 @@ class LogstashHandler(logstash.TCPLogstashHandler):
 
             if is_structlog:
                 return True
-            else:
-                if LogstashHandler.legacy_logger is None:
-                    return True
-                else:
-                    LogstashHandler.legacy_logger.log(
-                        record.levelno,
-                        sanitize_logevent(record.msg),
-                        args=record.args,
-                        exc_info=record.exc_info,
-                        stack_info=record.stack_info,
-                        legacy_logger=record.name,
-                    )
-
-                    return False
 
         return False
+
+
+class LogstashHandler(logstash.TCPLogstashHandler, BaseHandler):
+    """A log handler that emits records to logstash."""
+
+    def __init__(self):
+        super().__init__(config.logstash.host, config.logstash.tcp_port, version=1)
 
 
 class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
@@ -221,6 +188,11 @@ class LogstashFormatter(logstash.formatter.LogstashFormatterBase):
         return self.serialize(message)
 
 
+class LogtransferFormatter(LogstashFormatter):
+    def serialize(self, message):
+        return json.dumps(message)
+
+
 class ConsoleFormatter(LogstashFormatter):
     def __init__(self, message_type='Logstash', tags=None, fqdn=False, datefmt=None):
         # In conftest.py, we monkeypatch the logging.Formatter with ConsoleFormatter.
@@ -275,6 +247,11 @@ class ConsoleFormatter(LogstashFormatter):
         return out.getvalue()
 
 
+class LogtransferHandler(WatchedFileHandler):
+    def __init__(self):
+        super().__init__(os.path.join(config.fs.tmp, config.logtransfer.log_file))
+
+
 def add_logstash_handler(logger):
     logstash_handler = next(
         (
@@ -292,6 +269,34 @@ def add_logstash_handler(logger):
         )
         logstash_handler.setLevel(config.logstash.level)
         logger.addHandler(logstash_handler)
+
+
+root = logging.getLogger()
+
+
+def get_logtransfer_handler(logger=root):
+    logtransfer_handler = next(
+        (
+            handler
+            for handler in logger.handlers
+            if isinstance(handler, LogtransferHandler)
+        ),
+        None,
+    )
+
+    return logtransfer_handler
+
+
+def add_logtransfer_handler(logger):
+    logtransfer_handler = get_logtransfer_handler(logger)
+
+    if logtransfer_handler is None:
+        logtransfer_handler = LogtransferHandler()
+        logtransfer_handler.formatter = LogtransferFormatter(
+            tags=['nomad', config.meta.deployment]
+        )
+        logtransfer_handler.setLevel(config.logtransfer.level)
+        logger.addHandler(logtransfer_handler)
 
 
 def get_logger(name, **kwargs):
@@ -330,14 +335,18 @@ structlog.configure(
 )
 
 
-root = logging.getLogger()
-
-
 # configure logging in general
 def configure_logging(console_log_level=config.services.console_log_level):
     logging.basicConfig(level=logging.DEBUG)
+
     for handler in root.handlers:
-        if not isinstance(handler, LogstashHandler):
+        if not isinstance(
+            handler,
+            (
+                LogstashHandler,
+                LogtransferHandler,
+            ),
+        ):
             handler.setLevel(console_log_level)
             handler.setFormatter(ConsoleFormatter())
 
@@ -350,13 +359,19 @@ if config.logstash.enabled:
     add_logstash_handler(root)
 
     get_logger(__name__).info(
-        'setup logging',
+        'setup logstash logging',
         logstash=config.logstash.enabled,
         logstash_host=config.logstash.host,
         logstash_port=config.logstash.tcp_port,
         logstash_level=config.logstash.level,
     )
 
+if config.logtransfer.enabled:
+    add_logtransfer_handler(root)
+    get_logger(__name__).info(
+        'setup logtransfer logging', logtransfer=config.logtransfer.enabled
+    )
+
 # configure log levels
-for logger in ['elasticsearch', 'urllib3.connectionpool']:
+for logger in ['elasticsearch', 'urllib3.connectionpool', 'celery']:
     logging.getLogger(logger).setLevel(logging.WARNING)

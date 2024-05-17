@@ -213,6 +213,7 @@ WORKDIR /app
 
 # transfer installed packages from the build stage
 COPY --chown=nomad:1000 scripts/run.sh .
+COPY --chown=nomad:1000 scripts/run-worker.sh .
 COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
 
 COPY --chown=nomad:1000 --from=dev_python /app/examples/data/uploads /app/examples/data/uploads

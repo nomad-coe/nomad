@@ -252,7 +252,9 @@ def client_with_api_v1(api_v1, monkeysession):
 
 
 @pytest.fixture(scope='function')
-def central_logstash_mock():
+def central_logstash_mock(monkeypatch):
+    monkeypatch.setattr('nomad.config.config.logstash.enabled', True)
+
     class TCPServerStore(socketserver.TCPServer):
         received_content = []
 

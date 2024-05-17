@@ -20,9 +20,8 @@
 API endpoint to receive telemetry data (in logstash format) from local installations.
 """
 
-import gzip
-import io
 import socket
+import zlib
 
 from fastapi import Request, HTTPException
 from fastapi.routing import APIRouter
@@ -45,26 +44,42 @@ default_tag = 'federation'
 async def logs(request: Request):
     content_encoding = request.headers.get('Content-Encoding')
 
-    if content_encoding is not None:
-        # TODO: need to protect from too large files? Or gzip bombs?
-        if 'gzip' in request.headers.getlist('Content-Encoding'):
-            gzip_content = await request.body()
+    if content_encoding is not None and content_encoding not in ['gzip']:
+        raise HTTPException(
+            status_code=422,
+            detail=f"\"'Content-Encoding': '{content_encoding}'\" not supported",
+        )
 
-            try:
-                with gzip.GzipFile(mode='rb', fileobj=io.BytesIO(gzip_content)) as f:
-                    logs = f.read()
-            except OSError:  # OSError is raised if the content is not a valid gzip
-                raise HTTPException(
-                    status_code=422, detail='decompressing gzip request failed'
-                )
+    content = await request.body()
 
-        else:
-            raise HTTPException(
-                status_code=422,
-                detail=f"\"'Content-Encoding': '{content_encoding}'\" not supported",
-            )
+    # * 2 to have some wiggle room if the oasis does not have the exact same configuration
+    # it is still enough to protect against accidental/malicious large log transfers
+    if len(content) > config.logtransfer.transfer_capacity * 2:
+        raise HTTPException(
+            status_code=413,
+            detail=f'log size too large, max size is {config.logtransfer.transfer_capacity}',
+        )
+
+    elif content.startswith(b'{'):
+        # even gzip compressed content might already be decompressed by proxy
+        logs = content
+
+    elif content_encoding is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f'unsupported content type, content starts with {str(content[:5])}',
+        )
+
     else:
-        logs = await request.body()
+        try:
+            logs = zlib.decompress(content)
+        except (OSError, zlib.error):
+            import traceback
+
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=422, detail='decompressing gzip request failed'
+            )
 
     # read IP address from header (typically set by nginx)
     try:
@@ -87,6 +102,12 @@ async def logs(request: Request):
         # read IP from request directly (note that this is not necessarily an IP address,
         # e.g. can also be string 'localhost'.
         ip_address = str(request.client.host)
+
+    if not config.logstash.enabled:
+        raise HTTPException(
+            status_code=500,
+            detail=f'this nomad installation cannot receive logs, logstash is not enabled',
+        )
 
     logstash_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -113,4 +134,4 @@ async def logs(request: Request):
     finally:
         logstash_socket.close()
 
-    return {'filesize': len(logs)}
+    return {'received_logs_size': len(logs)}
