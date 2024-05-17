@@ -34,7 +34,7 @@ blosc2==2.5.1             # via -r requirements.txt, tables
 build==1.2.1              # via nomad-lab (pyproject.toml), pip-tools
 cachetools==5.3.3         # via -r requirements.txt, nomad-lab (pyproject.toml)
 celery==5.4.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
-certifi==2024.2.2         # via -r requirements.txt, elasticsearch, httpcore, httpx, requests
+certifi==2024.2.2         # via -r requirements.txt, elasticsearch, httpcore, httpx, netcdf4, requests
 certipy==0.1.3            # via -r requirements.txt, jupyterhub
 cffi==1.16.0              # via -r requirements.txt, cryptography
 cftime==1.6.3             # via -r requirements.txt, netcdf4
@@ -84,7 +84,7 @@ flask==3.0.3              # via -r requirements.txt, asr
 flatdict==4.0.1           # via -r requirements.txt, pynxtools
 fonttools==4.51.0         # via -r requirements.txt, matplotlib
 fqdn==1.5.1               # via -r requirements.txt, jsonschema
-fsspec==2024.3.1          # via -r requirements.txt, dask, hyperspy
+fsspec==2024.5.0          # via -r requirements.txt, dask, hyperspy
 future==1.0.0             # via -r requirements.txt, uncertainties
 ghp-import==2.1.0         # via mkdocs
 gitdb==4.0.11             # via -r requirements.txt, gitpython
@@ -160,13 +160,13 @@ mkdocs-get-deps==0.2.0    # via mkdocs
 mkdocs-git-revision-date-localized-plugin==1.2.5  # via nomad-lab (pyproject.toml)
 mkdocs-glightbox==0.4.0   # via nomad-lab (pyproject.toml)
 mkdocs-macros-plugin==1.0.5  # via nomad-lab (pyproject.toml)
-mkdocs-material==9.5.22   # via nomad-lab (pyproject.toml)
+mkdocs-material==9.5.23   # via nomad-lab (pyproject.toml)
 mkdocs-material-extensions==1.3.1  # via mkdocs-material, nomad-lab (pyproject.toml)
 mkdocs-redirects==1.2.1   # via nomad-lab (pyproject.toml)
 mmtf-python==1.1.3        # via -r requirements.txt, mdanalysis
 mongoengine==0.28.2       # via -r requirements.txt, nomad-lab (pyproject.toml)
 mongomock==4.1.2          # via -r requirements.txt, optimade
-monty==2024.4.17          # via -r requirements.txt, pymatgen
+monty==2024.5.15          # via -r requirements.txt, pymatgen
 more-itertools==10.2.0    # via jaraco-classes, jaraco-functools, pytest
 mpmath==1.3.0             # via -r requirements.txt, sympy
 mrcfile==1.5.0            # via -r requirements.txt, griddataformats
@@ -177,7 +177,7 @@ names==0.3.0              # via nomad-lab (pyproject.toml)
 natsort==8.4.0            # via -r requirements.txt, hyperspy
 ndindex==1.8              # via -r requirements.txt, blosc2
 nest-asyncio==1.6.0       # via -r requirements.txt, ipykernel
-netcdf4==1.5.4            # via -r requirements.txt, nomad-lab (pyproject.toml)
+netcdf4==1.6.5            # via -r requirements.txt, nomad-lab (pyproject.toml)
 networkx==2.6.3           # via -r requirements.txt, matid, mdanalysis, nomad-lab (pyproject.toml), pymatgen, radioactivedecay, scikit-image
 nh3==0.2.17               # via readme-renderer
 niondata==0.15.5          # via -r requirements.txt, nionswift, nionswift-io
@@ -227,7 +227,7 @@ py==1.11.0                # via pytest, pytest-forked
 py-cpuinfo==9.0.0         # via -r requirements.txt, blosc2, tables
 pyasn1==0.6.0             # via -r requirements.txt, pyasn1-modules, rfc3161ng
 pyasn1-modules==0.4.0     # via -r requirements.txt, rfc3161ng
-pybis @ git+https://github.com/FAIRmat-NFDI/fairmat-pybis.git  # via -r requirements.txt, nomad-lab (pyproject.toml)
+pybis @ git+https://github.com/FAIRmat-NFDI/fairmat-pybis.git@91039c2a1df364c88ab7e284b59c43ec42f18370  # via -r requirements.txt, nomad-lab (pyproject.toml)
 pybtex==0.24.0            # via -r requirements.txt, pymatgen
 pycifrw==4.4.5            # via -r requirements.txt, diffpy-structure
 pycodestyle==2.11.1       # via nomad-lab (pyproject.toml)
@@ -275,7 +275,7 @@ rdflib==5.0.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 rdkit==2023.9.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
 readme-renderer==43.0     # via twine
 recommonmark==0.7.1       # via -r requirements.txt, nomad-lab (pyproject.toml)
-regex==2024.5.10          # via mkdocs-material
+regex==2024.5.15          # via mkdocs-material
 requests==2.31.0          # via -r requirements.txt, docker, hyperspy, jupyterhub, mkdocs-material, nomad-lab (pyproject.toml), oauthenticator, optimade, pooch, pybis, pymatgen, python-gitlab, python-keycloak, requests-toolbelt, rfc3161ng, sphinx, twine
 requests-toolbelt==1.0.0  # via -r requirements.txt, python-gitlab, python-keycloak, twine
 rfc3161ng==2.1.3          # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -354,7 +354,7 @@ wrapt==1.16.0             # via -r requirements.txt, nomad-lab (pyproject.toml)
 xarray==2023.12.0         # via -r requirements.txt, nomad-lab (pyproject.toml), pynxtools, pynxtools-mpes, pynxtools-xps
 zarr==2.17.1              # via -r requirements.txt, hyperspy
 zipfile37==0.1.3          # via -r requirements.txt, pynxtools
-zipp==3.18.1              # via -r requirements.txt, importlib-metadata, importlib-resources
+zipp==3.18.2              # via -r requirements.txt, importlib-metadata, importlib-resources
 zipstream-new==1.1.5      # via -r requirements.txt, nomad-lab (pyproject.toml)
 
 # The following packages are considered to be unsafe in a requirements file:
