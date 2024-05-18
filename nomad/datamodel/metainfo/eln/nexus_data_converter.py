@@ -163,7 +163,9 @@ class ElnYamlConverter(EntryData):
 class NexusDataConverter(EntryData):
     reader = Quantity(
         type=MEnum(
-            pynxtools_converter.get_names_of_all_readers() if NEXUS_AVAILABLE else []
+            sorted(list(set(pynxtools_converter.get_names_of_all_readers())))
+            if NEXUS_AVAILABLE
+            else []
         ),
         description='The reader needed to run the Nexus converter.',
         a_eln=dict(component='AutocompleteEditQuantity'),
