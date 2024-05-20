@@ -83,7 +83,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-nexus.obj
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -450,3 +449,7 @@ docker-compose.local.yml
 
 # nexus objects
 nexus.obj
+
+celerybeat-schedule.dir
+celerybeat-schedule.dat
+celerybeat-schedule.bak
