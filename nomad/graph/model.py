@@ -319,9 +319,7 @@ def _normalise_pattern(pattern: FrozenSet[str]) -> FrozenSet[str]:  # pylint: di
     pattern = frozenset(re.sub(r'\*+', '*', v) for v in pattern)
     pattern = frozenset(re.sub(r'\.', r'\.', v) for v in pattern)
     # replace wildcard with regex
-    pattern = frozenset(
-        v.replace('*', r'[\w\./]*').replace('?', r'[\w\./]') for v in pattern
-    )
+    pattern = frozenset(v.replace('*', r'.*').replace('?', r'.?') for v in pattern)
     # add ^ and $ to the pattern if not present
     pattern = frozenset('^' + v if not v.startswith('^') else v for v in pattern)
     pattern = frozenset(v + '$' if not v.endswith('$') else v for v in pattern)

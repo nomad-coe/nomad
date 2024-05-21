@@ -310,7 +310,9 @@ def _if_exists(target_root: dict, path_stack: list) -> bool:
 @functools.lru_cache(maxsize=1024)
 def _convert_ref_to_path(ref: str, upload_id: str = None) -> list:
     # test module name
-    if '.' in (stripped_ref := ref.strip('.')):
+    if '.' in (stripped_ref := ref.strip('.')) or re.compile(r'^\w*(\.\w*)*$').match(
+        ref.split('/section_definitions')[0]
+    ):
         module_path, _ = split_python_definition(stripped_ref)
         return [Token.METAINFO, '.'.join(module_path[:-1])] + module_path[-1].split('/')
 
@@ -2413,10 +2415,18 @@ class ArchiveReader(GeneralReader):
         if isinstance(original_def, SubSection):
             return node.replace(definition=original_def.sub_section.m_resolved())
 
+        # todo: those three should be handled differently as they are not references
+        from nomad.datamodel.data import UserReference, AuthorReference
+
+        from nomad.datamodel.datamodel import DatasetReference
+
         # if not a quantity reference, early return
         if not (
             isinstance(original_def, Quantity)
             and isinstance(original_def.type, Reference)
+            and not isinstance(
+                original_def.type, (UserReference, AuthorReference, DatasetReference)
+            )
         ):
             return node
 
