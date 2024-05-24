@@ -18,20 +18,18 @@ cd $project_dir
 cp requirements.txt requirements.txt.tmp
 cp requirements-dev.txt requirements-dev.txt.tmp
 
-pip-compile -r -U --resolver=backtracking --annotation-style=line \
+uv pip compile -q -U --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
-    --pip-args="--prefer-binary" \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/eelsdb/pyproject.toml \
     pyproject.toml
 
 diff requirements.txt.tmp requirements.txt
 
-pip-compile -r -U --resolver=backtracking --annotation-style=line \
+uv pip compile -q -U --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
-    --pip-args="--prefer-binary" \
     requirements.txt \
     pyproject.toml
 
