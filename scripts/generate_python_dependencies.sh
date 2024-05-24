@@ -14,18 +14,17 @@ project_dir=$(dirname $(dirname $(realpath $0)))
 
 cd $project_dir
 
-pip-compile -r -U --resolver=backtracking --annotation-style=line \
+
+uv pip compile -U --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
-    --pip-args="--prefer-binary" \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
     dependencies/parsers/eelsdb/pyproject.toml \
     pyproject.toml
 
-pip-compile -r -U --resolver=backtracking --annotation-style=line \
+uv pip compile -U --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
-    --pip-args="--prefer-binary" \
     requirements.txt \
     pyproject.toml
 
