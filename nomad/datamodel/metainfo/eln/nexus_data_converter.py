@@ -10,7 +10,9 @@ try:
     from pynxtools.dataconverter import convert as pynxtools_converter
     from pynxtools.dataconverter import writer as pynxtools_writer
     from pynxtools.dataconverter.template import Template
-    from pynxtools.nexus.nexus import get_app_defs_names  # pylint: disable=import-error
+    from pynxtools.definitions.dev_tools.utils.nxdl_utils import (
+        get_app_defs_names,  # pylint: disable=import-error
+    )
 except ImportError:
     NEXUS_AVAILABLE = False
     pass
@@ -172,7 +174,7 @@ class NexusDataConverter(EntryData):
     )
 
     nxdl = Quantity(
-        type=MEnum(get_app_defs_names() if NEXUS_AVAILABLE else []),
+        type=MEnum(sorted(list(set(get_app_defs_names()))) if NEXUS_AVAILABLE else []),
         description='The nxdl needed for running the Nexus converter.',
         a_eln=dict(component='AutocompleteEditQuantity'),
     )

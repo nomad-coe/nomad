@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-import xml.etree.ElementTree as ET
 from typing import Optional, Set
 
+import lxml.etree as ET
 import numpy as np
 
 try:
@@ -138,7 +138,7 @@ class NexusParser(Parser):
             self._sample_class_refs[key] = []
 
     def _collect_class(self, current: MSection):
-        class_name = current.m_def.name
+        class_name = current.m_def.more.get('nx_type')
         if (
             class_name in self._sample_class_refs
             and current not in self._sample_class_refs[class_name]
@@ -151,9 +151,6 @@ class NexusParser(Parser):
         """
         Populate attributes and fields
         """
-        if not self.nxs_fname and hdf_node:
-            self.nxs_fname = hdf_node.file.filename.split('/')[-1]
-
         if depth < len(nx_path):
             # it is an attribute of either field or group
             nx_attr = nx_path[depth]
@@ -176,7 +173,7 @@ class NexusParser(Parser):
                 attr_value = hdf_node.attrs[attr_name]
                 if not isinstance(attr_value, str):
                     if isinstance(attr_value, np.ndarray):
-                        attr_value = [value for value in attr_value]
+                        attr_value = attr_value.tolist()
                         if len(attr_value) == 1:
                             attr_value = attr_value[0]
 
@@ -188,17 +185,29 @@ class NexusParser(Parser):
                         current.m_set_section_attribute(attr_name, attr_value)
                     else:
                         parent_html_name = nx_path[-2].get('name')
+
                         parent_instance_name = hdf_node.name.split('/')[-1] + '__field'
                         parent_field_name = parent_html_name + '__field'
-                        metainfo_def = resolve_variadic_name(
-                            current.m_def.all_properties, parent_field_name
-                        )
+
+                        metainfo_def = None
+                        try:
+                            metainfo_def = resolve_variadic_name(
+                                current.m_def.all_properties, parent_field_name
+                            )
+                        except ValueError as exc:
+                            self._logger.warning(
+                                f'{current.m_def} has no suitable property for {parent_field_name}',
+                                target_name=attr_name,
+                                exc_info=exc,
+                            )
+
                         if parent_field_name in current.__dict__:
                             quantity = current.__dict__[parent_field_name]
                             if isinstance(quantity, dict):
                                 quantity = quantity[parent_instance_name]
                         else:
                             quantity = None
+
                         current.m_set_quantity_attribute(
                             metainfo_def, attr_name, attr_value, quantity=quantity
                         )
@@ -206,7 +215,7 @@ class NexusParser(Parser):
                     self._logger.warning(
                         'Error while setting attribute.',
                         target_name=attr_name,
-                        exe_info=str(e),
+                        exc_info=e,
                     )
         else:
             # it is a field
@@ -233,12 +242,6 @@ class NexusParser(Parser):
                         ]
                     )
                     field = field_stats[0]
-                if np.isnan(field):
-                    self._logger.warning(
-                        'NaN value is not set for field ',
-                        target_name=field_name + '[' + data_instance_name + ']',
-                    )
-                    return
 
             # check if unit is given
             unit = hdf_node.attrs.get('units', None)
@@ -287,7 +290,7 @@ class NexusParser(Parser):
                 self._logger.warning(
                     'Error while setting field.',
                     target_name=field_name,
-                    exe_info=str(e),
+                    exc_info=e,
                 )
 
     def __nexus_populate(self, params: dict, attr=None):  # pylint: disable=W0613
@@ -303,9 +306,6 @@ class NexusParser(Parser):
         hdf_path: str = hdf_info['hdf_path']
         hdf_node = hdf_info['hdf_node']
 
-        if not self.nxs_fname and hdf_node:
-            self.nxs_fname = hdf_node.file.filename.split('/')[-1]
-
         if nx_path is None:
             return
 
@@ -317,12 +317,12 @@ class NexusParser(Parser):
             current = _to_section(name, nx_def, nx_node, current)
             self._collect_class(current)
             depth += 1
-            current_hdf_path = current_hdf_path + (
-                '/' + name if depth < len(nx_path) else ''
-            )
-            current.m_set_section_attribute('m_nx_data_path', current_hdf_path)
-
-            current.m_set_section_attribute('m_nx_data_file', self.nxs_fname)
+            if depth < len(nx_path):
+                current_hdf_path = current_hdf_path + ('/' + name)
+            if nx_node is not None and isinstance(nx_node, ET._Element):
+                if nx_node.tag.endswith('group'):
+                    current.m_set_section_attribute('m_nx_data_path', current_hdf_path)
+                    current.m_set_section_attribute('m_nx_data_file', self.nxs_fname)
         self._populate_data(depth, nx_path, nx_def, hdf_node, current)
 
     def get_sub_element_names(self, elem: MSection):
@@ -362,15 +362,18 @@ class NexusParser(Parser):
 
         for sample in self._sample_class_refs['NXsample']:
             if sample.get('atom_types__field') is not None:
-                if isinstance(sample.atom_types__field, list):
-                    atomlist = sample.atom_types__field
+                atom_types = sample.atom_types__field['atom_types__field'].value
+                if isinstance(atom_types, list):
+                    atomlist = atom_types
                 else:
-                    atomlist = sample.atom_types__field.replace(' ', '').split(',')
+                    atomlist = atom_types.replace(' ', '').split(',')
                 # Caution: The element list will be overwritten
                 # in case a single chemical formula is found
                 material.elements = list(set(material.elements) | set(atomlist))
             if sample.get('chemical_formula__field') is not None:
-                chemical_formulas.add(sample.chemical_formula__field)
+                chemical_formulas.add(
+                    sample.chemical_formula__field['chemical_formula__field'].value
+                )
 
         for class_ref in (
             'NXsample_component',
@@ -378,11 +381,17 @@ class NexusParser(Parser):
         ):
             for section in self._sample_class_refs[class_ref]:
                 if section.get('chemical_formula__field') is not None:
-                    chemical_formulas.add(section.chemical_formula__field)
+                    chemical_formulas.add(
+                        section.chemical_formula__field['chemical_formula__field'].value
+                    )
 
         for substance in self._sample_class_refs['NXsubstance']:
             if substance.get('molecular_formula_hill__field') is not None:
-                chemical_formulas.add(substance.molecular_formula_hill__field)
+                chemical_formulas.add(
+                    substance.molecular_formula_hill__field[
+                        'molecular_formula_hill__field'
+                    ].value
+                )
 
         return chemical_formulas
 
@@ -427,6 +436,7 @@ class NexusParser(Parser):
         self._clear_class_refs()
 
         if mainfile.endswith('nxs'):
+            *_, self.nxs_fname = mainfile.rsplit('/', 1)
             nexus_helper = read_nexus.HandleNexus(logger, mainfile)
             nexus_helper.process_nexus_master_file(self.__nexus_populate)
         else:

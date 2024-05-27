@@ -157,23 +157,25 @@ sub-sections as if they were direct sub-sections.
 """
 
 import math
-from typing import (
-    Union,
-    Any,
-    Dict,
-    cast,
-    Set,
-    List,
-    Callable,
-    Tuple,
-    Optional,
-    DefaultDict,
-)
-from collections import defaultdict
-import numpy as np
-from pint import Quantity as PintQuantity
 import re
+from collections import defaultdict
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
+
+import numpy as np
 from elasticsearch_dsl import Q
+from pint import Quantity as PintQuantity
 
 from nomad import utils
 from nomad.config import config
@@ -181,24 +183,22 @@ from nomad.config.models.plugins import Schema, Parser, SchemaPackageEntryPoint
 from nomad.metainfo.util import MTypes
 
 from .metainfo import (
-    MSectionBound,
-    Section,
-    Quantity,
-    MSection,
-    MEnum,
     Datetime,
-    Reference,
-    DefinitionAnnotation,
     Definition,
-    QuantityReference,
-    Unit,
+    DefinitionAnnotation,
+    MEnum,
+    MSection,
+    MSectionBound,
     Package,
+    Quantity,
+    QuantityReference,
+    Reference,
+    Section,
+    Unit,
 )
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from nomad.datamodel.datamodel import SearchableQuantity, EntryArchive
+    from nomad.datamodel.datamodel import EntryArchive, SearchableQuantity
 
 schema_separator = '#'
 dtype_separator = '#'
@@ -1603,17 +1603,25 @@ def create_searchable_quantity(
             value_field_name = get_searchable_quantity_value_field(annotation)
             if value_field_name is None:
                 return None
+
             if mapping == 'text':
                 value = str(value)
             elif mapping == 'date':
                 value = Datetime.serialize(section, quantity_def, value)
             elif mapping == 'long':
-                value = int(value)
+                if isinstance(value, PintQuantity):
+                    value = int(value.m)
+                elif isinstance(value, dict):
+                    return None
+                else:
+                    value = int(value)
             elif mapping == 'boolean':
                 value = bool(value)
             elif mapping == 'double':
                 if isinstance(value, PintQuantity):
                     value = float(value.m)
+                elif isinstance(value, dict):
+                    return None
                 else:
                     value = float(value)
                 if math.isnan(value):

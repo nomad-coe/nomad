@@ -33,7 +33,7 @@ class MetainfoNormalizer(Normalizer):
         except Exception:
             pass
 
-        if normalize:
+        if normalize and callable(normalize):
             try:
                 normalize(archive, logger)
             except Exception as e:
