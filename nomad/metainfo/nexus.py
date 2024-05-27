@@ -23,7 +23,7 @@ import sys
 
 # noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 
@@ -41,7 +41,6 @@ from nomad.metainfo import (
     Definition,
     MEnum,
     Package,
-    Property,
     Quantity,
     Section,
     SubSection,
@@ -78,6 +77,18 @@ __NX_TYPES = {  # Primitive Types,  'ISO8601' is the only type not defined here
     'NX_UINT': np.uint64,
     'NX_NUMBER': np.float64,
     'NX_POSINT': np.uint64,
+    'NX_BINARY': Bytes,
+    'NX_DATE_TIME': Datetime,
+}
+__NX_ATTR_TYPES = {
+    'NX_COMPLEX': float,
+    'NX_FLOAT': float,
+    'NX_CHAR': str,
+    'NX_BOOLEAN': bool,
+    'NX_INT': int,
+    'NX_UINT': int,
+    'NX_NUMBER': float,
+    'NX_POSINT': int,
     'NX_BINARY': Bytes,
     'NX_DATE_TIME': Datetime,
 }
@@ -225,7 +236,7 @@ def __to_section(name: str, **kwargs) -> Section:
     """
     Returns the 'existing' metainfo section for a given top-level nexus base-class name.
 
-    This function ensures that sections for these base-classes are only created one.
+    This function ensures that sections for these base-classes are only created once.
     This allows to access the metainfo section even before it is generated from the base
     class nexus definition.
     """
@@ -314,7 +325,7 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Quantit
             nx_type = nx_enum
             nx_shape: List[str] = []
         else:
-            nx_type = __NX_TYPES[attribute.get('type', 'NX_CHAR')]  # type: ignore
+            nx_type = __NX_ATTR_TYPES[attribute.get('type', 'NX_CHAR')]  # type: ignore
             has_bound = False
             has_bound |= 'minOccurs' in attribute.attrib
             has_bound |= 'maxOccurs' in attribute.attrib
@@ -325,7 +336,8 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Quantit
                     nx_max_occurs = '*'
                 nx_shape = [f'{nx_min_occurs}..{nx_max_occurs}']
             else:
-                nx_shape = []
+                # Default is to allow any shape
+                nx_shape = ['0..*']
 
         m_attribute = Attribute(
             name=name, variable=__if_template(name), shape=nx_shape, type=nx_type
@@ -340,7 +352,7 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Quantit
 
 
 def __add_additional_attributes(definition: Definition):
-    if 'm_nx_data_path' not in definition.all_attributes:
+    if 'm_nx_data_path' not in definition.attributes:
         definition.attributes.append(
             Attribute(
                 name='m_nx_data_path',
@@ -352,7 +364,7 @@ def __add_additional_attributes(definition: Definition):
             )
         )
 
-    if 'm_nx_data_file' not in definition.all_attributes:
+    if 'm_nx_data_file' not in definition.attributes:
         definition.attributes.append(
             Attribute(
                 name='m_nx_data_file',
@@ -639,7 +651,7 @@ def __add_section_from_nxdl(xml_node: ET.Element) -> Optional[Section]:
         __logger.error(
             'Fail to generate metainfo.',
             target_name=xml_node.attrib['name'],
-            exe_info=str(err),
+            exc_info=str(err),
         )
         return None
 
@@ -732,15 +744,20 @@ def init_nexus_metainfo():
     nexus_metainfo_package.init_metainfo()
 
     # Add additional NOMAD specific attributes (nx_data_path, nx_data_file, nx_mean, ...)
-    sections: Set[Section] = set()
-    quantities: Set[Quantity] = set()
-    for section in __section_definitions.values():
-        sections.add(section.inherited_sections[0])
-        quantities.update(section.all_quantities.values())
-    for definition in sections:
-        __add_additional_attributes(definition)
-    for definition in quantities:
-        __add_additional_attributes(definition)
+    # This needs to be done in the right order, base sections first.
+    visited_definitions = set()
+    sections = list()
+    for definition, _, _, _ in nexus_metainfo_package.m_traverse():
+        if isinstance(definition, Section):
+            for section in reversed([definition] + definition.all_base_sections):
+                if section not in visited_definitions:
+                    visited_definitions.add(section)
+                    sections.append(section)
+
+    for section in sections:
+        __add_additional_attributes(section)
+        for quantity in section.quantities:
+            __add_additional_attributes(quantity)
 
     # We skip the Python code generation for now and offer Python classes as variables
     # TO DO not necessary right now, could also be done case-by-case by the nexus parser

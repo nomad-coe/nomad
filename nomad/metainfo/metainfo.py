@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import base64
-from copy import deepcopy
 import importlib
 import inspect
 import itertools
@@ -26,11 +25,13 @@ import json
 import re
 import sys
 from collections.abc import Iterable as IterableABC
+from copy import deepcopy
 from functools import reduce
 from typing import (
     Any,
-    Callable as TypingCallable,
+    ClassVar,
     Dict,
+    Generator,
     Iterable,
     List,
     Optional,
@@ -39,9 +40,10 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    Generator,
     cast,
-    ClassVar,
+)
+from typing import (
+    Callable as TypingCallable,
 )
 
 import docstring_parser
@@ -49,7 +51,7 @@ import jmespath
 import numpy as np
 import pandas as pd
 import pint
-from pydantic import parse_obj_as, ValidationError, BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, parse_obj_as
 
 from nomad.config import config
 from nomad.metainfo.util import (
@@ -1946,6 +1948,12 @@ class MSection(
             if dimension == 0:
                 attr_value = self.__set_normalize(tgt_attr, attr_value)
             elif dimension == 1:
+                if isinstance(tgt_attr.shape[0], str) and (
+                    not isinstance(attr_value, IterableABC)
+                    or isinstance(attr_value, str)
+                ):
+                    if tgt_attr.shape[0].startswith('0') or '*' in tgt_attr.shape[0]:
+                        attr_value = [attr_value]
                 if isinstance(attr_value, str) or not isinstance(
                     attr_value, IterableABC
                 ):

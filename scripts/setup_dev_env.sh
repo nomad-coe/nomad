@@ -17,7 +17,6 @@ rm -rf site
 
 # Install nomad
 pip install --prefer-binary -r requirements-dev.txt
-pip uninstall -y pynxtools
 pip install -e ".[infrastructure,parsing,dev]"
 
 # Build documentation
