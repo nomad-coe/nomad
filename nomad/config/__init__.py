@@ -87,8 +87,17 @@ def _load_config_env() -> Dict[str, Any]:
     config_data: Dict[str, Any] = {}
     prefix = 'NOMAD_'
     for key, value in os.environ.items():
-        if key.startswith(prefix) and key != 'NOMAD_CONFIG':
-            add_deep(config_data, key[len(prefix) :].lower(), value)
+        if key == 'NOMAD_CONFIG' or not key.startswith(prefix):
+            continue
+
+        key = key[len(prefix) :].lower()
+        # Some environment variables starting with NOMAD_ are unavoidable
+        # in docker/kubernetes environments. We should ignore them here,
+        # before they cause a warning later when the config is validated.
+        if all([not key.startswith(field) for field in Config.__fields__.keys()]):
+            continue
+
+        add_deep(config_data, key, value)
 
     return config_data
 

@@ -93,21 +93,30 @@ def test_config_success(config_dict, format, mockopen, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    'config_dict, warning',
+    'config_dict, warning, formats_with_warning',
     [
         pytest.param(
-            {'does': {'not': 'exist'}},
-            'The following extra fields in the NOMAD config model "Config" are ignored: "does"',
-            id='non-existing field',
-        )
+            {'fs': {'does': 'not exist'}},
+            'The following unsupported keys were found in your configuration, e.g. nomad.yaml: "does".',
+            ['yaml', 'env'],
+            id='non-existing nested field',
+        ),
+        pytest.param(
+            {'does': 'not exist'},
+            'The following unsupported keys were found in your configuration, e.g. nomad.yaml: "does".',
+            ['yaml'],
+            id='non-existing top-level field',
+        ),
     ],
 )
 @pytest.mark.parametrize('format', ['yaml', 'env'])
-def test_config_warning(config_dict, format, warning, caplog, mockopen, monkeypatch):
+def test_config_warning(
+    config_dict, format, warning, formats_with_warning, caplog, mockopen, monkeypatch
+):
     """Tests that extra fields create a warning message."""
     conf_yaml, conf_env = load_format(config_dict, format)
     load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-    assert_log(caplog, 'WARNING', warning)
+    assert_log(caplog, 'WARNING', warning, negate=format not in formats_with_warning)
 
 
 @pytest.mark.parametrize(

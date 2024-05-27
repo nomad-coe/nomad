@@ -67,7 +67,8 @@ class ConfigBaseModel(BaseModel, extra=Extra.ignore):
         if extra_fields:
             logger = logging.getLogger(__name__)
             logger.warning(
-                f'The following extra fields in the NOMAD config model "{cls.__name__}" are ignored: {list_items(extra_fields)}'
+                f'The following unsupported keys were found in your configuration, '
+                f'e.g. nomad.yaml: {list_items(extra_fields)}.'
             )
 
         return values

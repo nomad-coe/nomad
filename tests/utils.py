@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Union
 import pytest
 
 
-def assert_log(caplog, level: str, event_part: str) -> LogRecord:
+def assert_log(caplog, level: str, event_part: str, negate: bool = False) -> LogRecord:
     """
     Assert whether a log message exists in the logs of the tests at a certain level.
 
@@ -42,7 +42,7 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
     event_part : str
         The error message we're after. We search the logs matching level if they
         contain this string.
-
+    negate: Instead asserting that the log exist, assert that it does not exist.
     """
     match = None
     for record in caplog.get_records(when='call'):
@@ -58,7 +58,7 @@ def assert_log(caplog, level: str, event_part: str) -> LogRecord:
                 # No need to look for more matches since we aren't counting matches.
                 break
 
-    assert match is not None
+    assert match is None if negate else match is not None
 
     return match
 
