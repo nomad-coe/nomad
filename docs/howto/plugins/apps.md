@@ -52,7 +52,7 @@ The definition fo the actual app is given as an instance of the `App` class spec
 
 ```python
 from nomad.config.models.plugins import AppEntryPoint
-from nomad.config.models.ui import App, Column, Columns, FilterMenu, FilterMenus
+from nomad.config.models.ui import App, Column, Columns, FilterMenu, FilterMenus, Filters
 
 
 myapp = AppEntryPoint(
@@ -69,22 +69,34 @@ myapp = AppEntryPoint(
         description='An app customized for me.',
         # Longer description that can also use markdown
         readme='Here is a much longer description of this app.',
+        # Controls the available search filters. If you want to filter by
+        # quantities in a schema package, you need to load the schema package
+        # explicitly here. Note that you can use a glob syntax to load the
+        # entire package, or just a single schema from a package.
+        filters=Filters(
+            include=['*#nomad_example.schema_packages.mypackage.MySchema'],
+        ),
         # Controls which columns are shown in the results table
         columns=Columns(
-            selected=['entry_id'],
+            selected=[
+                'entry_id'
+                'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema'
+            ],
             options={
                 'entry_id': Column(),
                 'upload_create_time': Column(),
+                'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema': Column(),
             }
         ),
         # Dictionary of search filters that are always enabled for queries made
         # within this app. This is especially important to narrow down the
         # results to the wanted subset. Any available search filter can be
-        # targeted here.
+        # targeted here. This example makes sure that only entries that use
+        # MySchema are included.
         filters_locked={
-            'upload_create_time': {
-                'gte': 0
-            }
+            "section_defs.definition_qualified_name:all": [
+                "nomad_example.schema_packages.mypackage.MySchema"
+            ]
         },
         # Controls the filter menus shown on the left
         filter_menus=FilterMenus(
@@ -101,7 +113,7 @@ myapp = AppEntryPoint(
                     'autorange': True,
                     'nbins': 30,
                     'scale': 'linear',
-                    'quantity': 'results.material.n_elements',
+                    'quantity': 'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema',
                     'layout': {
                         'lg': {
                             'minH': 3,
@@ -118,10 +130,31 @@ myapp = AppEntryPoint(
     )
 )
 ```
+!!! tip
+    If you want to load an app definition from a YAML file, this can be easily done with the pydantic `parse_obj` function:
+
+    ```python
+        import yaml
+        from nomad.config.models.plugins import AppEntryPoint
+        from nomad.config.models.ui import App
+
+        yaml_data = """
+            label: My App
+            path: myapp
+            category: Theory
+        """
+        myapp = AppEntryPoint(
+            name='MyApp',
+            description='App defined using the new plugin mechanism.',
+            app=App.parse_obj(
+                yaml.safe_load(yaml_data)
+            ),
+        )
+    ```
 
 ### Loading custom quantity definitions into an app
 
-By default, none of the quantities from custom schemas are available in an app, and they need to be explicitly added. Each app may define additional **filters** that should be enabled in it. Filters have a special meaning in the app context: filters are pieces of (meta)info than can be queried in the search interface of the app, but also targeted in the rest of the app configuration as explained below in.
+By default, none of the quantities from custom schemas are available in an app, and they need to be explicitly added. Each app may define additional **filters** that should be enabled in it. Filters have a special meaning in the app context: filters are pieces of (meta)info that can be queried in the search interface of the app, but also targeted in the rest of the app configuration as explained below in.
 
 !!! note
 
@@ -135,8 +168,8 @@ schema is defined in:
 
 - Python schemas are identified by the python path for the class that inherits
 from `Schema`. For example, if you have a python package called `nomad_example`,
-which has a subpackage called `schema_packages`, containing a module called `myschema.py`, which contains the class `MySchema`, then
-the schema name will be `nomad_example.schema_packages.myschema.MySchema`.
+which has a subpackage called `schema_packages`, containing a module called `mypackage.py`, which contains the class `MySchema`, then
+the schema name will be `nomad_example.schema_packages.mypackage.MySchema`.
 - YAML schemas are identified by the entry id of the schema file together with
 the name of the section defined in the YAML schema. For example
 if you have uploaded a schema YAML file containing a section definition called
@@ -147,41 +180,42 @@ The quantities from schemas may be included or excluded as filter by using the
 [`filters`](#filters) field in the app config. This option supports a
 wildcard/glob syntax for including/excluding certain filters. For example, to
 include all filters from the Python schema defined in the class
-`nomad_example.schema_packages.myschema.MySchema`, you could use:
+`nomad_example.schema_packages.mypackage.MySchema`, you could use:
 
-```yaml
-myapp:
-  filters:
-    include:
-      - '*#nomad_example.schema_packages.myschema.MySchema'
+```python
+filters=Filters(
+    include=['*#nomad_example.schema_packages.mypackage.MySchema']
+)
 ```
 
 The same thing for a YAML schema could be achieved with:
 
-```yaml
-myapp:
-  filters:
-    include:
-      - '*#entry_id:<entry_id>.MySchema'
+```python
+filters=Filters(
+    include=['*#entry_id:<entry_id>.MySchema']
+)
 ```
 
 Once quantities from a schema are included in an app as filters, they can be targeted in the rest of the app. The app configuration often refers to specific filters to configure parts of the user interface. For example, one could configure the results table to show a new column using one of the schema quantities with:
 
-```yaml
-myapp:
-  columns:
-    include:
-      - 'data.mysection.myquantity#nomad_example.schema_packages.myschema.MySchema'
-      - 'entry_id'
-    options:
-      data.mysection.myquantity#myschema.schema.MySchema:
-      ...
+```python
+columns=Columns(
+    selected=[
+        'entry_id'
+        'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema'
+    ],
+    options={
+        'entry_id': Column(),
+        'upload_create_time': Column(),
+        'data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema': Column(),
+    }
+)
 ```
 
 The syntax for targeting quantities depends on the resource:
 
 - For python schemas, you need to provide the path and the python schema name separated
-by a hashtag (#), for example `data.mysection.myquantity#nomad_example.schema_packages.myschema.MySchema`.
+by a hashtag (#), for example `data.mysection.myquantity#nomad_example.schema_packages.mypackage.MySchema`.
 - For YAML schemas, you need to provide the path and the YAML schema name separated
 by a hashtag (#), for example `data.mysection.myquantity#entry_id:<entry_id>.MySchema`.
 - Quantities that are common for all NOMAD entries can be targeted by using only
