@@ -177,11 +177,21 @@ we will get a final normalized archive that contains our data like this:
 }
 ```
 
+## Migration guide
+
+By default, schema packages are identified by the full qualified path to the Python module that contains the definitions. An example of a full qualified path could be `nomad_example.schema_packages.mypackage`, where the first part is the Python package name, second part is a subpackage, and the last part is a Python module containing the definitions. This is the easiest way to prevent conflicts between different schema packages: python package names are unique (prevents clashes between packages) and paths inside a package must point to a single python module (prevents clashes within package). This does, however, mean that *if you move your schema definition in the plugin source code, any references to the old definition will break*. This becomes problematic in installations that have lot of old data processed with the old definition location, as those entries will still refer to the old location and will not work correctly.
+
+As it might not be possible, or even wise to prevent changes in the source code layout, and reprocessing all old entries might be impractical, we do provide an alias mechanism to help with migration tasks. Imagine your schema package was contained in `nomad_example.schema_packages.mypackage`, and in a newer version of your plugin you want to move it to `nomad_example.schema_packages.mynewpackage`. The way to do this without completely breaking the old entries is to add an alias in the schema package definition:
+
+```python
+m_package = SchemaPackage(aliases=['nomad_example.schema_packages.mypackage'])
+```
+
+Note that this will only help in scenarious where you have moved the definition and not removed or modified any of them.
 
 ## Definitions
 
 The following describes in detail the schema language for the NOMAD Metainfo and how it is expressed in Python.
-
 
 ### Common attributes of Metainfo Definitions
 
