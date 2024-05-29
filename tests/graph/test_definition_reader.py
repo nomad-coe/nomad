@@ -306,7 +306,11 @@ def assert_dict(d1, d2):
             id='resolve-with-depth',
         ),
         pytest.param(
-            {'all_quantities': {'m_request': {'directive': 'plain'}}},
+            {
+                'all_quantities': {'m_request': {'directive': 'plain'}},
+                'inherited_sections': {'m_request': {'directive': 'plain'}},
+                'all_base_sections': {'m_request': {'directive': 'plain'}},
+            },
             {
                 'm_def': f'{prefix}/3',
                 'metainfo': {
@@ -319,7 +323,11 @@ def assert_dict(d1, d2):
                                 'all_quantities': {
                                     'base': f'{prefix}/3/quantities/0',
                                     'derived': f'{prefix}/3/quantities/1',
-                                }
+                                },
+                                'inherited_sections': [
+                                    'metainfo/tests.graph.test_definition_reader/section_definitions/3'
+                                ],
+                                'all_base_sections': [],
                             },
                         ]
                     }

@@ -67,8 +67,8 @@ def assert_list(l1, l2):
 def assert_dict(d1, d2):
     if GeneralReader.__CACHE__ in d1:
         del d1[GeneralReader.__CACHE__]
-    if 'pagination' in d1:
-        del d1['pagination']
+    if 'm_response' in d1:
+        del d1['m_response']
     if 'm_def' in d1:
         del d1['m_def']
     if 'm_def' in d2:
@@ -639,7 +639,6 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
                     'n_entries': 6,
                     'upload_files_server_path': 'id_published_with_ref',
                     Token.ENTRIES: {
-                        'm_response': {},
                         'id_02': {
                             'entry_id': 'id_02',
                             'mainfile_path': 'mainfile_for_id_02',
@@ -1438,6 +1437,43 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
             },
         },
     )
+    __entry_print(
+        'plain entry reader, resolve to root',
+        {
+            Token.ARCHIVE: {
+                'metadata': {
+                    'm_request': {'directive': 'plain', 'depth': 1, 'max_list_size': 1},
+                }
+            }
+        },
+        result={
+            'archive': {
+                'metadata': {
+                    'domain': 'dft',
+                    'embargo_length': 0,
+                    'entry_create_time': '2024-05-28T19:14:10.754059+00:00',
+                    'entry_hash': 'dummy_hash_id_03',
+                    'entry_id': 'id_03',
+                    'entry_references': '__INTERNAL__:../uploads/id_published_with_ref/archive/id_03#/metadata/entry_references',
+                    'license': 'CC BY 4.0',
+                    'main_author': '00000000-0000-0000-0000-000000000001',
+                    'mainfile': 'mainfile_for_id_03',
+                    'n_quantities': 66,
+                    'parser_name': 'parsers/vasp',
+                    'processed': True,
+                    'published': False,
+                    'quantities': '__INTERNAL__:../uploads/id_published_with_ref/archive/id_03#/metadata/quantities',
+                    'section_defs': '__INTERNAL__:../uploads/id_published_with_ref/archive/id_03#/metadata/section_defs',
+                    'sections': '__INTERNAL__:../uploads/id_published_with_ref/archive/id_03#/metadata/sections',
+                    'text_search_contents': [],
+                    'upload_create_time': '2024-05-28T19:14:10.749059+00:00',
+                    'upload_id': 'id_published_with_ref',
+                    'upload_name': 'name_published',
+                    'with_embargo': False,
+                }
+            }
+        },
+    )
     if simulationworkflowschema is not None:
         __entry_print(
             'entry reader to definition reader',
@@ -2117,7 +2153,6 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
         },
         result={
             Token.ENTRIES: {
-                'm_response': {},
                 'id_04': {
                     'process_running': False,
                     'current_process': None,
@@ -2171,7 +2206,6 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
         },
         result={
             Token.ENTRIES: {
-                'm_response': {},
                 'id_01': {
                     'process_running': False,
                     'current_process': None,
@@ -2291,7 +2325,6 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
             Token.SEARCH: {
                 'id_03': 'id_03',
                 'id_04': 'id_04',
-                'm_response': {'query': {'aggregations': {}, 'owner': 'user'}},
             }
         },
     )
@@ -2310,7 +2343,6 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
         },
         result={
             Token.UPLOADS: {
-                'm_response': {},
                 'id_published_with_ref': {
                     'process_running': False,
                     'current_process': 'process_upload',
@@ -2359,7 +2391,6 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
         },
         result={
             Token.UPLOADS: {
-                'm_response': {'query': {'is_processing': False}},
                 'id_published_with_ref': {
                     'process_running': False,
                     'current_process': 'process_upload',
@@ -2487,7 +2518,6 @@ def test_general_reader_search(json_dict, example_data_with_reference, user1):
         },
         result={
             'search': {
-                'm_response': {'query': {'aggregations': {}, 'owner': 'public'}},
                 'id_01': {
                     'entries': {
                         'mainfile': {
@@ -2593,7 +2623,12 @@ data:
     data.create_entry(
         upload_id='id_custom', entry_id='id_example', entry_archive=archive
     )
-    data.save(with_files=True, with_es=True, with_mongo=True)
+    data.save(
+        with_files=True,
+        with_es=True,
+        with_mongo=True,
+        additional_files_path='tests/data/proc/nested.zip',
+    )
 
     yield data
 
@@ -2705,6 +2740,132 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
                         'm_def': 'uploads/id_custom/entries/id_example/archive/definitions/section_definitions/0'
                     },
                 }
+            },
+        },
+    )
+
+    def __fs_print(msg, required, *, result: dict = None):
+        with FileSystemReader(required, user=user1) as reader:
+            if result:
+                assert_dict(reader.read('id_custom'), result)
+            else:
+                rprint(f'\n\nExample: {next(counter)} -> {msg}:')
+                rprint(required)
+                rprint('output:')
+                rprint(reader.read('id_custom'))
+
+    __fs_print(
+        'one level deep second page',
+        {
+            'm_request': {
+                'directive': 'plain',
+                'depth': 1,
+                'pagination': {'page_size': 10, 'page': 2},
+            },
+        },
+        result={
+            'm_is': 'Directory',
+            'mainfile_for_id_example': {
+                'm_is': 'File',
+                'path': 'mainfile_for_id_example',
+                'size': 3227,
+            },
+        },
+    )
+
+    __fs_print(
+        'two levels',
+        {
+            'm_request': {
+                'directive': 'plain',
+                'depth': 2,
+                'pagination': {'page_size': 10, 'page': 2},
+            },
+        },
+        result={
+            'm_is': 'Directory',
+            '3.aux': {'m_is': 'File', 'path': '3.aux', 'size': 8},
+            '4.aux': {'m_is': 'File', 'path': '4.aux', 'size': 8},
+            'edge_names': {
+                '!"┬º$%&()=?.txt': {
+                    'm_is': 'File',
+                    'path': 'edge_names/!"┬º$%&()=?.txt',
+                    'size': 0,
+                },
+                'suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuper-long.txt': {
+                    'm_is': 'File',
+                    'path': 'edge_names/suuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuper-long.txt',
+                    'size': 0,
+                },
+            },
+            'entry.archive.json': {
+                'm_is': 'File',
+                'path': 'entry.archive.json',
+                'size': 185,
+            },
+            'file.txt': {'m_is': 'File', 'path': 'file.txt', 'size': 0},
+            'mainfile_for_id_example': {
+                'm_is': 'File',
+                'path': 'mainfile_for_id_example',
+                'size': 3227,
+            },
+            'many_files': {
+                'file1.txt': {
+                    'm_is': 'File',
+                    'path': 'many_files/file1.txt',
+                    'size': 0,
+                },
+                'file10.txt': {
+                    'm_is': 'File',
+                    'path': 'many_files/file10.txt',
+                    'size': 0,
+                },
+                'file100.txt': {
+                    'm_is': 'File',
+                    'path': 'many_files/file100.txt',
+                    'size': 0,
+                },
+            },
+        },
+    )
+
+    __fs_print(
+        'different configs',
+        {
+            'm_request': {
+                'directive': 'plain',
+                'depth': 1,
+                'pagination': {'page_size': 2, 'page': 2},
+            },
+            'many_files': {
+                'm_request': {
+                    'directive': 'plain',
+                    'depth': 1,
+                    'pagination': {'page_size': 3, 'page': 2},
+                },
+            },
+        },
+        result={
+            'm_is': 'Directory',
+            'preview': {'m_is': 'Directory'},
+            'subdirs': {'m_is': 'Directory'},
+            'many_files': {
+                'm_is': 'Directory',
+                'file11.txt': {
+                    'm_is': 'File',
+                    'path': 'many_files/file11.txt',
+                    'size': 0,
+                },
+                'file12.txt': {
+                    'm_is': 'File',
+                    'path': 'many_files/file12.txt',
+                    'size': 0,
+                },
+                'file13.txt': {
+                    'm_is': 'File',
+                    'path': 'many_files/file13.txt',
+                    'size': 0,
+                },
             },
         },
     )

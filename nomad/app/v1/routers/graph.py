@@ -52,6 +52,9 @@ def relocate_children(request):
 def reorder_children(query):
     if not isinstance(query, dict):
         return query
+    # do not touch folders
+    if 'm_is' in query:
+        return {k: reorder_children(v) for k, v in query.items()}
     return {
         k: reorder_children(v)
         for k, v in sorted(query.items(), key=lambda item: item[0])

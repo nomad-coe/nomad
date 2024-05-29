@@ -20,6 +20,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import functools
+import itertools
 import os
 import re
 from typing import Any, Callable, Type
@@ -44,6 +45,7 @@ from nomad.app.v1.routers.uploads import (
     UploadProcDataQuery,
     UploadProcDataPagination,
     EntryProcDataPagination,
+    RawDirPagination,
 )
 from nomad.archive import ArchiveList, ArchiveDict, to_json
 from nomad.graph.model import (
@@ -350,6 +352,16 @@ def _convert_ref_to_path(ref: str, upload_id: str = None) -> list:
 @functools.lru_cache(maxsize=1024)
 def _convert_ref_to_path_string(ref: str, upload_id: str = None) -> str:
     return '/'.join(_convert_ref_to_path(ref, upload_id))
+
+
+def _to_response_config(config: RequestConfig, exclude: list = None, **kwargs):
+    response_config = config.dict(exclude_unset=True, exclude_none=True)
+    response_config.pop('property_name', None)
+    if exclude:
+        for item in exclude:
+            response_config.pop(item, None)
+    response_config.update(kwargs)
+    return response_config
 
 
 def _populate_result(container_root: dict, path: list, value, *, path_like=False):
@@ -1361,6 +1373,15 @@ class MongoReader(GeneralReader):
             def __offload_walk(query_set, transformer):
                 response_path: list = node.current_path + [key, Token.RESPONSE]
 
+                if isinstance(value, dict) and GeneralReader.__CONFIG__ in value:
+                    _populate_result(
+                        node.result_root,
+                        response_path,
+                        _to_response_config(
+                            child_config, exclude=['query', 'pagination']
+                        ),
+                    )
+
                 query, filtered = query_set
                 if query is not None:
                     _populate_result(node.result_root, response_path + ['query'], query)
@@ -1882,6 +1903,23 @@ class FileSystemReader(GeneralReader):
 
         return response
 
+    @staticmethod
+    def _to_abs_path(rel_path: list) -> list:
+        abs_path: list = []
+        # condense the path
+        for p in rel_path:
+            for pp in p.split('/'):  # to consider '../../../'
+                if pp in ('.', ''):
+                    continue
+                if pp == '..':
+                    if abs_path:
+                        abs_path.pop()
+                elif pp == '...':
+                    abs_path = []
+                else:
+                    abs_path.append(pp)
+        return abs_path
+
     def _walk(
         self,
         node: GraphNode,
@@ -1900,7 +1938,7 @@ class FileSystemReader(GeneralReader):
             current_config = parent_config
 
         full_path: list = self._root_path + node.current_path
-        full_path_str: str = '/'.join(full_path)
+        full_path_str: str = '/'.join(self._to_abs_path(full_path))
         is_current_path_file: bool = node.archive.raw_path_is_file(full_path_str)
 
         if not is_current_path_file:
@@ -1921,7 +1959,9 @@ class FileSystemReader(GeneralReader):
 
             child_path: list = node.current_path + [key]
 
-            if not node.archive.raw_path_exists('/'.join(self._root_path + child_path)):
+            if not node.archive.raw_path_exists(
+                '/'.join(self._to_abs_path(self._root_path + child_path))
+            ):
                 continue
 
             self._walk(
@@ -1943,23 +1983,11 @@ class FileSystemReader(GeneralReader):
     ):
         # at the point, it is guaranteed that the current path exists, but it could be a relative path
         full_path: list = self._root_path + node.current_path
-        abs_path: list = []
-        # condense the path
-        for p in full_path:
-            for pp in p.split('/'):  # to consider '../../../'
-                if pp in ('.', ''):
-                    continue
-                if pp == '..':
-                    abs_path.pop()
-                else:
-                    abs_path.append(pp)
+        abs_path: list = self._to_abs_path(full_path)
 
         os_path: str = '/'.join(abs_path)
         if not node.archive.raw_path_is_file(os_path):
             _populate_result(node.result_root, full_path + ['m_is'], 'Directory')
-            # _populate_result(
-            #     node.result_root, full_path + [Token.RESPONSE, 'pagination'],
-            #     config.pagination.dict() if config.pagination is not None else dict(page=1, page_size=10))
 
         ref_path = ['/'.join(self._root_path)]
         if ref_path[0]:
@@ -1967,16 +1995,51 @@ class FileSystemReader(GeneralReader):
         else:
             ref_path = node.current_path
 
+        if config.pagination is not None:
+            assert isinstance(config.pagination, RawDirPagination)
+            start: int = config.pagination.get_simple_index()
+            pagination: dict = config.pagination.dict(exclude_none=True)
+        else:
+            start = 0
+            pagination = dict(page=1, page_size=10, order='asc')
+        end: int = start + pagination['page_size']
+
+        folders: list = []
+        files: list = []
         file: RawPathInfo
         for file in node.archive.raw_directory_list(
             os_path, recursive=True, depth=config.depth if config.depth else -1
         ):
+            if file.is_file:
+                files.append(file)
+            else:
+                folders.append(file)
+
+        pagination['total'] = len(folders) + len(files)
+
+        _populate_result(
+            node.result_root,
+            full_path + [Token.RESPONSE],
+            _to_response_config(config, pagination=pagination),
+            path_like=True,
+        )
+
+        for index, file in enumerate(itertools.chain(folders, files)):
+            if index >= end:
+                break
+
+            if index < start:
+                continue
+
             if not config.if_include(file.path):
                 continue
 
             results = file._asdict()
             results.pop('access', None)
-            results['m_is'] = 'File' if results.pop('is_file') else 'Directory'
+            if results.pop('is_file'):
+                results['m_is'] = 'File'
+            else:
+                results = {'m_is': 'Directory'}
             if omit_keys is None or all(
                 not file.path.endswith(os.path.sep + k) for k in omit_keys
             ):
@@ -1999,7 +2062,7 @@ class FileSystemReader(GeneralReader):
     def validate_config(cls, key: str, config: RequestConfig):
         try:
             if config.pagination is not None:
-                config.pagination = Pagination.parse_obj(config.pagination)
+                config.pagination = RawDirPagination.parse_obj(config.pagination)
         except Exception as e:
             raise ConfigError(str(e))
 
@@ -2058,7 +2121,7 @@ class ArchiveReader(GeneralReader):
         self.package_pool: dict = {}
 
     @staticmethod
-    def __if_strip(node: GraphNode, config: RequestConfig):
+    def __if_strip(node: GraphNode, config: RequestConfig, *, depth_check: bool = True):
         if (
             config.max_list_size is not None
             and isinstance(node.archive, list)
@@ -2073,7 +2136,11 @@ class ArchiveReader(GeneralReader):
         ):
             return True
 
-        if config.depth is not None and node.current_depth > config.depth:
+        if (
+            depth_check
+            and config.depth is not None
+            and node.current_depth >= config.depth
+        ):
             return True
 
         return False
@@ -2162,6 +2229,11 @@ class ArchiveReader(GeneralReader):
                 continue
 
             if key == Token.DEF:
+                if isinstance(node.definition, Quantity):
+                    self._log(
+                        f'Only support "m_def" token on sections, try defining "m_def" request on the parent.'
+                    )
+                    continue
                 with DefinitionReader(
                     value,
                     user=self.user,
@@ -2309,7 +2381,7 @@ class ArchiveReader(GeneralReader):
                     self._log(f'Definition {key} is not found.')
                     continue
 
-                if isinstance(child_definition, SubSection):
+                if is_subsection := isinstance(child_definition, SubSection):
                     child_definition = child_definition.sub_section
 
                 child_node = node.replace(
@@ -2319,7 +2391,7 @@ class ArchiveReader(GeneralReader):
                     current_depth=node.current_depth + 1,
                 )
 
-                if self.__if_strip(child_node, config):
+                if self.__if_strip(child_node, config, depth_check=is_subsection):
                     _populate_result(
                         node.result_root,
                         child_node.current_path,
@@ -2622,8 +2694,6 @@ class DefinitionReader(GeneralReader):
             is_plain_container: bool = (
                 False if is_list else isinstance(child_def, (list, set, dict))
             )
-            if is_plain_container and isinstance(child_def, (list, set)):
-                child_def = {v.name: v for v in child_def}
 
             child_path: list = node.current_path + [name]
 
@@ -2641,11 +2711,35 @@ class DefinitionReader(GeneralReader):
                 # this is a derived quantity like 'all_properties', 'all_quantities', etc.
                 # just write reference strings to the corresponding paths
                 # whether they shall be resolved or not is determined by the config and will be handled later
-                for k, v in child_def.items():
-                    _populate_result(node.result_root, child_path + [k], __convert(v))
+                if isinstance(child_def, dict):
+                    _populate_result(node.result_root, child_path, {})
+                    for k, v in child_def.items():
+                        _populate_result(
+                            node.result_root, child_path + [k], __convert(v)
+                        )
+                elif isinstance(child_def, (set, list)):
+                    _populate_result(node.result_root, child_path, [])
+                    for i, v in enumerate(child_def):
+                        _populate_result(
+                            node.result_root, child_path + [str(i)], __convert(v)
+                        )
+                else:
+                    # should never reach here
+                    raise
             elif child_def is node.archive:
                 assert isinstance(child_def, Definition)
                 _populate_result(node.result_root, child_path, __convert(child_def))
+
+            def __handle_derived(__func):
+                if isinstance(child_def, dict):
+                    for _k, _v in child_def.items():
+                        __func(child_path + [_k], _v)
+                elif isinstance(child_def, (set, list)):
+                    for _i, _v in enumerate(child_def):
+                        __func(child_path + [str(_i)], _v)
+                else:
+                    # should never reach here
+                    raise
 
             if isinstance(value, RequestConfig):
                 # this is a leaf, resolve it according to the config
@@ -2665,8 +2759,7 @@ class DefinitionReader(GeneralReader):
                         __resolve(child_path + [str(i)], child_def[i])
                 elif is_plain_container:
                     if value.directive is DirectiveType.resolved:
-                        for k, v in child_def.items():
-                            __resolve(child_path + [k], v)
+                        __handle_derived(__resolve)
                 else:
                     __resolve(child_path, child_def)
             elif isinstance(value, dict):
@@ -2685,8 +2778,7 @@ class DefinitionReader(GeneralReader):
                     for i in _normalise_index(index, len(child_def)):
                         __walk(child_path + [str(i)], child_def[i])
                 elif is_plain_container:
-                    for k, v in child_def.items():
-                        __walk(child_path + [k], v)
+                    __handle_derived(__walk)
                 else:
                     __walk(child_path, child_def)
             elif isinstance(value, list):
