@@ -111,7 +111,8 @@ def datatests(ctx):
 
 @client.command(
     help='Upload files to nomad. The given path can be a single file or a directory. '
-    'All .zip files in a directory will be uploaded.'
+    'For file(s) that are not .zip or .tar files, a temporary .zip file '
+    'will be created and uploaded.'
 )
 @click.argument('PATH', nargs=-1, required=True, type=click.Path(exists=True))
 @click.option(
@@ -131,42 +132,79 @@ def datatests(ctx):
     default=False,
     help='Automatically move upload out of the staging area after successful processing',
 )
+@click.option(
+    '--ignore-path-prefix',
+    is_flag=True,
+    default=False,
+    help='Ignores common path prefixes when creating an upload.',
+)
 @click.pass_context
-def upload(ctx, path, upload_name: str, local_path: bool, publish: bool):
+def upload(
+    ctx,
+    path,
+    upload_name: str,
+    local_path: bool,
+    publish: bool,
+    ignore_path_prefix: bool,
+):
     import os
     import sys
+    import zipfile
+    import tempfile
 
     from nomad.client import upload_file as client_upload_file
 
     auth = _create_auth(ctx)
     paths = path
 
-    def upload_file(path, upload_name):
-        result = client_upload_file(
-            path, auth, upload_name=upload_name, local_path=local_path, publish=publish
-        )
-        if result is None:
-            sys.exit(1)
+    prefix = os.path.commonprefix(paths)
+    if not os.path.isdir(prefix):
+        prefix = os.path.dirname(prefix)
+    file_paths = []
+    zip_paths = []
 
-    click.echo('uploading files from %s paths' % len(paths))
+    def add_file(file):
+        _, ext = os.path.splitext(file)
+        if ext in ['.zip', '.tar', 'tgz', 'tar.gz']:
+            zip_paths.append(file)
+        else:
+            file_paths.append(file)
+
     for path in paths:
-        click.echo('uploading %s' % path)
         if os.path.isfile(path):
-            upload_name = (
-                upload_name if upload_name is not None else os.path.basename(path)
-            )
-            upload_file(path, upload_name)
+            add_file(path)
 
         elif os.path.isdir(path):
             for dirpath, _, filenames in os.walk(path):
                 for filename in filenames:
-                    if filename.endswith('.zip'):
-                        file_path = os.path.abspath(os.path.join(dirpath, filename))
-                        upload_name = os.path.basename(file_path)
-                        upload_file(file_path, upload_name)
+                    add_file(os.path.join(dirpath, filename))
 
-        else:
-            click.echo('Unknown path type %s.' % path)
+    with tempfile.NamedTemporaryFile(suffix='.zip', delete=False) as temp_zip:
+        click.echo(f'create temporary zipfile from {len(file_paths)} files')
+        with zipfile.ZipFile(temp_zip.name, 'w') as zip_file:
+            for file_path in file_paths:
+                if file_path.startswith(prefix) and ignore_path_prefix:
+                    arcname = file_path[len(prefix) :]
+                else:
+                    arcname = file_path
+                zip_file.write(file_path, arcname=arcname)
+        zip_paths.append(temp_zip.name)
+
+        for zip_path in zip_paths:
+            click.echo(f'uploading {zip_path}')
+            upload_name = (
+                upload_name if upload_name is not None else os.path.basename(path)
+            )
+
+            result = client_upload_file(
+                zip_path,
+                auth,
+                upload_name=upload_name,
+                local_path=local_path,
+                publish=publish,
+            )
+            if result is None:
+                sys.exit(1)
 
 
 @client.command(help='Run processing locally.')

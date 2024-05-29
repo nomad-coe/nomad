@@ -431,10 +431,18 @@ def test_get_uploads_graph(auth_headers, client, example_data, kwargs):
                     'id_unpublished': {
                         'files': {
                             'm_is': 'Directory',
+                            'm_response': {
+                                'depth': 1,
+                                'include': ['*'],
+                                'pagination': {
+                                    'order': 'asc',
+                                    'page': 1,
+                                    'page_size': 10,
+                                    'total': 1,
+                                },
+                            },
                             'test_content': {
                                 'm_is': 'Directory',
-                                'path': 'test_content',
-                                'size': 0,
                             },
                         }
                     }
@@ -449,15 +457,21 @@ def test_get_uploads_graph(auth_headers, client, example_data, kwargs):
                     'id_unpublished': {
                         'files': {
                             'm_is': 'Directory',
+                            'm_response': {
+                                'depth': 2,
+                                'include': ['*'],
+                                'pagination': {
+                                    'order': 'asc',
+                                    'page': 1,
+                                    'page_size': 10,
+                                    'total': 2,
+                                },
+                            },
                             'test_content': {
                                 'id_unpublished_1': {
                                     'm_is': 'Directory',
-                                    'path': 'test_content/id_unpublished_1',
-                                    'size': 0,
                                 },
                                 'm_is': 'Directory',
-                                'path': 'test_content',
-                                'size': 0,
                             },
                         }
                     }
@@ -472,6 +486,16 @@ def test_get_uploads_graph(auth_headers, client, example_data, kwargs):
                     'id_unpublished': {
                         'files': {
                             'm_is': 'Directory',
+                            'm_response': {
+                                'depth': 3,
+                                'include': ['*'],
+                                'pagination': {
+                                    'order': 'asc',
+                                    'page': 1,
+                                    'page_size': 10,
+                                    'total': 7,
+                                },
+                            },
                             'test_content': {
                                 'id_unpublished_1': {
                                     '1.aux': {
@@ -500,12 +524,8 @@ def test_get_uploads_graph(auth_headers, client, example_data, kwargs):
                                         'path': 'test_content/id_unpublished_1/mainfile.json',
                                         'size': 3227,
                                     },
-                                    'path': 'test_content/id_unpublished_1',
-                                    'size': 3259,
                                 },
                                 'm_is': 'Directory',
-                                'path': 'test_content',
-                                'size': 3259,
                             },
                         }
                     }

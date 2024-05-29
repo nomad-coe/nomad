@@ -79,16 +79,16 @@ class GraphFile(BaseModel):
     parent: GraphDirectory
 
 
-class MDef(BaseModel):
-    m_def: str
-    m_def_id: str
-
-
 class MSection(BaseModel):
     m_errors: List[Error]
     m_request: RecursionOptions
     m_def: MDef
     m_children: Any
+
+
+class MDef(MSection):
+    m_def: str  # type: ignore
+    m_def_id: str
 
 
 class GraphEntry(mapped(EntryProcData, mainfile='mainfile_path', entry_metadata=None)):  # type: ignore

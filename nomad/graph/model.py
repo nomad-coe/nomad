@@ -25,12 +25,13 @@ from typing import FrozenSet, Optional, Union
 
 from pydantic import BaseModel, Field, Extra, ValidationError, validator
 
-from nomad.app.v1.models import MetadataPagination, Metadata, Pagination
+from nomad.app.v1.models import MetadataPagination, Metadata
 from nomad.app.v1.routers.datasets import DatasetPagination
 from nomad.app.v1.routers.uploads import (
     UploadProcDataQuery,
     UploadProcDataPagination,
     EntryProcDataPagination,
+    RawDirPagination,
 )
 
 
@@ -214,7 +215,7 @@ class RequestConfig(BaseModel):
     )
     pagination: Union[
         dict,
-        Pagination,
+        RawDirPagination,
         DatasetPagination,
         UploadProcDataPagination,
         MetadataPagination,

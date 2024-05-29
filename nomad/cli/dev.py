@@ -263,7 +263,13 @@ def gui_config():
 def _generate_example_upload_metadata():
     import yaml
 
-    with open('examples/data/uploads/example_uploads.yml') as infile:
+    with open(
+        os.path.join(
+            os.path.dirname(__file__),
+            '../../',
+            'examples/data/uploads/example_uploads.yml',
+        )
+    ) as infile:
         return yaml.load(infile, Loader=yaml.SafeLoader)
 
 
