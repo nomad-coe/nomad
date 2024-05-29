@@ -593,11 +593,11 @@ class DFTMethod(ElectronicMethod):
         for em in repr_method.electrons_representation or []:
             if em.scope:
                 if 'wavefunction' in em.scope:
-                    name = em.type
+                    em_type = em.type
                     # Provide a mapping in case `em.type` and `basis_set_type` diverge
-                    if 'APW' in name:
+                    if 'APW' in em_type:
                         name = '(L)APW+lo'
-                    elif name in ('atom-centered orbitals', 'support functions'):
+                    elif em_type in ('atom-centered orbitals', 'support functions'):
                         full_stop = False
                         type_options = (
                             'gaussians',
@@ -615,8 +615,10 @@ class DFTMethod(ElectronicMethod):
                                     break
                             if full_stop:
                                 break
-                    elif name == 'gaussians + plane waves':
+                    elif em_type == 'gaussians + plane waves':
                         name = 'plane waves'
+                    else:
+                        name = em_type
                     break
         if name:
             key = name.replace('_', '').replace('-', '').replace(' ', '').lower()
