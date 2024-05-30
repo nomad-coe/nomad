@@ -8,9 +8,7 @@
             "eln_data.yaml"
         ],
         "output": "Au_25_mbar_O2_no_align.nxs",
-        "definition":"NXmpes",
-        "definition/@version":"1.0",
-        "title":"XPS Experiment",
+        "title":"EX439_S718_Au in 25 mbar O2",
         "start_time":"2022-04-08T09:47:00.000Z",
         "end_time":"2022-04-08T10:32:00.000Z",
         "entry_identifier":"EX439",
@@ -19,12 +17,19 @@
         "experiment_laboratory":"Near-Ambient Pressure XPS Lab",
         "user":{
             "name":"Lukas Pielsticker",
-            "affiliation":"MPI CEC"
+            "affiliation":"MPI CEC",
+            "address":"Lukas Pielsticker",
+            "email":"lukas.pielsticker@cec.mpg.de",
+            "orcid":{
+                "service":"orcid",
+                "identifier":"0000-0001-9361-8333"
+            }
         },
         "instrument":{
             "device_information":{
                 "vendor":"SPECS GmbH",
-                "model":"XPS setup"
+                "model":"Custom NAP-XPS instrument",
+                "identifier":"null"
             },
             "energy_resolution":{
                 "type":"calibrated",
@@ -47,20 +52,22 @@
                     "description":"hemispherical",
                     "device_information":{
                         "vendor":"SPECS GmbH",
-                        "model":"PHOIBOS 150 NAP"
+                        "model":"PHOIBOS 150 NAP",
+                        "identifier":"null"
                     },
                     "collectioncolumn":{
                         "scheme":"angular dispersive",
                         "device_information":{
                             "vendor":"SPECS GmbH",
-                            "model":"PHOIBOS 150 NAP"
+                            "model":"PHOIBOS 150 NAP",
+                            "identifier":"null"
                         }
                     },
                     "energydispersion":{
                         "scheme":"hemispherical",
                         "diameter":{
                             "unit":"mm",
-                            "value":"150"
+                            "value":150
                         },
                         "device_information":{
                             "vendor":"SPECS GmbH",
@@ -73,15 +80,16 @@
                         "detector_type":"Multi-anode",
                         "device_information":{
                             "vendor":"Surface Concept GmbH",
-                            "model":"1D-DLD detector"
+                            "model":"1D-DLD detector",
+                            "identifier":"null"
                         }
                     }
                 },
                 "manipulator":{
-                    "description":"hemispherical",
                     "device_information":{
                         "vendor":"SPECS GmbH",
-                        "model":"5-axis manipulator"
+                        "model":"5-axis manipulator",
+                        "identifier":"null"
                     },
                     "temperature_sensor":{
                         "name":"type K thermocouple",
@@ -173,7 +181,7 @@
                     "cas_number":"7440-57-5",
                     "molecular_formula_hill":"Au"
                 },
-                "sample_history":{
+                "history":{
                     "sample_preparation":{
                         "start_time":"2022-04-08T11:25:00.200Z",
                         "end_time":"2022-04-08T11:45:00.200Z",
