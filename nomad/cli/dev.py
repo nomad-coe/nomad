@@ -263,13 +263,19 @@ def gui_config():
 def _generate_example_upload_metadata():
     import yaml
 
-    with open(
-        os.path.join(
+    example_uploads_path = 'examples/data/uploads/example_uploads.yml'
+
+    if not os.path.exists(example_uploads_path):
+        example_uploads_path = os.path.join(
             os.path.dirname(__file__),
             '../../',
             'examples/data/uploads/example_uploads.yml',
         )
-    ) as infile:
+
+    if not os.path.exists(example_uploads_path):
+        raise FileNotFoundError('Cannot find example_uploads.yml file')
+
+    with open(example_uploads_path, 'r') as infile:
         return yaml.load(infile, Loader=yaml.SafeLoader)
 
 
