@@ -9,6 +9,7 @@
         ],
         "output": "SiO2onSi.ellips.nxs",
         "filename": "test-data.dat",
+        "title": "RC2 Ellipsometry of 2nm SiO2 on Si",
         "skip": 3,
         "sep": "\\t",
         "colnames": [
@@ -20,13 +21,12 @@
             "err.Psi",
             "err.Delta"
         ],
-        "derived_parameter_type": "depolarization",
         "definition": "NXellipsometry",
         "definition/@version": "0.0.2",
         "definition/@url": "https://github.com/FAIRmat-NFDI/nexus_definitions/blob/fairmat/contributed_definitions/NXellipsometry.nxdl.xml",
-        "experiment_identifier": "exp-ID",
         "experiment_description": "RC2 scan on 2nm SiO2 on Si in air",
-        "experiment_type": "NIR-Vis-UV spectroscopic ellipsometry",
+        "experiment_type": "ellipsometry",
+        "ellipsometry_experiment_type": "NIR-Vis-UV spectroscopic ellipsometry",
         "plot_name": "Psi and Delta",
         "start_time": "2022-01-27T03:35:00+00:00",
         "User": {
@@ -35,38 +35,42 @@
             "address": "Zum Großen Windkanal 2, 12489 Berlin, Germany",
             "email": "surname.name@physik.hu-berlin.de"
         },
+        "derived_parameter_type": "depolarization",
+        "experiment_identifier": {
+            "identifier": "exp-ID",
+            "is_persistent": "false"
+        },
         "Instrument": {
-            "model": "RC2",
-            "model/@version": "0.0.1",
-            "company": "J. A. Woollam Co.",
-            "software": "CompleteEASE",
-            "software/version": "6.37",
-            "software/@url": "https://www.jawoollam.com/ellipsometry-software/completeease",
+             "software_RC2": "CompleteEASE",
+            "software_RC2/@version": "6.37",
+            "software_RC2/@url": "https://www.jawoollam.com/ellipsometry-software/completeease",
             "ellipsometer_type": "dual compensator",
             "rotating_element_type": "compensator (source side)",
-            "calibration_status": "no calibration",
-            "angle_of_incidence/@unit": "degree",
-            "Beam_path": {
-                "light_source": {
-                    "source_type": "arc lamp"
-                },
-                "Detector": {
-                    "detector_type": "CCD spectrometer",
-                    "count_time": 1
-                },
-                "focussing_probes": {
-                    "data_correction": false,
-                    "angular_spread": 0.2
-                },
-                "rotating_element": {
-                    "revolutions": 50
-                }
+            "light_source": {
+                "source_type": "arc lamp"
+            },
+            "Detector": {
+                "detector_type": "CCD spectrometer",
+                "count_time": 1
             },
             "Sample_stage": {
-                "stage_type": "manual stage",
-                "environment_conditions": {
-                    "medium": "air"
-                }
+                "stage_type": " manual stage"
+            },
+            "focussing_probes": {
+                "data_correction": false,
+                "angular_spread": 0.2
+            },
+            "rotating_element": {
+                "revolutions": 50,
+                "revolutions/@Units": "NX_COUNT"
+            },
+            "instrument_calibration_RC2": {
+                "calibration_status": " no calibration"
+            },
+            "device_information": {
+                "vendor": "J. A. Woollam Co.",
+                "model": "RC2",
+                "model/@version": "0.0.1"
             }
         },
         "Sample": {
@@ -74,10 +78,15 @@
             "chemical_formula": "SiO2",
             "layer_structure": "2nm SiO2 on Si",
             "sample_name": "2nm SiO2 on Si",
-            "sample_history": "Commercially purchased sample",
-            "sample_type": "multi layer",
+            "physical_form": "multi layer",
             "substrate": "Si",
-            "backside_roughness": false
+            "backside_roughness": false,
+            "environment": {
+                "sample_medium": "air"
+            },
+            "history": {
+                "notes": "Commercially purchased sample"
+            }
         },
         "Data": {
             "data_software": "WVASE",

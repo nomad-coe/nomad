@@ -7,43 +7,44 @@ Data:
   spectrum_type: wavelength
   spectrum_unit: angstrom
 Instrument:
-  Beam_path:
-    Detector:
-      count_time:
-        unit: s
-        value: 1.0
-      detector_type: CCD spectrometer
-    focussing_probes:
-      angular_spread:
-        unit: rad
-        value: 0.2
-      data_correction: false
-    light_source:
-      source_type: arc lamp
-    rotating_element:
-      revolutions: 50.0
+  Detector:
+    count_time:
+      unit: s
+      value: 1.0
+    detector_type: CCD spectrometer
   Sample_stage:
-    environment_conditions:
-      medium: air
-    stage_type: manual stage
-  angle_of_incidence/@unit: degree
-  calibration_status: no calibration
-  company: J. A. Woollam Co.
+    stage_type: ' manual stage'
+  device_information:
+    model: RC2
+    model/@version: 0.0.1
+    vendor: J. A. Woollam Co.
   ellipsometer_type: dual compensator
-  model: RC2
-  model/@version: 0.0.1
+  focussing_probes:
+    angular_spread:
+      unit: rad
+      value: 0.2
+    data_correction: false
+  instrument_calibration_RC2:
+    calibration_status: ' no calibration'
+  light_source:
+    source_type: arc lamp
+  rotating_element:
+    revolutions: 50.0
   rotating_element_type: compensator (source side)
-  software: CompleteEASE
-  software/@url: https://www.jawoollam.com/ellipsometry-software/completeease
-  software/version: '6.37'
+  software_RC2: CompleteEASE
+  software_RC2/@url: https://www.jawoollam.com/ellipsometry-software/completeease
+  software_RC2/@version: '6.37'
 Sample:
   atom_types: Si, O
   backside_roughness: false
   chemical_formula: SiO2
+  environment:
+    sample_medium: air
+  history:
+    notes: Commercially purchased sample
   layer_structure: 2nm SiO2 on Si
-  sample_history: Commercially purchased sample
+  physical_form: multi layer
   sample_name: 2nm SiO2 on Si
-  sample_type: multi layer
   substrate: Si
 User:
   address: Zum Großen Windkanal 2, 12489 Berlin, Germany
@@ -62,11 +63,15 @@ definition: NXellipsometry
 definition/@url: https://github.com/FAIRmat-NFDI/nexus_definitions/blob/fairmat/contributed_definitions/NXellipsometry.nxdl.xml
 definition/@version: 0.0.2
 derived_parameter_type: depolarization
+ellipsometry_experiment_type: NIR-Vis-UV spectroscopic ellipsometry
 experiment_description: RC2 scan on 2nm SiO2 on Si in air
-experiment_identifier: exp-ID
-experiment_type: NIR-Vis-UV spectroscopic ellipsometry
+experiment_identifier:
+  identifier: exp-ID
+  is_persistent: 'false'
+experiment_type: ellipsometry
 filename: test-data.dat
 plot_name: Psi and Delta
 sep: \t
 skip: 3
 start_time: '2022-01-27T03:35:00+00:00'
+title: RC2 Ellipsometry of 2nm SiO2 on Si
