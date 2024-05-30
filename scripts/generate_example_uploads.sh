@@ -25,5 +25,5 @@ zip -r -j uploads/em_om.zip em_om/*
 zip -r -j uploads/em_nion.zip em_nion/*
 zip -r -j uploads/iv_temp.zip iv_temp/*
 zip -r -j uploads/xps.zip xps/*
-zip -r -j uploads/sts.zip sts/*
-zip -r -j uploads/stm.zip stm/*
+zip -r -j uploads/sts.zip sts/sts/* sts/common_files/*
+zip -r -j uploads/stm.zip sts/stm/* sts/common_files/*
