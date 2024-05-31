@@ -248,7 +248,7 @@ test('Toggle visible for all checkbox', async () => {
   render(<UploadPage uploadId='dft_upload'/>)
 
   let dialog = await openMembersDialog()
-  let checkbox = await within(dialog).findByRoleAndText('checkbox', 'Visible for all')
+  let checkbox = await within(dialog).findByRoleAndText('checkbox', 'Publicly visible')
   expect(checkbox.checked).toEqual(false)
   fireEvent.click(checkbox)
   expect(checkbox.checked).toEqual(true)
@@ -256,7 +256,7 @@ test('Toggle visible for all checkbox', async () => {
   await waitForGUI(2000, true)
 
   dialog = await openMembersDialog()
-  checkbox = await within(dialog).findByRoleAndText('checkbox', 'Visible for all')
+  checkbox = await within(dialog).findByRoleAndText('checkbox', 'Publicly visible')
   expect(checkbox.checked).toEqual(true)
   fireEvent.click(checkbox)
   expect(checkbox.checked).toEqual(false)
@@ -264,7 +264,7 @@ test('Toggle visible for all checkbox', async () => {
   await waitForGUI(2000, true)
 
   dialog = await openMembersDialog()
-  checkbox = await within(dialog).findByRoleAndText('checkbox', 'Visible for all')
+  checkbox = await within(dialog).findByRoleAndText('checkbox', 'Publicly visible')
   expect(checkbox.checked).toEqual(false)
 
   closeAPI()
