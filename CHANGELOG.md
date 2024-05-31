@@ -1,4 +1,10 @@
 
+## 1.3.2 (2024-05-31)
+
+### Fixed (1 change)
+
+- [Fixed issue with wrong example_uploads.yaml path.](nomad-lab/nomad-FAIR@cf82f7d46e003f2af3e794a9851a294f3cd6916c) ([merge request](nomad-lab/nomad-FAIR!1883))
+
 ## 1.3.1 (2024-05-29)
 
 No changes.
