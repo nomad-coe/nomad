@@ -35,20 +35,20 @@ Each of the _mainfiles_ represent an electronic-structure calculation (either [D
 graph LR;
     A2((Inputs)) --> B2[DFT];
     A1((Inputs)) --> B1[DFT];
-    subgraph pressure P<sub>2</sub>
+    subgraph pressure P2
     B2[DFT] --> C2[TB];
-    C2[TB] --> D21[DMFT at T<sub>1</sub>];
-    C2[TB] --> D22[DMFT at T<sub>2</sub>];
+    C2[TB] --> D21[DMFT at T1];
+    C2[TB] --> D22[DMFT at T2];
     end
-    D21[DMFT at T<sub>1</sub>] --> E21([Output calculation P<sub>2</sub>, T<sub>1</sub>])
-    D22[DMFT at T<sub>2</sub>] --> E22([Output calculation P<sub>2</sub>, T<sub>2</sub>])
-    subgraph pressure P<sub>1</sub>
+    D21[DMFT at T1] --> E21([Output calculation P2, T1])
+    D22[DMFT at T2] --> E22([Output calculation P2, T2])
+    subgraph pressure P1
     B1[DFT] --> C1[TB];
-    C1[TB] --> D11[DMFT at T<sub>1</sub>];
-    C1[TB] --> D12[DMFT at T<sub>2</sub>];
+    C1[TB] --> D11[DMFT at T1];
+    C1[TB] --> D12[DMFT at T2];
     end
-    D11[DMFT at T<sub>1</sub>] --> E11([Output calculation P<sub>1</sub>, T<sub>1</sub>])
-    D12[DMFT at T<sub>2</sub>] --> E12([Output calculation P<sub>1</sub>, T<sub>2</sub>])
+    D11[DMFT at T1] --> E11([Output calculation P1, T1])
+    D12[DMFT at T2] --> E12([Output calculation P1, T2])
 ```
 Here, "Input" refers to the all _input_ information given to perform the calculation (e.g., atom positions, model parameters, experimental initial conditions, etc.). "DFT", "TB" and "DMFT" refer to individual _tasks_ of the workflow, which each correspond to a _SinglePoint_ entry in NOMAD. "Output calculation" refers to the _output_ data of each of the final DMFT tasks.
 
