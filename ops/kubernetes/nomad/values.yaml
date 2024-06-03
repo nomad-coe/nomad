@@ -477,6 +477,7 @@ jupyterhub:
                 # Workaround for webtop based images (no connection to jupyterhub itself)
                 if tool.get('privileged'):
                     spawner.privileged = True
+                    spawner.allow_privilege_escalation = True
                     spawner.uid = 0
 
         c.Spawner.pre_spawn_hook = pre_spawn_hook

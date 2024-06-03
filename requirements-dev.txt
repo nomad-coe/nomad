@@ -306,7 +306,7 @@ rdkit==2023.9.5           # via -r requirements.txt, nomad-lab (pyproject.toml)
 readme-renderer==43.0     # via twine
 recommonmark==0.7.1       # via -r requirements.txt, nomad-lab (pyproject.toml)
 regex==2024.5.15          # via mkdocs-material
-requests==2.32.2          # via docker, hyperspy, jupyterhub, jupyterlab-server, mkdocs-material, oauthenticator, optimade, pooch, pybis, pymatgen, python-gitlab, python-keycloak, requests-toolbelt, rfc3161ng, sphinx, twine, -r requirements.txt, nomad-lab (pyproject.toml)
+requests==2.31.0          # via docker, hyperspy, jupyterhub, jupyterlab-server, mkdocs-material, oauthenticator, optimade, pooch, pybis, pymatgen, python-gitlab, python-keycloak, requests-toolbelt, rfc3161ng, sphinx, twine, -r requirements.txt, nomad-lab (pyproject.toml)
 requests-toolbelt==1.0.0  # via python-gitlab, python-keycloak, twine, -r requirements.txt
 rfc3161ng==2.1.3          # via -r requirements.txt, nomad-lab (pyproject.toml)
 rfc3339-validator==0.1.4  # via jsonschema, -r requirements.txt

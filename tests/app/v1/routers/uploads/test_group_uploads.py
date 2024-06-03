@@ -25,7 +25,6 @@ def get_agents_from_upload(upload):
                 'id_RGg2',
                 'id_CGg123',
                 'id_RGg123',
-                'id_RGall',
             ],
             200,
             id='no-args',
@@ -43,10 +42,20 @@ def get_agents_from_upload(upload):
             [
                 'id_RGg2',
                 'id_RGg123',
-                'id_RGall',
             ],
             200,
             id='reviewer',
+        ),
+        pytest.param(
+            'user2',
+            {'roles': 'reviewer', 'include_all': 'True'},
+            [
+                'id_RGg2',
+                'id_RGg123',
+                'id_RGall',
+            ],
+            200,
+            id='include-all',
         ),
     ],
 )

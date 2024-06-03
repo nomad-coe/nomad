@@ -718,6 +718,10 @@ async def get_uploads(
         None,
         description='Only return uploads where the user has one of the given roles.',
     ),
+    include_all: bool = FastApiQuery(
+        False,
+        description='Include uploads that are shared with all users.',
+    ),
     query: UploadProcDataQuery = Depends(upload_proc_data_query_parameters),
     pagination: UploadProcDataPagination = Depends(
         upload_proc_data_pagination_parameters
@@ -729,7 +733,7 @@ async def get_uploads(
     """
     # Build query
     mongo_query = Q()
-    mongo_query &= get_role_query(roles, user)
+    mongo_query &= get_role_query(roles, user, include_all=include_all)
 
     if query.upload_id:
         mongo_query &= Q(upload_id__in=query.upload_id)
@@ -2635,14 +2639,14 @@ def _query_mongodb(**kwargs):
     return Upload.objects(**kwargs)
 
 
-def get_role_query(roles: List[UploadRole], user: User) -> Q:
+def get_role_query(roles: List[UploadRole], user: User, include_all=False) -> Q:
     """
     Create MongoDB filter query for user with given roles (default: all roles)
     """
     if not roles:
         roles = list(UploadRole)
 
-    group_ids = get_group_ids(user.user_id)
+    group_ids = get_group_ids(user.user_id, include_all=include_all)
 
     role_query = Q()
     if UploadRole.main_author in roles:

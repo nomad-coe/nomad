@@ -454,7 +454,7 @@ function EditMembersDialog({...props}) {
           </DialogContentText>
           <Tooltip title="If checked, the upload can be viewed before publication even by unregistered users.">
             <FormControlLabel
-              label="Visible for all"
+              label="Publicly visible"
               control={
                 <Checkbox checked={isVisibleForAll} onChange={handleIsVisibleForAll} />
               }
