@@ -65,7 +65,9 @@ class ConfigBaseModel(BaseModel, extra=Extra.ignore):
             return ', '.join([f'"{x}"' for x in items])
 
         if extra_fields:
-            logger = logging.getLogger(__name__)
+            from structlog import get_logger
+
+            logger = get_logger()
             logger.warning(
                 f'The following unsupported keys were found in your configuration, '
                 f'e.g. nomad.yaml: {list_items(extra_fields)}.'

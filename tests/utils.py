@@ -24,17 +24,19 @@ import urllib.parse
 import zipfile
 from logging import LogRecord
 from typing import Any, Dict, List, Union
-
+from structlog import get_logger
 import pytest
 
 
-def assert_log(caplog, level: str, event_part: str, negate: bool = False) -> LogRecord:
+def assert_log(
+    log_output, level: str, event_part: str, negate: bool = False
+) -> LogRecord:
     """
     Assert whether a log message exists in the logs of the tests at a certain level.
 
     Parameters
     ----------
-    caplog : pytest fixture
+    log_output : pytest fixture
         This informs pytest that we want to access the logs from a pytest test.
     level : str
         The level of type of log for which we will search (e.g. 'WARN',
@@ -45,14 +47,9 @@ def assert_log(caplog, level: str, event_part: str, negate: bool = False) -> Log
     negate: Instead asserting that the log exist, assert that it does not exist.
     """
     match = None
-    for record in caplog.get_records(when='call'):
-        if record.levelname == level:
-            try:
-                event_data = json.loads(record.msg)
-                present = event_part in event_data['event']
-            except Exception:
-                present = event_part in record.msg
-
+    for record in log_output.entries:
+        if record['log_level'] == level.lower():
+            present = event_part in record['event']
             if present:
                 match = record
                 # No need to look for more matches since we aren't counting matches.

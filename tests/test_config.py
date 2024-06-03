@@ -111,12 +111,20 @@ def test_config_success(config_dict, format, mockopen, monkeypatch):
 )
 @pytest.mark.parametrize('format', ['yaml', 'env'])
 def test_config_warning(
-    config_dict, format, warning, formats_with_warning, caplog, mockopen, monkeypatch
+    config_dict,
+    format,
+    warning,
+    formats_with_warning,
+    log_output,
+    mockopen,
+    monkeypatch,
 ):
     """Tests that extra fields create a warning message."""
     conf_yaml, conf_env = load_format(config_dict, format)
     load_test_config(conf_yaml, conf_env, mockopen, monkeypatch)
-    assert_log(caplog, 'WARNING', warning, negate=format not in formats_with_warning)
+    assert_log(
+        log_output, 'WARNING', warning, negate=format not in formats_with_warning
+    )
 
 
 @pytest.mark.parametrize(

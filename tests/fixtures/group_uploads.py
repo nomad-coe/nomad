@@ -16,7 +16,7 @@ import pytest
 from nomad.utils.exampledata import ExampleData
 
 
-@pytest.fixture('session')
+@pytest.fixture(scope='session')
 def group_upload_molds(
     convert_user_labels_to_ids, convert_group_labels_to_ids, user1, user2
 ):
@@ -59,7 +59,7 @@ def group_upload_molds(
     return molds
 
 
-@pytest.fixture('session')
+@pytest.fixture(scope='session')
 def create_group_uploads_from_molds(group_upload_molds):
     """Returned function creates and returns uploads with given labels.
 

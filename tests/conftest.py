@@ -70,6 +70,31 @@ pytest_plugins = (
 )
 
 
+from structlog.testing import LogCapture
+import structlog
+
+
+@pytest.fixture(scope='function')
+def log_output():
+    cap = LogCapture()
+    # Modify `_Configuration.default_processors` set via `configure` but always
+    # keep the list instance intact to not break references held by bound
+    # loggers.
+    processors = structlog.get_config()['processors']
+    old_processors = processors.copy()
+    try:
+        # clear processors list and use LogCapture for testing
+        processors.clear()
+        processors.append(cap)
+        structlog.configure(processors=processors)
+        yield cap
+    finally:
+        # remove LogCapture and restore original processors
+        processors.clear()
+        processors.extend(old_processors)
+        structlog.configure(processors=processors)
+
+
 def pytest_addoption(parser):
     help = 'Set this < 1.0 to speed up worker cleanup. May leave tasks running.'
     parser.addoption('--celery-inspect-timeout', type=float, default=1.0, help=help)
@@ -141,35 +166,30 @@ def nomad_logging(monkeysession):
 
 
 @pytest.fixture(scope='function')
-def no_warn(caplog):
-    caplog.handler.formatter = structlogging.ConsoleFormatter()
-    yield caplog
-    for record in caplog.get_records(when='call'):
-        if record.levelname in ['WARNING', 'ERROR', 'CRITICAL']:
-            try:
-                msg = structlogging.ConsoleFormatter.serialize(json.loads(record.msg))
-            except Exception:
-                msg = record.msg
-            assert False, msg
+def no_warn(log_output):
+    yield log_output
+    for record in log_output.entries:
+        if record['log_level'] in ['error', 'critical', 'warning']:
+            assert False, record
 
 
 @pytest.fixture(scope='function')
-def with_error(caplog):
-    yield caplog
+def with_error(log_output):
+    yield log_output
     count = 0
-    for record in caplog.get_records(when='call'):
-        if record.levelname in ['ERROR', 'CRITICAL']:
+    for record in log_output.entries:
+        if record['log_level'] in ['error', 'critical']:
             count += 1
 
     assert count > 0
 
 
 @pytest.fixture(scope='function')
-def with_warn(caplog):
-    yield caplog
+def with_warn(log_output):
+    yield log_output
     count = 0
-    for record in caplog.get_records(when='call'):
-        if record.levelname in ['WARNING']:
+    for record in log_output.entries:
+        if record['log_level'] in ['warning']:
             count += 1
 
     assert count > 0
