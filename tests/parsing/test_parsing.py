@@ -112,16 +112,16 @@ def create_reference(data, pretty):
 
 
 @pytest.fixture(scope='function')
-def assert_parser_result(caplog):
+def assert_parser_result(log_output):
     def _assert(
         entry_archive: EntryArchive, has_errors: bool = False, has_warnings: bool = None
     ):
         errors_exist = False
         warnings_exist = False
-        for record in caplog.get_records(when='call'):
-            if record.levelname in ['ERROR', 'CRITICAL']:
+        for record in log_output.entries:
+            if record['log_level'] in ['error', 'critical']:
                 errors_exist = True
-            if record.levelname in ['WARNING']:
+            if record['log_level'] in ['warning']:
                 warnings_exist = True
         assert has_errors == errors_exist
         if has_warnings is not None:

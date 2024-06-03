@@ -43,11 +43,11 @@ def test_decode_handle_id():
         utils.decode_handle_id('zz')
 
 
-def test_timer(caplog):
+def test_timer(log_output):
     with utils.timer(utils.get_logger('test_logger'), 'test measure'):
         time.sleep(0.1)
 
-    assert json.loads(caplog.record_tuples[0][2])['event'] == 'test measure'
+    assert log_output.entries[0]['event'] == 'test measure'
 
 
 def test_sleep_timer():
@@ -75,11 +75,10 @@ def test_logging(no_warn):
     utils.get_logger(__name__).info('test msg')
 
     received_test_event = False
-    for record in no_warn.get_records(when='call'):
-        assert record.levelname == 'INFO'
-        data = json.loads(record.msg)
-        assert 'event' in data
-        assert data['event'] == 'test msg'
+    for record in no_warn.entries:
+        assert record['log_level'] == 'info'
+        assert 'event' in record
+        assert record['event'] == 'test msg'
         received_test_event = True
     assert received_test_event
 

@@ -138,10 +138,10 @@ def test_failing_process(worker, mongo_function, with_error):
     assert_proc(p, process, ProcessStatus.FAILURE, errors=1)
 
     has_log = False
-    for record in with_error.get_records(when='call'):
-        if record.levelname == 'ERROR':
+    for record in with_error.entries:
+        if record['log_level'] == 'error':
             has_log = True
-            assert json.loads(record.msg)['event'] == event
+            assert record['event'] == event
     assert has_log
 
 

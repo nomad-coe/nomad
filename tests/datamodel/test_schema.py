@@ -55,7 +55,7 @@ def test_schema_processing(raw_files_function, no_warn):
     assert test_archive.metadata.entry_type == 'Schema'
 
 
-def test_eln_annotation_validation_parsing(raw_files_function, caplog):
+def test_eln_annotation_validation_parsing(raw_files_function, log_output):
     mainfile = os.path.join(
         os.path.dirname(__file__), '../data/datamodel/eln.archive.yaml'
     )
@@ -67,8 +67,8 @@ def test_eln_annotation_validation_parsing(raw_files_function, caplog):
         parser.parse(mainfile, test_archive, get_logger(__name__))
 
     has_error = False
-    for record in caplog.get_records(when='call'):
-        if record.levelname == 'ERROR':
+    for record in log_output.entries:
+        if record['log_level'] == 'error':
             has_error = True
 
     assert has_error

@@ -848,7 +848,7 @@ class TestM1:
         section.f32 = -200
         section.f64 = -200
 
-    def test_np_allow_wrong_shape(self, caplog):
+    def test_np_allow_wrong_shape(self, log_output):
         class MyContext(Context):
             def warning(self, event, **kwargs):
                 utils.get_logger(__name__).warn(event, **kwargs)
@@ -856,7 +856,7 @@ class TestM1:
         scc = SCC(m_context=MyContext())
         scc.energy_total_0 = np.array([1.0, 1.0, 1.0])
         scc.m_to_dict()
-        test_utils.assert_log(caplog, 'WARNING', 'numpy quantity has wrong shape')
+        test_utils.assert_log(log_output, 'WARNING', 'numpy quantity has wrong shape')
 
     def test_copy(self):
         run = Run()
