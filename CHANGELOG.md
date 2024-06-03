@@ -1,4 +1,11 @@
 
+## 1.3.3 (2024-06-03)
+
+### Fixed (2 changes)
+
+- [Fixed a problem in juypterhubconfig that was preventing priveledged services.](nomad-lab/nomad-FAIR@9808e817861c9124d00498fd4f551c940b7b50cc) ([merge request](nomad-lab/nomad-FAIR!1876))
+- [Fixed issue with wrong example_uploads.yaml path.](nomad-lab/nomad-FAIR@cf82f7d46e003f2af3e794a9851a294f3cd6916c) ([merge request](nomad-lab/nomad-FAIR!1883))
+
 ## 1.3.2 (2024-05-31)
 
 ### Fixed (1 change)
