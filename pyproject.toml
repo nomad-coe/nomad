@@ -127,6 +127,7 @@ dev = [
     'names==0.3.0',
     'uv',
     'pycodestyle',
+    'pytest-asyncio',
     'pytest-cov>=2.7.1',
     'pytest-timeout>=1.4.2',
     'pytest-xdist>=1.30.0',
