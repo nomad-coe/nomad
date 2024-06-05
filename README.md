@@ -52,8 +52,15 @@ Omitted versions are plain bugfix releases with only minor changes and fixes. Th
 file [`CHANGELOG.md`](https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/blob/develop/CHANGELOG.md)
 contains much more detailed information about changes and fixes in the released versions.
 
-### v1.2.2
-- Added gunicron multi-process manager to serve the app.
+### v1.3.0
+- More concise plugins and more plugin types: normalizer and apps.
+- Refactored the labels in ELNs and the archive browser to be more consistent.
+- Optional simplified log-transfer.
+- An "all" group that allows to share unpublished data with everyone.
+- HDF5 references.
+- Dynamic search quantities in search Apps.
+- Added gunicron multi-process manager to serve NOMAD Oasis.
+- Added the graph API.
 
 ### v1.2.1
 - CLI utility to export archive data
