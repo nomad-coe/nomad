@@ -27,6 +27,7 @@ A series of tutorials will guide you through the main functionality of NOMAD.
 - [Use the search interface to identify interesting data](tutorial/explore.md)
 - [Use the API to search and access processed data for analysis](tutorial/access_api.md)
 - [Create and use custom schemas in NOMAD](tutorial/custom.md)
+- [Developing a NOMAD plugin](tutorial/develop_plugin.md)
 
 - [Example data and exercises](https://www.fairmat-nfdi.eu/events/fairmat-tutorial-1/tutorial-1-materials){:target="_blank"}
 - [More videos and tutorials on YouTube](https://youtube.com/playlist?list=PLrRaxjvn6FDW-_DzZ4OShfMPcTtnFoynT){:target="_blank"}

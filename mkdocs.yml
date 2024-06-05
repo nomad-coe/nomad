@@ -12,6 +12,7 @@ nav:
     - Exploring data: tutorial/explore.md
     - Access data via API: tutorial/access_api.md
     - Schemas and plugins: tutorial/custom.md
+    - Developing a NOMAD plugin: tutorial/develop_plugin.md
   - How-to guides:
     - Overview: howto/overview.md
     - Manage and find data:
