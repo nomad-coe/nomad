@@ -25,7 +25,7 @@ To start an analysis, note your upload id (which you find on top of this explana
 In the appearing list you'll find the `xps` container, click on it and click **LAUNCH**.
 After a few moments a new tab will open which displays a jupyter environment providing the required analysis tools.
 To find the examples navigate to uploads inside the jupyter hub browser and select the folder with your noted upload id.
-There you'll find the example `ipynb` notebook.
+There you'll find the example `ipynb` notebook for data analysis (E2).
 Double-clicking the notebook will open the example in the jupyter main window.
 
 ## Where to go from here?
