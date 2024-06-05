@@ -38,7 +38,7 @@ def normalise_response(response):
     if GeneralReader.__CACHE__ in response:
         del response[GeneralReader.__CACHE__]
 
-    return reorder_children(response)
+    return response
 
 
 def relocate_children(request):
@@ -47,18 +47,6 @@ def relocate_children(request):
     request.update(request.pop('m_children', {}))
     for child in request.values():
         relocate_children(child)
-
-
-def reorder_children(query):
-    if not isinstance(query, dict):
-        return query
-    # do not touch folders
-    if 'm_is' in query:
-        return {k: reorder_children(v) for k, v in query.items()}
-    return {
-        k: reorder_children(v)
-        for k, v in sorted(query.items(), key=lambda item: item[0])
-    }
 
 
 @router.post(

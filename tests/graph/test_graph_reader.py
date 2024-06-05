@@ -2310,24 +2310,27 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
             }
         },
     )
-    __ge_print(
-        'general start from entry WITHOUT retrieval of metadata (just listing)',
-        {
-            Token.SEARCH: {
-                'm_request': {
-                    'directive': 'plain',
-                    'pagination': {'page_size': 2, 'page': 2},
-                    'query': {'owner': 'user'},
-                },
-            }
-        },
-        result={
-            Token.SEARCH: {
-                'id_03': 'id_03',
-                'id_04': 'id_04',
-            }
-        },
-    )
+    # only check if those keys work
+    # the result order is not checked
+    for order_by in ['entry_create_time', 'mainfile_path']:
+        __ge_print(
+            'general start from entry WITHOUT retrieval of metadata (just listing)',
+            {
+                Token.SEARCH: {
+                    'm_request': {
+                        'directive': 'plain',
+                        'pagination': {'page_size': 2, 'page': 2, 'order_by': order_by},
+                        'query': {'owner': 'user'},
+                    },
+                }
+            },
+            result={
+                Token.SEARCH: {
+                    'id_03': 'id_03',
+                    'id_04': 'id_04',
+                }
+            },
+        )
     __ge_print(
         'general start from upload',
         {
@@ -2377,6 +2380,30 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
             }
         },
     )
+    # only check if those keys work
+    # the result order is not checked
+    for order_by in ['entry_create_time', 'mainfile_path']:
+        __ge_print(
+            'general start from entry with query and pagination',
+            {
+                Token.ENTRIES: {
+                    'm_request': {
+                        'directive': 'plain',
+                        'pagination': {'page_size': 10, 'order_by': order_by},
+                    },
+                }
+            },
+            result={
+                'entries': {
+                    'id_01': 'id_01',
+                    'id_02': 'id_02',
+                    'id_03': 'id_03',
+                    'id_04': 'id_04',
+                    'id_05': 'id_05',
+                    'id_06': 'id_06',
+                }
+            },
+        )
     __ge_print(
         'general start from upload with query and pagination',
         {

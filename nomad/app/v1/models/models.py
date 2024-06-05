@@ -912,6 +912,8 @@ class MetadataBasedPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
         # No validation here – validation is done during search
+        if order_by == 'mainfile_path':
+            return 'mainfile'
         return order_by
 
     @validator('page_after_value')
