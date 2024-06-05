@@ -87,7 +87,7 @@ def populate_nexus_subsection(
         Exception: could not trigger processing from NexusParser
         Exception: could not trigger processing from NexusParser
     """
-    _, nxdl_f_path = pynxtools_converter.get_nxdl_root_and_path(app_def)
+    _, nxdl_f_path = pynxtools_converter.helpers.get_nxdl_root_and_path(app_def)
 
     # Writing nxs file, parse and populate NeXus subsection:
     if output_file_path:
