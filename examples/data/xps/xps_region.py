@@ -35,7 +35,7 @@ class XPSRegion:
             XPSRegion: The XPSRegion class with the loaded data.
         """
         with H5File(filename, "r") as xps_file:
-            binding_energy = xps_file[f"/{entry}/data/BE"][:]
+            binding_energy = xps_file[f"/{entry}/data/energy"][:]
             cps = xps_file[f"/{entry}/data/data"][:]
             cps_err = xps_file[f"/{entry}/data/data_errors"][:]
 
