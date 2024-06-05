@@ -247,6 +247,8 @@ upload_proc_data_pagination_parameters = parameter_dependency_from_model(
 class EntryProcDataPagination(Pagination):
     @validator('order_by')
     def validate_order_by(cls, order_by):  # pylint: disable=no-self-argument
+        if order_by == 'mainfile_path':
+            return 'mainfile'
         if order_by is None:
             return 'mainfile'  # Default value
         assert order_by in (
@@ -254,6 +256,7 @@ class EntryProcDataPagination(Pagination):
             'parser_name',
             'process_status',
             'current_process',
+            'entry_create_time',
         ), 'order_by must be a valid attribute'
         return order_by
 

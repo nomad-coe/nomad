@@ -387,7 +387,7 @@ def _populate_result(container_root: dict, path: list, value, *, path_like=False
                 logger.warning(f'Cannot merge {a[i]} and {v}, potential conflicts.')
 
     def _merge_dict(a: dict, b: dict):
-        for k, v in sorted(b.items(), key=lambda item: item[0]):
+        for k, v in b.items():
             if k not in a or a[k] is None:
                 a[k] = v
             elif isinstance(a[k], set) and isinstance(v, set):
@@ -1393,10 +1393,13 @@ class MongoReader(GeneralReader):
                     filtered, child_config, transformer
                 )
                 if pagination is not None:
+                    pagination_dict = pagination.dict()
+                    if pagination_dict.get('order_by', None) == 'mainfile':
+                        pagination_dict['order_by'] = 'mainfile_path'
                     _populate_result(
                         node.result_root,
                         response_path + ['pagination'],
-                        pagination.dict(),
+                        pagination_dict,
                     )
                 self._walk(
                     node.replace(
@@ -1528,7 +1531,7 @@ class MongoReader(GeneralReader):
         if wildcard:
             assert omit_keys is not None
 
-        for key in sorted(node.archive.keys()):
+        for key in node.archive.keys():
             new_config: dict = {'property_name': key, 'index': None}
             if wildcard:
                 if any(k.startswith(key) for k in omit_keys):
@@ -2024,7 +2027,11 @@ class FileSystemReader(GeneralReader):
             path_like=True,
         )
 
-        for index, file in enumerate(itertools.chain(folders, files)):
+        whole_list = itertools.chain(folders, files)
+        if pagination.get('order', 'asc') != 'asc':
+            whole_list = itertools.chain(reversed(files), reversed(folders))
+
+        for index, file in enumerate(whole_list):
             if index >= end:
                 break
 
@@ -2368,7 +2375,7 @@ class ArchiveReader(GeneralReader):
             _populate_result(node.result_root, node.current_path, result_to_write)
             return
 
-        for key in sorted(node.archive.keys()):
+        for key in node.archive.keys():
             if key == Token.DEF:
                 continue
 

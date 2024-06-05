@@ -946,6 +946,7 @@ class Entry(Proc):
             ('upload_id', 'nomad_version'),
             'process_status',
             'last_processing_time',
+            'entry_create_time',
             'datasets',
             'pid',
         ],
