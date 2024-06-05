@@ -17,6 +17,10 @@ cd cow_tutorial
 zip -r ../uploads/cow_tutorial.zip *
 cd ..
 
+cd rdm_tutorial
+zip -r ../uploads/rdm_tutorial.zip *
+cd ..
+
 zip -r -j uploads/apm.zip apm/*
 zip -r -j uploads/mpes.zip mpes/*
 zip -r -j uploads/ellips.zip ellips/*

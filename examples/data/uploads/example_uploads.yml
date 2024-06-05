@@ -24,6 +24,17 @@ Basic examples:
       in the excel file mean and NOMAD can parse everything accordingly to
       produce a **FAIR** dataset.
 Tutorials:
+  rdm_tutorial:
+    path: examples/data/uploads/rdm_tutorial.zip
+    title: Tailored Research Data Management (RDM) with NOMAD
+    description: |
+      This notebook will teach you how you can build tailored research data
+      management (RDM) solutions using NOMAD. It uses existing thermally
+      activated delayed fluorescent (TADF) molecule data to teach you how we
+      can use the NOMAD to turn research data into datasets that are FAIR:
+      Findable, Accessible, Interoperable and Reusable. The end-result can be
+      distributed as a NOMAD plugin: a self-contained Python package that can be
+      installed on a NOMAD Oasis.
   cow_tutorial:
     path: examples/data/uploads/cow_tutorial.zip
     title: NOMAD as a Data Management Framework Tutorial
