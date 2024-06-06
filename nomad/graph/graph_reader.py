@@ -1076,7 +1076,7 @@ class MongoReader(GeneralReader):
                     references |= Q(references__regex=item)
             mongo_query &= references
 
-        return config.query.dict(exclude_unset=True), self.uploads.filter(mongo_query)
+        return config.query.dict(exclude_unset=True), self.entries.filter(mongo_query)
 
     def _query_uploads(self, config: RequestConfig):
         if not config.query:
