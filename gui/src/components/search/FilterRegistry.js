@@ -158,18 +158,6 @@ function registerFilterOptions(name, group, target, label, description, options)
   )
 }
 
-const ptWidgetConfig = {
-  type: 'periodictable',
-  scale: '1/2',
-  layout: {
-    sm: {w: 12, h: 8, minW: 12, minH: 8},
-    md: {w: 12, h: 8, minW: 12, minH: 8},
-    lg: {w: 12, h: 8, minW: 12, minH: 8},
-    xl: {w: 12, h: 8, minW: 12, minH: 8},
-    xxl: {w: 12, h: 8, minW: 12, minH: 8}
-  }
-}
-
 // Presets for different kind of quantities
 const termQuantity = {aggs: {terms: {size: 5}}}
 const termQuantityLarge = {aggs: {terms: {size: 10}}}
@@ -642,7 +630,18 @@ registerFilter(
   'results.material.elements',
   idElements,
   {
-    widget: ptWidgetConfig,
+    widget: {
+      quantity: 'results.material.elements',
+      type: 'periodictable',
+      scale: '1/2',
+      layout: {
+        sm: {w: 12, h: 8, minW: 12, minH: 8},
+        md: {w: 12, h: 8, minW: 12, minH: 8},
+        lg: {w: 12, h: 8, minW: 12, minH: 8},
+        xl: {w: 12, h: 8, minW: 12, minH: 8},
+        xxl: {w: 12, h: 8, minW: 12, minH: 8}
+      }
+    },
     aggs: {terms: {size: elementData.elements.length}},
     value: {
       set: (newQuery, oldQuery, value) => {

@@ -1766,3 +1766,13 @@ export function getDisplayLabel(def, isArchive = false, technicalView = false) {
     : def.name.replace(/_/g, ' ')
   return eln?.[0].label || def?.more?.label || def?.label || (isArchive ? name : capitalize(name))
 }
+
+/**
+ * Checks if the given string is empty: undefined, null or contains only
+ * whitespace.
+ * @param {*} value The value to check
+ * @returns Whether the string is empty
+ */
+export function isEmptyString(value) {
+  return value === undefined || value === null || !value?.trim?.()?.length
+}

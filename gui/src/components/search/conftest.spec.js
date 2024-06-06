@@ -169,14 +169,14 @@ export async function expectWidgetScatterPlot(widget, loaded, colorTitle, legend
 
 /**
  * Tests that an InputRange is rendered with the given contents.
- * @param {string} quantity The quantity name
+ * @param {object} widget The widget config
  * @param {bool} loaded Whether the data is already loaded
  * @param {bool} histogram Whether the histogram is shown
  * @param {bool} placeholder Whether the placeholder should be checked
  */
-export async function expectInputRange(quantity, loaded, histogram, anchored, min, max, root = screen) {
+export async function expectInputRange(widget, loaded, histogram, anchored, min, max, root = screen) {
     // Test header
-    await expectInputHeader(quantity, true)
+    await expectInputHeader(widget.x.quantity, true)
 
     // Check histogram
     if (histogram) {
@@ -188,14 +188,14 @@ export async function expectInputRange(quantity, loaded, histogram, anchored, mi
 
     // Test text elements if the component is not anchored
     if (!anchored) {
-      const data = defaultFilterData[quantity]
+      const data = defaultFilterData[widget.x.quantity]
       const dtype = data.dtype
       if (dtype === DType.Timestamp) {
         expect(root.getByText('Start time')).toBeInTheDocument()
         expect(root.getByText('End time')).toBeInTheDocument()
       } else {
-        expect(root.getByText('min')).toBeInTheDocument()
-        expect(root.getByText('max')).toBeInTheDocument()
+        expect(root.getByText(histogram ? 'min:' : 'min')).toBeInTheDocument()
+        expect(root.getByText(histogram ? 'max:' : 'max')).toBeInTheDocument()
       }
 
       // Get the formatted datetime in current timezone (timezones differ, so the

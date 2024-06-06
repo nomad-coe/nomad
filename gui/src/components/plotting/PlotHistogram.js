@@ -19,17 +19,21 @@ import React, { useRef, useMemo, useCallback } from 'react'
 import clsx from 'clsx'
 import { range as rangeLodash, isNil, clamp } from 'lodash'
 import { useRecoilValue } from 'recoil'
-import { Slider } from '@material-ui/core'
+import { Slider, InputAdornment } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
-import { pluralize, formatInteger } from '../../utils'
-import { Unit } from '../units/Unit'
+import { KeyboardDateTimePicker } from '@material-ui/pickers'
+import { pluralize, formatInteger, DType } from '../../utils'
+import { Quantity } from '../units/Quantity'
 import InputUnavailable from '../search/input/InputUnavailable'
+import { InputTextField } from '../search/input/InputText'
 import Placeholder from '../visualization/Placeholder'
 import PlotAxis from './PlotAxis'
 import PlotBar from './PlotBar'
+import FilterTitle from '../search/FilterTitle'
 import { guiState } from '../GUIMenu'
 import PropTypes from 'prop-types'
 import { getScaler } from './common'
+import { dateFormat } from '../../config'
 
 /**
  * An interactive histogram for numeric values.
@@ -40,7 +44,20 @@ const useStyles = makeStyles(theme => ({
     height: '100%',
     boxSizing: 'border-box'
   },
+  container: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  histogram: {
+    width: '100%',
+    height: '100%'
+  },
   overflow: {
+    flex: '1 1 auto',
     width: '100%',
     height: '100%'
   },
@@ -52,7 +69,7 @@ const useStyles = makeStyles(theme => ({
     gridTemplateColumns: 'auto 1fr',
     gridTemplateRows: '1fr auto',
     paddingRight: theme.spacing(0.75),
-    paddingBottom: theme.spacing(0.5)
+    paddingBottom: theme.spacing(0.25)
   },
   plot: {
     gridColumn: 2,
@@ -85,6 +102,16 @@ const useStyles = makeStyles(theme => ({
     gridColumn: 2,
     gridRow: 2
   },
+  inputField: {
+    marginTop: 0,
+    marginBottom: 0,
+    flexGrow: 1,
+    minWidth: '6.1rem',
+    maxWidth: '8.5rem'
+  },
+  inputFieldDate: {
+    maxWidth: '15rem'
+  },
   thumb: {
     '&:active': {
       boxShadow: '0px 0px 0px 12px rgb(0, 141, 195, 16%)'
@@ -92,19 +119,47 @@ const useStyles = makeStyles(theme => ({
     '&:focusVisible': {
       boxShadow: '0px 0px 0px 6px rgb(0, 141, 195, 16%)'
     }
+  },
+  title: {
+    flexGrow: 1,
+    marginLeft: theme.spacing(0.5),
+    marginRight: theme.spacing(0.5)
+  },
+  // The following two styles are needed in order for the TextInput to
+  // transition from having a label to not having a label. The MUI component
+  // does not otherwise transition correctly.
+  inputMargin: {
+    paddingTop: 10,
+    paddingBottom: 11
+  },
+  adornment: {
+    marginTop: '0px !important'
+  },
+  spacer: {
+    height: '3rem',
+    flex: '1 1 100%',
+    paddingLeft: '18px',
+    paddingRight: '18px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  row: {
+    marginTop: theme.spacing(0.25),
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start'
   }
 }))
 const PlotHistogram = React.memo(({
+  xAxis,
   bins,
   range,
-  minX,
-  maxX,
-  unitX,
   step,
   nBins,
   scale,
   discretization,
-  dtypeX,
   dtypeY,
   disabled,
   tooltipLabel,
@@ -112,11 +167,27 @@ const PlotHistogram = React.memo(({
   disableSlider,
   onRangeChange,
   onRangeCommit,
+  onMinChange,
+  onMaxChange,
+  onMinBlur,
+  onMaxBlur,
+  onMinSubmit,
+  onMaxSubmit,
   onClick,
   minXInclusive,
   maxXInclusive,
   className,
   classes,
+  showinput,
+  minError,
+  maxError,
+  minInput,
+  maxInput,
+  minLocal,
+  maxLocal,
+  stepSlider,
+  disableHistogram,
+  disableXTitle,
   'data-testid': testID
 }) => {
   const styles = useStyles(classes)
@@ -140,8 +211,17 @@ const PlotHistogram = React.memo(({
   const oldRangeRef = useRef()
   const artificialRange = 1
   const isArtificial = !step && bins?.length === 1
+  const isTime = xAxis.dtype === DType.Timestamp
   step = isArtificial ? artificialRange / nBins : step
-  maxX = isArtificial ? minX + artificialRange : maxX
+
+  // Determine the final maximum of x-axis. If the values are discrete, the
+  // maximum x value needs to be increased.
+  let maxX = isArtificial ? xAxis.min + artificialRange : xAxis.max
+  if (discretization) {
+    if (!isNil(maxX)) {
+      maxX += step
+    }
+  }
 
   // Determine the final bin data and the y axis limits.
   const [finalBins, minY, maxY] = useMemo(() => {
@@ -176,15 +256,9 @@ const PlotHistogram = React.memo(({
       : range
   }, [discretization, step])
 
-  // If the values are discrete, the maximum x value needs to be increased.
   const rangeInternal = useMemo(() => {
     return toInternalRange([range?.gte, range?.lte])
   }, [range, toInternalRange])
-  if (discretization) {
-    if (!isNil(maxX)) {
-      maxX += step
-    }
-  }
 
   // Turns the internal range values back to the external counterparts before
   // sending the event.
@@ -240,14 +314,14 @@ const PlotHistogram = React.memo(({
 
   // Create the plot once items are ready
   const plot = useMemo(() => {
-    if (isNil(finalBins) || isNil(minX) || isNil(maxX)) {
+    if (isNil(finalBins) || isNil(xAxis.min) || isNil(maxX)) {
       return null
     }
     return <div className={styles.canvas}>
       {Object.values(finalBins).map((item, i) => {
         return <PlotBar
-          startX={(item.start - minX) / (maxX - minX)}
-          endX={(item.end - minX) / (maxX - minX)}
+          startX={(item.start - xAxis.min) / (maxX - xAxis.min)}
+          endX={(item.end - xAxis.min) / (maxX - xAxis.min)}
           startY={0}
           endY={item.scale}
           key={i}
@@ -259,11 +333,11 @@ const PlotHistogram = React.memo(({
         />
       })}
     </div>
-  }, [finalBins, minX, maxX, styles.canvas, calculateSelection, rangeInternal, handleClick, tooltipLabel])
+  }, [finalBins, xAxis.min, maxX, styles.canvas, calculateSelection, rangeInternal, handleClick, tooltipLabel])
 
   // Create x-axis once axis range is ready
   const xaxis = useMemo(() => {
-    if (isNil(finalBins) || isNil(minX) || isNil(maxX)) {
+    if (isNil(finalBins) || isNil(xAxis.min) || isNil(maxX)) {
       return null
     }
 
@@ -280,7 +354,7 @@ const PlotHistogram = React.memo(({
       }]
     // Discrete values get label at the center of the bin.
     } else {
-      const start = step * Math.ceil(minX / step)
+      const start = step * Math.ceil(xAxis.min / step)
       const end = step * Math.floor(maxX / step)
       labels = rangeLodash(start, end).map(x => ({
         label: x,
@@ -288,19 +362,120 @@ const PlotHistogram = React.memo(({
       }))
     }
 
+    const min = new Quantity(xAxis.min, xAxis.unitStorage).to(xAxis.unit).value()
+    const max = new Quantity(maxX, xAxis.unitStorage).to(xAxis.unit).value()
+
     return <PlotAxis
       placement="bottom"
-      min={minX}
-      max={maxX}
-      unit={unitX}
+      min={min}
+      max={max}
       mode="scientific"
       labels={labels}
       labelWidth={45}
       overflowLeft={25}
-      dtype={dtypeX}
+      dtype={xAxis.dtype}
       className={styles.xaxis}
     />
-  }, [finalBins, minX, maxX, discretization, isArtificial, unitX, dtypeX, styles.xaxis, step])
+  }, [finalBins, xAxis.min, xAxis.unitStorage, maxX, discretization, isArtificial, xAxis.dtype, styles.xaxis, xAxis.unit, step])
+
+  const [minAdornment, maxAdornment] = useMemo(() => {
+    return disableHistogram
+      ? [undefined, undefined]
+      : [
+      {
+        startAdornment: <InputAdornment
+          position="start"
+          classes={{positionStart: styles.adornment}}
+        >min:</InputAdornment>,
+        classes: {inputMarginDense: styles.inputMargin}
+      },
+      {
+        startAdornment: <InputAdornment
+          position="start"
+          classes={{positionStart: styles.adornment}}
+        >max:</InputAdornment>,
+        classes: {inputMarginDense: styles.inputMargin}
+      }
+    ]
+  }, [disableHistogram, styles])
+
+  // Determine the min input component
+  let inputMinField
+  if (xAxis.dtype === DType.Timestamp) {
+    inputMinField = <KeyboardDateTimePicker
+      error={!!minError}
+      disabled={disabled}
+      helperText={minError}
+      ampm={false}
+      className={clsx(styles.inputField, styles.inputFieldDate)}
+      variant="inline"
+      inputVariant="filled"
+      label="Start time"
+      format={`${dateFormat} kk:mm`}
+      value={minInput}
+      invalidDateMessage=""
+      InputAdornmentProps={{ position: 'end' }}
+      onAccept={(date) => {
+        onMinChange(date)
+        onMinSubmit(date)
+      }}
+      onChange={onMinChange}
+      onBlur={onMinBlur}
+      onKeyDown={(event) => { if (event.key === 'Enter') { onMinSubmit(minInput) } }}
+    />
+  } else {
+    inputMinField = <InputTextField
+      error={!!minError}
+      disabled={disabled}
+      helperText={minError}
+      className={styles.inputField}
+      InputProps={minAdornment}
+      label={disableHistogram ? 'min' : ' '}
+      value={minInput}
+      onChange={onMinChange}
+      onBlur={onMinBlur}
+      onKeyDown={(event) => { if (event.key === 'Enter') { onMinSubmit(minInput) } }}
+    />
+  }
+
+  // Determine the max input component
+  let inputMaxField
+  if (xAxis.dtype === DType.Timestamp) {
+    inputMaxField = <KeyboardDateTimePicker
+      error={!!maxError}
+      disabled={disabled}
+      helperText={maxError}
+      ampm={false}
+      className={clsx(styles.inputField, styles.inputFieldDate)}
+      variant="inline"
+      inputVariant="filled"
+      label="End time"
+      format={`${dateFormat} kk:mm`}
+      value={maxInput}
+      invalidDateMessage=""
+      InputAdornmentProps={{ position: 'end' }}
+      onAccept={(date) => {
+        onMaxChange(date)
+        onMaxSubmit(date)
+      }}
+      onChange={onMaxChange}
+      onBlur={onMaxBlur}
+      onKeyDown={(event) => { if (event.key === 'Enter') { onMaxSubmit(maxInput) } }}
+    />
+  } else {
+    inputMaxField = <InputTextField
+      error={!!maxError}
+      disabled={disabled}
+      helperText={maxError}
+      className={styles.inputField}
+      InputProps={maxAdornment}
+      label={disableHistogram ? 'max' : ' '}
+      value={maxInput}
+      onChange={onMaxChange}
+      onBlur={onMaxBlur}
+      onKeyDown={(event) => { if (event.key === 'Enter') { onMaxSubmit(maxInput) } }}
+    />
+  }
 
   // Create y-axis once axis range is ready.
   const yaxis = useMemo(() => {
@@ -311,7 +486,6 @@ const PlotHistogram = React.memo(({
       placement="left"
       min={minY}
       max={maxY}
-      unit={new Unit('dimensionless')}
       mode='SI'
       labels={5}
       scale={scale}
@@ -338,9 +512,9 @@ const PlotHistogram = React.memo(({
           {plot}
           {!disableSlider &&
             <Slider
-              disabled={disabled || isArtificial || (maxX - minX) === discretization}
+              disabled={disabled || isArtificial || (maxX - xAxis.min) === discretization}
               color={highlight ? 'secondary' : 'primary'}
-              min={minX}
+              min={xAxis.min}
               max={maxX}
               step={step}
               value={rangeInternal}
@@ -355,31 +529,67 @@ const PlotHistogram = React.memo(({
         <div className={styles.square} />
         {xaxis}
       </div>
-    </div>
+  </div>
   }
 
+  const titleComp = <div className={styles.title}>
+    <FilterTitle
+      quantity={xAxis.quantity}
+      label={xAxis.title}
+      unit={xAxis.unit}
+      variant="caption"
+      className={styles.titletext}
+      noWrap={false}
+    />
+  </div>
+
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    {histComp}
+    <div className={styles.container}>
+      {!disableHistogram && <div className={clsx(styles.histogram, classes?.histogram)}>{histComp}</div>}
+      {!disableXTitle && titleComp}
+      <div className={styles.row}>
+        {showinput
+          ? <>
+            {inputMinField}
+            {(disableHistogram && !isTime)
+              ? <div className={styles.spacer}>
+                  <Slider
+                    disabled={disabled || (minLocal === maxLocal)}
+                    color={highlight ? 'secondary' : 'primary'}
+                    min={minLocal}
+                    max={maxLocal}
+                    step={stepSlider}
+                    value={[range.gte, range.lte]}
+                    onChange={onRangeChange}
+                    onChangeCommitted={onRangeCommit}
+                    valueLabelDisplay="off"
+                  />
+                </div>
+              : <div className={styles.title} />
+            }
+            {inputMaxField}
+            </>
+          : null
+        }
+      </div>
+    </div>
   </div>
 })
 
 PlotHistogram.propTypes = {
+  xAxis: PropTypes.object,
   /* The bins data to show. */
   bins: PropTypes.arrayOf(PropTypes.shape({
     value: PropTypes.number,
     count: PropTypes.number
   })),
   range: PropTypes.object,
-  minX: PropTypes.number,
-  maxX: PropTypes.number,
-  unitX: PropTypes.any,
   step: PropTypes.number,
   /* The number of bins: required only when showing a dummy bin for histograms
    * that have no width. */
   nBins: PropTypes.number,
   /* Discretization of the values. */
   discretization: PropTypes.number,
-  dtypeX: PropTypes.string,
   dtypeY: PropTypes.string,
   scale: PropTypes.string,
   disabled: PropTypes.bool,
@@ -395,8 +605,25 @@ PlotHistogram.propTypes = {
   minXInclusive: PropTypes.bool,
   /* Whether the max slider is inclusive (=max value is included) */
   maxXInclusive: PropTypes.bool,
+  showInput: PropTypes.bool,
   onRangeChange: PropTypes.func,
   onRangeCommit: PropTypes.func,
+  onMinChange: PropTypes.func,
+  onMaxChange: PropTypes.func,
+  onMinSubmit: PropTypes.func,
+  onMaxSubmit: PropTypes.func,
+  showinput: PropTypes.bool,
+  maxError: PropTypes.any,
+  minError: PropTypes.any,
+  maxInput: PropTypes.any,
+  minInput: PropTypes.any,
+  maxLocal: PropTypes.any,
+  minLocal: PropTypes.any,
+  stepSlider: PropTypes.any,
+  disableHistogram: PropTypes.bool,
+  disableXTitle: PropTypes.bool,
+  onMinBlur: PropTypes.func,
+  onMaxBlur: PropTypes.func,
   className: PropTypes.string,
   classes: PropTypes.object,
   'data-testid': PropTypes.string

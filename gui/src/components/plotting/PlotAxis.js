@@ -22,9 +22,6 @@ import { makeStyles } from '@material-ui/core/styles'
 import { isArray, isNil } from 'lodash'
 import { useResizeDetector } from 'react-resize-detector'
 import { getScaler, getTicks } from './common'
-import { Quantity } from '../units/Quantity'
-import { Unit } from '../units/Unit'
-import { useUnitContext } from '../units/UnitContext'
 import { formatNumber, DType } from '../../utils'
 import PlotLabel from './PlotLabel'
 import PlotTick from './PlotTick'
@@ -76,7 +73,6 @@ const usePlotAxisStyles = makeStyles(theme => ({
 const PlotAxis = React.memo(({
   min,
   max,
-  unit,
   dtype,
   mode,
   decimals,
@@ -95,8 +91,6 @@ const PlotAxis = React.memo(({
   classes,
   'data-testid': testID}) => {
   const styles = usePlotAxisStyles(classes)
-  const {units} = useUnitContext()
-  const unitObj = useMemo(() => new Unit(unit), [unit])
   const {height, width, ref} = useResizeDetector()
   const orientation = {
     left: 'vertical',
@@ -111,9 +105,8 @@ const PlotAxis = React.memo(({
 
   // Determine the correct scaler
   const scaler = useMemo(
-    () => getScaler(scale, [min, max], [0, axisSize]),
-    [scale, min, max, axisSize]
-  )
+    () => getScaler(scale, [min, max], [0, axisSize])
+  , [scale, min, max, axisSize])
 
   // Determine styles that depend on overflow values
   overflowBottom = isNil(overflowBottom) ? 8 : overflowBottom
@@ -157,7 +150,7 @@ const PlotAxis = React.memo(({
     const formatTick = (value) => {
       return dtype === DType.Timestamp
         ? format(value, 'MMM d')
-        : formatNumber(new Quantity(value, unitObj).toSystem(units).value(), dtype, mode, decimals)
+        : formatNumber(value, dtype, mode, decimals)
     }
 
     // Manual ticks
@@ -172,11 +165,9 @@ const PlotAxis = React.memo(({
     const nItems = Math.min(labels, Math.max(2, nItemsFit))
 
     // If the scale length is zero, show only one tick
-    const minConverted = new Quantity(min, unitObj).toSystem(units).value()
-    const maxConverted = new Quantity(max, unitObj).toSystem(units).value()
-    if (minConverted === maxConverted) {
+    if (min === max) {
       return [{
-        label: formatTick(minConverted),
+        label: formatTick(min),
         pos: 0
       }]
     }
@@ -184,15 +175,14 @@ const PlotAxis = React.memo(({
     // Get reasonable, human-readable ticks. the .ticks function from d3-scale
     // does not guarantee an upper limit to the number of ticks, so it cannot be
     // directly used.
-    const unitConverted = unitObj.toSystem(units)
-    return getTicks(minConverted, maxConverted, nItems, dtype, mode, decimals)
+    return getTicks(min, max, nItems, dtype, mode, decimals)
       .map(({tick, value}) => {
         return {
           label: tick,
-          pos: scaler(new Quantity(value, unitConverted).toSI().value()) / axisSize
+          pos: scaler(value) / axisSize
         }
       })
-  }, [axisSize, dtype, labelSize, labels, max, min, scaler, unitObj, units, mode, decimals])
+  }, [axisSize, dtype, labelSize, labels, max, min, scaler, mode, decimals])
 
   // Here we estimate the maximum label width. This is a relatively simple
   // approximattion calculated using the font size. A more reliable way would to
@@ -249,7 +239,6 @@ const PlotAxis = React.memo(({
 PlotAxis.propTypes = {
   min: PropTypes.number,
   max: PropTypes.number,
-  unit: PropTypes.any,
   scale: PropTypes.string,
   mode: PropTypes.oneOf(['scientific', 'SI', 'standard']),
   decimals: PropTypes.number,
@@ -276,8 +265,7 @@ PlotAxis.defaultProps = {
   scale: 'linear',
   scientific: true, // Whether to use scientific notation, e.g. 1e+3
   siPostfix: false, // Whether to use SI postfixes, e.g. K, M, B
-  decimals: 3, // How many decimals to show for custom labels
-  unit: 'dimensionless'
+  decimals: 3 // How many decimals to show for custom labels
 }
 
 export default PlotAxis

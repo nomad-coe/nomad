@@ -137,7 +137,7 @@ export function parseQuantity(input, dimension = 'dimensionless', requireValue =
     valueString = undefined
     value = undefined
     if (requireValue) {
-       error = 'Enter a valid numerical value'
+       error = 'Enter a valid numerical value.'
     }
   } else {
     value = Number(valueString)
@@ -146,7 +146,7 @@ export function parseQuantity(input, dimension = 'dimensionless', requireValue =
   // Check unit if required
   if (requireUnit) {
     if (unitString === '') {
-      return {valueString, value, error: 'Unit is required'}
+      return {valueString, value, error: 'Unit is required.'}
     }
   }
 
@@ -180,7 +180,7 @@ export function parseQuantity(input, dimension = 'dimensionless', requireValue =
   // units are compared.
   if (dimension !== null) {
     if (!(unit.dimension(true) === dimension || unit.dimension(false) === dimension)) {
-      error = `Unit "${unit.label(false)}" is incompatible with dimension "${dimension}"`
+      error = `Unit "${unit.label(false)}" is incompatible with dimension "${dimension}".`
     }
   }
 

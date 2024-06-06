@@ -17,26 +17,19 @@
  */
 import React, { useState, useMemo, useCallback, useEffect, useRef, useContext } from 'react'
 import { makeStyles } from '@material-ui/core/styles'
-import { Slider } from '@material-ui/core'
-import { useRecoilValue } from 'recoil'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
 import { isNil } from 'lodash'
-import { KeyboardDateTimePicker } from '@material-ui/pickers'
 import InputHeader from './InputHeader'
-import InputTooltip from './InputTooltip'
 import { inputSectionContext } from './InputSection'
-import { InputTextField } from './InputText'
 import { Quantity } from '../../units/Quantity'
 import { Unit } from '../../units/Unit'
 import { useUnitContext } from '../../units/UnitContext'
 import { DType, formatNumber } from '../../../utils'
 import { getInterval } from '../../plotting/common'
-import { dateFormat } from '../../../config'
 import { useSearchContext } from '../SearchContext'
 import PlotHistogram from '../../plotting/PlotHistogram'
 import { isValid, getTime } from 'date-fns'
-import { guiState } from '../../GUIMenu'
 import { ActionCheckbox } from '../../Actions'
 import { autorangeDescription } from '../widgets/WidgetHistogram'
 
@@ -50,69 +43,16 @@ const useStyles = makeStyles(theme => ({
     height: '100%'
   },
   histogram: {
-  },
-  inputFieldText: {
-    marginTop: 0,
-    marginBottom: 0,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: '6.1rem'
-  },
-  inputFieldDate: {
-    marginTop: 0,
-    marginBottom: 0,
-    flexGrow: 1
-  },
-  textInput: {
-    textOverflow: 'ellipsis'
-  },
-  container: {
-    width: '100%'
-  },
-  spacer: {
-    height: '3rem',
-    flex: '1 1 100%',
-    paddingLeft: '18px',
-    paddingRight: '18px',
-    display: 'flex',
-    alignItems: 'center'
-  },
-  column: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  dash: {
-    height: '56px',
-    lineHeight: '56px',
-    textAlign: 'center',
-    paddingLeft: theme.spacing(1),
-    paddingRight: theme.spacing(1)
-  },
-  row: {
-    marginTop: theme.spacing(0.5),
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start'
-  },
-  thumb: {
-    '&:active': {
-      boxShadow: '0px 0px 0px 12px rgb(0, 141, 195, 16%)'
-    },
-    '&:focusVisible': {
-      boxShadow: '0px 0px 0px 6px rgb(0, 141, 195, 16%)'
-    }
   }
 }))
 export const Range = React.memo(({
-  quantity,
+  xAxis,
   nSteps,
   visible,
   scale,
   nBins,
   disableHistogram,
+  disableXTitle,
   autorange,
   showinput,
   aggId,
@@ -120,16 +60,15 @@ export const Range = React.memo(({
   classes,
   'data-testid': testID
 }) => {
-  const {units} = useUnitContext()
   const {filterData, useAgg, useFilterState, useIsStatisticsEnabled} = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const repeats = sectionContext?.repeats
   const isStatisticsEnabled = useIsStatisticsEnabled()
   const styles = useStyles({classes})
-  const [filter, setFilter] = useFilterState(quantity)
+  const [filter, setFilter] = useFilterState(xAxis.quantity)
   const [minLocal, setMinLocal] = useState()
   const [maxLocal, setMaxLocal] = useState()
-  const [plotData, setPlotData] = useState()
+  const [plotData, setPlotData] = useState({xAxis})
   const loading = useRef(false)
   const firstRender = useRef(true)
   const validRange = useRef()
@@ -142,20 +81,13 @@ export const Range = React.memo(({
   const [minInclusive, setMinInclusive] = useState(true)
   const [maxInclusive, setMaxInclusive] = useState(true)
   const highlight = Boolean(filter)
-  const inputVariant = useRecoilValue(guiState('inputVariant'))
   disableHistogram = isNil(disableHistogram) ? !isStatisticsEnabled : disableHistogram
 
   // Determine the description and units
-  const def = filterData[quantity]
-  const unitSI = useMemo(() => {
-    return new Unit(def?.unit || 'dimensionless')
-  }, [def])
-  const unitCurrent = useMemo(() => {
-    return unitSI.toSystem(units)
-  }, [unitSI, units])
-  const dtype = filterData[quantity].dtype
-  const discretization = dtype === DType.Int ? 1 : undefined
-  const isTime = dtype === DType.Timestamp
+  const def = filterData[xAxis.quantity]
+  const unitStorage = useMemo(() => { return new Unit(def?.unit || 'dimensionless') }, [def])
+  const discretization = xAxis.dtype === DType.Int ? 1 : undefined
+  const isTime = xAxis.dtype === DType.Timestamp
   const firstLoad = useRef(true)
 
   // We need to set a valid initial input state: otherwise the component thinks
@@ -163,36 +95,40 @@ export const Range = React.memo(({
   const [minInput, setMinInput] = useState(isTime ? new Date() : '')
   const [maxInput, setMaxInput] = useState(isTime ? new Date() : '')
 
-  // Function for converting filter values into SI values used by the API.
-  const fromFilter = useCallback(filter => {
+  // Function for converting filter values into storage units used by the API.
+  const fromDisplayUnit = useCallback(filter => {
     return filter instanceof Quantity
-      ? filter.toSI().value()
+      ? filter.to(unitStorage).value()
       : filter
-  }, [])
+  }, [unitStorage])
 
-  // Function for converting filter values from SI.
-  const fromSI = useCallback(filter => {
+  // Function for converting filter values from storage unit to display unit
+  const fromStorageUnit = useCallback(filter => {
     return (isTime)
       ? filter
-      : filter instanceof Quantity ? filter.toSI() : new Quantity(filter, unitSI)
-  }, [unitSI, isTime])
+      : filter instanceof Quantity
+        ? filter.to(unitStorage)
+        : new Quantity(filter, unitStorage)
+  }, [unitStorage, isTime])
 
-  // Function for converting filter values from custom unit system.
-  const toSI = useCallback(filter => {
+  // Function for converting filter values from display unit to storage unit
+  const toStorageUnit = useCallback(filter => {
     return (isTime)
       ? filter
-      : filter instanceof Quantity ? filter.toSI() : new Quantity(filter, unitCurrent).toSI()
-  }, [isTime, unitCurrent])
+      : filter instanceof Quantity
+        ? filter.to(unitStorage)
+        : new Quantity(filter, xAxis.unit).to(unitStorage)
+  }, [isTime, xAxis.unit, unitStorage])
 
   // Aggregation when the statistics are enabled: a histogram aggregation with
   // extended bounds based on the currently set filter range. Note: the config
   // should be memoed in order to prevent re-renders.
-  const minRef = useRef(fromFilter(isNil(filter?.gte) ? filter?.gt : filter?.gte))
-  const maxRef = useRef(fromFilter(isNil(filter?.lte) ? filter?.lt : filter?.lte))
+  const minRef = useRef(fromDisplayUnit(isNil(filter?.gte) ? filter?.gt : filter?.gte))
+  const maxRef = useRef(fromDisplayUnit(isNil(filter?.lte) ? filter?.lt : filter?.lte))
   const aggHistogramConfig = useMemo(() => {
     const filterBounds = (filter) ? {
-      min: fromFilter(isNil(filter.gte) ? filter.gt : filter.gte),
-      max: fromFilter(isNil(filter.lte) ? filter.lt : filter.lte)
+      min: fromDisplayUnit(isNil(filter.gte) ? filter.gt : filter.gte),
+      max: fromDisplayUnit(isNil(filter.lte) ? filter.lt : filter.lte)
     } : undefined
     let exclude_from_search
     let extended_bounds
@@ -227,8 +163,8 @@ export const Range = React.memo(({
     return (isTime || !discretization)
       ? {type: 'histogram', buckets: nBins, exclude_from_search, extended_bounds}
       : {type: 'histogram', interval: discretization, exclude_from_search, extended_bounds}
-  }, [filter, fromFilter, isTime, discretization, nBins, autorange])
-  const agg = useAgg(quantity, visible && !disableHistogram, `${aggId}_histogram`, aggHistogramConfig)
+  }, [filter, fromDisplayUnit, isTime, discretization, nBins, autorange])
+  const agg = useAgg(xAxis.quantity, visible && !disableHistogram, `${aggId}_histogram`, aggHistogramConfig)
   useEffect(() => {
     if (!isNil(agg)) {
       firstLoad.current = false
@@ -238,45 +174,46 @@ export const Range = React.memo(({
   // Aggregation when the statistics are disabled: a simple min_max aggregation
   // is enough in order to get the slider range.
   const aggSliderConfig = useMemo(() => ({type: 'min_max', exclude_from_search: true}), [])
-  const aggSlider = useAgg(quantity, visible && disableHistogram, `${aggId}_slider`, aggSliderConfig)
+  const aggSlider = useAgg(xAxis.quantity, visible && disableHistogram, `${aggId}_slider`, aggSliderConfig)
 
   // Determine the global minimum and maximum values
-  const [minGlobalSI, maxGlobalSI] = useMemo(() => {
-    let minGlobalSI
-    let maxGlobalSI
+  const [minGlobal, maxGlobal] = useMemo(() => {
+    let minGlobal
+    let maxGlobal
     if (disableHistogram) {
-      minGlobalSI = aggSlider?.data?.[0]
-      maxGlobalSI = aggSlider?.data?.[1]
+      minGlobal = aggSlider?.data?.[0]
+      maxGlobal = aggSlider?.data?.[1]
     } else {
       const nBuckets = agg?.data?.length || 0
       if (nBuckets === 1) {
-        minGlobalSI = agg.data[0].value
-        maxGlobalSI = minGlobalSI
+        minGlobal = agg.data[0].value
+        maxGlobal = minGlobal
       } else if (nBuckets > 1) {
         for (const bucket of agg.data) {
-          if (isNil(minGlobalSI)) {
-            minGlobalSI = bucket.value
+          if (isNil(minGlobal)) {
+            minGlobal = bucket.value
           }
-          maxGlobalSI = bucket.value + (discretization ? 0 : agg.interval)
+          maxGlobal = bucket.value + (discretization ? 0 : agg.interval)
         }
-        if (isNil(minGlobalSI)) {
-          minGlobalSI = agg.data[0].value
+        if (isNil(minGlobal)) {
+          minGlobal = agg.data[0].value
         }
-        if (isNil(maxGlobalSI)) {
-          maxGlobalSI = agg.data[agg.data.length - 1].value + (discretization ? 0 : agg.interval)
+        if (isNil(maxGlobal)) {
+          maxGlobal = agg.data[agg.data.length - 1].value + (discretization ? 0 : agg.interval)
         }
       }
     }
     firstRender.current = false
-    return [minGlobalSI, maxGlobalSI]
+    return [minGlobal, maxGlobal]
   }, [agg, aggSlider, disableHistogram, discretization])
 
   const stepHistogram = agg?.interval
-  const unavailable = isNil(minGlobalSI) || isNil(maxGlobalSI) || isNil(range)
+  const unavailable = isNil(minGlobal) || isNil(maxGlobal) || isNil(range)
   const disabled = unavailable
 
   // Determine the step value for sliders. Notice that this does not have to
-  // match with the histogram binning.
+  // match with the histogram binning, and that we want to do call the
+  // getInterval function on the display unit range.
   const stepSlider = useMemo(() => {
     if (discretization) {
       return discretization
@@ -285,15 +222,15 @@ export const Range = React.memo(({
       return undefined
     }
     const rangeSI = maxLocal - minLocal
-    const range = new Quantity(rangeSI, unitSI).toSystem(units).value()
-    const intervalCustom = getInterval(range, nSteps, dtype)
-    return new Quantity(intervalCustom, unitCurrent).toSI().value()
-  }, [maxLocal, minLocal, discretization, nSteps, unitSI, unitCurrent, units, dtype])
+    const range = new Quantity(rangeSI, unitStorage).to(xAxis.unit).value()
+    const intervalCustom = getInterval(range, nSteps, xAxis.dtype)
+    return new Quantity(intervalCustom, xAxis.unit).to(unitStorage).value()
+  }, [maxLocal, minLocal, discretization, nSteps, xAxis.dtype, xAxis.unit, unitStorage])
 
   // When filter changes, the plot data should not be updated.
   useEffect(() => {
-    loading.current = true
-  }, [filter])
+    if (autorange) loading.current = true
+  }, [filter, autorange])
 
   // Once the aggregation data arrives, the plot data can be updated.
   useEffect(() => {
@@ -309,16 +246,29 @@ export const Range = React.memo(({
     if (loading.current || isNil(agg?.data)) {
       return
     }
-    setPlotData({step: stepHistogram, data: agg.data, minX: minLocal, maxX: maxLocal})
-  }, [loading, nBins, agg, minLocal, maxLocal, stepHistogram])
+
+    setPlotData({
+      xAxis: {
+        quantity: xAxis.quantity,
+        unit: xAxis.unit,
+        unitStorage: unitStorage,
+        dtype: xAxis.dtype,
+        title: xAxis.title,
+        min: minLocal,
+        max: maxLocal
+      },
+      step: stepHistogram,
+      data: agg.data
+    })
+  }, [loading, nBins, agg, minLocal, maxLocal, stepHistogram, unitStorage, xAxis.quantity, xAxis.unit, xAxis.dtype, xAxis.title])
 
   // Function for converting search values into the currently selected unit
   // system.
   const toInternal = useCallback(filter => {
-    return (!isTime && unitSI)
-      ? formatNumber(new Quantity(filter, unitSI).toSystem(units).value())
+    return (!isTime && unitStorage)
+      ? formatNumber(new Quantity(filter, unitStorage).to(xAxis.unit).value())
       : filter
-  }, [unitSI, isTime, units])
+  }, [unitStorage, isTime, xAxis.unit])
 
   // If no filter has been specified by the user, the range is automatically
   // adjusted according to global min/max of the field. If filter is set, the
@@ -343,19 +293,19 @@ export const Range = React.memo(({
     const limitMin = (global, filter) => limit(global, filter, true)
     const limitMax = (global, filter) => limit(global, filter, false)
 
-    if (!isNil(minGlobalSI) && !isNil(maxGlobalSI)) {
+    if (!isNil(minGlobal) && !isNil(maxGlobal)) {
       // When no filter is set, use the whole available range
       if (isNil(filter)) {
-        gte = minGlobalSI
-        lte = maxGlobalSI
-        min = minGlobalSI
-        max = maxGlobalSI
+        gte = minGlobal
+        lte = maxGlobal
+        min = minGlobal
+        max = maxGlobal
       // A single specific value is given
       } else if (filter instanceof Quantity) {
-        gte = filter.toSI().value()
-        lte = filter.toSI().value()
-        min = limitMin(minGlobalSI, gte)
-        max = limitMax(maxGlobalSI, lte)
+        gte = filter.to(unitStorage).value()
+        lte = filter.to(unitStorage).value()
+        min = limitMin(minGlobal, gte)
+        max = limitMax(maxGlobal, lte)
       // A range is given. For visualization purposes open-ended queries are
       // displayed as well, although making such queries is currently not
       // supported.
@@ -364,20 +314,20 @@ export const Range = React.memo(({
         maxInc = isNil(filter.lt)
         gte = filter.gte || filter.gt
         lte = filter.lte || filter.lt
-        gte = gte instanceof Quantity ? gte.toSI().value() : gte
-        lte = lte instanceof Quantity ? lte.toSI().value() : lte
+        gte = gte instanceof Quantity ? gte.to(unitStorage).value() : gte
+        lte = lte instanceof Quantity ? lte.to(unitStorage).value() : lte
 
         if (isNil(gte)) {
-          min = limitMin(minGlobalSI, lte)
+          min = limitMin(minGlobal, lte)
           gte = min
         } else {
-          min = limitMin(minGlobalSI, gte)
+          min = limitMin(minGlobal, gte)
         }
         if (isNil(lte)) {
-          max = limitMax(maxGlobalSI, gte)
+          max = limitMax(maxGlobal, gte)
           lte = max
         } else {
-          max = limitMax(maxGlobalSI, lte)
+          max = limitMax(maxGlobal, lte)
         }
       }
       minRef.current = min
@@ -392,7 +342,7 @@ export const Range = React.memo(({
       setMaxError()
       setMinError()
     }
-  }, [minGlobalSI, maxGlobalSI, filter, unitSI, toInternal, units, def, isTime, autorange])
+  }, [minGlobal, maxGlobal, filter, unitStorage, toInternal, def, isTime, autorange])
 
   // Returns whether the given range is an acceptable value to be queried and
   // displayed.
@@ -405,7 +355,7 @@ export const Range = React.memo(({
 
   // Handles changes in the min input
   const handleMinChange = useCallback((value) => {
-    loading.current = true
+    if (autorange) loading.current = true
     let val
     if (isTime) {
       value.setSeconds(0, 0)
@@ -417,10 +367,11 @@ export const Range = React.memo(({
     setMinInput(val)
     setMaxError()
     setMinError()
-  }, [isTime])
+  }, [isTime, autorange])
 
   // Handles changes in the max input
   const handleMaxChange = useCallback((value) => {
+    if (autorange) loading.current = true
     loading.current = true
     let val
     if (isTime) {
@@ -433,7 +384,7 @@ export const Range = React.memo(({
     setMaxInput(val)
     setMaxError()
     setMinError()
-  }, [isTime])
+  }, [isTime, autorange])
 
   // Called when min values are submitted through the input field
   const handleMinSubmit = useCallback((value) => {
@@ -449,7 +400,7 @@ export const Range = React.memo(({
       if (isNaN(number)) {
         error = 'Invalid minimum value.'
       } else {
-        value = toSI(number)
+        value = toStorageUnit(number)
       }
     }
     if ((isTime ? value : value.value) > range.lte) {
@@ -462,11 +413,11 @@ export const Range = React.memo(({
       setFilter(old => {
         return {
           gte: value,
-          lte: fromSI(isNil(old?.lte) ? maxLocal : old.lte)
+          lte: fromStorageUnit(isNil(old?.lte) ? maxLocal : old.lte)
         }
       })
     }
-  }, [isTime, setFilter, fromSI, toSI, maxLocal, range])
+  }, [isTime, setFilter, fromStorageUnit, toStorageUnit, maxLocal, range])
 
   // Called when max values are submitted through the input field
   const handleMaxSubmit = useCallback((value) => {
@@ -482,7 +433,7 @@ export const Range = React.memo(({
       if (isNaN(number)) {
         error = 'Invalid maximum value.'
       } else {
-        value = toSI(number)
+        value = toStorageUnit(number)
       }
     }
     if ((isTime ? value : value.value) < range.gte) {
@@ -494,12 +445,12 @@ export const Range = React.memo(({
       maxInputChanged.current = false
       setFilter(old => {
         return {
-          gte: fromSI(isNil(old?.gte) ? minLocal : old.gte),
+          gte: fromStorageUnit(isNil(old?.gte) ? minLocal : old.gte),
           lte: value
         }
       })
     }
-  }, [isTime, setFilter, fromSI, toSI, minLocal, range])
+  }, [isTime, setFilter, fromStorageUnit, toStorageUnit, minLocal, range])
 
   // Handle range commit: Set the filter when mouse is released on a slider.
   // Notice that we cannot rely on the value given by the slider event: it may
@@ -509,17 +460,17 @@ export const Range = React.memo(({
     const value = validRange.current
     if (!isNil(value) && rangeChanged.current) {
       setFilter({
-        gte: fromSI(value[0]),
-        lte: fromSI(value[1])
+        gte: fromStorageUnit(value[0]),
+        lte: fromStorageUnit(value[1])
       })
       rangeChanged.current = false
     }
-  }, [setFilter, fromSI])
+  }, [setFilter, fromStorageUnit])
 
   // Handle range change: only change the rendered values, filter is send with
   // handleRangeCommit.
   const handleRangeChange = useCallback((event, value, validate = true) => {
-    loading.current = true
+    if (autorange) loading.current = true
     const valid = !validate || validateRange(value)
     if (valid) {
       rangeChanged.current = true
@@ -532,7 +483,7 @@ export const Range = React.memo(({
       setMaxError()
       setMinError()
     }
-  }, [validateRange, validRange, toInternal])
+  }, [validateRange, validRange, toInternal, autorange])
 
   // Handle min input field blur: only if the input has changed, the filter will
   // be submitted.
@@ -546,143 +497,51 @@ export const Range = React.memo(({
     maxInputChanged.current && handleMaxSubmit(maxInput)
   }, [maxInput, handleMaxSubmit, maxInputChanged])
 
-  // Determine the min input component
-  let inputMinField
-  if (dtype === DType.Timestamp) {
-    inputMinField = <KeyboardDateTimePicker
-      error={!!minError}
-      disabled={disabled}
-      helperText={minError}
-      ampm={false}
-      className={styles.inputFieldDate}
-      variant="inline"
-      inputVariant={inputVariant}
-      label="Start time"
-      format={`${dateFormat} kk:mm`}
-      value={minInput}
-      invalidDateMessage=""
-      InputAdornmentProps={{ position: 'end' }}
-      onAccept={(date) => {
-        handleMinChange(date)
-        handleMinSubmit(date)
-      }}
-      onChange={handleMinChange}
-      onBlur={handleMinBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleMinSubmit(minInput) } }}
-    />
-  } else {
-    inputMinField = <InputTextField
-      error={!!minError}
-      disabled={disabled}
-      helperText={minError}
-      label="min"
-      className={styles.inputFieldText}
-      inputProps={{className: styles.textInput}}
-      value={minInput}
-      margin="normal"
-      onChange={handleMinChange}
-      onBlur={handleMinBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleMinSubmit(minInput) } }}
-    />
-  }
-
-  // Determine the max input component
-  let inputMaxField
-  if (dtype === DType.Timestamp) {
-    inputMaxField = <KeyboardDateTimePicker
-      error={!!maxError}
-      disabled={disabled}
-      helperText={maxError}
-      ampm={false}
-      className={styles.inputFieldDate}
-      variant="inline"
-      inputVariant={inputVariant}
-      label="End time"
-      format={`${dateFormat} kk:mm`}
-      value={maxInput}
-      invalidDateMessage=""
-      InputAdornmentProps={{ position: 'end' }}
-      onAccept={(date) => {
-        handleMaxChange(date)
-        handleMaxSubmit(date)
-      }}
-      onChange={handleMaxChange}
-      onBlur={handleMaxBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleMaxSubmit(maxInput) } }}
-    />
-  } else {
-    inputMaxField = <InputTextField
-      error={!!maxError}
-      disabled={disabled}
-      helperText={maxError}
-      label="max"
-      className={styles.inputFieldText}
-      value={maxInput}
-      margin="normal"
-      onChange={handleMaxChange}
-      onBlur={handleMaxBlur}
-      onKeyDown={(event) => { if (event.key === 'Enter') { handleMaxSubmit(maxInput) } }}
-    />
-  }
-
   return <div className={clsx(className, styles.root)} data-testid={testID}>
-    <InputTooltip unavailable={unavailable}>
-      <div className={styles.column}>
-        {!disableHistogram &&
-          <PlotHistogram
-            bins={plotData?.data}
-            disabled={disabled}
-            scale={scale}
-            minX={plotData?.minX}
-            maxX={plotData?.maxX}
-            unitX={unitSI}
-            step={plotData?.step}
-            nBins={nBins}
-            range={range}
-            highlight={highlight}
-            discretization={discretization}
-            tooltipLabel={repeats ? 'value' : 'entry'}
-            dtypeX={dtype}
-            dtypeY={DType.Int}
-            onRangeChange={handleRangeChange}
-            onRangeCommit={handleRangeCommit}
-            className={clsx(styles.histogram)}
-            onClick={(event, value) => {
-              handleRangeChange(event, value, false)
-              handleRangeCommit(event, value)
-            }}
-            minXInclusive={minInclusive}
-            maxXInclusive={maxInclusive}
-            data-testid={`${testID}-histogram`}
-          />
-        }
-        {showinput && <div className={styles.row}>
-          {inputMinField}
-          {disableHistogram && !isTime
-            ? <div className={styles.spacer}>
-              <Slider
-                disabled={disabled || (minLocal === maxLocal)}
-                color={highlight ? 'primary' : 'secondary'}
-                min={minLocal}
-                max={maxLocal}
-                step={stepSlider}
-                value={[range.gte, range.lte]}
-                onChange={handleRangeChange}
-                onChangeCommitted={handleRangeCommit}
-                valueLabelDisplay="off"
-              />
-            </div>
-            : <div className={styles.dash} />
-          }
-          {inputMaxField}
-        </div>}
-      </div>
-    </InputTooltip>
+    <PlotHistogram
+      bins={plotData?.data}
+      xAxis={plotData?.xAxis}
+      step={plotData?.step}
+      minXInclusive={minInclusive}
+      maxXInclusive={maxInclusive}
+      disabled={disabled}
+      scale={scale}
+      nBins={nBins}
+      range={range}
+      highlight={highlight}
+      discretization={discretization}
+      tooltipLabel={repeats ? 'value' : 'entry'}
+      dtypeY={DType.Int}
+      onRangeChange={handleRangeChange}
+      onRangeCommit={handleRangeCommit}
+      onMinBlur={handleMinBlur}
+      onMaxBlur={handleMaxBlur}
+      onMinChange={handleMinChange}
+      onMaxChange={handleMaxChange}
+      onMinSubmit={handleMinSubmit}
+      onMaxSubmit={handleMaxSubmit}
+      classes={{histogram: classes?.histogram}}
+      onClick={(event, value) => {
+        handleRangeChange(event, value, false)
+        handleRangeCommit(event, value)
+      }}
+      minError={minError}
+      maxError={maxError}
+      minInput={minInput}
+      maxInput={maxInput}
+      minLocal={minLocal}
+      maxLocal={maxLocal}
+      showinput={showinput}
+      stepSlider={stepSlider}
+      disableHistogram={disableHistogram}
+      disableXTitle={disableXTitle}
+      data-testid={`${testID}-histogram`}
+    />
   </div>
 })
 
 Range.propTypes = {
-  quantity: PropTypes.string.isRequired,
+  xAxis: PropTypes.object,
   /* Target number of steps for the slider that is shown when statistics are
    * disabled. The actual number may vary, as the step is chosen to be a
    * human-readable value that depends on the range and the unit. */
@@ -695,6 +554,8 @@ Range.propTypes = {
   scale: PropTypes.string,
   /* Whether the histogram is disabled */
   disableHistogram: PropTypes.bool,
+  /* Whether the x title is disabled */
+  disableXTitle: PropTypes.bool,
   /* Set the range automatically according to data. */
   autorange: PropTypes.bool,
   /* Show the input fields for min and max value */
@@ -739,11 +600,19 @@ const InputRange = React.memo(({
   'data-testid': testID
 }) => {
   const {filterData} = useSearchContext()
+  const {units} = useUnitContext()
   const styles = useInputRangeStyles()
   const [scale, setScale] = useState(initialScale || filterData[quantity].scale)
   const dtype = filterData[quantity].dtype
   const isTime = dtype === DType.Timestamp
   const [autorange, setAutorange] = useState(isNil(initialAutorange) ? isTime : initialAutorange)
+  const x = useMemo(() => (
+    {
+      quantity,
+      dtype,
+      unit: new Unit(filterData[quantity]?.unit || 'dimensionless').toSystem(units)
+    }
+  ), [quantity, filterData, dtype, units])
 
   // Determine the description and title
   const def = filterData[quantity]
@@ -769,12 +638,13 @@ const InputRange = React.memo(({
       actions={actions}
     />
     <Range
-      quantity={quantity}
+      xAxis={x}
       nSteps={nSteps}
       visible={visible}
       scale={scale}
       nBins={nBins}
       disableHistogram={disableHistogram}
+      disableXTitle
       autorange={autorange}
       showinput
       aggId={aggId}

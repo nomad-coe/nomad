@@ -69,7 +69,8 @@ describe('displaying an initial widget and removing it', () => {
       'histogram',
       {
         type: 'histogram',
-        quantity: 'results.material.n_elements',
+        title: 'Test title',
+        x: {quantity: 'results.material.n_elements'},
         scale: 'linear',
         editing: false,
         visible: true,
@@ -81,7 +82,7 @@ describe('displaying an initial widget and removing it', () => {
           xxl: {x: Infinity, y: 0, w: 12, h: 9}
         }
       },
-      async (widget, loaded) => await expectInputRange(widget.quantity, loaded, true, true)
+      async (widget, loaded) => await expectInputRange(widget, loaded, true, true)
     ],
     [
       'scatterplot',
