@@ -178,13 +178,13 @@ const useStyles = makeStyles(theme => {
   return {
     root: {
       position: 'relative',
-      marginLeft: theme.spacing(-1),
-      marginRight: theme.spacing(-1)
+      marginLeft: theme.spacing(-0.75),
+      marginRight: theme.spacing(-0.75)
     },
     component: {
       position: 'absolute',
-      top: theme.spacing(1),
-      bottom: theme.spacing(1.5),
+      top: theme.spacing(0.5),
+      bottom: theme.spacing(1.25),
       left: theme.spacing(1.5),
       right: theme.spacing(1.5),
       height: 'unset',
@@ -195,10 +195,10 @@ const useStyles = makeStyles(theme => {
     },
     containerInner: {
       position: 'absolute',
-      top: theme.spacing(1),
-      bottom: theme.spacing(1),
-      left: theme.spacing(1),
-      right: theme.spacing(1),
+      top: theme.spacing(0.75),
+      bottom: theme.spacing(0.75),
+      left: theme.spacing(0.75),
+      right: theme.spacing(0.75),
       height: 'unset',
       width: 'unset'
     }
@@ -220,14 +220,44 @@ const WidgetGrid = React.memo(({
   const layout = useMemo(() => {
     if (!nCols) return {}
 
+    // If layouts are not provided for all different breakpoints, duplicate the
+    // closest layout that is found. We need to work on copies as the widgets
+    // information is immutable.
+    const widgetCopies = {}
+    for (const [id, widget] of Object.entries(widgets)) {
+      if (!widget.visible) continue
+      if (!widget.layout) {
+        widgetCopies[id] = widget
+        continue
+      }
+      const widgetCopy = cloneDeep(widget)
+      const breakpointNames = Object.keys(breakpoints)
+      for (const i of range(0, breakpointNames.length)) {
+        const breakpoint = breakpointNames[i]
+        if (!widgetCopy.layout[breakpoint]) {
+          for (const j of range(1, breakpointNames.length - 1)) {
+            const breakpointSmaller = widgetCopy.layout[breakpointNames[i - j]]
+            const breakpointBigger = widgetCopy.layout[breakpointNames[i + j]]
+            if (breakpointSmaller) {
+              widgetCopy.layout[breakpoint] = breakpointSmaller
+              break
+            } else if (breakpointBigger) {
+              widgetCopy.layout[breakpoint] = breakpointBigger
+              break
+            }
+          }
+        }
+      }
+      widgetCopies[id] = widgetCopy
+    }
+
     const layouts = {}
     for (const breakpoint of Object.keys(breakpoints)) {
       // This is the layout in the format as react-grid-layout would read it. x:
       // Infinity means that we want to place the item at the very end.
       // Add widgets
       let i = 0
-      let layout = Object.entries(widgets)
-        .filter(([id, value]) => value?.visible)
+      let layout = Object.entries(widgetCopies)
         .map(([id, value]) => {
           const layout = value.layout?.[breakpoint]
           const config = {
@@ -345,7 +375,9 @@ export default WidgetGrid
 const useHandleStyles = makeStyles(theme => {
   return {
     root: {
-      margin: theme.spacing(1.25)
+      margin: theme.spacing(1),
+      width: '25px',
+      height: '25px'
     }
   }
 })
@@ -354,8 +386,11 @@ const ResizeHandle = React.forwardRef((props, ref) => {
   const styles = useHandleStyles()
   return <div
     ref={ref}
-    className={clsx('react-resizable-handle', `react-resizable-handle-${handleAxis}`, styles.root)}
-    style={{width: '30px', height: '30px'}}
+    className={clsx(
+      'react-resizable-handle',
+      `react-resizable-handle-${handleAxis}`,
+      styles.root
+    )}
     {...restProps}
     >
     </div>

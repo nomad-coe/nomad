@@ -54,7 +54,6 @@ import {
   formatTimestamp,
   getDeep,
   formatNumber,
-  setToArray,
   parseQuantityName,
   rsplit,
   parseOperator,
@@ -1985,9 +1984,9 @@ function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
   // Create the API-compatible keys and values.
   const queryNormalized = {}
   for (const [k, v] of Object.entries(queryCustomized)) {
-    const newValue = convertQuerySingleGUIToAPI(v)
     const {quantity: filterName, op: queryMode} = parseOperator(k)
     let finalKey = filtersData[filterName]?.requestQuantity || filterName
+    const newValue = convertQuerySingleGUIToAPI(v, filterName, filtersData)
     finalKey = resource === 'materials' ? getFilterMaterialPath(finalKey) : finalKey
     let finalQueryMode = queryMode || queryModes?.[k]
     if (isNil(finalQueryMode) && isArray(newValue)) {
@@ -2045,54 +2044,44 @@ function convertQueryGUIToAPI(query, resource, filtersData, queryModes) {
 /**
  * Cleans a single filter value into a form that is supported by the API. This includes:
  * - Sets are transformed into Arrays
- * - Quantities are converted to SI values.
+ * - Quantities are converted to storage unit values
  * - Empty containers are set to undefined
  *
- * @param {string} key Filter name
  * @param {any} value Filter value
- * @param {object} filtersData All of the filters that are available
- * @param {string} queryMode Determines the queryMode
+ * @param {Filter} filter Filter object
  *
  * @returns {any} The filter value in a format that is suitable for the API.
  */
-function convertQuerySingleGUIToAPI(value) {
-  // Determine the API-compatible value.
-  let newValue
+function convertQuerySingleGUIToAPI(value, name, filterData) {
+  const unit = filterData[name]?.unit || 'dimensionless'
+  const convertItem = (item) => item instanceof Quantity ? item.to(unit).value() : item
+
   if (value instanceof Set) {
-    newValue = setToArray(value)
-    if (newValue.length === 0) {
-      newValue = undefined
-    } else {
-      newValue = newValue.map((item) => item instanceof Quantity
-        ? item.toSI().value()
-        : item)
-    }
-  } else if (value instanceof Quantity) {
-    newValue = value.toSI().value()
-  } else if (isArray(value)) {
-    if (value.length === 0) {
-      newValue = undefined
-    } else {
-      newValue = value.map((item) => item instanceof Quantity
-        ? item.toSI().value()
-        : item)
-    }
-  } else if (isPlainObject(value)) {
-    newValue = {}
-    for (const [keyInner, valueInner] of Object.entries(value)) {
-      const apiValue = convertQuerySingleGUIToAPI(valueInner)
-      if (!isNil(apiValue)) {
-        newValue[keyInner] = apiValue
-      }
-    }
-    if (isEmpty(newValue)) {
-      newValue = undefined
-    }
-  } else {
-    newValue = value
+    const newValue = Array.from(value).map(convertItem)
+    return newValue.length ? newValue : undefined
   }
 
-  return newValue
+  if (value instanceof Quantity) {
+    return value.to(unit).value()
+  }
+
+  if (isArray(value)) {
+    const newValue = value.map(convertItem)
+    return newValue.length ? newValue : undefined
+  }
+
+  if (isPlainObject(value)) {
+    const newValue = Object.entries(value).reduce((acc, [key, val]) => {
+      const filterName = isPlainObject(val) ? `${name}.${key}` : name
+      const apiValue = convertQuerySingleGUIToAPI(val, filterName, filterData)
+      if (!isNil(apiValue)) acc[key] = apiValue
+      return acc
+    }, {})
+
+    return isEmpty(newValue) ? undefined : newValue
+  }
+
+  return value
 }
 
 /**

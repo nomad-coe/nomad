@@ -2065,7 +2065,9 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                "x": {
+                  "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity"
+                },
                 "scale": "1/4",
                 "autorange": true,
                 "showinput": true,
@@ -2164,7 +2166,9 @@ window.nomadEnv = {
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                "x": {
+                  "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
+                },
                 "scale": "1/4",
                 "autorange": false,
                 "showinput": false,
@@ -2521,7 +2525,9 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.material.topology.pore_limiting_diameter",
+                "x": {
+                  "quantity": "results.material.topology.pore_limiting_diameter"
+                },
                 "scale": "linear",
                 "autorange": false,
                 "showinput": true,
@@ -2571,7 +2577,9 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.material.topology.largest_cavity_diameter",
+                "x": {
+                  "quantity": "results.material.topology.largest_cavity_diameter"
+                },
                 "scale": "linear",
                 "autorange": false,
                 "showinput": true,
@@ -2621,7 +2629,9 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.material.topology.accessible_surface_area",
+                "x": {
+                  "quantity": "results.material.topology.accessible_surface_area"
+                },
                 "scale": "linear",
                 "autorange": false,
                 "showinput": true,
@@ -2671,7 +2681,9 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.material.topology.void_fraction",
+                "x": {
+                  "quantity": "results.material.topology.void_fraction"
+                },
                 "scale": "linear",
                 "autorange": false,
                 "showinput": true,
@@ -3200,7 +3212,9 @@ window.nomadEnv = {
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity",
+                "x": {
+                  "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity"
+                },
                 "scale": "linear",
                 "autorange": false,
                 "showinput": false,
@@ -3309,7 +3323,9 @@ window.nomadEnv = {
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.catalytic.reaction.pressure",
+                "x": {
+                  "quantity": "results.properties.catalytic.reaction.pressure"
+                },
                 "scale": "linear",
                 "autorange": false,
                 "showinput": false,
@@ -3597,7 +3613,9 @@ window.nomadEnv = {
                     "minW": 8
                   }
                 },
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area",
+                "x": {
+                  "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                },
                 "scale": "1/4",
                 "autorange": false,
                 "showinput": false,

@@ -28,7 +28,7 @@ import { schemaWidget, schemaAxis, schemaMarkers } from './Widget'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption, WidgetEditSelect } from './WidgetEdit'
 import { useSearchContext } from '../SearchContext'
 import { autorangeDescription } from './WidgetHistogram'
-import { DType, setDeep, parseJMESPath } from '../../../utils'
+import { DType, setDeep, parseJMESPath, isEmptyString } from '../../../utils'
 import { InputTextField } from '../input/InputText'
 import UnitInput from '../../units/UnitInput'
 
@@ -39,9 +39,6 @@ const nPointsOptions = {
   100: 100,
   1000: 1000,
   10000: 10000
-}
-function isEmptyString(value) {
-  return value === undefined || value === null || !value?.trim?.()?.length
 }
 /**
  * A dialog that is used to configure a scatter plot widget.
@@ -99,16 +96,16 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
       const independentErrors = Object.values(errors).some(x => !!x)
       if (independentErrors) return
 
-      // Check for missing values: TODO: This kind of check should be replaced
-      // by a dedicated form context. Inputs could automatically register into
-      // this form to enable imperative validation etc.
+      // Check for missing values. This check is required because there is no
+      // value set when a new widget is created, and pressing the done button
+      // without filling a value should raise an error.
       const xEmpty = isEmptyString(settings?.x?.quantity)
       if (xEmpty) {
-        handleErrorQuantity('x.quantity', 'Please specify a value')
+        handleErrorQuantity('x.quantity', 'Please specify a value.')
       }
       const yEmpty = isEmptyString(settings?.y?.quantity)
       if (yEmpty) {
-        handleErrorQuantity('y.quantity', 'Please specify a value')
+        handleErrorQuantity('y.quantity', 'Please specify a value.')
       }
 
       if (!independentErrors && !xEmpty && !yEmpty) {

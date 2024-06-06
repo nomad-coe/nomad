@@ -131,6 +131,13 @@ export function getTicks(min, max, n, dtype, mode = 'scientific', decimals = 3) 
 
     // Config for the available intervals
     const intervals = {
+      fiveyears: {
+        difference: (end, start) => differenceInYears(end, start) / 5,
+        split: (interval) => eachYearOfInterval(interval).filter(x => {
+          return !(x.getFullYear() % 5)
+        }),
+        format: 'yyyy'
+      },
       years: {
         difference: differenceInYears,
         split: eachYearOfInterval,

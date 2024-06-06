@@ -82,12 +82,12 @@ export const InputMetainfoControlled = React.memo(({
     if (optional && empty) {
       return {valid: true, error: undefined}
     } else if (empty) {
-      return {valid: false, error: 'Please specify a value'}
+      return {valid: false, error: 'Please specify a value.'}
     }
     if (validate) {
       return validate(value)
     } else if (!(keysSet.has(value))) {
-      return {valid: false, error: 'Invalid value for this field'}
+      return {valid: false, error: `The quantity "${value}" is not available.`}
     }
     return {valid: true, error: undefined}
   }, [validate, keysSet, optional, disableValidation])
@@ -425,9 +425,10 @@ function getMetainfoOptions(filterData, dtypes, dtypesRepeatable, disableNonAggr
       .filter(([key, data]) => {
         if (disableNonAggregatable && !data.aggregatable) return false
         const dtype = data?.dtype
-        return data?.repeats
+        const passed = data?.repeats
           ? dtypesRepeatable?.has(dtype)
           : dtypes?.has(dtype)
+        return passed
       })
       .map(([key, data]) => [key, {
         key: key,

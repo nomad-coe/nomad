@@ -23,8 +23,8 @@ import { WidgetScatterPlotEdit } from './WidgetScatterPlotEdit'
 
 describe('test edit dialog error messages', () => {
   test.each([
-    ['missing x', {x: {quantity: 'results.material.n_elements'}}, 'Please specify a value'],
-    ['missing y', {y: {quantity: 'results.material.n_elements'}}, 'Please specify a value'],
+    ['missing x', {x: {quantity: 'results.material.n_elements'}}, 'Please specify a value.'],
+    ['missing y', {y: {quantity: 'results.material.n_elements'}}, 'Please specify a value.'],
     ['unavailable x', {x: {quantity: 'results.material.not_a_quantity'}}, 'The quantity "results.material.not_a_quantity" is not available.'],
     ['unavailable y', {y: {quantity: 'results.material.not_a_quantity'}}, 'The quantity "results.material.not_a_quantity" is not available.'],
     ['unavailable color', {markers: {color: {quantity: 'results.material.not_a_quantity'}}}, 'The quantity "results.material.not_a_quantity" is not available.'],
@@ -37,9 +37,9 @@ describe('test edit dialog error messages', () => {
     ['invalid x unit', {x: {quantity: 'results.material.topology[0].cell.a', unit: 'nounit'}}, 'Unit "nounit" not found.'],
     ['invalid y unit', {y: {quantity: 'results.material.topology[0].cell.a', unit: 'nounit'}}, 'Unit "nounit" not found.'],
     ['invalid color unit', {markers: {color: {quantity: 'results.material.topology[0].cell.a', unit: 'nounit'}}}, 'Unit "nounit" not found.'],
-    ['incompatible x unit', {x: {quantity: 'results.material.topology[0].cell.a', unit: 'joule'}}, 'Unit "joule" is incompatible with dimension "length"'],
-    ['incompatible y unit', {y: {quantity: 'results.material.topology[0].cell.a', unit: 'joule'}}, 'Unit "joule" is incompatible with dimension "length"'],
-    ['incompatible color unit', {markers: {color: {quantity: 'results.material.topology[0].cell.a', unit: 'joule'}}}, 'Unit "joule" is incompatible with dimension "length"']
+    ['incompatible x unit', {x: {quantity: 'results.material.topology[0].cell.a', unit: 'joule'}}, 'Unit "joule" is incompatible with dimension "length".'],
+    ['incompatible y unit', {y: {quantity: 'results.material.topology[0].cell.a', unit: 'joule'}}, 'Unit "joule" is incompatible with dimension "length".'],
+    ['incompatible color unit', {markers: {color: {quantity: 'results.material.topology[0].cell.a', unit: 'joule'}}}, 'Unit "joule" is incompatible with dimension "length".']
   ])('%s', async (name, config, error) => {
     const finalConfig = {
       id: '0',

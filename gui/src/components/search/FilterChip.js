@@ -106,7 +106,7 @@ export const FilterChipGroup = React.memo(({
     <FilterTitle
       quantity={quantity}
       variant="caption"
-      className={styles.title}
+      classes={{text: styles.title}}
     />
     <div className={styles.paper}>
       {children}

@@ -165,7 +165,7 @@ export class Filter {
     this.serializerPretty = params?.serializerPretty || getSerializer(this.dtype, true)
     this.deserializer = params?.deserializer || getDeserializer(this.dtype, this.dimension)
     this.aggregatable = params?.aggregatable === undefined ? false : params?.aggregatable
-    this.widget = params?.widget || getWidgetConfig(this.dtype, params?.aggregatable)
+    this.widget = params?.widget || getWidgetConfig(this.quantity, this.dtype, params?.aggregatable, this.scale)
 
     if (this.default && !this.global) {
       throw Error(`Error constructing filter for ${this.name}: only filters that do not correspond to a metainfo value may have default values set.`)
@@ -202,38 +202,36 @@ export function getEnumOptions(quantity, exclude = ['not processed']) {
  * @param {bool} aggregatable Whether the quantity is aggregatable
  * @returns A widget config object.
  */
-export const getWidgetConfig = (dtype, aggregatable) => {
+export const getWidgetConfig = (quantity, dtype, aggregatable, scale) => {
   if (dtype === DType.Float || dtype === DType.Int || dtype === DType.Timestamp) {
-    return histogramWidgetConfig
+    return {
+      x: {quantity},
+      type: 'histogram',
+      scale,
+      showinput: false,
+      autorange: false,
+      nbins: 30,
+      layout: {
+        sm: {w: 8, h: 3, minW: 3, minH: 3},
+        md: {w: 8, h: 3, minW: 3, minH: 3},
+        lg: {w: 8, h: 3, minW: 3, minH: 3},
+        xl: {w: 8, h: 3, minW: 3, minH: 3},
+        xxl: {w: 8, h: 3, minW: 3, minH: 3}
+      }
+    }
   } else if (aggregatable) {
-    return termsWidgetConfig
-  }
-}
-
-export const histogramWidgetConfig = {
-  type: 'histogram',
-  scale: 'linear',
-  showinput: false,
-  autorange: false,
-  nbins: 30,
-  layout: {
-    sm: {w: 8, h: 3, minW: 8, minH: 3},
-    md: {w: 8, h: 3, minW: 8, minH: 3},
-    lg: {w: 8, h: 3, minW: 8, minH: 3},
-    xl: {w: 8, h: 3, minW: 8, minH: 3},
-    xxl: {w: 8, h: 3, minW: 8, minH: 3}
-  }
-}
-
-export const termsWidgetConfig = {
-  type: 'terms',
-  scale: 'linear',
-  showinput: false,
-  layout: {
-    sm: {w: 6, h: 9, minW: 6, minH: 9},
-    md: {w: 6, h: 9, minW: 6, minH: 9},
-    lg: {w: 6, h: 9, minW: 6, minH: 9},
-    xl: {w: 6, h: 9, minW: 6, minH: 9},
-    xxl: {w: 6, h: 9, minW: 6, minH: 9}
+    return {
+      quantity,
+      type: 'terms',
+      scale: scale,
+      showinput: false,
+      layout: {
+        sm: {w: 6, h: 9, minW: 3, minH: 3},
+        md: {w: 6, h: 9, minW: 3, minH: 3},
+        lg: {w: 6, h: 9, minW: 3, minH: 3},
+        xl: {w: 6, h: 9, minW: 3, minH: 3},
+        xxl: {w: 6, h: 9, minW: 3, minH: 3}
+      }
+    }
   }
 }

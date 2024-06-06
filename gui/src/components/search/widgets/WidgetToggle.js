@@ -49,9 +49,7 @@ const WidgetToggle = React.memo(({quantity, disabled, 'data-testid': testID}) =>
         id: quantity,
         editing: false,
         visible: true,
-        quantity: quantity,
-        ...cloneDeep(widgetDefault),
-        scale: filterData[quantity].scale
+        ...cloneDeep(widgetDefault)
       }
       if (hasWidget) {
         removeWidget(quantity)

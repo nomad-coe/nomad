@@ -33,6 +33,8 @@ import { useUnitContext } from '../units/UnitContext'
 const useStaticStyles = makeStyles(theme => ({
   root: {
   },
+  text: {
+  },
   title: {
     fontWeight: 600,
     color: theme.palette.grey[800]
@@ -64,9 +66,10 @@ const FilterTitle = React.memo(({
   className,
   classes,
   rotation,
-  disableUnit
+  disableUnit,
+  noWrap
 }) => {
-  const styles = useStaticStyles({classes: classes})
+  const styles = useStaticStyles({classes})
   const { filterData } = useSearchContext()
   const sectionContext = useContext(inputSectionContext)
   const {units} = useUnitContext()
@@ -93,14 +96,14 @@ const FilterTitle = React.memo(({
   const finalDescription = description || filterData[quantity]?.description || ''
 
   return <Tooltip title={finalDescription} placement="bottom" {...(TooltipProps || {})}>
-    <div className={clsx(
+    <div className={clsx(className, styles.root,
       rotation === 'right' && styles.right,
       rotation === 'down' && styles.down,
       rotation === 'up' && styles.up
     )}>
       <Typography
-        noWrap
-        className={clsx(className, styles.root, (!section) && styles.title)}
+        noWrap={noWrap}
+        className={clsx(styles.text, (!section) && styles.title)}
         variant={variant}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
@@ -114,7 +117,7 @@ const FilterTitle = React.memo(({
 FilterTitle.propTypes = {
   quantity: PropTypes.string,
   label: PropTypes.string,
-  unit: PropTypes.string,
+  unit: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
   description: PropTypes.string,
   variant: PropTypes.string,
   className: PropTypes.string,
@@ -123,12 +126,14 @@ FilterTitle.propTypes = {
   disableUnit: PropTypes.bool,
   TooltipProps: PropTypes.object, // Properties forwarded to the Tooltip
   onMouseDown: PropTypes.func,
-  onMouseUp: PropTypes.func
+  onMouseUp: PropTypes.func,
+  noWrap: PropTypes.bool
 }
 
 FilterTitle.defaultProps = {
   variant: 'body2',
-  rotation: 'right'
+  rotation: 'right',
+  noWrap: true
 }
 
 export default FilterTitle

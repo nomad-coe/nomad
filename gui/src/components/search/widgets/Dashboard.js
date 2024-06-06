@@ -39,7 +39,7 @@ import WidgetGrid from './WidgetGrid'
 import { Actions, Action } from '../../Actions'
 import { useSearchContext } from '../SearchContext'
 import { WidgetScatterPlotEdit, schemaWidgetScatterPlot } from './WidgetScatterPlotEdit'
-import { WidgetHistogramEdit, schemaWidgetHistogram } from './WidgetHistogram'
+import { WidgetHistogramEdit, schemaWidgetHistogram } from './WidgetHistogramEdit'
 import { WidgetTermsEdit, schemaWidgetTerms } from './WidgetTerms'
 import { WidgetPeriodicTableEdit, schemaWidgetPeriodicTable } from './WidgetPeriodicTable'
 import InputConfig from '../input/InputConfig'
@@ -255,7 +255,7 @@ const Dashboard = React.memo(() => {
       const comp = {
         scatterplot: <WidgetScatterPlotEdit key={id} widget={value}/>,
         periodictable: <WidgetPeriodicTableEdit key={id} {...value}/>,
-        histogram: <WidgetHistogramEdit key={id} {...value}/>,
+        histogram: <WidgetHistogramEdit key={id} widget={value}/>,
         terms: <WidgetTermsEdit key={id} {...value}/>
       }[value.type]
       return comp || null

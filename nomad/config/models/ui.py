@@ -471,7 +471,12 @@ class WidgetHistogram(Widget):
     type: Literal['histogram'] = Field(
         'histogram', description='Set as `histogram` to get this widget type.'
     )
-    quantity: str = Field(description='Targeted quantity.')
+    quantity: Optional[str] = Field(
+        description='Targeted quantity. Note that this field is deprecated and `x` should be used instead.'
+    )
+    x: Union[Axis, str] = Field(
+        description='Configures the information source and display options for the x-axis.'
+    )
     scale: ScaleEnum = Field(description='Statistics scaling.')
     autorange: bool = Field(
         True,
@@ -487,6 +492,19 @@ class WidgetHistogram(Widget):
         may be smaller if there are fewer data items available.
         """
     )
+
+    @root_validator(pre=True)
+    def __validate(cls, values):
+        """Ensures backwards compatibility for quantity."""
+        quantity = values.get('quantity')
+        x = values.get('x')
+        if quantity and not x:
+            values['x'] = {'quantity': quantity}
+            del values['quantity']
+        elif isinstance(x, str):
+            values['x'] = {'quantity': x}
+
+        return values
 
 
 class WidgetPeriodicTable(Widget):

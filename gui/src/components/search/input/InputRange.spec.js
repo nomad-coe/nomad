@@ -47,7 +47,7 @@ describe('test initial state', () => {
     time_histogram
   ])('quantity: %s, histogram: %s', async (quantity, histogram, min, max) => {
     renderSearchEntry(<InputRange visible quantity={quantity} disableHistogram={!histogram}/>)
-    await expectInputRange(quantity, false, histogram, false, min, max)
+    await expectInputRange({x: {quantity}}, false, histogram, false, min, max)
   })
 })
 

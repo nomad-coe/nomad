@@ -15,27 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { string, number, bool } from 'yup'
-import {
-  TextField,
-  MenuItem,
-  Checkbox,
-  FormControlLabel
-} from '@material-ui/core'
 import { useSearchContext } from '../SearchContext'
-import { InputMetainfo } from '../input/InputMetainfo'
-import { InputTextField } from '../input/InputText'
-import { Widget, schemaWidget } from './Widget'
+import { Widget } from './Widget'
 import { ActionCheckbox, ActionSelect } from '../../Actions'
-import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { Range } from '../input/InputRange'
-import { DType } from '../../../utils'
 import { scales } from '../../plotting/common'
-
-// Predefined in order to not break memoization
-const dtypes = new Set([DType.Float, DType.Int, DType.Timestamp])
+import {getDisplayLabel} from '../../../utils'
+import { Unit } from '../../units/Unit'
+import { useUnitContext } from '../../units/UnitContext'
 
 /**
  * Displays a histogram widget.
@@ -46,15 +35,33 @@ export const WidgetHistogram = React.memo((
   id,
   title,
   description,
-  quantity,
+  x,
   nbins,
   scale,
   autorange,
   showinput,
   className
 }) => {
-  const { useSetWidget } = useSearchContext()
+  const { filterData, useSetWidget } = useSearchContext()
+  const {units} = useUnitContext()
   const setWidget = useSetWidget(id)
+
+  // Create final axis config for the plot
+  const xAxis = useMemo(() => {
+    const xFilter = filterData[x.quantity]
+    const xTitle = x.title || getDisplayLabel(xFilter)
+    const xType = xFilter?.dtype
+    const xUnit = x.unit
+      ? new Unit(x.unit)
+      : new Unit(xFilter.unit || 'dimensionless').toSystem(units)
+
+    return {
+      ...x,
+      title: xTitle,
+      unit: xUnit,
+      dtype: xType
+    }
+  }, [filterData, x, units])
 
   const handleEdit = useCallback(() => {
     setWidget(old => { return {...old, editing: true } })
@@ -66,8 +73,7 @@ export const WidgetHistogram = React.memo((
 
   return <Widget
     id={id}
-    quantity={quantity}
-    title={title}
+    title={title || 'Histogram'}
     description={description}
     onEdit={handleEdit}
     className={className}
@@ -87,14 +93,13 @@ export const WidgetHistogram = React.memo((
     </>}
   >
     <Range
-      quantity={quantity}
+      xAxis={xAxis}
       visible={true}
       nBins={nbins}
       scale={scale}
       anchored={true}
       autorange={autorange}
       showinput={showinput}
-      disableHistogram={false}
       aggId={id}
     />
   </Widget>
@@ -104,152 +109,10 @@ WidgetHistogram.propTypes = {
   id: PropTypes.string.isRequired,
   title: PropTypes.string,
   description: PropTypes.string,
-  quantity: PropTypes.string,
+  x: PropTypes.object,
   nbins: PropTypes.number,
   scale: PropTypes.string,
   autorange: PropTypes.bool,
   showinput: PropTypes.bool,
   className: PropTypes.string
 }
-
-/**
- * A dialog that is used to configure a scatter plot widget.
- */
-export const WidgetHistogramEdit = React.memo((props) => {
-    const {id, editing, visible} = props
-    const { useSetWidget } = useSearchContext()
-    const [settings, setSettings] = useState(props)
-    const [errors, setErrors] = useState({})
-    const setWidget = useSetWidget(id)
-    const hasError = useMemo(() => {
-      return Object.values(errors).some((d) => !!d) || !schemaWidgetHistogram.isValidSync(settings)
-    }, [errors, settings])
-
-    const handleSubmit = useCallback((settings) => {
-      setWidget(old => ({...old, ...settings}))
-    }, [setWidget])
-
-    const handleChange = useCallback((key, value) => {
-      setSettings(old => ({...old, [key]: value}))
-    }, [setSettings])
-
-    const handleError = useCallback((key, value) => {
-      setErrors(old => ({...old, [key]: value}))
-    }, [setErrors])
-
-    const handleAccept = useCallback((key, value) => {
-      try {
-        schemaWidgetHistogram.validateSyncAt(key, {[key]: value})
-      } catch (e) {
-        handleError(key, e.message)
-        return
-      }
-      setErrors(old => ({...old, [key]: undefined}))
-      setSettings(old => ({...old, [key]: value}))
-    }, [handleError, setSettings])
-
-    const handleClose = useCallback(() => {
-      setWidget(old => ({...old, editing: false}))
-    }, [setWidget])
-
-    const handleEditAccept = useCallback(() => {
-      handleSubmit({...settings, editing: false, visible: true})
-    }, [handleSubmit, settings])
-
-    return <WidgetEditDialog
-        id={id}
-        open={editing}
-        visible={visible}
-        title="Edit histogram widget"
-        onClose={handleClose}
-        onAccept={handleEditAccept}
-        error={hasError}
-      >
-      <WidgetEditGroup title="x axis">
-        <WidgetEditOption>
-          <InputMetainfo
-            label="quantity"
-            value={settings.quantity}
-            error={errors.quantity}
-            onChange={(value) => handleChange('quantity', value)}
-            onSelect={(value) => handleAccept('quantity', value)}
-            onError={(value) => handleError('quantity', value)}
-            dtypes={dtypes}
-            dtypesRepeatable={dtypes}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <TextField
-            select
-            fullWidth
-            label="Statistics scaling"
-            variant="filled"
-            value={settings.scale}
-            onChange={(event) => { handleChange('scale', event.target.value) }}
-          >
-            {Object.keys(scales).map((key) =>
-              <MenuItem value={key} key={key}>{key}</MenuItem>
-            )}
-          </TextField>
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <TextField
-            select
-            fullWidth
-            label="Maximum number of bins"
-            variant="filled"
-            value={settings.nbins}
-            onChange={(event) => { handleChange('nbins', event.target.value) }}
-          >
-            <MenuItem value={10}>10</MenuItem>
-            <MenuItem value={20}>20</MenuItem>
-            <MenuItem value={30}>30</MenuItem>
-            <MenuItem value={40}>40</MenuItem>
-            <MenuItem value={50}>50</MenuItem>
-          </TextField>
-        </WidgetEditOption>
-      </WidgetEditGroup>
-      <WidgetEditGroup title="general">
-        <WidgetEditOption>
-          <InputTextField
-            label="title"
-            fullWidth
-            value={settings?.title}
-            onChange={(event) => handleChange('title', event.target.value)}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.autorange} onChange={(event, value) => handleChange('autorange', value)}/>}
-            label={autorangeDescription}
-          />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <FormControlLabel
-            control={<Checkbox checked={settings.showinput} onChange={(event, value) => handleChange('showinput', value)}/>}
-            label='Show input fields'
-          />
-        </WidgetEditOption>
-      </WidgetEditGroup>
-    </WidgetEditDialog>
-})
-
-WidgetHistogramEdit.propTypes = {
-  id: PropTypes.string.isRequired,
-  editing: PropTypes.bool,
-  visible: PropTypes.bool,
-  quantity: PropTypes.string,
-  scale: PropTypes.string,
-  nbins: PropTypes.number,
-  autorange: PropTypes.bool,
-  showinput: PropTypes.bool,
-  onClose: PropTypes.func
-}
-
-export const schemaWidgetHistogram = schemaWidget.shape({
-  quantity: string().required('Quantity is required.'),
-  scale: string().required('Scale is required.'),
-  nbins: number().integer().required(),
-  autorange: bool(),
-  showinput: bool()
-})
