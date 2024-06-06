@@ -2929,6 +2929,7 @@ window.nomadEnv = {
                 "scale": "linear"
               },
               {
+                "title": "Reactants",
                 "type": "terms",
                 "layout": {
                   "lg": {
@@ -2977,6 +2978,7 @@ window.nomadEnv = {
                 "showinput": true
               },
               {
+                "title": "Reaction Name",
                 "type": "terms",
                 "layout": {
                   "lg": {
@@ -3025,6 +3027,7 @@ window.nomadEnv = {
                 "showinput": true
               },
               {
+                "title": "Products",
                 "type": "terms",
                 "layout": {
                   "lg": {
@@ -3169,6 +3172,7 @@ window.nomadEnv = {
                 "showinput": true
               },
               {
+                "title": "Reaction Weight Hourly Space Velocity",
                 "type": "histogram",
                 "layout": {
                   "lg": {
@@ -3213,6 +3217,7 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
+                  "unit": "ml/(g*s)",
                   "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity"
                 },
                 "scale": "linear",
@@ -3221,6 +3226,7 @@ window.nomadEnv = {
                 "nbins": 30
               },
               {
+                "title": "Reactant feed concentration vs. Temperature",
                 "type": "scatterplot",
                 "layout": {
                   "lg": {
@@ -3280,6 +3286,7 @@ window.nomadEnv = {
                 "autorange": true
               },
               {
+                "title": "Reaction Pressure",
                 "type": "histogram",
                 "layout": {
                   "lg": {
@@ -3324,6 +3331,7 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
+                  "unit": "bar",
                   "quantity": "results.properties.catalytic.reaction.pressure"
                 },
                 "scale": "linear",
@@ -3332,6 +3340,7 @@ window.nomadEnv = {
                 "nbins": 30
               },
               {
+                "title": "Temperature vs. Conversion",
                 "type": "scatterplot",
                 "layout": {
                   "lg": {
@@ -3391,6 +3400,7 @@ window.nomadEnv = {
                 "autorange": true
               },
               {
+                "title": "Temperature vs. Selectivity",
                 "type": "scatterplot",
                 "layout": {
                   "lg": {
@@ -3570,6 +3580,7 @@ window.nomadEnv = {
                 "autorange": true
               },
               {
+                "title": "Catalyst Surface Area",
                 "type": "histogram",
                 "layout": {
                   "lg": {
@@ -3614,6 +3625,7 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
+                  "unit": "m^2/g",
                   "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
                 },
                 "scale": "1/4",

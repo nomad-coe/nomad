@@ -1679,6 +1679,7 @@ ui:
               sm: {h: 4, minH: 4, minW: 3, w: 4, x: 4, y: 0}
               xl: {h: 6, minH: 3, minW: 3, w: 8, x: 8, y: 0}
               xxl: {h: 6, minH: 3, minW: 3, w: 8, x: 8, y: 0}
+            title: 'Reactants'
             quantity: results.properties.catalytic.reaction.reactants.name
             scale: linear
             showinput: true
@@ -1689,6 +1690,7 @@ ui:
               sm: {h: 4, minH: 3, minW: 3, w: 4, x: 0, y: 0}
               xl: {h: 6, minH: 3, minW: 3, w: 8, x: 0, y: 0}
               xxl: {h: 6, minH: 3, minW: 3, w: 8, x: 0, y: 0}
+            title: 'Reaction Name'
             quantity: results.properties.catalytic.reaction.name
             scale: linear
             showinput: true
@@ -1699,6 +1701,7 @@ ui:
               sm: {h: 4, minH: 3, minW: 3, w: 4, x: 8, y: 0}
               xl: {h: 6, minH: 3, minW: 3, w: 8, x: 16, y: 0}
               xxl: {h: 6, minH: 3, minW: 3, w: 8, x: 16, y: 0}
+            title: 'Products'
             quantity: results.properties.catalytic.reaction.products.name
             scale: linear
             showinput: true
@@ -1731,7 +1734,10 @@ ui:
               xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
             nbins: 30
-            quantity: results.properties.catalytic.reaction.weight_hourly_space_velocity
+            x:
+              quantity: results.properties.catalytic.reaction.weight_hourly_space_velocity
+              unit: 'ml/(g*s)'
+            title: 'Reaction Weight Hourly Space Velocity'
             scale: linear
             showinput: false
             type: histogram
@@ -1751,6 +1757,7 @@ ui:
               title: 'gas concentration (%)'
             y:
               quantity: results.properties.catalytic.reaction.temperature
+            title: 'Reactant feed concentration vs. Temperature'
             type: scatterplot
           - autorange: false
             layout:
@@ -1760,7 +1767,10 @@ ui:
               xl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
             nbins: 30
-            quantity: results.properties.catalytic.reaction.pressure
+            x:
+              quantity: results.properties.catalytic.reaction.pressure
+              unit: 'bar'
+            title: 'Reaction Pressure'
             scale: linear
             showinput: false
             type: histogram
@@ -1775,6 +1785,7 @@ ui:
               color:
                 quantity: results.properties.catalytic.reaction.reactants[*].name
             size: 1000
+            title: 'Temperature vs. Conversion'
             type: scatterplot
             x:
               quantity: results.properties.catalytic.reaction.temperature
@@ -1792,6 +1803,7 @@ ui:
               color:
                 quantity: results.properties.catalytic.reaction.products[*].name
             size: 1000
+            title: 'Temperature vs. Selectivity'
             type: scatterplot
             x:
               quantity: results.properties.catalytic.reaction.temperature
@@ -1842,7 +1854,10 @@ ui:
               xl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}
             nbins: 30
-            quantity: results.properties.catalytic.catalyst_characterization.surface_area
+            x:
+              quantity: results.properties.catalytic.catalyst_characterization.surface_area
+              unit: 'm^2/g'
+            title: 'Catalyst Surface Area'
             scale: 1/4
             showinput: false
             type: histogram
