@@ -563,39 +563,48 @@ def _es_to_entry_dict(
     if search_quantities:
         flattened_dict = {}
         for search_quantity in search_quantities:
-            id = search_quantity.get('id')
-            path_archive = search_quantity.get('path_archive')
-            if id is None or path_archive is None:
-                continue
-            quantity = doc_type.quantities.get(id)
-            if not quantity:
-                path, schema, _ = parse_quantity_name(id)
-                if schema and schema.startswith(yaml_prefix):
-                    dtype_map = {
-                        'float_value': float,
-                        'str_value': str,
-                        'int_value': int,
-                        'bool_value': bool,
-                        'datetime_value': Datetime,
-                    }
-                    dtype = None
-                    for key, value in dtype_map.items():
-                        if key in search_quantity:
-                            dtype = value
-                            break
-                    quantity = get_quantity(
-                        Quantity(type=dtype), path, schema, doc_type
-                    )
-                elif path.startswith(nexus_prefix):
-                    definition = get_definition(path)
-                    quantity = get_quantity(definition, path, schema, doc_type)
-                else:
+            try:
+                id = search_quantity.get('id')
+                path_archive = search_quantity.get('path_archive')
+                if id is None or path_archive is None:
                     continue
-            value_field_name = get_searchable_quantity_value_field(quantity.annotation)
-            if not value_field_name:
-                continue
-            value = search_quantity[value_field_name]
-            flattened_dict[path_archive] = value
+                quantity = doc_type.quantities.get(id)
+                if not quantity:
+                    path, schema, _ = parse_quantity_name(id)
+                    if schema and schema.startswith(yaml_prefix):
+                        dtype_map = {
+                            'float_value': float,
+                            'str_value': str,
+                            'int_value': int,
+                            'bool_value': bool,
+                            'datetime_value': Datetime,
+                        }
+                        dtype = None
+                        for key, value in dtype_map.items():
+                            if key in search_quantity:
+                                dtype = value
+                                break
+                        quantity = get_quantity(
+                            Quantity(type=dtype), path, schema, doc_type
+                        )
+                    elif path.startswith(nexus_prefix):
+                        definition = get_definition(path)
+                        quantity = get_quantity(definition, path, schema, doc_type)
+                    else:
+                        continue
+                value_field_name = get_searchable_quantity_value_field(
+                    quantity.annotation
+                )
+                if not value_field_name:
+                    continue
+                value = search_quantity[value_field_name]
+                flattened_dict[path_archive] = value
+            except Exception as e:
+                utils.get_logger(__name__).error(
+                    'error mapping dynamic search quantity to entry dict',
+                    exc_info=e,
+                    search_quantity=search_quantity,
+                )
 
         entry_dict.update(utils.rebuild_dict(flattened_dict))
 
