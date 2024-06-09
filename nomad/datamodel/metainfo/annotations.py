@@ -39,6 +39,8 @@ class ELNComponentEnum(str, Enum):
     NumberEditQuantity = 'NumberEditQuantity'
     SliderEditQuantity = 'SliderEditQuantity'
     DateTimeEditQuantity = 'DateTimeEditQuantity'
+    DateEditQuantity = 'DateEditQuantity'
+    TimeEditQuantity = 'TimeEditQuantity'
     RichTextEditQuantity = 'RichTextEditQuantity'
     ReferenceEditQuantity = 'ReferenceEditQuantity'
     UserEditQuantity = 'UserEditQuantity'
@@ -71,7 +73,11 @@ valid_eln_components = {
         ELNComponentEnum.NumberEditQuantity,
         ELNComponentEnum.SliderEditQuantity,
     ],
-    'datetime': [ELNComponentEnum.DateTimeEditQuantity],
+    'datetime': [
+        ELNComponentEnum.DateTimeEditQuantity,
+        ELNComponentEnum.DateEditQuantity,
+        ELNComponentEnum.TimeEditQuantity,
+    ],
     'enum': [
         ELNComponentEnum.EnumEditQuantity,
         ELNComponentEnum.AutocompleteEditQuantity,

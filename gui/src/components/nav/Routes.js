@@ -23,7 +23,6 @@ import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 import { matchPath, useLocation, Redirect, useHistory, Link as RouterLink } from 'react-router-dom'
 import { Button, Link, makeStyles, Tooltip } from '@material-ui/core'
 import About from '../About'
-import AIToolkitPage from '../aitoolkit/AIToolkitPage'
 import TutorialsPage from '../aitoolkit/TutorialsPage'
 import ReproducePage from '../aitoolkit/ReproducePage'
 import CoursePage from '../aitoolkit/CoursePage'
@@ -35,7 +34,7 @@ import APIs from '../APIs'
 import SearchPage from '../search/SearchPage'
 import { SearchContext } from '../search/SearchContext'
 import NorthPage, {help as NORTHHelp} from '../north/NorthPage'
-import { aitoolkitEnabled, appBase, oasis, encyclopediaBase, ui, apps } from '../../config'
+import { appBase, encyclopediaBase, ui, apps } from '../../config'
 import EntryQuery from '../entry/EntryQuery'
 import ResolvePID from '../entry/ResolvePID'
 import DatasetPage, { help as datasetHelp } from '../dataset/DatasetPage'
@@ -167,20 +166,6 @@ const uploadRoutes = [
   }
 ]
 
-const toolkitRoute = (!oasis && aitoolkitEnabled)
-  ? {
-    path: 'aitoolkit',
-    exact: true,
-    menu: 'AI Toolkit',
-    tooltip: 'NOMAD\'s Artificial Intelligence Toolkit tutorial Jupyter notebooks',
-    component: AIToolkitPage,
-    breadcrumb: 'NOMAD Artificial Intelligence Toolkit'
-  } : {
-    href: 'https://nomad-lab.eu/AIToolkit',
-    menu: 'AI Toolkit',
-    tooltip: 'Visit the NOMAD Artificial Intelligence Analytics Toolkit'
-  }
-
 const searchRoutes = apps
   .map((context) => {
     const routeMap = {
@@ -300,7 +285,6 @@ export const routes = [
         },
         component: MetainfoPage
       },
-      toolkitRoute,
       {
         path: 'tutorials',
         title: 'Artificial Intelligence Toolkit',

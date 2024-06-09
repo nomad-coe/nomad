@@ -63,5 +63,8 @@
 	path = dependencies/parsers/simulation
 	url = https://github.com/nomad-coe/simulation-parsers.git
 [submodule "dependencies/parsers/example"]
-        path = dependencies/parsers/example
-        url = https://github.com/nomad-coe/nomad-parser-example.git
+	path = dependencies/parsers/example
+	url = https://github.com/nomad-coe/nomad-parser-example.git
+[submodule "dependencies/nomad-aitoolkit"]
+	path = dependencies/nomad-aitoolkit
+	url = https://github.com/FAIRmat-NFDI/nomad-aitoolkit.git

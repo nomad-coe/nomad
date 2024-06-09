@@ -19,7 +19,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import Quantity from '../Quantity'
 import { Formula } from './properties/MaterialCard'
-import { Tooltip, IconButton } from '@material-ui/core'
+import { Tooltip, IconButton, Box } from '@material-ui/core'
 import { useApi } from '../api'
 import { EntryButton } from '../nav/Routes'
 import DetailsIcon from '@material-ui/icons/ArrowForward'
@@ -140,7 +140,9 @@ VisitEntryAction.propTypes = {
 }
 
 export const EntryRowActions = React.memo((props) => {
-  return <VisitEntryAction {...props} component={IconButton}><DetailsIcon/></VisitEntryAction>
+  return <Box display={'flex'} flexBasis={'auto'} justifyContent={'flex-end'}>
+    <VisitEntryAction {...props} component={IconButton}><DetailsIcon/></VisitEntryAction>
+  </Box>
 })
 
 const useEntryDetailsStyles = makeStyles(theme => ({

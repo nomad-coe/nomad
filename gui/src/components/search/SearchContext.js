@@ -266,12 +266,17 @@ export const SearchContextRaw = React.memo(({
           const key = option.key
           const unit = option.unit
           const format = option.format
+          const dtype = initialFilterData[key]?.dtype
+
+          if (dtype === 'timestamp') {
+            return formatTimestamp(value, format?.mode)
+          }
+
           if (unit) {
             const originalUnit = initialFilterData[key]?.unit
             value = new Quantity(value, originalUnit).to(unit).value()
           }
           if (format) {
-            const dtype = initialFilterData[key]?.dtype
             value = formatNumber(value, dtype, format?.mode, format?.decimals)
           }
           return value

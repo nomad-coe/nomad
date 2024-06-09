@@ -521,22 +521,35 @@ export function formatInteger(value) {
  * @param {number} value The timestamp to format
  * @return {str} The timestamp with new formatting
  */
-export function formatTimestamp(value) {
+export function formatTimestamp(value, mode = undefined) {
   if (isNil(value)) {
     return value
   }
+
+  let format
+  switch (mode) {
+    case 'date':
+      format = {dateStyle: 'short'}
+      break
+    case 'time':
+      format = {timeStyle: 'short'}
+      break
+    default:
+      format = undefined
+  }
+
   if (value.search(/([+-][0-9]{2}:[0-9]{2}|Z)\b/) === -1) { // search for timezone information
     try {
       // assume UTC timestamp from server and attempt to manually add UTC timezone,
       // new Date will wrongly assume local timezone.
-      const result = new Date(`${value}Z`).toLocaleString()
+      const result = new Date(`${value}Z`).toLocaleString(undefined, format)
       if (result !== 'Invalid Date') {
         return result
       }
     } catch {}
   }
   // create string for timestamp with correct timezone information or fallback
-  return new Date(value).toLocaleString()
+  return new Date(value).toLocaleString(undefined, format)
 }
 
 /**
@@ -1594,6 +1607,18 @@ export function getOptions(config, options) {
   const include = config?.include || (options || (config?.options ? Object.keys(config.options) : []))
   const exclude = config?.exclude || []
   return include.filter((key) => !exclude?.includes(key))
+}
+
+/**
+ * Returns a filtered object of options based on the config object that adheres
+ * to the include/exclude/options pattern.
+ */
+export function filterOptions(config) {
+  const options = {}
+  for (const option of getOptions(config)) {
+    options[option] = config.options[option]
+  }
+  return options
 }
 
 /**
