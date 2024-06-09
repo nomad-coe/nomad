@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 import { createTheme } from '@material-ui/core'
-import { isPlainObject, isNil } from 'lodash'
+import { isPlainObject, isNil, forOwn } from 'lodash'
 
 /**
  * Used to normalized the given URL into an absolute form which starts with
@@ -69,7 +69,14 @@ export function normalizeConfig(config) {
             : []
 
           const config = {options: Object.fromEntries(options.map(option => [option.key, option]))}
-          if (value.selected) config.selected = value.selected
+
+          // Carry over all additional fields
+          forOwn(value, (v, k) => {
+            if (k !== 'options' && k !== 'include' && k !== 'exclude') {
+              config[k] = v
+            }
+          })
+
           obj[key] = config
         }
       }

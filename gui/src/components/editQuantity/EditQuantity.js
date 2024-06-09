@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-import {DateTimeEditQuantity} from '../editQuantity/DateTimeEditQuantity'
+import {DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity} from '../editQuantity/DateTimeEditQuantity'
 import { StringEditQuantity, URLEditQuantity } from '../editQuantity/StringEditQuantity'
 import {NumberEditQuantity} from '../editQuantity/NumberEditQuantity'
 import {EnumEditQuantity} from '../editQuantity/EnumEditQuantity'
@@ -39,6 +39,8 @@ export const editQuantityComponents = {
   BoolEditQuantity: BoolEditQuantity,
   FileEditQuantity: FileEditQuantity,
   DateTimeEditQuantity: DateTimeEditQuantity,
+  DateEditQuantity: DateEditQuantity,
+  TimeEditQuantity: TimeEditQuantity,
   RichTextEditQuantity: RichTextEditQuantity,
   ReferenceEditQuantity: ReferenceEditQuantity,
   AuthorEditQuantity: AuthorEditQuantity

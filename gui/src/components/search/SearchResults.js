@@ -15,10 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { Paper, Typography } from '@material-ui/core'
+import jmespath from 'jmespath'
+import { Paper, Typography, Tooltip, IconButton } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
+import LaunchIcon from '@material-ui/icons/Launch'
 import {
   Datatable,
   DatatableLoadMorePagination,
@@ -29,9 +31,28 @@ import {
 import EntryDownloadButton from '../entry/EntryDownloadButton'
 import EntryDetails, { EntryRowActions } from '../entry/EntryDetails'
 import { MaterialRowActions } from '../material/MaterialDetails'
-import { pluralize, formatInteger } from '../../utils'
-import { isEmpty } from 'lodash'
+import { pluralize, formatInteger, parseJMESPath, filterOptions } from '../../utils'
+import { isEmpty, isArray } from 'lodash'
 import { useSearchContext } from './SearchContext'
+
+/**
+ * Used to retrieve an URL link from the row metadata and display a link icon to
+ * that resource.
+ */
+export const ActionURL = React.memo(({action, data}) => {
+  const {path} = parseJMESPath(action.path)
+  let href = jmespath.search(data, path)
+  href = isArray(href) ? href[0] : href
+  return <Tooltip title={action.description || ''}>
+    <IconButton href={href} target="_blank"><LaunchIcon/></IconButton>
+  </Tooltip>
+})
+ActionURL.propTypes = {
+  // Action configuration from app config
+  action: PropTypes.object.isRequired,
+  // ES index data
+  data: PropTypes.object.isRequired
+}
 
 /**
  * Displays the list of search results.
@@ -56,6 +77,24 @@ const SearchResults = React.memo((props) => {
     return {entry_id: [...selected]}
   }, [selected, apiQuery])
 
+  const actions = useCallback((data) => {
+    const actionComponents = []
+    for (const [key, value] of Object.entries(filterOptions(rows.actions))) {
+      const component = {
+        'url': <ActionURL key={key} action={value} data={data}/>
+      }[value.type]
+      if (component) {
+        actionComponents.push(component)
+      }
+    }
+    if (resource === "entries") {
+      actionComponents.push(<EntryRowActions key="entries-default-action" data={data}/>)
+    } else if (resource === "materials") {
+      actionComponents.push(<MaterialRowActions key="materials-default-action" data={data}/>)
+    }
+    return actionComponents
+  }, [rows, resource])
+
   if (isEmpty(columns)) {
     return <Alert severity="warning">
       No search columns defined within this search context. Ensure that all GUI artifacts are created.
@@ -72,14 +111,10 @@ const SearchResults = React.memo((props) => {
 
   // Select components based on the targeted resource
   let details
-  let actions
   let buttons
   if (resource === "entries") {
     details = rows?.details?.render || EntryDetails
-    actions = rows?.actions?.render || EntryRowActions
     if (!noAction) buttons = <EntryDownloadButton tooltip="Download files" query={query} />
-  } else if (resource === "materials") {
-    actions = MaterialRowActions
   }
 
   return <Paper data-testid={testID} {...PaperProps}>

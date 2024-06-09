@@ -18,7 +18,7 @@
 import React, { useContext, useRef, useState, useMemo, useCallback } from 'react'
 import PropTypes from 'prop-types'
 import clsx from 'clsx'
-import { isNil, isEmpty } from 'lodash'
+import { isNil, isEmpty, isFunction } from 'lodash'
 import { IconButton, makeStyles, lighten, TableHead, TableRow, TableCell, TableSortLabel,
   Checkbox, TableContainer, Table, TableBody, TablePagination, Box, Collapse, Toolbar, Typography,
   List, ListItem, ListItemText, Popover, CircularProgress, Button, Tooltip } from '@material-ui/core'
@@ -363,6 +363,9 @@ const useDatatableRowStyles = makeStyles(theme => ({
     right: 0,
     backgroundColor: 'inherit'
   },
+  rowActionsList: {
+    display: 'flex'
+  },
   detailsCell: {
     padding: 0
   }
@@ -432,7 +435,12 @@ const DatatableRow = React.memo(function DatatableRow({data, selected, uncollaps
         align="right" size="small" className={classes.rowActionsCell}
         onClick={(event) => event.stopPropagation()}
       >
-        {React.createElement(actions, {data: row})}
+        <div className={classes.rowActionsList}>
+          {isFunction(actions)
+            ? actions(row)
+            : React.createElement(actions, {data: row})
+          }
+        </div>
       </TableCell>}
     </TableRow>
     {details && <TableRow selected={selected} data-testid={uncollapsed && 'datatable-row'}>
@@ -449,7 +457,7 @@ DatatableRow.propTypes = {
   selected: PropTypes.bool,
   uncollapsed: PropTypes.bool,
   onRowUncollapsed: PropTypes.func.isRequired,
-  actions: PropTypes.elementType,
+  actions: PropTypes.oneOfType([PropTypes.elementType, PropTypes.func]),
   details: PropTypes.elementType,
   progressIcon: PropTypes.node
 }
@@ -546,7 +554,7 @@ DatatableTable.propTypes = {
   details: PropTypes.elementType,
   /** Objectal render function or component for row actions. Function and component
    * get row object as "data" prop. */
-  actions: PropTypes.elementType,
+  actions: PropTypes.oneOfType([PropTypes.elementType, PropTypes.func]),
   /** Do not show the table header */
   noHeader: PropTypes.bool,
   /** Optional pagination component, e.g. DatatablePagePagination. */

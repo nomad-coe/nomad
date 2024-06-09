@@ -248,6 +248,9 @@ def derive_authors(entry: 'EntryMetadata') -> List[User]:
     if entry.external_db == 'EELS Data Base':
         return list(entry.entry_coauthors)
 
+    if entry.entry_type == 'AIToolkitNotebook':
+        return list(entry.entry_coauthors)
+
     authors: List[User] = [entry.main_author]
     if entry.coauthors:
         authors.extend(entry.coauthors)

@@ -216,6 +216,8 @@ class ModeEnum(str, Enum):
     STANDARD = 'standard'
     SCIENTIFIC = 'scientific'
     SEPARATORS = 'separators'
+    DATE = 'date'
+    TIME = 'time'
 
 
 class Format(ConfigBaseModel):
@@ -263,10 +265,35 @@ class Columns(OptionsMulti):
     )
 
 
-class RowActions(ConfigBaseModel):
+class RowAction(ConfigBaseModel):
+    """Common configuration for all row actions."""
+
+    description: Optional[str] = Field(
+        description="""Description of the action shown to the user."""
+    )
+    type: str = Field(description='Used to identify the action type.')
+
+
+class RowActionURL(RowAction):
+    """Action that will open an external link read from the archive."""
+
+    path: str = Field(
+        description="""JMESPath pointing to a path in the archive that contains the URL."""
+    )
+    type: Literal['url'] = Field(
+        'url', description='Set as `url` to get this widget type.'
+    )
+
+
+class RowActions(Options):
     """Controls the visualization of row actions that are shown at the end of each row."""
 
-    enabled: bool = Field(True, description='Whether to enable row actions. ')
+    enabled: bool = Field(True, description='Whether to enable row actions.')
+    options: Optional[Dict[str, RowActionURL]] = Field(
+        description="""
+        All available row actions.
+    """
+    )
 
 
 class RowDetails(ConfigBaseModel):
