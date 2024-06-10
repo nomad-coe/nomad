@@ -62,6 +62,7 @@ export const EnumEditQuantity = React.memo((props) => {
     onChange={event => handleChange(event.target.value)}
     {...fieldProps}
     {...otherProps}
+    label={label}
   >
     {quantityDef.type?.type_data.map(item => (
       <MenuItem value={item} key={item}>
