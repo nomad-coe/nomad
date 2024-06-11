@@ -123,8 +123,11 @@ async def add_upload_folder_path(request: Request, call_next):
     query_string = re.sub(
         r'file=.+?(?:&|\Z)', f'file={upload_path}{file}&', query_string
     )
-    query_string = re.sub(r'path=.+?(?:&|\Z)', f'path={path}&', query_string)
+    query_string = re.sub(
+        r'path=.+?(?:&|\Z)', f'path={urllib.parse.quote(path)}&', query_string
+    )
     scope['query_string'] = query_string.encode('utf-8')
+
     response = await call_next(Request(scope))
     return response
 
