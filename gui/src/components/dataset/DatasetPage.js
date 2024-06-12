@@ -50,7 +50,10 @@ const DatasetPage = React.memo(({match}) => {
 
   // Router provides the URL parameters via props, here we read the dataset ID.
   const datasetId = match?.params?.datasetId
-  const datasetFilter = useMemo(() => ({'datasets.dataset_id': datasetId}), [datasetId])
+  const datasetFilter = useMemo(() => ({
+    'visibility': 'all',
+    'datasets.dataset_id': datasetId
+  }), [datasetId])
 
   // Fetch the dataset information from API.
   useEffect(() => {
