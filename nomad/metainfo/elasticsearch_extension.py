@@ -1624,8 +1624,11 @@ def create_searchable_quantity(
                     return None
                 else:
                     value = float(value)
-                if math.isnan(value):
-                    logger.warn('skipped indexing NaN value', path_archive=path_archive)
+                if not math.isfinite(value):
+                    logger.warn(
+                        'skipped indexing NaN value',
+                        path_archive=path_archive,
+                    )
                     return None
             setattr(searchable_quantity, value_field_name, value)
         except Exception as e:

@@ -24,9 +24,7 @@ cd ..
 zip -r -j uploads/apm.zip apm/*
 zip -r -j uploads/mpes.zip mpes/*
 zip -r -j uploads/ellips.zip ellips/*
-zip -r -j uploads/em_spctrscpy.zip em_spctrscpy/*
-zip -r -j uploads/em_om.zip em_om/*
-zip -r -j uploads/em_nion.zip em_nion/*
+zip -r -j uploads/em.zip em/*
 zip -r -j uploads/iv_temp.zip iv_temp/*
 zip -r -j uploads/xps.zip xps/*
 zip -r -j uploads/sts.zip sts/sts/* sts/common_files/*

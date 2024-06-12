@@ -1,0 +1,8 @@
+data:
+  m_def: nomad.datamodel.metainfo.downloads.Downloads
+  mainfiles:
+    - em.archive.json
+  downloads:
+    - url: https://zenodo.org/records/11208725/files/in_ga_n_nanowires_eds_examples.edaxh5.zip?download=1
+      output: in_ga_n_nanowires_eds_examples.edaxh5.zip
+      extract: true

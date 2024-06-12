@@ -1,66 +1,57 @@
-# group, field, and attribute names match to NXapm, for further details
-# what each field should contain consult the respective docstring of the 
-# quantity in NXapm
+# https://fairmat-nfdi.github.io/nexus_definitions/classes/contributed_definitions/NXapm.html#nxapm
 definitions:
   name: 'apm'
-  # 'ELN/matching NXapm NeXus appdef data schema for atom probe'
-  sections: # section definitions what were back in the old days msections
-    AtomProbeMicroscopy: # the actual schema
+  sections:
+    AtomProbe:
       base_sections:
         - 'nomad.datamodel.metainfo.eln.NexusDataConverter'
         - 'nomad.datamodel.data.EntryData'
       m_annotations:
-        # Here you can set your default values for the reader and nxdl.
-        template: 
+        template:
           reader: apm
           nxdl: NXapm.nxdl
         # Listing quantities in the hide component will not show them in the ELN.
         # This would be useful to make the default values set in `template` fixed.
         # Leave the hide key even if you want to pass an empty list like in this example.
         eln: 
-          hide: ['nxdl', 'reader']
+          hide: []
       sub_sections:
         entry:
           section:
             description: |
-              Generic details about an experiment.
+              Generic details about the experiment.
             m_annotations:
               eln:
                 overview: true
             quantities:
-              experiment_identifier:
-                type: str
-                description: GUID of the experiment
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
               experiment_description:
                 type: str
-                description: Free text details about the experiment
+                description: |
+                  Free-text description about the experiment.
                 m_annotations:
                   eln:
                     component: RichTextEditQuantity
               start_time:
                 type: Datetime
                 description: |
-                  ISO 8601 time code with local time zone offset
-                  to UTC when the experiment started.
+                  ISO 8601 time code with local time zone offset to UTC information
+                  included when the atom probe session started.
                 m_annotations:
                   eln:
                     component: DateTimeEditQuantity
               end_time:
                 type: Datetime
                 description: |
-                  ISO 8601 time code with local time zone offset
-                  to UTC when the experiment ended.
+                  ISO 8601 time code with local time zone offset to UTC information
+                  included when the atom probe session ended.
                 m_annotations:
                   eln:
                     component: DateTimeEditQuantity
               run_number:
                 type: str
                 description: |
-                  Identifier in the instrument control software
-                  given for this experiment.
+                  The identifier whereby the experiment is referred
+                  to in the control software.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
@@ -78,24 +69,43 @@ definitions:
                 m_annotations:
                   eln:
                     component: RadioEnumEditQuantity
-              # inputfile_reconstruction:
-              #   type: str
-              #   description: |
-              #     Place to drag-and-drop the file containing the result of the measurement.
-              #     This result has to be the tomographic reconstruction.
-              #     Accepted file formats are POS, ePOS, and APT (from APSuite).
-              #   m_annotations:
-              #     eln:
-              #       component: FileEditQuantity
-              # inputfile_range_file:
-              #   type: str
-              #   description: |
-              #     Place to drag-and-drop a file which contains the result of a ranging of
-              #     the mass-to-charge-state ratio values to assigned ion labels.
-              #     Accepted file formats are RNG, and RRNG.
-              #   m_annotations:
-              #     eln:
-              #       component: FileEditQuantity
+
+        workflow:
+          section:
+            description: |
+              Details about data artifacts that have been collected during the measurement to document the sequence of post-processing
+              steps applied to measured atom probe experiments.
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              raw_dat_file:
+                type: str
+                description: |
+                  Place to drag-and-drop the RRAW/STR file (for LEAP systems)
+                  or an equivalent file with raw detector timing and hit data.
+                m_annotations:
+                  eln:
+                    component: FileEditQuantity
+              hit_dat_file:
+                type: str
+                description: |
+                  Place to drag-and-drop the RHIT/HITS file (for LEAP systems)
+                  or an equivalent file with the parameterization of the hit finding
+                  algorithm and other calibration and correction algorithms
+                  applied on th raw data.
+                m_annotations:
+                  eln:
+                    component: FileEditQuantity
+              recon_cfg_file:
+                type: str
+                description: |
+                  Place to drag-and-drop the ROOT file (for LEAP systems)
+                  or an equivalent file with the parameterization of the ROI
+                  selection and the reconstruction algorithm.
+                m_annotations:
+                  eln:
+                    component: FileEditQuantity
 
         sample:
           section:
@@ -105,6 +115,25 @@ definitions:
             m_annotations:
               eln:
             quantities:
+              method:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - experiment
+                    - simulation
+                description: |
+                   A qualifier whether the sample is a real one
+                   or a virtual one (in a computer simulation).
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              alias:
+                type: str
+                description: |
+                  Given name/alias for the sample.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
               composition:
                 type: str
                 shape: ['*']
@@ -135,7 +164,7 @@ definitions:
                 description: |
                   Qualitative information about the grain size, here specifically
                   described as the equivalent spherical diameter of an assumed
-                  average grain size for the crystal ensemble.
+                  average grain size that is representative for the crystal ensemble.
                 m_annotations:
                   eln:
                     component: NumberEditQuantity
@@ -145,7 +174,7 @@ definitions:
                 type: np.float64
                 unit: micrometer
                 description: |
-                  Magnitude of the standard deviation to the grain_diameter.
+                  Magnitude of the standard deviation of the grain_diameter.
                 m_annotations:
                   eln:
                     component: NumberEditQuantity
@@ -196,10 +225,12 @@ definitions:
                 description: |
                   Discouraged free text field which only exists to learn which
                   additional metadata users would like to enter to support
-                  making improvements to this atom probe example in the future.
+                  making improvements to this atom probe example
+                  in the future.
                 m_annotations:
                   eln:
                     component: RichTextEditQuantity
+
         specimen:
           section:
             description: |
@@ -207,144 +238,147 @@ definitions:
             m_annotations:
               eln:
             quantities:
-              name: 
+              method:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - experiment
+                    - simulation
+                description: |
+                  A qualifier whether the specimen is a real one or a virtual one.
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              alias:
                 type: str
                 description: |
-                  GUID which distinguishes the specimen from all others and especially 
-                  the predecessor/origin from where the specimen was cut.
-                  In cases where the specimen was e.g. site-specifically cut from
-                  samples or in cases of an instrument session during which multiple
-                  specimens are loaded, the name has to be descriptive enough to 
-                  resolve which specimen on e.g. the microtip array was taken.
-                  This field must not be used for an alias of the specimen.
-                  Instead, use short_title.
+                  Given name as an alias of the specimen.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              # sample_history:
-              #   type: str
-              #   description: |
-              #     Reference to the location of or a GUID providing as many details
-              #     as possible of the material, its microstructure, and its 
-              #     thermo-chemo-mechanical processing/preparation history.
-              #   m_annotations:
-              #     eln:
-              #       component: StringEditQuantity
               preparation_date:
                 type: Datetime
                 description: |
-                  ISO 8601 time code with local time zone offset to UTC
-                  when the measured specimen surface was prepared last time.
+                  ISO 8601 time code with local time zone offset to UTC when the
+                  measured specimen surface was prepared last time.
                 m_annotations:
                   eln:
                     component: DateTimeEditQuantity
               is_polycrystalline:
                 type: bool
                 description: |
-                  Is the specimen, i.e. the tip, polycrystalline, i.e. does
-                  it includes a grain or phase boundary?
+                  Is the specimen polycrystalline or not?
                 m_annotations:
                   eln:
                     component: BoolEditQuantity
-              alias:
-                type: str
+              is_amorphous:
+                type: bool
                 description: |
-                  Possibility to give an abbreviation of the specimen name field.
+                  Is the specimen amorphous or not?
                 m_annotations:
                   eln:
-                    component: StringEditQuantity
-              # atom_types should be a list of strings
-              # atom_types:
-              #   type: str
-              #   shape: ['*']
-              #   description: |
-              #     Use Hill's system for listing elements of the periodic table which
-              #     are inside or attached to the surface of the specimen and thus
-              #     relevant from a scientific point of view.
-              #   m_annotations:
-              #     eln:
-              #       component: StringEditQuantity
+                    component: BoolEditQuantity
               description:
                 type: str
                 description: |
-                  Discouraged free text field to be used in the case when properly
-                  designed records for the sample_history are not available.
-                  Using this field we can learn which additional metadata users
-                  would like to enter to support making improvements to this
-                  atom probe example in the future.
+                  Discouraged free text field which only exists to learn which
+                  additional metadata users would like to enter to support
+                  making improvements to this atom probe example
+                  in the future.
                 m_annotations:
                   eln:
                     component: RichTextEditQuantity
+              initial_radius:
+                type: np.float64
+                unit: nanometer
+                description: |
+                  Ideally measured or best elaborated guess of
+                  the initial radius of the specimen.
+                m_annotations:
+                  eln:
+                    component: NumberEditQuantity
+                    defaultDisplayUnit: nanometer
+                    minValue: 1.0
+                    maxValue: 1000.0
+              shank_angle:
+                type: np.float64
+                unit: degree
+                descriptions: |
+                  Ideally measured or best elaborated guess of the shank angle.
+                  This is a measure of the specimen taper.
+                m_annotations:
+                  eln:
+                    component: NumberEditQuantity
+                    defaultDisplayUnit: degree
+                    minValue: 0.0
+                    maxValue: 90.0
+
         user:
           repeats: true
           section:
             description: |
-              Contact information and eventually details of at least one person
-              involved in the taking of the microscope session.
+              Contact information and eventually details of at least one
+              person who was involved in taking the microscope session.
             m_annotations:
               eln:
             quantities:
               name:
                 type: str
-                description: Given (first) name and surname.
+                description: |
+                  Given (first) name and surname.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               email:
                 type: str
-                description: Email address of the user at the point in time when the experiment was performed.
+                description: |
+                  Email address of the user at the point in time
+                  when the experiment was performed.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               affiliation:
                 type: str
-                description: Name of the affiliation of the user at the point in time when the experiment was performed.
+                description: |
+                  Name of the affiliation of the user at the point in time
+                  when the experiment was performed.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               address:
                 type: str
-                description: Postal address of the affiliation.
+                description: |
+                  Postal address of the affiliation.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               orcid:
                 type: str
-                description: Globally unique identifier of the user as offered by services like OrcID or ResearcherID.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              orcid_platform:
-                type: str
-                description: Name of the OrcID or ResearcherID where the account under orcid is registered.
+                description: |
+                  ORCID of that person.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               telephone_number:
                 type: str
-                description: (Business) (tele)phone number of the user at the point in time when the experiment was performed.
+                description: |
+                  (Business) (tele)phone number of the user at the point in time
+                  when the experiment was performed.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               role:
                 type: str
-                description: Which role does the user have in the place and at the point in time when the experiment was performed? Technician operating the microscope. Student, postdoc, principle investigator, guest are common examples.
+                description: |
+                  Which role does the user have in the place and at the point in time
+                  when the experiment was performed?
+                  Technician operating the microscope. Student, postdoc,
+                  principle investigator, or guest are common examples.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              social_media_name:
-                type: str
-                description: Account name that is associated with the user in social media platforms.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              social_media_platform:
-                type: str
-                description: Name of the social media platform where the account under social_media_name is registered.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-        atom_probe:
+
+        instrument:
           section:
             description: |
               The instrument and the lab in which it stands.
@@ -366,7 +400,8 @@ definitions:
                     component: RadioEnumEditQuantity
               instrument_name:
                 type: str
-                description: Given name of the atom probe at the hosting institution.
+                description: |
+                  Given name of the atom probe at the hosting institution.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
@@ -378,12 +413,11 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              # (NXfabrication):
-              flight_path_length:
+              nominal_flight_path:
                 type: np.float64
                 unit: meter
                 description: |
-                  The space inside the atom probe that ions pass through nominally
+                  The space inside the atom probe which ions pass nominally
                   when they leave the specimen and travel to the detector.
                 m_annotations:
                   eln:
@@ -391,108 +425,59 @@ definitions:
                     defaultDisplayUnit: meter
                     minValue: 0.0
                     maxValue: 10.0
-              field_of_view:
-                type: np.float64
-                unit: nanometer
-                description: |
-                  The nominal diameter of the specimen ROI which is measured in the
-                  experiment. Physically, the specimen cannot be measured completely
-                  because ions may launch but not become detected or hit elsewhere.
-                m_annotations:
-                  eln:
-                    component: NumberEditQuantity
-                    defaultDisplayUnit: nanometer
-                    minValue: 0.0
               fabrication_vendor:
                 type: str
-                description: Name of the manufacturer/company, i.e. AMETEK/Cameca.
+                description: |
+                  Company name of the manufacturer.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               fabrication_model:
                 type: str
-                description: Model name of the instrument
+                description: |
+                  Version or model of the component named by the manufacturer.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               fabrication_identifier:
                 type: str
-                description: Serial number/identifier of the instrument as issued by the manufacturer
+                description: |
+                  Ideally, (globally) unique persistent identifier, i.e. a serial
+                  number or hash identifier of the component.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              fabrication_capabilities:
-                type: str
-                description: Capabilities of the instrument
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              # analysis_chamber(NXchamber):
-              # load_lock_chamber(NXchamber):
-              # buffer_chamber(NXchamber):
-              # getter_pump(NXpump):
-              # roughening_pump(NXpump):
-              # turbomolecular_pump(NXpump):
-              reflectron_applied:
-                type: bool
-                description: Is a reflectron installed and was it used?
-                m_annotations:
-                  eln:
-                    component: BoolEditQuantity
-              local_electrode_name:
-                type: str
-                description: Identifier of the local_electrode in the control software database.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              # local_electrode__(NXaperture_em):
-              # ion_detector(NXdetector):
-              ion_detector_type:
+              reflectron_status:
                 type:
                   type_kind: Enum
                   type_data:
-                    - mcp_dld
-                    - phosphor_ccd
-                    - other
+                    - used
+                    - present
+                    - none
                 description: |
-                  Type of the ToF-taking detector system
-                  Examples are mcp_dld, phosphor_ccd, or other
+                  Is a reflectron installed and was it used?
                 m_annotations:
                   eln:
                     component: RadioEnumEditQuantity
-              ion_detector_name:
+              local_electrode_name:
                 type: str
-                description: Given name or alias of the detector
+                description: |
+                  Identifier of the local_electrode in the control software database.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              ion_detector_model:
-                type: str
-                description: Given brand or model name by the manufacturer.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              ion_detector_serial_number:
-                type: str
-                description: Given hardware name/serial number or hash identifier issued by the manufacturer.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              # fabrication_vendor:
-              # signal_amplitude(NX_FLOAT):
-              stage_lab_base_temperature:
+              base_temperature:
                 type: np.float64
                 unit: kelvin
                 description: |
-                  Average temperature at the specimen base, i.e.
-                  base temperature, during the measurement.
+                  Average temperature (at the specimen base) during the measurement.
                 m_annotations:
                   eln:
                     component: NumberEditQuantity
                     defaultDisplayUnit: kelvin
                     minValue: 0.0
                     maxValue: 300.0
-              analysis_chamber_pressure:
+              chamber_pressure:
                 type: np.float64
                 unit: torr
                 description: |
@@ -503,56 +488,31 @@ definitions:
                     defaultDisplayUnit: torr
                     minValue: 0.0
                     maxValue: 1500.12
-              specimen_monitoring_initial_radius:
+              target_detection_rate:
                 type: np.float64
-                unit: nanometer
-                description: |
-                  Ideally measured or best elaborated guess of the initial radius of the specimen.
+                descriptions: |
+                  Target detection rate in ions/per pulse.
                 m_annotations:
                   eln:
                     component: NumberEditQuantity
-                    defaultDisplayUnit: nanometer
-                    minValue: 1.0
+                    minValue: 0.0
                     maxValue: 1000.0
-              specimen_monitoring_shank_angle:
-                type: np.float64
-                unit: degree
-                descriptions: |
-                  Ideally measured or best elaborated guess of the shank angle.
-                  This is a measure of the specimen taper.
-                m_annotations:
-                  eln:
-                    component: NumberEditQuantity
-                    defaultDisplayUnit: degree
-                    minValue: 0.0
-                    maxValue: 90.0
-              specimen_monitoring_detection_rate:
-                type: np.float64
-                descriptions: |
-                  Average detection rate over the course of the experiment.
-                m_annotations:
-                  eln:
-                    component: NumberEditQuantity
-                    minValue: 0.0
-                    maxValue: 1.0
-              control_software_program:
-                type: str
-                description: |
-                  Name of the control software of the microscope 
-                  used during acquisition (e.g. IVAS/APSuite).
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
-              control_software_program__attr_version:
-                type: str
-                description: Version plus build number, commit hash, or description of the program to support reproducibility.
-                m_annotations:
-                  eln:
-                    component: StringEditQuantity
+              evaporation_control:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - detection_rate
+                  description: |
+                    Control software setting (for LEAP systems) how
+                    field-evaporation is controlled.
+                  m_annotations:
+                    eln:
+                      component: RadioEnumEditQuantity
             sub_sections:
               pulser:
                 section:
-                  description: Details about the pulsing device and method
+                  description: |
+                    Details about the pulsing device and method
                   m_annotations:
                     eln:
                   quantities:
@@ -571,7 +531,8 @@ definitions:
                     pulse_frequency:
                       type: np.float64
                       unit: kilohertz
-                      description: Pulse frequency
+                      description: |
+                        Frequency with which the pulser fire(s).
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
@@ -580,7 +541,10 @@ definitions:
                           maxValue: 10000.0
                     pulse_fraction:
                       type: np.float64
-                      description: Pulse fraction
+                      description: |
+                        Fraction of the pulse_voltage that is applied in addition to the standing_voltage at peak voltage of a pulse. If a standing voltage
+                        is applied, this gives nominal pulse fraction (as a function
+                        of standing voltage). Otherwise, this field should not be present.
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
@@ -592,21 +556,23 @@ definitions:
                       repeats: True
                       section:
                         description: |
-                          Details about each laser pulsing unit.
-                          LEAP6000 instruments can use up to two lasers.
+                          Details about each laser pulsing unit. LEAP6000-type
+                          instruments can use up to two lasers.
                         m_annotations:
                           eln:
                         quantities:
                           name:
                             type: str
-                            description: Given name/alias.
+                            description: |
+                              Given name/alias.
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
                           wavelength:
                             type: np.float64
                             unit: nanometer
-                            description: Nominal wavelength of the laser radiation.
+                            description: |
+                              Nominal wavelength of the laser radiation.
                             m_annotations:
                              eln:
                                component: NumberEditQuantity
@@ -633,49 +599,26 @@ definitions:
                                 component: NumberEditQuantity
                                 defaultDisplayUnit: picojoule
                                 minValue: 0.0
-        # control_software:
-        #   section:
-        #     description: Which control software was used e.g. IVAS/APSuite
-        #     m_annotations:
-        #       eln:
-        #     quantities:
-        #       program:
-        #         type: str
-        #         description: |
-        #           Name of the program used to control the instrument during the measurement.
-        #           Examples are IVAS or APSuite for Cameca/AMETEK local electrode atom probes.
-        #         m_annotations:
-        #           eln:
-        #             component: StringEditQuantity
-        #       program__attr_version:
-        #         type: str
-        #         description: |
-        #           Version plus build number, commit hash, or description
-        #           of the program to support reproducibility.
-        #         m_annotations:
-        #           eln:
-        #             component: StringEditQuantity
-        # (NXstage_lab):
-        # (NXdata):
-        # (NXcoordinate_system_set):
-        # (NXmonitor):
+
         reconstruction:
           section:
-            description: Details about the reconstruction
+            description: |
+              Details about the reconstruction
             m_annotations:
               eln:
             quantities:
               program:
                 type: str
                 description: |
-                  Name of the program used to perform the reconstruction with.
-                  Examples are IVAS, APSuite, or names of open-source tools.
+                  Name of the program used to generate the reconstruction.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              program__attr_version:
+              program_version:
                 type: str
-                description: Version plus build number, commit hash, or description of the program to support reproducibility.
+                description: |
+                  Version plus build number, commit hash, or description
+                  of the program to support reproducibility.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
@@ -690,10 +633,6 @@ definitions:
                     - other
                 description: |
                   Qualitative statement about which reconstruction protocol was used.
-                  Bas maps currently to bas_modified.
-                  Cameca maps currently to apsuite.
-                  Add more details in the parameter text field,
-                  e.g. reconstruction parameter.
                 m_annotations:
                   eln:
                     component: RadioEnumEditQuantity
@@ -704,44 +643,53 @@ definitions:
                   are qualitatively similar, each protocol uses different parameters
                   (and interprets these differently). The source code to IVAS/APSuite
                   is not open. For now users should store reconstruction parameter
-                  in a collection, i.e. here with a free-text field.
+                  they deem relevant in this free text field.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
               crystallographic_calibration:
                 type: str
                 description: |
-                  Different strategies for crystallographic calibration of the
-                  reconstruction are possible. The field is required and details
-                  should be specified in free-text at least. If the not crystallographic
-                  calibration was performed the field should be filled with the n/a,
+                  Different strategies for crystallographic calibration of the reconstruction
+                  are possible. Therefore, we collect first such feedback before
+                  parameterizing this further. If no crystallographic calibration was
+                  performed, the field should be filled with the n/a,
                   meaning not applied.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
+              field_of_view:
+                type: np.float64
+                unit: nanometer
+                description: |
+                  The nominal diameter of the specimen ROI which is measured in the
+                  experiment. The physical specimen cannot be measured completely
+                  because ions may launch but hit in locations other than the detector.
+                m_annotations:
+                  eln:
+                    component: NumberEditQuantity
+                    defaultDisplayUnit: nanometer
+                    minValue: 0.0
+
         ranging:
           section:
-            description: Details about the ranging definitions.
+            description: |
+              Details about the ranging definitions.
             m_annotations:
               eln:
             quantities:
               program:
                 type: str
                 description: |
-                  Name of the program used to perform the ranging with.
-                  Examples are IVAS, APSuite, or names of open-source tools.
+                  Name of the program whereby ranging definitions were defined.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              program__attr_version:
+              program_version:
                 type: str
-                description: Version plus build number, commit hash, or description of the program to support reproducibility.
+                description: |
+                  Version plus build number, commit hash, or description of the
+                  program to support reproducibility.
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-            # number_of_iontypes
-            # maximum_number_of_atoms_per_molecular_ion
-            # mass_to_charge_distribution
-            # background_quantification
-            # peak_search_and_deconvolution
-            # peak_identification taken over from program and program__attr_version

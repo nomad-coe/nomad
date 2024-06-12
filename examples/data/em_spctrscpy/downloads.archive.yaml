@@ -1,8 +1,0 @@
-data:
-  m_def: nomad.datamodel.metainfo.downloads.Downloads
-  mainfiles:
-    - emspctrscpy.archive.json
-  downloads:
-    - url: https://www.zenodo.org/record/7908429/files/EM.Various.Datasets.1.zip?download=1
-      output: EM.Various.Datasets.1.zip
-      extract: true

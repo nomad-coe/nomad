@@ -3,12 +3,6 @@ data:
   mainfiles:
     - apm.archive.json
   downloads:
-    - url: https://zenodo.org/record/7908429/files/usa_denton_smith_apav_si.zip?download=1
+    - url: https://zenodo.org/records/7986279/files/usa_denton_smith_apav_si.zip?download=1
       output: usa_denton_smith_apav_si.zip
       extract: true
-  #  - url: https://zenodo.org/record/7908429/files/usa_portland_wang.zip?download=1
-  #    output: usa_portland_wang.zip
-  #    extract: true
-  #  - url: https://www.zenodo.org/record/7885531/files/apm_sprint14_apav_usa_denton_smith.zip?download=1
-  #    output: apm_sprint14_apav_usa_denton_smith.zip
-  #    extract: true

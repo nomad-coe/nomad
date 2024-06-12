@@ -1,24 +1,8 @@
-atom_probe:
-  analysis_chamber_pressure:
-    unit: torr
-    value: 2.0e-10
-  control_software_program: IVAS
-  control_software_program__attr_version: 3.6.8
-  fabrication_capabilities: n/a
+instrument:
   fabrication_identifier: '12'
   fabrication_model: LEAP3000
   fabrication_vendor: Cameca
-  field_of_view:
-    unit: nm
-    value: 20.0
-  flight_path_length:
-    unit: m
-    value: 1.2
   instrument_name: LEAP
-  ion_detector_model: n/a
-  ion_detector_name: n/a
-  ion_detector_serial_number: n/a
-  ion_detector_type: mcp_dld
   local_electrode_name: L1
   location: Denton
   pulser:
@@ -26,88 +10,115 @@ atom_probe:
     - name: laser1
       power:
         unit: nW
-        value: 12.0
+        value: 24.
       pulse_energy:
         unit: pJ
-        value: 20.0
+        value: 24.
       wavelength:
         unit: nm
-        value: 254.0
+        value: 355.
     - name: laser2
       power:
         unit: nW
-        value: 24.0
+        value: 12.
       pulse_energy:
         unit: pJ
-        value: 40.0
+        value: 12.
       wavelength:
         unit: nm
-        value: 355.0
+        value: 254.
     pulse_fraction: 0.8
     pulse_frequency:
       unit: kHz
-      value: 250.0
-    pulse_mode: laser
-  reflectron_applied: true
-  specimen_monitoring_detection_rate: 0.8
-  specimen_monitoring_initial_radius:
-    unit: nm
-    value: 20.0
-  specimen_monitoring_shank_angle:
-    unit: °
-    value: 5.0
-  stage_lab_base_temperature:
+      value: 250.
+    pulse_mode: laser_and_voltage
+  reflectron_status: used
+  evaporation_control: detection_rate
+  target_detection_rate: 0.01
+  chamber_pressure:
+    unit: torr
+    value: 2.0e-10
+  base_temperature:
     unit: K
     value: 20.0
+  nominal_flight_path:
+    unit: m
+    value: 1.2
   status: success
 entry:
-  end_time: '2023-06-12T13:57:00+00:00'
   experiment_description: '<p>Normal</p>
 
     <p><strong>Bold</strong></p>
 
     <p><em>Italics</em></p>'
-  experiment_identifier: Si test
-  operation_mode: apt
+  start_time: '2023-06-11T11:20:00+00:00'
+  end_time: '2023-06-11T11:20:00+00:00'
   run_number: '2121'
-  start_time: '2023-06-12T13:57:00+00:00'
+  operation_mode: apt
+workflow:
+  raw_dat_file: str.str
+  hit_dat_file: hits.hits
+  recon_cfg_file: root.root
+  # recon_res_file: recon.apt
+  # range_dat_file: recon.rrng
 ranging:
   program: IVAS
-  program__attr_version: 3.6.8
+  program_version: '3.6.8'
 reconstruction:
+  program: IVAS
+  program_version: '3.6.8'
   crystallographic_calibration: n/a
   parameter: kf = 1.8, icf = 3.3
-  program: IVAS
-  program__attr_version: 3.6.8
   protocol_name: bas
+  field_of_view:
+    unit: nm
+    value: 20.
 sample:
   composition:
-  - Si
-  - Cr 2 +- 0.5
-  - C 50 ppm +- 12
+  - Mo
+  - Al 12 +- 3
+  - B 50 ppm +- 12
+  - C 3.6
+  method: experiment
+  alias: Si
   grain_diameter:
     unit: µm
-    value: 200.0
+    value: 200.
   grain_diameter_error:
     unit: µm
-    value: 50.0
-  heat_treatment_quenching_rate:
-    unit: K / s
-    value: 150.0
-  heat_treatment_quenching_rate_error:
-    unit: K / s
-    value: 10.0
+    value: 50.
   heat_treatment_temperature:
     unit: K
-    value: 600.0
+    value: 600.
   heat_treatment_temperature_error:
     unit: K
-    value: 20.0
+    value: 20.
+  heat_treatment_quenching_rate:
+    unit: K / s
+    value: 150.
+  heat_treatment_quenching_rate_error:
+    unit: K / s
+    value: 10.
+  description: '<p>nothing</p>'
 specimen:
-  alias: Si
-  is_polycrystalline: false
-  name: Si
-  preparation_date: '2023-06-12T13:59:00+00:00'
+  method: experiment
+  alias: usa_denton_smith_si
+  description: '<p>normal</p>
+
+    <p><em>bold</em></p>
+
+    <p><em>italics</em></p>'
+  is_polycrystalline: true
+  is_amorphous: false
+  preparation_date: '2023-06-11T12:51:00+00:00'
+  initial_radius:
+    unit: nm
+    value: 12.
+  shank_angle:
+    unit: °
+    value: 5.
 user:
 - name: MarkusK
-- name: Jesse Smith
+  orcid: '0000'
+- name: AlexR
+- {}

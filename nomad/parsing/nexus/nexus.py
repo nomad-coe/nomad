@@ -41,6 +41,7 @@ def _to_group_name(nx_node: ET.Element):
     """
     Normalise the given group name
     """
+    # assuming always upper() is incorrect, e.g. NXem_msr is a specific one not EM_MSR!
     return nx_node.attrib.get('name', nx_node.attrib['type'][2:].upper())
 
 
@@ -158,24 +159,21 @@ class NexusParser(Parser):
 
             if isinstance(nx_attr, str):
                 if nx_attr != 'units':
-                    # no need to handle units here
-                    # as all quantities have flexible units
-                    # print(nx_attr)
+                    # no need to handle units here as all quantities have flexible units
                     pass
             else:
-                # get the name of parent (either field or group)
-                # which will be used to set attribute
-                # this is required by the syntax of metainfo mechanism
-                # due to variadic/template quantity names
+                # get the name of parent (either field or group) used to set attribute
+                # required by the syntax of metainfo mechanism due to
+                # variadic/template quantity names
 
-                attr_name = nx_attr.get('name')
-                # It could be 1D array, float or int
+                attr_name = nx_attr.get('name')  # could be 1D array, float or int
                 attr_value = hdf_node.attrs[attr_name]
                 if not isinstance(attr_value, str):
                     if isinstance(attr_value, np.ndarray):
                         attr_value = attr_value.tolist()
                         if len(attr_value) == 1:
                             attr_value = attr_value[0]
+                        # so values of non-scalar attribute will not end up in metainfo!
 
                 attr_name = attr_name + '__attribute'
                 current = _to_section(attr_name, nx_def, nx_attr, current)
@@ -207,18 +205,19 @@ class NexusParser(Parser):
                                 quantity = quantity[parent_instance_name]
                         else:
                             quantity = None
-
+                            raise Warning(
+                                'setting attribute attempt before creating quantity'
+                            )
                         current.m_set_quantity_attribute(
                             metainfo_def, attr_name, attr_value, quantity=quantity
                         )
                 except Exception as e:
                     self._logger.warning(
-                        'Error while setting attribute.',
+                        'error while setting attribute',
                         target_name=attr_name,
                         exc_info=e,
                     )
-        else:
-            # it is a field
+        else:  # it is a field
             field = _get_value(hdf_node)
 
             # get the corresponding field name
@@ -229,19 +228,36 @@ class NexusParser(Parser):
                 current.m_def.all_properties, field_name
             )
 
-            # do not pull data arrays, but only statistics if not NaN
+            # for data arrays only statistics if not all values NINF, Inf, or NaN
             field_stats = None
             if hdf_node[...].dtype.kind in 'iufc':
                 if isinstance(field, np.ndarray) and field.size > 1:
-                    field_stats = np.array(
-                        [
-                            np.nanmean(field),
-                            np.nanvar(field),
-                            np.nanmin(field),
-                            np.nanmax(field),
-                        ]
-                    )
-                    field = field_stats[0]
+                    mask = np.isfinite(field)
+                    if np.any(mask):
+                        field_stats = np.array(
+                            [
+                                np.mean(field[mask]),
+                                np.var(field[mask]),
+                                np.min(field[mask]),
+                                np.max(field[mask]),
+                            ]
+                        )
+                        field = field_stats[0]
+                        if not np.isfinite(field):
+                            self._logger.warning(
+                                'set NaN for field of an array',
+                                target_name=field_name + '[' + data_instance_name + ']',
+                            )
+                            return
+                    else:
+                        return
+                else:
+                    if field.size == 1 and not np.isfinite(field):
+                        self._logger.warning(
+                            'set NaN for field of a scalar',
+                            target_name=field_name + '[' + data_instance_name + ']',
+                        )
+                        return
 
             # check if unit is given
             unit = hdf_node.attrs.get('units', None)
@@ -264,7 +280,6 @@ class NexusParser(Parser):
                 metainfo_def.unit = pint_unit
 
             # may need to check if the given unit is in the allowable list
-
             try:
                 current.m_set(metainfo_def, field)
                 current.m_set_quantity_attribute(
@@ -274,6 +289,9 @@ class NexusParser(Parser):
                     metainfo_def, 'm_nx_data_file', self.nxs_fname, quantity=field
                 )
                 if field_stats is not None:
+                    # TODO _add_additional_attributes function has created these nx_data_*
+                    # attributes speculatively already so if the field_stats is None
+                    # this will cause unpopulated attributes in the GUI
                     current.m_set_quantity_attribute(
                         metainfo_def, 'nx_data_mean', field_stats[0], quantity=field
                     )
@@ -288,7 +306,7 @@ class NexusParser(Parser):
                     )
             except Exception as e:
                 self._logger.warning(
-                    'Error while setting field.',
+                    'error while setting field',
                     target_name=field_name,
                     exc_info=e,
                 )
@@ -360,6 +378,11 @@ class NexusParser(Parser):
         material = self.archive.m_setdefault('results.material')
         chemical_formulas: Set[str] = set()
 
+        # DEBUG added here 'sample' only to test that I think the root cause
+        # of the bug is that when the appdef defines at the level of the HDF5
+        # only sample the current logic does not resolve it is an NXsample thus
+        # not entering ever the chemical formula parsing code and not populating
+        # m_nx_data_file and m_nx_data_path variables
         for sample in self._sample_class_refs['NXsample']:
             if sample.get('atom_types__field') is not None:
                 atom_types = sample.atom_types__field['atom_types__field'].value
@@ -367,6 +390,7 @@ class NexusParser(Parser):
                     atomlist = atom_types
                 else:
                     atomlist = atom_types.replace(' ', '').split(',')
+                    chemical_formulas.add(''.join(list(set(atomlist))))
                 # Caution: The element list will be overwritten
                 # in case a single chemical formula is found
                 material.elements = list(set(material.elements) | set(atomlist))
@@ -442,7 +466,7 @@ class NexusParser(Parser):
         else:
             raise ValueError('No Nexus file is found to populate the nexus definition.')
 
-        # TODO: domain éxperimemt could also be registered
+        # TODO: domain experiment could also be registered
         if archive.metadata is None:
             return
 

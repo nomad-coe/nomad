@@ -88,60 +88,24 @@ FAIRmat examples:
     path: examples/data/uploads/apm.zip
     title: Atom Probe Microscopy
     description: |
-      This is an example for atom probe microscopy offering
-      an atom-probe-specific custom schema for an ELN and aligned NeXus data schema
-      (NXapm) supporting standardization, parsing capabilities for the most frequently
-      used file formats (POS, ePOS, APT) for storing reconstruction and ranging
-      definitions (RNG, RRNG), real world example data, and a docker container apmtools
-      which contains configured open-source tools for analyzing atom probe dataset
-      for exploring composition and microstructural features described using methods
-      from the research fields of computational geometry and materials engineering.
-  em_spctrscpy:
-    path: examples/data/uploads/em_spctrscpy.zip
-    title: Spectroscopy Experiments with Electron Microscopy
+      This example presents the capabilities of the NOMAD platform to store and standardize atom probe data.
+      It shows the generation of a NeXus file according to the
+      [NXapm](https://fairmat-nfdi.github.io/nexus_definitions/classes/contributed_definitions/NXapm.html#nxapm)
+      application definition and a successive analysis of an example data set.
+      The example contains a small atom probe dataset from an experiment with a LEAP instrument to get you started
+      and keep the size of your NOMAD installation small. Ones started, we recommend to change the respective
+      input file in the NOMAD Oasis ELN to run the example with your own datasets.
+  em:
+    path: examples/data/uploads/em.zip
+    title: Electron Microscopy
     description: |
-      This is an example for scanning and/or transmission electron microscopy offering
-      examples how NOMAD can be customized to support spectroscopy methods like
-      energy-dispersive X-ray (EDXS/EDS) and electron energy loss spectroscopy (EELS).
-      The example offers a domain-specific custom schema for an ELN and aligned NeXus
-      data schema (NXem) supporting standardization, parsing capabilities for some
-      examples of file formats supported via hyperspy and third-party tools.
-      Examples implement how to parse data from DM3, Velox EMD and Bruker BCF files.
-  em_om:
-    path: examples/data/uploads/em_om.zip
-    title: Orientation Microscopy with Electron Microscopy
-    description: |
-      This is an example for scanning and/or transmission electron microscopy offering
-      a proof-of-concept how NOMAD can be customized to support orientation microscopy
-      methods and thus one large group of diffraction-based methods in an electron
-      microscope.
-      Specifically, the example shows how electron backscatter diffraction as a
-      technique can be conceptually represented in a research data management system.
-      The example offers a domain-specific custom schema for storing EBSD data and
-      related practical steps and mathematical conventions assumed including an aligned
-      NeXus data schema (NXem_ebsd) as a draft proposal for convincing why more
-      standardization in the research field of orientation microscopy is useful.
-      Furthermore, the example comes with real world data from multiple sources
-      different tools/analysis strategies used. The example includes a set of parsers
-      using the pynxtools library which implements proof-of-concepts how EBSD data
-      in different representation can be loaded (HDF5-based files from technology
-      partners exemplified for H5OINA, analysis results from third-party community
-      software like MTex, how to interface with an use the pyxem/orix/kikuchipy library,
-      and an example of correlative studies where a set of serial-sectioning
-      orientation maps is processed into a three-dimensionally reconstructed
-      microstructure using the popular community tool DREAM.3D.
-      Feedback from the EBSD community is welcome to substantially enhance
-      the capabilities of the underlying tools, specifically pynxtools to
-      offer a library that can be used in research data management systems
-      such as but not exclusively NOMAD OASIS.
-  em_nion:
-    path: examples/data/uploads/em_nion.zip
-    title: Reading electron microscopy data from compressed nionswift project files
-    description: |
-      This is an initial implementation and draft example using the pynxtools
-      library capabilities and em_nion reader to show how data can be read
-      directly from nionswift project files and then mapped using mapping
-      tables on an instance of the NeXus NXem application definition.
+      This example presents the capabilities of the NOMAD platform to store and standardize electron microscopy.
+      It shows the generation of a NeXus file according to the
+      [NXem](https://fairmat-nfdi.github.io/nexus_definitions/classes/contributed_definitions/NXem.html#nxem)
+      application definition.
+      The example contains a small set of electron microscopy datasets to get started and keep the size of your
+      NOMAD installation small. Ones started, we recommend to change the respective input file in the NOMAD Oasis
+      ELN to run the example with your own datasets.
   iv_temp:
     path: examples/data/uploads/iv_temp.zip
     title: Sensor Scan - IV Temperature Curve

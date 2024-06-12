@@ -4538,7 +4538,9 @@ class Section(Definition):
         if tgt_attr is not None:
             return tgt_def, tgt_attr
 
-        raise ValueError('The given attribute name is not found in the given property.')
+        raise ValueError(
+            f'The attribute name {attr_name} is not found in the given property.'
+        )
 
     @constraint
     def unique_names(self):
