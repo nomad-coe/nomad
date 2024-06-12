@@ -226,9 +226,9 @@ pyjwt==2.6.0              # via nomad-lab (pyproject.toml)
 pymatgen==2023.9.25       # via asr, nomad-lab (pyproject.toml)
 pymongo==4.6.3            # via mongoengine, optimade, nomad-lab (pyproject.toml)
 pynxtools==0.3.1          # via pynxtools-apm, pynxtools-ellips, pynxtools-em, pynxtools-mpes, pynxtools-stm, pynxtools-xps, pynxtools-xrd, nomad-lab (pyproject.toml)
-pynxtools-apm==0.1.1      # via pynxtools
+pynxtools-apm==0.2        # via pynxtools
 pynxtools-ellips==0.0.2   # via pynxtools
-pynxtools-em==0.1.1       # via pynxtools
+pynxtools-em==0.2         # via pynxtools
 pynxtools-mpes==0.0.3     # via pynxtools
 pynxtools-stm==1.0.4      # via pynxtools
 pynxtools-xps==0.2.2      # via pynxtools

@@ -1,0 +1,190 @@
+# https://fairmat-nfdi.github.io/nexus_definitions/classes/contributed_definitions/NXem.html#nxem
+# pynxtools-em implements a multi-format-capable reader whose design strategy is to work towards
+# that injection of metadata via an ELN should be reduced to the minimum amount of work possible
+# as proprietary file formats typically include already a substantial amount of contextualization of the
+# microscope session and thus there should not be a need that users have to enter these pieces
+# of information again
+# the em reader accepts customizable yaml documents that can be used to inject metadata
+# that are specific to a microscope also to reduce the pieces of information which users need
+# to enter into the ELN
+# many electron microscopy labs have ELN solutions running the data inputted into these
+# should be parsed rather directly to the em reader rather than by reengineering a NOMAD OASIS
+# ELN template like the one here
+definitions:
+  name: 'em'
+  sections:
+    ElectronMicroscopy:
+      base_sections:
+        - 'nomad.datamodel.metainfo.eln.NexusDataConverter'
+        - 'nomad.datamodel.data.EntryData'
+      m_annotations:
+        template: 
+          reader: em
+          nxdl: NXem.nxdl
+        eln: 
+          hide: []
+      sub_sections:
+        entry:
+          section:
+            description: |
+              Generic details about an experiment.
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              experiment_alias:
+                type: str
+                description: |
+                  Either an identifier or an alias that is human-friendly
+                  so that scientists find that experiment again.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              start_time:
+                type: Datetime
+                description: |
+                  ISO 8601 time code with local time zone offset to UTC
+                  when the microscope session started.
+                m_annotations:
+                  eln:
+                    component: DateTimeEditQuantity
+              end_time:
+                type: Datetime
+                description: |
+                  ISO 8601 time code with local time zone offset to UTC
+                  when the microscope session ended.
+                m_annotations:
+                  eln:
+                    component: DateTimeEditQuantity
+              experiment_description:
+                type: str
+                description: |
+                  Free text details about the experiment
+                m_annotations:
+                  eln:
+                    component: RichTextEditQuantity
+
+        sample:
+          section:
+            description: |
+              Details about the sample and its immediate environment.
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              method:
+                type:
+                  type_kind: Enum
+                  type_data:
+                    - experiment
+                    - simulation
+                m_annotations:
+                  eln:
+                    component: RadioEnumEditQuantity
+              name: 
+                type: str
+                description: |
+                  An alias used to refer to the specimen to please readability for humans.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              preparation_date:
+                type: Datetime
+                description: |
+                  ISO 8601 time code with local time zone offset to UTC information when
+                  the measured specimen surface was last actively prepared before
+                  loading the sample into the microscope.
+                m_annotations:
+                  eln:
+                    component: DateTimeEditQuantity
+              atom_types:
+                type: str
+                description: |
+                  List of comma-separated elements from the periodic
+                  table that are contained in the sample. 
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              thickness:
+                type: np.float64
+                unit: micrometer
+                description: |
+                  (Measured) sample thickness. The information is recorded to qualify
+                  if the beam used was likely able to shine through the specimen.
+                m_annotations:
+                  eln:
+                    component: NumberEditQuantity
+                    defaultDisplayUnit: micrometer
+                    minValue: 0.0
+              description:
+                type: str
+                description: |
+                  Discouraged free-text field which is currently used to learn about
+                  additional metadata that users may wish to document.
+                m_annotations:
+                  eln:
+                    component: RichTextEditQuantity
+
+        user:
+          repeats: true
+          section:
+            description: |
+              Contact information and eventually details of at least one
+              person who was involved in taking the microscope session.
+            m_annotations:
+              eln:
+                overview: true
+            quantities:
+              name:
+                type: str
+                description: |
+                  Given (first) name and surname of the user.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              email:
+                type: str
+                description: |
+                  Email address of the user when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              affiliation:
+                type: str
+                description: |
+                  Name of the affiliation the user was affiliated with
+                  when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              address:
+                type: str
+                description: |
+                  Postal address of the affiliation when the
+                  experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              orcid:
+                type: str
+                description: |
+                  Open Researcher and Contributor ID (ORCID) of
+                  the user when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              telephone_number:
+                type: str
+                description: |
+                  (Business) (tele)phone number of the user
+                  when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity
+              role:
+                type: str
+                description: |
+                  Role of the user when the experiment was performed.
+                m_annotations:
+                  eln:
+                    component: StringEditQuantity

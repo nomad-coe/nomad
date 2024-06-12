@@ -264,9 +264,9 @@ pymatgen==2023.9.25       # via asr, -r requirements.txt, nomad-lab (pyproject.t
 pymdown-extensions==10.8.1  # via mkdocs-material
 pymongo==4.6.3            # via mongoengine, optimade, -r requirements.txt, nomad-lab (pyproject.toml)
 pynxtools==0.3.1          # via pynxtools-apm, pynxtools-ellips, pynxtools-em, pynxtools-mpes, pynxtools-stm, pynxtools-xps, pynxtools-xrd, -r requirements.txt, nomad-lab (pyproject.toml)
-pynxtools-apm==0.1.1      # via pynxtools, -r requirements.txt
+pynxtools-apm==0.2        # via pynxtools, -r requirements.txt
 pynxtools-ellips==0.0.2   # via pynxtools, -r requirements.txt
-pynxtools-em==0.1.1       # via pynxtools, -r requirements.txt
+pynxtools-em==0.2         # via pynxtools, -r requirements.txt
 pynxtools-mpes==0.0.3     # via pynxtools, -r requirements.txt
 pynxtools-stm==1.0.4      # via pynxtools, -r requirements.txt
 pynxtools-xps==0.2.2      # via pynxtools, -r requirements.txt

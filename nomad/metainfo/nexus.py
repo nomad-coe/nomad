@@ -377,7 +377,8 @@ def __add_additional_attributes(definition: Definition):
         )
 
     if isinstance(definition, Quantity):
-        # TODO We should also check the shape of the quantity
+        # TODO We should also check the shape of the quantity and the datatype as
+        # the statistics are always mapping on float64 even if quantity values are ints
         if definition.type not in [np.float64, np.int64, np.uint64]:
             return
 
@@ -395,8 +396,8 @@ def __add_additional_attributes(definition: Definition):
                     variable=False,
                     shape=[],
                     type=np.float64,
-                    description='This is a nexus template property. '
-                    'This attribute holds specific  statistics on the nexus data array.',
+                    description='This is a NeXus template property. '
+                    'This attribute holds specific statistics of the NeXus data array.',
                 )
             )
 

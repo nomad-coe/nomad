@@ -1,0 +1,11 @@
+coordinate_system_set:
+- alias: Following the idea of McStas that the z-axis points along the beam, electron microscopy as a beam line to study electron/matter interaction.
+  type: cartesian
+  handedness: right_handed
+  xaxis_direction: Direction 1 that is perpendicular to the z_direction for a right_handed cartesian
+  xaxis_alias: x-axis
+  yaxis_direction: Direction 2 that is perpendicular to the xaxis_direction and the z_direction for a right_handed cartesian
+  yaxis_alias: y-axis
+  zaxis_direction: Direction of an electron travelling hypothetically exactly along the optical axis towards the specimen
+  zaxis_alias: Ideal beam direction
+  origin: E.g. a characteristic point along electron-optical setup such as the point where the probe exits what is considered as the gun (source).
