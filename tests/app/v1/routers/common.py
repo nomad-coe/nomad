@@ -905,7 +905,7 @@ def aggregation_test_parameters_default(resource: Literal['entries', 'materials'
         },
         histogram_date={
             'name': get_quantity('upload_create_time', resource),
-            'interval': '1s',
+            'interval': '1d',
             'interval_size': 1,
             'default_size': 1,
         },
