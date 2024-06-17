@@ -16,8 +16,7 @@
  * limitations under the License.
  */
 
-import { Unit } from './Unit'
-import { Quantity, parseQuantity } from './Quantity'
+import { Quantity } from './Quantity'
 import { dimensionMap } from './UnitContext'
 
 test('conversion works both ways for each compatible unit', async () => {
@@ -48,11 +47,13 @@ test.each([
   ['division', 'm/s', 'angstrom/femtosecond', 1, 0.00001],
   ['multiplication', 'm*s', 'angstrom*femtosecond', 1, 9.999999999999999e+24],
   ['power with hat', 'm^2', 'angstrom^2', 1, 99999999999999980000],
+  ['power with unit that has offset', 'celsius**2', 'fahrenheit**2', 3, 9.72], // The units here automatically become delta units due to multiplication.
   ['power with double asterisk (single)', 'm**2', 'angstrom**2', 1, 99999999999999980000],
   ['power with double asterisk (multiple)', 'm**2 / s**2', 'angstrom**2 / ms**2', 1, 99999999999999.98],
-  ['explicit delta (single)', 'delta_celsius', 'delta_K', 1, 274.15],
+  ['explicit delta identity (single)', 'delta_celsius', 'delta_celsius', 1, 1],
+  ['explicit delta (single)', 'delta_celsius', 'delta_K', 1, 1],
   ['explicit delta (multiple)', 'delta_celsius / delta_celsius', 'delta_K / delta_K', 1, 1],
-  ['explicit delta symbol (single)', 'Δcelsius', 'ΔK', 1, 274.15],
+  ['explicit delta symbol (single)', 'Δcelsius', 'ΔK', 1, 1],
   ['explicit delta symbol (multiple)', 'Δcelsius / Δcelsius', 'ΔK / ΔK', 1, 1],
   ['combined', 'm*m/s^2', 'angstrom^2/femtosecond^2', 1, 9.999999999999999e-11],
   ['negative exponent', 's^-2', 'femtosecond^-2', 1, 1e-30],
@@ -76,7 +77,10 @@ test.each([
   ['combination', 'a_u_force * angstrom', {force: {definition: 'newton'}, length: {definition: 'meter'}}, 1, 8.23872349823899e-18],
   ['use base units if derived unit not defined in system', 'newton * meter', {mass: {definition: 'kilogram'}, time: {definition: 'second'}, length: {definition: 'meter'}}, 1, 1],
   ['unit definition with prefix', 'kg^2', {mass: {definition: 'mg'}}, 1, 1e12],
-  ['expression as definition', 'N', {force: {definition: '(kg m) / s^2'}}, 1, 1]
+  ['expression as definition', 'N', {force: {definition: '(kg m) / s^2'}}, 1, 1],
+  ['delta inherited for single base unit', 'delta_celsius', {temperature: {definition: 'K'}}, 1, 1],
+  ['delta inherited for derived unit', 'delta_newton', {force: {definition: 'mN'}}, 1, 1000],
+  ['delta inherited when transforming to base units', 'delta_newton', {mass: {definition: 'kilogram'}, time: {definition: 'second'}, length: {definition: 'meter'}}, 1, 1]
 ]
 )('test conversion with "toSystem()": %s', async (name, unit, system, valueA, valueB) => {
   const a = new Quantity(valueA, unit)
@@ -121,24 +125,4 @@ test.each([
     valueB = valueB[0]
   }
   expect(valueA).toBeCloseTo(10 * valueB)
-})
-
-test.each([
-  ['number only', '100', undefined, true, false, {valueString: '100', value: 100}],
-  ['unit only', 'joule', null, false, true, {valueString: undefined, value: undefined, unit: new Unit('joule')}],
-  ['number and unit with dimension', '100 joule', 'energy', true, true, {valueString: '100', value: 100, unit: new Unit('joule')}],
-  ['number and unit without dimension', '100 joule', null, true, true, {valueString: '100', value: 100, unit: new Unit('joule')}],
-  ['incorrect dimension', '100 joule', 'length', true, true, {valueString: '100', value: 100, unit: new Unit('joule'), error: 'Unit "joule" is incompatible with dimension "length".'}],
-  ['missing unit', '100', 'length', true, true, {valueString: '100', value: 100, unit: undefined, error: 'Unit is required.'}],
-  ['missing value', 'joule', 'energy', true, true, {valueString: undefined, value: undefined, unit: new Unit('joule'), error: 'Enter a valid numerical value.'}],
-  ['mixing number and quantity #1', '1 / joule', 'energy^-1', false, false, {valueString: '1', value: 1, unit: new Unit('1 / joule')}],
-  ['mixing number and quantity #2', '100 / joule', 'energy^-1', false, false, {valueString: '100', value: 100, unit: new Unit('1 / joule')}]
-
-]
-)('test parseQuantity: %s', async (name, input, dimension, requireValue, requireUnit, expected) => {
-  const result = parseQuantity(input, dimension, requireValue, requireUnit)
-  expect(result.valueString === expected.valueString).toBe(true)
-  expect(result.value === expected.value).toBe(true)
-  expect(result.unit?.label() === expected.unit?.label()).toBe(true)
-  expect(result.error === expected.error).toBe(true)
 })

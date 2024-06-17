@@ -19,7 +19,8 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {TextField, makeStyles, Box, Checkbox, Tooltip} from '@material-ui/core'
 import Autocomplete from '@material-ui/lab/Autocomplete'
 import PropTypes from 'prop-types'
-import {Quantity, parseQuantity} from '../units/Quantity'
+import {Quantity} from '../units/Quantity'
+import {parse} from '../units/common'
 import {Unit} from '../units/Unit'
 import {getUnits} from '../units/UnitContext'
 import {debounce, isNil} from 'lodash'
@@ -92,7 +93,7 @@ export const NumberField = React.memo((props) => {
     }
 
     // Try to parse the quantity. Value is required, unit is optional.
-    const {unit: parsedUnit, value, valueString, error} = parseQuantity(input, dimension, true, false)
+    const {unit: parsedUnit, value, valueString, error} = parse(input, {dimension, requireValue: true})
     previousNumberPart.current = valueString
     if (parsedUnit) {
       previousUnitLabel.current = parsedUnit.label()
@@ -306,7 +307,7 @@ export const UnitSelect = React.memo(({options, unit, onChange, dimension, disab
 
   // Validate input and submit unit if valid
   const submit = useCallback((val) => {
-    const {unit, error} = parseQuantity(val, dimension, false, true)
+    const {unit, error} = parse(val, {dimension, requireUnit: true})
     if (error) {
       setError(error)
     } else {

@@ -585,40 +585,4 @@ def _generate_units_json(all_metainfo) -> Tuple[Any, Any]:
     unit_list.sort(key=lambda x: x.get('name'))
     unit_list.sort(key=lambda x: 0 if x.get('definition') is None else 1)
 
-    # Go through the metainfo and check that all units are defined. Note that
-    # this will break if complex derived units are used in the metainfo. In
-    # this case they can only be validated in a GUI test.
-    unit_names = set()
-    for unit in unit_list:
-        unit_names.add(unit['name'])
-        for alias in unit.get('aliases', []):
-            unit_names.add(alias)
-
-    units = set()
-    for package in all_metainfo.packages:
-        for section in package.section_definitions:
-            for quantity in section.quantities:
-                unit = quantity.unit
-                if unit is not None:
-                    parts = str(unit).split()
-                    for part in parts:
-                        is_operator = part in {'/', '**', '*'}
-                        is_number = True
-                        try:
-                            int(part)
-                        except Exception:
-                            is_number = False
-                        if not is_operator and not is_number:
-                            units.add(part)
-
-    # Check that the defined units do not contain 'delta_' or 'Δ' in them. This is
-    # reserved to indicate that a quantity should be treated without offset.
-    # MathJS does not have explicit support for these delta-units, but instead
-    # uses them implicitly when non-multiplicative units appear in expressions.
-    for unit in unit_names:
-        assert 'delta_' not in unit and 'Δ' not in unit, (
-            f'Invalid unit name {unit}. "delta_" and "Δ" are reserved for unit variants '
-            'with no offset, but MathJS does not have support for these units.'
-        )
-
     return unit_list, prefixes

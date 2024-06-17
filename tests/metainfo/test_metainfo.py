@@ -215,37 +215,58 @@ class TestM2:
         assert System.lattice_vectors.unit is not None
 
     @pytest.mark.parametrize(
-        'unit',
+        'unit, serialization',
         [
-            pytest.param('delta_degC / hr'),
-            pytest.param('ΔdegC / hr'),
-            pytest.param(ureg.delta_degC / ureg.hour),
+            pytest.param(
+                'delta_degC',
+                'delta_degree_Celsius',
+                id='explicit delta full, non-multiplicative, string',
+            ),
+            pytest.param(
+                'ΔdegC',
+                'delta_degree_Celsius',
+                id='explicit delta short, non-multiplicative, string',
+            ),
+            pytest.param(
+                'delta_degC / hr',
+                'delta_degree_Celsius / hour',
+                id='explicit delta full, multiplicative, string',
+            ),
+            pytest.param(
+                'ΔdegC / hr',
+                'delta_degree_Celsius / hour',
+                id='explicit delta short, multiplicative, string',
+            ),
+            pytest.param(
+                ureg.delta_degC / ureg.hour,
+                'delta_degree_Celsius / hour',
+                id='explicit delta, multiplicative, objects',
+            ),
+            pytest.param(
+                'degC / hr',
+                'delta_degree_Celsius / hour',
+                id='implicit delta, multiplicative, string',
+            ),
+            pytest.param('degC', 'degree_Celsius', id='no delta, non-multiplicative'),
+            pytest.param(
+                ureg.parse_units('degC / hr', as_delta=False),
+                'degree_Celsius / hour',
+                id='no delta, multiplicative, string',
+            ),
+            pytest.param(
+                ureg.degC / ureg.hour,
+                'degree_Celsius / hour',
+                id='no delta, multiplicative, objects',
+            ),
         ],
     )
-    def test_unit_explicit_delta(self, unit):
-        """Explicit delta values are not allowed when setting or de-serializing."""
-        with pytest.raises(TypeError):
-            Quantity(type=np.dtype(np.float64), unit=unit)
-        with pytest.raises(TypeError):
-            Quantity.m_from_dict(
-                {'m_def': 'nomad.metainfo.metainfo.Quantity', 'unit': str(unit)}
-            )
-
-    @pytest.mark.parametrize(
-        'unit',
-        [
-            pytest.param('degC / hr'),
-            pytest.param(ureg.degC / ureg.hour),
-        ],
-    )
-    def test_unit_implicit_delta(self, unit):
-        """Implicit delta values are allowed in setting and deserializing, delta
-        prefixes are not serialized.
-        """
+    def test_unit_delta(self, unit, serialization):
         quantity = Quantity(type=np.dtype(np.float64), unit=unit)
         serialized = quantity.m_to_dict()
-        assert serialized['unit'] == 'degree_Celsius / hour'
-        Quantity.m_from_dict(serialized)
+        deserialized = quantity.m_from_dict(serialized)
+
+        assert serialized['unit'] == serialization
+        assert str(deserialized.unit) == str(quantity.unit)
 
     @pytest.mark.parametrize(
         'dtype', [pytest.param(np.longlong), pytest.param(np.ulonglong)]
