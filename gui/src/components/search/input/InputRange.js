@@ -222,7 +222,7 @@ export const Range = React.memo(({
       return undefined
     }
     const rangeSI = maxLocal - minLocal
-    const range = new Quantity(rangeSI, unitStorage).to(xAxis.unit).value()
+    const range = new Quantity(rangeSI, unitStorage.toDelta()).to(xAxis.unit).value()
     const intervalCustom = getInterval(range, nSteps, xAxis.dtype)
     return new Quantity(intervalCustom, xAxis.unit).to(unitStorage).value()
   }, [maxLocal, minLocal, discretization, nSteps, xAxis.dtype, xAxis.unit, unitStorage])

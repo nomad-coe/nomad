@@ -64,7 +64,6 @@ from nomad.metainfo.util import (
     MTypes,
     ReferenceURL,
     SectionAnnotation,
-    _delta_symbols,
     check_dimensionality,
     check_unit,
     convert_to,
@@ -391,14 +390,21 @@ class _Unit(DataType):
         if quantity_def.flexible_unit:
             return None
 
-        value = value.__str__()
+        return value.__str__()
+
         # The delta prefixes are not serialized: only implicit deltas are
         # allowed currently.
-        return reduce(lambda a, b: a.replace(b, ''), _delta_symbols, value)
+        # return reduce(lambda a, b: a.replace(b, ''), _delta_symbols, value)
 
     def deserialize(self, section, quantity_def: Quantity, value):
         check_unit(value)
-        value = units.parse_units(value)
+
+        # The serialized version has the deltas always in correct locations, so
+        # we skip the automatic delta conversion. This way users can also choose
+        # to not use delta units with ureg.parse_units('celsius/hr',
+        # as_delta=False)
+        value = units.parse_units(value, as_delta=False)
+
         check_dimensionality(quantity_def, value)
         return value
 

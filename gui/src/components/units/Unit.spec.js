@@ -55,11 +55,14 @@ test.each([
   ['preserve order', 'second*meter', 's m'],
   ['power', 'meter^2', 'm^2'],
   ['negative power', 'meter^-1', 'm^-1'],
-  ['chain', 'meter*meter/second^2', '(m m) / s^2']
+  ['chain', 'meter*meter/second^2', '(m m) / s^2'],
+  ['delta long', 'delta_celsius', 'Δ°C'],
+  ['delta short', 'Δcelsius', 'Δ°C'],
+  ['delta with prefix', 'delta_millicelsius', 'Δm°C']
 ]
 )('label abbreviation: %s', async (name, unit, label) => {
   const a = new Unit(unit)
-  expect(a.label()).toBe(label)
+  expect(a.label(true, true)).toBe(label)
 })
 
 test.each([
@@ -87,10 +90,10 @@ test.each([
   ['power with hat', 'm^2', 'angstrom^2', 'Å^2'],
   ['power with double asterisk (single)', 'm**2', 'angstrom**2', 'Å^2'],
   ['power with double asterisk (multiple)', 'm**2 / s**2', 'angstrom**2 / ms**2', 'Å^2 / ms^2'],
-  ['explicit delta (single)', 'delta_celsius', 'delta_K', 'K'],
-  ['explicit delta (multiple)', 'delta_celsius / delta_celsius', 'delta_K / delta_K', 'K / K'],
-  ['explicit delta symbol (single)', 'Δcelsius', 'ΔK', 'K'],
-  ['explicit delta symbol (multiple)', 'Δcelsius / Δcelsius', 'ΔK / ΔK', 'K / K'],
+  ['explicit delta (single)', 'delta_celsius', 'delta_K', 'ΔK'],
+  ['explicit delta (multiple)', 'delta_celsius / delta_celsius', 'delta_K / delta_K', 'ΔK / ΔK'],
+  ['explicit delta symbol (single)', 'Δcelsius', 'K', 'K'],
+  ['explicit delta symbol (multiple)', 'Δcelsius / Δcelsius', 'ΔK / ΔK', 'ΔK / ΔK'],
   ['combined', 'm*m/s^2', 'angstrom^2/femtosecond^2', 'Å^2 / fs^2'],
   ['negative exponent', 's^-2', 'femtosecond^-2', 'fs^-2'],
   ['simple to complex with one unit', 'N', 'kg*m/s^2', '(kg m) / s^2'],
@@ -102,7 +105,7 @@ test.each([
 )('test conversion with "to()": %s', async (name, unitA, unitB, labelB) => {
   const a = new Unit(unitA)
   const b = a.to(unitB)
-  expect(b.label()).toBe(labelB)
+  expect(b.label(true, true)).toBe(labelB)
 })
 
 test.each([
@@ -113,12 +116,15 @@ test.each([
   ['combination', 'a_u_force * angstrom', {force: {definition: 'newton'}, length: {definition: 'meter'}}, 'N m'],
   ['use base units if derived unit not defined in system', 'newton * meter', {mass: {definition: 'kilogram'}, time: {definition: 'second'}, length: {definition: 'meter'}}, '(kg m m) / s^2'],
   ['unit definition with prefix', 'kg^2', {mass: {definition: 'mg'}}, 'mg^2'],
-  ['expression as definition', 'N', {force: {definition: '(kg m) / s^2'}}, '(kg m) / s^2']
+  ['expression as definition', 'N', {force: {definition: '(kg m) / s^2'}}, '(kg m) / s^2'],
+  ['delta inherited for single base unit', 'delta_celsius', {temperature: {definition: 'K'}}, 'ΔK'],
+  ['delta inherited for derived unit', 'delta_newton', {force: {definition: 'mN'}}, 'ΔmN'],
+  ['delta inherited when transforming to base units', 'delta_newton', {mass: {definition: 'kilogram'}, time: {definition: 'second'}, length: {definition: 'meter'}}, '(Δkg Δm) / Δs^2']
 ]
 )('test conversion with "toSystem()": %s', async (name, unit, system, label) => {
   const a = new Unit(unit)
   const b = a.toSystem(system)
-  expect(b.label()).toBe(label)
+  expect(b.label(true, true)).toBe(label)
 })
 
 test.each([

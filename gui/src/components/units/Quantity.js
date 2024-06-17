@@ -17,8 +17,7 @@
  */
 
 import {isNumber, isArray} from 'lodash'
-import {Unit, normalizeExpression} from './Unit'
-import { Unit as UnitMathJS } from 'mathjs'
+import {Unit} from './Unit'
 import {mapDeep} from '../../utils'
 
 /**
@@ -36,14 +35,14 @@ export class Quantity {
   constructor(value, unit, normalized = false) {
     this.unit = new Unit(unit)
     if (!isNumber(value) && !isArray(value)) {
-      throw Error('Please provide the value as a number, or as a multidimensional array of numbers.')
+      throw Error('Please provide the value for a Quantity as a number, or as a multidimensional array of numbers.')
     }
 
     // This attribute stores the quantity value in 'normalized' form that is
     // given in the base units (=SI). This value should only be determined once
-    // during the unit initialization and all calls to value() will then lazily
-    // determine the value in the currently set units. This avoids 'drift' in
-    // the value caused by several consecutive changes of the units.
+    // during initialization and all calls to value() will then lazily determine
+    // the value in the currently set units. This avoids 'drift' in the value
+    // caused by several consecutive changes of the units.
     this.normalized_value = normalized ? value : this.normalize(value)
   }
 
@@ -60,8 +59,29 @@ export class Quantity {
    * @param {n-dimensional array} value Value in currently set units.
    * @returns Value in base units.
    */
-  normalize(value) {
-    return mapDeep(value, (x) => this.unit.mathjsUnit._normalize(x))
+  normalize(values) {
+    // Pre-calculate coefficients for currently set units. This speeds up
+    // conversion for large arrays.
+    const unit = this.unit.mathjsUnit
+    const ignoreOffset = unit._isDerived()
+    const coefficients = this.conversion_coefficients()
+
+    return mapDeep(values, (value) => {
+      if (value === null || value === undefined) {
+        return value
+      }
+
+      let result = value
+      for (let i = 0; i < unit.units.length; i++) {
+        const unitDef = unit.units[i]
+        const unitOffset = unitDef.unit.offset
+        const variable = (ignoreOffset || unitDef.delta)
+          ? result
+          : result + unitOffset
+        result = variable * coefficients[i]
+      }
+      return result
+    })
   }
 
   /**
@@ -69,8 +89,45 @@ export class Quantity {
    * @param {n-dimensional array} value Value in base units.
    * @returns Value in currently set units.
    */
-  denormalize(value) {
-    return mapDeep(value, (x) => this.unit.mathjsUnit._denormalize(x))
+  denormalize(values) {
+    // Pre-calculate coefficients for currently set units. This speeds up
+    // conversion for large arrays.
+    const unit = this.unit.mathjsUnit
+    const ignoreOffset = unit._isDerived()
+    const coefficients = this.conversion_coefficients()
+
+    return mapDeep(values, (value) => {
+      if (value === null || value === undefined) {
+        return value
+      }
+
+      let result = value
+      for (let i = 0; i < unit.units.length; i++) {
+        const unitDef = unit.units[i]
+        const unitOffset = unitDef.unit.offset
+        result = (ignoreOffset || unitDef.delta)
+          ? result / coefficients[i]
+          : result / coefficients[i] - unitOffset
+      }
+      return result
+    })
+  }
+
+  /**
+   * Returns a set of conversion coefficients based on the currently set units.
+   * @returns Array of conversion coefficients, one for each unit that is present.
+   */
+  conversion_coefficients() {
+    const unit = this.unit.mathjsUnit
+    const coefficients = []
+    for (let i = 0; i < unit.units.length; i++) {
+      const unitDef = unit.units[i]
+      const unitValue = unitDef.unit.value
+      const unitPrefixValue = unitDef.prefix.value
+      const unitPower = unitDef.power
+      coefficients.push((Math.pow(unitValue * unitPrefixValue, unitPower)))
+    }
+    return coefficients
   }
 
   label() {
@@ -105,84 +162,4 @@ export class Quantity {
       throw Error('The given value is not an instance of Quantity.')
     }
   }
-}
-
-/**
- * Convenience function for parsing value and unit information from a string.
- *
- * @param {string} input The input string to parse
- * @param {string} dimension Dimension for the unit. Note that you should use
- *   the base dimensions which you can get e.g. with .dimension(true). Defaults
- *   to 'dimensionless' if not specified. If you want to disable dimension
- *   checks, use null.
- * @param {boolean} requireValue Whether an explicit numeric value is required at the start of the input.
- * @param {boolean} requireUnit Whether an explicit unit in the input is required at the end of the input.
- * @returns Object containing the following properties, if available:
- *  - value: Numerical value as a number
- *  - valueString: The original number input as a string. Note that this can only return
- *    the number when it is used as a prefix, and does not work with numbers that are
- *    part of a complex expression, e.g. 300 eV / 1000 K.
- *  - unit: Unit instance
- *  - error: Error messsage
- */
-export function parseQuantity(input, dimension = 'dimensionless', requireValue = false, requireUnit = false) {
-  input = input.trim()
-  let error
-  let value
-  let valueString = input.match(/^[+-]?((\d+\.\d+|\d+\.|\.\d?|\d+)(e|e\+|e-)\d+|(\d+\.\d+|\d+\.|\.\d?|\d+))?/)?.[0]
-  const unitString = input.substring(valueString.length)?.trim() || ''
-
-  // Check value if required
-  if (valueString === '') {
-    valueString = undefined
-    value = undefined
-    if (requireValue) {
-       error = 'Enter a valid numerical value.'
-    }
-  } else {
-    value = Number(valueString)
-  }
-
-  // Check unit if required
-  if (requireUnit) {
-    if (unitString === '') {
-      return {valueString, value, error: 'Unit is required.'}
-    }
-  }
-
-  // Try to parse with MathJS: it can extract the unit even when it is mixed
-  // with numbers
-  input = normalizeExpression(input)
-  let unitMathJS
-  try {
-    unitMathJS = UnitMathJS.parse(input, {allowNoUnits: true})
-  } catch (e) {
-    return {valueString, error: e.message}
-  }
-
-  let unit
-  unitMathJS.value = null
-  try {
-    unit = new Unit(unitMathJS)
-  } catch (e) {
-    error = e.msg
-  }
-  if (error) {
-    return {valueString, value, unit, error}
-  }
-
-  // If unit is not required and it is dimensionless, return without new unit
-  if (!requireUnit && unit.dimension() === 'dimensionless') {
-    return {valueString, value}
-  }
-
-  // TODO: This check is not enough: the input may be compatible after the base
-  // units are compared.
-  if (dimension !== null) {
-    if (!(unit.dimension(true) === dimension || unit.dimension(false) === dimension)) {
-      error = `Unit "${unit.label(false)}" is incompatible with dimension "${dimension}".`
-    }
-  }
-
-  return {value, valueString, unit, error}
 }

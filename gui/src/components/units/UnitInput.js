@@ -21,7 +21,7 @@ import PropTypes from 'prop-types'
 import {isNil} from 'lodash'
 import {getSuggestions} from '../../utils'
 import {unitMap} from './UnitContext'
-import {parseQuantity} from './Quantity'
+import {parse} from './common'
 import {List, ListItemText, ListSubheader, makeStyles} from '@material-ui/core'
 import {VariableSizeList} from 'react-window'
 import {InputText} from '../search/input/InputText'
@@ -80,7 +80,7 @@ export const UnitInput = React.memo(({value, error, onChange, onAccept, onSelect
         return {valid: false, error: 'Please specify a value'}
       }
     }
-    const {error, unit} = parseQuantity(value, dimension, false, true)
+    const {error, unit} = parse(value, {dimension, requireUnit: true})
     return {valid: !error, error, data: unit}
   }, [optional, dimension])
 

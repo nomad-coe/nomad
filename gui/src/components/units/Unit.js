@@ -18,6 +18,7 @@
 import {isNil, has, isString} from 'lodash'
 import {Unit as UnitMathJS} from 'mathjs'
 import {unitToAbbreviationMap} from './UnitContext'
+import {parseInternal} from './common'
 
 export const DIMENSIONLESS = 'dimensionless'
 
@@ -35,8 +36,7 @@ export class Unit {
    */
   constructor(unit) {
     if (isString(unit)) {
-      unit = normalizeExpression(unit)
-      unit = new UnitMathJS(undefined, unit)
+      unit = parseInternal(unit, {requireUnit: true}).unit
     } else if (unit instanceof Unit) {
       unit = unit.mathjsUnit.clone()
     } else if (unit instanceof UnitMathJS) {
@@ -45,8 +45,6 @@ export class Unit {
       throw Error('Please provide the unit as a string or as an instance of Unit.')
     }
     this.mathjsUnit = unit
-    // this._labelabbreviate = undefined
-    // this._label = undefined
   }
 
   /**
@@ -56,7 +54,6 @@ export class Unit {
    */
   equalBase(unit) {
     if (isString(unit)) {
-      unit = normalizeExpression(unit)
       unit = new Unit(unit)
     }
     return this.mathjsUnit.equalBase(unit.mathjsUnit)
@@ -70,18 +67,21 @@ export class Unit {
    * (as given or defined by the unit system) are used.
    * @returns A string representing the unit.
    */
-  label(abbreviate = true) {
+  label(abbreviate = true, showDelta = false) {
     // TODO: The label caching is disabled for now. Because Quantities are
     // stored as recoil.js atoms, they become immutable which causes problems
     // with internal state mutation.
-    // if (this._labelabbreviate === abbreviate && this._label) {
-    //   return this._label
-    // }
     const units = this.mathjsUnit.units
     let strNum = ''
     let strDen = ''
     let nNum = 0
     let nDen = 0
+
+    function getDelta(unit) {
+      return (showDelta && unit.delta)
+        ? abbreviate ? 'Δ' : 'delta_'
+        : ''
+    }
 
     function getName(unit) {
       if (unit.base.key === DIMENSIONLESS) return ''
@@ -90,7 +90,7 @@ export class Unit {
         : unit.name
     }
 
-    function getPrefix(unit, original) {
+    function getPrefix(original) {
       if (!abbreviate) return original
       const prefixMap = {
         // SI
@@ -128,32 +128,36 @@ export class Unit {
     }
 
     for (let i = 0; i < units.length; i++) {
-      if (units[i].power > 0) {
+      const unitDef = units[i]
+      if (unitDef.power > 0) {
         nNum++
-        const prefix = getPrefix(units[i].unit.name, units[i].prefix.name)
-        const name = getName(units[i].unit)
-        strNum += ` ${prefix}${name}`
-        if (Math.abs(units[i].power - 1.0) > 1e-15) {
-          strNum += '^' + units[i].power
+        const prefix = getPrefix(unitDef.prefix.name)
+        const name = getName(unitDef.unit)
+        const delta = getDelta(unitDef)
+        strNum += ` ${delta}${prefix}${name}`
+        if (Math.abs(unitDef.power - 1.0) > 1e-15) {
+          strNum += '^' + unitDef.power
         }
-      } else if (units[i].power < 0) {
+      } else if (unitDef.power < 0) {
         nDen++
       }
     }
 
     if (nDen > 0) {
       for (let i = 0; i < units.length; i++) {
-        if (units[i].power < 0) {
-          const prefix = getPrefix(units[i].unit.name, units[i].prefix.name)
-          const name = getName(units[i].unit)
+        const unitDef = units[i]
+        if (unitDef.power < 0) {
+          const prefix = getPrefix(unitDef.prefix.name)
+          const name = getName(unitDef.unit)
+          const delta = getDelta(unitDef)
           if (nNum > 0) {
-            strDen += ` ${prefix}${name}`
-            if (Math.abs(units[i].power + 1.0) > 1e-15) {
-              strDen += '^' + (-units[i].power)
+            strDen += ` ${delta}${prefix}${name}`
+            if (Math.abs(unitDef.power + 1.0) > 1e-15) {
+              strDen += '^' + (-unitDef.power)
             }
           } else {
-            strDen += ` ${prefix}${name}`
-            strDen += '^' + (units[i].power)
+            strDen += ` ${delta}${prefix}${name}`
+            strDen += '^' + (unitDef.power)
           }
         }
       }
@@ -177,8 +181,6 @@ export class Unit {
     }
     str += strDen
 
-    // this._labelabbreviate = abbreviate
-    // this._label = str
     return str
   }
 
@@ -223,20 +225,28 @@ export class Unit {
    * @returns A new Unit expressed in the given units.
    */
   to(unit) {
-    if (isString(unit)) {
-      unit = normalizeExpression(unit)
-    } else if (unit instanceof Unit) {
-      unit = unit.label()
+    let mathjsUnit
+    if (unit instanceof Unit) {
+      mathjsUnit = unit.mathjsUnit
+    } else if (isString(unit)) {
+      mathjsUnit = parseInternal(unit, {requireUnit: true}).unit
     } else {
       throw Error('Unknown unit type. Please provide the unit as as string or as instance of Unit.')
     }
+    return new Unit(this.mathjsUnit.to(mathjsUnit))
+  }
 
-    // We cannot directly feed the unit string into Math.js, because it will try
-    // to parse units like 1/<unit> as Math.js units which have values, and then
-    // will raise an exception when converting between valueless and valued
-    // unit. The workaround is to explicitly define a valueless unit.
-    unit = new UnitMathJS(undefined, unit === '' ? DIMENSIONLESS : unit)
-    return new Unit(this.mathjsUnit.to(unit))
+  /**
+   * Converts all units to their delta versions.
+   *
+   * @returns A new Unit with delta units.
+   */
+  toDelta() {
+    const unitMathJS = this.mathjsUnit.clone()
+    for (const unit of unitMathJS.units) {
+      unit.delta = true
+    }
+    return new Unit(unitMathJS)
   }
 
   /**
@@ -295,6 +305,9 @@ export class Unit {
    * present, it will, however, attempt to convert it to the base units. Any
    * further simplication is not performed.
    *
+   * If the converted unit has any delta-units, the converted units will also
+   * become delta-units.
+   *
    * @param {object} system The target unit system.
    * @returns A new Unit instance in the given system.
    */
@@ -310,11 +323,12 @@ export class Unit {
     for (const unit of this.mathjsUnit.units) {
       const dimension = unit.unit.base.key
       const newUnitDefinition = system?.[dimension]?.definition
+
       // If the unit for this dimension is defined, use it
       if (!isNil(newUnitDefinition)) {
         const newUnit = new Unit(newUnitDefinition)
         for (const unitDef of newUnit.mathjsUnit.units) {
-          proposedUnitList.push({...unitDef, power: unitDef.power * unit.power})
+          proposedUnitList.push({...unitDef, power: unitDef.power * unit.power, delta: unit.delta})
         }
       // Otherwise convert to base units
       } else {
@@ -328,7 +342,8 @@ export class Unit {
               proposedUnitList.push({
                 unit: UNITS[system[baseDim].definition],
                 prefix: PREFIXES.NONE[''],
-                power: unit.power ? newDimensions[i] * unit.power : 0
+                power: unit.power ? newDimensions[i] * unit.power : 0,
+                delta: unit.delta
               })
             } else {
               missingBaseDim = true
@@ -345,23 +360,4 @@ export class Unit {
     ret.units = proposedUnitList
     return new Unit(ret)
   }
-}
-
-/**
- * Normalizes the given expression into a format that can be parsed by MathJS.
- *
- * This function will replace the Pint power symbol of '**' with the symbol
- * '^' used by MathJS. In addition, we convert any 'delta'-units (see:
- * https://pint.readthedocs.io/en/stable/nonmult.html) into their regular
- * counterparts: MathJS will automatically ignore the offset when using
- * non-multiplicative units in expressions.
- *
- * @param {str} expression Expression
- * @returns string Expression in normalized form
- */
-export function normalizeExpression(expression) {
-  let normalized = expression.replace(/\*\*/g, '^')
-  normalized = normalized.replace(/delta_/g, '')
-  normalized = normalized.replace(/Δ/g, '')
-  return normalized
 }
