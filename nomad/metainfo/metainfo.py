@@ -392,20 +392,11 @@ class _Unit(DataType):
 
         return value.__str__()
 
-        # The delta prefixes are not serialized: only implicit deltas are
-        # allowed currently.
-        # return reduce(lambda a, b: a.replace(b, ''), _delta_symbols, value)
-
     def deserialize(self, section, quantity_def: Quantity, value):
         check_unit(value)
-
-        # The serialized version has the deltas always in correct locations, so
-        # we skip the automatic delta conversion. This way users can also choose
-        # to not use delta units with ureg.parse_units('celsius/hr',
-        # as_delta=False)
-        value = units.parse_units(value, as_delta=False)
-
+        value = units.parse_units(value)
         check_dimensionality(quantity_def, value)
+
         return value
 
 
