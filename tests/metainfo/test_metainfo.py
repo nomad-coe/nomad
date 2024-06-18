@@ -215,58 +215,71 @@ class TestM2:
         assert System.lattice_vectors.unit is not None
 
     @pytest.mark.parametrize(
-        'unit, serialization',
+        'unit, serialized, deserialized',
         [
             pytest.param(
                 'delta_degC',
+                'delta_degree_Celsius',
                 'delta_degree_Celsius',
                 id='explicit delta full, non-multiplicative, string',
             ),
             pytest.param(
                 'ΔdegC',
                 'delta_degree_Celsius',
+                'delta_degree_Celsius',
                 id='explicit delta short, non-multiplicative, string',
             ),
             pytest.param(
                 'delta_degC / hr',
+                'delta_degree_Celsius / hour',
                 'delta_degree_Celsius / hour',
                 id='explicit delta full, multiplicative, string',
             ),
             pytest.param(
                 'ΔdegC / hr',
                 'delta_degree_Celsius / hour',
+                'delta_degree_Celsius / hour',
                 id='explicit delta short, multiplicative, string',
             ),
             pytest.param(
                 ureg.delta_degC / ureg.hour,
+                'delta_degree_Celsius / hour',
                 'delta_degree_Celsius / hour',
                 id='explicit delta, multiplicative, objects',
             ),
             pytest.param(
                 'degC / hr',
                 'delta_degree_Celsius / hour',
+                'delta_degree_Celsius / hour',
                 id='implicit delta, multiplicative, string',
             ),
-            pytest.param('degC', 'degree_Celsius', id='no delta, non-multiplicative'),
+            pytest.param(
+                'degC',
+                'degree_Celsius',
+                'degree_Celsius',
+                id='no delta, non-multiplicative',
+            ),
             pytest.param(
                 ureg.parse_units('degC / hr', as_delta=False),
                 'degree_Celsius / hour',
-                id='no delta, multiplicative, string',
+                'delta_degree_Celsius / hour',
+                id='non-delta units ignored in deserialization 1',
             ),
             pytest.param(
                 ureg.degC / ureg.hour,
                 'degree_Celsius / hour',
-                id='no delta, multiplicative, objects',
+                'delta_degree_Celsius / hour',
+                id='non-delta units ignored in deserialization 2',
             ),
         ],
     )
-    def test_unit_delta(self, unit, serialization):
+    def test_unit_delta(self, unit, serialized, deserialized):
         quantity = Quantity(type=np.dtype(np.float64), unit=unit)
-        serialized = quantity.m_to_dict()
-        deserialized = quantity.m_from_dict(serialized)
+        serialized_dict = quantity.m_to_dict()
+        deserialized_obj = quantity.m_from_dict(serialized_dict)
 
-        assert serialized['unit'] == serialization
-        assert str(deserialized.unit) == str(quantity.unit)
+        assert serialized_dict['unit'] == serialized
+        assert str(deserialized_obj.unit) == deserialized
 
     @pytest.mark.parametrize(
         'dtype', [pytest.param(np.longlong), pytest.param(np.ulonglong)]
