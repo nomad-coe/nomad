@@ -38,19 +38,30 @@ from nomad.datamodel.data import (
     BasicElnCategory,
 )
 from nomad.metainfo.metainfo import MSection, MProxy, MEnum, Category, MCategory
-from nomad.datamodel.results import ELN, Results, Material
+from nomad.datamodel.metainfo.common import ProvenanceTracker
 from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
+from nomad.datamodel.results import (
+    BandGap,
+    BandGapDeprecated,
+    BandStructureElectronic,
+    ElectronicProperties,
+    OptoelectronicProperties,
+    Properties,
+    Results,
+    ELN,
+    Material,
+    SolarCell,
+)
+
+
 from nomad.metainfo import Package, Quantity, Datetime, Reference, Section, SubSection
 from ase.data import chemical_symbols, atomic_numbers, atomic_masses
-from perovskite_solar_cell_database.schema_sections.utils import (
-    add_solar_cell,
-    add_band_gap,
-)
 
 from nomad.datamodel.metainfo.eln.nexus_data_converter import (
     NexusDataConverter,
     ElnYamlConverter,
 )
+from nomad.datamodel.metainfo.eln.eqe_parser import EQEAnalyzer
 
 from nomad.datamodel.metainfo.basesections import (
     Entity,
@@ -78,6 +89,37 @@ from nomad.datamodel.metainfo.basesections import (
 from nomad.datamodel.metainfo.annotations import (
     ELNAnnotation,
 )
+
+
+def add_band_gap(archive, band_gap):
+    """Adds a band gap value (in eV) with the additional section structure for solar
+    cell data.eV=
+    """
+    if band_gap is not None:
+        bg = BandGapDeprecated(value=np.float64(band_gap) * ureg('eV'))
+        band_gap = BandGap(
+            value=np.float64(band_gap) * ureg('eV'),
+            provenance=ProvenanceTracker(label='solar_cell_database'),
+        )  # TODO: check label
+        band_structure = BandStructureElectronic(
+            band_gap=[bg]
+        )  # TODO: to be removed after reparsing
+        electronic = ElectronicProperties(
+            band_structure_electronic=[band_structure], band_gap=[band_gap]
+        )
+        archive.results.properties.electronic = electronic
+
+
+def add_solar_cell(archive):
+    """Adds metainfo structure for solar cell data."""
+    if not archive.results:
+        archive.results = Results()
+    if not archive.results.properties:
+        archive.results.properties = Properties()
+    if not archive.results.properties.optoelectronic:
+        archive.results.properties.optoelectronic = OptoelectronicProperties()
+    if not archive.results.properties.optoelectronic.solar_cell:
+        archive.results.properties.optoelectronic.solar_cell = SolarCell()
 
 
 m_package = Package(name='eln')
@@ -1639,7 +1681,6 @@ class SolarCellEQE(PlotSection):
 
     def normalize(self, archive, logger):
         super(SolarCellEQE, self).normalize(archive, logger)
-        from perovskite_solar_cell_database.data_tools.eqe_parser import EQEAnalyzer
 
         if self.eqe_data_file:
             with archive.m_context.raw_file(self.eqe_data_file) as f:

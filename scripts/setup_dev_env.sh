@@ -19,6 +19,10 @@ rm -rf site
 pip install --prefer-binary -r requirements-dev.txt
 pip install -e ".[infrastructure,parsing,dev]"
 
+# Install "default" plugins. TODO: This can be removed once we have proper
+# distributions projects.
+sh scripts/install_default_plugins.sh
+
 # Build documentation
 sh scripts/generate_docs_artifacts.sh
 mkdocs build
