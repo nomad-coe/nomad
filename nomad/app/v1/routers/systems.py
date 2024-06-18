@@ -123,7 +123,7 @@ def write_xyz(atoms: NOMADAtoms, entry_id: str, formula: str = None) -> str:
     """For writing an XYZ file."""
     stream = StringIO()
     atoms = ase_atoms_from_nomad_atoms(atoms)
-    ase.io.write(stream, atoms, format='xyz')
+    ase.io.write(stream, atoms, format='extxyz')
     stream.seek(0)
     content = stream.read()
     if entry_id is not None:
