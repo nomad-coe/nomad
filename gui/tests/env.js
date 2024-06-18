@@ -1610,677 +1610,6 @@ window.nomadEnv = {
             ]
           }
         },
-        "solarcells": {
-          "label": "Solar Cells",
-          "path": "solarcells",
-          "resource": "entries",
-          "category": "Use Cases",
-          "description": "Search solar cells",
-          "readme": "This page allows you to search **solar cell data** within NOMAD. The filter menu on the left and the shown default columns are specifically designed for solar cell exploration. The dashboard directly shows useful interactive statistics about the data.",
-          "pagination": {
-            "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
-            "order": "desc",
-            "page_size": 20
-          },
-          "columns": {
-            "options": {
-              "results.material.chemical_formula_descriptive": {
-                "label": "Descriptive formula",
-                "align": "left"
-              },
-              "results.properties.optoelectronic.solar_cell.efficiency": {
-                "label": "Efficiency (%)",
-                "align": "left",
-                "format": {
-                  "decimals": 2,
-                  "mode": "standard"
-                }
-              },
-              "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
-                "align": "left",
-                "unit": "V",
-                "format": {
-                  "decimals": 3,
-                  "mode": "standard"
-                }
-              },
-              "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
-                "align": "left",
-                "unit": "A/m**2",
-                "format": {
-                  "decimals": 3,
-                  "mode": "standard"
-                }
-              },
-              "results.properties.optoelectronic.solar_cell.fill_factor": {
-                "align": "left",
-                "format": {
-                  "decimals": 3,
-                  "mode": "standard"
-                }
-              },
-              "references": {
-                "align": "left"
-              },
-              "results.material.chemical_formula_hill": {
-                "label": "Formula",
-                "align": "left"
-              },
-              "results.material.structural_type": {
-                "align": "left"
-              },
-              "results.properties.optoelectronic.solar_cell.illumination_intensity": {
-                "label": "Illum. intensity",
-                "align": "left",
-                "unit": "W/m**2",
-                "format": {
-                  "decimals": 3,
-                  "mode": "standard"
-                }
-              },
-              "results.eln.lab_ids": {
-                "align": "left"
-              },
-              "results.eln.sections": {
-                "align": "left"
-              },
-              "results.eln.methods": {
-                "align": "left"
-              },
-              "results.eln.tags": {
-                "align": "left"
-              },
-              "results.eln.instruments": {
-                "align": "left"
-              },
-              "entry_name": {
-                "label": "Name",
-                "align": "left"
-              },
-              "entry_type": {
-                "align": "left"
-              },
-              "mainfile": {
-                "align": "left"
-              },
-              "upload_create_time": {
-                "label": "Upload time",
-                "align": "left"
-              },
-              "authors": {
-                "align": "left"
-              },
-              "comment": {
-                "align": "left"
-              },
-              "datasets": {
-                "align": "left"
-              },
-              "published": {
-                "label": "Access",
-                "align": "left"
-              }
-            },
-            "selected": [
-              "results.material.chemical_formula_descriptive",
-              "results.properties.optoelectronic.solar_cell.efficiency",
-              "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
-              "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
-              "results.properties.optoelectronic.solar_cell.fill_factor",
-              "references"
-            ]
-          },
-          "rows": {
-            "actions": {
-              "enabled": true
-            },
-            "details": {
-              "enabled": true
-            },
-            "selection": {
-              "enabled": true
-            }
-          },
-          "filter_menus": {
-            "options": {
-              "material": {
-                "label": "Absorber Material",
-                "level": 0,
-                "size": "s"
-              },
-              "elements": {
-                "label": "Elements / Formula",
-                "level": 1,
-                "size": "xl"
-              },
-              "structure": {
-                "label": "Structure / Symmetry",
-                "level": 1,
-                "size": "s"
-              },
-              "electronic": {
-                "label": "Electronic Properties",
-                "level": 0,
-                "size": "s"
-              },
-              "solarcell": {
-                "label": "Solar Cell Properties",
-                "level": 0,
-                "size": "s"
-              },
-              "eln": {
-                "label": "Electronic Lab Notebook",
-                "level": 0,
-                "size": "s"
-              },
-              "custom_quantities": {
-                "label": "User Defined Quantities",
-                "level": 0,
-                "size": "l"
-              },
-              "author": {
-                "label": "Author / Origin / Dataset",
-                "level": 0,
-                "size": "m"
-              },
-              "metadata": {
-                "label": "Visibility / IDs / Schema",
-                "level": 0,
-                "size": "s"
-              },
-              "optimade": {
-                "label": "Optimade",
-                "level": 0,
-                "size": "m"
-              }
-            }
-          },
-          "filters": {
-            "include": [
-              "*#perovskite_solar_cell_database.schema.PerovskiteSolarCell"
-            ],
-            "exclude": [
-              "mainfile",
-              "entry_name",
-              "combine"
-            ]
-          },
-          "dashboard": {
-            "widgets": [
-              {
-                "type": "periodictable",
-                "layout": {
-                  "lg": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 8,
-                    "minW": 12
-                  },
-                  "md": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 8,
-                    "minW": 12
-                  },
-                  "sm": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 16,
-                    "minH": 8,
-                    "minW": 12
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 8,
-                    "minW": 12
-                  },
-                  "xxl": {
-                    "h": 8,
-                    "w": 13,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 8,
-                    "minW": 12
-                  }
-                },
-                "quantity": "results.material.elements",
-                "scale": "linear"
-              },
-              {
-                "type": "scatterplot",
-                "layout": {
-                  "lg": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 6,
-                    "w": 9,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 0,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 9,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 24,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "x": {
-                  "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
-                },
-                "y": {
-                  "title": "Efficiency (%)",
-                  "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
-                },
-                "markers": {
-                  "color": {
-                    "unit": "mA/cm^2",
-                    "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
-                  }
-                },
-                "size": 1000,
-                "autorange": true
-              },
-              {
-                "type": "scatterplot",
-                "layout": {
-                  "lg": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 0,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 6,
-                    "w": 9,
-                    "x": 9,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 8,
-                    "w": 9,
-                    "x": 21,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 8,
-                    "w": 11,
-                    "x": 13,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "x": {
-                  "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
-                },
-                "y": {
-                  "title": "Efficiency (%)",
-                  "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
-                },
-                "markers": {
-                  "color": {
-                    "quantity": "results.properties.optoelectronic.solar_cell.device_architecture"
-                  }
-                },
-                "size": 1000,
-                "autorange": true
-              },
-              {
-                "type": "terms",
-                "layout": {
-                  "lg": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 4,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 6,
-                    "w": 4,
-                    "x": 0,
-                    "y": 10,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 14,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 14,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
-                "scale": "linear",
-                "showinput": true
-              },
-              {
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 4,
-                    "w": 12,
-                    "x": 12,
-                    "y": 12,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 10,
-                    "y": 17,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 4,
-                    "y": 13,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 11,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "x": {
-                  "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity"
-                },
-                "scale": "1/4",
-                "autorange": true,
-                "showinput": true,
-                "nbins": 30
-              },
-              {
-                "type": "terms",
-                "layout": {
-                  "lg": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 18,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 0,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 5,
-                    "w": 4,
-                    "x": 0,
-                    "y": 5,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 8,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 8,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
-                "scale": "linear",
-                "showinput": true
-              },
-              {
-                "title": "Band gap",
-                "type": "histogram",
-                "layout": {
-                  "lg": {
-                    "h": 4,
-                    "w": 12,
-                    "x": 12,
-                    "y": 16,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "md": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 10,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "sm": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 4,
-                    "y": 10,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 8
-                  },
-                  "xxl": {
-                    "h": 3,
-                    "w": 8,
-                    "x": 0,
-                    "y": 11,
-                    "minH": 3,
-                    "minW": 8
-                  }
-                },
-                "x": {
-                  "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
-                },
-                "scale": "1/4",
-                "autorange": false,
-                "showinput": false,
-                "nbins": 30
-              },
-              {
-                "type": "terms",
-                "layout": {
-                  "lg": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 18,
-                    "y": 6,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 6,
-                    "w": 5,
-                    "x": 0,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 5,
-                    "w": 4,
-                    "x": 4,
-                    "y": 5,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 5,
-                    "x": 25,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 20,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
-                "scale": "linear",
-                "showinput": true
-              },
-              {
-                "type": "terms",
-                "layout": {
-                  "lg": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 12,
-                    "y": 6,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "md": {
-                    "h": 6,
-                    "w": 5,
-                    "x": 5,
-                    "y": 14,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "sm": {
-                    "h": 5,
-                    "w": 4,
-                    "x": 8,
-                    "y": 5,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xl": {
-                    "h": 6,
-                    "w": 5,
-                    "x": 20,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  },
-                  "xxl": {
-                    "h": 6,
-                    "w": 6,
-                    "x": 26,
-                    "y": 8,
-                    "minH": 3,
-                    "minW": 3
-                  }
-                },
-                "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
-                "scale": "linear",
-                "showinput": true
-              }
-            ]
-          },
-          "filters_locked": {
-            "sections": "nomad.datamodel.results.SolarCell"
-          },
-          "search_syntaxes": {
-            "exclude": [
-              "free_text"
-            ]
-          }
-        },
         "mofs": {
           "label": "Metal-Organic Frameworks",
           "path": "mofs",
@@ -4167,12 +3496,6 @@ window.nomadEnv = {
           "name": "parsers/yambo",
           "plugin_source_code_url": "https://github.com/nomad-coe/electronic-parsers/tree/develop/electronicparsers/yambo"
         },
-        "schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database": {
-          "plugin_type": "schema",
-          "id": "schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database",
-          "name": "perovskite_solar_cell_database",
-          "description": "A NOMAD plugin containing the schema for the Perovskite Solar Cell Database."
-        },
         "schema/simulation/run": {
           "plugin_type": "schema",
           "id": "schema/simulation/run",
@@ -4184,9 +3507,707 @@ window.nomadEnv = {
           "id": "schema/simulation/workflow",
           "name": "simulationworkflowschema",
           "description": "This is a collection of schemas for various types of simulation workflows.\n"
+        },
+        "perovskite_solar_cell_database:perovskite_solar_cell": {
+          "id": "perovskite_solar_cell_database:perovskite_solar_cell",
+          "entry_point_type": "schema_package",
+          "name": "PerovskiteSolarCell",
+          "description": "Schema package defined for the perovskite solar cells database.",
+          "plugin_package": "perovskite_solar_cell_database"
+        },
+        "perovskite_solar_cell_database.apps:solar_cells": {
+          "id": "perovskite_solar_cell_database.apps:solar_cells",
+          "entry_point_type": "app",
+          "name": "Solar Cells",
+          "description": "\n      This app allows you to search **solar cell data** within NOMAD. The filter\n      menu on the left and the shown default columns are specifically designed\n      for solar cell exploration. The dashboard directly shows useful\n      interactive statistics about the data.\n    ",
+          "plugin_package": "perovskite_solar_cell_database",
+          "app": {
+            "label": "Solar Cells",
+            "path": "solarcells",
+            "resource": "entries",
+            "category": "Use Cases",
+            "description": "Search solar cells",
+            "readme": "This page allows you to search **solar cell data** within NOMAD. The filter menu on the left and the shown default columns are specifically designed for solar cell exploration. The dashboard directly shows useful interactive statistics about the data.",
+            "pagination": {
+              "order_by": "results.properties.optoelectronic.solar_cell.efficiency",
+              "order": "desc",
+              "page_size": 20
+            },
+            "columns": {
+              "options": {
+                "results.material.chemical_formula_descriptive": {
+                  "label": "Descriptive formula",
+                  "align": "left"
+                },
+                "results.properties.optoelectronic.solar_cell.efficiency": {
+                  "label": "Efficiency (%)",
+                  "align": "left",
+                  "format": {
+                    "decimals": 2,
+                    "mode": "standard"
+                  }
+                },
+                "results.properties.optoelectronic.solar_cell.open_circuit_voltage": {
+                  "align": "left",
+                  "unit": "V",
+                  "format": {
+                    "decimals": 3,
+                    "mode": "standard"
+                  }
+                },
+                "results.properties.optoelectronic.solar_cell.short_circuit_current_density": {
+                  "align": "left",
+                  "unit": "A/m**2",
+                  "format": {
+                    "decimals": 3,
+                    "mode": "standard"
+                  }
+                },
+                "results.properties.optoelectronic.solar_cell.fill_factor": {
+                  "align": "left",
+                  "format": {
+                    "decimals": 3,
+                    "mode": "standard"
+                  }
+                },
+                "references": {
+                  "align": "left"
+                },
+                "results.material.chemical_formula_hill": {
+                  "label": "Formula",
+                  "align": "left"
+                },
+                "results.material.structural_type": {
+                  "align": "left"
+                },
+                "results.properties.optoelectronic.solar_cell.illumination_intensity": {
+                  "label": "Illum. intensity",
+                  "align": "left",
+                  "unit": "W/m**2",
+                  "format": {
+                    "decimals": 3,
+                    "mode": "standard"
+                  }
+                },
+                "results.eln.lab_ids": {
+                  "align": "left"
+                },
+                "results.eln.sections": {
+                  "align": "left"
+                },
+                "results.eln.methods": {
+                  "align": "left"
+                },
+                "results.eln.tags": {
+                  "align": "left"
+                },
+                "results.eln.instruments": {
+                  "align": "left"
+                },
+                "entry_name": {
+                  "label": "Name",
+                  "align": "left"
+                },
+                "entry_type": {
+                  "align": "left"
+                },
+                "mainfile": {
+                  "align": "left"
+                },
+                "upload_create_time": {
+                  "label": "Upload time",
+                  "align": "left"
+                },
+                "authors": {
+                  "align": "left"
+                },
+                "comment": {
+                  "align": "left"
+                },
+                "datasets": {
+                  "align": "left"
+                },
+                "published": {
+                  "label": "Access",
+                  "align": "left"
+                }
+              },
+              "selected": [
+                "results.material.chemical_formula_descriptive",
+                "results.properties.optoelectronic.solar_cell.efficiency",
+                "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                "results.properties.optoelectronic.solar_cell.fill_factor",
+                "references"
+              ]
+            },
+            "rows": {
+              "actions": {
+                "enabled": true
+              },
+              "details": {
+                "enabled": true
+              },
+              "selection": {
+                "enabled": true
+              }
+            },
+            "filter_menus": {
+              "options": {
+                "material": {
+                  "label": "Absorber Material",
+                  "level": 0,
+                  "size": "s"
+                },
+                "elements": {
+                  "label": "Elements / Formula",
+                  "level": 1,
+                  "size": "xl"
+                },
+                "structure": {
+                  "label": "Structure / Symmetry",
+                  "level": 1,
+                  "size": "s"
+                },
+                "electronic": {
+                  "label": "Electronic Properties",
+                  "level": 0,
+                  "size": "s"
+                },
+                "solarcell": {
+                  "label": "Solar Cell Properties",
+                  "level": 0,
+                  "size": "s"
+                },
+                "eln": {
+                  "label": "Electronic Lab Notebook",
+                  "level": 0,
+                  "size": "s"
+                },
+                "custom_quantities": {
+                  "label": "User Defined Quantities",
+                  "level": 0,
+                  "size": "l"
+                },
+                "author": {
+                  "label": "Author / Origin / Dataset",
+                  "level": 0,
+                  "size": "m"
+                },
+                "metadata": {
+                  "label": "Visibility / IDs / Schema",
+                  "level": 0,
+                  "size": "s"
+                },
+                "optimade": {
+                  "label": "Optimade",
+                  "level": 0,
+                  "size": "m"
+                }
+              }
+            },
+            "filters": {
+              "include": [
+                "*#perovskite_solar_cell_database.schema.PerovskiteSolarCell"
+              ],
+              "exclude": [
+                "mainfile",
+                "entry_name",
+                "combine"
+              ]
+            },
+            "dashboard": {
+              "widgets": [
+                {
+                  "type": "periodictable",
+                  "layout": {
+                    "lg": {
+                      "h": 8,
+                      "w": 12,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 8,
+                      "minW": 12
+                    },
+                    "md": {
+                      "h": 8,
+                      "w": 12,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 8,
+                      "minW": 12
+                    },
+                    "sm": {
+                      "h": 8,
+                      "w": 12,
+                      "x": 0,
+                      "y": 16,
+                      "minH": 8,
+                      "minW": 12
+                    },
+                    "xl": {
+                      "h": 8,
+                      "w": 12,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 8,
+                      "minW": 12
+                    },
+                    "xxl": {
+                      "h": 8,
+                      "w": 13,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 8,
+                      "minW": 12
+                    }
+                  },
+                  "quantity": "results.material.elements",
+                  "scale": "linear"
+                },
+                {
+                  "type": "scatterplot",
+                  "layout": {
+                    "lg": {
+                      "h": 6,
+                      "w": 12,
+                      "x": 0,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 9,
+                      "x": 0,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 5,
+                      "w": 6,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 8,
+                      "w": 9,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 8,
+                      "w": 12,
+                      "x": 24,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+                  },
+                  "y": {
+                    "title": "Efficiency (%)",
+                    "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+                  },
+                  "markers": {
+                    "color": {
+                      "unit": "mA/cm^2",
+                      "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+                    }
+                  },
+                  "size": 1000,
+                  "autorange": true
+                },
+                {
+                  "type": "scatterplot",
+                  "layout": {
+                    "lg": {
+                      "h": 6,
+                      "w": 12,
+                      "x": 0,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 9,
+                      "x": 9,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 5,
+                      "w": 6,
+                      "x": 6,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 8,
+                      "w": 9,
+                      "x": 21,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 8,
+                      "w": 11,
+                      "x": 13,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+                  },
+                  "y": {
+                    "title": "Efficiency (%)",
+                    "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+                  },
+                  "markers": {
+                    "color": {
+                      "quantity": "results.properties.optoelectronic.solar_cell.device_architecture"
+                    }
+                  },
+                  "size": 1000,
+                  "autorange": true
+                },
+                {
+                  "type": "terms",
+                  "layout": {
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 4,
+                      "w": 6,
+                      "x": 12,
+                      "y": 4,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 6,
+                      "w": 4,
+                      "x": 0,
+                      "y": 10,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 14,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 14,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "results.properties.optoelectronic.solar_cell.device_stack",
+                  "scale": "linear",
+                  "showinput": true
+                },
+                {
+                  "type": "histogram",
+                  "layout": {
+                    "lg": {
+                      "h": 4,
+                      "w": 12,
+                      "x": 12,
+                      "y": 12,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 10,
+                      "y": 17,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 4,
+                      "y": 13,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 0,
+                      "y": 11,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 0,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity"
+                  },
+                  "scale": "1/4",
+                  "autorange": true,
+                  "showinput": true,
+                  "nbins": 30
+                },
+                {
+                  "type": "terms",
+                  "layout": {
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 18,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 4,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 5,
+                      "w": 4,
+                      "x": 0,
+                      "y": 5,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 8,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 8,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "results.properties.optoelectronic.solar_cell.absorber_fabrication",
+                  "scale": "linear",
+                  "showinput": true
+                },
+                {
+                  "title": "Band gap",
+                  "type": "histogram",
+                  "layout": {
+                    "lg": {
+                      "h": 4,
+                      "w": 12,
+                      "x": 12,
+                      "y": 16,
+                      "minH": 3,
+                      "minW": 8
+                    },
+                    "md": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 10,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 8
+                    },
+                    "sm": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 4,
+                      "y": 10,
+                      "minH": 3,
+                      "minW": 8
+                    },
+                    "xl": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 0,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 8
+                    },
+                    "xxl": {
+                      "h": 3,
+                      "w": 8,
+                      "x": 0,
+                      "y": 11,
+                      "minH": 3,
+                      "minW": 8
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
+                  },
+                  "scale": "1/4",
+                  "autorange": false,
+                  "showinput": false,
+                  "nbins": 30
+                },
+                {
+                  "type": "terms",
+                  "layout": {
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 18,
+                      "y": 6,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 5,
+                      "x": 0,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 5,
+                      "w": 4,
+                      "x": 4,
+                      "y": 5,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 5,
+                      "x": 25,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 20,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "results.properties.optoelectronic.solar_cell.electron_transport_layer",
+                  "scale": "linear",
+                  "showinput": true
+                },
+                {
+                  "type": "terms",
+                  "layout": {
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 6,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 5,
+                      "x": 5,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 5,
+                      "w": 4,
+                      "x": 8,
+                      "y": 5,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 5,
+                      "x": 20,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 26,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "results.properties.optoelectronic.solar_cell.hole_transport_layer",
+                  "scale": "linear",
+                  "showinput": true
+                }
+              ]
+            },
+            "filters_locked": {
+              "sections": "nomad.datamodel.results.SolarCell"
+            },
+            "search_syntaxes": {
+              "exclude": [
+                "free_text"
+              ]
+            }
+          }
         }
       }
     },
-    "plugin_packages": {}
+    "plugin_packages": {
+      "perovskite_solar_cell_database": {
+        "name": "perovskite_solar_cell_database",
+        "description": "Perovskite solar cell data schema plugin for NOMAD.",
+        "version": "0.0.0",
+        "homepage": "https://github.com/FAIRmat-NFDI/nomad-perovskite-solar-cells-database",
+        "documentation": null,
+        "repository": "https://github.com/FAIRmat-NFDI/nomad-perovskite-solar-cells-database",
+        "entry_points": [
+          "perovskite_solar_cell_database:perovskite_solar_cell",
+          "perovskite_solar_cell_database.apps:solar_cells"
+        ]
+      }
+    }
   }
 }

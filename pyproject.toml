@@ -208,7 +208,6 @@ where = [
     "dependencies/schema/simulation/run",
     "dependencies/normalizers/simulation/soap",
     "dependencies/normalizers/simulation/spectra",
-    "dependencies/schema/nomad-perovskite-solar-cells-database",
 ]
 exclude = ["tests*"]
 namespaces = false

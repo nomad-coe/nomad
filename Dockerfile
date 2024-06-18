@@ -128,6 +128,10 @@ ARG SETUPTOOLS_SCM_PRETEND_VERSION='0.0'
 
 RUN pip install ".[parsing,infrastructure,dev]"
 
+# Install "default" plugins. TODO: This can be removed once we have proper
+# distributions projects.
+RUN ./scripts/install_default_plugins.sh \
+
 RUN ./scripts/generate_docs_artifacts.sh \
  && mkdocs build \
  && mkdir -p nomad/app/static/docs \

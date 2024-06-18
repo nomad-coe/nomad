@@ -38,5 +38,3 @@ include dependencies/normalizers/simulation/spectra/README.md
 recursive-include dependencies/normalizers/simulation/spectra/spectranormalizer *.py nomad_plugin.yaml
 include dependencies/parsers/simulation/README.md
 recursive-include dependencies/parsers/simulation/simulationparsers *.py
-include dependencies/schema/nomad-perovskite-solar-cells-database/README.md
-recursive-include dependencies/schema/nomad-perovskite-solar-cells-database/perovskite_solar_cell_database *.py nomad_plugin.yaml *.txt *.xlsx
