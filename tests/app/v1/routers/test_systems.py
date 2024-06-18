@@ -38,7 +38,7 @@ from .common import assert_response, assert_browser_download_headers
 
 def ase_atoms(content, format):
     """Creates an ase.Atoms object given given file contents and format."""
-    format = {'pdb': 'proteindatabank'}.get(format, format)
+    format = {'pdb': 'proteindatabank', 'xyz': 'extxyz'}.get(format, format)
     atoms = ase.io.read(StringIO(content), format=format)
     return atoms
 
@@ -237,6 +237,8 @@ END
             'cif',
             """# NOMAD ENTRY ID: systems_entry_1
 data_CH
+_chemical_formula_structural       CH
+_chemical_formula_sum              "C1 H1"
 _cell_length_a       5
 _cell_length_b       5
 _cell_length_c       5
@@ -244,24 +246,23 @@ _cell_angle_alpha    90
 _cell_angle_beta     90
 _cell_angle_gamma    90
 
-_symmetry_space_group_name_H-M    "P 1"
-_symmetry_int_tables_number       1
+_space_group_name_H-M_alt    "P 1"
+_space_group_IT_number       1
 
 loop_
-  _symmetry_equiv_pos_as_xyz
+  _space_group_symop_operation_xyz
   'x, y, z'
 
 loop_
+  _atom_site_type_symbol
   _atom_site_label
-  _atom_site_occupancy
+  _atom_site_symmetry_multiplicity
   _atom_site_fract_x
   _atom_site_fract_y
   _atom_site_fract_z
-  _atom_site_thermal_displace_type
-  _atom_site_B_iso_or_equiv
-  _atom_site_type_symbol
-  C1       1.0000 0.00000  0.00000  0.00000  Biso   1.000  C
-  H1       1.0000 0.20000  0.20000  0.20000  Biso   1.000  H
+  _atom_site_occupancy
+  C   C1        1.0  0.00000  0.00000  0.00000  1.0000
+  H   H1        1.0  0.20000  0.20000  0.20000  1.0000
 """,
             'CH.cif',
             id='cif',
@@ -322,17 +323,18 @@ END
             'cif',
             """# NOMAD ENTRY ID: systems_entry_1
 data_NO
+_chemical_formula_structural       NO
+_chemical_formula_sum              "N1 O1"
 loop_
+  _atom_site_type_symbol
   _atom_site_label
-  _atom_site_occupancy
+  _atom_site_symmetry_multiplicity
   _atom_site_Cartn_x
   _atom_site_Cartn_y
   _atom_site_Cartn_z
-  _atom_site_thermal_displace_type
-  _atom_site_B_iso_or_equiv
-  _atom_site_type_symbol
-  N1       1.0000 0.00000  0.00000  0.00000  Biso   1.000  N
-  O1       1.0000 1.00000  1.00000  1.00000  Biso   1.000  O
+  _atom_site_occupancy
+  N   N1        1.0  0.00000  0.00000  0.00000  1.0000
+  O   O1        1.0  1.00000  1.00000  1.00000  1.0000
 """,
             'NO.cif',
             id='cif',

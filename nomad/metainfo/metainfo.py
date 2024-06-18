@@ -1613,7 +1613,11 @@ class MSection(
                 dimensions = len(quantity_def.shape)
                 if dimensions == 0:
                     value = self.__set_normalize(quantity_def, value)
-                    if value == _unset_value:
+                    value_unset = value == _unset_value
+                    if isinstance(value_unset, np.ndarray):
+                        if value_unset.any():
+                            return
+                    elif value_unset:
                         return
 
                 elif dimensions == 1:
@@ -1714,7 +1718,11 @@ class MSection(
                     m_quantity.value = self.__set_normalize(
                         quantity_def, m_quantity.value
                     )
-                    if m_quantity.value == _unset_value:
+                    value_unset = value == _unset_value
+                    if isinstance(value_unset, np.ndarray):
+                        if value_unset.any():
+                            return
+                    elif value_unset:
                         return
 
                 elif dimensions == 1:
