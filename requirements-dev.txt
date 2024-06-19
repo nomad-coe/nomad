@@ -233,7 +233,7 @@ parso==0.8.4              # via jedi, -r requirements.txt
 partd==1.4.2              # via dask, -r requirements.txt
 pathspec==0.12.1          # via mkdocs
 pexpect==4.9.0            # via ipython, -r requirements.txt
-phonopy==2.24.2.post1     # via asr, -r requirements.txt
+phonopy==2.24.3           # via asr, -r requirements.txt
 pillow==10.3.0            # via fabio, imageio, matplotlib, nionswift, rdkit, scikit-image, -r requirements.txt
 pint==0.17                # via hyperspy, pynxtools-xps, rosettasciio, -r requirements.txt, nomad-lab (pyproject.toml)
 pkginfo==1.11.1           # via twine
@@ -245,7 +245,7 @@ pooch==1.8.2              # via kikuchipy, orix, -r requirements.txt
 prettytable==3.10.0       # via hyperspy, -r requirements.txt
 prometheus-client==0.20.0  # via jupyter-server, jupyterhub, -r requirements.txt
 prompt-toolkit==3.0.47    # via click-repl, ipython, jupyter-console, -r requirements.txt
-psutil==5.9.8             # via diffsims, ipykernel, ipyparallel, pyxem, -r requirements.txt
+psutil==6.0.0             # via diffsims, ipykernel, ipyparallel, pyxem, -r requirements.txt
 ptyprocess==0.7.0         # via pexpect, terminado, -r requirements.txt
 pure-eval==0.2.2          # via stack-data, -r requirements.txt
 py-cpuinfo==9.0.0         # via blosc2, tables, -r requirements.txt
@@ -295,7 +295,6 @@ pywavelets==1.6.0         # via scikit-image, -r requirements.txt
 pyxem==0.16.0             # via pynxtools-em, -r requirements.txt
 pyyaml==6.0.1             # via dask, hyperspy, jupyter-events, kikuchipy, mkdocs, mkdocs-get-deps, mkdocs-macros-plugin, phonopy, pybtex, pymdown-extensions, pynxtools, pynxtools-mpes, pyyaml-env-tag, rosettasciio, uvicorn, -r requirements.txt, nomad-lab (pyproject.toml)
 pyyaml-env-tag==0.1       # via mkdocs
-pyzeo==0.1.5              # via -r requirements.txt, nomad-lab (pyproject.toml)
 pyzmq==26.0.3             # via ipykernel, ipyparallel, jupyter-client, jupyter-console, jupyter-server, qtconsole, -r requirements.txt
 qtconsole==5.5.2          # via jupyter, -r requirements.txt
 qtpy==2.4.1               # via qtconsole, -r requirements.txt
@@ -341,7 +340,7 @@ sphinxcontrib-htmlhelp==2.0.5  # via sphinx, -r requirements.txt
 sphinxcontrib-jsmath==1.0.1  # via sphinx, -r requirements.txt
 sphinxcontrib-qthelp==1.0.7  # via sphinx, -r requirements.txt
 sphinxcontrib-serializinghtml==1.1.10  # via sphinx, -r requirements.txt
-sqlalchemy==2.0.30        # via alembic, jupyterhub, xraydb, -r requirements.txt
+sqlalchemy==2.0.31        # via alembic, jupyterhub, xraydb, -r requirements.txt
 stack-data==0.6.3         # via ipython, -r requirements.txt
 starlette==0.27.0         # via fastapi, -r requirements.txt
 structlog==24.2.0         # via -r requirements.txt, nomad-lab (pyproject.toml)
@@ -353,7 +352,7 @@ termcolor==2.4.0          # via mkdocs-macros-plugin
 terminado==0.18.1         # via jupyter-server, jupyter-server-terminals, -r requirements.txt
 texttable==1.7.0          # via pybis, -r requirements.txt
 threadpoolctl==3.5.0      # via mdanalysis, scikit-learn, -r requirements.txt
-tifffile==2024.5.22       # via h5grove, hyperspy, scikit-image, -r requirements.txt
+tifffile==2024.6.18       # via h5grove, hyperspy, scikit-image, -r requirements.txt
 tinycss2==1.3.0           # via nbconvert, -r requirements.txt
 tomli==2.0.1              # via build, coverage, jupyterlab, mypy, pytest, sphinx, -r requirements.txt
 toolz==0.12.1             # via dask, hyperspy, partd, -r requirements.txt
@@ -374,7 +373,7 @@ uncertainties==3.2.1      # via lmfit, pymatgen, -r requirements.txt
 unidecode==1.3.2          # via -r requirements.txt, nomad-lab (pyproject.toml)
 uri-template==1.3.0       # via jsonschema, -r requirements.txt
 urllib3==1.26.19          # via docker, elasticsearch, pybis, requests, -r requirements.txt
-uv==0.2.12                # via nomad-lab (pyproject.toml)
+uv==0.2.13                # via nomad-lab (pyproject.toml)
 uvicorn==0.30.1           # via h5grove, -r requirements.txt, nomad-lab (pyproject.toml)
 uvloop==0.19.0            # via uvicorn, -r requirements.txt
 validators==0.18.2        # via -r requirements.txt, nomad-lab (pyproject.toml)
