@@ -76,6 +76,7 @@ test.each([
   ['do not convert to base', 'eV', {energy: {definition: 'joule'}}, 1, 1.602176634e-19],
   ['combination', 'a_u_force * angstrom', {force: {definition: 'newton'}, length: {definition: 'meter'}}, 1, 8.23872349823899e-18],
   ['use base units if derived unit not defined in system', 'newton * meter', {mass: {definition: 'kilogram'}, time: {definition: 'second'}, length: {definition: 'meter'}}, 1, 1],
+  ['system contains base unit with prefix', 'm^3', {length: {definition: 'cm'}}, 0.001, 1000],
   ['unit definition with prefix', 'kg^2', {mass: {definition: 'mg'}}, 1, 1e12],
   ['expression as definition', 'N', {force: {definition: '(kg m) / s^2'}}, 1, 1],
   ['delta inherited for single base unit', 'delta_celsius', {temperature: {definition: 'K'}}, 1, 1],
