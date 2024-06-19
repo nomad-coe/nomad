@@ -146,7 +146,6 @@ normalize:
     options:
       MetainfoNormalizer: nomad.normalizing.metainfo.MetainfoNormalizer
       OptimadeNormalizer: nomad.normalizing.optimade.OptimadeNormalizer
-      PorosityNormalizer: nomad.normalizing.porosity.PorosityNormalizer
       ResultsNormalizer: nomad.normalizing.results.ResultsNormalizer
   prototype_symmetry_tolerance: 0.1
   symmetry_tolerance: 0.1
@@ -1240,130 +1239,6 @@ ui:
             optimade:
               label: Optimade
               size: m
-      mofs:
-        label: Metal-Organic Frameworks
-        path: mofs
-        category: Use Cases
-        description: Search metal-organic frameworks (MOFs)
-        readme: 'This page allows you to search **metal-organic framework
-          (MOF) data** within NOMAD. The filter menu on the left
-          and the shown default columns are specifically designed
-          for MOF exploration. The dashboard directly shows useful
-          interactive statistics about the data.'
-        filters:
-          exclude:
-          - mainfile
-          - entry_name
-          - combine
-        filters_locked:
-          results.material.topology.label: MOF
-        search_syntaxes:
-          exclude:
-          - free_text
-        columns:
-          selected:
-          - results.material.chemical_formula_iupac
-          - mainfile
-          - authors
-          options:
-            results.material.chemical_formula_iupac: {label: Formula}
-            mainfile: {}
-            upload_create_time: {label: Upload time}
-            authors: {}
-            comment: {}
-            datasets: {}
-            published: {label: Access}
-        filter_menus:
-          options:
-            material:
-              label: Material
-            elements:
-              label: Elements / Formula
-              level: 1
-              size: xl
-            structure:
-              label: Structure
-              level: 1
-            electronic:
-              label: Electronic Properties
-            author:
-              label: Author / Origin / Dataset
-              size: m
-            metadata:
-              label: Visibility / IDs / Schema
-            optimade:
-              label: Optimade
-              size: m
-        dashboard:
-          widgets:
-          - layout:
-              lg: {h: 9, minH: 3, minW: 3, w: 15, x: 0, y: 0}
-              md: {h: 8, minH: 3, minW: 3, w: 11, x: 0, y: 0}
-              sm: {h: 6, minH: 3, minW: 3, w: 9, x: 0, y: 0}
-              xl: {h: 9, minH: 3, minW: 3, w: 19, x: 0, y: 0}
-              xxl: {h: 10, minH: 3, minW: 3, w: 25, x: 0, y: 0}
-            quantity: results.material.elements
-            scale: linear
-            type: periodictable
-          - layout:
-              lg: {h: 9, minH: 3, minW: 3, w: 9, x: 15, y: 0}
-              md: {h: 8, minH: 3, minW: 3, w: 7, x: 11, y: 0}
-              sm: {h: 6, minH: 3, minW: 3, w: 3, x: 9, y: 0}
-              xl: {h: 9, minH: 3, minW: 3, w: 11, x: 19, y: 0}
-              xxl: {h: 10, minH: 3, minW: 3, w: 11, x: 25, y: 0}
-            quantity: results.material.topology.sbu_type
-            title: 'SBU type'
-            scale: linear
-            showinput: true
-            type: terms
-          - autorange: false
-            layout:
-              lg: {h: 5, minH: 3, minW: 3, w: 12, x: 0, y: 9}
-              md: {h: 4, minH: 3, minW: 3, w: 9, x: 0, y: 8}
-              sm: {h: 3, minH: 3, minW: 3, w: 6, x: 0, y: 6}
-              xl: {h: 5, minH: 3, minW: 3, w: 15, x: 0, y: 9}
-              xxl: {h: 6, minH: 3, minW: 3, w: 19, x: 0, y: 10}
-            nbins: 30
-            quantity: results.material.topology.pore_limiting_diameter
-            scale: linear
-            showinput: true
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 5, minH: 3, minW: 3, w: 12, x: 0, y: 14}
-              md: {h: 4, minH: 3, minW: 3, w: 9, x: 9, y: 8}
-              sm: {h: 3, minH: 3, minW: 3, w: 6, x: 6, y: 6}
-              xl: {h: 5, minH: 3, minW: 3, w: 15, x: 0, y: 14}
-              xxl: {h: 6, minH: 3, minW: 3, w: 17, x: 19, y: 10}
-            nbins: 30
-            quantity: results.material.topology.largest_cavity_diameter
-            scale: linear
-            showinput: true
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 5, minH: 3, minW: 3, w: 12, x: 11, y: 9}
-              md: {h: 4, minH: 3, minW: 3, w: 9, x: 0, y: 12}
-              sm: {h: 3, minH: 3, minW: 3, w: 6, x: 0, y: 9}
-              xl: {h: 5, minH: 3, minW: 3, w: 15, x: 15, y: 9}
-              xxl: {h: 6, minH: 3, minW: 3, w: 19, x: 0, y: 16}
-            nbins: 30
-            quantity: results.material.topology.accessible_surface_area
-            scale: linear
-            showinput: true
-            type: histogram
-          - autorange: false
-            layout:
-              lg: {h: 5, minH: 3, minW: 3, w: 12, x: 11, y: 14}
-              md: {h: 4, minH: 3, minW: 3, w: 9, x: 9, y: 12}
-              sm: {h: 3, minH: 3, minW: 3, w: 6, x: 6, y: 9}
-              xl: {h: 5, minH: 3, minW: 3, w: 15, x: 15, y: 14}
-              xxl: {h: 6, minH: 3, minW: 3, w: 17, x: 19, y: 16}
-            nbins: 30
-            quantity: results.material.topology.void_fraction
-            scale: linear
-            showinput: true
-            type: histogram
       heterogeneouscatalyst:
         label: Heterogeneous Catalysis
         path: heterogeneouscatalyst
@@ -1658,6 +1533,8 @@ ui:
             type: terms
 plugins:
   entry_points:
+    exclude:
+      - nomad_porous_materials.normalizers:porositynormalizer
     options:
       normalizers/simulation/band_structure:
         plugin_type: normalizer
