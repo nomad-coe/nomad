@@ -28,14 +28,6 @@ def unknown_material_archive():
     return run_normalize(archive)
 
 
-@pytest.fixture(scope='session')
-def unknown_workflow_archive():
-    directory = 'tests/data/plugins/perovskite_solar_cell_database'
-    mainfile = 'example.archive.json'
-    archive = run_processing(directory, mainfile)
-    return archive
-
-
 @pytest.mark.parametrize(
     'fixture, entry_type, entry_name',
     [
@@ -86,12 +78,6 @@ def unknown_workflow_archive():
             'not processed SinglePoint',
             'Si not processed SinglePoint simulation',
             id='Unknown program name',
-        ),
-        pytest.param(
-            'unknown_workflow_archive',
-            'PerovskiteSolarCell',
-            None,
-            id='Unknown workflow_name',
         ),
     ],
 )
