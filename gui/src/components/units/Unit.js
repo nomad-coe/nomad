@@ -325,8 +325,26 @@ export class Unit {
           const baseDim = BASE_DIMENSIONS[i]
           if (Math.abs(newDimensions[i] || 0) > 1e-12) {
             if (has(system, baseDim)) {
+              let unitDef
+                const baseUnitDefinition = system[baseDim].definition
+                // First try to look up the unit in the list of known units:
+                // most likely it is already there. If not found, then we need
+                // to try and parse the unit definition: this happens e.g. when
+                // units with prefixes are used as base units in the unit
+                // system.
+                unitDef = UNITS[system[baseDim]?.definition]
+                if (!unitDef) {
+                  try {
+                    const baseUnit = new Unit(baseUnitDefinition)
+                    const baseUnitList = baseUnit.mathjsUnit.units
+                    if (baseUnitList.length === 1) unitDef = baseUnitList[0].unit
+                  } catch (e) {}
+                }
+              if (!unitDef) {
+                throw Error(`Could not find base unit for "${system[baseDim].definition}"`)
+              }
               proposedUnitList.push({
-                unit: UNITS[system[baseDim].definition],
+                unit: unitDef,
                 prefix: PREFIXES.NONE[''],
                 power: unit.power ? newDimensions[i] * unit.power : 0
               })
