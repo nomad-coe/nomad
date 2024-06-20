@@ -65,6 +65,18 @@ nav:
       - H5MD schema - Howto: examples/computational_data/h5md_howto.md
       - H5MD schema - Explanation: examples/computational_data/h5md_expl.md
       - H5MD - Reference: examples/computational_data/h5md_ref.md
+    - Experimental data:
+      - NeXus:
+        - NeXus semantic file format: examples/experiment_data/nexus.md
+        - Guide to parser library pynxtools: examples/experiment_data/pynxtools.md
+        - Electron microscopy: examples/experiment_data/em.md
+        - Photoemission spectroscopy: examples/experiment_data/mpes.md
+        - X-ray photoemission spectroscopy: examples/experiment_data/xps.md
+        - Optical spectroscopy: examples/experiment_data/opt.md
+        - Atom probe tomography: examples/experiment_data/apm.md
+        - Scanning tunneling spectroscopy: examples/experiment_data/sts.md
+      # - NOMAD-supported plugins:
+      # - Databases for specific research topics:
   - Explanation:
     - From files to data: explanation/basics.md
     - Data structure: explanation/data.md

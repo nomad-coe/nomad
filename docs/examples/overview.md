@@ -27,39 +27,22 @@ Historically a repository for Density Functional Theory calculations, NOMAD now 
 </div>
 <div markdown="block">
 
-### Category 2
+### Experimental data
 
-More categories coming soon...
-<!--
-#### subcategory 1
-- links...
-#### subcategory 2
-- links... -->
+Thanks to key activities of the FAIRmat project, NOMAD also supports a set of parsing capabilities for standardizing data from materials characterization experiments.
+
+- [NeXus](./experiment_data/nexus.md)
+- [Guide to the pynxtools parser library](./experiment_data/pynxtools.md)
+- [Electron microscopy](./experiment_data/em.md)
+- [Photoemission spectroscopy](./experiment_data/mpes.md)
+- [X-ray photoemission spectroscopy](./experiment_data/xps.md)
+- [Optical spectroscopy](./experiment_data/opt.md)
+- [Atom probe tomography](./experiment_data/apm.md)
+- [Scanning tunneling spectroscopy](./experiment_data/sts.md)
 
 </div>
 
 <div markdown="block">
-
-<!-- ### Category 3
-
-description...
-
-#### subcategory 1
-- links...
-#### subcategory 2
-- links...
-
-</div>
-<div markdown="block">
-
-### Category 4
-
-description...
-
-#### subcategory 1
-- links...
-#### subcategory 2
-- links... -->
 
 </div>
 </div>

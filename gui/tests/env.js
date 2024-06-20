@@ -3091,439 +3091,6 @@ window.nomadEnv = {
           "name": "simulationworkflowschema",
           "description": "This is a collection of schemas for various types of simulation workflows.\n"
         },
-        "nomad_porous_materials.apps:mofapp": {
-          "id": "nomad_porous_materials.apps:mofapp",
-          "entry_point_type": "app",
-          "name": "MOF",
-          "description": "App defined using the new plugin mechanism.",
-          "plugin_package": "nomad_porous_materials",
-          "app": {
-            "label": "Metal-Organic Frameworks",
-            "path": "mofs",
-            "resource": "entries",
-            "category": "Use Cases",
-            "description": "Search metal-organic frameworks (MOFs)",
-            "readme": "\n            This page allows you to search **metal-organic framework\n            (MOF) data** within NOMAD. The filter menu on the left\n            and the shown default columns are specifically designed\n            for MOF exploration. The dashboard directly shows useful\n            interactive statistics about the data.",
-            "pagination": {
-              "order_by": "upload_create_time",
-              "order": "desc",
-              "page_size": 20
-            },
-            "columns": {
-              "options": {
-                "results.material.chemical_formula_iupac": {
-                  "label": "Formula",
-                  "align": "left"
-                },
-                "mainfile": {
-                  "align": "left"
-                },
-                "upload_create_time": {
-                  "label": "Upload time",
-                  "align": "left"
-                },
-                "authors": {
-                  "align": "left"
-                },
-                "comment": {
-                  "align": "left"
-                },
-                "datasets": {
-                  "align": "left"
-                },
-                "published": {
-                  "label": "Access",
-                  "align": "left"
-                }
-              },
-              "selected": [
-                "results.material.chemical_formula_iupac",
-                "mainfile",
-                "authors"
-              ]
-            },
-            "rows": {
-              "actions": {
-                "enabled": true
-              },
-              "details": {
-                "enabled": true
-              },
-              "selection": {
-                "enabled": true
-              }
-            },
-            "filter_menus": {
-              "options": {
-                "material": {
-                  "label": "Material",
-                  "level": 0,
-                  "size": "s"
-                },
-                "elements": {
-                  "label": "Elements / Formula",
-                  "level": 1,
-                  "size": "xl"
-                },
-                "structure": {
-                  "label": "Structure",
-                  "level": 1,
-                  "size": "s"
-                },
-                "electronic": {
-                  "label": "Electronic Properties",
-                  "level": 0,
-                  "size": "s"
-                },
-                "author": {
-                  "label": "Author / Origin / Dataset",
-                  "level": 0,
-                  "size": "m"
-                },
-                "metadata": {
-                  "label": "Visibility / IDs / Schema",
-                  "level": 0,
-                  "size": "s"
-                },
-                "optimade": {
-                  "label": "Optimade",
-                  "level": 0,
-                  "size": "m"
-                }
-              }
-            },
-            "filters": {
-              "exclude": [
-                "mainfile",
-                "entry_name",
-                "combine"
-              ]
-            },
-            "dashboard": {
-              "widgets": [
-                {
-                  "type": "periodictable",
-                  "layout": {
-                    "lg": {
-                      "h": 9,
-                      "w": 15,
-                      "x": 0,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "md": {
-                      "h": 8,
-                      "w": 11,
-                      "x": 0,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "sm": {
-                      "h": 6,
-                      "w": 9,
-                      "x": 0,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xl": {
-                      "h": 9,
-                      "w": 19,
-                      "x": 0,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xxl": {
-                      "h": 10,
-                      "w": 25,
-                      "x": 0,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    }
-                  },
-                  "quantity": "results.material.elements",
-                  "scale": "linear"
-                },
-                {
-                  "title": "SBU type",
-                  "type": "terms",
-                  "layout": {
-                    "lg": {
-                      "h": 9,
-                      "w": 9,
-                      "x": 15,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "md": {
-                      "h": 8,
-                      "w": 7,
-                      "x": 11,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "sm": {
-                      "h": 6,
-                      "w": 3,
-                      "x": 9,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xl": {
-                      "h": 9,
-                      "w": 11,
-                      "x": 19,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xxl": {
-                      "h": 10,
-                      "w": 11,
-                      "x": 25,
-                      "y": 0,
-                      "minH": 3,
-                      "minW": 3
-                    }
-                  },
-                  "quantity": "results.material.topology.sbu_type",
-                  "scale": "linear",
-                  "showinput": true
-                },
-                {
-                  "type": "histogram",
-                  "layout": {
-                    "lg": {
-                      "h": 5,
-                      "w": 12,
-                      "x": 0,
-                      "y": 9,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "md": {
-                      "h": 4,
-                      "w": 9,
-                      "x": 0,
-                      "y": 8,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "sm": {
-                      "h": 3,
-                      "w": 6,
-                      "x": 0,
-                      "y": 6,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xl": {
-                      "h": 5,
-                      "w": 15,
-                      "x": 0,
-                      "y": 9,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xxl": {
-                      "h": 6,
-                      "w": 19,
-                      "x": 0,
-                      "y": 10,
-                      "minH": 3,
-                      "minW": 3
-                    }
-                  },
-                  "x": {
-                    "quantity": "results.material.topology.pore_limiting_diameter"
-                  },
-                  "scale": "linear",
-                  "autorange": true,
-                  "showinput": true,
-                  "nbins": 30
-                },
-                {
-                  "type": "histogram",
-                  "layout": {
-                    "lg": {
-                      "h": 5,
-                      "w": 12,
-                      "x": 0,
-                      "y": 14,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "md": {
-                      "h": 4,
-                      "w": 9,
-                      "x": 9,
-                      "y": 8,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "sm": {
-                      "h": 3,
-                      "w": 6,
-                      "x": 6,
-                      "y": 6,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xl": {
-                      "h": 5,
-                      "w": 15,
-                      "x": 0,
-                      "y": 14,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xxl": {
-                      "h": 6,
-                      "w": 17,
-                      "x": 19,
-                      "y": 10,
-                      "minH": 3,
-                      "minW": 3
-                    }
-                  },
-                  "x": {
-                    "quantity": "results.material.topology.largest_cavity_diameter"
-                  },
-                  "scale": "linear",
-                  "autorange": true,
-                  "showinput": true,
-                  "nbins": 30
-                },
-                {
-                  "type": "histogram",
-                  "layout": {
-                    "lg": {
-                      "h": 5,
-                      "w": 12,
-                      "x": 11,
-                      "y": 9,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "md": {
-                      "h": 4,
-                      "w": 9,
-                      "x": 0,
-                      "y": 12,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "sm": {
-                      "h": 3,
-                      "w": 6,
-                      "x": 0,
-                      "y": 9,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xl": {
-                      "h": 5,
-                      "w": 15,
-                      "x": 15,
-                      "y": 9,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xxl": {
-                      "h": 6,
-                      "w": 19,
-                      "x": 0,
-                      "y": 16,
-                      "minH": 3,
-                      "minW": 3
-                    }
-                  },
-                  "x": {
-                    "quantity": "results.material.topology.accessible_surface_area"
-                  },
-                  "scale": "linear",
-                  "autorange": true,
-                  "showinput": true,
-                  "nbins": 30
-                },
-                {
-                  "type": "histogram",
-                  "layout": {
-                    "lg": {
-                      "h": 5,
-                      "w": 12,
-                      "x": 11,
-                      "y": 14,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "md": {
-                      "h": 4,
-                      "w": 9,
-                      "x": 9,
-                      "y": 12,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "sm": {
-                      "h": 3,
-                      "w": 6,
-                      "x": 6,
-                      "y": 9,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xl": {
-                      "h": 5,
-                      "w": 15,
-                      "x": 15,
-                      "y": 14,
-                      "minH": 3,
-                      "minW": 3
-                    },
-                    "xxl": {
-                      "h": 6,
-                      "w": 17,
-                      "x": 19,
-                      "y": 16,
-                      "minH": 3,
-                      "minW": 3
-                    }
-                  },
-                  "x": {
-                    "quantity": "results.material.topology.void_fraction"
-                  },
-                  "scale": "linear",
-                  "autorange": true,
-                  "showinput": true,
-                  "nbins": 30
-                }
-              ]
-            },
-            "filters_locked": {
-              "results.material.topology.label": "MOF"
-            },
-            "search_syntaxes": {
-              "exclude": [
-                "free_text"
-              ]
-            }
-          }
-        },
-        "nomad_porous_materials.normalizers:porositynormalizer": {
-          "id": "nomad_porous_materials.normalizers:porositynormalizer",
-          "entry_point_type": "normalizer",
-          "name": "PorosityNormalizer",
-          "description": "\n        Normalizer that automatically extracts properties from porous\n        materials.\n    ",
-          "plugin_package": "nomad_porous_materials"
-        },
         "perovskite_solar_cell_database:perovskite_solar_cell": {
           "id": "perovskite_solar_cell_database:perovskite_solar_cell",
           "entry_point_type": "schema_package",
@@ -4208,22 +3775,443 @@ window.nomadEnv = {
               ]
             }
           }
+        },
+        "nomad_porous_materials.apps:mofapp": {
+          "id": "nomad_porous_materials.apps:mofapp",
+          "entry_point_type": "app",
+          "name": "MOF",
+          "description": "App defined using the new plugin mechanism.",
+          "plugin_package": "nomad_porous_materials",
+          "app": {
+            "label": "Metal-Organic Frameworks",
+            "path": "mofs",
+            "resource": "entries",
+            "category": "Use Cases",
+            "description": "Search metal-organic frameworks (MOFs)",
+            "readme": "\n            This page allows you to search **metal-organic framework\n            (MOF) data** within NOMAD. The filter menu on the left\n            and the shown default columns are specifically designed\n            for MOF exploration. The dashboard directly shows useful\n            interactive statistics about the data.",
+            "pagination": {
+              "order_by": "upload_create_time",
+              "order": "desc",
+              "page_size": 20
+            },
+            "columns": {
+              "options": {
+                "results.material.chemical_formula_iupac": {
+                  "label": "Formula",
+                  "align": "left"
+                },
+                "mainfile": {
+                  "align": "left"
+                },
+                "upload_create_time": {
+                  "label": "Upload time",
+                  "align": "left"
+                },
+                "authors": {
+                  "align": "left"
+                },
+                "comment": {
+                  "align": "left"
+                },
+                "datasets": {
+                  "align": "left"
+                },
+                "published": {
+                  "label": "Access",
+                  "align": "left"
+                }
+              },
+              "selected": [
+                "results.material.chemical_formula_iupac",
+                "mainfile",
+                "authors"
+              ]
+            },
+            "rows": {
+              "actions": {
+                "enabled": true
+              },
+              "details": {
+                "enabled": true
+              },
+              "selection": {
+                "enabled": true
+              }
+            },
+            "filter_menus": {
+              "options": {
+                "material": {
+                  "label": "Material",
+                  "level": 0,
+                  "size": "s"
+                },
+                "elements": {
+                  "label": "Elements / Formula",
+                  "level": 1,
+                  "size": "xl"
+                },
+                "structure": {
+                  "label": "Structure",
+                  "level": 1,
+                  "size": "s"
+                },
+                "electronic": {
+                  "label": "Electronic Properties",
+                  "level": 0,
+                  "size": "s"
+                },
+                "author": {
+                  "label": "Author / Origin / Dataset",
+                  "level": 0,
+                  "size": "m"
+                },
+                "metadata": {
+                  "label": "Visibility / IDs / Schema",
+                  "level": 0,
+                  "size": "s"
+                },
+                "optimade": {
+                  "label": "Optimade",
+                  "level": 0,
+                  "size": "m"
+                }
+              }
+            },
+            "filters": {
+              "exclude": [
+                "mainfile",
+                "entry_name",
+                "combine"
+              ]
+            },
+            "dashboard": {
+              "widgets": [
+                {
+                  "type": "periodictable",
+                  "layout": {
+                    "lg": {
+                      "h": 9,
+                      "w": 15,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 8,
+                      "w": 11,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 6,
+                      "w": 9,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 9,
+                      "w": 19,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 10,
+                      "w": 25,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "results.material.elements",
+                  "scale": "linear"
+                },
+                {
+                  "title": "SBU type",
+                  "type": "terms",
+                  "layout": {
+                    "lg": {
+                      "h": 9,
+                      "w": 9,
+                      "x": 15,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 8,
+                      "w": 7,
+                      "x": 11,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 6,
+                      "w": 3,
+                      "x": 9,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 9,
+                      "w": 11,
+                      "x": 19,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 10,
+                      "w": 11,
+                      "x": 25,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "results.material.topology.sbu_type",
+                  "scale": "linear",
+                  "showinput": true
+                },
+                {
+                  "type": "histogram",
+                  "layout": {
+                    "lg": {
+                      "h": 5,
+                      "w": 12,
+                      "x": 0,
+                      "y": 9,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 4,
+                      "w": 9,
+                      "x": 0,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 3,
+                      "w": 6,
+                      "x": 0,
+                      "y": 6,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 5,
+                      "w": 15,
+                      "x": 0,
+                      "y": 9,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 19,
+                      "x": 0,
+                      "y": 10,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.material.topology.pore_limiting_diameter"
+                  },
+                  "scale": "linear",
+                  "autorange": true,
+                  "showinput": true,
+                  "nbins": 30
+                },
+                {
+                  "type": "histogram",
+                  "layout": {
+                    "lg": {
+                      "h": 5,
+                      "w": 12,
+                      "x": 0,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 4,
+                      "w": 9,
+                      "x": 9,
+                      "y": 8,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 3,
+                      "w": 6,
+                      "x": 6,
+                      "y": 6,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 5,
+                      "w": 15,
+                      "x": 0,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 17,
+                      "x": 19,
+                      "y": 10,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.material.topology.largest_cavity_diameter"
+                  },
+                  "scale": "linear",
+                  "autorange": true,
+                  "showinput": true,
+                  "nbins": 30
+                },
+                {
+                  "type": "histogram",
+                  "layout": {
+                    "lg": {
+                      "h": 5,
+                      "w": 12,
+                      "x": 11,
+                      "y": 9,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 4,
+                      "w": 9,
+                      "x": 0,
+                      "y": 12,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 3,
+                      "w": 6,
+                      "x": 0,
+                      "y": 9,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 5,
+                      "w": 15,
+                      "x": 15,
+                      "y": 9,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 19,
+                      "x": 0,
+                      "y": 16,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.material.topology.accessible_surface_area"
+                  },
+                  "scale": "linear",
+                  "autorange": true,
+                  "showinput": true,
+                  "nbins": 30
+                },
+                {
+                  "type": "histogram",
+                  "layout": {
+                    "lg": {
+                      "h": 5,
+                      "w": 12,
+                      "x": 11,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 4,
+                      "w": 9,
+                      "x": 9,
+                      "y": 12,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 3,
+                      "w": 6,
+                      "x": 6,
+                      "y": 9,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 5,
+                      "w": 15,
+                      "x": 15,
+                      "y": 14,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xxl": {
+                      "h": 6,
+                      "w": 17,
+                      "x": 19,
+                      "y": 16,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "x": {
+                    "quantity": "results.material.topology.void_fraction"
+                  },
+                  "scale": "linear",
+                  "autorange": true,
+                  "showinput": true,
+                  "nbins": 30
+                }
+              ]
+            },
+            "filters_locked": {
+              "results.material.topology.label": "MOF"
+            },
+            "search_syntaxes": {
+              "exclude": [
+                "free_text"
+              ]
+            }
+          }
+        },
+        "nomad_porous_materials.normalizers:porositynormalizer": {
+          "id": "nomad_porous_materials.normalizers:porositynormalizer",
+          "entry_point_type": "normalizer",
+          "name": "PorosityNormalizer",
+          "description": "\n        Normalizer that automatically extracts properties from porous\n        materials.\n    ",
+          "plugin_package": "nomad_porous_materials"
         }
       }
     },
     "plugin_packages": {
-      "nomad_porous_materials": {
-        "name": "nomad_porous_materials",
-        "description": "NOMAD plugin for porous materials",
-        "version": "0.1.0",
-        "homepage": null,
-        "documentation": null,
-        "repository": "https://github.com/lauri-codes/nomad-porous-materials",
-        "entry_points": [
-          "nomad_porous_materials.apps:mofapp",
-          "nomad_porous_materials.normalizers:porositynormalizer"
-        ]
-      },
       "perovskite_solar_cell_database": {
         "name": "perovskite_solar_cell_database",
         "description": "Perovskite solar cell data schema plugin for NOMAD.",
@@ -4234,6 +4222,18 @@ window.nomadEnv = {
         "entry_points": [
           "perovskite_solar_cell_database:perovskite_solar_cell",
           "perovskite_solar_cell_database.apps:solar_cells"
+        ]
+      },
+      "nomad_porous_materials": {
+        "name": "nomad_porous_materials",
+        "description": "NOMAD plugin for porous materials",
+        "version": "0.1.0",
+        "homepage": null,
+        "documentation": null,
+        "repository": "https://github.com/lauri-codes/nomad-porous-materials",
+        "entry_points": [
+          "nomad_porous_materials.apps:mofapp",
+          "nomad_porous_materials.normalizers:porositynormalizer"
         ]
       }
     }
