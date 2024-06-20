@@ -74,6 +74,7 @@ nomad:
       entry_points:
         exclude:
           - normalizers/simulation/soap
+          - nomad_porous_materials.normalizers:porositynormalizer
 
   image:
     tag: "prod"
