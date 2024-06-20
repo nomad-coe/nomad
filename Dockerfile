@@ -128,7 +128,7 @@ ARG SETUPTOOLS_SCM_PRETEND_VERSION='0.0'
 
 RUN pip install ".[parsing,infrastructure,dev]"
 
-# Install "default" plugins. TODO: This can be removed once we have a proper
+# Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
 RUN ./scripts/install_default_plugins.sh \
 
@@ -176,7 +176,7 @@ RUN pip install --progress-bar off --prefer-binary -r requirements.txt
 COPY --from=dev_python /app/dist/nomad-lab-*.tar.gz .
 RUN pip install nomad-lab-*.tar.gz
 
-# Install "default" plugins. TODO: This can be removed once we have a proper
+# Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
 COPY scripts/install_default_plugins.sh ./scripts/install_default_plugins.sh
 RUN ./scripts/install_default_plugins.sh \
