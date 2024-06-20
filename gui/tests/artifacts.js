@@ -63660,7 +63660,7 @@ window.nomadArtifacts = {
                 "description": "Value of the total energy for the present lambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._HDF5Reference"
+                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
                 },
                 "shape": []
               },
@@ -63672,7 +63672,7 @@ window.nomadArtifacts = {
                 "description": "Value of the pressure-volume energy (i.e., P*V) for the present lambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._HDF5Reference"
+                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
                 },
                 "shape": []
               },
@@ -63684,7 +63684,7 @@ window.nomadArtifacts = {
                 "description": "Values correspond to the difference in total energy between each specified lambda state\nand the reference state, which corresponds to the value of lambda of the current simulation.\nThe expected dimensions are [\"n_frames\", \"n_states\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._HDF5Reference"
+                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
                 },
                 "shape": []
               },
@@ -63696,7 +63696,7 @@ window.nomadArtifacts = {
                 "description": "Value of the derivative of the total energy with respect to lambda, evaluated for the current\nlambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._HDF5Reference"
+                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
                 },
                 "shape": []
               }
