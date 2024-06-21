@@ -104,6 +104,7 @@ app.conf.update(worker_max_memory_per_child=config.celery.max_memory)
 if config.celery.routing == CELERY_WORKER_ROUTING:
     app.conf.update(worker_direct=True)
 
+app.conf.broker_connection_retry_on_startup = True
 app.conf.task_queue_max_priority = 10
 app.conf.worker_redirect_stdouts = config.process.redirect_stdouts
 app.conf.worker_redirect_stdouts_level = 'INFO'
