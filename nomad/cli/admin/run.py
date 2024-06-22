@@ -35,8 +35,9 @@ def hub():
 
 
 @run.command(help='Run the nomad development worker.')
-def worker():
-    run_worker()
+@click.option('--workers', type=int, default=None, help='Number of celery workers.')
+def worker(**kwargs):
+    run_worker(**kwargs)
 
 
 @run.command(help='Run the nomad development app with all apis.')
