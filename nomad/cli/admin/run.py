@@ -230,8 +230,21 @@ def run_appworker(
         celery_workers = 1
 
     with concurrent_futures.ProcessPoolExecutor(2) as executor:
-        executor.submit(task_worker, workers=celery_workers)  # type: ignore
-        executor.submit(task_app, workers=fastapi_workers, host=app_host, port=app_port)  # type: ignore
+        results = []
+
+        def _submit(*args, **kwargs):
+            results.append(executor.submit(*args, **kwargs))
+
+        _submit(task_worker, workers=celery_workers)
+        _submit(task_app, workers=fastapi_workers, host=app_host, port=app_port)
+
+        try:
+            for future in concurrent_futures.as_completed(results):
+                future.result()
+        except KeyboardInterrupt:
+            for future in results:
+                future.cancel()
+            executor.shutdown(wait=False)
 
 
 @run.command(help='Run both app and worker.')
