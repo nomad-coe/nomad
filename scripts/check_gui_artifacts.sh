@@ -14,10 +14,6 @@ mkdir tmp
 NOMAD_CONFIG=gui/tests/nomad.yaml python -m nomad.cli dev gui-artifacts > tmp/artifacts.js
 NOMAD_CONFIG=gui/tests/nomad.yaml python -m nomad.cli dev gui-config > tmp/env.js
 
-diff gui/tests/artifacts.js tmp/artifacts.js
-diff gui/tests/env.js tmp/env.js
-
-# cleanup
+diff gui/tests/artifacts.js tmp/artifacts.js; \
+diff gui/tests/env.js tmp/env.js; \
 rm -rf tmp
-
-

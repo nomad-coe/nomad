@@ -218,8 +218,15 @@ def get_gui_config() -> str:
     """
     from nomad.config import config
 
+    def _sort_dict(d):
+        if isinstance(d, dict):
+            return {k: _sort_dict(v) for k, v in sorted(d.items())}
+        if isinstance(d, list):
+            return [_sort_dict(v) for v in d]
+        return d
+
     config.load_plugins()
-    plugins = config.plugins.dict(exclude_unset=True)
+    plugins = _sort_dict(config.plugins.dict(exclude_unset=True))
     for key in plugins['entry_points']['options'].keys():
         plugins['entry_points']['options'][key] = config.plugins.entry_points.options[
             key
