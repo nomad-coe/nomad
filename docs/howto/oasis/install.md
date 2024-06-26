@@ -139,7 +139,7 @@ compatible and you might chose to can replace `docker compose` with `docker-comp
 
 The following will run all necessary services with docker. These comprise: a **mongo**
 database, an **elasticsearch**, a **rabbitmq** distributed task queue, the NOMAD **app**,
-NOMAD **worker**, and NOMAD **gui**. In this [introduction](../../index.md#architecture),
+NOMAD **worker**, and NOMAD **gui**. In this [architecture documentation](../../explanation/architecture.md),
 you will learn what each service does and why it is necessary.
 
 ### Configuration
@@ -199,7 +199,7 @@ You should change the following:
 users back to this host. Make sure this is the hostname, your users can use.
 - Replace `deployment`, `deployment_url`, and `maintainer_email` with representative values.
 The `deployment_url` should be the url to the deployment's api (should end with `/api`).
-- To enable the *log transfer* set `logtransfer.enable: true` ([data privacy notice above](#sharing-data-through-the-logtransfer-service-and-data-privacy-notice)).
+- To enable the *log transfer* set `logtransfer.enable: true` ([data privacy notice above](#sharing-data-through-log-transfer-and-data-privacy-notice)).
 - You can change `api_base_path` to run NOMAD under a different path prefix.
 - You should generate your own `north.jupyterhub_crypt_key`. You can generate one
 with `openssl rand -hex 32`.
@@ -483,14 +483,15 @@ docker run --rm -v `pwd`/nginx.conf:/etc/nginx/conf.d/default.conf -p 80:80 ngin
 
 ### Running NOMAD
 
-To run NOMAD, you must run two services. One is the NOMAD app, it serves the API and GUI:
+To run NOMAD, you must run two services. One is the NOMAD app, it serves the API and GUI.
+Here is startup script to run the app. This is exactly, what the docker based install would use. It takes the port (`$@`) as a parameter.
 ```sh
---8<-- "run.sh"
+--8<-- "scripts/run.sh"
 ```
 
-the second is the NOMAD worker, that runs the NOMAD processing.
+The second service is the NOMAD worker, that runs the NOMAD processing. Again this is the startup script.
 ```
---8<-- "run_worker.sh"
+--8<-- "scripts/run-worker.sh"
 ```
 
 This should give you a working OASIS at `http://<your-host>/<your-path-prefix>`.

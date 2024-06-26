@@ -4,7 +4,7 @@ This guide is about using NOMAD's REST APIs directly, e.g. via Python's *request
 
 To access the processed data with our client library `nomad-lab` follow
 [How to access processed data](archive_query.md). You can also watch our
-[video tutorial on the API](../../tutorial/access_api.md#access-data-via-api).
+[video tutorial on the API](../../tutorial/access_api.md).
 
 ## Different options to use the API
 
@@ -269,7 +269,7 @@ are:
 
 ## Common concepts
 
-The [initial example](#getting-started) above, showed how to execute a basic search.
+The [initial example](#using-request) above, showed how to execute a basic search.
 This includes some fundamental concepts that can be applied to many parts of the API.
 Let's discuss some of the common concepts.
 
@@ -409,7 +409,7 @@ larger than the maximum expiration defined by the API config.
 
 ## Search for entries
 
-See [getting started](#getting-started) for a typical search example. Combine the [different
+See [using requests](#using-request) for a typical search example. Combine the [different
 concepts](#common-concepts) above to create the queries that you need.
 
 Searching for entries is typically just an initial step. Once you know what entries exist
@@ -426,7 +426,7 @@ curl "{{ nomad_url() }}/v1/entries/raw?results.material.elements=Ti&results.mate
 ```
 
 ## Access processed data (archives)
-Above under [getting started](#getting started), you've already learned how to access
+Above under [using requests](#using-request), you've already learned how to access
 archive data. A special feature of the archive API functions is that you can define what is `required`
 from the archives.
 

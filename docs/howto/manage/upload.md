@@ -113,7 +113,7 @@ allow us to react to your specific situation and eventually prepare additional m
 Allow enough time before you need your data to be published. Adding multiple hundreds of
 GBs to NOMAD isn't a trivial feat and will take some time and effort on all sides.
 
-The [upload limits](#limits) above are necessary to keep NOMAD data manageable and we cannot easily
+The [upload limits](#upload-limits) above are necessary to keep NOMAD data manageable and we cannot easily
 grant exceptions to these rules. This means you have to split your data into 32 GB uploads.
 Uploading these files, observing the processing, and publishing the data can be automatized through NOMAD APIs.
 
@@ -122,7 +122,7 @@ they are part of the same upload (and directory). Therefore, there is no single 
 follow, and a script to split your data depends heavily on how your data is organized.
 
 If you provide data for a potentially large amount of entries, it might be advisable
-to provide *user metadata* via file. See [user metadata](#user-metadata) above for details.
+to provide *user metadata* via file. See [user metadata](#add-user-metadata) above for details.
 
 To further automate, you can also upload and directly publish data. After performing some
 smaller test uploads, you should consider skipping our staging and publish the upload

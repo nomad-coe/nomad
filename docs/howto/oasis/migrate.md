@@ -96,11 +96,11 @@ docker compose up -d
 and parsers are available in your installation. By default all the existing and shipped
 schemas and parsers are enabled. See also [here](customize.md).
 
-- We changed the archive file format. [Re-processing](admin.md#re-process) might yield better performance.
+- We changed the archive file format. [Re-processing](admin.md#re-processing) might yield better performance.
 
 - Parsers are now using a different workflow model and the UI now includes a
 workflow card on the overview page of entries with workflows for the new model.
-[Re-processing](admin.md#re-process) all data will enable this feature for old data. Any analysis build on
+[Re-processing](admin.md#re-processing) all data will enable this feature for old data. Any analysis build on
 the old workflow model, might not work for new data.
 
 - We introduce the *log-transfer* service. This is currently an opt-in feature.

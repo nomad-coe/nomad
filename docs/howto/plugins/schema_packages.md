@@ -390,7 +390,7 @@ short handle of a code name or other special method prefix.
 
 ### Access structured data via API
 
-The [API section](../programmatic/api.md#access-archives) demonstrates how to access an Archive, i.e.
+The [API section](../programmatic/api.md#access-processed-data-archives) demonstrates how to access an Archive, i.e.
 retrieve the processed data from a NOMAD entry. This API will give you JSON data likes this:
 
 ```json title="https://nomad-lab.eu/prod/v1/api/v1/entries/--dLZstNvL_x05wDg2djQmlU_oKn/archive"
