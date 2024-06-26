@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useState, useRef, useCallback, useEffect, useLayoutEffect} from 'react'
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import PropTypes from 'prop-types'
 import { Typography, makeStyles, Button, Box } from '@material-ui/core'
 import { useErrors } from '../errors'
@@ -28,7 +28,7 @@ import { parseCifStructures } from 'crystcif-parse'
 import H5Web from '../visualization/H5Web'
 import Structure from '../visualization/Structure'
 import { isWaitingForUpdateTestId } from '../../utils'
-import {useLane} from './Browser'
+import { useLane } from './Browser'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
 
@@ -52,15 +52,15 @@ const viewerText = {
   maxSizePreview: 1e10, // Effectively infinite
   maxSizeAutoPreview: 1e10, // Effectively infinite
   width: 700,
-  render: ({uploadId, path}) => {
-    return <FilePreviewText uploadId={uploadId} path={path}/>
+  render: ({ uploadId, path }) => {
+    return <FilePreviewText uploadId={uploadId} path={path} />
   }
 }
 const viewerImg = {
   name: 'image',
   fileExtensions: ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'],
   maxSizeAutoPreview: 10e6,
-  render: ({classes, url, setFailedToPreview}) => {
+  render: ({ classes, url, setFailedToPreview }) => {
     return <img
       src={url} className={classes.img}
       alt="Loading..." onError={() => setFailedToPreview(true)}
@@ -73,13 +73,13 @@ const viewerJSON = {
   maxSizeAutoPreview: 10e6,
   requiresLoadedData: true,
   width: 'fit-content',
-  render: ({classes, data}) => {
+  render: ({ classes, data }) => {
     if (typeof data.current === 'string') {
       data.current = JSON.parse(data.current)
     }
     return (
       <Box className={classes.scrollableContainer}>
-        <ReactJson src={data.current} enableClipboard={false} collapsed={1} displayObjectSize={false}/>
+        <ReactJson src={data.current} enableClipboard={false} collapsed={1} displayObjectSize={false} />
       </Box>
     )
   }
@@ -89,9 +89,9 @@ const viewerPDF = {
   fileExtensions: ['pdf'],
   maxSizeAutoPreview: 10e6,
   width: 700,
-  render: ({url, setFailedToPreview}) => {
+  render: ({ url, setFailedToPreview }) => {
     return <FilePreviewPdf
-      file={{url: url, withCredentials: true}}
+      file={{ url: url, withCredentials: true }}
       error={(error) => {
         console.log(error)
         setFailedToPreview(true)
@@ -105,7 +105,7 @@ const viewerHdfFive = {
   fileExtensions: ['h4', 'hd4', 'hdf4', 'hdf', 'h5', 'hd5', 'hdf5', 'hd5', 'nxs', 'h5oina', 'edaxh5', 'emd', 'dream3d'],
   maxSizeAutoPreview: 10e6,
   width: 'fit-content',
-  render: ({uploadId, path}) => <H5Web upload_id={uploadId} filename={path}/>
+  render: ({ uploadId, path }) => <H5Web upload_id={uploadId} filename={path} />
 }
 const viewerCif = {
   name: 'cif',
@@ -113,7 +113,7 @@ const viewerCif = {
   maxSizeAutoPreview: 1e5,
   requiresLoadedData: true,
   width: 500,
-  render: ({data}) => {
+  render: ({ data }) => {
     if (typeof data.current === 'string') {
       const cifData = parseCifStructures(data.current)
       const cifStructure = cifData[Object.keys(cifData)[0]]
@@ -126,7 +126,7 @@ const viewerCif = {
       data.current = structureData
     }
     return (
-      <div style={{height: 500, width: 500}}>
+      <div style={{ height: 500, width: 500 }}>
         <Structure data={data.current} />
       </div>
     )
@@ -135,10 +135,10 @@ const viewerCif = {
 
 export const viewers = [viewerText, viewerImg, viewerJSON, viewerPDF, viewerHdfFive, viewerCif]
 
-const FilePreview = React.memo(({uploadId, path, size}) => {
+const FilePreview = React.memo(({ uploadId, path, size }) => {
   const classes = useFilePreviewStyles()
-  const {api, user} = useApi()
-  const {raiseError} = useErrors()
+  const { api, user } = useApi()
+  const { raiseError } = useErrors()
 
   // Determine viewer to use and if we should preview automatically, based on extension and size
   const fileExtension = path.split('.').pop().toLowerCase()
@@ -199,7 +199,7 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
     content = <Typography>Loading...</Typography>
   } else if (!failedToPreview) {
     try {
-      content = selectedViewer.render({uploadId, path, url, data, setFailedToPreview, classes})
+      content = selectedViewer.render({ uploadId, path, url, data, setFailedToPreview, classes })
     } catch (error) {
       // TODO
     }
@@ -215,7 +215,7 @@ const FilePreview = React.memo(({uploadId, path, size}) => {
     )
   } else {
     // Use the text viewer as last resort
-    content = viewerText.render({uploadId, path, url, data, setFailedToPreview, classes})
+    content = viewerText.render({ uploadId, path, url, data, setFailedToPreview, classes })
   }
   return <Box marginBottom={1} flexGrow={1} width={`${selectedViewer.width || 500}px`} overflow="hidden">
     {content}
@@ -231,6 +231,7 @@ export default FilePreview
 const useFilePreviewTextStyles = makeStyles(theme => ({
   containerDiv: {
     height: '100%',
+    overflowX: 'auto',
     backgroundColor: theme.palette.primary.dark
   },
   fileContents: {
@@ -243,10 +244,10 @@ const useFilePreviewTextStyles = makeStyles(theme => ({
     minWidth: '100%'
   }
 }))
-function FilePreviewText({uploadId, path}) {
+function FilePreviewText({ uploadId, path }) {
   const classes = useFilePreviewTextStyles()
-  const {api} = useApi()
-  const {raiseError} = useErrors()
+  const { api } = useApi()
+  const { raiseError } = useErrors()
   const [contents, setContents] = useState(null)
   const [hasMore, setHasMore] = useState(true)
   const loading = useRef(false)
@@ -310,7 +311,7 @@ function FilePreviewText({uploadId, path}) {
         hasMore={hasMore}
         useWindow={false}
         getScrollParent={() => lane.containerRef.current}
-        {...(contents === null ? {'data-testid': isWaitingForUpdateTestId} : {})}
+        {...(contents === null ? { 'data-testid': isWaitingForUpdateTestId } : {})}
       >
         <pre className={classes.fileContents}>
           {contents || ''}
@@ -359,7 +360,7 @@ const FilePreviewPdf = React.memo(props => {
         {numPages && pageWidth &&
           Array(numPages).fill().map((_, i) =>
             <div className={classes.pageDiv} key={`pdfPageDiv${i + 1}`}>
-              <Page pageNumber={i + 1} key={`pdfPage${i + 1}`} width={pageWidth}/>
+              <Page pageNumber={i + 1} key={`pdfPage${i + 1}`} width={pageWidth} />
             </div>)
         }
       </Document>
