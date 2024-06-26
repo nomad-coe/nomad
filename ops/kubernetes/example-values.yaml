@@ -1,0 +1,19 @@
+nomad:
+  config:
+    uploadurl: "https://mydomain.org/nomad-oasis/api/uploads"
+
+    north:
+      enabled: true
+
+  image:
+    tag: "latest"
+
+  proxy:
+    path: "/nomad-oasis"
+
+jupyterhub:
+  hub:
+    baseUrl: "/nomad-oasis/north"
+    config:
+      GenericOAuthenticator:
+        oauth_callback_url: https://mydomain.org/nomad-oasis/north/hub/oauth_callback

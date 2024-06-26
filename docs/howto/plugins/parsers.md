@@ -272,7 +272,7 @@ mainfile_parser.calculation
 
 The next step is to write the parsed data into the NOMAD archive. We can use one of the
 [predefined plugins containing schema packages](schema_packages.md#schema-packages-developed-by-fairmat) in NOMAD.
-However, to better illustrate the connection between a parser and a schema we will define our own schema in this example (See [How to write a schema in python](./schema_packages.md#writing-schemas-in-python-compared-to-yaml-schemas) for additional information on this topic). We define a root section called `Simulation` containing two subsections, `Model` and `Output`. The definitions are found in `exampleparser/metainfo/example.py`:
+However, to better illustrate the connection between a parser and a schema we will define our own schema in this example (See [How to write a schema in python](./schema_packages.md#how-to-write-a-schema-package) for additional information on this topic). We define a root section called `Simulation` containing two subsections, `Model` and `Output`. The definitions are found in `exampleparser/metainfo/example.py`:
 
 ```python
 class Model(ArchiveSection):

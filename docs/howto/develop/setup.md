@@ -400,7 +400,7 @@ pytest -sv tests
     FAILED tests/normalizing/test_system.py::test_springer_normalizer - IndexError: list index out of range
     ```
 
-    If you excluded plugins in your [NOMAD config](### `nomad.yaml`), then those tests
+    If you excluded plugins in your [NOMAD config](#nomadyaml), then those tests
     will also fail.
 
 We use Ruff and Mypy to maintain code quality. Additionally, we recommend installing the Ruff [plugins](https://docs.astral.sh/ruff/integrations/){:target="_blank"} for your code editor to streamline the process. To execute Ruff and Mypy from the command line, you can utilize the following command:

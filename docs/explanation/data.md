@@ -124,7 +124,7 @@ and browse based on subsections, or explore the Metainfo through packages.
 
 To see all user provided uploaded schemas, you can use a [search for the subsection `definition`](https://nomad-lab.eu/prod/v1/gui/search/entries?quantities=definitions){:target="_blank"}.
 The subsection `definition` is a top-level `EntryArchive` subsection. See also our
-[how-to on writing and uploading schemas](../howto/customization/basics.md#uploading-schemas).
+[how-to on writing and uploading schemas](../howto/customization/basics.md#uploading-schema-packages).
 
 ### Contributing to the Metainfo
 
@@ -186,7 +186,7 @@ will use concrete definitions that inherit from `EntryData`. There are also spec
 sections, like `run` for simulation data and `nexus` for nexus data.
 
 !!! note
-    As shown in [Uploading schemas](../howto/customization/basics.md#uploading-schemas), one can, in principle, create an archive file with both `definitions` and one of the *data* sections filled, although this is not always desired because it will stick together a schema and a particular instance of that schema. They should be kept separate so that it is still possible to generate new data files from the same schema file.
+    As shown in [Uploading schemas](../howto/customization/basics.md#uploading-schema-packages), one can, in principle, create an archive file with both `definitions` and one of the *data* sections filled, although this is not always desired because it will stick together a schema and a particular instance of that schema. They should be kept separate so that it is still possible to generate new data files from the same schema file.
 
 !!! warning "Attention"
     The results, originally only designed for computational data, will soon be revised

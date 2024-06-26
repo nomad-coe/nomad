@@ -145,7 +145,7 @@ should be based on the `develop` branch and merge request should target `develop
 ### Commit
 
 Make sure you follow our [code guidelines](../../reference/code_guidelines.md) and
-[set up your IDE](./setup.md#set-up-your-ide) to enforce style checks, linting, and static
+[set up your IDE](./setup.md#setup-your-ide) to enforce style checks, linting, and static
 analysis. You can also run [tests locally](./setup.md#running-tests). Try to keep a clean
 commit history and follow our [Git tips](#tips-for-a-clean-git-history).
 

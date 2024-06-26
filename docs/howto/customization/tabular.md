@@ -4,7 +4,7 @@ Refer to the [Reference guide](../../reference/annotations.md) for the full list
 
 ## Preparing the tabular data file
 
-NOMAD and `Excel` support multiple-sheets data manipulations and imports. Each quantity in the schema will be annotated with a source path composed by sheet name and column header. The path to be used with the tabular data displayed below would be `Sheet1/My header 1` and it would be placed it the `tabular` annotation, see [Schema annotations](../../tutorial/custom.md#to-be-an-entry-or-not-to-be-an-entry) section.
+NOMAD and `Excel` support multiple-sheets data manipulations and imports. Each quantity in the schema will be annotated with a source path composed by sheet name and column header. The path to be used with the tabular data displayed below would be `Sheet1/My header 1` and it would be placed it the `tabular` annotation, see [schema annotations](../../tutorial/custom.md#to-be-an-entry-or-not-to-be-an-entry).
 
 <p align="center" width="100%">
     <img width="30%" src="images/2col.png">
@@ -37,7 +37,7 @@ in addition to the mode 2), whenever the parser detects the presence of multiple
     <img width="45%" src="images/rows_subsection.png">
 </p>
 
-Furthermore, we can insert comments before our data, we can use a special character to mark one or more rows as comment rows. The special character is annotated within the schema in the [parsing options](#parsing-options) section:
+Furthermore, we can insert comments before our data, we can use a special character to mark one or more rows as comment rows. The special character is annotated within the schema in the `tabular` annotation, see [schema annotations](../../tutorial/custom.md#to-be-an-entry-or-not-to-be-an-entry):
 
 <p align="center" width="100%">
     <img width="30%" src="images/2col_notes.png">
@@ -125,7 +125,7 @@ The current is the first example of parsing in row mode. This means that every r
 !!! important
     - `data_file` quantity, i.e. the tabular data file name, is located in the same Entry of the parsed quantities.
     - double check that `mapping_options > sections` contains the right path. It should point to the (sub)section where the quantities are decorated with `tabular` annotation, i. e., the one to be filled with tabular data.
-    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reachs it (e. g. `my_sub_sec/my_sub_sub_sec`).
+    - the section to be parsed can be arbitrarily nested, given that the path provided in `sections` reaches it (e. g. `my_sub_sec/my_sub_sub_sec`).
     - quantities parsed in `row` mode are scalars.
     - make use of `repeats: true` in the subsection within the parent section `MySection`.
     - `label_quantity` annotation uses a quantity as name of the repeated section. If it is not provided, a sequential number will be used for each instance.
