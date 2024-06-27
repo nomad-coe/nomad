@@ -508,9 +508,9 @@ def set_entry_name(quantity_def, child_section, with_index=True, index=0) -> str
             entry_name = f'{name}_{index}' if with_index else f'{name}'
         elif isinstance(quantity_def.type, Reference):
             entry_name = (
-                f'{quantity_def.type._target_section_def.name}_{index}'
+                f'{quantity_def.type.target_section_def.name}_{index}'
                 if with_index
-                else f'{quantity_def.type._target_section_def.name}'
+                else f'{quantity_def.type.target_section_def.name}'
             )
         else:
             entry_name = (

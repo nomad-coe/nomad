@@ -35,15 +35,13 @@ sections from mongoengine. The annotation key is 'mongo'.
 
 from typing import Any, Dict, List
 
+from .data_type import Datatype, to_mongo_type
 from .metainfo import (
     DefinitionAnnotation,
     SectionAnnotation,
     Annotation,
     MSection,
-    Datetime,
     Quantity,
-    MEnum,
-    JSON,
 )
 
 
@@ -97,23 +95,10 @@ class MongoDocument(SectionAnnotation):
         import mongoengine as me
 
         def generate_field(quantity: Quantity, annotation: Mongo):
-            field = None
-            if quantity.type == int:
-                field = me.IntField
-            elif quantity.type == float:
-                field = me.FloatField
-            elif quantity.type == str:
-                field = me.StringField
-            elif quantity.type == bool:
-                field = me.BooleanField
-            elif quantity.type == Datetime:
-                field = me.DateTimeField
-            elif isinstance(quantity.type, MEnum):
-                field = me.StringField
-            elif quantity.type == JSON:
-                field = me.DictField
-            else:
+            if not isinstance(quantity.type, Datatype):
                 raise NotImplementedError
+
+            field = to_mongo_type(quantity.type)
 
             result = field(default=quantity.default, **annotation.kwargs)
 

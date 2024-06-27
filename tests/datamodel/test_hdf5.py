@@ -59,7 +59,7 @@ class TestSection(EntryData):
     ],
 )
 def test_hdf5(test_context, quantity_type, value):
-    TestSection.quantity.type = quantity_type
+    TestSection.quantity.type = quantity_type().attach_definition(TestSection.quantity)
 
     archive = EntryArchive(
         m_context=test_context,

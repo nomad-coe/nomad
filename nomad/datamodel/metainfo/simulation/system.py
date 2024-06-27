@@ -36,6 +36,7 @@ from nomad.metainfo import (  # pylint: disable=unused-import
     derived,
 )
 from nomad.datamodel.data import ArchiveSection
+from nomad.metainfo.data_type import m_float64
 
 from ..common import FastAccess
 from nomad.units import ureg
@@ -220,7 +221,7 @@ class Atoms(MSection):
     )
 
     lattice_vectors = Quantity(
-        type=np.dtype(np.float64),
+        type=m_float64(dtype=np.float64).no_shape_check(),
         shape=[3, 3],
         unit='meter',
         description="""

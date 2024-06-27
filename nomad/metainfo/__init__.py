@@ -51,7 +51,6 @@ from .metainfo import (
     MetainfoError,
     DeriveError,
     MetainfoReferenceError,
-    DataType,
     Reference,
     SectionReference,
     QuantityReference,

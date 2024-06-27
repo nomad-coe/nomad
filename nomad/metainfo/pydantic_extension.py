@@ -34,17 +34,13 @@ Allows to create pydantic models from section definitions.
 
 from typing import cast, Type
 from pydantic import create_model, Field, BaseConfig, BaseModel
-from datetime import datetime
 
+from .data_type import to_pydantic_type
 from .metainfo import (
     DefinitionAnnotation,
     Definition,
     Section,
     Quantity,
-    Datetime,
-    MEnum,
-    Capitalized,
-    JSON,
 )
 
 
@@ -74,19 +70,7 @@ class PydanticModel(DefinitionAnnotation):
         name = section_definition.name
 
         def create_field(quantity: Quantity):
-            pydantic_type: type = None
-            if quantity.type == Datetime:
-                pydantic_type = datetime
-            elif isinstance(quantity.type, MEnum):
-                pydantic_type = str
-            elif quantity.type == Capitalized:
-                pydantic_type = str
-            elif quantity.type == JSON:
-                pydantic_type = dict
-            else:
-                pydantic_type = quantity.type
-
-            return pydantic_type, Field(
+            return to_pydantic_type(quantity.type), Field(
                 quantity.default, description=quantity.description
             )
 

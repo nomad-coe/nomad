@@ -157,48 +157,44 @@ sub-sections as if they were direct sub-sections.
 """
 
 import math
-import re
-from collections import defaultdict
 from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    DefaultDict,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
     Union,
+    Any,
+    Dict,
     cast,
+    Set,
+    List,
+    Callable,
+    Tuple,
+    Optional,
+    DefaultDict,
 )
-
-import numpy as np
-from elasticsearch_dsl import Q
+from collections import defaultdict
 from pint import Quantity as PintQuantity
+import re
+from elasticsearch_dsl import Q
 
 from nomad import utils
 from nomad.config import config
 from nomad.config.models.plugins import Schema, Parser, SchemaPackageEntryPoint
-from nomad.metainfo.util import MTypes
+from .data_type import Datatype, to_elastic_type
 
 from .metainfo import (
-    Datetime,
-    Definition,
-    DefinitionAnnotation,
-    MEnum,
-    MSection,
     MSectionBound,
-    Package,
-    Quantity,
-    QuantityReference,
-    Reference,
     Section,
-    Unit,
+    Quantity,
+    MSection,
+    Reference,
+    DefinitionAnnotation,
+    Definition,
+    QuantityReference,
+    Package,
 )
 
+from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
-    from nomad.datamodel.datamodel import EntryArchive, SearchableQuantity
+    from nomad.datamodel.datamodel import SearchableQuantity, EntryArchive
 
 schema_separator = '#'
 dtype_separator = '#'
@@ -899,45 +895,20 @@ class Elasticsearch(DefinitionAnnotation):
             """Used to generate an ES mapping based on the quantity definition if
             no custom mapping is provided.
             """
+            if isinstance(quantity.type, Datatype):
+                return {'type': to_elastic_type(quantity.type, self.dynamic)}
+
             if self.dynamic:
-                if quantity.type in MTypes.bool:
-                    return dict(type='boolean')
-                elif quantity.type in MTypes.str or isinstance(quantity.type, MEnum):
-                    return dict(type='text')
-                elif quantity.type == Datetime:
-                    return dict(type='date')
-                elif quantity.type in MTypes.int:
-                    return dict(type='long')
-                elif quantity.type in MTypes.float:
-                    return dict(type='double')
                 raise NotImplementedError(
                     'Quantity type %s for dynamic quantity %s is not supported.'
                     % (quantity.type, quantity)
                 )
-            if quantity.type == str:
-                return dict(type='keyword')
-            elif quantity.type in [float, np.float64]:
-                return dict(type='double')
-            elif quantity.type == np.float32:
-                return dict(type='float')
-            elif quantity.type in [np.int64]:
-                return dict(type='long')
-            elif quantity.type in [int, np.int32]:
-                return dict(type='integer')
-            elif quantity.type == bool:
-                return dict(type='boolean')
-            elif quantity.type == Datetime:
-                return dict(type='date')
-            elif quantity.type == Unit:
-                return dict(type='keyword')
-            elif isinstance(quantity.type, QuantityReference):
+            if isinstance(quantity.type, QuantityReference):
                 return compute_mapping(quantity.type.target_quantity_def)
             elif isinstance(quantity.type, Reference):
                 raise NotImplementedError(
                     'Resolving section references is not supported.'
                 )
-            elif isinstance(quantity.type, MEnum):
-                return dict(type='keyword')
             else:
                 raise NotImplementedError(
                     'Quantity type %s for quantity %s is not supported.'
@@ -1603,11 +1574,10 @@ def create_searchable_quantity(
             value_field_name = get_searchable_quantity_value_field(annotation)
             if value_field_name is None:
                 return None
-
             if mapping == 'text':
                 value = str(value)
             elif mapping == 'date':
-                value = Datetime.serialize(section, quantity_def, value)
+                value = value.isoformat()
             elif mapping == 'long':
                 if isinstance(value, PintQuantity):
                     value = int(value.m)

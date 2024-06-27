@@ -65,11 +65,12 @@ from nomad.metainfo import (
     Reference,
     Quantity,
     SectionReference,
-    JSON,
     Package,
     Definition,
     Section,
 )
+
+from nomad.metainfo.data_type import Any as AnyType, JSON
 from nomad.metainfo.util import split_python_definition, MSubSectionList
 from nomad.processing import Entry, Upload, ProcessStatus
 
@@ -2363,8 +2364,8 @@ class ArchiveReader(GeneralReader):
             )
             return
 
-        if getattr(node.definition, 'type', None) in (Any, JSON) or isinstance(
-            node.definition, Quantity
+        if isinstance(node.definition, Quantity) or isinstance(
+            getattr(node.definition, 'type', None), (JSON, AnyType)
         ):
             # the container size limit does not recursively apply to JSON
             result_to_write = (
@@ -2598,7 +2599,7 @@ class ArchiveReader(GeneralReader):
 
         # this is not likely to be reached
         # it does not work anyway
-        proxy = SectionReference.deserialize(None, None, m_def)
+        proxy = SectionReference().normalize(m_def)
         proxy.m_proxy_context = context
         return proxy.section_cls.m_def
 
@@ -2836,7 +2837,7 @@ class DefinitionReader(GeneralReader):
             elif (
                 isinstance(s, Section)
                 and isinstance(v, str)
-                and q.type is SectionReference
+                and isinstance(q.type, SectionReference)
             ):
                 v = __convert(s.m_resolve(p))
 

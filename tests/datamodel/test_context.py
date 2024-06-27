@@ -262,7 +262,7 @@ def test_resolve_archive(context, url):
                 },
                 'data.archive.json': {
                     'data': {
-                        'm_def': '../upload/archive/mainfile/schema.archive.json#/definitions/section_definitions/0'
+                        'm_def': '../upload/archive/tUUDVdqv5f8ZTDtkrmG11vtlvniV#/definitions/section_definitions/0'
                     }
                 },
             },
@@ -325,7 +325,7 @@ def test_resolve_archive(context, url):
                     'data': {
                         'm_def': '../upload/raw/schema.json#/definitions/section_definitions/1',
                         'chemicals': [
-                            '../upload/archive/mainfile/chemical.archive.json#/data'
+                            '../upload/archive/NUdEsCJK97acyuYER5W83FJHNWjF#/data'
                         ],
                     }
                 },

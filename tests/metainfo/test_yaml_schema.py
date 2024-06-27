@@ -133,7 +133,7 @@ def test_yaml_deserialization():
     sample_id = sample['quantities'][0]
     des_sample_id = des_sample['quantities'][0]
     assert sample_id.name == des_sample_id.name == 'sample_id'
-    assert sample_id.type == des_sample_id.type == str
+    assert sample_id.type.standard_type() == des_sample_id.type.standard_type() == 'str'
     assert sample_id.shape == des_sample_id.shape
     assert (
         sample_id.m_annotations['eln'].component
@@ -206,11 +206,11 @@ def test_yaml_extended_types_deserialization():
 
     method = des_sample['quantities'][0]
     assert method.name == 'method'
-    assert method.type == str
+    assert method.type.standard_type() == 'str'
 
     spin = des_sample['quantities'][1]
     assert spin.name == 'spin'
-    assert spin.type == bool
+    assert spin.type.standard_type() == 'bool'
 
     des_m_package.m_to_dict()
 
@@ -229,7 +229,7 @@ def test_yaml_extended_types_deserialization():
                         type: np.float6
     """
             ),
-            'float6 is not a valid numpy type.',
+            'np.float6 is not a valid numpy type.',
             id='wrong np type',
         ),
         pytest.param(
@@ -243,7 +243,7 @@ def test_yaml_extended_types_deserialization():
                         type: numpy.int3
     """
             ),
-            'int3 is not a valid numpy type.',
+            'numpy.int3 is not a valid numpy type.',
             id='wrong numpy type',
         ),
         pytest.param(

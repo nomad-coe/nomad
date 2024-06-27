@@ -18,7 +18,8 @@
 
 from typing import Dict, cast
 
-from nomad.metainfo.metainfo import Quantity, Reference, Datetime, MEnum, MTypes
+from nomad.metainfo.data_type import Datatype, to_optimade_type
+from nomad.metainfo.metainfo import Quantity, Reference
 from nomad.metainfo.elasticsearch_extension import SearchQuantity, entry_type
 
 
@@ -26,19 +27,10 @@ _provider_specific_fields: Dict[str, SearchQuantity] = None
 
 
 def create_provider_field(name, definition):
-    type = None
     if not definition.is_scalar:
-        type = 'list'
-    elif definition.type == str or isinstance(definition.type, MEnum):
-        type = 'string'
-    elif definition.type == bool:
-        type = 'boolean'
-    elif definition.type == Datetime:
-        type = 'timestamp'
-    elif definition.type in MTypes.float:
-        type = 'float'
-    elif definition.type in MTypes.int:
-        type = 'integer'
+        optimade_type = 'list'
+    elif isinstance(definition.type, Datatype):
+        optimade_type = to_optimade_type(definition.type)
     else:
         raise NotImplementedError(
             f'Optimade provider field with NOMAD type {definition.type} not implemented.'
@@ -48,7 +40,7 @@ def create_provider_field(name, definition):
     if not description:
         description = 'no description available'
 
-    return dict(name=name, description=description, type=type, sortable=False)
+    return dict(name=name, description=description, type=optimade_type, sortable=False)
 
 
 def provider_specific_fields() -> Dict[str, SearchQuantity]:

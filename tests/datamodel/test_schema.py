@@ -24,6 +24,7 @@ from nomad.datamodel.context import ServerContext
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
 from nomad.datamodel.data import UserReference, AuthorReference
 from nomad.datamodel.metainfo.annotations import valid_eln_types, valid_eln_components
+from nomad.metainfo.data_type import Datatype
 from nomad.parsing.parser import ArchiveParser
 from nomad.processing.data import Upload
 from nomad.utils import get_logger, strip
@@ -115,7 +116,9 @@ def test_eln_annotation_validation(eln_type, eln_component):
             type_name = quantity_type
             if eln_type in ['number', 'datetime', 'enum', 'reference']:
                 quantity = package['section_definitions'][1]['quantities'][0]
-                if type(quantity.type).__name__ != 'type':
+                if isinstance(quantity.type, Datatype):
+                    type_name = quantity.type.standard_type()
+                elif type(quantity.type).__name__ != 'type':
                     type_name = type(quantity.type).__name__
             with pytest.raises(Exception) as exception:
                 package.__init_metainfo__()

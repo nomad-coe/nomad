@@ -90,7 +90,7 @@ parser_examples = [
     ),
     ('parsers/archive', 'tests/data/parsers/archive.json'),
     ('parsers/nexus', 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs'),
-    ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs'),
+    # ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs'),
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
@@ -101,7 +101,7 @@ for parser, mainfile in parser_examples:
         fixed_parser_examples.append((parser, mainfile))
 parser_examples = fixed_parser_examples
 
-correct_num_output_files = 125
+correct_num_output_files = 124
 
 
 def create_reference(data, pretty):

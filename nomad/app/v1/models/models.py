@@ -32,14 +32,12 @@ from pydantic import (  # pylint: disable=unused-import
 )
 from pydantic.main import create_model
 import datetime
-import numpy as np
 import re
 import fnmatch
 import json
 
 from nomad import datamodel, metainfo  # pylint: disable=unused-import
 from nomad.utils import strip
-from nomad.metainfo import Datetime, MEnum
 from nomad.metainfo.elasticsearch_extension import (
     DocumentType,
     material_entry_type,
@@ -487,17 +485,18 @@ class QueryParameters:
             if quantity is None:
                 continue
 
-            type_ = quantity.definition.type
-            if type_ is Datetime:
-                type_ = datetime.datetime.fromisoformat
-            elif isinstance(type_, MEnum):
-                type_ = str
-            elif isinstance(type_, np.dtype):
-                type_ = float
-            elif type_ not in [int, float, bool]:
-                type_ = str
-            values = query_params[key]
-            values = [type_(value) for value in values]
+            standard_type = quantity.definition.type.standard_type()
+            converter: Any = str
+            if standard_type.startswith('int'):
+                converter = int
+            elif standard_type.startswith('float'):
+                converter = float
+            elif standard_type.startswith('bool'):
+                converter = bool
+            elif standard_type.startswith('datetime'):
+                converter = datetime.datetime.fromisoformat
+
+            values = [converter(value) for value in query_params[key]]
 
             if op is None:
                 op = 'all' if quantity.many_all else 'any'

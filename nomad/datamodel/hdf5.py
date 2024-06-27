@@ -19,12 +19,17 @@ from typing import Any, cast
 import h5py
 import re
 
+
+import numpy as np
+
+from nomad.metainfo.data_type import NonPrimitive
 from nomad.utils import get_logger
-from nomad.metainfo import DataType, MSection, Quantity
+from nomad.metainfo import MSection
 
 LOGGER = get_logger(__name__)
 
 
+#
 def match_hdf5_reference(reference: str):
     """
     Match reference to HDF5 upload path syntax.
@@ -59,7 +64,7 @@ def write_hdf5_dataset(value: Any, hdf5_file: h5py.File, path: str) -> None:
     dataset[...] = value.magnitude if hasattr(value, 'magnitude') else value
 
 
-class _HDF5Reference(DataType):
+class HDF5Reference(NonPrimitive):
     @staticmethod
     def _get_upload_files(archive, path: str):
         match = match_hdf5_reference(path)
@@ -96,9 +101,14 @@ class _HDF5Reference(DataType):
         with h5py.File(upload_files.raw_file(match['file_id'], 'rb')) as f:
             return read_hdf5_dataset(f, path)[()]
 
+    def _normalize_impl(self, value, **kwargs):
+        return value
 
-class _HDF5Dataset(DataType):
-    def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> str:
+
+class HDF5Dataset(NonPrimitive):
+    def _serialize_impl(self, value, **kwargs):
+        section = kwargs.get('section')
+
         from nomad.datamodel.context import ServerContext, Context
 
         if isinstance(value, h5py.Dataset):
@@ -108,30 +118,32 @@ class _HDF5Dataset(DataType):
         if not section_root.m_context:
             LOGGER.error(
                 'Cannot serialize HDF5 value.',
-                data=dict(quantity_definition=quantity_def),
+                data=dict(quantity_definition=self._definition),
             )
             return None
 
         context = cast(Context, section_root.m_context)
 
-        path = f'{section.m_path()}/{quantity_def.name}'
+        path = f'{section.m_path()}/{self._definition.name}'
         upload_id, entry_id = ServerContext._get_ids(section.m_root(), required=True)
 
-        with context.open_hdf5_file(section, quantity_def, value, 'w') as file_object:
-            hdf5_file = h5py.File(file_object, 'a')
+        with (
+            context.open_hdf5_file(section, value, 'w') as file_object,
+            h5py.File(file_object, 'a') as hdf5_file,
+        ):
             try:
                 write_hdf5_dataset(value, hdf5_file, path)
                 return f'/uploads/{upload_id}/archive/{entry_id}#{path}'
             except Exception as e:
                 LOGGER.error('Cannot write HDF5 dataset', exc_info=e)
-                return None
-            finally:
-                hdf5_file.close()
 
-    def deserialize(
-        self, section: MSection, quantity_def: Quantity, value: str
-    ) -> h5py.Dataset:
+    def _normalize_impl(self, value, **kwargs):
+        section = kwargs.get('section')
+
         from nomad.datamodel.context import Context
+
+        if isinstance(value, np.ndarray):
+            return value
 
         match = match_hdf5_reference(value)
         if not match:
@@ -141,20 +153,16 @@ class _HDF5Dataset(DataType):
         if not section_root.m_context:
             LOGGER.error(
                 'Cannot resolve HDF5 reference.',
-                data=dict(quantity_definition=quantity_def),
+                data=dict(quantity_definition=self._definition),
             )
             return None
 
         context = cast(Context, section_root.m_context)
 
-        file_object = context.open_hdf5_file(section, quantity_def, value, 'r')
+        file_object = context.open_hdf5_file(section, value, 'r')
         hdf5_file = context.file_handles.get(file_object.name)
         if not hdf5_file:
             hdf5_file = h5py.File(file_object)
             context.file_handles[file_object.name] = hdf5_file
 
         return read_hdf5_dataset(hdf5_file, value)
-
-
-HDF5Reference = _HDF5Reference()
-HDF5Dataset = _HDF5Dataset()

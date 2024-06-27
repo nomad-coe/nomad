@@ -264,9 +264,7 @@ class Context(MetainfoContext):
     def close(self):
         pass
 
-    def open_hdf5_file(
-        self, section: MSection, quantity: Quantity, value: Any, mode: str
-    ):
+    def open_hdf5_file(self, section: MSection, value: Any, mode: str):
         return value
 
 
@@ -417,9 +415,7 @@ class ServerContext(Context):
 
         return response.json()['data']
 
-    def open_hdf5_file(
-        self, section: MSection, quantity_def: Quantity, value: Any, mode='r'
-    ):
+    def open_hdf5_file(self, section: MSection, value: Any, mode='r'):
         from nomad.datamodel.hdf5 import match_hdf5_reference
 
         if mode == 'r':

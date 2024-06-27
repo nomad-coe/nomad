@@ -28,7 +28,6 @@ from elasticsearch_dsl import analyzer, tokenizer
 from nomad import utils
 from nomad.datamodel.metainfo.common import FastAccess
 from nomad.metainfo.mongoengine_extension import Mongo, MongoDocument
-from nomad.metainfo.util import MTypes
 from nomad.metainfo.pydantic_extension import PydanticModel
 from nomad.metainfo.elasticsearch_extension import (
     Elasticsearch,
@@ -52,6 +51,8 @@ from ..metainfo import (
     Datetime,
     JSON,
 )
+from ..metainfo.data_type import m_str
+from ..metainfo.metainfo import Reference
 
 # This is usually defined automatically when the first metainfo definition is evaluated, but
 # due to the next imports requiring the m_package already, this would be too late.
@@ -179,25 +180,24 @@ class Dataset(MSection):
     entries = Quantity(type=str, shape=['*'], a_mongo=Mongo())
 
 
-class DatasetReference(Reference):
-    """
-    Special metainfo reference type that allows to use dataset_ids as values. It automatically
-    resolves dataset_ids to Dataset objects. This is done lazily on getting the value.
-    """
-
+class m_dataset_reference(Reference):
     def __init__(self):
         super().__init__(Dataset.m_def)
 
-    def resolve(self, proxy: MProxy) -> MSection:
-        return Dataset.m_def.a_mongo.get(dataset_id=proxy.m_proxy_value)
+    def _normalize_impl(self, section, value):
+        # todo: need data validation
+        if isinstance(value, str):
+            return MProxy(value, m_proxy_section=section, m_proxy_type=self._proxy_type)
+        return value
 
-    def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> Any:
+    def _serialize_impl(self, section, value):
         if isinstance(value, MProxy):
             return value.m_proxy_value
-        else:
-            return value.dataset_id
+
+        return value.dataset_id
 
 
+DatasetReference = m_dataset_reference
 dataset_reference = DatasetReference()
 
 
@@ -1055,10 +1055,9 @@ class EntryMetadata(MSection):
             ):
                 # From each string dtype, we get a truncated sample to put into
                 # the keywords field, unless we are already storing too many unique values.
-                if (
-                    property_def.type in MTypes.str
-                    or isinstance(property_def.type, MEnum)
-                ) and len(keywords_set) < 10000:
+                if (isinstance(property_def.type, (MEnum, m_str))) and len(
+                    keywords_set
+                ) < 10000:
                     keyword = section.m_get(property_def)
                     if keyword:
                         if not property_def.shape:

@@ -450,7 +450,7 @@ def test_tabular_column_mode(
             ['my_substance1'],
             {
                 'my_substance1': {
-                    'repeats': 'true',
+                    'repeats': True,
                     'section': {'base_section': 'Substance1'},
                 }
             },
@@ -469,11 +469,11 @@ def test_tabular_column_mode(
             ['my_substance1', 'my_substance2'],
             {
                 'my_substance1': {
-                    'repeats': 'true',
+                    'repeats': True,
                     'section': {'base_section': 'Substance1'},
                 },
                 'my_substance2': {
-                    'repeats': 'true',
+                    'repeats': True,
                     'section': {'base_section': 'Substance2'},
                 },
             },
@@ -489,7 +489,7 @@ def test_tabular_column_mode(
                     'section': {
                         'sub_sections': {
                             'my_substance1': {
-                                'repeats': 'true',
+                                'repeats': True,
                                 'section': {'base_section': 'Substance1'},
                             }
                         }

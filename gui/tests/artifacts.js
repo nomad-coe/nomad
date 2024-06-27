@@ -28,7 +28,7 @@ window.nomadArtifacts = {
       "description": "The date and time when the upload was created in nomad",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -95,7 +95,7 @@ window.nomadArtifacts = {
       "description": "The date and time when the entry was created in nomad",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -248,7 +248,7 @@ window.nomadArtifacts = {
       "description": "The date and time when the upload was published in nomad",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -281,7 +281,7 @@ window.nomadArtifacts = {
       "description": "The date and time of the last processing.",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -352,7 +352,7 @@ window.nomadArtifacts = {
       "name": "external_db",
       "description": "The repository or external database where the original data resides",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "The Perovskite Database Project",
           "EELS Data Base",
@@ -614,7 +614,7 @@ window.nomadArtifacts = {
       "description": "The date when the dataset was first created.",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -625,7 +625,7 @@ window.nomadArtifacts = {
       "description": "The date when the dataset was last modified. An owned dataset\ncan only be extended after a DOI was assigned. A foreign dataset cannot be changed\nonce a DOI was assigned.",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -635,7 +635,7 @@ window.nomadArtifacts = {
       "name": "dataset_type",
       "description": "The type determined if a dataset is owned, i.e. was created by\nthe authors of the contained entries; or if a dataset is foreign,\ni.e. it was created by someone not necessarily related to the entries.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "owned",
           "foreign"
@@ -663,7 +663,7 @@ window.nomadArtifacts = {
       "name": "domain",
       "description": "The material science domain",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "dft",
           "ems"
@@ -730,7 +730,7 @@ window.nomadArtifacts = {
       "name": "elements",
       "description": "Names of the different elements present in the structure.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "X",
           "H",
@@ -955,7 +955,7 @@ window.nomadArtifacts = {
       "name": "structure_features",
       "description": "A list of strings that flag which special features are used by the structure.\n\n- disorder: This flag MUST be present if any one entry in the species list has a\nchemical_symbols list that is longer than 1 element.\n- unknown_positions: This flag MUST be present if at least one component of the\ncartesian_site_positions list of lists has value null.\n- assemblies: This flag MUST be present if the assemblies list is present.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "disorder",
           "unknown_positions",
@@ -1194,7 +1194,7 @@ window.nomadArtifacts = {
       "description": "The value mapped as an ES date field.",
       "type": {
         "type_kind": "custom",
-        "type_data": "nomad.metainfo.metainfo._Datetime"
+        "type_data": "nomad.metainfo.data_type.Datetime"
       },
       "aggregatable": false,
       "dynamic": false,
@@ -1227,7 +1227,7 @@ window.nomadArtifacts = {
       "name": "structural_type",
       "description": "Structural class determined from the atomic structure.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "bulk",
           "surface",
@@ -1248,7 +1248,7 @@ window.nomadArtifacts = {
       "name": "dimensionality",
       "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "0D",
           "1D",
@@ -1265,7 +1265,7 @@ window.nomadArtifacts = {
       "name": "building_block",
       "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "surface",
           "2D material",
@@ -1312,7 +1312,7 @@ window.nomadArtifacts = {
       "name": "elements",
       "description": "Names of the different elements present in the structure.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "X",
           "H",
@@ -1543,7 +1543,7 @@ window.nomadArtifacts = {
       "name": "element",
       "description": "The symbol of the element, e.g. 'Pb'.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "H",
           "He",
@@ -1696,7 +1696,7 @@ window.nomadArtifacts = {
       "name": "bravais_lattice",
       "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "aP",
           "mP",
@@ -1724,7 +1724,7 @@ window.nomadArtifacts = {
       "name": "crystal_system",
       "description": "Name of the crystal system.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "triclinic",
           "monoclinic",
@@ -1831,7 +1831,7 @@ window.nomadArtifacts = {
       "name": "structure_name",
       "description": "A common name for this structure, e.g. fcc, bcc.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "4-member ring",
           "Heusler",
@@ -1897,7 +1897,7 @@ window.nomadArtifacts = {
       "name": "method",
       "description": "The method used for identifying this system.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "parser",
           "user",
@@ -1948,7 +1948,7 @@ window.nomadArtifacts = {
       "name": "structural_type",
       "description": "Structural class determined from the atomic structure.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "bulk",
           "surface",
@@ -1973,7 +1973,7 @@ window.nomadArtifacts = {
       "name": "dimensionality",
       "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "0D",
           "1D",
@@ -1990,7 +1990,7 @@ window.nomadArtifacts = {
       "name": "building_block",
       "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "surface",
           "2D material",
@@ -2037,7 +2037,7 @@ window.nomadArtifacts = {
       "name": "elements",
       "description": "Names of the different elements present in the structure.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "X",
           "H",
@@ -2434,7 +2434,7 @@ window.nomadArtifacts = {
       "name": "element",
       "description": "The symbol of the element, e.g. 'Pb'.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "H",
           "He",
@@ -2587,7 +2587,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "The type of relation between a system and it's parent.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'root'` | System representing the entire structure, has no parent system. |\n| `'subsystem'` | A single logical entity extracted from the parent system. |\n| `'group'` | A logical group of subsystems within the parent, e.g. a group of molecules in MD. |\n| `'primitive_cell'` | The conventional cell from which the parent is constructed from. |\n| `'conventional_cell'` | The primitive cell from which the parent is constructed from. |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "root",
           "subsystem",
@@ -2713,7 +2713,7 @@ window.nomadArtifacts = {
       "name": "bravais_lattice",
       "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "aP",
           "mP",
@@ -2741,7 +2741,7 @@ window.nomadArtifacts = {
       "name": "crystal_system",
       "description": "Name of the crystal system.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "triclinic",
           "monoclinic",
@@ -2850,7 +2850,7 @@ window.nomadArtifacts = {
       "name": "prototype_name",
       "description": "A common name for this prototypical structure, e.g. fcc, bcc.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "4-member ring",
           "Heusler",
@@ -2999,7 +2999,7 @@ window.nomadArtifacts = {
       "name": "method_name",
       "description": "Common name for the used method.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "DFT",
           "TB",
@@ -3072,7 +3072,7 @@ window.nomadArtifacts = {
       "name": "basis_set_type",
       "description": "The used basis set functions.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "(L)APW+lo",
           "gaussians",
@@ -3093,7 +3093,7 @@ window.nomadArtifacts = {
       "name": "core_electron_treatment",
       "description": "How the core electrons are described.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "full all electron",
           "all electron frozen core",
@@ -3147,7 +3147,7 @@ window.nomadArtifacts = {
       "name": "relativity_method",
       "description": "Describes the relativistic treatment used for the calculation of the final energy\nand related quantities. If skipped or empty, no relativistic treatment is applied.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "scalar_relativistic",
           "pseudo_scalar_relativistic",
@@ -3189,7 +3189,7 @@ window.nomadArtifacts = {
       "name": "jacobs_ladder",
       "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "LDA",
           "GGA",
@@ -3208,7 +3208,7 @@ window.nomadArtifacts = {
       "name": "xc_functional_type",
       "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "LDA",
           "GGA",
@@ -3292,7 +3292,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Tight-binding model type: Slater Koster fitting, DFTB approximation, xTB perturbation\ntheory, or Wannier projection.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "Slater-Koster",
           "DFTB",
@@ -3310,7 +3310,7 @@ window.nomadArtifacts = {
       "name": "localization_type",
       "description": "Localization type of the Wannier orbitals.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "single_shot",
           "maximally_localized"
@@ -3325,7 +3325,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "G0W0",
           "scGW",
@@ -3347,7 +3347,7 @@ window.nomadArtifacts = {
       "name": "basis_set_type",
       "description": "The used basis set functions.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "(L)APW+lo",
           "gaussians",
@@ -3368,7 +3368,7 @@ window.nomadArtifacts = {
       "name": "starting_point_type",
       "description": "The libXC based xc functional classification used in the starting point DFT simulation.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "LDA",
           "GGA",
@@ -3403,7 +3403,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Type of BSE hamiltonian solved:\n\n    H_BSE = H_diagonal + 2 * gx * Hx - gc * Hc\n\nwhere gx, gc specifies the type.\n\nOnline resources for the theory:\n- http://exciting.wikidot.com/carbon-excited-states-from-bse#toc1\n- https://www.vasp.at/wiki/index.php/Bethe-Salpeter-equations_calculations\n- https://docs.abinit.org/theory/bse/\n- https://www.yambo-code.eu/wiki/index.php/Bethe-Salpeter_kernel\n\n| Name | Description |\n\n| --------- | ----------------------- |\n\n| `'Singlet'` | gx = 1, gc = 1 |\n\n| `'Triplet'` | gx = 0, gc = 1 |\n\n| `'IP'` | Independent-particle approach |\n\n| `'RPA'` | Random Phase Approximation |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "Singlet",
           "Triplet",
@@ -3421,7 +3421,7 @@ window.nomadArtifacts = {
       "name": "basis_set_type",
       "description": "The used basis set functions.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "(L)APW+lo",
           "gaussians",
@@ -3442,7 +3442,7 @@ window.nomadArtifacts = {
       "name": "starting_point_type",
       "description": "The libXC based xc functional classification used in the starting point DFT simulation.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "LDA",
           "GGA",
@@ -3477,7 +3477,7 @@ window.nomadArtifacts = {
       "name": "solver",
       "description": "Solver algotithm used to diagonalize the BSE Hamiltonian.\n\n| Name | Description | Reference |\n\n| --------- | ----------------------- | ----------- |\n\n| `'Full-diagonalization'` | Full diagonalization of the BSE Hamiltonian | - |\n\n| `'Lanczos-Haydock'` | Subspace iterative Lanczos-Haydock algorithm | https://doi.org/10.1103/PhysRevB.59.5441 |\n\n| `'GMRES'` | Generalized minimal residual method | https://doi.org/10.1137/0907058 |\n\n| `'SLEPc'` | Scalable Library for Eigenvalue Problem Computations | https://slepc.upv.es/ |\n\n| `'TDA'` | Tamm-Dancoff approximation | https://doi.org/10.1016/S0009-2614(99)01149-5 |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "Full-diagonalization",
           "Lanczos-Haydock",
@@ -3496,7 +3496,7 @@ window.nomadArtifacts = {
       "name": "gw_type",
       "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "G0W0",
           "scGW",
@@ -3517,7 +3517,7 @@ window.nomadArtifacts = {
       "name": "impurity_solver_type",
       "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "CT-INT",
           "CT-HYB",
@@ -3555,7 +3555,7 @@ window.nomadArtifacts = {
       "name": "magnetic_state",
       "description": "Magnetic state in which the DMFT calculation is done.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "paramagnetic",
           "ferromagnetic",
@@ -3598,7 +3598,7 @@ window.nomadArtifacts = {
       "name": "analytical_continuation",
       "description": "Analytical continuation used to continuate the imaginary space Green's functions into\nthe real frequencies space.\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'Pade'` | Pade's approximant  | https://www.sciencedirect.com/science/article/pii/0021999173901277?via%3Dihub |\n\n| `'MaxEnt'` | Maximum Entropy method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.41.2380 |\n\n| `'SVD'` | Singular value decomposition | https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.75.517 |\n\n| `'Stochastic'` | Stochastic method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.57.10287 |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "Pade",
           "MaxEnt",
@@ -3640,7 +3640,7 @@ window.nomadArtifacts = {
       "name": "basis_set",
       "description": "The type of basis set used by the program.\n\n| Value                          |                       Description |\n| ------------------------------ | --------------------------------- |\n| `'APW'`                        | Augmented plane waves             |\n| `'LAPW'`                       | Linearized augmented plane waves  |\n| `'APW+lo'`             | Augmented plane waves with local orbitals |\n| `'LAPW+lo'` | Linearized augmented plane waves with local orbitals |\n| `'(L)APW'`                     |     A combination of APW and LAPW |\n| `'(L)APW+lo'`  | A combination of APW and LAPW with local orbitals |\n| `'plane waves'`                | Plane waves                       |\n| `'gaussians + plane waves'`    | Basis set of the Quickstep algorithm (DOI: 10.1016/j.cpc.2004.12.014) |\n| `'real-space grid'`            | Real-space grid                   |\n| `'suppport functions'`         | Support functions                 |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "atom-centered orbitals",
           "APW",
@@ -3691,7 +3691,7 @@ window.nomadArtifacts = {
       "name": "diffraction_method_name",
       "description": "The diffraction method used to obtain the diffraction pattern.\n| X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-Ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |\n| **Reciprocal Space Mapping (RSM)**                         | High-resolution XRD method to measure diffracted intensity in a 2-dimensional region of reciprocal space. Provides information about the real-structure (lattice mismatch, domain structure, stress and defects) in single-crystalline and epitaxial samples.|",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "Powder X-Ray Diffraction (PXRD)",
           "Single Crystal X-Ray Diffraction (SCXRD)",
@@ -3737,7 +3737,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Describes if the observable is calculated at the molecular or atomic level.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "molecular",
           "atomic"
@@ -3791,7 +3791,7 @@ window.nomadArtifacts = {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "NVE",
           "NVT",
@@ -3859,7 +3859,7 @@ window.nomadArtifacts = {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "NVE",
           "NVT",
@@ -3888,7 +3888,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Describes if the observable is calculated at the molecular or atomic level.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "molecular",
           "atomic"
@@ -3942,7 +3942,7 @@ window.nomadArtifacts = {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "NVE",
           "NVT",
@@ -4301,7 +4301,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Band gap type.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "direct",
           "indirect"
@@ -4363,7 +4363,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Band gap type.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "direct",
           "indirect"
@@ -4436,7 +4436,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Band gap type.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "direct",
           "indirect"
@@ -4498,7 +4498,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Band gap type.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "direct",
           "indirect"
@@ -4525,7 +4525,7 @@ window.nomadArtifacts = {
       "name": "source",
       "description": "Identifier for the source of the data: 'experiment' or 'simulation'.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "experiment",
           "simulation"
@@ -4540,7 +4540,7 @@ window.nomadArtifacts = {
       "name": "source",
       "description": "Identifier for the source of the data: 'experiment' or 'simulation'.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "experiment",
           "simulation"
@@ -5146,7 +5146,7 @@ window.nomadArtifacts = {
     "results.properties.mechanical.energy_volume_curve.type": {
       "name": "type",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "raw",
           "mie_gruneisen",
@@ -5169,7 +5169,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Describes the methodology for obtaining the value.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "mie_gruneisen",
           "pack_evans_james",
@@ -5206,7 +5206,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Describes the methodology for obtaining the value.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "voigt_average",
           "reuss_average",
@@ -5234,7 +5234,7 @@ window.nomadArtifacts = {
       "name": "available_properties",
       "description": "Subset of the property names that are present in this trajectory.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "temperature",
           "pressure",
@@ -5278,7 +5278,7 @@ window.nomadArtifacts = {
       "name": "ensemble_type",
       "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "NVE",
           "NVT",
@@ -5295,7 +5295,7 @@ window.nomadArtifacts = {
       "name": "type",
       "description": "Identifier for the methodology done to obtain the spectra data: EELS, XAS, XPS, etc.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "EELS",
           "XAS",
@@ -5316,7 +5316,7 @@ window.nomadArtifacts = {
       "name": "label",
       "description": "Identifier for the source of the spectra data, either 'computation' or 'experiment'.",
       "type": {
-        "type_kind": "Enum",
+        "type_kind": "enum",
         "type_data": [
           "computation",
           "experiment"
@@ -6243,7 +6243,7 @@ window.nomadArtifacts = {
                 "description": "Contains the JSON serialization for a plotly figure.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 }
               }
             ]
@@ -6305,7 +6305,7 @@ window.nomadArtifacts = {
                 "name": "sampling_method",
                 "description": "Method used to generate the mesh:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'Gamma-centered'` | Regular mesh is centered around Gamma. No offset. |\n\n| `'Monkhorst-Pack'` | Regular mesh with an offset of half the reciprocal lattice vector. |\n\n| `'Gamma-offcenter'` | Regular mesh with an offset that is neither `'Gamma-centered'`, nor `'Monkhorst-Pack'`. |\n\n| `'Line-path'` | Line path along high-symmetry points. Typically employed for simualting band structures. |\n\n| `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |\n\n| `'Logarithmic'`  | log distance 1D grid               |\n\n| `'Tan'`  | Non-uniform tan mesh for 1D grids. More dense at low abs values of the points, while less dense for higher values |\n\n| `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |\n\n| `'Gauss-Laguerre'` | Quadrature rule for integration using Laguerre polynomials |\n\n| `'Clenshaw-Curtis'`  | Quadrature rule for integration using Chebyshev polynomials using discrete cosine transformations |\n\n| `'Gauss-Hermite'`  | Quadrature rule for integration using Hermite polynomials |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Gamma-centered",
                     "Monkhorst-Pack",
@@ -6818,7 +6818,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Pseudopotential classification.\n| abbreviation | description | DOI |\n| ------------ | ----------- | --------- |\n| `'US'`       | Ultra-soft  | |\n| `'PAW'`      | Projector augmented wave | |\n| `'V'`        | Vanderbilt | https://doi.org/10.1103/PhysRevB.47.6728 |\n| `'MBK'`      | Morrison-Bylander-Kleinman | https://doi.org/10.1103/PhysRevB.41.7892 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "US V",
                     "US MBK",
@@ -7058,7 +7058,7 @@ window.nomadArtifacts = {
                 "name": "dscf_state",
                 "description": "The $\\Delta$-SCF state tag, used to identify the role in the workflow of the same name.\nAllowed values are `initial` (not to be confused with the _initial-state approximation_) and `final`.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "initial",
                     "final"
@@ -7517,7 +7517,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "State",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "APW",
                     "LAPW",
@@ -7690,7 +7690,7 @@ window.nomadArtifacts = {
                 "name": "shape",
                 "description": "Geometry of the basis set mesh.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "cubic",
                     "rectangular",
@@ -7824,7 +7824,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of basis set used by the program.\n\n| Value                          |                                            Description |\n| ------------------------------ | ------------------------------------------------------ |\n| `'numeric AOs'`                | Numerical atomic orbitals                              |\n| `'gaussians'`                  | Gaussian basis set                                     |\n| `'plane waves'`                | Plane waves                                            |\n| `'psinc functions'`            | Pseudopotential sinc functions                         |\n| `'real-space grid'`            | Real-space grid                                        |\n| `'pbeVaspFit2015'`             | Lobster algorithm for projection plane waves onto LCAO |\n| `'Koga'`                       | Lobster algorithm for projection plane waves onto LCAO |\n| `'Bunge'`                      | Lobster algorithm for projection plane waves onto LCAO |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "numeric AOs",
                     "gaussians",
@@ -7959,7 +7959,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of basis set used by the program.\n\n| Value                          |                       Description |\n| ------------------------------ | --------------------------------- |\n| `'APW'`                        | Augmented plane waves             |\n| `'LAPW'`                       | Linearized augmented plane waves  |\n| `'APW+lo'`             | Augmented plane waves with local orbitals |\n| `'LAPW+lo'` | Linearized augmented plane waves with local orbitals |\n| `'(L)APW'`                     |     A combination of APW and LAPW |\n| `'(L)APW+lo'`  | A combination of APW and LAPW with local orbitals |\n| `'plane waves'`                | Plane waves                       |\n| `'gaussians + plane waves'`    | Basis set of the Quickstep algorithm (DOI: 10.1016/j.cpc.2004.12.014) |\n| `'real-space grid'`            | Real-space grid                   |\n| `'suppport functions'`         | Support functions                 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "atom-centered orbitals",
                     "APW",
@@ -8117,7 +8117,8 @@ window.nomadArtifacts = {
                 "name": "parameters",
                 "description": "Dictionary of label and parameters of the interaction potential.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": []
               }
@@ -8202,7 +8203,8 @@ window.nomadArtifacts = {
                 "name": "parameters",
                 "description": "Contains an associative list of non-default values of the parameters for the\nfunctional.\n\nFor example, if a calculations using a hybrid XC functional (e.g., HSE06)\nspecifies a user-given value of the mixing parameter between exact and GGA\nexchange, then this non-default value is stored in this metadata.\n\nThe labels and units of these values may be defined in name.\n\nIf this metadata is not given, the default parameter values for the functional\nare assumed.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": []
               },
@@ -8988,7 +8990,7 @@ window.nomadArtifacts = {
                 "name": "edge",
                 "description": "Edge to be calculated for the core-hole spectra.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "K",
                     "L1",
@@ -9019,7 +9021,7 @@ window.nomadArtifacts = {
                 "name": "mode",
                 "description": "Type of spectra to be calculated: absorption or emission.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "absorption",
                     "emission"
@@ -9160,7 +9162,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "G0W0",
                     "scGW",
@@ -9181,7 +9183,7 @@ window.nomadArtifacts = {
                 "name": "analytical_continuation",
                 "description": "Analytical continuation approximations of the GW self-energy:\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'pade'` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |\n\n| `'contour_deformation'` | Contour deformation | PRB 67, 155208 (2003) |\n\n| `'ppm_GodbyNeeds'` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |\n\n| `'ppm_HybertsenLouie'` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |\n\n| `'ppm_vonderLindenHorsh'` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |\n\n| `'ppm_FaridEngel'` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |\n\n| `'multi_pole'` | Multi-pole fitting  | PRL 74, 1827 (1995) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "pade",
                     "contour_deformation",
@@ -9236,7 +9238,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Type of BSE hamiltonian solved:\n\n    H_BSE = H_diagonal + 2 * gx * Hx - gc * Hc\n\nwhere gx, gc specifies the type.\n\nOnline resources for the theory:\n- http://exciting.wikidot.com/carbon-excited-states-from-bse#toc1\n- https://www.vasp.at/wiki/index.php/Bethe-Salpeter-equations_calculations\n- https://docs.abinit.org/theory/bse/\n- https://www.yambo-code.eu/wiki/index.php/Bethe-Salpeter_kernel\n\n| Name | Description |\n\n| --------- | ----------------------- |\n\n| `'Singlet'` | gx = 1, gc = 1 |\n\n| `'Triplet'` | gx = 0, gc = 1 |\n\n| `'IP'` | Independent-particle approach |\n\n| `'RPA'` | Random Phase Approximation |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Singlet",
                     "Triplet",
@@ -9253,7 +9255,7 @@ window.nomadArtifacts = {
                 "name": "solver",
                 "description": "Solver algotithm used to diagonalize the BSE Hamiltonian.\n\n| Name | Description | Reference |\n\n| --------- | ----------------------- | ----------- |\n\n| `'Full-diagonalization'` | Full diagonalization of the BSE Hamiltonian | - |\n\n| `'Lanczos-Haydock'` | Subspace iterative Lanczos-Haydock algorithm | https://doi.org/10.1103/PhysRevB.59.5441 |\n\n| `'GMRES'` | Generalized minimal residual method | https://doi.org/10.1137/0907058 |\n\n| `'SLEPc'` | Scalable Library for Eigenvalue Problem Computations | https://slepc.upv.es/ |\n\n| `'TDA'` | Tamm-Dancoff approximation | https://doi.org/10.1016/S0009-2614(99)01149-5 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Full-diagonalization",
                     "Lanczos-Haydock",
@@ -9349,7 +9351,7 @@ window.nomadArtifacts = {
                 "name": "magnetic_state",
                 "description": "Magnetic state in which the DMFT calculation is done:\n\n| Name                  | State                   |\n\n| --------------------- | ----------------------- |\n\n| `'paramagnetic'`      | paramagnetic state      |\n\n| `'ferromagnetic'`     | ferromagnetic state     |\n\n| `'antiferromagnetic'` | antiferromagnetic state |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "paramagnetic",
                     "ferromagnetic",
@@ -9365,7 +9367,7 @@ window.nomadArtifacts = {
                 "name": "impurity_solver",
                 "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "CT-INT",
                     "CT-HYB",
@@ -9445,7 +9447,7 @@ window.nomadArtifacts = {
                 "name": "coulomb_type",
                 "description": "Method used for calculating long-ranged Coulomb forces.\n\nAllowed values are:\n\n| Barostat Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"Cutoff\"`          | Simple cutoff scheme. |\n\n| `\"Ewald\"` | Standard Ewald summation as described in any solid-state physics text. |\n\n| `\"Multi-Level Summation\"` |  D. Hardy, J.E. Stone, and K. Schulten,\n[Parallel. Comput. **35**, 164](https://doi.org/10.1016/j.parco.2008.12.005)|\n\n| `\"Particle-Mesh-Ewald\"`        | T. Darden, D. York, and L. Pedersen,\n[J. Chem. Phys. **98**, 10089 (1993)](https://doi.org/10.1063/1.464397) |\n\n| `\"Particle-Particle Particle-Mesh\"` | See e.g. Hockney and Eastwood, Computer Simulation Using Particles,\nAdam Hilger, NY (1989). |\n\n| `\"Reaction-Field\"` | J.A. Barker and R.O. Watts,\n[Mol. Phys. **26**, 789 (1973)](https://doi.org/10.1080/00268977300102101)|",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "cutoff",
                     "ewald",
@@ -9627,7 +9629,7 @@ window.nomadArtifacts = {
                 "name": "relativity_method",
                 "description": "Describes the relativistic treatment used for the calculation of the final energy\nand related quantities. If skipped or empty, no relativistic treatment is applied.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "scalar_relativistic",
                     "pseudo_scalar_relativistic",
@@ -10147,7 +10149,8 @@ window.nomadArtifacts = {
                 "description": "Lattice vectors of the simulation cell in cartesian coordinates. The\nlast (fastest) index runs over the $x,y,z$ Cartesian coordinates, and the first\nindex runs over the 3 lattice vectors.",
                 "type": {
                   "type_kind": "numpy",
-                  "type_data": "float64"
+                  "type_data": "float64",
+                  "disable_shape_check": true
                 },
                 "shape": [
                   3,
@@ -10609,7 +10612,8 @@ window.nomadArtifacts = {
                 "name": "parameters",
                 "description": "Explicit constraint parameters for this kind of constraint (depending on the\nconstraint type, some might be given implicitly through other means).",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": []
               }
@@ -12024,7 +12028,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Band gap type.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "direct",
                     "indirect"
@@ -13298,7 +13302,7 @@ window.nomadArtifacts = {
                 "description": "Specifies the HDF5 file and the path to the value in the file .",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._HDF5Reference"
+                  "type_data": "nomad.metainfo.data_type.HDF5Reference"
                 },
                 "shape": []
               }
@@ -13449,7 +13453,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Type of Green's function calculated from the mapping of the Hubbard-Kanamori model\ninto the Anderson impurity model. These calculations are converged if both types of\nGreen's functions converge to each other (G_impurity == G_lattice).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "impurity",
                     "lattice"
@@ -15469,7 +15473,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of geometry optimization, which denotes what is being optimized.\n\nAllowed values are:\n\n| Type                   | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"static\"`             | no optimization |\n\n| `\"atomic\"`             | the atomic coordinates alone are updated |\n\n| `\"cell_volume\"`         | `\"atomic\"` + cell lattice paramters are updated isotropically |\n\n| `\"cell_shape\"`        | `\"cell_volume\"` but without the isotropic constraint: all cell parameters are updated |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "static",
                     "atomic",
@@ -15714,7 +15718,7 @@ window.nomadArtifacts = {
                 "name": "thermostat_type",
                 "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |\n\n| `\"velocity_rescaling_woodcock\"` | L. V. Woodcock,\n[Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |\n\n| `\"langevin_leap_frog\"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande\n[Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "andersen",
                     "berendsen",
@@ -15776,7 +15780,7 @@ window.nomadArtifacts = {
                 "name": "temperature_profile",
                 "description": "Type of temperature control (i.e., annealing) procedure. Can be \"constant\" (no annealing), \"linear\", or \"exponential\".\nIf linear, \"temperature_update_delta\" specifies the corresponding update parameter.\nIf exponential, \"temperature_update_factor\" specifies the corresponding update parameter.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "constant",
                     "linear",
@@ -15887,7 +15891,7 @@ window.nomadArtifacts = {
                 "name": "barostat_type",
                 "description": "The name of the barostat used for temperature control. If skipped or an empty string is used, it\nmeans no barostat was applied.\n\nAllowed values are:\n\n| Barostat Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"martyna_tuckerman_tobias_klein\"` | G.J. Martyna, M.E. Tuckerman, D.J. Tobias, and M.L. Klein,\n[Mol. Phys. **87**, 1117 (1996)](https://doi.org/10.1080/00268979600100761);\nM.E. Tuckerman, J. Alejandre, R. L\u00f3pez-Rend\u00f3n, A.L. Jochim, and G.J. Martyna,\n[J. Phys. A. **59**, 5629 (2006)](https://doi.org/10.1088/0305-4470/39/19/S18)|\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"parrinello_rahman\"`        | M. Parrinello and A. Rahman,\n[J. Appl. Phys. **52**, 7182 (1981)](https://doi.org/10.1063/1.328693);\nS. Nos\u00e9 and M.L. Klein, [Mol. Phys. **50**, 1055 (1983) |\n\n| `\"stochastic_cell_rescaling\"` | M. Bernetti and G. Bussi,\n[J. Chem. Phys. **153**, 114107 (2020)](https://doi.org/10.1063/1.2408420) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "berendsen",
                     "martyna_tuckerman_tobias_klein",
@@ -15905,7 +15909,7 @@ window.nomadArtifacts = {
                 "name": "coupling_type",
                 "description": "Describes the symmetry of pressure coupling. Specifics can be inferred from the `coupling constant`\n\n| Type          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `isotropic`          | Identical coupling in all directions. |\n\n| `semi_isotropic` | Identical coupling in 2 directions. |\n\n| `anisotropic`        | General case. |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "isotropic",
                     "semi_isotropic",
@@ -15969,7 +15973,7 @@ window.nomadArtifacts = {
                 "name": "pressure_profile",
                 "description": "Type of pressure control procedure. Can be \"constant\" (no annealing), \"linear\", or \"exponential\".\nIf linear, \"pressure_update_delta\" specifies the corresponding update parameter.\nIf exponential, \"pressure_update_factor\" specifies the corresponding update parameter.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "constant",
                     "linear",
@@ -16088,7 +16092,7 @@ window.nomadArtifacts = {
                 "name": "thermodynamic_ensemble",
                 "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "NVE",
                     "NVT",
@@ -16105,7 +16109,7 @@ window.nomadArtifacts = {
                 "name": "integrator_type",
                 "description": "Name of the integrator.\n\nAllowed values are:\n\n| Integrator Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"leap_frog\"`          | R.W. Hockney, S.P. Goel, and J. Eastwood,\n[J. Comp. Phys. **14**, 148 (1974)](https://doi.org/10.1016/0021-9991(74)90010-2) |\n\n| `\"velocity_verlet\"` | W.C. Swope, H.C. Andersen, P.H. Berens, and K.R. Wilson,\n[J. Chem. Phys. **76**, 637 (1982)](https://doi.org/10.1063/1.442716) |\n\n| `\"rRESPA_multitimescale\"` | M. Tuckerman, B. J. Berne, and G. J. Martyna\n[J. Chem. Phys. **97**, 1990 (1992)](https://doi.org/10.1063/1.463137) |\n\n| `\"langevin_leap_frog\"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande\n[Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "brownian",
                     "conjugant_gradient",
@@ -16229,7 +16233,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -16826,7 +16830,7 @@ window.nomadArtifacts = {
                 "name": "direction",
                 "description": "Describes the direction in which the correlation function was calculated.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "x",
                     "y",
@@ -18958,7 +18962,7 @@ window.nomadArtifacts = {
                 "name": "reaction_type",
                 "description": "The type of the chemical reaction.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "surface_adsorption"
                   ]
@@ -19909,7 +19913,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of geometry optimization, which denotes what is being optimized.\n\nAllowed values are:\n\n| Type                   | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"static\"`             | no optimization |\n\n| `\"atomic\"`             | the atomic coordinates alone are updated |\n\n| `\"cell_volume\"`         | `\"atomic\"` + cell lattice paramters are updated isotropically |\n\n| `\"cell_shape\"`        | `\"cell_volume\"` but without the isotropic constraint: all cell parameters are updated |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "static",
                     "atomic",
@@ -21193,7 +21197,7 @@ window.nomadArtifacts = {
                 "name": "thermostat_type",
                 "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "andersen",
                     "berendsen",
@@ -21249,7 +21253,7 @@ window.nomadArtifacts = {
                 "name": "barostat_type",
                 "description": "The name of the barostat used for temperature control. If skipped or an empty string is used, it\nmeans no barostat was applied.\n\nAllowed values are:\n\n| Barostat Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"martyna_tuckerman_tobias_klein\"` | G.J. Martyna, M.E. Tuckerman, D.J. Tobias, and M.L. Klein,\n[Mol. Phys. **87**, 1117 (1996)](https://doi.org/10.1080/00268979600100761);\nM.E. Tuckerman, J. Alejandre, R. L\u00f3pez-Rend\u00f3n, A.L. Jochim, and G.J. Martyna,\n[J. Phys. A. **59**, 5629 (2006)](https://doi.org/10.1088/0305-4470/39/19/S18)|\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"parrinello_rahman\"`        | M. Parrinello and A. Rahman,\n[J. Appl. Phys. **52**, 7182 (1981)](https://doi.org/10.1063/1.328693);\nS. Nos\u00e9 and M.L. Klein, [Mol. Phys. **50**, 1055 (1983) |\n\n| `\"stochastic_cell_rescaling\"` | M. Bernetti and G. Bussi,\n[J. Chem. Phys. **153**, 114107 (2020)](https://doi.org/10.1063/1.2408420) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "berendsen",
                     "martyna_tuckerman_tobias_klein",
@@ -21267,7 +21271,7 @@ window.nomadArtifacts = {
                 "name": "coupling_type",
                 "description": "Describes the symmetry of pressure coupling. Specifics can be inferred from the `coupling constant`\n\n| Type          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `isotropic`          | Identical coupling in all directions. |\n\n| `semi_isotropic` | Identical coupling in 2 directions. |\n\n| `anisotropic`        | General case. |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "isotropic",
                     "semi_isotropic",
@@ -21340,7 +21344,7 @@ window.nomadArtifacts = {
                 "name": "integrator_type",
                 "description": "Name of the integrator.\n\nAllowed values are:\n\n| Integrator Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"leap_frog\"`          | R.W. Hockney, S.P. Goel, and J. Eastwood,\n[J. Comp. Phys. **14**, 148 (1974)](https://doi.org/10.1016/0021-9991(74)90010-2) |\n\n| `\"velocity_verlet\"` | W.C. Swope, H.C. Andersen, P.H. Berens, and K.R. Wilson,\n[J. Chem. Phys. **76**, 637 (1982)](https://doi.org/10.1063/1.442716) |\n\n| `\"rRESPA_multitimescale\"` | M. Tuckerman, B. J. Berne, and G. J. Martyna\n[J. Chem. Phys. **97**, 1990 (1992)](https://doi.org/10.1063/1.463137) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "brownian",
                     "conjugant_gradient",
@@ -21485,7 +21489,7 @@ window.nomadArtifacts = {
                 "name": "thermodynamic_ensemble",
                 "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "NVE",
                     "NVT",
@@ -21565,7 +21569,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -21670,7 +21674,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -21852,7 +21856,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the correlation function is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -21867,7 +21871,7 @@ window.nomadArtifacts = {
                 "name": "direction",
                 "description": "Describes the direction in which the correlation function was calculated.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "x",
                     "y",
@@ -22282,7 +22286,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The workflow type.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "GW",
                     "single_point",
@@ -22699,7 +22703,7 @@ window.nomadArtifacts = {
                 "name": "sampling_method",
                 "description": "Method used to generate the mesh:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'Gamma-centered'` | Regular mesh is centered around Gamma. No offset. |\n\n| `'Monkhorst-Pack'` | Regular mesh with an offset of half the reciprocal lattice vector. |\n\n| `'Gamma-offcenter'` | Regular mesh with an offset that is neither `'Gamma-centered'`, nor `'Monkhorst-Pack'`. |\n\n| `'Line-path'` | Line path along high-symmetry points. Typically employed for simualting band structures. |\n\n| `'Equidistant'`  | Equidistant 1D grid (also known as 'Newton-Cotes')                      |\n\n| `'Logarithmic'`  | log distance 1D grid               |\n\n| `'Tan'`  | Non-uniform tan mesh for 1D grids. More dense at low abs values of the points, while less dense for higher values |\n\n| `'Gauss-Legendre'` | Quadrature rule for integration using Legendre polynomials |\n\n| `'Gauss-Laguerre'` | Quadrature rule for integration using Laguerre polynomials |\n\n| `'Clenshaw-Curtis'`  | Quadrature rule for integration using Chebyshev polynomials using discrete cosine transformations |\n\n| `'Gauss-Hermite'`  | Quadrature rule for integration using Hermite polynomials |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Gamma-centered",
                     "Monkhorst-Pack",
@@ -23244,7 +23248,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Pseudopotential classification.\n| abbreviation | description | DOI |\n| ------------ | ----------- | --------- |\n| `'US'`       | Ultra-soft  | |\n| `'PAW'`      | Projector augmented wave | |\n| `'V'`        | Vanderbilt | https://doi.org/10.1103/PhysRevB.47.6728 |\n| `'MBK'`      | Morrison-Bylander-Kleinman | https://doi.org/10.1103/PhysRevB.41.7892 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "US V",
                     "US MBK",
@@ -23454,7 +23458,7 @@ window.nomadArtifacts = {
                 "name": "dscf_state",
                 "description": "The $\\Delta$-SCF state tag, used to identify the role in the workflow of the same name.\nAllowed values are `initial` (not to be confused with the _initial-state approximation_) and `final`.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "initial",
                     "final"
@@ -23911,7 +23915,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "State",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "APW",
                     "LAPW",
@@ -24084,7 +24088,7 @@ window.nomadArtifacts = {
                 "name": "shape",
                 "description": "Geometry of the basis set mesh.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "cubic",
                     "rectangular",
@@ -24218,7 +24222,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of basis set used by the program.\n\n| Value                          |                                            Description |\n| ------------------------------ | ------------------------------------------------------ |\n| `'numeric AOs'`                | Numerical atomic orbitals                              |\n| `'gaussians'`                  | Gaussian basis set                                     |\n| `'plane waves'`                | Plane waves                                            |\n| `'psinc functions'`            | Pseudopotential sinc functions                         |\n| `'real-space grid'`            | Real-space grid                                        |\n| `'pbeVaspFit2015'`             | Lobster algorithm for projection plane waves onto LCAO |\n| `'Koga'`                       | Lobster algorithm for projection plane waves onto LCAO |\n| `'Bunge'`                      | Lobster algorithm for projection plane waves onto LCAO |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "numeric AOs",
                     "gaussians",
@@ -24374,7 +24378,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of basis set used by the program.\n\n| Value                          |                       Description |\n| ------------------------------ | --------------------------------- |\n| `'APW'`                        | Augmented plane waves             |\n| `'LAPW'`                       | Linearized augmented plane waves  |\n| `'APW+lo'`             | Augmented plane waves with local orbitals |\n| `'LAPW+lo'` | Linearized augmented plane waves with local orbitals |\n| `'(L)APW'`                     |     A combination of APW and LAPW |\n| `'(L)APW+lo'`  | A combination of APW and LAPW with local orbitals |\n| `'plane waves'`                | Plane waves                       |\n| `'gaussians + plane waves'`    | Basis set of the Quickstep algorithm (DOI: 10.1016/j.cpc.2004.12.014) |\n| `'real-space grid'`            | Real-space grid                   |\n| `'suppport functions'`         | Support functions                 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "atom-centered orbitals",
                     "APW",
@@ -24535,7 +24539,8 @@ window.nomadArtifacts = {
                 "name": "parameters",
                 "description": "Dictionary of label and parameters of the interaction potential.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": []
               }
@@ -24620,7 +24625,8 @@ window.nomadArtifacts = {
                 "name": "parameters",
                 "description": "Contains an associative list of non-default values of the parameters for the\nfunctional.\n\nFor example, if a calculations using a hybrid XC functional (e.g., HSE06)\nspecifies a user-given value of the mixing parameter between exact and GGA\nexchange, then this non-default value is stored in this metadata.\n\nThe labels and units of these values may be defined in name.\n\nIf this metadata is not given, the default parameter values for the functional\nare assumed.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": []
               },
@@ -25406,7 +25412,7 @@ window.nomadArtifacts = {
                 "name": "edge",
                 "description": "Edge to be calculated for the core-hole spectra.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "K",
                     "L1",
@@ -25437,7 +25443,7 @@ window.nomadArtifacts = {
                 "name": "mode",
                 "description": "Type of spectra to be calculated: absorption or emission.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "absorption",
                     "emission"
@@ -25593,7 +25599,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "G0W0",
                     "scGW",
@@ -25614,7 +25620,7 @@ window.nomadArtifacts = {
                 "name": "analytical_continuation",
                 "description": "Analytical continuation approximations of the GW self-energy:\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'pade'` | Pade's approximant  | J. Low Temp. Phys 29, 179 (1977) |\n\n| `'contour_deformation'` | Contour deformation | PRB 67, 155208 (2003) |\n\n| `'ppm_GodbyNeeds'` | Godby-Needs plasmon-pole model | PRL 62, 1169 (1989) |\n\n| `'ppm_HybertsenLouie'` | Hybertsen and Louie plasmon-pole model | PRB 34, 5390 (1986) |\n\n| `'ppm_vonderLindenHorsh'` | von der Linden and P. Horsh plasmon-pole model | PRB 37, 8351 (1988) |\n\n| `'ppm_FaridEngel'` | Farid and Engel plasmon-pole model  | PRB 47, 15931 (1993) |\n\n| `'multi_pole'` | Multi-pole fitting  | PRL 74, 1827 (1995) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "pade",
                     "contour_deformation",
@@ -25675,7 +25681,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Type of BSE hamiltonian solved:\n\n    H_BSE = H_diagonal + 2 * gx * Hx - gc * Hc\n\nwhere gx, gc specifies the type.\n\nOnline resources for the theory:\n- http://exciting.wikidot.com/carbon-excited-states-from-bse#toc1\n- https://www.vasp.at/wiki/index.php/Bethe-Salpeter-equations_calculations\n- https://docs.abinit.org/theory/bse/\n- https://www.yambo-code.eu/wiki/index.php/Bethe-Salpeter_kernel\n\n| Name | Description |\n\n| --------- | ----------------------- |\n\n| `'Singlet'` | gx = 1, gc = 1 |\n\n| `'Triplet'` | gx = 0, gc = 1 |\n\n| `'IP'` | Independent-particle approach |\n\n| `'RPA'` | Random Phase Approximation |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Singlet",
                     "Triplet",
@@ -25698,7 +25704,7 @@ window.nomadArtifacts = {
                 "name": "solver",
                 "description": "Solver algotithm used to diagonalize the BSE Hamiltonian.\n\n| Name | Description | Reference |\n\n| --------- | ----------------------- | ----------- |\n\n| `'Full-diagonalization'` | Full diagonalization of the BSE Hamiltonian | - |\n\n| `'Lanczos-Haydock'` | Subspace iterative Lanczos-Haydock algorithm | https://doi.org/10.1103/PhysRevB.59.5441 |\n\n| `'GMRES'` | Generalized minimal residual method | https://doi.org/10.1137/0907058 |\n\n| `'SLEPc'` | Scalable Library for Eigenvalue Problem Computations | https://slepc.upv.es/ |\n\n| `'TDA'` | Tamm-Dancoff approximation | https://doi.org/10.1016/S0009-2614(99)01149-5 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Full-diagonalization",
                     "Lanczos-Haydock",
@@ -25805,7 +25811,7 @@ window.nomadArtifacts = {
                 "name": "magnetic_state",
                 "description": "Magnetic state in which the DMFT calculation is done:\n\n| Name                  | State                   |\n\n| --------------------- | ----------------------- |\n\n| `'paramagnetic'`      | paramagnetic state      |\n\n| `'ferromagnetic'`     | ferromagnetic state     |\n\n| `'antiferromagnetic'` | antiferromagnetic state |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "paramagnetic",
                     "ferromagnetic",
@@ -25827,7 +25833,7 @@ window.nomadArtifacts = {
                 "name": "impurity_solver",
                 "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "CT-INT",
                     "CT-HYB",
@@ -25907,7 +25913,7 @@ window.nomadArtifacts = {
                 "name": "coulomb_type",
                 "description": "Method used for calculating long-ranged Coulomb forces.\n\nAllowed values are:\n\n| Barostat Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"Cutoff\"`          | Simple cutoff scheme. |\n\n| `\"Ewald\"` | Standard Ewald summation as described in any solid-state physics text. |\n\n| `\"Multi-Level Summation\"` |  D. Hardy, J.E. Stone, and K. Schulten,\n[Parallel. Comput. **35**, 164](https://doi.org/10.1016/j.parco.2008.12.005)|\n\n| `\"Particle-Mesh-Ewald\"`        | T. Darden, D. York, and L. Pedersen,\n[J. Chem. Phys. **98**, 10089 (1993)](https://doi.org/10.1063/1.464397) |\n\n| `\"Particle-Particle Particle-Mesh\"` | See e.g. Hockney and Eastwood, Computer Simulation Using Particles,\nAdam Hilger, NY (1989). |\n\n| `\"Reaction-Field\"` | J.A. Barker and R.O. Watts,\n[Mol. Phys. **26**, 789 (1973)](https://doi.org/10.1080/00268977300102101)|",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "cutoff",
                     "ewald",
@@ -26106,7 +26112,7 @@ window.nomadArtifacts = {
                 "name": "relativity_method",
                 "description": "Describes the relativistic treatment used for the calculation of the final energy\nand related quantities. If skipped or empty, no relativistic treatment is applied.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "scalar_relativistic",
                     "pseudo_scalar_relativistic",
@@ -26167,7 +26173,7 @@ window.nomadArtifacts = {
                 "name": "label",
                 "description": "Label to identify the method applied in the simulation. Allowed values are:\n\n| Label | Name | Reference |\n\n| ----- | ---- | ----------- |\n\n| `'DFT'` | Density Functional Theory | https://en.wikipedia.org/wiki/Density_functional_theory |\n\n| `'TB'` | Tight-Binding models | https://en.wikipedia.org/wiki/Tight_binding |\n\n| `'GW'` | GW approximation | https://en.wikipedia.org/wiki/GW_approximation |\n\n| `'DMFT'` | Dynamical Mean-Field Theory | https://en.wikipedia.org/wiki/GW_approximation |\n\n| `'BSE'` | Bethe-Salpeter Equation | https://en.wikipedia.org/wiki/Bethe-Salpeter_equation |\n\n| `'kMC'` | Kinetic Monte Carlo |https://en.wikipedia.org/wiki/Kinetic_Monte_Carlo |\n\n| `'NMR'` | Nuclear Magnetic Resonance | https://en.wikipedia.org/wiki/Nuclear_magnetic_resonance |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "DFT",
                     "TB",
@@ -27125,7 +27131,8 @@ window.nomadArtifacts = {
                 "name": "parameters",
                 "description": "Explicit constraint parameters for this kind of constraint (depending on the\nconstraint type, some might be given implicitly through other means).",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": []
               }
@@ -28622,7 +28629,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Band gap type.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "direct",
                     "indirect"
@@ -29896,7 +29903,7 @@ window.nomadArtifacts = {
                 "description": "Value of the charge density written on HDF5.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
+                  "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
                 "shape": []
               }
@@ -30047,7 +30054,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Type of Green's function calculated from the mapping of the Hubbard-Kanamori model\ninto the Anderson impurity model. These calculations are converged if both types of\nGreen's functions converge to each other (G_impurity == G_lattice).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "impurity",
                     "lattice"
@@ -30488,7 +30495,7 @@ window.nomadArtifacts = {
                 "name": "contribution",
                 "description": "Type of contribution to the electric field gradient (EFG). The total EFG is\ncomposed of `local` and `non_local` contributions.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "total",
                     "local",
@@ -30557,7 +30564,7 @@ window.nomadArtifacts = {
                 "name": "contribution",
                 "description": "Type of contribution to the indirect spin-spin coupling. The total indirect spin-spin\ncoupling is composed of:\n\n    `total` = `direct_dipolar` + J_coupling\n\nWhere the J_coupling is:\n    J_coupling = `fermi_contact`\n                + `spin_dipolar`\n                + `orbital_diamagnetic`\n                + `orbital_paramagnetic`\n\nSee https://pubs.acs.org/doi/full/10.1021/cr300108a.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "total",
                     "direct_dipolar",
@@ -30620,7 +30627,7 @@ window.nomadArtifacts = {
                 "name": "scale_dimension",
                 "description": "Identifier of the scale dimension of the magnetic susceptibility tensor.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "microscopic",
                     "macroscopic"
@@ -31625,7 +31632,7 @@ window.nomadArtifacts = {
                 "name": "source",
                 "description": "Identifier for the source of the data: 'experiment' or 'simulation'.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "experiment",
                     "simulation"
@@ -31657,7 +31664,7 @@ window.nomadArtifacts = {
                 "name": "element",
                 "description": "The symbol of the element, e.g. 'Pb'.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "H",
                     "He",
@@ -32246,7 +32253,7 @@ window.nomadArtifacts = {
                 "name": "bravais_lattice",
                 "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "aP",
                     "mP",
@@ -32279,7 +32286,7 @@ window.nomadArtifacts = {
                 "name": "crystal_system",
                 "description": "Name of the crystal system.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "triclinic",
                     "monoclinic",
@@ -32426,7 +32433,7 @@ window.nomadArtifacts = {
                 "name": "structure_name",
                 "description": "A common name for this structure, e.g. fcc, bcc.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "4-member ring",
                     "Heusler",
@@ -32650,7 +32657,7 @@ window.nomadArtifacts = {
                 "name": "bravais_lattice",
                 "description": "Identifier for the Bravais lattice in Pearson notation. The first lowercase letter\nidentifies the crystal family and can be one of the following: a (triclinic), b\n(monoclinic), o (orthorhombic), t (tetragonal), h (hexagonal) or c (cubic). The\nsecond uppercase letter identifies the centring and can be one of the following: P\n(primitive), S (face centred), I (body centred), R (rhombohedral centring) or F\n(all faces centred).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "aP",
                     "mP",
@@ -32683,7 +32690,7 @@ window.nomadArtifacts = {
                 "name": "crystal_system",
                 "description": "Name of the crystal system.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "triclinic",
                     "monoclinic",
@@ -32897,7 +32904,7 @@ window.nomadArtifacts = {
                 "name": "prototype_name",
                 "description": "A common name for this prototypical structure, e.g. fcc, bcc.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "4-member ring",
                     "Heusler",
@@ -33115,7 +33122,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of relation between a system and it's parent.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'root'` | System representing the entire structure, has no parent system. |\n| `'subsystem'` | A single logical entity extracted from the parent system. |\n| `'group'` | A logical group of subsystems within the parent, e.g. a group of molecules in MD. |\n| `'primitive_cell'` | The conventional cell from which the parent is constructed from. |\n| `'conventional_cell'` | The primitive cell from which the parent is constructed from. |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "root",
                     "subsystem",
@@ -33141,7 +33148,7 @@ window.nomadArtifacts = {
                 "name": "element",
                 "description": "Chemical symbol of element, whose coordination number is being determined.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "X",
                     "H",
@@ -33331,7 +33338,7 @@ window.nomadArtifacts = {
                 "name": "method",
                 "description": "The method used for identifying this system.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "parser",
                     "user",
@@ -33402,7 +33409,7 @@ window.nomadArtifacts = {
                 "name": "structural_type",
                 "description": "Structural class determined from the atomic structure.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "bulk",
                     "surface",
@@ -33432,7 +33439,7 @@ window.nomadArtifacts = {
                 "name": "dimensionality",
                 "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "0D",
                     "1D",
@@ -33454,7 +33461,7 @@ window.nomadArtifacts = {
                 "name": "building_block",
                 "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "surface",
                     "2D material",
@@ -33516,7 +33523,7 @@ window.nomadArtifacts = {
                 "name": "elements",
                 "description": "Names of the different elements present in the structure.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "X",
                     "H",
@@ -34208,7 +34215,7 @@ window.nomadArtifacts = {
                 "name": "structural_type",
                 "description": "Structural class determined from the atomic structure.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "bulk",
                     "surface",
@@ -34235,7 +34242,7 @@ window.nomadArtifacts = {
                 "name": "dimensionality",
                 "description": "Dimensionality of the system. For atomistic systems this is\nautomatically evaluated by using the topology-scaling algorithm:\nhttps://doi.org/10.1103/PhysRevLett.118.106101.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'0D'` | Not connected periodically |\n| `'1D'` | Periodically connected in one dimension |\n| `'2D'` | Periodically connected in two dimensions |\n| `'3D'` | Periodically connected in three dimensions |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "0D",
                     "1D",
@@ -34257,7 +34264,7 @@ window.nomadArtifacts = {
                 "name": "building_block",
                 "description": "More exact classification for this system, i.e. the type of \"building\nblock\" it represents.\n\n| Value | Description |\n| --------- | ----------------------- |\n| `'surface'` | Structure built from a unit cell that repeats periodically in two directions and at least twice, but not infinitely in a third direction. |\n| `'2D material'` | Structure built from a unit cell that repeats periodically in two directions and only once in a third direction. |\n| `'molecule'` | Molecule defined in the force-field topology |\n| `'monomer'` | Monomer defined in the force-field topology |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "surface",
                     "2D material",
@@ -34319,7 +34326,7 @@ window.nomadArtifacts = {
                 "name": "elements",
                 "description": "Names of the different elements present in the structure.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "X",
                     "H",
@@ -34743,7 +34750,7 @@ window.nomadArtifacts = {
                 "name": "basis_set_type",
                 "description": "The used basis set functions.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "(L)APW+lo",
                     "gaussians",
@@ -34770,7 +34777,7 @@ window.nomadArtifacts = {
                 "name": "core_electron_treatment",
                 "description": "How the core electrons are described.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "full all electron",
                     "all electron frozen core",
@@ -34845,7 +34852,7 @@ window.nomadArtifacts = {
                 "name": "relativity_method",
                 "description": "Describes the relativistic treatment used for the calculation of the final energy\nand related quantities. If skipped or empty, no relativistic treatment is applied.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "scalar_relativistic",
                     "pseudo_scalar_relativistic",
@@ -34901,7 +34908,7 @@ window.nomadArtifacts = {
                 "name": "jacobs_ladder",
                 "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "LDA",
                     "GGA",
@@ -34926,7 +34933,7 @@ window.nomadArtifacts = {
                 "name": "xc_functional_type",
                 "description": "Functional classification in line with Jacob's Ladder.\nFor more information, see https://doi.org/10.1063/1.1390175 (original paper);\nhttps://doi.org/10.1103/PhysRevLett.91.146401 (meta-GGA);\nand https://doi.org/10.1063/1.1904565 (hyper-GGA).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "LDA",
                     "GGA",
@@ -35013,7 +35020,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Tight-binding model type: Slater Koster fitting, DFTB approximation, xTB perturbation\ntheory, or Wannier projection.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Slater-Koster",
                     "DFTB",
@@ -35037,7 +35044,7 @@ window.nomadArtifacts = {
                 "name": "localization_type",
                 "description": "Localization type of the Wannier orbitals.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "single_shot",
                     "maximally_localized"
@@ -35084,7 +35091,7 @@ window.nomadArtifacts = {
                 "name": "basis_set_type",
                 "description": "The used basis set functions.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "(L)APW+lo",
                     "gaussians",
@@ -35109,7 +35116,7 @@ window.nomadArtifacts = {
                 "name": "starting_point_type",
                 "description": "The libXC based xc functional classification used in the starting point DFT simulation.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "LDA",
                     "GGA",
@@ -35167,7 +35174,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "G0W0",
                     "scGW",
@@ -35206,7 +35213,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Type of BSE hamiltonian solved:\n\n    H_BSE = H_diagonal + 2 * gx * Hx - gc * Hc\n\nwhere gx, gc specifies the type.\n\nOnline resources for the theory:\n- http://exciting.wikidot.com/carbon-excited-states-from-bse#toc1\n- https://www.vasp.at/wiki/index.php/Bethe-Salpeter-equations_calculations\n- https://docs.abinit.org/theory/bse/\n- https://www.yambo-code.eu/wiki/index.php/Bethe-Salpeter_kernel\n\n| Name | Description |\n\n| --------- | ----------------------- |\n\n| `'Singlet'` | gx = 1, gc = 1 |\n\n| `'Triplet'` | gx = 0, gc = 1 |\n\n| `'IP'` | Independent-particle approach |\n\n| `'RPA'` | Random Phase Approximation |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Singlet",
                     "Triplet",
@@ -35229,7 +35236,7 @@ window.nomadArtifacts = {
                 "name": "solver",
                 "description": "Solver algotithm used to diagonalize the BSE Hamiltonian.\n\n| Name | Description | Reference |\n\n| --------- | ----------------------- | ----------- |\n\n| `'Full-diagonalization'` | Full diagonalization of the BSE Hamiltonian | - |\n\n| `'Lanczos-Haydock'` | Subspace iterative Lanczos-Haydock algorithm | https://doi.org/10.1103/PhysRevB.59.5441 |\n\n| `'GMRES'` | Generalized minimal residual method | https://doi.org/10.1137/0907058 |\n\n| `'SLEPc'` | Scalable Library for Eigenvalue Problem Computations | https://slepc.upv.es/ |\n\n| `'TDA'` | Tamm-Dancoff approximation | https://doi.org/10.1016/S0009-2614(99)01149-5 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Full-diagonalization",
                     "Lanczos-Haydock",
@@ -35253,7 +35260,7 @@ window.nomadArtifacts = {
                 "name": "gw_type",
                 "description": "GW Hedin's self-consistency cycle:\n\n| Name      | Description                      | Reference             |\n\n| --------- | -------------------------------- | --------------------- |\n\n| `'G0W0'`  | single-shot                      | PRB 74, 035101 (2006) |\n\n| `'scGW'`  | self-consistent G and W               | PRB 75, 235102 (2007) |\n\n| `'scGW0'` | self-consistent G with fixed W0  | PRB 54, 8411 (1996)   |\n\n| `'scG0W'` | self-consistent W with fixed G0  | -                     |\n\n| `'ev-scGW0'`  | eigenvalues self-consistent G with fixed W0   | PRB 34, 5390 (1986)   |\n\n| `'ev-scGW'`  | eigenvalues self-consistent G and W   | PRB 74, 045102 (2006)   |\n\n| `'qp-scGW0'`  | quasiparticle self-consistent G with fixed W0 | PRL 99, 115109 (2007) |\n\n| `'qp-scGW'`  | quasiparticle self-consistent G and W | PRL 96, 226402 (2006) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "G0W0",
                     "scGW",
@@ -35288,7 +35295,7 @@ window.nomadArtifacts = {
                 "name": "impurity_solver_type",
                 "description": "Impurity solver method used in the DMFT loop:\n\n| Name              | Reference                            |\n\n| ----------------- | ------------------------------------ |\n\n| `'CT-INT'`        | Rubtsov et al., JEPT Lett 80 (2004)  |\n\n| `'CT-HYB'`        | Werner et al., PRL 97 (2006)         |\n\n| `'CT-AUX'`        | Gull et al., EPL 82 (2008)           |\n\n| `'ED'`            | Caffarrel et al, PRL 72 (1994)       |\n\n| `'NRG'`           | Bulla et al., RMP 80 (2008)          |\n\n| `'MPS'`           | Ganahl et al., PRB 90 (2014)         |\n\n| `'IPT'`           | Georges et al., PRB 45 (1992)        |\n\n| `'NCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'OCA'`           | Pruschke et al., PRB 47 (1993)       |\n\n| `'slave_bosons'`  | Kotliar et al., PRL 57 (1986)        |\n\n| `'hubbard_I'`     | -                                    |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "CT-INT",
                     "CT-HYB",
@@ -35336,7 +35343,7 @@ window.nomadArtifacts = {
                 "name": "magnetic_state",
                 "description": "Magnetic state in which the DMFT calculation is done.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "paramagnetic",
                     "ferromagnetic",
@@ -35393,7 +35400,7 @@ window.nomadArtifacts = {
                 "name": "analytical_continuation",
                 "description": "Analytical continuation used to continuate the imaginary space Green's functions into\nthe real frequencies space.\n\n| Name           | Description         | Reference                        |\n\n| -------------- | ------------------- | -------------------------------- |\n\n| `'Pade'` | Pade's approximant  | https://www.sciencedirect.com/science/article/pii/0021999173901277?via%3Dihub |\n\n| `'MaxEnt'` | Maximum Entropy method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.41.2380 |\n\n| `'SVD'` | Singular value decomposition | https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.75.517 |\n\n| `'Stochastic'` | Stochastic method | https://journals.aps.org/prb/abstract/10.1103/PhysRevB.57.10287 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Pade",
                     "MaxEnt",
@@ -35492,7 +35499,7 @@ window.nomadArtifacts = {
                 "name": "computation_datetime",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -35581,7 +35588,7 @@ window.nomadArtifacts = {
                 "name": "basis_set",
                 "description": "The type of basis set used by the program.\n\n| Value                          |                       Description |\n| ------------------------------ | --------------------------------- |\n| `'APW'`                        | Augmented plane waves             |\n| `'LAPW'`                       | Linearized augmented plane waves  |\n| `'APW+lo'`             | Augmented plane waves with local orbitals |\n| `'LAPW+lo'` | Linearized augmented plane waves with local orbitals |\n| `'(L)APW'`                     |     A combination of APW and LAPW |\n| `'(L)APW+lo'`  | A combination of APW and LAPW with local orbitals |\n| `'plane waves'`                | Plane waves                       |\n| `'gaussians + plane waves'`    | Basis set of the Quickstep algorithm (DOI: 10.1016/j.cpc.2004.12.014) |\n| `'real-space grid'`            | Real-space grid                   |\n| `'suppport functions'`         | Support functions                 |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "atom-centered orbitals",
                     "APW",
@@ -35778,7 +35785,7 @@ window.nomadArtifacts = {
                 "name": "diffraction_method_name",
                 "description": "The diffraction method used to obtain the diffraction pattern.\n| X-Ray Diffraction Method                                   | Description                                                                                                                                                                                                 |\n|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|\n| **Powder X-Ray Diffraction (PXRD)**                        | The term \"powder\" refers more to the random orientation of small crystallites than to the physical form of the sample. Can be used with non-powder samples if they present random crystallite orientations. |\n| **Single Crystal X-Ray Diffraction (SCXRD)**               | Used for determining the atomic structure of a single crystal.                                                                                                                                              |\n| **High-Resolution X-Ray Diffraction (HRXRD)**              | A technique typically used for detailed characterization of epitaxial thin films using precise diffraction measurements.                                                                                    |\n| **Small-Angle X-Ray Scattering (SAXS)**                    | Used for studying nanostructures in the size range of 1-100 nm. Provides information on particle size, shape, and distribution.                                                                             |\n| **X-Ray Reflectivity (XRR)**                               | Used to study thin film layers, interfaces, and multilayers. Provides info on film thickness, density, and roughness.                                                                                       |\n| **Grazing Incidence X-Ray Diffraction (GIXRD)**            | Primarily used for the analysis of thin films with the incident beam at a fixed shallow angle.                                                                                                              |\n| **Reciprocal Space Mapping (RSM)**                         | High-resolution XRD method to measure diffracted intensity in a 2-dimensional region of reciprocal space. Provides information about the real-structure (lattice mismatch, domain structure, stress and defects) in single-crystalline and epitaxial samples.|",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "Powder X-Ray Diffraction (PXRD)",
                     "Single Crystal X-Ray Diffraction (SCXRD)",
@@ -35868,7 +35875,7 @@ window.nomadArtifacts = {
                 "name": "method_name",
                 "description": "Common name for the used method.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "DFT",
                     "TB",
@@ -35959,7 +35966,7 @@ window.nomadArtifacts = {
                 "name": "ensemble_type",
                 "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "NVE",
                     "NVT",
@@ -36447,7 +36454,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Type of Green's function calculated from the mapping of the Hubbard-Kanamori model\ninto the Anderson impurity model. These calculations are converged if both types of\nGreen's functions converge to each other (G_impurity == G_lattice).",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "impurity",
                     "lattice"
@@ -36723,7 +36730,7 @@ window.nomadArtifacts = {
                 },
                 "name": "type",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "raw",
                     "mie_gruneisen",
@@ -36790,7 +36797,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes the methodology for obtaining the value.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "mie_gruneisen",
                     "pack_evans_james",
@@ -36846,7 +36853,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes the methodology for obtaining the value.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "voigt_average",
                     "reuss_average",
@@ -37083,7 +37090,7 @@ window.nomadArtifacts = {
                 "name": "contribution",
                 "description": "Type of contribution to the electric field gradient (EFG). The total EFG is\ncomposed of `local` and `non_local` contributions.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "total",
                     "local",
@@ -37201,7 +37208,7 @@ window.nomadArtifacts = {
                 "name": "contribution",
                 "description": "Type of contribution to the indirect spin-spin coupling. The total indirect spin-spin\ncoupling is composed of:\n\n    `total` = `direct_dipolar` + J_coupling\n\nWhere the J_coupling is:\n    J_coupling = `fermi_contact`\n                + `spin_dipolar`\n                + `orbital_diamagnetic`\n                + `orbital_paramagnetic`\n\nSee https://pubs.acs.org/doi/full/10.1021/cr300108a.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "total",
                     "direct_dipolar",
@@ -37251,7 +37258,7 @@ window.nomadArtifacts = {
                 "name": "scale_dimension",
                 "description": "Identifier of the scale dimension of the magnetic susceptibility tensor.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "microscopic",
                     "macroscopic"
@@ -37471,7 +37478,7 @@ window.nomadArtifacts = {
                 "name": "available_properties",
                 "description": "Subset of the property names that are present in this trajectory.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "temperature",
                     "pressure",
@@ -37640,7 +37647,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -37877,7 +37884,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -37892,7 +37899,7 @@ window.nomadArtifacts = {
                 "name": "direction",
                 "description": "Describes the direction in which the correlation function was calculated.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "x",
                     "y",
@@ -39335,7 +39342,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Identifier for the methodology done to obtain the spectra data: EELS, XAS, XPS, etc.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "EELS",
                     "XAS",
@@ -39361,7 +39368,7 @@ window.nomadArtifacts = {
                 "name": "label",
                 "description": "Identifier for the source of the spectra data, either 'computation' or 'experiment'.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "computation",
                     "experiment"
@@ -39845,7 +39852,7 @@ window.nomadArtifacts = {
                 "name": "reader",
                 "description": "The reader needed to run the Nexus converter.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "apm",
                     "ellips",
@@ -39874,7 +39881,7 @@ window.nomadArtifacts = {
                 "name": "nxdl",
                 "description": "The nxdl needed for running the Nexus converter.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "NXapm",
                     "NXapm_composition_space_results",
@@ -40088,7 +40095,7 @@ window.nomadArtifacts = {
                 "description": "The date and time associated with this section.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -40795,7 +40802,7 @@ window.nomadArtifacts = {
                 "description": "Creation date of the sample.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -42384,7 +42391,7 @@ window.nomadArtifacts = {
                 "description": "the creation date of the entry element version (same with the creation date on the first version)",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -42395,7 +42402,7 @@ window.nomadArtifacts = {
                 "description": "the creation date of the entry element (first version)",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -42416,7 +42423,7 @@ window.nomadArtifacts = {
                 "name": "element_type",
                 "description": "Denotes that this is a file element. The value is always `FILE`",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "TEXT",
                     "DATA",
@@ -42485,7 +42492,7 @@ window.nomadArtifacts = {
                 "name": "version_date",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -42495,7 +42502,7 @@ window.nomadArtifacts = {
                 "name": "creation_date",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -42505,7 +42512,7 @@ window.nomadArtifacts = {
                 "name": "custom_dates",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 },
                 "shape": [
                   "*"
@@ -42810,7 +42817,7 @@ window.nomadArtifacts = {
                 "description": "The JSON content of the table element",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 }
               }
             ]
@@ -42837,7 +42844,7 @@ window.nomadArtifacts = {
                 "description": "The JSON content of the table element",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 }
               },
               {
@@ -42909,7 +42916,7 @@ window.nomadArtifacts = {
                 "description": "The title of the well plate template",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 }
               },
               {
@@ -42925,7 +42932,7 @@ window.nomadArtifacts = {
                 "description": "JSON meta data for visualization processing, used to store information about layer colors and well identifiers",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 }
               }
             ]
@@ -43091,7 +43098,7 @@ window.nomadArtifacts = {
                 "name": "modificationDate",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -43101,7 +43108,7 @@ window.nomadArtifacts = {
                 "name": "registration_date",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -43111,7 +43118,7 @@ window.nomadArtifacts = {
                 "name": "custom_dates",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 },
                 "shape": [
                   "*"
@@ -43596,7 +43603,7 @@ window.nomadArtifacts = {
                 "description": "The datetime of the beginning of the measurement.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -43607,7 +43614,7 @@ window.nomadArtifacts = {
                 "description": "The datetime of the measurement end.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -43834,7 +43841,7 @@ window.nomadArtifacts = {
                 "description": "The datetime that this was published on EELS DB.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               }
             ],
@@ -43878,7 +43885,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "name": "value",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 }
               },
               {
@@ -44169,7 +44177,7 @@ window.nomadArtifacts = {
                 "description": "The date when the dataset was first created.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -44188,7 +44196,7 @@ window.nomadArtifacts = {
                 "description": "The date when the dataset was last modified. An owned dataset\ncan only be extended after a DOI was assigned. A foreign dataset cannot be changed\nonce a DOI was assigned.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -44206,7 +44214,7 @@ window.nomadArtifacts = {
                 "name": "dataset_type",
                 "description": "The type determined if a dataset is owned, i.e. was created by\nthe authors of the contained entries; or if a dataset is foreign,\ni.e. it was created by someone not necessarily related to the entries.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "owned",
                     "foreign"
@@ -44225,7 +44233,7 @@ window.nomadArtifacts = {
                 "name": "query",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 }
               },
               {
@@ -44589,7 +44597,7 @@ window.nomadArtifacts = {
                 "description": "The value mapped as an ES date field.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               }
             ]
@@ -44619,7 +44627,7 @@ window.nomadArtifacts = {
                 "description": "The token returned by RFC3161 server.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Bytes"
+                  "type_data": "nomad.metainfo.data_type.Bytes"
                 }
               },
               {
@@ -44641,7 +44649,7 @@ window.nomadArtifacts = {
                 "description": "The RFC3161 timestamp.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               }
             ]
@@ -44713,7 +44721,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -44822,7 +44830,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -44836,7 +44844,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -45036,7 +45044,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -45133,7 +45141,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -45252,7 +45260,7 @@ window.nomadArtifacts = {
                   "/packages/19/category_definitions/0"
                 ],
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "The Perovskite Database Project",
                     "EELS Data Base",
@@ -45533,7 +45541,7 @@ window.nomadArtifacts = {
                 "name": "domain",
                 "description": "The material science domain",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "dft",
                     "ems"
@@ -45690,7 +45698,8 @@ window.nomadArtifacts = {
                 "name": "processing_logs",
                 "description": "The processing logs for this entry as a list of structlog entries.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "shape": [
                   "0..*"
@@ -45927,7 +45936,7 @@ window.nomadArtifacts = {
                 "description": "contains all the user-input INCAR parameters",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 },
                 "shape": []
               },
@@ -45939,7 +45948,7 @@ window.nomadArtifacts = {
                 "description": "contains the actual INCAR parameters used by VASP at runtime",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 },
                 "shape": []
               },
@@ -45951,7 +45960,7 @@ window.nomadArtifacts = {
                 "description": "INCAR variables uknown wrt to Vasp Wiki",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 },
                 "shape": []
               },
@@ -46055,7 +46064,7 @@ window.nomadArtifacts = {
                 "name": "x_vasp_selective_dynamics",
                 "description": "Boolean array to eiter allow or forbid coordinate modifications during relaxation",
                 "type": {
-                  "type_kind": "python",
+                  "type_kind": "numpy",
                   "type_data": "bool_"
                 },
                 "shape": [
@@ -46107,7 +46116,7 @@ window.nomadArtifacts = {
                 "description": "Input parameters used in the \"response functions\".",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 },
                 "shape": []
               }
@@ -47052,7 +47061,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "numpy",
-                  "type_data": "uint32"
+                  "type_data": "int32"
                 },
                 "shape": [
                   "1..x_vasp_incar_NBANDS"
@@ -52298,7 +52307,7 @@ window.nomadArtifacts = {
                 ],
                 "type": {
                   "type_kind": "numpy",
-                  "type_data": "uint32"
+                  "type_data": "int32"
                 },
                 "shape": [
                   "1..x_vasp_incar_NBANDS"
@@ -56735,7 +56744,7 @@ window.nomadArtifacts = {
                 "description": "The users first name (including all other given names)",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Capitalized"
+                  "type_data": "nomad.metainfo.data_type.Capitalized"
                 }
               },
               {
@@ -56746,7 +56755,7 @@ window.nomadArtifacts = {
                 "description": "The users last name",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Capitalized"
+                  "type_data": "nomad.metainfo.data_type.Capitalized"
                 }
               },
               {
@@ -56833,7 +56842,7 @@ window.nomadArtifacts = {
                 "description": "The time the account was created",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -56985,7 +56994,7 @@ window.nomadArtifacts = {
                 "description": "The date and time associated with this section.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -57085,7 +57094,7 @@ window.nomadArtifacts = {
                 "description": "Optionally, the starting time of the activity step. If omitted, it is assumed to\nfollow directly after the previous step.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -57137,7 +57146,7 @@ window.nomadArtifacts = {
                 "description": "The date and time when this activity was started.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -57398,7 +57407,7 @@ window.nomadArtifacts = {
                 "name": "element",
                 "description": "The symbol of the element, e.g. 'Pb'.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "H",
                     "He",
@@ -58050,7 +58059,7 @@ window.nomadArtifacts = {
                 "description": "The date and time when this process was finished.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               }
             ],
@@ -58631,7 +58640,7 @@ window.nomadArtifacts = {
                 "description": "A datetime associated with the identified thing. In case of an `Activity`, this\nshould be the starting time and, in case of an `Entity`, the creation time.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 }
               },
               {
@@ -58726,7 +58735,7 @@ window.nomadArtifacts = {
                 "description": "Publication date.\nIf the DOI number is given correctly,\nthis will be extracted automatically from www.crossref.org",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Datetime"
+                  "type_data": "nomad.metainfo.data_type.Datetime"
                 },
                 "shape": []
               },
@@ -59032,7 +59041,7 @@ window.nomadArtifacts = {
                 "name": "chemical_symbols",
                 "description": "A list of strings of all chemical elements composing this species.\n\nIt MUST be one of the following:\n\n- a valid chemical-element name, or\n- the special value \"X\" to represent a non-chemical element, or\n- the special value \"vacancy\" to represent that this site has a non-zero probability\n\nof having a vacancy (the respective probability is indicated in the concentration\nlist, see below).\n\nIf any one entry in the species list has a chemical_symbols list that is longer than 1\nelement, the correct flag MUST be set in the list structure_features (see\nstructure_features)",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "X",
                     "H",
@@ -59250,7 +59259,7 @@ window.nomadArtifacts = {
                   "https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.1"
                 ],
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "X",
                     "H",
@@ -59674,7 +59683,7 @@ window.nomadArtifacts = {
                   "https://github.com/Materials-Consortia/OPTiMaDe/blob/develop/optimade.md#h.6.2.15"
                 ],
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "disorder",
                     "unknown_positions",
@@ -59821,7 +59830,7 @@ window.nomadArtifacts = {
                 "description": "A dictionary that contains additional definition properties that are not\npart of the metainfo. Those can be passed as additional kwargs to definition\nconstructors. The values must be JSON serializable.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._JSON"
+                  "type_data": "nomad.metainfo.data_type.JSON"
                 },
                 "default": {}
               },
@@ -59832,7 +59841,8 @@ window.nomadArtifacts = {
                 "name": "all_attributes",
                 "description": "A virtual convenient property that provides all attributes as a dictionary\nfrom attribute name to attribute. This includes meta attributes (starting with m_)\nthat are defined for all properties of the same kind (sub_section or quantity).",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -59871,7 +59881,7 @@ window.nomadArtifacts = {
                 "description": "The type of the attribute. Can be any primitive type, including\nnumpy types, Datetime and enums.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._QuantityType"
+                  "type_data": "nomad.metainfo.metainfo.QuantityType"
                 }
               },
               {
@@ -59881,7 +59891,7 @@ window.nomadArtifacts = {
                 "name": "shape",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Dimension"
+                  "type_data": "nomad.metainfo.data_type.Dimension"
                 },
                 "shape": [
                   "0..*"
@@ -59990,7 +60000,7 @@ window.nomadArtifacts = {
                 "description": "Event handler are functions that get called when the section data is changed.\nThere are two types of events: ``set`` and ``add_sub_section``. The handler type\nis determined by the handler (i.e. function) name: ``on_set`` and ``on_add_sub_section``.\nThe handler arguments correspond to :py:meth:`MSection.m_set` (section, quantity_def, value) and\n:py:meth:`MSection.m_add_sub_section` (section, sub_section_def, sub_section).\nHandler are called after the respective action was performed. This quantity is\nautomatically populated with handler from the section classes methods. If there\nis a method ``on_set`` or ``on_add_sub_section``, it will be added as handler.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Callable"
+                  "type_data": "nomad.metainfo.data_type.Callable"
                 },
                 "shape": [
                   "0..*"
@@ -60005,7 +60015,8 @@ window.nomadArtifacts = {
                 "name": "inherited_sections",
                 "description": "A helper attribute that gives direct and indirect base sections and extending\nsections including this section. These are all sections that this sections\ngets its properties from.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60017,7 +60028,8 @@ window.nomadArtifacts = {
                 "name": "all_base_sections",
                 "description": "A helper attribute that gives direct and indirect base sections.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": false,
                 "virtual": true
@@ -60029,7 +60041,8 @@ window.nomadArtifacts = {
                 "name": "all_inheriting_sections",
                 "description": null,
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60041,7 +60054,8 @@ window.nomadArtifacts = {
                 "name": "all_properties",
                 "description": "A helper attribute that gives all properties (subsection and quantity) definitions\nincluding inherited properties and properties from extending sections as a\ndictionary with names and definitions.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60053,7 +60067,8 @@ window.nomadArtifacts = {
                 "name": "all_quantities",
                 "description": "A helper attribute that gives all quantity definition including inherited ones\nand ones from extending sections as a dictionary that maps names (strings)\nto :class:`Quantity`.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60065,7 +60080,8 @@ window.nomadArtifacts = {
                 "name": "all_sub_sections",
                 "description": "A helper attribute that gives all subsection definition including inherited ones\nand ones from extending sections as a dictionary that maps names (strings)\nto :class:`SubSection`.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60077,7 +60093,8 @@ window.nomadArtifacts = {
                 "name": "all_sub_sections_by_section",
                 "description": "A helper attribute that gives all subsection definition including inherited ones\nand ones from extending sections as a dictionary that maps section classes\n(i.e. Python class objects) to lists of :class:`SubSection`.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60089,7 +60106,8 @@ window.nomadArtifacts = {
                 "name": "all_aliases",
                 "description": "A helper attribute that gives all aliases for all properties including\ninherited properties and properties form extending sections as a\ndictionary with aliases and the definitions.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60101,7 +60119,8 @@ window.nomadArtifacts = {
                 "name": "all_inner_section_definitions",
                 "description": "A helper attribute that gives all inner_section_definitions including\ntheir aliases by name.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60113,7 +60132,8 @@ window.nomadArtifacts = {
                 "name": "has_variable_names",
                 "description": null,
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60125,7 +60145,8 @@ window.nomadArtifacts = {
                 "name": "path",
                 "description": "Shortest path from a root section to this section. This is not the path\nin the metainfo schema (`m_path`) but an archive path in potential data.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60181,7 +60202,8 @@ window.nomadArtifacts = {
                 "name": "all_definitions",
                 "description": "A helper attribute that provides all section and category definitions\nby name and aliases.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60193,7 +60215,8 @@ window.nomadArtifacts = {
                 "name": "dependencies",
                 "description": "All packages which have definitions that definitions from this package need. Being\n'needed' includes categories, base sections, and referenced definitions.",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60259,7 +60282,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._QuantityType"
+                  "type_data": "nomad.metainfo.metainfo.QuantityType"
                 }
               },
               {
@@ -60269,7 +60292,7 @@ window.nomadArtifacts = {
                 "name": "shape",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Dimension"
+                  "type_data": "nomad.metainfo.data_type.Dimension"
                 },
                 "shape": [
                   "0..*"
@@ -60283,7 +60306,7 @@ window.nomadArtifacts = {
                 "name": "unit",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Unit"
+                  "type_data": "nomad.metainfo.data_type.Unit"
                 }
               },
               {
@@ -60302,7 +60325,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "name": "default",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "default": null
               },
@@ -60314,7 +60338,7 @@ window.nomadArtifacts = {
                 "description": "A Python callable that takes the containing section as input and outputs the\nvalue for this quantity. This quantity cannot be set directly, its value\nis only derived by the given callable. The callable is executed when this\nquantity is get. Derived quantities are always virtual.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.metainfo.metainfo._Callable"
+                  "type_data": "nomad.metainfo.data_type.Callable"
                 },
                 "default": null,
                 "virtual": true
@@ -60456,7 +60480,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "name": "all_definitions_by_name",
                 "type": {
-                  "type_kind": "Any"
+                  "type_kind": "custom",
+                  "type_data": "nomad.metainfo.data_type.Any"
                 },
                 "cached": true,
                 "virtual": true
@@ -60540,7 +60565,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Band gap type.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "direct",
                     "indirect"
@@ -60616,7 +60641,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Band gap type.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "direct",
                     "indirect"
@@ -60650,7 +60675,7 @@ window.nomadArtifacts = {
                 "name": "reaction_type",
                 "description": "The type of the chemical reaction.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "surface_adsorption"
                   ]
@@ -61976,7 +62001,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of geometry optimization, which denotes what is being optimized.\n\nAllowed values are:\n\n| Type                   | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"static\"`             | no optimization |\n\n| `\"atomic\"`             | the atomic coordinates alone are updated |\n\n| `\"cell_volume\"`         | `\"atomic\"` + cell lattice paramters are updated isotropically |\n\n| `\"cell_shape\"`        | `\"cell_volume\"` but without the isotropic constraint: all cell parameters are updated |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "static",
                     "atomic",
@@ -62444,7 +62469,7 @@ window.nomadArtifacts = {
                 "name": "thermostat_type",
                 "description": "The name of the thermostat used for temperature control. If skipped or an empty string is used, it\nmeans no thermostat was applied.\n\nAllowed values are:\n\n| Thermostat Name        | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"andersen\"`           | H.C. Andersen, [J. Chem. Phys.\n**72**, 2384 (1980)](https://doi.org/10.1063/1.439486) |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"brownian\"`           | Brownian Dynamics |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"velocity_rescaling\"` | G. Bussi, D. Donadio, and M. Parrinello,\n[J. Chem. Phys. **126**, 014101 (2007)](https://doi.org/10.1063/1.2408420) |\n\n| `\"velocity_rescaling_langevin\"` | G. Bussi and M. Parrinello,\n[Phys. Rev. E **75**, 056707 (2007)](https://doi.org/10.1103/PhysRevE.75.056707) |\n\n| `\"velocity_rescaling_woodcock\"` | L. V. Woodcock,\n[Chem. Phys. Lett. **10**, 257 (1971)](https://doi.org/10.1016/0009-2614(71)80281-6) |\n\n| `\"langevin_leap_frog\"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande\n[Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "andersen",
                     "berendsen",
@@ -62506,7 +62531,7 @@ window.nomadArtifacts = {
                 "name": "temperature_profile",
                 "description": "Type of temperature control (i.e., annealing) procedure. Can be \"constant\" (no annealing), \"linear\", or \"exponential\".\nIf linear, \"temperature_update_delta\" specifies the corresponding update parameter.\nIf exponential, \"temperature_update_factor\" specifies the corresponding update parameter.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "constant",
                     "linear",
@@ -62620,7 +62645,7 @@ window.nomadArtifacts = {
                 "name": "barostat_type",
                 "description": "The name of the barostat used for temperature control. If skipped or an empty string is used, it\nmeans no barostat was applied.\n\nAllowed values are:\n\n| Barostat Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"\"`                   | No thermostat               |\n\n| `\"berendsen\"`          | H. J. C. Berendsen, J. P. M. Postma,\nW. F. van Gunsteren, A. DiNola, and J. R. Haak, [J. Chem. Phys.\n**81**, 3684 (1984)](https://doi.org/10.1063/1.448118) |\n\n| `\"martyna_tuckerman_tobias_klein\"` | G.J. Martyna, M.E. Tuckerman, D.J. Tobias, and M.L. Klein,\n[Mol. Phys. **87**, 1117 (1996)](https://doi.org/10.1080/00268979600100761);\nM.E. Tuckerman, J. Alejandre, R. L\u00f3pez-Rend\u00f3n, A.L. Jochim, and G.J. Martyna,\n[J. Phys. A. **59**, 5629 (2006)](https://doi.org/10.1088/0305-4470/39/19/S18)|\n\n| `\"nose_hoover\"`        | S. Nos\u00e9, [Mol. Phys. **52**, 255 (1984)]\n(https://doi.org/10.1080/00268978400101201); W.G. Hoover, [Phys. Rev. A\n**31**, 1695 (1985) |\n\n| `\"parrinello_rahman\"`        | M. Parrinello and A. Rahman,\n[J. Appl. Phys. **52**, 7182 (1981)](https://doi.org/10.1063/1.328693);\nS. Nos\u00e9 and M.L. Klein, [Mol. Phys. **50**, 1055 (1983) |\n\n| `\"stochastic_cell_rescaling\"` | M. Bernetti and G. Bussi,\n[J. Chem. Phys. **153**, 114107 (2020)](https://doi.org/10.1063/1.2408420) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "berendsen",
                     "martyna_tuckerman_tobias_klein",
@@ -62638,7 +62663,7 @@ window.nomadArtifacts = {
                 "name": "coupling_type",
                 "description": "Describes the symmetry of pressure coupling. Specifics can be inferred from the `coupling constant`\n\n| Type          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `isotropic`          | Identical coupling in all directions. |\n\n| `semi_isotropic` | Identical coupling in 2 directions. |\n\n| `anisotropic`        | General case. |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "isotropic",
                     "semi_isotropic",
@@ -62702,7 +62727,7 @@ window.nomadArtifacts = {
                 "name": "pressure_profile",
                 "description": "Type of pressure control procedure. Can be \"constant\" (no annealing), \"linear\", or \"exponential\".\nIf linear, \"pressure_update_delta\" specifies the corresponding update parameter.\nIf exponential, \"pressure_update_factor\" specifies the corresponding update parameter.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "constant",
                     "linear",
@@ -62822,7 +62847,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "The type of lambda interpolation\n\nAllowed values are:\n\n| type          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"output\"`           | Lambdas for the free energy outputs saved.\n                            These will also act as a default in case some\n                            relevant lambdas are not specified. |\n\n| `\"coulomb\"`          | Lambdas for interpolating electrostatic interactions. |\n\n| `\"vdw\"`              | Lambdas for interpolating van der Waals interactions. |\n\n| `\"bonded\"`           | Lambdas for interpolating all intramolecular interactions. |\n\n| `\"restraint\"`        | Lambdas for interpolating restraints. |\n\n| `\"mass\"`             | Lambdas for interpolating masses. |\n\n| `\"temperature\"`      | Lambdas for interpolating temperature. |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "output",
                     "coulomb",
@@ -62866,7 +62891,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Specifies the type of workflow. Allowed values are:\n\n| kind          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"alchemical\"`           | A non-physical transformation between 2 well-defined systems,\n                             typically achieved by smoothly interpolating between Hamiltonians or force fields.  |\n\n| `\"umbrella_sampling\"`    | A sampling of the path between 2 well-defined (sub)states of a system,\n                             typically achieved by applying a biasing force to the force field along a\n                             specified reaction coordinate.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "alchemical",
                     "umbrella_sampling"
@@ -63004,7 +63029,7 @@ window.nomadArtifacts = {
                 "name": "thermodynamic_ensemble",
                 "description": "The type of thermodynamic ensemble that was simulated.\n\nAllowed values are:\n\n| Thermodynamic Ensemble          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"NVE\"`           | Constant number of particles, volume, and energy |\n\n| `\"NVT\"`           | Constant number of particles, volume, and temperature |\n\n| `\"NPT\"`           | Constant number of particles, pressure, and temperature |\n\n| `\"NPH\"`           | Constant number of particles, pressure, and enthalpy |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "NVE",
                     "NVT",
@@ -63021,7 +63046,7 @@ window.nomadArtifacts = {
                 "name": "integrator_type",
                 "description": "Name of the integrator.\n\nAllowed values are:\n\n| Integrator Name          | Description                               |\n\n| ---------------------- | ----------------------------------------- |\n\n| `\"langevin_goga\"`           | N. Goga, A. J. Rzepiela, A. H. de Vries,\nS. J. Marrink, and H. J. C. Berendsen, [J. Chem. Theory Comput. **8**, 3637 (2012)]\n(https://doi.org/10.1021/ct3000876) |\n\n| `\"langevin_schneider\"`           | T. Schneider and E. Stoll,\n[Phys. Rev. B **17**, 1302](https://doi.org/10.1103/PhysRevB.17.1302) |\n\n| `\"leap_frog\"`          | R.W. Hockney, S.P. Goel, and J. Eastwood,\n[J. Comp. Phys. **14**, 148 (1974)](https://doi.org/10.1016/0021-9991(74)90010-2) |\n\n| `\"velocity_verlet\"` | W.C. Swope, H.C. Andersen, P.H. Berens, and K.R. Wilson,\n[J. Chem. Phys. **76**, 637 (1982)](https://doi.org/10.1063/1.442716) |\n\n| `\"rRESPA_multitimescale\"` | M. Tuckerman, B. J. Berne, and G. J. Martyna\n[J. Chem. Phys. **97**, 1990 (1992)](https://doi.org/10.1063/1.463137) |\n\n| `\"langevin_leap_frog\"` | J.A. Izaguirre, C.R. Sweet, and V.S. Pande\n[Pac Symp Biocomput. **15**, 240-251 (2010)](https://doi.org/10.1142/9789814295291_0026) |",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "brownian",
                     "conjugant_gradient",
@@ -63164,7 +63189,7 @@ window.nomadArtifacts = {
                 "name": "type",
                 "description": "Describes if the observable is calculated at the molecular or atomic level.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "molecular",
                     "atomic"
@@ -63660,7 +63685,7 @@ window.nomadArtifacts = {
                 "description": "Value of the total energy for the present lambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
+                  "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
                 "shape": []
               },
@@ -63672,7 +63697,7 @@ window.nomadArtifacts = {
                 "description": "Value of the pressure-volume energy (i.e., P*V) for the present lambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
+                  "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
                 "shape": []
               },
@@ -63684,7 +63709,7 @@ window.nomadArtifacts = {
                 "description": "Values correspond to the difference in total energy between each specified lambda state\nand the reference state, which corresponds to the value of lambda of the current simulation.\nThe expected dimensions are [\"n_frames\", \"n_states\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
+                  "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
                 "shape": []
               },
@@ -63696,7 +63721,7 @@ window.nomadArtifacts = {
                 "description": "Value of the derivative of the total energy with respect to lambda, evaluated for the current\nlambda state. The expected dimensions are [\"n_frames\"].\nThis quantity is a reference to the data (file+path), which is stored in an HDF5 file for efficiency.",
                 "type": {
                   "type_kind": "custom",
-                  "type_data": "nomad.datamodel.hdf5._HDF5Dataset"
+                  "type_data": "nomad.datamodel.hdf5.HDF5Dataset"
                 },
                 "shape": []
               }
@@ -63887,7 +63912,7 @@ window.nomadArtifacts = {
                 "name": "direction",
                 "description": "Describes the direction in which the correlation function was calculated.",
                 "type": {
-                  "type_kind": "Enum",
+                  "type_kind": "enum",
                   "type_data": [
                     "x",
                     "y",

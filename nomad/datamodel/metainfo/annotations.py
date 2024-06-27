@@ -26,6 +26,7 @@ from pydantic.main import BaseModel
 from nomad.utils import strip
 from nomad.metainfo import AnnotationModel, MEnum, MTypes, Datetime, Reference, Quantity
 from .plot import PlotlyError
+from ...metainfo.data_type import Datatype
 
 
 class ELNComponentEnum(str, Enum):
@@ -50,8 +51,15 @@ class ELNComponentEnum(str, Enum):
 valid_eln_types = {
     'str': ['str'],
     'bool': ['bool'],
-    'number': [x.__name__ for x in MTypes.num_python]
-    + [f'np.{x.__name__}' for x in MTypes.num_numpy],  # type: ignore
+    'number': [
+        'int',
+        'float',
+        'np.int64',
+        'np.int32',
+        'np.int16',
+        'np.float64',
+        'np.float32',
+    ],
     'datetime': ['Datetime'],
     'enum': ['{type_kind: Enum, type_data: [Operator, Responsible_person]}'],
     'user': ['User'],
@@ -411,7 +419,25 @@ class ELNAnnotation(AnnotationModel):
 
         assert len(quantity.shape) <= 1, 'Only scalars or lists can be edited.'
 
-        if isinstance(type_, type):
+        if isinstance(type_, Datatype):
+            if type_.standard_type().startswith('str'):
+                assert_component(component, name, 'str', valid_eln_components['str'])
+            elif type_.standard_type().startswith('bool'):
+                assert_component(component, name, 'bool', valid_eln_components['bool'])
+            elif type_.standard_type().startswith(('int', 'float')):
+                assert_component(
+                    component,
+                    name,
+                    type_.standard_type(),
+                    valid_eln_components['number'],
+                )
+            elif type_.standard_type().startswith('datetime'):
+                assert_component(
+                    component, name, 'datetime', valid_eln_components['datetime']
+                )
+            elif type_.standard_type().startswith('enum'):
+                assert_component(component, name, 'enum', valid_eln_components['enum'])
+        elif isinstance(type_, type):
             if type_.__name__ == 'str':
                 assert_component(
                     component, name, type_.__name__, valid_eln_components['str']
@@ -419,17 +445,6 @@ class ELNAnnotation(AnnotationModel):
             elif type_.__name__ == 'bool':
                 assert_component(
                     component, name, type_.__name__, valid_eln_components['bool']
-                )
-            elif type_ in MTypes.num_python:
-                assert_component(
-                    component, name, type_.__name__, valid_eln_components['number']
-                )
-            elif type_ in MTypes.num_numpy:
-                assert_component(
-                    component,
-                    name,
-                    f'np.{type_.__name__}',
-                    valid_eln_components['number'],
                 )
             elif type_.__name__ == 'User':
                 assert_component(

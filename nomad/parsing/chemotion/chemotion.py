@@ -32,6 +32,7 @@ from nomad.metainfo import (
     SubSection,
 )
 from nomad import utils
+from nomad.metainfo.data_type import m_float16
 from nomad.parsing.parser import MatchingParser
 
 m_package = Package(name='chemotion')
@@ -52,7 +53,7 @@ class ChemotionReactionSample(ChemotionGeneralMetainfo):
     reference = Quantity(type=bool)
     position = Quantity(type=int)
     waste = Quantity(type=bool)
-    coefficient = Quantity(type=np.float16)
+    coefficient = Quantity(type=m_float16().no_type_check())
 
 
 class ChemotionCollection(ChemotionGeneralMetainfo):
@@ -73,7 +74,7 @@ class ChemotionCollection(ChemotionGeneralMetainfo):
 
 class ChemotionSample(ChemotionGeneralMetainfo):
     name = Quantity(type=str)
-    target_amount_value = Quantity(type=np.float16)
+    target_amount_value = Quantity(type=m_float16().no_type_check())
     target_amount_unit = Quantity(type=str)
     description = Quantity(type=str)
     molfile = Quantity(type=str)
@@ -92,12 +93,12 @@ class ChemotionSample(ChemotionGeneralMetainfo):
     deleted_at = Quantity(type=str)
     sample_svg_file = Quantity(type=str)
     identifier = Quantity(type=str)
-    density = Quantity(type=np.float16)
-    melting_point = Quantity(type=np.float16)
-    boiling_point = Quantity(type=np.float16)
+    density = Quantity(type=m_float16().no_type_check())
+    melting_point = Quantity(type=m_float16().no_type_check())
+    boiling_point = Quantity(type=m_float16().no_type_check())
     fingerprint_id = Quantity(type=str)
     xref = Quantity(type=JSON, a_browser=dict(value_component='JsonValue'))
-    molarity_value = Quantity(type=np.float16)
+    molarity_value = Quantity(type=m_float16().no_type_check())
     molarity_unit = Quantity(type=str)
     molecule_name_id = Quantity(type=str)
     molfile_version = Quantity(type=str)
@@ -136,8 +137,8 @@ class ChemotionFingerprint(ChemotionGeneralMetainfo):
 class ChemotionMolecule(ChemotionGeneralMetainfo):
     inchikey = Quantity(type=str)
     inchistring = Quantity(type=str)
-    density = Quantity(type=np.float16)
-    molecular_weight = Quantity(type=np.float16)
+    density = Quantity(type=m_float16().no_type_check())
+    molecular_weight = Quantity(type=m_float16().no_type_check())
     molfile = Quantity(type=str)
     melting_point = Quantity(type=str)
     boiling_point = Quantity(type=str)
@@ -146,7 +147,7 @@ class ChemotionMolecule(ChemotionGeneralMetainfo):
     iupac_name = Quantity(type=str)
     molecule_svg_file = Quantity(type=str)
     is_partial = Quantity(type=bool)
-    exact_molecular_weight = Quantity(type=np.float16)
+    exact_molecular_weight = Quantity(type=m_float16().no_type_check())
     cano_smiles = Quantity(type=str)
     cas = Quantity(type=str, shape=['*'])
     molfile_version = Quantity(type=str)

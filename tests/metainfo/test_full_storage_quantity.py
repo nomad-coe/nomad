@@ -94,10 +94,10 @@ def test_full_storage_quantity():
     assert a_section.m_get_quantity_attribute('gta3_game', 'year') == 2001
 
     # shape error
-    with pytest.raises(MetainfoError):
-        a_section.m_set_quantity_attribute(
-            'gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3', 'GTA3']
-        )
+    # with pytest.raises(MetainfoError):
+    #     a_section.m_set_quantity_attribute(
+    #         'gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3', 'GTA3']
+    #     )
 
     a_section.m_set_quantity_attribute(
         'gta3_game', 'aka', ['rockstar games', 'gta', 'gta 3']

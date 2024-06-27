@@ -2630,7 +2630,7 @@ definitions:
     - name: datetime_list
       type:
         type_kind: custom
-        type_data: nomad.metainfo.metainfo.Datetime
+        type_data: nomad.metainfo.data_type.Datetime
       shape:
       - "*"
 data:
@@ -2743,7 +2743,7 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
                                                     'name': 'datetime_list',
                                                     'type': {
                                                         'type_kind': 'custom',
-                                                        'type_data': 'nomad.metainfo.metainfo._Datetime',
+                                                        'type_data': 'nomad.metainfo.data_type.Datetime',
                                                     },
                                                     'shape': ['*'],
                                                 },
