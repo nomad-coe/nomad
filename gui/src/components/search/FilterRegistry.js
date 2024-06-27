@@ -743,7 +743,7 @@ export function getStaticSuggestions(quantities, filterData) {
   // Add suggestions from metainfo
   for (const quantity of filters) {
     const data = searchQuantities[quantity]
-    const isEnum = data?.type?.type_kind === 'Enum'
+    const isEnum = data?.type?.type_kind?.toLowerCase() === 'enum'
     if (isEnum) {
       const options = data.type.type_data
       const maxLength = Math.max(...options.map(option => option.length))

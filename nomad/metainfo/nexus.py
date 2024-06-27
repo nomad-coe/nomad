@@ -27,6 +27,8 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 
+from nomad.metainfo.data_type import Number
+
 try:
     from pynxtools.nexus import nexus  # pylint: disable=import-error
 except ImportError:
@@ -379,7 +381,9 @@ def __add_additional_attributes(definition: Definition):
     if isinstance(definition, Quantity):
         # TODO We should also check the shape of the quantity and the datatype as
         # the statistics are always mapping on float64 even if quantity values are ints
-        if definition.type not in [np.float64, np.int64, np.uint64]:
+        if definition.type not in [np.float64, np.int64, np.uint64] and not isinstance(
+            definition.type, Number
+        ):
             return
 
         for nx_array_attr in [

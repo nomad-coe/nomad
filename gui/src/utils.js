@@ -581,11 +581,11 @@ export function getDatatype(quantity) {
     return DType.Int
   } else if (isString(type_data) && type_data.includes('float')) {
     return DType.Float
-  } else if (type_data === 'nomad.metainfo.metainfo._Datetime') {
+  } else if (type_data === 'nomad.metainfo.metainfo._Datetime' || type_data === 'nomad.metainfo.data_type.Datetime') {
     return DType.Timestamp
   } else if (type_data === 'str') {
     return DType.String
-  } else if (type_kind === 'Enum') {
+  } else if (type_kind?.toLowerCase() === 'enum') {
     return DType.Enum
   } else if (type_data === 'bool') {
     return DType.Boolean

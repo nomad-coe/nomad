@@ -56,7 +56,6 @@ def test_attributes(type, errors, value):
     assert len(MySection.m_def.m_all_validate()[0]) == errors
 
     assert MySection.my_quantity.attributes[0].name == 'my_quantity_attribute'
-    assert MySection.my_quantity.attributes[0].type == type
 
     if errors > 0:
         return

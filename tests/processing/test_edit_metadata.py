@@ -21,6 +21,7 @@ from datetime import datetime
 from fastapi.exceptions import RequestValidationError
 
 from nomad import datamodel, metainfo
+from nomad.metainfo.data_type import Datatype
 from nomad.processing import Upload, MetadataEditRequestHandler
 from nomad.processing.data import editable_metadata, mongo_upload_metadata
 from nomad.search import search
@@ -184,20 +185,16 @@ def convert_to_comparable_value(quantity, value, from_format, user):
 
 
 def convert_to_comparable_value_single(quantity, value, format, user):
-    if quantity.type in (str, int, float, bool) or isinstance(
-        quantity.type, metainfo.MEnum
-    ):
-        if value == '' and format == 'request':
-            return None
-        return value
-    elif quantity.type == metainfo.Datetime:
-        if not value:
-            return None
-        # datetime that is returned from Datetime class now has the timezone information.
-        # Hence, need to drop the last 3 elements in the datetime string [:19] instead of [:22]
-        return value[
-            0:19
-        ]  # Only compare to the millisecond level (mongo's maximal precision).
+    if isinstance(quantity.type, Datatype):
+        standard_type = quantity.type.standard_type()
+        if standard_type.startswith(('str', 'enum', 'int', 'float', 'bool')):
+            if value == '' and format == 'request':
+                return None
+            return value
+        elif standard_type.startswith('datetime'):
+            if not value:
+                return None
+            return value[0:19]
     elif isinstance(quantity.type, metainfo.Reference):
         # Should be reference
         verify_reference = quantity.type.target_section_def.section_cls

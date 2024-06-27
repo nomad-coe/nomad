@@ -118,11 +118,9 @@
                             true
                         ]
                     },
-                    "chemical_composition": {
-                        "value": "BrKSiSi",
-                        "value_reduced": "BrKSi2",
-                        "value_bulk_reduced": "BrKSi2"
-                    }
+                    "chemical_composition": "BrKSiSi",
+                    "chemical_composition_reduced": "BrKSi2",
+                    "chemical_composition_hill": "BrKSi2"
                 }
             ],
             "calculation": [

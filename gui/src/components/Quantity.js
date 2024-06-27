@@ -141,11 +141,11 @@ const Quantity = React.memo((props) => {
       return <Typography noWrap>
         {value.toString()}
       </Typography>
-    } else if (type.type_data === 'nomad.metainfo.metainfo._Datetime') {
+    } else if (type.type_data === 'nomad.metainfo.metainfo._Datetime' || type.type_data === 'nomad.metainfo.data_type.Datetime') {
       return <Typography noWrap>
         {formatTimestamp(value)}
       </Typography>
-    } else if (type.type_data === 'nomad.metainfo.metainfo._JSON') {
+    } else if (type.type_data === 'nomad.metainfo.metainfo._JSON' || type.type_data === 'nomad.metainfo.data_type.JSON') {
       return <Typography noWrap>
         JSON Formatted Data
       </Typography>

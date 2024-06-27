@@ -1253,7 +1253,8 @@ def molecular_dynamics() -> EntryArchive:
                 potential=runschema.calculation.EnergyEntry(value=step),
             )
             rg_values = runschema.calculation.RadiusOfGyrationValues(
-                value=step, label='MOL', atomsgroup_ref=system
+                value=step,
+                label='MOL',  # atomsgroup_ref=system
             )
             calc.radius_of_gyration = [
                 runschema.calculation.RadiusOfGyration(

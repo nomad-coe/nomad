@@ -16,192 +16,20 @@
 # limitations under the License.
 #
 
-import email.utils
 import hashlib
-import os
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
 from difflib import SequenceMatcher
-from functools import reduce
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 from urllib.parse import SplitResult, urlsplit, urlunsplit
 
-import aniso8601
 import numpy as np
-import pandas as pd
 import pint
-import pytz
 
-# All platforms do not support 128 bit numbers
-float128_set = set()
-complex256_set = set()
-try:
-    float128_set.add(np.float128)
-except AttributeError:
-    pass
-try:
-    complex256_set.add(np.complex256)
-except AttributeError:
-    pass
-
-
+from nomad.metainfo.data_type import Enum
 from nomad.units import ureg
 
 __hash_method = 'sha1'  # choose from hashlib.algorithms_guaranteed
-
-
-@dataclass(frozen=True)
-class MRegEx:
-    # matches the range of indices, e.g., 1..3, 0..*
-    index_range = re.compile(r'(\d)\.\.(\d|\*)')
-    # matches the reserved name
-    reserved_name = re.compile(r'^(m_|a_|_+).*$')
-    # matches for example
-    # Python package/module name: nomad.metainfo.section
-    # Python name + 40 digits id: nomad.metainfo.section@1a2b3c...
-    python_definition = re.compile(r'^\w*(\.\w*)*(@\w{40})?$')
-    # matches url
-    url = re.compile(
-        r'^(?:http|ftp)s?://'
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
-        r'localhost|'
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-        r'(?::\d+)?'
-        r'(?:/?|[/?]\S+)$',
-        re.IGNORECASE,
-    )
-    complex_str = re.compile(
-        r'^(?=[iIjJ.\d+-])([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![iIjJ.\d]))?'
-        r'([+-]?(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)?[iIjJ])?$'
-    )
-
-
-def normalize_complex(value, complex_type, to_unit: Union[str, ureg.Unit, None]):
-    """
-    Try to convert a given value to a complex number.
-    """
-
-    def __check_precision(_type):
-        if _type is type(None):
-            return
-
-        precision_error = ValueError(
-            f'Cannot type {_type.__name__} to complex number of type {complex_type.__name__} '
-            f'due to possibility of loss of precision.'
-        )
-
-        def __check_128bit():
-            if _type in float128_set | complex256_set:
-                raise precision_error
-
-        if complex_type in (np.complex128, complex):  # 64-bit complex
-            if _type in (np.int64, np.uint64):
-                raise precision_error
-            __check_128bit()
-        elif complex_type == np.complex64:  # 32-bit complex
-            if _type in (
-                int,
-                float,
-                np.int32,
-                np.int64,
-                np.uint32,
-                np.uint64,
-                np.float64,
-                np.complex128,
-            ):
-                raise precision_error
-            __check_128bit()
-
-    if isinstance(value, pint.Quantity):
-        scaled: np.ndarray = value.to(to_unit).magnitude if to_unit else value.magnitude
-        return normalize_complex(scaled, complex_type, None)
-
-    # a list of complex numbers represented by int, float or str
-    if isinstance(value, list):
-        normalized = [normalize_complex(v, complex_type, to_unit) for v in value]
-        return (
-            normalized
-            if complex_type == complex
-            else np.array(normalized, dtype=complex_type)
-        )
-
-    # complex or real part only
-    if type(value) in MTypes.num:
-        __check_precision(type(value))
-        return complex_type(value)
-
-    # np array
-    if isinstance(value, np.ndarray):
-        __check_precision(value.dtype.type)
-        return value.astype(complex_type)
-
-    # dict representation of complex number
-    if isinstance(value, dict):
-        real = value.get('re')
-        imag = value.get('im')
-        assert (
-            real is not None or imag is not None
-        ), 'Cannot convert an empty dict to complex number.'
-
-        def __combine(_real, _imag):
-            _real_list: bool = isinstance(_real, list)
-            _imag_list: bool = isinstance(_imag, list)
-            if _real_list or _imag_list:
-                if _real is None:
-                    return [__combine(None, i) for i in _imag]
-                if _imag is None:
-                    return [__combine(r, None) for r in _real]
-                # leverage short-circuit evaluation, do not change order
-                if _real_list and _imag_list and len(_real) == len(_imag):
-                    return [__combine(r, i) for r, i in zip(_real, _imag)]
-
-                raise ValueError(
-                    'Cannot combine real and imaginary parts of complex numbers.'
-                )
-
-            __check_precision(type(_real))
-            __check_precision(type(_imag))
-            if _real is None:
-                return complex_type(_imag) * 1j
-            if _imag is None:
-                return complex_type(_real)
-            return complex_type(_real) + complex_type(_imag) * 1j
-
-        combined = __combine(real, imag)
-        return (
-            combined
-            if complex_type == complex or not isinstance(combined, list)
-            else np.array(combined, dtype=complex_type)
-        )
-
-    # a string, '1+2j'
-    # one of 'i', 'I', 'j', 'J' can be used to represent the imaginary unit
-    if isinstance(value, str):
-        match = MRegEx.complex_str.match(value)
-        if match is not None:
-            return complex_type(reduce(lambda a, b: a.replace(b, 'j'), 'iIJ', value))
-
-    raise ValueError(f'Cannot convert {value} to complex number.')
-
-
-def serialize_complex(value):
-    """
-    Convert complex number to string.
-    """
-    # scalar
-    if type(value) in MTypes.complex:
-        return {'re': value.real, 'im': value.imag}
-
-    # 1D
-    if isinstance(value, (list, tuple)):
-        return {'re': [v.real for v in value], 'im': [v.imag for v in value]}
-
-    # ND
-    if isinstance(value, np.ndarray):
-        return {'re': value.real.tolist(), 'im': value.imag.tolist()}
-
-    raise ValueError(f'Cannot serialize {value}.')
 
 
 @dataclass(frozen=True)
@@ -233,8 +61,8 @@ class MTypes:
     }
     int_python = {int}
     int = int_python | int_numpy
-    float_numpy = {np.float16, np.float32, np.float64} | float128_set
-    complex_numpy = {np.complex64, np.complex128} | complex256_set
+    float_numpy = {np.float16, np.float32, np.float64}
+    complex_numpy = {np.complex64, np.complex128}
     float_python = {float}
     complex_python = {complex}
     float = float_python | float_numpy
@@ -249,77 +77,7 @@ class MTypes:
     str = {str} | str_numpy
 
 
-class MEnum(Sequence):
-    """
-    Allows to define string types with values limited to a pre-set list of possible values.
-
-    The allowed values can be provided as a list of strings, the keys of which will be identical to values.
-    Alternatively, they can be provided as key-value pairs.
-
-    For example:
-        some_variable = MEnum(['a', 'b', 'c'])
-        some_variable = MEnum(a='a', b='b', c='c')
-
-    The values are stored in __dict__ and can be accessed as attributes:
-        some_variable.a # gives 'a'
-
-    For description of each possible value, it can be organized into a dictionary.
-
-    For example:
-        some_variable = MEnum(['a', 'b', 'c'], m_descriptions={'a': 'first', 'b': 'second', 'c': 'third'})
-    """
-
-    def __init__(self, *args, **kwargs):
-        # Supports one big list in place of args
-        if len(args) == 1 and isinstance(args[0], list):
-            args = args[0]
-
-        self._descriptions: Dict[str, str] = {}
-        if 'm_descriptions' in kwargs:
-            self._descriptions = kwargs.pop('m_descriptions')
-
-        # If non-named arguments are given, the default is to have them placed
-        # into a dictionary with their string value as both the enum name and
-        # the value.
-        for arg in args:
-            if arg in kwargs:
-                raise ValueError(f"Duplicate value '{arg}' provided for enum")
-            kwargs[arg] = arg
-
-        self._list = list(kwargs.values())
-        self._values = set(kwargs.values())  # For allowing constant time member check
-
-        for enum_value in self._values:
-            if not isinstance(enum_value, str):
-                raise TypeError(f'MEnum value {enum_value} is not a string.')
-
-        self.__dict__.update(kwargs)
-
-    def set_description(self, value: str, description: str):
-        if value not in self._values:
-            raise ValueError(f'{value} is not a value of this MEnum')
-        self._descriptions[value] = description
-
-    def get_description(self, value: str) -> str:
-        if value not in self._values:
-            raise ValueError(f'{value} is not a value of this MEnum')
-        return self._descriptions.get(value, '')
-
-    def get_all_descriptions(self) -> Dict[str, str]:
-        return self._descriptions
-
-    # no need to implement __getattr__ as all attributes are stored in the __dict__
-    # def __getattr__(self, attr):
-    #     pass
-
-    def __contains__(self, item):
-        return item in self._values
-
-    def __getitem__(self, index):
-        return self._list[index]
-
-    def __len__(self):
-        return len(self._list)
+MEnum = Enum  # type: ignore
 
 
 class MQuantity:
@@ -718,113 +476,6 @@ def check_dimensionality(quantity_def, unit: Optional[pint.Unit]) -> None:
     raise TypeError(f'Dimensionality {dimensionality} is not met by unit {unit}')
 
 
-def check_unit(unit: Union[str, pint.Unit]) -> None:
-    """Check that the unit is valid."""
-    if not isinstance(unit, (str, pint.Unit)):
-        raise TypeError('Units must be given as str or pint Unit instances.')
-
-
-def to_section_def(section_def):
-    """
-    Resolves duck-typing for values that are section definitions or section classes to
-    section definition.
-    """
-    return section_def.m_def if isinstance(section_def, type) else section_def  # type: ignore
-
-
-def to_numpy(np_type, shape: list, unit: Optional[pint.Unit], definition, value: Any):
-    check_dimensionality(definition, unit)
-
-    if isinstance(value, pint.Quantity):
-        # if flexible unit is set, do not check unit in the definition
-        # it will be handled specially
-        # the stored unit would not be serialized
-        flexible_unit = getattr(definition, 'flexible_unit', False)
-
-        if not flexible_unit and not value.units.dimensionless and unit is None:
-            raise TypeError(
-                f'The quantity {definition} does not have a unit, but value {value} does.'
-            )
-
-        if type(value.magnitude) == np.ndarray and np_type != value.dtype:
-            value = value.astype(np_type)
-
-        if not flexible_unit and not value.units.dimensionless:
-            value = value.to(unit).magnitude
-        else:
-            value = value.magnitude
-
-    if isinstance(value, pd.DataFrame):
-        try:
-            value = value.to_numpy()
-        except AttributeError:
-            raise AttributeError(
-                f'Could not convert value {value} of type pandas.Dataframe to a numpy array'
-            )
-
-    if np_type in MTypes.complex:
-        value = normalize_complex(value, np_type, unit)
-
-    if type(value) != np.ndarray:
-        if len(shape) > 0:
-            try:
-                value = np.asarray(value, dtype=np_type)
-            except TypeError:
-                raise TypeError(
-                    f'Could not convert value {value} of {definition} to a numpy array'
-                )
-        elif type(value) != np_type:
-            try:
-                value = np_type(value)
-            except TypeError:
-                raise TypeError(
-                    f'Could not convert value {value} of {definition} to a numpy scalar'
-                )
-    elif value.dtype != np_type and np_type in MTypes.complex:
-        try:
-            value = value.astype(np_type)
-        except TypeError:
-            raise TypeError(
-                f'Could not convert value {value} of {definition} to a numpy array'
-            )
-
-    return value
-
-
-def __validate_shape(section, dimension: Union[str, int], length: int) -> bool:
-    if isinstance(dimension, int):
-        return dimension == length
-
-    if not isinstance(dimension, str):
-        raise TypeError(f'Invalid dimension type {type(dimension)}')
-
-    if dimension.isidentifier():
-        return dimension == getattr(section, dimension)
-
-    m = re.match(MRegEx.index_range, dimension)
-    start = int(m.group(1))
-    end = -1 if m.group(2) == '*' else int(m.group(2))
-    return start <= length and (end == -1 or length <= end)
-
-
-def validate_shape(section, quantity_def, value: Any) -> bool:
-    quantity_shape: list = quantity_def.shape
-
-    if type(value) == np.ndarray:
-        value_shape = value.shape
-    elif isinstance(value, list) and not isinstance(value, MEnum):
-        value_shape = (len(value),)
-    else:
-        value_shape = ()
-
-    if len(value_shape) != len(quantity_shape):
-        return False
-
-    return all(
-        __validate_shape(section, x, y) for x, y in zip(quantity_shape, value_shape)
-    )
-
-
 def dict_to_named_list(data) -> list:
     if not isinstance(data, dict):
         return data
@@ -836,103 +487,6 @@ def dict_to_named_list(data) -> list:
         value.update(dict(name=key))
         results.append(value)
     return results
-
-
-def validate_url(url_str: str) -> Optional[str]:
-    if url_str is None:
-        return None
-
-    if not isinstance(url_str, str):
-        raise TypeError('Links need to be given as URL strings')
-    if re.match(MRegEx.url, url_str) is None:
-        raise ValueError('The given URL is not valid')
-
-    return url_str
-
-
-def __parse_datetime(datetime_str: str) -> datetime:
-    # removing trailing spaces and replacing the potential white space between date and time with char "T"
-    if datetime_str[0].isdigit():
-        datetime_str = datetime_str.strip().replace(' ', 'T')
-
-    try:
-        return aniso8601.parse_datetime(datetime_str)
-    except ValueError:
-        pass
-
-    try:
-        date_value = aniso8601.parse_date(datetime_str)
-        if isinstance(date_value, datetime):
-            return date_value
-    except ValueError:
-        pass
-
-    # noinspection PyBroadException
-    try:
-        return email.utils.parsedate_to_datetime(datetime_str)
-    except Exception:
-        pass
-
-    try:
-        return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S.%f')
-    except ValueError:
-        pass
-
-    try:
-        return datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
-    except ValueError:
-        pass
-
-    try:
-        return datetime.strptime(datetime_str, '%Y-%m-%d')
-    except ValueError:
-        pass
-
-    if 'GMT' in datetime_str:
-        dt_copy = datetime_str
-        dt_split = dt_copy.split('GMT')
-        tzinfo = dt_split[1].strip()
-        if len(tzinfo) == 2:
-            tzinfo = f'{tzinfo[0]}{tzinfo[1]:0>2}00'
-        dt_copy = f'{dt_split[0]}GMT{tzinfo}'
-        try:
-            return datetime.strptime(dt_copy, '%Y%m%d_%H:%M:%S_%Z%z')
-        except ValueError:
-            pass
-
-    try:
-        return datetime.fromisoformat(datetime_str)
-    except ValueError:
-        pass
-
-    raise TypeError(f'Invalid date literal {datetime_str}')
-
-
-def normalize_datetime(value) -> Optional[datetime]:
-    if value is None:
-        return None
-
-    if isinstance(value, str):
-        value = __parse_datetime(value)
-
-    elif isinstance(value, (int, float)):
-        value = datetime.fromtimestamp(value)
-
-    elif isinstance(value, pint.Quantity):
-        value = datetime.fromtimestamp(value.magnitude)
-
-    elif not isinstance(value, datetime) and isinstance(value, date):
-        value = datetime.combine(value, datetime.min.time())
-
-    if not isinstance(value, datetime):
-        raise TypeError(f'{value} is not a datetime.')
-
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=pytz.utc)
-    else:
-        value = value.astimezone(pytz.utc)
-
-    return value
 
 
 def camel_case_to_snake_case(obj: dict):

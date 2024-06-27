@@ -69,7 +69,7 @@ def test_quantity_overwrite():
         != Section.m_def.all_properties['test_quantity']
     )
 
-    with pytest.raises(TypeError):
+    with pytest.raises((TypeError, ValueError)):
         Section(test_quantity='test_value')
 
     section = Section(test_quantity=1)
@@ -85,7 +85,7 @@ def test_quantity_partial_overwrite():
         test_quantity = Quantity(type=int)
 
     assert Section.test_quantity.description == 'test_description'
-    assert Section.test_quantity.type == int
+    assert Section.test_quantity.type.standard_type() == 'int32'
 
 
 def test_sub_section_inheritance():
@@ -163,7 +163,7 @@ def test_overwrite_programmatic():
     section_cls = section_def.section_cls
 
     assert section_cls.test_quantity.description == 'test_description'
-    assert section_cls.test_quantity.type == str
+    assert section_cls.test_quantity.type.standard_type() == 'str'
 
 
 def test_inner_sections():
@@ -217,7 +217,7 @@ def test_inner_sections_inheritance():
         test_sub_section = SubSection(sub_section=InnerSection)
 
     assert OuterSection.test_sub_section.description == 'test_description'
-    assert OuterSection.InnerSection.test_quantity.type == str
+    assert OuterSection.InnerSection.test_quantity.type.standard_type() == 'str'
     assert (
         OuterSection.InnerSection.test_quantity.description == 'overwritten_description'
     )

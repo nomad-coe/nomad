@@ -18,24 +18,22 @@
 
 import os.path
 
-from typing import Any
 from cachetools import TTLCache, cached
+
+from nomad.config import config
+from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 from nomad.metainfo.metainfo import (
-    predefined_datatypes,
     Category,
     MCategory,
     MSection,
     Quantity,
-    Reference,
-    MetainfoReferenceError,
     MProxy,
     Capitalized,
     Section,
     Datetime,
+    Reference,
 )
-from nomad.config import config
 from nomad.metainfo.pydantic_extension import PydanticModel
-from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 
 
 class ArchiveSection(MSection):
@@ -190,71 +188,46 @@ class User(Author):
 
 
 class UserReference(Reference):
-    """
-    Special metainfo reference type that allows to use user_ids as values. It automatically
-    resolves user_ids to User objects. This is done lazily on getting the value.
-    """
-
     def __init__(self):
         super().__init__(User.m_def)
 
-    def resolve(self, proxy: MProxy) -> MSection:
-        return User.get(user_id=proxy.m_proxy_value)
+    def serialize_self(self, section):
+        return {'type_kind': 'User', 'type_data': 'User'}
 
-    def serialize_type(self, type_data):
-        return dict(type_kind='User', type_data=self.target_section_def.name)
+    def _normalize_impl(self, section, value):
+        # todo: need data validation
+        if isinstance(value, str):
+            return MProxy(value, m_proxy_section=section, m_proxy_type=self._proxy_type)
+        return value
 
-    @classmethod
-    def deserialize_type(cls, type_kind, type_data, section):
-        if type_kind == 'User':
-            return user_reference
-        return None
-
-    def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> Any:
+    def _serialize_impl(self, section, value):
         return value.user_id
 
 
 user_reference = UserReference()
-predefined_datatypes['User'] = user_reference
 
 
 class AuthorReference(Reference):
-    """
-    Special metainfo reference type that allows to use either user_ids or direct author
-    information as values. It automatically resolves user_ids to User objects and author
-    data into Author objects.
-    """
-
     def __init__(self):
         super().__init__(Author.m_def)
 
-    def resolve(self, proxy: MProxy) -> MSection:
-        proxy_value = proxy.m_proxy_value
-        if isinstance(proxy_value, str):
-            return User.get(user_id=proxy.m_proxy_value)
-        elif isinstance(proxy_value, dict):
-            return Author.m_from_dict(proxy_value)
-        else:
-            raise MetainfoReferenceError()
+    def serialize_self(self, section):
+        return {'type_kind': 'Author', 'type_data': 'Author'}
 
-    def serialize_type(self, type_data):
-        return dict(type_kind='Author', type_data=self.target_section_def.name)
+    def _normalize_impl(self, section, value):
+        # todo: need data validation
+        if isinstance(value, (str, dict)):
+            return MProxy(value, m_proxy_section=section, m_proxy_type=self._proxy_type)
+        return value
 
-    @classmethod
-    def deserialize_type(cls, type_kind, type_data, section):
-        if type_kind == 'Author':
-            return author_reference
-        return None
-
-    def serialize(self, section: MSection, quantity_def: Quantity, value: Any) -> Any:
+    def _serialize_impl(self, section, value):
         if isinstance(value, User):
             return value.user_id
-        elif isinstance(value, Author):
+        if isinstance(value, Author):
             return value.m_to_dict()
-        else:
-            raise MetainfoReferenceError()
+
+        raise ValueError(f'Cannot serialize {value}.')
 
 
 author_reference = AuthorReference()
-predefined_datatypes['Author'] = author_reference
 Schema = EntryData

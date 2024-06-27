@@ -674,12 +674,12 @@ export function QuantityItemPreview({value, def}) {
       <Typography component="span">rich text</Typography>
     </Box>
   }
-  if (def.type.type_data === 'nomad.metainfo.metainfo._JSON') {
+  if (def.type.type_data === 'nomad.metainfo.metainfo._JSON' || def.type.type_data === 'nomad.metainfo.data_type.JSON') {
     return <Box component="span" whiteSpace="nowrap" fontStyle="italic">
       <Typography component="span">JSON data</Typography>
     </Box>
   }
-  if (def.type.type_data === 'nomad.datamodel.hdf5._HDF5Dataset' || def.type.type_data === 'nomad.datamodel.hdf5._HDF5Reference') {
+  if (def.type.type_data === 'nomad.datamodel.hdf5.HDF5Dataset' || def.type.type_data === 'nomad.datamodel.hdf5.HDF5Reference') {
     return <Box component="span" fontStyle="italic">
       <Typography component="span">HDF5 array</Typography>
     </Box>
@@ -721,7 +721,7 @@ export function QuantityItemPreview({value, def}) {
     </Box>
   } else {
     let finalValue
-    if (def.type.type_data === 'nomad.metainfo.metainfo._Datetime') {
+    if (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' || def.type.type_data === 'nomad.metainfo.data_type.Datetime') {
       finalValue = formatTimestamp(value)
     } else if (def.type.type_data.startsWith?.('complex')) {
       finalValue = convertComplexArray(value.re, value.im)
@@ -750,7 +750,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
 
   const getRenderValue = useCallback(value => {
     let finalValue
-    if (def.type.type_data === 'nomad.metainfo.metainfo._Datetime') {
+    if (def.type.type_data === 'nomad.metainfo.metainfo._Datetime' || def.type.type_data === 'nomad.metainfo.data_type.Datetime') {
       finalValue = formatTimestamp(value)
     } else if (def.type.type_data.startsWith?.('complex')) {
       finalValue = convertComplexArray(value.re, value.im)
@@ -796,7 +796,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
   } else if (def.m_annotations?.browser?.[0]?.render_value === 'HtmlValue' || def.m_annotations?.eln?.[0]?.component === 'RichTextEditQuantity') {
     const html = DOMPurify.sanitize(value)
     return <div dangerouslySetInnerHTML={{__html: html}}/>
-  } else if (def.type?.type_data === 'nomad.metainfo.metainfo._JSON') {
+  } else if (def.type?.type_data === 'nomad.metainfo.metainfo._JSON' || def.type?.type_data === 'nomad.metainfo.data_type.JSON') {
     return <ReactJson
       name="value"
       src={value}
@@ -822,7 +822,7 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
           </li>
         })}
       </ul>
-    } else if ((def.type?.type_data === 'nomad.datamodel.hdf5._HDF5Dataset') || def.type?.type_data === 'nomad.datamodel.hdf5._HDF5Reference') {
+    } else if (def.type?.type_data === 'nomad.datamodel.hdf5.HDF5Dataset' || def.type?.type_data === 'nomad.datamodel.hdf5.HDF5Reference') {
       const h5Path = value.match(/(?:\/uploads\/(?<uploadId>.+?)\/(?<source>.+?)\/)*(?<filename>.+?)#(?<path>.+)/)
       const h5UploadId = h5Path.groups.uploadId || uploadId
       const h5Source = h5Path.groups.source || (h5Path.groups.filename.endsWith('.h5') ? 'raw' : 'archive')

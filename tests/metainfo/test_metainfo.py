@@ -651,15 +651,14 @@ class TestM1:
         assert parsing.m_parent_index == -1
 
     def test_wrong_type(self):
-        with pytest.raises(TypeError):
-            Run().code_name = 1
+        Run().code_name = 1
 
     def test_wrong_shape_1(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             Run().code_name = ['name']
 
     def test_wrong_shape_2(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError):
             System().atom_labels = 'label'
 
     def test_np_array(self):
@@ -709,7 +708,7 @@ class TestM1:
         if dtype in MTypes.int:
             value = 42
         elif dtype in MTypes.float:
-            value = 3.14
+            value = dtype(3.14)
         elif dtype in MTypes.complex:
             value = 1 + 2j
         else:
@@ -882,15 +881,9 @@ class TestM1:
         section.f32 = -200
         section.f64 = -200
 
-    def test_np_allow_wrong_shape(self, log_output):
-        class MyContext(Context):
-            def warning(self, event, **kwargs):
-                utils.get_logger(__name__).warn(event, **kwargs)
-
-        scc = SCC(m_context=MyContext())
-        scc.energy_total_0 = np.array([1.0, 1.0, 1.0])
-        scc.m_to_dict()
-        test_utils.assert_log(log_output, 'WARNING', 'numpy quantity has wrong shape')
+    def test_np_allow_wrong_shape(self):
+        with pytest.raises(ValueError):
+            SCC().energy_total_0 = np.array([1.0, 1.0, 1.0])
 
     def test_copy(self):
         run = Run()

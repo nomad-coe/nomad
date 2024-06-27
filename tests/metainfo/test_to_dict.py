@@ -210,7 +210,7 @@ def test_categories(example):
         pytest.param(
             MEnum('A', 'B', m_descriptions=dict(A='a', B='b')),
             dict(
-                type_kind='Enum',
+                type_kind='enum',
                 type_data=['A', 'B'],
                 type_descriptions=dict(A='a', B='b'),
             ),
@@ -329,13 +329,13 @@ def test_schema_deserialization(schema_yaml):
         .section_def.m_resolved()
         == pkg.all_definitions['ApplicationData']
     )
-    assert application_data.all_properties['name'].type == str
+    assert application_data.all_properties['name'].type.standard_type() == 'str'
     assert (
         application_data.all_properties['related'].type.target_section_def.m_resolved()
         == application_data
     )
-    assert application_data.all_properties['time'].type == Datetime
-    assert application_data.all_properties['floaty'].type == np.float64
+    assert application_data.all_properties['time'].type.standard_type() == 'datetime'
+    assert application_data.all_properties['floaty'].type.standard_type() == 'float64'
 
 
 def test_schema_definition_id(schema_yaml):

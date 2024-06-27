@@ -24,9 +24,9 @@ from typing import List, Tuple, Union, Optional
 
 from nomad.datamodel import EntryArchive, ArchiveSection
 from nomad.metainfo import MSection
+from nomad.metainfo.data_type import Number
 from nomad.units import ureg
 from nomad.metainfo import Section
-from nomad.metainfo.util import MTypes
 from nomad.utils import RestrictedDict
 from nomad.config import config
 from nomad.datamodel.results import (
@@ -375,8 +375,11 @@ class MethodNormalizer:  # TODO: add normalizer for atom_parameters.label
                     np.prod(k_mesh.grid) if not k_mesh.n_points else k_mesh.n_points
                 )
                 if k_mesh.sampling_method == 'Gamma-centered':
-                    k_mesh.points = np.meshgrid(
-                        *[np.linspace(0, 1, n) for n in k_mesh.grid]
+                    points = np.meshgrid(*[np.linspace(0, 1, n) for n in k_mesh.grid])
+                    k_mesh.points = np.transpose(
+                        np.reshape(
+                            points, (len(points), np.size(points) // len(points))
+                        )
                     )  # this assumes a gamma-centered grid: we really need the `sampling_method` to be sure
                 elif k_mesh.sampling_method == 'Monkhorst-Pack':
                     try:
@@ -662,7 +665,7 @@ class DFTMethod(ElectronicMethod):
                             # all false values, including zero are ignored
                             if quant_value:
                                 setattr(hubb_results, quant.name, quant_value)
-                                if quant.type in MTypes.num:
+                                if isinstance(quant.type, Number):
                                     valid = True
                         # do not save if all parameters are set at 0
                         if not valid:

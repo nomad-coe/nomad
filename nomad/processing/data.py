@@ -88,6 +88,7 @@ from nomad.files import (
     is_safe_relative_path,
 )
 from nomad.groups import user_group_exists, get_group_ids
+from nomad.metainfo.data_type import Datatype, Datetime
 from nomad.processing.base import (
     Proc,
     process,
@@ -645,10 +646,11 @@ class MetadataEditRequestHandler:
             4) Translates user refs to user_id and dataset refs to dataset_id, if needed.
         Raises exception in case of failures.
         """
-        if definition.type in (str, int, float, bool):
-            assert (
-                value is None or type(value) == definition.type
-            ), f'Expected a {definition.type.__name__}'
+        if isinstance(
+            definition.type, Datatype
+        ) and definition.type.standard_type().startswith(
+            ('str', 'int', 'float', 'bool')
+        ):
             if definition.name == 'embargo_length':
                 assert 0 <= value <= 36, 'Value should be between 0 and 36'
             elif definition.name == 'references':
@@ -661,7 +663,9 @@ class MetadataEditRequestHandler:
             elif definition.name == 'reviewer_groups':
                 assert_user_group_exists(value)
             return None if value == '' else value
-        elif definition.type == metainfo.Datetime:
+        elif definition.type == metainfo.Datetime or isinstance(
+            definition.type, Datetime
+        ):
             if value is not None:
                 datetime.fromisoformat(
                     value
@@ -734,7 +738,10 @@ class MetadataEditRequestHandler:
     def _mongo_value(self, mongo_doc, quantity_name: str, verified_value: Any) -> Any:
         definition = editable_metadata[quantity_name]
         if definition.is_scalar:
-            if definition.type == metainfo.Datetime and verified_value:
+            if (
+                definition.type == metainfo.Datetime
+                or isinstance(definition.type, Datetime)
+            ) and verified_value:
                 return datetime.fromisoformat(verified_value)
             return verified_value
         # Non-scalar property. The verified value should be a dict with operations
