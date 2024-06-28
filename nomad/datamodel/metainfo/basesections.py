@@ -2094,7 +2094,7 @@ class HDF5Normalizer(ArchiveSection):
         h5_re = re.compile(r'.*\.h5$')
 
         for quantity_name, quantity_def in self.m_def.all_quantities.items():
-            if (quantity_def.type == str or isinstance(quantity_def.type, m_str)) and (
+            if (quantity_def.type is str or isinstance(quantity_def.type, m_str)) and (
                 match := re.match(
                     h5_re,
                     '' if self.get(quantity_name) is None else self.get(quantity_name),

@@ -1132,7 +1132,6 @@ def normalize_type(value):
         return m_str()
     if value is datetime:
         return Datetime()
-    #
     if value in (np.int8, np.uint8):
         return m_int8()
     if value in (np.int16, np.uint16):
@@ -1326,7 +1325,7 @@ def _normalize_complex(value, complex_type, to_unit: str | ureg.Unit | None):
         normalized = [_normalize_complex(v, complex_type, to_unit) for v in value]
         return (
             normalized
-            if complex_type == complex
+            if complex_type is complex
             else np.array(normalized, dtype=complex_type)
         )
 
@@ -1375,7 +1374,7 @@ def _normalize_complex(value, complex_type, to_unit: str | ureg.Unit | None):
         combined = __combine(real, imag)
         return (
             combined
-            if complex_type == complex or not isinstance(combined, list)
+            if complex_type is complex or not isinstance(combined, list)
             else np.array(combined, dtype=complex_type)
         )
 

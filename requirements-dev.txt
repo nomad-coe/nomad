@@ -316,7 +316,7 @@ rope==0.21.0              # via nomad-lab (pyproject.toml)
 rosettasciio==0.4         # via pynxtools-em, -r requirements.txt
 ruamel-yaml==0.18.6       # via jupyter-telemetry, oauthenticator, pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
 ruamel-yaml-clib==0.2.8   # via ruamel-yaml, -r requirements.txt
-ruff==0.4.9               # via nomad-lab (pyproject.toml)
+ruff==0.5.0               # via nomad-lab (pyproject.toml)
 runstats==2.0.0           # via -r requirements.txt, nomad-lab (pyproject.toml)
 scikit-image==0.19.3      # via hyperspy, kikuchipy, pyxem, -r requirements.txt
 scikit-learn==1.5.0       # via kikuchipy, matid, pyxem, -r requirements.txt, nomad-lab (pyproject.toml)

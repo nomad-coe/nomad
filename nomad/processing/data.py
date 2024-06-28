@@ -2798,7 +2798,7 @@ class Upload(Proc):
             return query
         if isinstance(order_by, str):
             return query.order_by(order_by)
-        assert type(order_by) == tuple, 'order_by must be a string or a tuple if set'
+        assert type(order_by) is tuple, 'order_by must be a string or a tuple if set'
         return query.order_by(*order_by)
 
     @property

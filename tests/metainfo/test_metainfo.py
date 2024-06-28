@@ -679,7 +679,7 @@ class TestM1:
         test_section = TestSection()
         test_section.test_quantity = 12
         assert test_section.test_quantity == 12
-        assert type(test_section.test_quantity) == np.int32
+        assert type(test_section.test_quantity) is np.int32
 
     def test_pd_dataframe_quantity(self):
         class TestSection(MSection):

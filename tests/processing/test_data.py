@@ -817,7 +817,7 @@ def test_process_partial(proc_infra, non_empty_processed: Upload, args):
     }
     file_operations = []
     for op in add:
-        if type(op) == tuple:
+        if type(op) is tuple:
             path, target_dir = op
         else:
             path, target_dir = example_file_mainfile, op

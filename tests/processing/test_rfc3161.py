@@ -35,12 +35,12 @@ from nomad.processing.data import get_rfc3161_token, Entry
         pytest.param(
             'http://timestamp.sectigo.com', None, True, id='timestamp.sectigo.com'
         ),
-        pytest.param(
-            'https://freetsa.org/tsr',
-            'https://freetsa.org/files/tsa.crt',
-            True,
-            id='freetsa.org/tsr',
-        ),
+        # pytest.param(
+        #     'https://freetsa.org/tsr',
+        #     'https://freetsa.org/files/tsa.crt',
+        #     True,
+        #     id='freetsa.org/tsr',
+        # ), # This server response times are unreliable
         pytest.param(
             'http://timestamp.digicert.com/',
             'https://knowledge.digicert.com/content/dam/digicertknowledgebase/attachments/time-stamp/TSACertificate.cer',

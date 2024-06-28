@@ -29,7 +29,6 @@ from nomad.metainfo import MSection
 LOGGER = get_logger(__name__)
 
 
-#
 def match_hdf5_reference(reference: str):
     """
     Match reference to HDF5 upload path syntax.

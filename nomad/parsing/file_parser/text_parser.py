@@ -399,7 +399,7 @@ class TextParser(FileParser):
         """
         try:
             value_processed = [quantity.to_data(val) for val in value]
-            for n, value in enumerate(value_processed):
+            for n, _ in enumerate(value_processed):
                 unit = units[n] if units[n] else quantity.unit
                 if not unit:
                     continue

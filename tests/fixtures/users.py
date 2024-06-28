@@ -126,12 +126,12 @@ class KeycloakMock:
         if user_id is not None:
             return User(**self.users[user_id])
         elif username is not None:
-            for user_id, user_values in self.users.items():
+            for _, user_values in self.users.items():
                 if user_values['username'] == username:
                     return User(**user_values)
             raise KeyError('Only test user usernames are recognized')
         elif email is not None:
-            for user_id, user_values in self.users.items():
+            for _, user_values in self.users.items():
                 if user_values['email'] == email:
                     return User(**user_values)
             raise KeyError('Only test user emails are recognized')
