@@ -385,7 +385,7 @@ class NexusParser(Parser):
         # m_nx_data_file and m_nx_data_path variables
         for sample in self._sample_class_refs['NXsample']:
             if sample.get('atom_types__field') is not None:
-                atom_types = sample.atom_types__field['atom_types__field'].value
+                atom_types = sample.atom_types__field
                 if isinstance(atom_types, list):
                     atomlist = atom_types
                 else:
@@ -395,9 +395,7 @@ class NexusParser(Parser):
                 # in case a single chemical formula is found
                 material.elements = list(set(material.elements) | set(atomlist))
             if sample.get('chemical_formula__field') is not None:
-                chemical_formulas.add(
-                    sample.chemical_formula__field['chemical_formula__field'].value
-                )
+                chemical_formulas.add(sample.chemical_formula__field)
 
         for class_ref in (
             'NXsample_component',
@@ -405,17 +403,11 @@ class NexusParser(Parser):
         ):
             for section in self._sample_class_refs[class_ref]:
                 if section.get('chemical_formula__field') is not None:
-                    chemical_formulas.add(
-                        section.chemical_formula__field['chemical_formula__field'].value
-                    )
+                    chemical_formulas.add(section.chemical_formula__field)
 
         for substance in self._sample_class_refs['NXsubstance']:
             if substance.get('molecular_formula_hill__field') is not None:
-                chemical_formulas.add(
-                    substance.molecular_formula_hill__field[
-                        'molecular_formula_hill__field'
-                    ].value
-                )
+                chemical_formulas.add(substance.molecular_formula_hill__field)
 
         return chemical_formulas
 
@@ -434,8 +426,8 @@ class NexusParser(Parser):
         else:
             self._logger.warn(
                 f'multiple chemical formulas found: {chemical_formulas}.\n'
-                'Cannot build a comprehensiv chemical formula for the entry, '
-                'but will try to extract elements.'
+                'Cannot build a comprehensive chemical formula for the entry, '
+                'but will try to extract atomic elements.'
             )
             for chem_formula in chemical_formulas:
                 formula = Formula(chem_formula)
