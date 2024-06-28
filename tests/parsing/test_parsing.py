@@ -90,7 +90,7 @@ parser_examples = [
     ),
     ('parsers/archive', 'tests/data/parsers/archive.json'),
     ('parsers/nexus', 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs'),
-    # ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs'),
+    ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs'),
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist

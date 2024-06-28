@@ -27,7 +27,18 @@ from typing import Dict, List, Optional, Union
 
 import numpy as np
 
-from nomad.metainfo.data_type import Number
+from nomad.metainfo.data_type import (
+    Bytes,
+    Datatype,
+    Datetime,
+    Number,
+    m_bool,
+    m_complex128,
+    m_float64,
+    m_int,
+    m_int64,
+    m_str,
+)
 
 try:
     from pynxtools.nexus import nexus  # pylint: disable=import-error
@@ -70,30 +81,30 @@ VALIDATE = False
 
 __XML_PARENT_MAP: Dict[ET.Element, ET.Element]
 __NX_DOC_BASE = 'https://manual.nexusformat.org/classes'
-__NX_TYPES = {  # Primitive Types,  'ISO8601' is the only type not defined here
-    'NX_COMPLEX': np.float64,
-    'NX_FLOAT': np.float64,
-    'NX_CHAR': str,
-    'NX_BOOLEAN': bool,
-    'NX_INT': np.int64,
-    'NX_UINT': np.uint64,
-    'NX_NUMBER': np.float64,
-    'NX_POSINT': np.uint64,
-    'NX_BINARY': Bytes,
-    'NX_DATE_TIME': Datetime,
-}
-__NX_ATTR_TYPES = {
-    'NX_COMPLEX': float,
-    'NX_FLOAT': float,
-    'NX_CHAR': str,
-    'NX_BOOLEAN': bool,
-    'NX_INT': int,
-    'NX_UINT': int,
-    'NX_NUMBER': float,
-    'NX_POSINT': int,
-    'NX_BINARY': Bytes,
-    'NX_DATE_TIME': Datetime,
-}
+
+
+def get_nx_type(nx_type: str) -> Optional[Datatype]:
+    """
+    Get the nexus type by name
+    """
+    __NX_TYPES = {  # Primitive Types,  'ISO8601' is the only type not defined here
+        'NX_COMPLEX': m_complex128,
+        'NX_FLOAT': m_float64,
+        'NX_CHAR': m_str,
+        'NX_BOOLEAN': m_bool,
+        'NX_INT': m_int64,
+        'NX_UINT': m_int,
+        'NX_NUMBER': m_float64,
+        'NX_POSINT': m_int,
+        'NX_BINARY': Bytes,
+        'NX_DATE_TIME': Datetime,
+    }
+
+    if nx_type in __NX_TYPES:
+        if nx_type in ('NX_UINT', 'NX_POSINT'):
+            return __NX_TYPES[nx_type](dtype=np.uint64).no_type_check().no_shape_check()
+        return __NX_TYPES[nx_type]().no_type_check().no_shape_check()
+    return None
 
 
 class NXUnitSet:
@@ -327,7 +338,7 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Quantit
             nx_type = nx_enum
             nx_shape: List[str] = []
         else:
-            nx_type = __NX_ATTR_TYPES[attribute.get('type', 'NX_CHAR')]  # type: ignore
+            nx_type = get_nx_type(attribute.get('type', 'NX_CHAR'))  # type: ignore
             has_bound = False
             has_bound |= 'minOccurs' in attribute.attrib
             has_bound |= 'maxOccurs' in attribute.attrib
@@ -338,8 +349,7 @@ def __create_attributes(xml_node: ET.Element, definition: Union[Section, Quantit
                     nx_max_occurs = '*'
                 nx_shape = [f'{nx_min_occurs}..{nx_max_occurs}']
             else:
-                # Default is to allow any shape
-                nx_shape = ['0..*']
+                nx_shape = []
 
         m_attribute = Attribute(
             name=name, variable=__if_template(name), shape=nx_shape, type=nx_type
@@ -418,7 +428,8 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
 
     # type
     nx_type = xml_attrs.get('type', 'NX_CHAR')
-    if nx_type not in __NX_TYPES:
+    nx_nomad_type = get_nx_type(nx_type)
+    if nx_nomad_type is None:
         raise NotImplementedError(
             f'Type {nx_type} is not supported for the moment for {name}.'
         )
@@ -465,7 +476,7 @@ def __create_field(xml_node: ET.Element, container: Section) -> Quantity:
     parent_type = getattr(value_quantity, 'type', None)
     if not isinstance(parent_type, MEnum):
         # if parent type is not MEnum then overwrite whatever given
-        value_quantity.type = enum_type if enum_type else __NX_TYPES[nx_type]
+        value_quantity.type = enum_type if enum_type else nx_nomad_type
     elif enum_type:
         # only when derived type is also MEnum to allow overwriting
         value_quantity.type = enum_type
