@@ -637,14 +637,14 @@ def _create_column_to_quantity_mapping(section_def: Section):
                     quantity=quantity,
                     annotation: TabularAnnotation = annotation,
                 ):
-                    for sub_section, section_def in path:
+                    for sub_section, path_section_def in path:
                         next_section = None
                         try:
                             next_section = section.m_get_sub_section(sub_section, -1)
                         except (KeyError, IndexError):
                             pass
                         if not next_section:
-                            next_section = section_def.section_cls()
+                            next_section = path_section_def.section_cls()
                             section.m_add_sub_section(sub_section, next_section, -1)
                         section = next_section
 

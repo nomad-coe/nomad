@@ -856,8 +856,8 @@ def normalize_api_query(
         else:
             query = Criteria(name=name, value=value)
 
-        for prefix in reversed(prefixes):
-            query = models.Nested(prefix=prefix, query=query)
+        for rev_prefix in reversed(prefixes):
+            query = models.Nested(prefix=rev_prefix, query=query)
 
         return query
 
@@ -1661,8 +1661,8 @@ def _specific_agg(
 def _and_clauses(query: Query) -> Generator[Query, None, None]:
     if isinstance(query, models.And):
         for clause in query.op:
-            for query in _and_clauses(clause):
-                yield query
+            for query_clause in _and_clauses(clause):
+                yield query_clause
 
     yield query
 

@@ -170,12 +170,12 @@ def upload(
         else:
             file_paths.append(file)
 
-    for path in paths:
-        if os.path.isfile(path):
-            add_file(path)
+    for file_path in paths:
+        if os.path.isfile(file_path):
+            add_file(file_path)
 
-        elif os.path.isdir(path):
-            for dirpath, _, filenames in os.walk(path):
+        elif os.path.isdir(file_path):
+            for dirpath, _, filenames in os.walk(file_path):
                 for filename in filenames:
                     add_file(os.path.join(dirpath, filename))
 

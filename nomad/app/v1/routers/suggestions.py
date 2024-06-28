@@ -162,9 +162,9 @@ async def get_suggestions(
                                 gather_options(item, parts[i + 1 :], options)
                             return
                 original_type = type(original)
-                if original_type == str:
+                if original_type is str:
                     options.append(original)
-                elif original_type == list:
+                elif original_type is list:
                     for item in original:
                         options.append(item)
 

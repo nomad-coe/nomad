@@ -2733,7 +2733,7 @@ class DefinitionReader(GeneralReader):
                         )
                 else:
                     # should never reach here
-                    raise
+                    raise  # noqa: PLE0704
             elif child_def is node.archive:
                 assert isinstance(child_def, Definition)
                 _populate_result(node.result_root, child_path, __convert(child_def))
@@ -2747,7 +2747,7 @@ class DefinitionReader(GeneralReader):
                         __func(child_path + [str(_i)], _v)
                 else:
                     # should never reach here
-                    raise
+                    raise  # noqa: PLE0704
 
             if isinstance(value, RequestConfig):
                 # this is a leaf, resolve it according to the config

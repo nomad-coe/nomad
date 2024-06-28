@@ -2541,8 +2541,8 @@ async def _get_files_if_provided(
 
     no_file_name_info_provided = not file_name
 
-    for _, file_name in sources:
-        if not files.is_safe_basename(file_name):
+    for _, source_file_name in sources:
+        if not files.is_safe_basename(source_file_name):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=strip(
@@ -2562,8 +2562,8 @@ async def _get_files_if_provided(
         tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
         upload_paths = []
         uploaded_bytes = 0
-        for source_stream, file_name in sources:
-            upload_path = os.path.join(tmp_dir, file_name)
+        for source_stream, source_file_name in sources:
+            upload_path = os.path.join(tmp_dir, source_file_name)
             try:
                 with open(upload_path, 'wb') as f:
                     uploaded_bytes = 0
