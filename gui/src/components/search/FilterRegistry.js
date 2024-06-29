@@ -477,20 +477,12 @@ registerFilter(
   ]
 )
 registerFilter(
-  'results.properties.catalytic.catalyst_characterization',
+  'results.properties.catalytic.catalyst',
   idCatalyst,
   nestedQuantity,
   [
-    {name: 'method', ...termQuantity},
+    {name: 'characterization_methods', ...termQuantity},
     {name: 'surface_area', ...numberHistogramQuantity, scale: '1/4'},
-    {name: 'method_surface_area', ...termQuantity}
-  ]
-)
-registerFilter(
-  'results.properties.catalytic.catalyst_synthesis',
-  idCatalyst,
-  nestedQuantity,
-  [
     {name: 'catalyst_name', ...termQuantity},
     {name: 'catalyst_type', ...termQuantity},
     {name: 'preparation_method', ...termQuantity}
@@ -502,7 +494,14 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'name', ...termQuantity},
-    {name: 'type', ...termQuantity},
+    {name: 'type', ...termQuantity}
+  ]
+)
+registerFilter(
+  'results.properties.catalytic.reaction.reaction_conditions',
+  idCatalyst,
+  nestedQuantity,
+  [
     {name: 'temperature', ...numberHistogramQuantity, scale: '1/4'},
     {name: 'pressure', ...numberHistogramQuantity, scale: 'linear'},
     {name: 'weight_hourly_space_velocity', ...numberHistogramQuantity, scale: '1/4'}

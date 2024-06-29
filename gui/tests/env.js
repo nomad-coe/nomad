@@ -1627,17 +1627,17 @@ window.nomadEnv = {
               "results.material.elements": {
                 "align": "left"
               },
-              "results.properties.catalytic.catalyst_synthesis.catalyst_type": {
+              "results.properties.catalytic.catalyst.catalyst_type": {
                 "align": "left"
               },
-              "results.properties.catalytic.catalyst_synthesis.catalyst_name": {
+              "results.properties.catalytic.catalyst.catalyst_name": {
                 "align": "left"
               },
-              "results.properties.catalytic.catalyst_synthesis.preparation_method": {
+              "results.properties.catalytic.catalyst.preparation_method": {
                 "label": "Preparation",
                 "align": "left"
               },
-              "results.properties.catalytic.catalyst_characterization.surface_area": {
+              "results.properties.catalytic.catalyst.surface_area": {
                 "label": "Surface area (m^2/g)",
                 "align": "left",
                 "format": {
@@ -1717,9 +1717,9 @@ window.nomadEnv = {
             "selected": [
               "entry_name",
               "results.properties.catalytic.reaction.name",
-              "results.properties.catalytic.catalyst_synthesis.catalyst_type",
-              "results.properties.catalytic.catalyst_synthesis.preparation_method",
-              "results.properties.catalytic.catalyst_characterization.surface_area"
+              "results.properties.catalytic.catalyst.catalyst_type",
+              "results.properties.catalytic.catalyst.preparation_method",
+              "results.properties.catalytic.catalyst.surface_area"
             ]
           },
           "rows": {
@@ -2029,7 +2029,7 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method",
+                "quantity": "results.properties.catalytic.catalyst.preparation_method",
                 "scale": "linear",
                 "showinput": true
               },
@@ -2077,7 +2077,7 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type",
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type",
                 "scale": "linear",
                 "showinput": true
               },
@@ -2128,7 +2128,7 @@ window.nomadEnv = {
                 },
                 "x": {
                   "unit": "ml/(g*s)",
-                  "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity"
                 },
                 "scale": "linear",
                 "autorange": false,
@@ -2185,7 +2185,7 @@ window.nomadEnv = {
                   "quantity": "results.properties.catalytic.reaction.reactants[*].gas_concentration_in"
                 },
                 "y": {
-                  "quantity": "results.properties.catalytic.reaction.temperature"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
                 },
                 "markers": {
                   "color": {
@@ -2242,7 +2242,7 @@ window.nomadEnv = {
                 },
                 "x": {
                   "unit": "bar",
-                  "quantity": "results.properties.catalytic.reaction.pressure"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.pressure"
                 },
                 "scale": "linear",
                 "autorange": false,
@@ -2295,7 +2295,7 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
-                  "quantity": "results.properties.catalytic.reaction.temperature"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
                 },
                 "y": {
                   "title": "Conversion (%)",
@@ -2355,7 +2355,7 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
-                  "quantity": "results.properties.catalytic.reaction.temperature"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
                 },
                 "y": {
                   "title": "Selectivity (%)",
@@ -2483,7 +2483,7 @@ window.nomadEnv = {
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method"
+                    "quantity": "results.properties.catalytic.catalyst.preparation_method"
                   }
                 },
                 "size": 1000,
@@ -2536,7 +2536,7 @@ window.nomadEnv = {
                 },
                 "x": {
                   "unit": "m^2/g",
-                  "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                  "quantity": "results.properties.catalytic.catalyst.surface_area"
                 },
                 "scale": "1/4",
                 "autorange": false,
@@ -2587,7 +2587,7 @@ window.nomadEnv = {
                     "minW": 3
                   }
                 },
-                "quantity": "results.properties.catalytic.catalyst_characterization.method",
+                "quantity": "results.properties.catalytic.catalyst.characterization_methods",
                 "scale": "linear",
                 "showinput": true
               }

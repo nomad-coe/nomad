@@ -124,11 +124,9 @@ properties_solar_cell = {
 }
 properties_catalysis = {
     'catalytic': {
-        'catalyst_characterization': {
+        'catalyst': {
             'surface_area': 65.56,
-            'method_surface_area': 'BET',
-        },
-        'catalyst_synthesis': {
+            'characterization_methods': 'BET',
             'catalyst_name': 'MoVOx',
             'catalyst_type': 'bulk catalyst',
             'preparation_method': 'hydrothermal',

@@ -25,8 +25,7 @@ import Placeholder from './Placeholder'
  * Shows a summary of catalyst properties.
  */
 const CatalystSample = React.memo(({data}) => {
-  const prefix = 'results.properties.catalytic.catalyst_characterization'
-  const prefix1 = 'results.properties.catalytic.catalyst_synthesis'
+  const prefix = 'results.properties.catalytic.catalyst'
   const prefix2 = 'results.properties.catalytic.reaction'
   return data !== false
     ? data
@@ -34,12 +33,12 @@ const CatalystSample = React.memo(({data}) => {
         <QuantityRow>
           <QuantityCell value={data?.catalyst_name} quantity={`${prefix}.catalyst_name`}/>
           <QuantityCell value={data?.surface_area} quantity={`${prefix}.surface_area`}/>
-          <QuantityCell value={data?.catalyst_type} quantity={`${prefix1}.catalyst_type`}/>
-          <QuantityCell value={data?.preparation_method} quantity={`${prefix1}.preparation_method`}/>
+          <QuantityCell value={data?.catalyst_type} quantity={`${prefix}.catalyst_type`}/>
+          <QuantityCell value={data?.preparation_method} quantity={`${prefix}.preparation_method`}/>
         </QuantityRow>
         <QuantityRow>
           <QuantityCell value={data?.name} quantity={`${prefix2}.name`}/>
-          <QuantityCell value={data?.temperature} quantity={`${prefix2}.temperature`}/>
+          <QuantityCell value={data?.temperature} quantity={`${prefix2}.reaction_conditions.temperature`}/>
           <QuantityCell value={data?.reactants.name} quantity={`${prefix2}.reactants.name`}/>
           <QuantityCell value={data?.reactants.conversion} quantity={`${prefix2}.reactants.conversion`}/>
           <QuantityCell value={data?.products.name} quantity={`${prefix2}.products.name`}/>
