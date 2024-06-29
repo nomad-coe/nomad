@@ -193,11 +193,9 @@
                 "properties": {
                   "available_properties": [],
                   "catalytic": {
-                    "catalyst_characterization": {
+                    "catalyst": {
                       "surface_area": 65.56,
-                      "method_surface_area": "BET"
-                    },
-                    "catalyst_synthesis": {
+                      "characterization_methods": "BET",
                       "preparation_method": "hydrothermal",
                       "catalyst_type": "bulk catalyst"
                     }
@@ -1222,11 +1220,9 @@
                 "properties": {
                   "available_properties": [],
                   "catalytic": {
-                    "catalyst_characterization": {
+                    "catalyst": {
                       "surface_area": 65.56,
-                      "method_surface_area": "BET"
-                    },
-                    "catalyst_synthesis": {
+                      "characterization_methods": "BET",
                       "preparation_method": "hydrothermal",
                       "catalyst_type": "bulk catalyst"
                     }
@@ -3917,54 +3913,54 @@
                 "quantity": "results.properties.catalytic.reaction.products.gas_concentration_out"
               }
             },
-            "results.properties.catalytic.reaction.temperature:default_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.temperature:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.reaction.temperature"
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.catalyst_type:scroll": {
+            "results.properties.catalytic.catalyst.catalyst_type:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 5,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type"
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type"
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.preparation_method:scroll": {
+            "results.properties.catalytic.catalyst.preparation_method:scroll": {
               "terms": {
                 "exclude_from_search": false,
                 "update": true,
                 "size": 5,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method"
+                "quantity": "results.properties.catalytic.catalyst.preparation_method"
               }
             },
-            "results.properties.catalytic.catalyst_characterization.method:scroll": {
+            "results.properties.catalytic.catalyst.characterization_methods:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 5,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_characterization.method"
+                "quantity": "results.properties.catalytic.catalyst.characterization_methods"
               }
             },
-            "results.properties.catalytic.catalyst_characterization.surface_area:default_histogram": {
+            "results.properties.catalytic.catalyst.surface_area:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                "quantity": "results.properties.catalytic.catalyst.surface_area"
               }
             }
           },
@@ -4070,18 +4066,18 @@
                 "data": []
               }
             },
-            "results.properties.catalytic.reaction.temperature:default_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.temperature:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.reaction.temperature",
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
                 "data": []
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.catalyst_type:scroll": {
+            "results.properties.catalytic.catalyst.catalyst_type:scroll": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type",
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
@@ -4094,9 +4090,9 @@
                 ]
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.preparation_method:scroll": {
+            "results.properties.catalytic.catalyst.preparation_method:scroll": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method",
+                "quantity": "results.properties.catalytic.catalyst.preparation_method",
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
@@ -4109,18 +4105,18 @@
                 ]
               }
             },
-            "results.properties.catalytic.catalyst_characterization.method:scroll": {
+            "results.properties.catalytic.catalyst.characterization_method:scroll": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_characterization.method",
+                "quantity": "results.properties.catalytic.catalyst.characterization_method",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
                 "data": []
               }
             },
-            "results.properties.catalytic.catalyst_characterization.surface_area:default_histogram": {
+            "results.properties.catalytic.catalyst.surface_area:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area",
+                "quantity": "results.properties.catalytic.catalyst.surface_area",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
@@ -13432,11 +13428,9 @@
                 "properties": {
                   "available_properties": [],
                   "catalytic": {
-                    "catalyst_characterization": {
+                    "catalyst": {
                       "surface_area": 65.56,
-                      "method_surface_area": "BET"
-                    },
-                    "catalyst_synthesis": {
+                      "characterization_methods": "BET",
                       "preparation_method": "hydrothermal",
                       "catalyst_type": "bulk catalyst"
                     }
@@ -13512,11 +13506,9 @@
                 "properties": {
                   "available_properties": [],
                   "catalytic": {
-                    "catalyst_characterization": {
+                    "catalyst": {
                       "surface_area": 65.56,
-                      "method_surface_area": "BET"
-                    },
-                    "catalyst_synthesis": {
+                      "characterization_methods": "BET",
                       "preparation_method": "hydrothermal",
                       "catalyst_type": "bulk catalyst"
                     }
@@ -13599,44 +13591,44 @@
                 "quantity": "results.properties.catalytic.reaction.products.name"
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.preparation_method:4": {
+            "results.properties.catalytic.catalyst.preparation_method:4": {
               "terms": {
                 "exclude_from_search": false,
                 "update": true,
                 "size": 14,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method"
+                "quantity": "results.properties.catalytic.catalyst.preparation_method"
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.catalyst_type:5": {
+            "results.properties.catalytic.catalyst.catalyst_type:5": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 14,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type"
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type"
               }
             },
-            "results.properties.catalytic.reaction.temperature:6_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.temperature:6_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.reaction.temperature"
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
               }
             },
-            "results.properties.catalytic.reaction.weight_hourly_space_velocity:7_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity:7_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity"
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity"
               }
             },
             "results.properties.catalytic.reaction.reactants.gas_concentration_in:8_histogram": {
@@ -13649,34 +13641,34 @@
                 "quantity": "results.properties.catalytic.reaction.reactants.gas_concentration_in"
               }
             },
-            "results.properties.catalytic.reaction.pressure:9_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.pressure:9_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.reaction.pressure"
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.pressure"
               }
             },
-            "results.properties.catalytic.catalyst_characterization.surface_area:14_histogram": {
+            "results.properties.catalytic.catalyst.surface_area:14_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                "quantity": "results.properties.catalytic.catalyst.surface_area"
               }
             },
-            "results.properties.catalytic.catalyst_characterization.method:15": {
+            "results.properties.catalytic.catalyst.characterization_methods:15": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 14,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_characterization.method"
+                "quantity": "results.properties.catalytic.catalyst.characterization_methods"
               }
             }
           },
@@ -13774,9 +13766,9 @@
                 "data": []
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.preparation_method:4": {
+            "results.properties.catalytic.catalyst.preparation_method:4": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method",
+                "quantity": "results.properties.catalytic.catalyst.preparation_method",
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 14,
@@ -13789,9 +13781,9 @@
                 ]
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.catalyst_type:5": {
+            "results.properties.catalytic.catalyst.catalyst_type:5": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type",
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 14,
@@ -13804,18 +13796,18 @@
                 ]
               }
             },
-            "results.properties.catalytic.reaction.temperature:6_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.temperature:6_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.reaction.temperature",
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
                 "data": []
               }
             },
-            "results.properties.catalytic.reaction.weight_hourly_space_velocity:7_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity:7_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.reaction.weight_hourly_space_velocity",
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
@@ -13831,18 +13823,18 @@
                 "data": []
               }
             },
-            "results.properties.catalytic.reaction.pressure:9_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.pressure:9_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.reaction.pressure",
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.pressure",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
                 "data": []
               }
             },
-            "results.properties.catalytic.catalyst_characterization.surface_area:14_histogram": {
+            "results.properties.catalytic.catalyst.surface_area:14_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area",
+                "quantity": "results.properties.catalytic.catalyst.surface_area",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
@@ -13856,9 +13848,9 @@
                 ]
               }
             },
-            "results.properties.catalytic.catalyst_characterization.method:15": {
+            "results.properties.catalytic.catalyst.characterization_methods:15": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_characterization.method",
+                "quantity": "results.properties.catalytic.catalyst.characterization_methods",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 14,
@@ -13900,7 +13892,7 @@
           "required": {
             "include": [
               "entry_id",
-              "results.properties.catalytic.reaction.temperature",
+              "results.properties.catalytic.reaction.reaction_conditions.temperature",
               "results.properties.catalytic.reaction.reactants.conversion",
               "results.properties.catalytic.reaction.reactants.name"
             ]
@@ -13938,7 +13930,7 @@
           "required": {
             "include": [
               "entry_id",
-              "results.properties.catalytic.reaction.temperature",
+              "results.properties.catalytic.reaction.reaction_conditions.temperature",
               "results.properties.catalytic.reaction.reactants.conversion",
               "results.properties.catalytic.reaction.reactants.name"
             ]
@@ -13984,7 +13976,7 @@
           "required": {
             "include": [
               "entry_id",
-              "results.properties.catalytic.reaction.temperature",
+              "results.properties.catalytic.reaction.reaction_conditions.temperature",
               "results.properties.catalytic.reaction.products.selectivity",
               "results.properties.catalytic.reaction.products.name"
             ]
@@ -14022,7 +14014,7 @@
           "required": {
             "include": [
               "entry_id",
-              "results.properties.catalytic.reaction.temperature",
+              "results.properties.catalytic.reaction.reaction_conditions.temperature",
               "results.properties.catalytic.reaction.products.selectivity",
               "results.properties.catalytic.reaction.products.name"
             ]
@@ -14160,7 +14152,7 @@
               "results.properties.catalytic.reaction.reactants.name",
               "results.properties.catalytic.reaction.products.selectivity",
               "results.properties.catalytic.reaction.products.name",
-              "results.properties.catalytic.catalyst_synthesis.preparation_method"
+              "results.properties.catalytic.catalyst.preparation_method"
             ]
           }
         },
@@ -14200,7 +14192,7 @@
               "results.properties.catalytic.reaction.reactants.name",
               "results.properties.catalytic.reaction.products.selectivity",
               "results.properties.catalytic.reaction.products.name",
-              "results.properties.catalytic.catalyst_synthesis.preparation_method"
+              "results.properties.catalytic.catalyst.preparation_method"
             ]
           },
           "data": [
@@ -14208,7 +14200,7 @@
               "results": {
                 "properties": {
                   "catalytic": {
-                    "catalyst_synthesis": {
+                    "catalyst": {
                       "preparation_method": "hydrothermal"
                     }
                   }
@@ -14220,7 +14212,7 @@
               "results": {
                 "properties": {
                   "catalytic": {
-                    "catalyst_synthesis": {
+                    "catalyst": {
                       "preparation_method": "hydrothermal"
                     }
                   }
@@ -14688,54 +14680,54 @@
                 "quantity": "results.properties.catalytic.reaction.products.gas_concentration_out"
               }
             },
-            "results.properties.catalytic.reaction.temperature:default_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.temperature:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.reaction.temperature"
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.catalyst_type:scroll": {
+            "results.properties.catalytic.catalyst.catalyst_type:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 5,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type"
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type"
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.preparation_method:scroll": {
+            "results.properties.catalytic.catalyst.preparation_method:scroll": {
               "terms": {
                 "exclude_from_search": false,
                 "update": true,
                 "size": 5,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method"
+                "quantity": "results.properties.catalytic.catalyst.preparation_method"
               }
             },
-            "results.properties.catalytic.catalyst_characterization.method:scroll": {
+            "results.properties.catalytic.catalyst.characterization_methods:scroll": {
               "terms": {
                 "exclude_from_search": true,
                 "update": true,
                 "size": 5,
                 "type": "terms",
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_characterization.method"
+                "quantity": "results.properties.catalytic.catalyst.characterization_methods"
               }
             },
-            "results.properties.catalytic.catalyst_characterization.surface_area:default_histogram": {
+            "results.properties.catalytic.catalyst.surface_area:default_histogram": {
               "histogram": {
                 "exclude_from_search": true,
                 "update": true,
                 "type": "histogram",
                 "buckets": 30,
                 "changed": true,
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area"
+                "quantity": "results.properties.catalytic.catalyst.surface_area"
               }
             }
           },
@@ -14853,18 +14845,18 @@
                 "data": []
               }
             },
-            "results.properties.catalytic.reaction.temperature:default_histogram": {
+            "results.properties.catalytic.reaction.reaction_conditions.temperature:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.reaction.temperature",
+                "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
                 "data": []
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.catalyst_type:scroll": {
+            "results.properties.catalytic.catalyst.catalyst_type:scroll": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_synthesis.catalyst_type",
+                "quantity": "results.properties.catalytic.catalyst.catalyst_type",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
@@ -14877,9 +14869,9 @@
                 ]
               }
             },
-            "results.properties.catalytic.catalyst_synthesis.preparation_method:scroll": {
+            "results.properties.catalytic.catalyst.preparation_method:scroll": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_synthesis.preparation_method",
+                "quantity": "results.properties.catalytic.catalyst.preparation_method",
                 "exclude_from_search": false,
                 "metrics": [],
                 "size": 5,
@@ -14892,18 +14884,18 @@
                 ]
               }
             },
-            "results.properties.catalytic.catalyst_characterization.method:scroll": {
+            "results.properties.catalytic.catalyst.characterization_methods:scroll": {
               "terms": {
-                "quantity": "results.properties.catalytic.catalyst_characterization.method",
+                "quantity": "results.properties.catalytic.catalyst.characterization_methods",
                 "exclude_from_search": true,
                 "metrics": [],
                 "size": 5,
                 "data": []
               }
             },
-            "results.properties.catalytic.catalyst_characterization.surface_area:default_histogram": {
+            "results.properties.catalytic.catalyst.surface_area:default_histogram": {
               "histogram": {
-                "quantity": "results.properties.catalytic.catalyst_characterization.surface_area",
+                "quantity": "results.properties.catalytic.catalyst.surface_area",
                 "exclude_from_search": true,
                 "metrics": [],
                 "buckets": 30,
@@ -16191,11 +16183,9 @@
                     "properties": {
                       "available_properties": [],
                       "catalytic": {
-                        "catalyst_characterization": {
+                        "catalyst": {
                           "surface_area": 65.56,
-                          "method_surface_area": "BET"
-                        },
-                        "catalyst_synthesis": {
+                          "characterization_methods": "BET",
                           "preparation_method": "hydrothermal",
                           "catalyst_type": "bulk catalyst"
                         }
@@ -16317,11 +16307,9 @@
                     "properties": {
                       "available_properties": [],
                       "catalytic": {
-                        "catalyst_characterization": {
+                        "catalyst": {
                           "surface_area": 65.56,
-                          "method_surface_area": "BET"
-                        },
-                        "catalyst_synthesis": {
+                          "characterization_methods": "BET",
                           "preparation_method": "hydrothermal",
                           "catalyst_type": "bulk catalyst"
                         }

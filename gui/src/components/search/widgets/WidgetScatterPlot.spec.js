@@ -47,7 +47,7 @@ jest.mock('../SearchContext', () => ({
                   electronic: {band_gap: [{value: 0}, {value: 1}]},
                   catalytic: {
                     reaction: {
-                      temperature: [0, 1, 2],
+                      reaction_conditions: {temperature: [0, 1, 2]},
                       reactants: [
                         {name: 'CO2', conversion: [0, 1, 2]},
                         {name: 'NO2', conversion: [3, 4, 5]}
@@ -66,7 +66,7 @@ jest.mock('../SearchContext', () => ({
                   electronic: {band_gap: [{value: 0}, {value: 1}]},
                   catalytic: {
                     reaction: {
-                      temperature: [0, 1, 2],
+                      reaction_conditions: {temperature: [0, 1, 2]},
                       reactants: [
                         {name: 'H2O', conversion: [0, 1, 2]},
                         {name: 'O2', conversion: [3, 4, 5]}
@@ -91,7 +91,7 @@ describe('test different combinations of x/y/color produced with JMESPath', () =
     ['slicing', 'results.properties.electronic.band_gap[1:2].value', 'results.properties.electronic.band_gap[1:2].value', 'results.properties.electronic.band_gap[1:2].value'],
     ['function', 'min(results.properties.electronic.band_gap[*].value)', 'min(results.properties.electronic.band_gap[*].value)', 'min(results.properties.electronic.band_gap[*].value)'],
     ['filter projection', "results.material.topology[?label=='original'].cell.a", "results.material.topology[?label=='original'].cell.a", "results.material.topology[?label=='original'].cell.a"],
-    ['1D array vs 2D array vs 1D color', 'results.properties.catalytic.reaction.temperature', 'results.properties.catalytic.reaction.reactants[*].conversion', 'results.properties.catalytic.reaction.reactants[*].name']
+    ['1D array vs 2D array vs 1D color', 'results.properties.catalytic.reaction.reaction_conditions.temperature', 'results.properties.catalytic.reaction.reactants[*].conversion', 'results.properties.catalytic.reaction.reactants[*].name']
   ])('%s', async (name, x, y, color) => {
     const config = {
       id: '0',

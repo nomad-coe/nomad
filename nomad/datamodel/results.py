@@ -3442,8 +3442,9 @@ class Product(Reagent):
 class Rate(MSection):
     m_def = Section(
         description="""
-        The rate of a catalytic test reaction.
+        Section bundling multiple representations of catalytic reaction rates.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007024'],
         label_quantity='name',
     )
     name = Quantity(
@@ -3461,7 +3462,8 @@ class Rate(MSection):
         type=np.float64,
         shape=[],
         description="""
-        The rate of the number of reactant or product molecules converted/produced, per mass of total catalyst, per time.
+        The rate of the number of reactant or product molecules converted/produced,
+        per mass of total catalyst, per time.
         """,
         unit='mol/(g*s)',
         links=['https://w3id.org/nfdi4cat/voc4cat_0007024'],
@@ -3472,7 +3474,8 @@ class Rate(MSection):
         type=np.float64,
         shape=[],
         description="""
-        The specific rate of the reactant, per mass of active catalyst component (e.g. metal).
+        The specific rate of the reactant, per mass of active catalyst component
+        (e.g. metal).
         """,
         unit='mol/(g*s)',
         links=['https://w3id.org/nfdi4cat/voc4cat_0007025'],
@@ -3493,16 +3496,145 @@ class Rate(MSection):
         shape=['*'],
         unit='g/g/s',
         description="""
-        The rate calculated from the mass of reactant or product converted/produced, per total catalyst mass per time.
+        The rate calculated from the mass of reactant or product converted/produced,
+        per total catalyst mass per time.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007024'],
     )
-    turn_over_frequency = Quantity(
+    turnover_frequency = Quantity(
         type=np.float64,
         shape=[],
         description="""
-        The turn over frequency, calculated from mol of reactant or product per number of sites over time.
+        The turnover frequency, calculated from mol of reactant or product per
+        number of sites over time.
         """,
         unit='1/s',
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class ReactionConditions(MSection):
+    m_def = Section(
+        description="""
+        Conditions under which a catalytic test reaction was performed.
+        """,
+        # links=['https://w3id.org/nfdi4cat/voc4cat_0007037'],
+    )
+
+    temperature = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='K',
+        description="""
+        The reaction temperature(s) in the catalytic reactor during a chemical reaction.
+        """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007032'],
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    pressure = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='Pa',
+        description="""
+        The pressure during the catalytic test reaction.
+        """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000118'],
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    weight_hourly_space_velocity = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='(ml/g/s)',
+        description="""
+        The weight hourly space velocity in 1/time (gas flow per catalyst mass).
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    gas_hourly_space_velocity = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='(s)^-1',
+        description="""
+        The gas hourly space velocity in 1/time (gas flow per catalyst volume).
+        """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0007023'],
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    flow_rate = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='m^3/s',
+        description="""
+        The volumetric gas flow in volume per time.
+        """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000162'],
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    time_on_stream = Quantity(
+        type=np.float64,
+        shape=['*'],
+        unit='s',
+        description="""
+        The time on stream of the catalyst in the catalytic reaction.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+
+class ReactionStep(MSection):
+    m_def = Section(
+        description="""
+        Properties of single steps of a catalytic reaction mechanism.
+        """,
+        # links=['https://w3id.org/nfdi4cat/voc4cat_0007038'],
+    )
+
+    initial_states = Quantity(
+        type=str,
+        shape=['*'],
+        description="""
+        The names of reactants of the reaction or elementary step.
+        """,
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
+    )
+
+    final_states = Quantity(
+        type=str,
+        shape=['*'],
+        description="""
+        The names of products of the reaction or elementary step.
+        """,
+        a_elasticsearch=[
+            Elasticsearch(material_entry_type),
+            Elasticsearch(suggestion='default'),
+        ],
+    )
+
+    reaction_enthalpy = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description="""
+        The reaction enthalpy of the reaction or reaction step.
+        """,
+        a_elasticsearch=Elasticsearch(material_entry_type),
+    )
+
+    activation_energy = Quantity(
+        type=np.float64,
+        shape=[],
+        unit='joule',
+        description="""
+        The (apparent) activation energy of the catalyzed reaction or reaction step.
+        """,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
@@ -3510,8 +3642,10 @@ class Rate(MSection):
 class Reaction(MSection):
     m_def = Section(
         description="""
-        Properties of a catalytic test reaction.
-        """
+        A collection of specifications and properties of a full catalytic reaction.
+        This may include reaction conditions, results and mechanistic aspects of a reaction.
+        """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0005007'],
     )
     name = Quantity(
         type=str,
@@ -3558,84 +3692,23 @@ class Reaction(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type, nested=True),
     )
 
-    weight_hourly_space_velocity = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='(ml/g/s)',
-        description="""
-        The weight hourly space velocity in 1/time (gas flow per catalyst mass).
-        """,
+    reaction_conditions = SubSection(
+        sub_section=ReactionConditions.m_def,
+        repeats=False,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
-    gas_hourly_space_velocity = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='(s)^-1',
-        description="""
-        The gas hourly space velocity in 1/time (gas flow per catalyst volume).
-        """,
-        links=['https://w3id.org/nfdi4cat/voc4cat_0007023'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-
-    flow_rate = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='m^3/s',
-        description="""
-        The volumetric gas flow in volume per time.
-        """,
-        links=['https://w3id.org/nfdi4cat/voc4cat_0000162'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-
-    temperature = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='K',
-        description="""
-        The reaction temperature(s) in the catalytic reactor during a chemical reaction.
-        """,
-        links=['https://w3id.org/nfdi4cat/voc4cat_0007032'],
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-
-    time_on_stream = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='s',
-        description="""
-        The time on stream of the catalyst in the catalytic reaction.
-        """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-
-    total_time_on_stream = Quantity(
-        type=np.float64,
-        shape=[],
-        unit='s',
-        description="""
-        The total time on stream of the catalyst in the catalytic test reaction.
-        """,
-        a_elasticsearch=Elasticsearch(material_entry_type),
-    )
-
-    pressure = Quantity(
-        type=np.float64,
-        shape=['*'],
-        unit='Pa',
-        description="""
-        The pressure during the catalytic test reaction.
-        """,
+    reaction_mechanism = SubSection(
+        sub_section=ReactionStep.m_def,
+        repeats=True,
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
 
-class CatalystSynthesis(MSection):
+class Catalyst(MSection):
     m_def = Section(
         description="""
-        Synthesis of a heterogeneous catalyst.
+        Properties of a heterogeneous catalyst.
         """
     )
 
@@ -3655,7 +3728,7 @@ class CatalystSynthesis(MSection):
         type=str,
         shape=[],
         description="""
-        The main preparation method of the sample.
+        The main preparation method of the catalyst sample.
         """,
         links=['https://w3id.org/nfdi4cat/voc4cat_0007016'],
         a_elasticsearch=[
@@ -3666,9 +3739,10 @@ class CatalystSynthesis(MSection):
 
     catalyst_type = Quantity(
         type=str,
-        shape=[],
+        shape=['*'],
         description="""
-        The type of catalyst, wether metal or oxide, ...
+        The type of catalyst, wether metal or oxide, model, bulk, supported, ect.
+        Multiple values can apply.
         """,
         links=['https://w3id.org/nfdi4cat/voc4cat_0007014'],
         a_elasticsearch=[
@@ -3677,19 +3751,13 @@ class CatalystSynthesis(MSection):
         ],
     )
 
-
-class CatalystCharacterization(MSection):
-    m_def = Section(
-        description="""
-        Properties of a heterogeneous catalyst.
-        """
-    )
-    method = Quantity(
+    characterization_methods = Quantity(
         type=str,
         shape=['*'],
         description="""
-        A method used to characterize the catalyst.
+        A list of methods used to characterize the catalyst sample.
         """,
+        links=['https://w3id.org/nfdi4cat/voc4cat_0000066'],
         a_elasticsearch=[
             Elasticsearch(material_entry_type),
             Elasticsearch(suggestion='default'),
@@ -3707,30 +3775,15 @@ class CatalystCharacterization(MSection):
         a_elasticsearch=Elasticsearch(material_entry_type),
     )
 
-    method_surface_area = Quantity(
-        type=str,
-        shape=[],
-        description="""
-        The method with which the surface area per catalyst mass was determined, e.g. BET.
-        """,
-        a_elasticsearch=[
-            Elasticsearch(material_entry_type),
-            Elasticsearch(suggestion='default'),
-        ],
-    )
-
 
 class CatalyticProperties(MSection):
     m_def = Section(
         description="""
-        Properties of Heterogeneous Catalysts.
+        Properties relating to catalysis.
         """
     )
     reaction = SubSection(sub_section=Reaction.m_def, repeats=False)
-    catalyst_synthesis = SubSection(sub_section=CatalystSynthesis.m_def, repeats=False)
-    catalyst_characterization = SubSection(
-        sub_section=CatalystCharacterization.m_def, repeats=False
-    )
+    catalyst = SubSection(sub_section=Catalyst.m_def, repeats=False)
 
 
 class EELSInstrument(MSection):

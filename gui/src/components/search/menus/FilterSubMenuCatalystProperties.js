@@ -82,39 +82,34 @@ const FilterSubMenuCatalyst = React.memo(({
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputRange
-          quantity="results.properties.catalytic.reaction.temperature"
+          quantity="results.properties.catalytic.reaction.reaction_conditions.temperature"
           visible={visible}
         />
       </InputGridItem>
       <InputGridItem xs={12}>
         <InputSection
-          section="results.properties.catalytic.catalyst_synthesis"
+          section="results.properties.catalytic.catalyst"
           disableHeader
           visible={visible}
         >
           <InputField
-            quantity="results.properties.catalytic.catalyst_synthesis.catalyst_type"
+            quantity="results.properties.catalytic.catalyst.catalyst_type"
             visible={visible}
           />
           <InputField
-            quantity="results.properties.catalytic.catalyst_synthesis.preparation_method"
+            quantity="results.properties.catalytic.catalyst.preparation_method"
             visible={visible}
           />
           <InputField
-            quantity="results.properties.catalytic.catalyst_synthesis.catalyst_name"
+            quantity="results.properties.catalytic.catalyst.catalyst_name"
             visible={visible}
           />
-        </InputSection>
-        <InputSection
-          section="results.properties.catalytic.catalyst_characterization"
-          visible={visible}
-        >
           <InputField
-            quantity="results.properties.catalytic.catalyst_characterization.method"
+            quantity="results.properties.catalytic.catalyst.characterization_methods"
             visible={visible}
           />
           <InputRange
-            quantity="results.properties.catalytic.catalyst_characterization.surface_area"
+            quantity="results.properties.catalytic.catalyst.surface_area"
             visible={visible}
           />
         </InputSection>

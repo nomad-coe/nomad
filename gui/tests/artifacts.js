@@ -4770,109 +4770,6 @@ window.nomadArtifacts = {
       "repeats": false,
       "suggestion": true
     },
-    "results.properties.catalytic.reaction.weight_hourly_space_velocity": {
-      "name": "weight_hourly_space_velocity",
-      "description": "The weight hourly space velocity in 1/time (gas flow per catalyst mass).",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "milliliter / gram / second",
-      "shape": [
-        "*"
-      ],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
-    "results.properties.catalytic.reaction.gas_hourly_space_velocity": {
-      "name": "gas_hourly_space_velocity",
-      "description": "The gas hourly space velocity in 1/time (gas flow per catalyst volume).",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "1 / second",
-      "shape": [
-        "*"
-      ],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
-    "results.properties.catalytic.reaction.flow_rate": {
-      "name": "flow_rate",
-      "description": "The volumetric gas flow in volume per time.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "meter ** 3 / second",
-      "shape": [
-        "*"
-      ],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
-    "results.properties.catalytic.reaction.temperature": {
-      "name": "temperature",
-      "description": "The reaction temperature(s) in the catalytic reactor during a chemical reaction.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "kelvin",
-      "shape": [
-        "*"
-      ],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
-    "results.properties.catalytic.reaction.time_on_stream": {
-      "name": "time_on_stream",
-      "description": "The time on stream of the catalyst in the catalytic reaction.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "second",
-      "shape": [
-        "*"
-      ],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
-    "results.properties.catalytic.reaction.total_time_on_stream": {
-      "name": "total_time_on_stream",
-      "description": "The total time on stream of the catalyst in the catalytic test reaction.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "second",
-      "shape": [],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
-    "results.properties.catalytic.reaction.pressure": {
-      "name": "pressure",
-      "description": "The pressure during the catalytic test reaction.",
-      "type": {
-        "type_kind": "numpy",
-        "type_data": "float64"
-      },
-      "unit": "pascal",
-      "shape": [
-        "*"
-      ],
-      "aggregatable": false,
-      "dynamic": false,
-      "repeats": false
-    },
     "results.properties.catalytic.reaction.reactants.name": {
       "name": "name",
       "description": "IUPAC name of the reagent.",
@@ -5013,7 +4910,7 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.rates.reaction_rate": {
       "name": "reaction_rate",
-      "description": "The rate of the number of reactant or product molecules converted/produced, per mass of total catalyst, per time.",
+      "description": "The rate of the number of reactant or product molecules converted/produced,\nper mass of total catalyst, per time.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -5026,7 +4923,7 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.rates.specific_mass_rate": {
       "name": "specific_mass_rate",
-      "description": "The specific rate of the reactant, per mass of active catalyst component (e.g. metal).",
+      "description": "The specific rate of the reactant, per mass of active catalyst component\n(e.g. metal).",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -5050,9 +4947,9 @@ window.nomadArtifacts = {
       "dynamic": false,
       "repeats": true
     },
-    "results.properties.catalytic.reaction.rates.turn_over_frequency": {
-      "name": "turn_over_frequency",
-      "description": "The turn over frequency, calculated from mol of reactant or product per number of sites over time.",
+    "results.properties.catalytic.reaction.rates.turnover_frequency": {
+      "name": "turnover_frequency",
+      "description": "The turnover frequency, calculated from mol of reactant or product per\nnumber of sites over time.",
       "type": {
         "type_kind": "numpy",
         "type_data": "float64"
@@ -5063,7 +4960,153 @@ window.nomadArtifacts = {
       "dynamic": false,
       "repeats": true
     },
-    "results.properties.catalytic.catalyst_synthesis.catalyst_name": {
+    "results.properties.catalytic.reaction.reaction_conditions.temperature": {
+      "name": "temperature",
+      "description": "The reaction temperature(s) in the catalytic reactor during a chemical reaction.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "kelvin",
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": false
+    },
+    "results.properties.catalytic.reaction.reaction_conditions.pressure": {
+      "name": "pressure",
+      "description": "The pressure during the catalytic test reaction.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "pascal",
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": false
+    },
+    "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity": {
+      "name": "weight_hourly_space_velocity",
+      "description": "The weight hourly space velocity in 1/time (gas flow per catalyst mass).",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "milliliter / gram / second",
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": false
+    },
+    "results.properties.catalytic.reaction.reaction_conditions.gas_hourly_space_velocity": {
+      "name": "gas_hourly_space_velocity",
+      "description": "The gas hourly space velocity in 1/time (gas flow per catalyst volume).",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "1 / second",
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": false
+    },
+    "results.properties.catalytic.reaction.reaction_conditions.flow_rate": {
+      "name": "flow_rate",
+      "description": "The volumetric gas flow in volume per time.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "meter ** 3 / second",
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": false
+    },
+    "results.properties.catalytic.reaction.reaction_conditions.time_on_stream": {
+      "name": "time_on_stream",
+      "description": "The time on stream of the catalyst in the catalytic reaction.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "second",
+      "shape": [
+        "*"
+      ],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": false
+    },
+    "results.properties.catalytic.reaction.reaction_mechanism.initial_states": {
+      "name": "initial_states",
+      "description": "The names of reactants of the reaction or elementary step.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "*"
+      ],
+      "aggregatable": true,
+      "dynamic": false,
+      "repeats": true,
+      "suggestion": true
+    },
+    "results.properties.catalytic.reaction.reaction_mechanism.final_states": {
+      "name": "final_states",
+      "description": "The names of products of the reaction or elementary step.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "*"
+      ],
+      "aggregatable": true,
+      "dynamic": false,
+      "repeats": true,
+      "suggestion": true
+    },
+    "results.properties.catalytic.reaction.reaction_mechanism.reaction_enthalpy": {
+      "name": "reaction_enthalpy",
+      "description": "The reaction enthalpy of the reaction or reaction step.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "joule",
+      "shape": [],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": true
+    },
+    "results.properties.catalytic.reaction.reaction_mechanism.activation_energy": {
+      "name": "activation_energy",
+      "description": "The (apparent) activation energy of the catalyzed reaction or reaction step.",
+      "type": {
+        "type_kind": "numpy",
+        "type_data": "float64"
+      },
+      "unit": "joule",
+      "shape": [],
+      "aggregatable": false,
+      "dynamic": false,
+      "repeats": true
+    },
+    "results.properties.catalytic.catalyst.catalyst_name": {
       "name": "catalyst_name",
       "description": "Custom name of catalyst.",
       "type": {
@@ -5076,9 +5119,9 @@ window.nomadArtifacts = {
       "repeats": false,
       "suggestion": true
     },
-    "results.properties.catalytic.catalyst_synthesis.preparation_method": {
+    "results.properties.catalytic.catalyst.preparation_method": {
       "name": "preparation_method",
-      "description": "The main preparation method of the sample.",
+      "description": "The main preparation method of the catalyst sample.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
@@ -5089,22 +5132,9 @@ window.nomadArtifacts = {
       "repeats": false,
       "suggestion": true
     },
-    "results.properties.catalytic.catalyst_synthesis.catalyst_type": {
+    "results.properties.catalytic.catalyst.catalyst_type": {
       "name": "catalyst_type",
-      "description": "The type of catalyst, wether metal or oxide, ...",
-      "type": {
-        "type_kind": "python",
-        "type_data": "str"
-      },
-      "shape": [],
-      "aggregatable": true,
-      "dynamic": false,
-      "repeats": false,
-      "suggestion": true
-    },
-    "results.properties.catalytic.catalyst_characterization.method": {
-      "name": "method",
-      "description": "A method used to characterize the catalyst.",
+      "description": "The type of catalyst, wether metal or oxide, model, bulk, supported, ect.\nMultiple values can apply.",
       "type": {
         "type_kind": "python",
         "type_data": "str"
@@ -5117,7 +5147,22 @@ window.nomadArtifacts = {
       "repeats": false,
       "suggestion": true
     },
-    "results.properties.catalytic.catalyst_characterization.surface_area": {
+    "results.properties.catalytic.catalyst.characterization_methods": {
+      "name": "characterization_methods",
+      "description": "A list of methods used to characterize the catalyst sample.",
+      "type": {
+        "type_kind": "python",
+        "type_data": "str"
+      },
+      "shape": [
+        "*"
+      ],
+      "aggregatable": true,
+      "dynamic": false,
+      "repeats": false,
+      "suggestion": true
+    },
+    "results.properties.catalytic.catalyst.surface_area": {
       "name": "surface_area",
       "description": "The surface area per catalyst mass.",
       "type": {
@@ -5129,19 +5174,6 @@ window.nomadArtifacts = {
       "aggregatable": false,
       "dynamic": false,
       "repeats": false
-    },
-    "results.properties.catalytic.catalyst_characterization.method_surface_area": {
-      "name": "method_surface_area",
-      "description": "The method with which the surface area per catalyst mass was determined, e.g. BET.",
-      "type": {
-        "type_kind": "python",
-        "type_data": "str"
-      },
-      "shape": [],
-      "aggregatable": true,
-      "dynamic": false,
-      "repeats": false,
-      "suggestion": true
     },
     "results.properties.mechanical.energy_volume_curve.type": {
       "name": "type",
@@ -6016,13 +6048,13 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic": {
       "name": "catalytic",
-      "description": "\n        Properties of Heterogeneous Catalysts.\n        ",
+      "description": "\n        Properties relating to catalysis.\n        ",
       "nested": false,
       "repeats": false
     },
     "results.properties.catalytic.reaction": {
       "name": "reaction",
-      "description": "\n        Properties of a catalytic test reaction.\n        ",
+      "description": "\n        A collection of specifications and properties of a full catalytic reaction.\n        This may include reaction conditions, results and mechanistic aspects of a reaction.\n        ",
       "nested": false,
       "repeats": false
     },
@@ -6040,18 +6072,24 @@ window.nomadArtifacts = {
     },
     "results.properties.catalytic.reaction.rates": {
       "name": "rates",
-      "description": "\n        The rate of a catalytic test reaction.\n        ",
+      "description": "\n        Section bundling multiple representations of catalytic reaction rates.\n        ",
       "nested": true,
       "repeats": true
     },
-    "results.properties.catalytic.catalyst_synthesis": {
-      "name": "catalyst_synthesis",
-      "description": "\n        Synthesis of a heterogeneous catalyst.\n        ",
+    "results.properties.catalytic.reaction.reaction_conditions": {
+      "name": "reaction_conditions",
+      "description": "\n        Conditions under which a catalytic test reaction was performed.\n        ",
       "nested": false,
       "repeats": false
     },
-    "results.properties.catalytic.catalyst_characterization": {
-      "name": "catalyst_characterization",
+    "results.properties.catalytic.reaction.reaction_mechanism": {
+      "name": "reaction_mechanism",
+      "description": "\n        Properties of single steps of a catalytic reaction mechanism.\n        ",
+      "nested": false,
+      "repeats": true
+    },
+    "results.properties.catalytic.catalyst": {
+      "name": "catalyst",
       "description": "\n        Properties of a heterogeneous catalyst.\n        ",
       "nested": false,
       "repeats": false
@@ -38544,7 +38582,10 @@ window.nomadArtifacts = {
             "m_parent_index": 72,
             "m_parent_sub_section": "section_definitions",
             "name": "Rate",
-            "description": "\n        The rate of a catalytic test reaction.\n        ",
+            "description": "\n        Section bundling multiple representations of catalytic reaction rates.\n        ",
+            "links": [
+              "https://w3id.org/nfdi4cat/voc4cat_0007024"
+            ],
             "more": {
               "label_quantity": "name"
             },
@@ -38577,7 +38618,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "reaction_rate",
-                "description": "The rate of the number of reactant or product molecules converted/produced, per mass of total catalyst, per time.",
+                "description": "The rate of the number of reactant or product molecules converted/produced,\nper mass of total catalyst, per time.",
                 "links": [
                   "https://w3id.org/nfdi4cat/voc4cat_0007024"
                 ],
@@ -38598,7 +38639,7 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "specific_mass_rate",
-                "description": "The specific rate of the reactant, per mass of active catalyst component (e.g. metal).",
+                "description": "The specific rate of the reactant, per mass of active catalyst component\n(e.g. metal).",
                 "links": [
                   "https://w3id.org/nfdi4cat/voc4cat_0007025"
                 ],
@@ -38635,7 +38676,10 @@ window.nomadArtifacts = {
                 "m_parent_index": 4,
                 "m_parent_sub_section": "quantities",
                 "name": "rate",
-                "description": "The rate calculated from the mass of reactant or product converted/produced, per total catalyst mass per time.",
+                "description": "The rate calculated from the mass of reactant or product converted/produced,\nper total catalyst mass per time.",
+                "links": [
+                  "https://w3id.org/nfdi4cat/voc4cat_0007024"
+                ],
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -38651,11 +38695,11 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.catalytic.reaction.rates.turn_over_frequency"
+                    "results.properties.catalytic.reaction.rates.turnover_frequency"
                   ]
                 },
-                "name": "turn_over_frequency",
-                "description": "The turn over frequency, calculated from mol of reactant or product per number of sites over time.",
+                "name": "turnover_frequency",
+                "description": "The turnover frequency, calculated from mol of reactant or product per\nnumber of sites over time.",
                 "type": {
                   "type_kind": "numpy",
                   "type_data": "float64"
@@ -38669,8 +38713,237 @@ window.nomadArtifacts = {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 73,
             "m_parent_sub_section": "section_definitions",
+            "name": "ReactionConditions",
+            "description": "\n        Conditions under which a catalytic test reaction was performed.\n        ",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_conditions.temperature"
+                  ]
+                },
+                "name": "temperature",
+                "description": "The reaction temperature(s) in the catalytic reactor during a chemical reaction.",
+                "links": [
+                  "https://w3id.org/nfdi4cat/voc4cat_0007032"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "kelvin"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_conditions.pressure"
+                  ]
+                },
+                "name": "pressure",
+                "description": "The pressure during the catalytic test reaction.",
+                "links": [
+                  "https://w3id.org/nfdi4cat/voc4cat_0000118"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "pascal"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity"
+                  ]
+                },
+                "name": "weight_hourly_space_velocity",
+                "description": "The weight hourly space velocity in 1/time (gas flow per catalyst mass).",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "milliliter / gram / second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_conditions.gas_hourly_space_velocity"
+                  ]
+                },
+                "name": "gas_hourly_space_velocity",
+                "description": "The gas hourly space velocity in 1/time (gas flow per catalyst volume).",
+                "links": [
+                  "https://w3id.org/nfdi4cat/voc4cat_0007023"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "1 / second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_conditions.flow_rate"
+                  ]
+                },
+                "name": "flow_rate",
+                "description": "The volumetric gas flow in volume per time.",
+                "links": [
+                  "https://w3id.org/nfdi4cat/voc4cat_0000162"
+                ],
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "meter ** 3 / second"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 5,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_conditions.time_on_stream"
+                  ]
+                },
+                "name": "time_on_stream",
+                "description": "The time on stream of the catalyst in the catalytic reaction.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [
+                  "*"
+                ],
+                "unit": "second"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 74,
+            "m_parent_sub_section": "section_definitions",
+            "name": "ReactionStep",
+            "description": "\n        Properties of single steps of a catalytic reaction mechanism.\n        ",
+            "quantities": [
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_mechanism.initial_states",
+                    "results.properties.catalytic.reaction.reaction_mechanism.initial_states__suggestion"
+                  ]
+                },
+                "name": "initial_states",
+                "description": "The names of reactants of the reaction or elementary step.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_mechanism.final_states",
+                    "results.properties.catalytic.reaction.reaction_mechanism.final_states__suggestion"
+                  ]
+                },
+                "name": "final_states",
+                "description": "The names of products of the reaction or elementary step.",
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 2,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_mechanism.reaction_enthalpy"
+                  ]
+                },
+                "name": "reaction_enthalpy",
+                "description": "The reaction enthalpy of the reaction or reaction step.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "joule"
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.reaction.reaction_mechanism.activation_energy"
+                  ]
+                },
+                "name": "activation_energy",
+                "description": "The (apparent) activation energy of the catalyzed reaction or reaction step.",
+                "type": {
+                  "type_kind": "numpy",
+                  "type_data": "float64"
+                },
+                "shape": [],
+                "unit": "joule"
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 75,
+            "m_parent_sub_section": "section_definitions",
             "name": "Reaction",
-            "description": "\n        Properties of a catalytic test reaction.\n        ",
+            "description": "\n        A collection of specifications and properties of a full catalytic reaction.\n        This may include reaction conditions, results and mechanistic aspects of a reaction.\n        ",
+            "links": [
+              "https://w3id.org/nfdi4cat/voc4cat_0005007"
+            ],
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -38713,153 +38986,6 @@ window.nomadArtifacts = {
                   "type_data": "str"
                 },
                 "shape": []
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.weight_hourly_space_velocity"
-                  ]
-                },
-                "name": "weight_hourly_space_velocity",
-                "description": "The weight hourly space velocity in 1/time (gas flow per catalyst mass).",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "milliliter / gram / second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 3,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.gas_hourly_space_velocity"
-                  ]
-                },
-                "name": "gas_hourly_space_velocity",
-                "description": "The gas hourly space velocity in 1/time (gas flow per catalyst volume).",
-                "links": [
-                  "https://w3id.org/nfdi4cat/voc4cat_0007023"
-                ],
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "1 / second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 4,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.flow_rate"
-                  ]
-                },
-                "name": "flow_rate",
-                "description": "The volumetric gas flow in volume per time.",
-                "links": [
-                  "https://w3id.org/nfdi4cat/voc4cat_0000162"
-                ],
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "meter ** 3 / second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 5,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.temperature"
-                  ]
-                },
-                "name": "temperature",
-                "description": "The reaction temperature(s) in the catalytic reactor during a chemical reaction.",
-                "links": [
-                  "https://w3id.org/nfdi4cat/voc4cat_0007032"
-                ],
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "kelvin"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 6,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.time_on_stream"
-                  ]
-                },
-                "name": "time_on_stream",
-                "description": "The time on stream of the catalyst in the catalytic reaction.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 7,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.total_time_on_stream"
-                  ]
-                },
-                "name": "total_time_on_stream",
-                "description": "The total time on stream of the catalyst in the catalytic test reaction.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [],
-                "unit": "second"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 8,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.reaction.pressure"
-                  ]
-                },
-                "name": "pressure",
-                "description": "The pressure during the catalytic test reaction.",
-                "type": {
-                  "type_kind": "numpy",
-                  "type_data": "float64"
-                },
-                "shape": [
-                  "*"
-                ],
-                "unit": "pascal"
               }
             ],
             "sub_sections": [
@@ -38901,15 +39027,41 @@ window.nomadArtifacts = {
                 "name": "rates",
                 "sub_section": "/packages/12/section_definitions/72",
                 "repeats": true
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 3,
+                "m_parent_sub_section": "sub_sections",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "reaction_conditions"
+                  ]
+                },
+                "name": "reaction_conditions",
+                "sub_section": "/packages/12/section_definitions/73",
+                "repeats": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "sub_sections",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "reaction_mechanism"
+                  ]
+                },
+                "name": "reaction_mechanism",
+                "sub_section": "/packages/12/section_definitions/74",
+                "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 74,
+            "m_parent_index": 76,
             "m_parent_sub_section": "section_definitions",
-            "name": "CatalystSynthesis",
-            "description": "\n        Synthesis of a heterogeneous catalyst.\n        ",
+            "name": "Catalyst",
+            "description": "\n        Properties of a heterogeneous catalyst.\n        ",
             "quantities": [
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
@@ -38917,8 +39069,8 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.catalytic.catalyst_synthesis.catalyst_name",
-                    "results.properties.catalytic.catalyst_synthesis.catalyst_name__suggestion"
+                    "results.properties.catalytic.catalyst.catalyst_name",
+                    "results.properties.catalytic.catalyst.catalyst_name__suggestion"
                   ]
                 },
                 "name": "catalyst_name",
@@ -38935,12 +39087,12 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.catalytic.catalyst_synthesis.preparation_method",
-                    "results.properties.catalytic.catalyst_synthesis.preparation_method__suggestion"
+                    "results.properties.catalytic.catalyst.preparation_method",
+                    "results.properties.catalytic.catalyst.preparation_method__suggestion"
                   ]
                 },
                 "name": "preparation_method",
-                "description": "The main preparation method of the sample.",
+                "description": "The main preparation method of the catalyst sample.",
                 "links": [
                   "https://w3id.org/nfdi4cat/voc4cat_0007016"
                 ],
@@ -38956,42 +39108,15 @@ window.nomadArtifacts = {
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.catalytic.catalyst_synthesis.catalyst_type",
-                    "results.properties.catalytic.catalyst_synthesis.catalyst_type__suggestion"
+                    "results.properties.catalytic.catalyst.catalyst_type",
+                    "results.properties.catalytic.catalyst.catalyst_type__suggestion"
                   ]
                 },
                 "name": "catalyst_type",
-                "description": "The type of catalyst, wether metal or oxide, ...",
+                "description": "The type of catalyst, wether metal or oxide, model, bulk, supported, ect.\nMultiple values can apply.",
                 "links": [
                   "https://w3id.org/nfdi4cat/voc4cat_0007014"
                 ],
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 75,
-            "m_parent_sub_section": "section_definitions",
-            "name": "CatalystCharacterization",
-            "description": "\n        Properties of a heterogeneous catalyst.\n        ",
-            "quantities": [
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.catalyst_characterization.method",
-                    "results.properties.catalytic.catalyst_characterization.method__suggestion"
-                  ]
-                },
-                "name": "method",
-                "description": "A method used to characterize the catalyst.",
                 "type": {
                   "type_kind": "python",
                   "type_data": "str"
@@ -39002,11 +39127,34 @@ window.nomadArtifacts = {
               },
               {
                 "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 1,
+                "m_parent_index": 3,
                 "m_parent_sub_section": "quantities",
                 "m_annotations": {
                   "elasticsearch": [
-                    "results.properties.catalytic.catalyst_characterization.surface_area"
+                    "results.properties.catalytic.catalyst.characterization_methods",
+                    "results.properties.catalytic.catalyst.characterization_methods__suggestion"
+                  ]
+                },
+                "name": "characterization_methods",
+                "description": "A list of methods used to characterize the catalyst sample.",
+                "links": [
+                  "https://w3id.org/nfdi4cat/voc4cat_0000066"
+                ],
+                "type": {
+                  "type_kind": "python",
+                  "type_data": "str"
+                },
+                "shape": [
+                  "*"
+                ]
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.Quantity",
+                "m_parent_index": 4,
+                "m_parent_sub_section": "quantities",
+                "m_annotations": {
+                  "elasticsearch": [
+                    "results.properties.catalytic.catalyst.surface_area"
                   ]
                 },
                 "name": "surface_area",
@@ -39020,63 +39168,37 @@ window.nomadArtifacts = {
                 },
                 "shape": [],
                 "unit": "meter ** 2 / gram"
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.Quantity",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "quantities",
-                "m_annotations": {
-                  "elasticsearch": [
-                    "results.properties.catalytic.catalyst_characterization.method_surface_area",
-                    "results.properties.catalytic.catalyst_characterization.method_surface_area__suggestion"
-                  ]
-                },
-                "name": "method_surface_area",
-                "description": "The method with which the surface area per catalyst mass was determined, e.g. BET.",
-                "type": {
-                  "type_kind": "python",
-                  "type_data": "str"
-                },
-                "shape": []
-              }
-            ]
-          },
-          {
-            "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 76,
-            "m_parent_sub_section": "section_definitions",
-            "name": "CatalyticProperties",
-            "description": "\n        Properties of Heterogeneous Catalysts.\n        ",
-            "sub_sections": [
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 0,
-                "m_parent_sub_section": "sub_sections",
-                "name": "reaction",
-                "sub_section": "/packages/12/section_definitions/73",
-                "repeats": false
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 1,
-                "m_parent_sub_section": "sub_sections",
-                "name": "catalyst_synthesis",
-                "sub_section": "/packages/12/section_definitions/74",
-                "repeats": false
-              },
-              {
-                "m_def": "nomad.metainfo.metainfo.SubSection",
-                "m_parent_index": 2,
-                "m_parent_sub_section": "sub_sections",
-                "name": "catalyst_characterization",
-                "sub_section": "/packages/12/section_definitions/75",
-                "repeats": false
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
             "m_parent_index": 77,
+            "m_parent_sub_section": "section_definitions",
+            "name": "CatalyticProperties",
+            "description": "\n        Properties relating to catalysis.\n        ",
+            "sub_sections": [
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 0,
+                "m_parent_sub_section": "sub_sections",
+                "name": "reaction",
+                "sub_section": "/packages/12/section_definitions/75",
+                "repeats": false
+              },
+              {
+                "m_def": "nomad.metainfo.metainfo.SubSection",
+                "m_parent_index": 1,
+                "m_parent_sub_section": "sub_sections",
+                "name": "catalyst",
+                "sub_section": "/packages/12/section_definitions/76",
+                "repeats": false
+              }
+            ]
+          },
+          {
+            "m_def": "nomad.metainfo.metainfo.Section",
+            "m_parent_index": 78,
             "m_parent_sub_section": "section_definitions",
             "name": "EELSInstrument",
             "description": "\n        Base class for an EELS instrument.\n        ",
@@ -39220,7 +39342,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 78,
+            "m_parent_index": 79,
             "m_parent_sub_section": "section_definitions",
             "name": "EELSMethodology",
             "description": "\n        Base class for the EELS methodology.\n        ",
@@ -39297,7 +39419,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 79,
+            "m_parent_index": 80,
             "m_parent_sub_section": "section_definitions",
             "name": "SpectraProvenance",
             "description": "\n        Contains provenance information (mainly the methodology section) for spectra properties\n        derived from an experiment or a calculation.\n        ",
@@ -39310,7 +39432,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eels",
-                "sub_section": "/packages/12/section_definitions/78"
+                "sub_section": "/packages/12/section_definitions/79"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",
@@ -39324,7 +39446,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 80,
+            "m_parent_index": 81,
             "m_parent_sub_section": "section_definitions",
             "name": "Spectra",
             "description": "\n        Base class for Spectra calculation information as obtained from an experiment or a computation.\n        ",
@@ -39433,13 +39555,13 @@ window.nomadArtifacts = {
                 "m_parent_index": 0,
                 "m_parent_sub_section": "sub_sections",
                 "name": "provenance",
-                "sub_section": "/packages/12/section_definitions/79"
+                "sub_section": "/packages/12/section_definitions/80"
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 81,
+            "m_parent_index": 82,
             "m_parent_sub_section": "section_definitions",
             "name": "SpectroscopicProperties",
             "description": "\n        Spectroscopic properties.\n        ",
@@ -39454,14 +39576,14 @@ window.nomadArtifacts = {
                   ]
                 },
                 "name": "spectra",
-                "sub_section": "/packages/12/section_definitions/80",
+                "sub_section": "/packages/12/section_definitions/81",
                 "repeats": true
               }
             ]
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 82,
+            "m_parent_index": 83,
             "m_parent_sub_section": "section_definitions",
             "name": "Properties",
             "description": "\n        Contains the physical properties that have been calculated or used in\n        this entry.\n        ",
@@ -39566,7 +39688,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 7,
                 "m_parent_sub_section": "sub_sections",
                 "name": "catalytic",
-                "sub_section": "/packages/12/section_definitions/76",
+                "sub_section": "/packages/12/section_definitions/77",
                 "repeats": false
               },
               {
@@ -39590,7 +39712,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 10,
                 "m_parent_sub_section": "sub_sections",
                 "name": "spectroscopic",
-                "sub_section": "/packages/12/section_definitions/81",
+                "sub_section": "/packages/12/section_definitions/82",
                 "repeats": false
               },
               {
@@ -39605,7 +39727,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 83,
+            "m_parent_index": 84,
             "m_parent_sub_section": "section_definitions",
             "name": "ELN",
             "quantities": [
@@ -39747,7 +39869,7 @@ window.nomadArtifacts = {
           },
           {
             "m_def": "nomad.metainfo.metainfo.Section",
-            "m_parent_index": 84,
+            "m_parent_index": 85,
             "m_parent_sub_section": "section_definitions",
             "name": "Results",
             "description": "\n        Contains a summary of the entry contents.\n        ",
@@ -39773,7 +39895,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 2,
                 "m_parent_sub_section": "sub_sections",
                 "name": "properties",
-                "sub_section": "/packages/12/section_definitions/82",
+                "sub_section": "/packages/12/section_definitions/83",
                 "repeats": false
               },
               {
@@ -39781,7 +39903,7 @@ window.nomadArtifacts = {
                 "m_parent_index": 3,
                 "m_parent_sub_section": "sub_sections",
                 "name": "eln",
-                "sub_section": "/packages/12/section_definitions/83",
+                "sub_section": "/packages/12/section_definitions/84",
                 "repeats": false
               }
             ]
@@ -45779,7 +45901,7 @@ window.nomadArtifacts = {
                 "categories": [
                   "/packages/27/category_definitions/0"
                 ],
-                "sub_section": "/packages/12/section_definitions/84"
+                "sub_section": "/packages/12/section_definitions/85"
               },
               {
                 "m_def": "nomad.metainfo.metainfo.SubSection",

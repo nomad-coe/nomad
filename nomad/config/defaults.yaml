@@ -1263,15 +1263,15 @@ ui:
           selected:
           - entry_name
           - results.properties.catalytic.reaction.name
-          - results.properties.catalytic.catalyst_synthesis.catalyst_type
-          - results.properties.catalytic.catalyst_synthesis.preparation_method
-          - results.properties.catalytic.catalyst_characterization.surface_area
+          - results.properties.catalytic.catalyst.catalyst_type
+          - results.properties.catalytic.catalyst.preparation_method
+          - results.properties.catalytic.catalyst.surface_area
           options:
             results.material.elements: {}
-            results.properties.catalytic.catalyst_synthesis.catalyst_type: {}
-            results.properties.catalytic.catalyst_synthesis.catalyst_name: {}
-            results.properties.catalytic.catalyst_synthesis.preparation_method: {label: Preparation}
-            results.properties.catalytic.catalyst_characterization.surface_area:
+            results.properties.catalytic.catalyst.catalyst_type: {}
+            results.properties.catalytic.catalyst.catalyst_name: {}
+            results.properties.catalytic.catalyst.preparation_method: {label: Preparation}
+            results.properties.catalytic.catalyst.surface_area:
               format:
                 decimals: 2
                 mode: standard
@@ -1372,7 +1372,7 @@ ui:
               sm: {h: 3, minH: 3, minW: 3, w: 6, x: 0, y: 12}
               xl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 6}
               xxl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 6}
-            quantity: results.properties.catalytic.catalyst_synthesis.preparation_method
+            quantity: results.properties.catalytic.catalyst.preparation_method
             scale: linear
             showinput: true
             type: terms
@@ -1382,7 +1382,7 @@ ui:
               sm: {h: 3, minH: 3, minW: 3, w: 6, x: 6, y: 12}
               xl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 11}
               xxl: {h: 5, minH: 3, minW: 3, w: 8, x: 16, y: 11}
-            quantity: results.properties.catalytic.catalyst_synthesis.catalyst_type
+            quantity: results.properties.catalytic.catalyst.catalyst_type
             scale: linear
             showinput: true
             type: terms
@@ -1395,7 +1395,7 @@ ui:
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 20}
             nbins: 30
             x:
-              quantity: results.properties.catalytic.reaction.weight_hourly_space_velocity
+              quantity: results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity
               unit: 'ml/(g*s)'
             title: 'Reaction Weight Hourly Space Velocity'
             scale: linear
@@ -1416,7 +1416,7 @@ ui:
               quantity: results.properties.catalytic.reaction.reactants[*].gas_concentration_in
               title: 'gas concentration (%)'
             y:
-              quantity: results.properties.catalytic.reaction.temperature
+              quantity: results.properties.catalytic.reaction.reaction_conditions.temperature
             title: 'Reactant feed concentration vs. Temperature'
             type: scatterplot
           - autorange: false
@@ -1428,7 +1428,7 @@ ui:
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 12, y: 16}
             nbins: 30
             x:
-              quantity: results.properties.catalytic.reaction.pressure
+              quantity: results.properties.catalytic.reaction.reaction_conditions.pressure
               unit: 'bar'
             title: 'Reaction Pressure'
             scale: linear
@@ -1448,7 +1448,7 @@ ui:
             title: 'Temperature vs. Conversion'
             type: scatterplot
             x:
-              quantity: results.properties.catalytic.reaction.temperature
+              quantity: results.properties.catalytic.reaction.reaction_conditions.temperature
             y:
               quantity: results.properties.catalytic.reaction.reactants[*].conversion
               title: 'Conversion (%)'
@@ -1466,7 +1466,7 @@ ui:
             title: 'Temperature vs. Selectivity'
             type: scatterplot
             x:
-              quantity: results.properties.catalytic.reaction.temperature
+              quantity: results.properties.catalytic.reaction.reaction_conditions.temperature
             y:
               quantity: results.properties.catalytic.reaction.products[*].selectivity
               title: 'Selectivity (%)'
@@ -1497,7 +1497,7 @@ ui:
               xxl: {h: 9, minH: 3, minW: 3, w: 12, x: 12, y: 33}
             markers:
               color:
-                quantity: results.properties.catalytic.catalyst_synthesis.preparation_method
+                quantity: results.properties.catalytic.catalyst.preparation_method
             size: 1000
             type: scatterplot
             x:
@@ -1515,7 +1515,7 @@ ui:
               xxl: {h: 4, minH: 3, minW: 8, w: 12, x: 0, y: 42}
             nbins: 30
             x:
-              quantity: results.properties.catalytic.catalyst_characterization.surface_area
+              quantity: results.properties.catalytic.catalyst.surface_area
               unit: 'm^2/g'
             title: 'Catalyst Surface Area'
             scale: 1/4
@@ -1527,7 +1527,7 @@ ui:
               sm: {h: 4, minH: 4, minW: 3, w: 8, x: 8, y: 31}
               xl: {h: 4, minH: 3, minW: 3, w: 12, x: 12, y: 42}
               xxl: {h: 4, minH: 3, minW: 3, w: 12, x: 12, y: 42}
-            quantity: results.properties.catalytic.catalyst_characterization.method
+            quantity: results.properties.catalytic.catalyst.characterization_methods
             scale: linear
             showinput: true
             type: terms
