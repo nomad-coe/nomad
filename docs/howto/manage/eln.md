@@ -138,3 +138,35 @@ Also, there are various (sub)sections which are either filled depending on wheth
 contains information on them.
 
 If a section contains an image (or attachment) it is appended to the same section under `file` Quantity.
+
+### Openbis integration
+
+Openbis provides API endpoints to interact with your ELN data. NOMAD makes API calls to retrieve, parse, and map the
+data from your Openbis instance/database to NOMAD's schema. The necessary information is listed in the table below:
+
+- **project_url**: The URL address to the Openbis project. It should follow this pattern: `https://openbis.example.com`.
+  This is used to set up the server and initialize the NOMAD schema.
+- **username**: The username (user credential) to authenticate and log in the user. **Important Note**: this information
+  **is discarded** once the authentication process is finished.
+- **password**: The password (user credential) to authenticate and log in the user. **Important Note**: this information
+  **is discarded** once the authentication process is finished.
+
+#### How to Import Openbis Data into NOMAD
+
+To get your data transferred to NOMAD, follow these steps:
+
+1. Go to NOMAD's upload page and create a new upload.
+2. Click on the `CREATE ENTRY` button.
+3. Select a name for your entry and pick `Openbis Project Import` from the `Built-in schema` dropdown menu.
+4. Click on `CREATE`. This creates an entry where you can insert your user information.
+5. Fill in the `project url`, `username`, and `password` fields.
+6. Once completed, click on the save icon in the top-right corner of the screen. This triggers NOMAD's parser to
+   populate the schema of the current ELN. Now, the metadata and all files of your Openbis project should be populated
+   in this entry.
+
+The normalizer will search for all entries in your Openbis project and attempt to import them one by one.
+
+### Under Development
+
+The integration of third-party ELNs suite is planned to be moved to a new plug-in mechanism to allow for a smoother
+interface for interacting with other ELN providers.
