@@ -3053,6 +3053,13 @@ window.nomadEnv = {
           "description": "\n        Normalizer that automatically extracts properties from porous\n        materials.\n    ",
           "plugin_package": "nomad_porous_materials"
         },
+        "nomad_simulations.schema_packages:nomad_simulations_plugin": {
+          "id": "nomad_simulations.schema_packages:nomad_simulations_plugin",
+          "entry_point_type": "schema_package",
+          "name": "NOMADSimulations",
+          "description": "A NOMAD plugin for FAIR schemas for simulation data.",
+          "plugin_package": "nomad_simulations"
+        },
         "normalizers/simulation/band_structure": {
           "plugin_type": "normalizer",
           "id": "normalizers/simulation/band_structure",
@@ -4223,6 +4230,17 @@ window.nomadEnv = {
         "name": "nomad_porous_materials",
         "repository": "https://github.com/lauri-codes/nomad-porous-materials",
         "version": "0.1.0"
+      },
+      "nomad_simulations": {
+        "description": "A NOMAD plugin for FAIR schemas for simulation data.",
+        "documentation": "https://nomad-coe.github.io/nomad-simulations/",
+        "entry_points": [
+          "nomad_simulations.schema_packages:nomad_simulations_plugin"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-simulations",
+        "name": "nomad_simulations",
+        "repository": null,
+        "version": "0.0.1"
       },
       "perovskite_solar_cell_database": {
         "description": "Perovskite solar cell data schema plugin for NOMAD.",

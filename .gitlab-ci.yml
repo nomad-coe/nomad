@@ -175,6 +175,8 @@ check gui artifacts:
   before_script:
     - cd /app
   script:
+    # Install default plugins. TODO: This can be removed once we have a proper
+    - scripts/install_default_plugins.sh
     - scripts/check_gui_artifacts.sh
   after_script:
     - >
