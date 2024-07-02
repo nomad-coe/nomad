@@ -108,7 +108,6 @@ export const keycloakRealm = window.nomadEnv.keycloakRealm
 export const keycloakClientId = window.nomadEnv.keycloakClientId
 export const debug = window.nomadEnv.debug || false
 export const encyclopediaBase = window.nomadEnv.encyclopediaBase
-export const aitoolkitEnabled = window.nomadEnv.aitoolkitEnabled || false
 export const oasis = window.nomadEnv.oasis || false
 export const globalLoginRequired = window.nomadEnv.globalLoginRequired || false
 export const appTokenMaxExpiresIn = window.nomadEnv.appTokenMaxExpiresIn || "2023-10-25"

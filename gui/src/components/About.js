@@ -20,7 +20,7 @@ import { ReactComponent as AboutSvg } from '../images/about.svg'
 import PropTypes from 'prop-types'
 import Markdown from './Markdown'
 import { isNil } from 'lodash'
-import { appBase, debug, aitoolkitEnabled, encyclopediaBase, parserMetadata, toolkitMetadata as tutorials } from '../config'
+import { appBase, debug, encyclopediaBase, parserMetadata, toolkitMetadata as tutorials } from '../config'
 import {
   Button,
   Card,
@@ -347,13 +347,6 @@ export default function About() {
         window.location.href = encyclopediaBase
       })
     }
-    makeClickable('toolkit', () => {
-      if (aitoolkitEnabled) {
-        history.push('/aitoolkit/main')
-      } else {
-        window.location.href = 'https://nomad-lab.eu/tools/AItutorials'
-      }
-    })
     makeClickable('search', () => {
       history.push('/search')
     })

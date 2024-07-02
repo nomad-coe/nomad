@@ -6,7 +6,6 @@ window.nomadEnv = {
   "keycloakClientId": "nomad_public",
   "debug": false,
   "encyclopediaBase": "https://nomad-lab.eu/prod/rae/encyclopedia/#",
-  "aitoolkitEnabled": true,
   "oasis": false,
   "version": {},
   "globalLoginRequired": false,
@@ -2620,6 +2619,282 @@ window.nomadEnv = {
         "parsers/vasp"
       ],
       "options": {
+        "nomad_aitoolkit.apps:aitoolkit": {
+          "id": "nomad_aitoolkit.apps:aitoolkit",
+          "entry_point_type": "app",
+          "name": "AI Toolkit notebooks",
+          "description": "App defined using the new plugin mechanism.",
+          "plugin_package": "nomad_aitoolkit",
+          "app": {
+            "label": "AI Toolkit Notebooks",
+            "path": "ai-toolkit",
+            "resource": "entries",
+            "category": "Tools",
+            "description": "Search AI toolkit notebooks",
+            "pagination": {
+              "order_by": "upload_create_time",
+              "order": "desc",
+              "page_size": 20
+            },
+            "columns": {
+              "include": [
+                "entry_id",
+                "entry_type",
+                "authors",
+                "data.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                "data.platform#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                "data.date#nomad_aitoolkit.schema.package.AIToolkitNotebook"
+              ],
+              "options": {
+                "entry_id": {
+                  "align": "left"
+                },
+                "entry_type": {
+                  "label": "Entry type",
+                  "align": "left"
+                },
+                "authors": {
+                  "label": "Authors",
+                  "align": "left"
+                },
+                "data.name#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                  "label": "Name",
+                  "align": "left"
+                },
+                "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                  "label": "Category",
+                  "align": "left"
+                },
+                "data.platform#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                  "label": "Platform",
+                  "align": "left"
+                },
+                "data.date#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                  "label": "Last update",
+                  "align": "left",
+                  "format": {
+                    "decimals": 3,
+                    "mode": "date"
+                  }
+                }
+              },
+              "selected": [
+                "data.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                "authors",
+                "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                "data.date#nomad_aitoolkit.schema.package.AIToolkitNotebook"
+              ]
+            },
+            "rows": {
+              "actions": {
+                "options": {
+                  "launch": {
+                    "description": "Launch Jupyter notebook",
+                    "type": "url",
+                    "path": "data.references[?kind=='hub'].uri"
+                  }
+                },
+                "enabled": true
+              },
+              "details": {
+                "enabled": true
+              },
+              "selection": {
+                "enabled": true
+              }
+            },
+            "filter_menus": {
+              "options": {
+                "custom_quantities": {
+                  "label": "Notebooks",
+                  "level": 0,
+                  "size": "l"
+                },
+                "author": {
+                  "label": "Author",
+                  "level": 0,
+                  "size": "m"
+                },
+                "metadata": {
+                  "label": "Visibility / IDs",
+                  "level": 0,
+                  "size": "s"
+                }
+              }
+            },
+            "filters": {
+              "include": [
+                "*#nomad_aitoolkit.schema.package.AIToolkitNotebook"
+              ],
+              "exclude": [
+                "*#nomad.datamodel.metainfo.eln.BasicEln"
+              ]
+            },
+            "dashboard": {
+              "widgets": [
+                {
+                  "type": "terms",
+                  "layout": {
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 0,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                  "scale": "linear",
+                  "showinput": true
+                },
+                {
+                  "title": "Methods",
+                  "type": "terms",
+                  "layout": {
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 6,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 6,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 6,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 6,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 6,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "data.methods.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                  "scale": "linear",
+                  "showinput": true
+                },
+                {
+                  "title": "Systems",
+                  "type": "terms",
+                  "layout": {
+                    "xxl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "xl": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "lg": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "md": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    },
+                    "sm": {
+                      "h": 6,
+                      "w": 6,
+                      "x": 12,
+                      "y": 0,
+                      "minH": 3,
+                      "minW": 3
+                    }
+                  },
+                  "quantity": "data.systems.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                  "scale": "linear",
+                  "showinput": true
+                }
+              ]
+            },
+            "filters_locked": {
+              "section_defs.definition_qualified_name": [
+                "nomad_aitoolkit.schema.package.AIToolkitNotebook"
+              ]
+            }
+          }
+        },
+        "nomad_aitoolkit.schema:package": {
+          "id": "nomad_aitoolkit.schema:package",
+          "entry_point_type": "schema_package",
+          "name": "AIToolkit",
+          "description": "Describes the basic schemas for AI Toolkit notebooks.",
+          "plugin_package": "nomad_aitoolkit"
+        },
         "nomad_porous_materials.apps:mofapp": {
           "id": "nomad_porous_materials.apps:mofapp",
           "entry_point_type": "app",
@@ -4219,6 +4494,18 @@ window.nomadEnv = {
       }
     },
     "plugin_packages": {
+      "nomad_aitoolkit": {
+        "description": "Schema and app for AI Toolkit notebooks.",
+        "documentation": null,
+        "entry_points": [
+          "nomad_aitoolkit.apps:aitoolkit",
+          "nomad_aitoolkit.schema:package"
+        ],
+        "homepage": null,
+        "name": "nomad_aitoolkit",
+        "repository": "https://github.com/FAIRmat-NFDI/nomad-aitoolkit",
+        "version": "0.1.0"
+      },
       "nomad_porous_materials": {
         "description": "NOMAD plugin for porous materials",
         "documentation": null,
