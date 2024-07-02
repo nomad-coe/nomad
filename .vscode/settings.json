@@ -106,6 +106,8 @@
   "python.testing.pytestPath": "pytest",
   "python.testing.pytestArgs": ["tests"],
   "python.testing.unittestEnabled": false,
-  "editor.defaultFormatter": "charliermarsh.ruff",
-  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
+  }
 }

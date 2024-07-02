@@ -86,7 +86,6 @@ def get_gui_artifacts_js() -> str:
         'searchQuantities': _generate_search_quantities(),
         'metainfo': _generate_metainfo(all_metainfo_packages),
         'parserMetadata': code_metadata,
-        'toolkitMetadata': _generate_toolkit_metadata(),
         'exampleUploads': _generate_example_upload_metadata(),
         'northTools': {k: v.dict() for k, v in config.north.tools.filtered_items()},
         'unitList': unit_list_json,
@@ -242,7 +241,6 @@ def get_gui_config() -> str:
         'encyclopediaBase': config.services.encyclopedia_base
         if config.services.encyclopedia_base
         else None,
-        'aitoolkitEnabled': config.services.aitoolkit_enabled,
         'oasis': config.oasis.is_oasis,
         'version': config.meta.beta if config.meta.beta else {},
         'globalLoginRequired': config.oasis.allowed_users is not None,
@@ -291,44 +289,6 @@ def _generate_example_upload_metadata():
 )
 def example_upload_metadata():
     print(json.dumps(_generate_example_upload_metadata(), indent=2))
-
-
-def _generate_toolkit_metadata() -> dict:
-    if not config.services.aitoolkit_enabled:
-        return {}
-
-    import requests
-    import re
-
-    modules = requests.get(
-        'https://gitlab.mpcdf.mpg.de/api/v4/projects/3161/repository/files/.gitmodules/raw?ref=master'
-    ).text
-
-    tutorials = []
-    lines = modules.split('\n')
-    for line in lines:
-        match = re.match(r'\s*url = (.*)$', line)
-        if match:
-            url = match.group(1).replace('.git', '') + '/-/raw/master/metainfo.json'
-            response = requests.get(url)
-            if response.status_code != 200:
-                print('Could not get metadata for %s' % match.group(1), file=sys.stderr)
-                continue
-            try:
-                tutorials.append(response.json())
-            except Exception:
-                print(
-                    'Could not get metadata for %s. Project is probably not public.'
-                    % match.group(1),
-                    file=sys.stderr,
-                )
-
-    return dict(tutorials=tutorials)
-
-
-@dev.command(help='Generate toolkit tutorial metadata from analytics submodules.')
-def toolkit_metadata():
-    print(json.dumps(_generate_toolkit_metadata(), indent=2))
 
 
 @dev.command(

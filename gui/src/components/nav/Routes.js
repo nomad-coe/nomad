@@ -23,9 +23,6 @@ import { CacheRoute, CacheSwitch } from 'react-router-cache-route'
 import { matchPath, useLocation, Redirect, useHistory, Link as RouterLink } from 'react-router-dom'
 import { Button, Link, makeStyles, Tooltip } from '@material-ui/core'
 import About from '../About'
-import TutorialsPage from '../aitoolkit/TutorialsPage'
-import ReproducePage from '../aitoolkit/ReproducePage'
-import CoursePage from '../aitoolkit/CoursePage'
 import { MetainfoPage, help as metainfoHelp } from '../archive/MetainfoBrowser'
 import EntryPage, { help as entryHelp } from '../entry/EntryPage'
 import UploadsPage, { help as uploadsHelp } from '../uploads/UploadsPage'
@@ -285,16 +282,6 @@ export const routes = [
         },
         component: MetainfoPage
       },
-      {
-        path: 'tutorials',
-        title: 'Artificial Intelligence Toolkit',
-        component: TutorialsPage
-      },
-      {
-        path: 'reproduce',
-        title: 'Artificial Intelligence Toolkit',
-        component: ReproducePage
-      },
       ...(ui?.north?.enabled ? [
         {
           path: 'north',
@@ -307,12 +294,7 @@ export const routes = [
           },
           component: NorthPage
         }
-      ] : []),
-      {
-        path: 'course',
-        title: 'Artificial Intelligence Toolkit',
-        component: CoursePage
-      }
+      ] : [])
     ]
   },
   {

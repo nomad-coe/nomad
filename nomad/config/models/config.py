@@ -132,13 +132,6 @@ class Services(ConfigBaseModel):
             This enables links to the given *encyclopedia* installation in the UI.
         """,
     )
-    aitoolkit_enabled = Field(
-        False,
-        description="""
-        If true, the UI will show a menu with links to the AI Toolkit notebooks on
-        `nomad-lab.eu`.
-    """,
-    )
     optimade_enabled = Field(
         True, description="""If true, the app will serve the optimade API."""
     )

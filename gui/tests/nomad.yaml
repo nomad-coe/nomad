@@ -16,5 +16,4 @@ plugins:
       - schema/simulation/run
       - schema/simulation/workflow
       - parsers/vasp
-services:
-  aitoolkit_enabled: true
+

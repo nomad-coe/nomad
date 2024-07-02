@@ -130,7 +130,7 @@ RUN pip install ".[parsing,infrastructure,dev]"
 
 # Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
-RUN ./scripts/install_default_plugins.sh \
+RUN ./scripts/install_default_plugins.sh
 
 RUN ./scripts/generate_docs_artifacts.sh \
  && mkdocs build \
@@ -179,7 +179,7 @@ RUN pip install nomad-lab-*.tar.gz
 # Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
 COPY scripts/install_default_plugins.sh ./scripts/install_default_plugins.sh
-RUN ./scripts/install_default_plugins.sh \
+RUN ./scripts/install_default_plugins.sh
 
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
