@@ -17,7 +17,6 @@
 #
 
 import pytest
-import os
 
 from nomad.config import config
 
@@ -27,7 +26,6 @@ def test_alive(client):
     assert rv.status_code == 200
 
 
-@pytest.mark.skipif(os.getenv('RUN_DOCS_TEST') != '1', reason='Only run in build stage')
 def test_docs(client):
     rv = client.get('/docs/index.html')
     assert rv.status_code == 200
