@@ -28,6 +28,47 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONPATH "${PYTHONPATH}:/backend/"
 ENV UV_SYSTEM_PYTHON=1
 
+FROM base_python AS base_final
+
+RUN apt-get update \
+ && apt-get install --yes --quiet --no-install-recommends \
+       libgomp1 \
+       libmagic1 \
+       curl \
+       zip \
+       unzip \
+ && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
+ && apt-get install --yes --quiet --no-install-recommends \
+       nodejs \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g configurable-http-proxy \
+ && npm uninstall -g npm
+
+FROM base_python AS base_builder
+
+RUN apt-get update \
+ && apt-get install --yes --quiet --no-install-recommends \
+      libgomp1 \
+      libmagic1 \
+      file \
+      gcc \
+      build-essential \
+      curl \
+      zip \
+      unzip \
+      git \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV PIP_NO_CACHE_DIR=1
+
+# Python environment
+COPY requirements.txt .
+
+RUN pip install --progress-bar off --prefer-binary -r requirements.txt
+
+
 FROM base_python AS dev_python
 
 # Prevents Python from writing pyc files.
@@ -146,29 +187,7 @@ RUN python -m build --sdist
 # ================================================================================
 # We use slim for the final image
 # ================================================================================
-FROM base_python AS builder
-
-RUN apt-get update \
- && apt-get install --yes --quiet --no-install-recommends \
-      libgomp1 \
-      libmagic1 \
-      file \
-      gcc \
-      build-essential \
-      curl \
-      zip \
-      unzip \
-      git \
- && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-ENV PIP_NO_CACHE_DIR=1
-
-# Python environment
-COPY requirements.txt .
-
-RUN pip install --progress-bar off --prefer-binary -r requirements.txt
+FROM base_builder as builder
 
 # install
 COPY --from=dev_package /app/dist/nomad-lab-*.tar.gz .
@@ -189,21 +208,7 @@ RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' 
 # We use slim for the final image
 # ================================================================================
 
-FROM base_python AS final
-
-RUN apt-get update \
- && apt-get install --yes --quiet --no-install-recommends \
-       libgomp1 \
-       libmagic1 \
-       curl \
-       zip \
-       unzip \
- && curl -fsSL https://deb.nodesource.com/setup_16.x | bash - \
- && apt-get install --yes --quiet --no-install-recommends \
-       nodejs \
- && rm -rf /var/lib/apt/lists/* \
- && npm install -g configurable-http-proxy \
- && npm uninstall -g npm
+FROM base_final AS final
 
 WORKDIR /app
 
