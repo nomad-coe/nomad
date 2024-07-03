@@ -276,10 +276,9 @@ pyopenssl==24.1.0         # via certipy, -r requirements.txt
 pyparsing==3.1.2          # via matplotlib, rdflib, -r requirements.txt
 pyproject-hooks==1.1.0    # via build
 pyrsistent==0.20.0        # via jsonschema, -r requirements.txt
-pytest==7.4.4             # via pytest-asyncio, pytest-cov, pytest-split, pytest-timeout, pytest-xdist, nomad-lab (pyproject.toml)
+pytest==7.4.4             # via pytest-asyncio, pytest-cov, pytest-timeout, pytest-xdist, nomad-lab (pyproject.toml)
 pytest-asyncio==0.23.7    # via nomad-lab (pyproject.toml)
 pytest-cov==5.0.0         # via nomad-lab (pyproject.toml)
-pytest-split==0.8.2       # via nomad-lab (pyproject.toml)
 pytest-timeout==2.3.1     # via nomad-lab (pyproject.toml)
 pytest-xdist==3.6.1       # via nomad-lab (pyproject.toml)
 python-box==6.1.0         # via rosettasciio, -r requirements.txt

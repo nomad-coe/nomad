@@ -14,49 +14,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# syntax=docker/dockerfile:1
+#
 
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Dockerfile reference guide at
-# https://docs.docker.com/engine/reference/builder/
+# This dockerfile describes an image that can be used to run the
+# - nomad processing worker
+# - nomad app (incl serving the gui)
+
+# The dockerfile is multistaged to use a fat, more convinient build image and
+# copy only necessities to a slim final image
+
 
 FROM node:16.15 AS base_node
 FROM python:3.9-slim AS base_python
-# Keeps Python from buffering stdout and stderr to avoid situations where
-# the application crashes without emitting any logs due to buffering.
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONPATH "${PYTHONPATH}:/backend/"
-ENV UV_SYSTEM_PYTHON=1
 
-FROM base_python AS dev_python
-
-# Prevents Python from writing pyc files.
-ENV PYTHONDONTWRITEBYTECODE=1
-
-ENV RUNTIME docker
-
-WORKDIR /app
-
-RUN apt-get update \
- && apt-get install --yes --quiet --no-install-recommends \
-      libgomp1 \
-      libmagic1 \
-      file \
-      gcc \
-      build-essential \
-      curl \
-      zip \
-      unzip \
-      git \
- && rm -rf /var/lib/apt/lists/*
-
-# Install UV
-RUN pip install uv
-
-# Python environment
-COPY requirements-dev.txt .
-
-RUN uv pip install -r requirements-dev.txt
 
 # ================================================================================
 # Built the GUI in the gui build image
@@ -83,13 +53,41 @@ COPY tests/states/archives/dft.json  /app/tests/states/archives/dft.json
 COPY gui .
 RUN echo "REACT_APP_BACKEND_URL=/fairdi/nomad/latest" > .env
 
-FROM dev_node as build_node
-
 RUN yarn run build
 
-FROM dev_python as package_python
+
+# ================================================================================
+# Build all python stuff in a python build image
+# ================================================================================
+
+FROM base_python AS dev_python
+
+# Linux applications and libraries
+RUN apt-get update \
+ && apt-get install --yes --quiet --no-install-recommends \
+      libgomp1 \
+      libmagic-dev \
+      curl \
+      gcc \
+      build-essential \
+      make \
+      cmake \
+      swig \
+      libnetcdf-dev \
+      zip \
+      vim \
+      git \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+ENV PIP_NO_CACHE_DIR=1
+
+# Python environment
+COPY requirements-dev.txt .
+
+RUN pip install build \
+ && pip install --progress-bar off --prefer-binary -r requirements-dev.txt
 
 COPY dependencies ./dependencies
 COPY docs ./docs
@@ -113,16 +111,6 @@ COPY .coveragerc \
 # Files requiered for artifact generation/testing
 COPY ops/docker-compose ./ops/docker-compose
 
-# Build documentation with static version
-RUN SETUPTOOLS_SCM_PRETEND_VERSION='0.0' uv pip install ".[parsing,infrastructure,dev]"
-
-RUN ./scripts/generate_docs_artifacts.sh \
- && mkdocs build \
- && mkdir -p nomad/app/static/docs \
- && cp -r site/* nomad/app/static/docs
-
-RUN RUN_DOCS_TEST=1 python -m pytest tests/app/test_app.py
-
 COPY gui/tests/nomad.yaml ./gui/tests/nomad.yaml
 COPY gui/tests/env.js ./gui/tests/env.js
 COPY gui/tests/artifacts.js ./gui/tests/artifacts.js
@@ -131,21 +119,35 @@ COPY gui/tests/artifacts.js ./gui/tests/artifacts.js
 RUN ./scripts/generate_example_uploads.sh
 
 # Copy the built gui code
-COPY --from=build_node /app/gui/build nomad/app/static/gui
+COPY --from=dev_node /app/gui/build nomad/app/static/gui
 
 # Set up the version as a build argument (default: '0.0')
 ARG SETUPTOOLS_SCM_PRETEND_VERSION='0.0'
 
-# Re-install project with correct version
-RUN uv pip install ".[parsing,infrastructure,dev]"
+# Build documentation
+
+RUN pip install ".[parsing,infrastructure,dev]"
+
+# Install default plugins. TODO: This can be removed once we have a proper
+# distribution project.
+RUN ./scripts/install_default_plugins.sh
+
+RUN ./scripts/generate_docs_artifacts.sh \
+ && mkdocs build \
+ && mkdir -p nomad/app/static/docs \
+ && cp -r site/* nomad/app/static/docs
 
 # Build the python source distribution package
 RUN python -m build --sdist
+
+# (Re)install the full packages docs included
+RUN pip install dist/nomad-lab-*.tar.gz
 
 
 # ================================================================================
 # We use slim for the final image
 # ================================================================================
+
 FROM base_python AS builder
 
 RUN apt-get update \
@@ -171,13 +173,13 @@ COPY requirements.txt .
 RUN pip install --progress-bar off --prefer-binary -r requirements.txt
 
 # install
-COPY --from=package_python /app/dist/nomad-lab-*.tar.gz .
+COPY --from=dev_python /app/dist/nomad-lab-*.tar.gz .
 RUN pip install nomad-lab-*.tar.gz
 
 # Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
-COPY default_plugins.txt .
-RUN pip install -r default_plugins.txt
+COPY scripts/install_default_plugins.sh ./scripts/install_default_plugins.sh
+RUN ./scripts/install_default_plugins.sh
 
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
@@ -207,19 +209,18 @@ RUN apt-get update \
 
 WORKDIR /app
 
-RUN useradd -u 1000 nomad
-
 # transfer installed packages from the build stage
 COPY --chown=nomad:1000 scripts/run.sh .
 COPY --chown=nomad:1000 scripts/run-worker.sh .
 COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
 
-COPY --chown=nomad:1000 examples/data/uploads /app/examples/data/uploads
+COPY --chown=nomad:1000 --from=dev_python /app/examples/data/uploads /app/examples/data/uploads
 COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
 COPY --chown=nomad:1000 --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
 
-RUN mkdir -p /app/.volumes/fs \
+RUN useradd -ms /bin/bash nomad \
+ && mkdir -p /app/.volumes/fs \
  && chown -R nomad:1000 /app \
  && chown -R nomad:1000 /usr/local/lib/python3.9/site-packages/nomad
 

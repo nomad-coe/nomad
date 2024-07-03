@@ -57,52 +57,35 @@ update changelog:
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
 
-.build_image:
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
+build:
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
+    DOCKER_BUILDKIT: 1
   before_script:
-    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"},\"$CI_DEPENDENCY_PROXY_SERVER\":{\"auth\":\"$(printf "%s:%s" ${CI_DEPENDENCY_PROXY_USER} "${CI_DEPENDENCY_PROXY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
-  script:
-    - /kaniko/executor
-      --context "."
-      --dockerfile "Dockerfile"
-      --target "${TARGET}"
-      --destination "${DESTINATION}"
-      --cache-repo "${CI_REGISTRY_IMAGE}/cache"
-      --cache=true
-      --skip-unused-stages
-      --build-arg SETUPTOOLS_SCM_PRETEND_VERSION
-
-build gui:
-  stage: build
-  extends: .build_image
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: gui/*
-    TARGET: dev_node
-    DESTINATION: "${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}"
-
-# kaniko image doesn't contain pip, so we have to save the scm_pretend_version in an earlier job and reuse it later
-update_scm_pretend_version:
-  stage: build
-  script:
+    - docker --version
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
     - pip install --upgrade setuptools_scm
-    - echo "SETUPTOOLS_SCM_PRETEND_VERSION=$(python -m setuptools_scm)" >> build.env
+    - export SETUPTOOLS_SCM_PRETEND_VERSION=$(python -m setuptools_scm)
+    - echo "SETUPTOOLS_SCM_PRETEND_VERSION=$SETUPTOOLS_SCM_PRETEND_VERSION"
+  script:
+    - docker build --build-arg SETUPTOOLS_SCM_PRETEND_VERSION -t ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} .
+    - docker build --build-arg SETUPTOOLS_SCM_PRETEND_VERSION --target dev_node -t ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}  .
+    - docker build --build-arg SETUPTOOLS_SCM_PRETEND_VERSION --target dev_python -t ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}  .
+    - docker push ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker push ${CI_REGISTRY_IMAGE}/dev_node:${DOCKER_TAG}
+    - docker push ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  after_script:
+    - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG} bash -c 'cat dist/`ls dist`' > nomad-lab.tar.gz
+    - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG} cat tests/data/parsers/vasp/vasp.xml > vasp.xml
   artifacts:
-    reports:
-      dotenv: build.env
-
-build python:
-  stage: build
-  extends: .build_image
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: gui/*
-    TARGET: dev_python
-    DESTINATION: "${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}"
+    paths:
+      - nomad-lab.tar.gz
+      - vasp.xml
+    expire_in: 1 hour
+  rules:
+    - when: on_success
 
 build helm chart:
   stage: build
@@ -114,28 +97,13 @@ build helm chart:
     - when: manual
       allow_failure: true
 
-check helm chart:
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-  script:
-    - uv pip install -e "."
-    - scripts/check_helm_chart.sh
-  after_script:
-    - >
-      if [ $CI_JOB_STATUS == 'failed' ]; then
-        echo 'Make sure that the helm chart values.yaml has been updated and committed by running'
-        echo './scripts/update_hem_chart.sh'
-      fi
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: on_success
-
 python linting:
   stage: test
   image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+  before_script:
+    - cd /app
   script:
     - ruff check nomad tests
     - ruff format nomad tests --check
@@ -150,109 +118,8 @@ python linting:
     when: always
     reports:
       codequality: gl-code-quality-report.json
+
     expire_in: never
-
-check python dependencies:
-  stage: test
-  image: python:3.9
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: dependencies/*
-  before_script:
-    - pip install --upgrade uv
-  script:
-    - scripts/check_python_dependencies.sh
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: manual
-      allow_failure: true
-
-.base_test:
-  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-  stage: test
-  services:
-    - name: rabbitmq:3.11.5
-      alias: rabbitmq
-    - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
-      alias: elastic
-      command:
-        - bash
-        - "-c"
-        - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
-    - name: mongo:5.0.6
-      alias: mongo
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: dependencies/*
-    RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
-    RABBITMQ_DEFAULT_USER: rabbitmq
-    RABBITMQ_DEFAULT_PASS: rabbitmq
-    RABBITMQ_DEFAULT_VHOST: /
-    NOMAD_RABBITMQ_HOST: rabbitmq
-    NOMAD_ELASTIC_HOST: elastic
-    NOMAD_MONGO_HOST: mongo
-    NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
-    NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
-  before_script:
-    - scripts/check_elastic.sh
-    - uv pip install -e ".[dev]"
-
-generate pytest timings:
-  extends: .base_test
-  script:
-    - python -m pytest --store-durations
-  artifacts:
-    expire_in: 1 days
-    when: on_success
-    paths:
-      - .test_durations
-
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: manual
-      allow_failure: true
-
-python tests:
-  parallel: 3
-  extends: .base_test
-  script:
-    - python -m pytest --cov=nomad --cov-report term --cov-config=.coveragerc -sv tests --splits $CI_NODE_TOTAL --group=$CI_NODE_INDEX
-  after_script:
-    - cp .coverage .coverage_${CI_NODE_INDEX}
-  artifacts:
-    expire_in: 1 days
-    when: on_success
-    paths:
-      - .coverage_${CI_NODE_INDEX}
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: on_success
-
-python coverage report:
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-  needs: ["python tests"]
-  script:
-    - coverage combine .coverage_*
-    - coverage report
-    - coverage xml
-  coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
-  artifacts:
-    when: always
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: on_success
 
 gui linting:
   stage: test
@@ -267,6 +134,117 @@ gui linting:
     - if: $CI_COMMIT_TAG
       when: never
     - when: on_success
+
+check python dependencies:
+  stage: test
+  image: python:3.9
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
+  before_script:
+    - pip install --upgrade pip-tools
+  script:
+    - scripts/check_python_dependencies.sh
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: manual
+      allow_failure: true
+
+check helm chart:
+  stage: test
+  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  script:
+    - scripts/check_helm_chart.sh
+  after_script:
+    - >
+      if [ $CI_JOB_STATUS == 'failed' ]; then
+        echo 'Make sure that the helm chart values.yaml has been updated and committed by running'
+        echo './scripts/update_hem_chart.sh'
+      fi
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+check gui artifacts:
+  stage: test
+  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - cd /app
+  script:
+    # Install default plugins. TODO: This can be removed once we have a proper
+    - scripts/install_default_plugins.sh
+    - scripts/check_gui_artifacts.sh
+  after_script:
+    - >
+      if [ $CI_JOB_STATUS == 'failed' ]; then
+        echo 'Make sure that the right GUI artifacts have been regenerated and committed by running'
+        echo './scripts/generate_gui_artifacts.sh'
+      fi
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+python tests:
+  stage: test
+  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  services:
+    - name: rabbitmq:3.11.5
+      alias: rabbitmq
+    - name: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+      alias: elastic
+      command:
+        - bash
+        - "-c"
+        - ES_JAVA_OPTS="-Xms512m -Xmx512m" docker-entrypoint.sh elasticsearch -Ediscovery.type=single-node -Expack.security.enabled=false
+    - name: mongo:5.0.6
+      alias: mongo
+  variables:
+    GIT_STRATEGY: none
+    RABBITMQ_ERLANG_COOKIE: SWQOKODSQALRPCLNMEQG
+    RABBITMQ_DEFAULT_USER: rabbitmq
+    RABBITMQ_DEFAULT_PASS: rabbitmq
+    RABBITMQ_DEFAULT_VHOST: /
+    NOMAD_RABBITMQ_HOST: rabbitmq
+    NOMAD_ELASTIC_HOST: elastic
+    NOMAD_MONGO_HOST: mongo
+    NOMAD_KEYCLOAK_PASSWORD: ${CI_KEYCLOAK_ADMIN_PASSWORD}
+    NOMAD_NORMALIZE_SPRINGER_DB_PATH: /nomad/fairdi/db/data/springer.msg
+  before_script:
+    - cd /app
+    - scripts/check_elastic.sh
+  script:
+    - python -m pytest --cov=nomad --cov-report term --cov-report xml:coverage.xml --cov-config=.coveragerc -sv tests
+  after_script:
+    - cd /app
+    - cp coverage.xml $CI_PROJECT_DIR
+  coverage: /(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+
+install tests:
+  stage: test
+  image: python:3.9
+  script:
+    - pip install --upgrade pip
+    - pip install nomad-lab.tar.gz
+    - python -c 'import nomad.cli'
+    - python -c 'from nomad.client import ArchiveQuery'
+    - python -m nomad.cli parse vasp.xml
+    - pip install git+https://github.com/nomad-coe/nomad-parser-example.git
+    - python -m exampleparser tests/data/examples/example.out
 
 gui tests:
   stage: test
@@ -300,215 +278,141 @@ gui tests:
       when: never
     - when: on_success
 
-check gui artifacts:
-  stage: test
-  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    GIT_SUBMODULE_PATHS: dependencies/*
-  script:
-    - uv pip install ".[dev,parsing,infrastructure]"
-    - uv pip install -r default_plugins.txt # remove this after moving to distro
-    - scripts/check_gui_artifacts.sh
-  after_script:
-    - >
-      if [ $CI_JOB_STATUS == 'failed' ]; then
-        echo 'Make sure that the right GUI artifacts have been regenerated and committed by running'
-        echo './scripts/generate_gui_artifacts.sh'
-      fi
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: on_success
-
-build python package:
-  stage: test
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
-  extends: .build_image
-  script:
-    - /kaniko/executor
-      --context "."
-      --dockerfile "Dockerfile"
-      --target "package_python"
-      --destination "${CI_REGISTRY_IMAGE}/package_python:${DOCKER_TAG}"
-      --skip-unused-stages
-      --cache-repo "${CI_REGISTRY_IMAGE}/cache"
-      --cache=true
-      --build-arg SETUPTOOLS_SCM_PRETEND_VERSION
-    - mkdir -p $CI_PROJECT_DIR/dist
-    - cp -r /app/dist/* $CI_PROJECT_DIR/dist
-    - cp /app/tests/data/parsers/vasp/vasp.xml $CI_PROJECT_DIR/
-  artifacts:
-    expire_in: 1 days
-    when: on_success
-    paths:
-      - dist/
-      - vasp.xml
-
-install tests:
-  stage: test
-  image: python:3.9
-  needs: ["build python package"]
-  variables:
-    UV_SYSTEM_PYTHON: true
-  before_script:
-    - pip install --upgrade pip
-    - pip install uv
-  script:
-    - ls dist/
-    - pip install dist/nomad-*.tar.gz
-    - python -c 'import nomad.cli'
-    - python -c 'from nomad.client import ArchiveQuery'
-    - python -m nomad.cli parse vasp.xml
-    - uv pip install git+https://github.com/nomad-coe/nomad-parser-example.git@9312f1e
-    - python -m exampleparser tests/data/examples/example.out
-
-.deploy image: &deploy_image
+deploy prod:
   stage: deploy
-  image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair/ci-runner:latest
+  environment:
+    name: staging
+    deployment_tier: production
+    url: https://nomad-lab.eu/prod/v1
   before_script:
     - mkdir ~/.kube/
     - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
   script:
-    - echo ${TARGET_ENV}
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:prod
+    - docker push ${CI_REGISTRY_IMAGE}:prod
     - helm dependency update ops/kubernetes/nomad
-    - helm upgrade nomad-prod-${TARGET_ENV} ops/kubernetes/nomad
+    - helm upgrade nomad-prod ops/kubernetes/nomad
       --install
-      --namespace nomad-prod-${TARGET_ENV}
+      --namespace nomad-prod
       --values ops/kubernetes/values.yaml
-      --values plugins-values.yaml
-      --values ops/kubernetes/nomad-prod-${TARGET_ENV}.yaml
-      --set nomad.image.tag=${TARGET_ENV}
+      --values ops/kubernetes/nomad-prod.yaml
+      --set nomad.image.tag=prod
       --set roll=true
       --timeout=15m
       --wait
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      nomad client -n https://nomad-lab.eu/prod/v1/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
+  rules:
+    - when: manual
+      allow_failure: true
 
-.test_deployment: &test_deployment
+deploy prod staging:
   stage: deploy
-  image:
-    name: ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
-    entrypoint: [""]
+  environment:
+    name: staging
+    deployment_tier: production
+    url: https://nomad-lab.eu/prod/v1/staging
+  before_script:
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
   script:
-    - CLIENT_URL="https://nomad-lab.eu/prod/v1/${TARGET_ENV}/api"
-    - echo ${CLIENT_URL}
-    - nomad client -n $CLIENT_URL -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
-
-deploy test:
-  stage: deploy
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
-    TARGET: final
-    DESTINATION: ${CI_REGISTRY_IMAGE}/test
-    TARGET_ENV: test
-  extends: .build_image
-  before_script:
-    - echo "TARGET_ENV=test" >> build.env
-    - echo "name=test" >> build.env
-    - echo "deployment_tier=production" >> build.env
-    - echo "url=https://nomad-lab.eu/prod/v1/test" >> build.env
-  artifacts:
-    reports:
-      dotenv: build.env
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:staging
+    - docker push ${CI_REGISTRY_IMAGE}:staging
+    - helm dependency update ops/kubernetes/nomad
+    - helm upgrade nomad-prod-staging ops/kubernetes/nomad
+      --install
+      --namespace nomad-prod-staging
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod-staging.yaml
+      --set nomad.image.tag=staging
+      --set roll=true
+      --timeout=15m
+      --wait
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      nomad client -n https://nomad-lab.eu/prod/v1/staging/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
     - when: manual
       allow_failure: true
 
-deploy test image:
+deploy prod develop:
   stage: deploy
-  needs: ["deploy test"]
-  <<: *deploy_image
-
-test test deployment:
-  stage: deploy
-  needs: ["deploy test", "deploy test image"]
-  <<: *test_deployment
-
-deploy staging:
-  stage: deploy
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
-    TARGET: final
-    DESTINATION: ${CI_REGISTRY_IMAGE}/staging
-    TARGET_ENV: staging
-  extends: .build_image
+  environment:
+    name: develop
+    deployment_tier: production
+    url: https://nomad-lab.eu/prod/v1/develop
   before_script:
-    - echo "TARGET_ENV=staging" >> build.env
-    - echo "name=staging" >> build.env
-    - echo "deployment_tier=production" >> build.env
-    - echo "url=https://nomad-lab.eu/prod/v1/staging" >> build.env
-  artifacts:
-    reports:
-      dotenv: build.env
-  rules:
-    - when: manual
-      allow_failure: true
-
-deploy staging image:
-  stage: deploy
-  needs: ["deploy staging"]
-  <<: *deploy_image
-
-test staging deployment:
-  stage: deploy
-  needs: ["deploy staging", "deploy staging image"]
-  <<: *test_deployment
-
-deploy develop:
-  stage: deploy
-  variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
-    TARGET: final
-    DESTINATION: ${CI_REGISTRY_IMAGE}/develop
-    TARGET_ENV: develop
-  extends: .build_image
-  before_script:
-    - echo "TARGET_ENV=develop" >> build.env
-    - echo "name=develop" >> build.env
-    - echo "deployment_tier=production" >> build.env
-    - echo "url=https://nomad-lab.eu/prod/v1/develop" >> build.env
-  artifacts:
-    reports:
-      dotenv: build.env
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+  script:
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:develop
+    - docker push ${CI_REGISTRY_IMAGE}:develop
+    - helm dependency update ops/kubernetes/nomad
+    - helm upgrade nomad-prod-develop ops/kubernetes/nomad
+      --install
+      --namespace nomad-prod-develop
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod-develop.yaml
+      --set nomad.image.tag=develop
+      --set roll=true
+      --timeout=15m
+      --wait
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      nomad client -n https://nomad-lab.eu/prod/v1/develop/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
   rules:
     - if: $CI_COMMIT_BRANCH == "develop" && $NIGHTLY
     - when: manual
       allow_failure: true
 
-deploy develop image:
+deploy prod test:
   stage: deploy
-  needs: ["deploy develop"]
-  <<: *deploy_image
-
-test develop deployment:
-  stage: deploy
-  needs: ["deploy develop", "deploy develop image"]
-  <<: *test_deployment
+  environment:
+    name: test
+    deployment_tier: production
+    url: https://nomad-lab.eu/prod/v1/test
+  before_script:
+    - mkdir ~/.kube/
+    - echo ${CI_K8S_CLOUD_CONFIG} | base64 -d > ~/.kube/config
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+  script:
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:test
+    - docker push ${CI_REGISTRY_IMAGE}:test
+    - helm dependency update ops/kubernetes/nomad
+    - helm upgrade nomad-prod-test ops/kubernetes/nomad
+      --install
+      --namespace nomad-prod-test
+      --values ops/kubernetes/values.yaml
+      --values ops/kubernetes/nomad-prod-test.yaml
+      --set nomad.image.tag=test
+      --set roll=true
+      --timeout=15m
+      --wait
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+    - docker run -t -e NOMAD_KEYCLOAK_REALM_NAME=fairdi_nomad_prod -e NOMAD_KEYCLOAK_SERVER_URL=https://nomad-lab.eu/fairdi/keycloak/auth/ ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      nomad client -n https://nomad-lab.eu/prod/v1/test/api -u test -w $CI_NOMAD_TEST_PASSWORD integrationtests --skip-publish --skip-doi
+  rules:
+    - when: manual
+      allow_failure: true
 
 release latest image:
   stage: release
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
-    TARGET: final
-    DESTINATION: ${CI_REGISTRY_IMAGE}/latest
-  extends: .build_image
+    GIT_STRATEGY: none
+  before_script:
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+  script:
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:latest
+    - docker push ${CI_REGISTRY_IMAGE}:latest
   rules:
     - when: manual
       allow_failure: true
@@ -516,22 +420,29 @@ release latest image:
 release stable image:
   stage: release
   variables:
-    GIT_SUBMODULE_STRATEGY: recursive
-    GIT_SUBMODULE_DEPTH: 1
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
-    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
-    TARGET: final
-    DESTINATION: ${CI_REGISTRY_IMAGE}/stable
-  extends: .build_image
+    GIT_STRATEGY: none
+  before_script:
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+    - docker pull ${CI_REGISTRY_IMAGE}:${DOCKER_TAG}
+  script:
+    - docker tag ${CI_REGISTRY_IMAGE}:${DOCKER_TAG} ${CI_REGISTRY_IMAGE}:stable
+    - docker push ${CI_REGISTRY_IMAGE}:stable
   rules:
-    - when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
       allow_failure: true
+    - when: never
 
 python package:
   stage: release
   variables:
     GIT_STRATEGY: none
-  script: twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab-*.tar.gz
+  before_script:
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+    - docker pull ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  script:
+    - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      twine upload -u gitlab-ci-token -p ${CI_JOB_TOKEN} --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/nomad-lab-*.tar.gz
   rules:
     - when: manual
       allow_failure: true
@@ -540,7 +451,12 @@ pypi package:
   stage: release
   variables:
     GIT_STRATEGY: none
-  script: twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab-*.tar.gz
+  before_script:
+    - echo "${CI_REGISTRY_PASSWORD}" | docker login ${CI_REGISTRY} --username ${CI_REGISTRY_USER} --password-stdin
+    - docker pull ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  script:
+    - docker run --rm ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+      twine upload -u $CI_TWINE_USER -p $CI_TWINE_PASSWORD dist/nomad-lab-*.tar.gz
   rules:
     - if: $CI_COMMIT_TAG
       when: manual
