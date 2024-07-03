@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 import pytest
 import json
-import pybis
+from nomad_openbis import openbis
 
 from nomad.datamodel import ServerContext
 from nomad.datamodel.metainfo.eln.openbis import OpenbisEntry, OpenbisImportError
@@ -151,7 +151,7 @@ def test_openbis(
         return mock_response
 
     # patching openbis attrs
-    monkeypatch.setattr(pybis, 'Openbis', mock_openbis_response)
+    monkeypatch.setattr(openbis, 'Openbis', mock_openbis_response)
 
     data = ExampleData(main_author=user1)
     data.create_upload(upload_id='test_upload_id', published=False)

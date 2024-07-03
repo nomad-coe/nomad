@@ -138,76 +138,67 @@ class OpenbisEntry(EntryData):
         else:
             # Initializing pybis object
             try:
-                from pybis import Openbis
+                from nomad_openbis.openbis import OpenbisHandler
 
-                openbis = Openbis(self.project_url, verify_certificates=False)
-            except Exception:
-                self._clear_login_info(archive)
-                raise OpenbisImportError(
-                    'Failed to connect to the openbis server. Check the project url to be correct.'
-                )
-
-            try:
-                openbis.login(self.username, self.password, save_token=True)
-            except Exception:
-                self._clear_login_info(archive)
-                raise OpenbisImportError(
-                    'Failed to login to the openbis server. Check the username and password to be correct.'
-                )
-
-            # remove potential old content
-            self.spaces.clear()
-
-            try:
-                spaces = openbis.get_spaces()
-            except Exception:
-                self._clear_login_info(archive)
-                raise OpenbisImportError(
-                    'Failed to fetch spaces. The pybis package might have been changed.'
-                )
-
-            # parsing the content in the spaces
-            for space in spaces:
-                space_element = OpenbisSpace()
-                space_element.m_update_from_dict(space.attrs.all())
-
-                try:
-                    projects = space.get_projects()
-                except Exception:
-                    self._clear_login_info(archive)
-                    raise OpenbisImportError(
-                        'Failed to fetch projects. The pybis package might have been changed.'
-                    )
-                for project in projects:
-                    project_element = OpenbisProject()
-                    project_element.m_update_from_dict(project.attrs.all())
-                    space_element.projects.append(project_element)
+                with OpenbisHandler(
+                    self.project_url, self.username, self.password, archive, logger
+                ) as handler:
+                    # remove potential old content
+                    self.spaces.clear()
 
                     try:
-                        experiments = project.get_experiments()
+                        spaces = handler.openbis.get_spaces()
                     except Exception:
                         self._clear_login_info(archive)
                         raise OpenbisImportError(
-                            'Failed to fetch experiments. The pybis package might have been changed.'
+                            'Failed to fetch spaces. The pybis package might have been changed.'
                         )
-                    for experiment in experiments:
-                        experiment_element = OpenbisExperiment()
-                        experiment_element.m_update_from_dict(experiment.attrs.all())
+
+                    # parsing the content in the spaces
+                    for space in spaces:
+                        space_element = OpenbisSpace()
+                        space_element.m_update_from_dict(space.attrs.all())
+
                         try:
-                            experiment_element.download_files(
-                                experiment, archive, logger
+                            projects = space.get_projects()
+                        except Exception:
+                            self._clear_login_info(archive)
+                            raise OpenbisImportError(
+                                'Failed to fetch projects. The pybis package might have been changed.'
                             )
-                        except Exception as e:
-                            logger.error('Failed to download attachments.', exec_info=e)
+                        for project in projects:
+                            project_element = OpenbisProject()
+                            project_element.m_update_from_dict(project.attrs.all())
+                            space_element.projects.append(project_element)
 
-                        project_element.experiments.append(experiment_element)
+                            try:
+                                experiments = project.get_experiments()
+                            except Exception:
+                                self._clear_login_info(archive)
+                                raise OpenbisImportError(
+                                    'Failed to fetch experiments. The pybis package might have been changed.'
+                                )
+                            for experiment in experiments:
+                                experiment_element = OpenbisExperiment()
+                                experiment_element.m_update_from_dict(
+                                    experiment.attrs.all()
+                                )
+                                try:
+                                    experiment_element.download_files(
+                                        experiment, archive, logger
+                                    )
+                                except Exception as e:
+                                    logger.error(
+                                        'Failed to download attachments.', exec_info=e
+                                    )
 
-                self.spaces.append(space_element)
+                                project_element.experiments.append(experiment_element)
 
-            openbis.logout()
+                        self.spaces.append(space_element)
+            except Exception as e:
+                raise OpenbisImportError(e)
 
             self._clear_login_info(archive)
-
             logger.info('Transferring openbis data is finished.')
 
 
