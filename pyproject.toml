@@ -65,7 +65,7 @@ parsing = [
     'asr==0.4.1',
     'h5py==3.11.0',
     'netCDF4==1.6.5',
-    'pybis@git+https://github.com/FAIRmat-NFDI/fairmat-pybis.git@91039c2a1df364c88ab7e284b59c43ec42f18370',
+    'nomad-openbis',
     'pynxtools[convert]==0.3.1',
     'quippy-ase==0.9.14',
     'rdkit==2023.9.5',
