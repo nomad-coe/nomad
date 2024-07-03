@@ -1,4 +1,5 @@
 [run]
+parallel = true
 omit =
     nomad/cli/admin/migrate.py
     nomad/cli/admin/springer.py
