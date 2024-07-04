@@ -323,7 +323,7 @@ check gui artifacts:
       when: never
     - when: on_success
 
-build python package and final image:
+build python package:
   stage: test
   variables:
     GIT_SUBMODULE_STRATEGY: recursive
@@ -332,14 +332,6 @@ build python package and final image:
     SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
   extends: .build_image
   script:
-    - /kaniko/executor
-      --context "."
-      --dockerfile "Dockerfile"
-      --destination "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}"
-      --cache-repo "${CI_REGISTRY_IMAGE}/cache"
-      --cache=true
-      --skip-unused-stages
-      --build-arg SETUPTOOLS_SCM_PRETEND_VERSION
     - /kaniko/executor
       --context "."
       --dockerfile "Dockerfile"
@@ -359,10 +351,22 @@ build python package and final image:
       - dist/
       - vasp.xml
 
+build final image:
+  stage: test
+  needs: ["build python package", "update_scm_pretend_version"]
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_DEPTH: 1
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 4
+    SETUPTOOLS_SCM_PRETEND_VERSION: "${SETUPTOOLS_SCM_PRETEND_VERSION}"
+    TARGET: final
+    DESTINATION: "${CI_REGISTRY_IMAGE}:${DOCKER_TAG}"
+  extends: .build_image
+
 install tests:
   stage: test
   image: python:3.9
-  needs: ["build python package and final image"]
+  needs: ["build python package"]
   variables:
     UV_SYSTEM_PYTHON: true
   before_script:
