@@ -607,7 +607,7 @@ def test_entry_reader_with_reference(
     example_archive, required, error, user1, example_upload
 ):
     with EntryReader({Token.ARCHIVE: required}, user=user1) as reader:
-        results = reader.read('test_id')
+        results = reader.sync_read('test_id')
 
     if error:
         assert 'm_errors' in results[Token.ARCHIVE]
