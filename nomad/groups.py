@@ -15,9 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import operator
+from functools import reduce
 from typing import Iterable, List, Optional
 
-from mongoengine import Document, StringField, ListField
+from mongoengine import Document, ListField, StringField
 from mongoengine.queryset.visitor import Q
 
 from nomad.utils import create_uuid
@@ -36,6 +38,14 @@ class UserGroup(Document):
     members = ListField(StringField())
 
     meta = {'indexes': ['group_name', 'owner', 'members']}
+
+    @classmethod
+    def get_by_ids(cls, group_ids: Iterable[str]):
+        """
+        Returns UserGroup objects with group_ids.
+        """
+        user_groups = cls.objects(group_id__in=group_ids)
+        return user_groups
 
     @classmethod
     def get_by_user_id(cls, user_id: Optional[str]):
@@ -57,6 +67,20 @@ class UserGroup(Document):
         if user_id is not None:
             group_ids.extend(group.group_id for group in cls.get_by_user_id(user_id))
         return group_ids
+
+    @classmethod
+    def get_by_search_terms(cls, search_terms: str):
+        """
+        Returns UserGroup objects where group_name includes search_terms (no case).
+        """
+        search_terms = str(search_terms).split()
+        if not search_terms:
+            return []
+
+        query = (Q(group_name__icontains=term) for term in search_terms)
+        query = reduce(operator.and_, query)
+        user_groups = cls.objects(query)
+        return user_groups
 
 
 def create_user_group(
