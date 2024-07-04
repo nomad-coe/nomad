@@ -60,7 +60,7 @@ async def raw_query(
 ):
     relocate_children(query)
     with MongoReader(query, user=user) as reader:
-        return normalise_response(reader.read())
+        return normalise_response(await reader.read())
 
 
 @router.post(
@@ -82,7 +82,7 @@ async def basic_query(
         )
         relocate_children(query_dict)
         with MongoReader(query_dict, user=user) as reader:
-            response: dict = reader.read()
+            response: dict = await reader.read()
     except ConfigError as e:
         raise HTTPException(400, detail=str(e))
     except Exception as e:
@@ -118,6 +118,6 @@ async def archive_query(
         del graph_dict[Token.SEARCH]['m_request']['query']
 
     with UserReader(graph_dict, user=user) as reader:
-        response: dict = reader.read(user.user_id)
+        response: dict = await reader.read(user.user_id)
 
     return normalise_response(response)

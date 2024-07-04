@@ -110,12 +110,12 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
     def __user_print(msg, required, *, result: dict = None):
         with UserReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read(user1.user_id), result)
+                assert_dict(reader.sync_read(user1.user_id), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 rprint('output:')
-                rprint(reader.read(user1.user_id))
+                rprint(reader.sync_read(user1.user_id))
 
     __user_print(
         'plain user',
@@ -832,12 +832,12 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
     def __upload_print(msg, required, *, result: dict = None):
         with UploadReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read('id_published_with_ref'), result)
+                assert_dict(reader.sync_read('id_published_with_ref'), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 rprint('output:')
-                rprint(reader.read('id_published_with_ref'))
+                rprint(reader.sync_read('id_published_with_ref'))
 
     __upload_print(
         'plain upload reader',
@@ -1247,16 +1247,16 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
     def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
         with EntryReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read('id_03'), result)
+                assert_dict(reader.sync_read('id_03'), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 if not to_file:
                     rprint('output:')
-                    rprint(reader.read('id_03'))
+                    rprint(reader.sync_read('id_03'))
                 else:
                     with open('entry_reader_test.json', 'w') as f:
-                        f.write(json.dumps(reader.read('id_03')))
+                        f.write(json.dumps(reader.sync_read('id_03')))
 
     __entry_print(
         'plain entry reader',
@@ -1655,12 +1655,12 @@ def test_remote_reference(json_dict, example_data_with_reference, user1):
     def __fs_print(msg, required, *, result: dict = None):
         with FileSystemReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read('id_published_with_ref'), result)
+                assert_dict(reader.sync_read('id_published_with_ref'), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 rprint('output:')
-                rprint(reader.read('id_published_with_ref'))
+                rprint(reader.sync_read('id_published_with_ref'))
 
     __fs_print(
         'plain file system reader',
@@ -2129,16 +2129,16 @@ def test_general_reader(json_dict, example_data_with_reference, user1):
     def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
         with MongoReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read(), result)
+                assert_dict(reader.sync_read(), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 if not to_file:
                     rprint('output:')
-                    rprint(reader.read())
+                    rprint(reader.sync_read())
                 else:
                     with open('archive_reader_test.json', 'w') as f:
-                        f.write(json.dumps(reader.read()))
+                        f.write(json.dumps(reader.sync_read()))
 
     __ge_print(
         'general start from entry',
@@ -2524,16 +2524,16 @@ def test_general_reader_search(json_dict, example_data_with_reference, user1):
     def __ge_print(msg, required, *, to_file: bool = False, result: dict = None):
         with MongoReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read(), result)
+                assert_dict(reader.sync_read(), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 if not to_file:
                     rprint('output:')
-                    rprint(reader.read())
+                    rprint(reader.sync_read())
                 else:
                     with open('archive_reader_test.json', 'w') as f:
-                        f.write(json.dumps(reader.read()))
+                        f.write(json.dumps(reader.sync_read()))
 
     __ge_print(
         'general start from elastic search',
@@ -2673,7 +2673,7 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
 
     def __entry_print(msg, required, *, to_file: bool = False, result: dict = None):
         with EntryReader(required, user=user1) as reader:
-            response = reader.read('id_example')
+            response = reader.sync_read('id_example')
             if result:
                 assert_dict(response, result)
             else:
@@ -2774,12 +2774,12 @@ def test_custom_schema_archive_and_definition(user1, custom_data):
     def __fs_print(msg, required, *, result: dict = None):
         with FileSystemReader(required, user=user1) as reader:
             if result:
-                assert_dict(reader.read('id_custom'), result)
+                assert_dict(reader.sync_read('id_custom'), result)
             else:
                 rprint(f'\n\nExample: {next(counter)} -> {msg}:')
                 rprint(required)
                 rprint('output:')
-                rprint(reader.read('id_custom'))
+                rprint(reader.sync_read('id_custom'))
 
     __fs_print(
         'one level deep second page',

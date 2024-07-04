@@ -507,5 +507,5 @@ def assert_dict(d1, d2):
 )
 def test_definition_reader(query, result):
     with DefinitionReader(query) as reader:
-        response = remove_cache(reader.read(m_def))
+        response = remove_cache(reader.sync_read(m_def))
     assert_dict(response, result)
