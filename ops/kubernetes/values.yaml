@@ -152,6 +152,21 @@ nomad:
       requests:
         memory: "8Gi"
 
+  adminconsole:
+    replicaCount: 1
+    nodeSelector:
+      environment: prod
+      "nomad-lab.eu/worker": ""
+    podSecurityContext:
+      runAsUser: 25249
+      runAsGroup: 11320
+      fsGroup: 11320
+    resources:
+      limits:
+        memory: "32Gi"
+      requests:
+        memory: "8Gi"
+
 rabbitmq:
   nodeSelector:
     environment: prod
@@ -196,8 +211,8 @@ jupyterhub:
         runAsGroup: 11320
         fsGroup: 11320
     nodeSelector:
-        environment: prod
-        "nomad-lab.eu/worker-north": ""
+      environment: prod
+      "nomad-lab.eu/worker-north": ""
   prePuller:
     hook:
       nodeSelector:

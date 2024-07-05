@@ -45,3 +45,6 @@ nomad:
         memory: "256Gi"
       requests:
         memory: "8Gi"
+
+  adminconsole:
+    enabled: true

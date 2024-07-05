@@ -222,7 +222,9 @@ COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
 COPY --chown=nomad:1000 examples/data/uploads /app/examples/data/uploads
 COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
+COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyter /usr/local/share/jupyter
 COPY --chown=nomad:1000 --from=builder /usr/local/bin/nomad /usr/local/bin/nomad
+COPY --chown=nomad:1000 --from=builder /usr/local/bin/jupyter* /usr/local/bin/
 
 RUN mkdir -p /app/.volumes/fs \
  && chown -R nomad:1000 /app \
