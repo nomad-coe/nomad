@@ -26,6 +26,7 @@ from pydantic.main import BaseModel
 from nomad.utils import strip
 from nomad.metainfo import AnnotationModel, MEnum, MTypes, Datetime, Reference, Quantity
 from .plot import PlotlyError
+from ..data import Query
 from ...metainfo.data_type import Datatype
 
 
@@ -46,6 +47,7 @@ class ELNComponentEnum(str, Enum):
     ReferenceEditQuantity = 'ReferenceEditQuantity'
     UserEditQuantity = 'UserEditQuantity'
     AuthorEditQuantity = 'AuthorEditQuantity'
+    QueryEditQuantity = 'QueryEditQuantity'
 
 
 valid_eln_types = {
@@ -65,6 +67,7 @@ valid_eln_types = {
     'user': ['User'],
     'author': ['Author'],
     'reference': [''],
+    'query': ['Query'],
 }
 
 
@@ -94,6 +97,7 @@ valid_eln_components = {
     'user': [ELNComponentEnum.AuthorEditQuantity],
     'author': [ELNComponentEnum.AuthorEditQuantity],
     'reference': [ELNComponentEnum.ReferenceEditQuantity],
+    'query': [ELNComponentEnum.QueryEditQuantity],
 }
 
 
@@ -437,6 +441,10 @@ class ELNAnnotation(AnnotationModel):
                 )
             elif type_.standard_type().startswith('enum'):
                 assert_component(component, name, 'enum', valid_eln_components['enum'])
+            elif isinstance(type_, Query):
+                assert_component(
+                    component, name, type(type_).__name__, valid_eln_components['query']
+                )
         elif isinstance(type_, type):
             if type_.__name__ == 'str':
                 assert_component(
@@ -453,6 +461,10 @@ class ELNAnnotation(AnnotationModel):
             elif type_.__name__ == 'Author':
                 assert_component(
                     component, name, type_.__name__, valid_eln_components['author']
+                )
+            elif type_.__name__ == 'Query':
+                assert_component(
+                    component, name, type_.__name__, valid_eln_components['query']
                 )
 
         elif type_ == Datetime:

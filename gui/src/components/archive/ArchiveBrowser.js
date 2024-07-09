@@ -829,6 +829,8 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
       return <Compartment title='hdf5'>
         <H5Web upload_id={h5UploadId} filename={h5Path.groups.filename} initialPath={h5Path.groups.path} source={h5Source} sidebarOpen={false}></H5Web>
       </Compartment>
+    } else if (def?.type?.type_kind === 'custom' && def?.type?.type_data === 'nomad.datamodel.data.Query') {
+      return <Query value={value} def={def}/>
     } else {
       const [finalValue] = getRenderValue(value)
       return <Typography>{typeof finalValue === 'object' ? JSON.stringify(finalValue) : finalValue?.toString()}</Typography>
@@ -1626,6 +1628,31 @@ Quantity.propTypes = ({
     PropTypes.arrayOf(PropTypes.node),
     PropTypes.node
   ])
+})
+
+function Query({value, def}) {
+  return <Content>
+    <Compartment title="filters">
+      <QuantityValue
+        value={value?.filters ? Object.entries(value.filters).map(([key, value]) => `${key}: ${value}`) : []}
+        def={def}
+      />
+    </Compartment>
+    {value?.data && <Compartment title="results">
+      <QuantityValue
+        value={value?.data ? value.data.map(entry => entry.mainfile || entry.entry_id) : []}
+        def={def}
+      />
+    </Compartment>}
+    <Compartment title="query">
+      <SourceApiCall body={value} response={value}/>
+    </Compartment>
+  </Content>
+}
+
+Query.propTypes = ({
+  value: PropTypes.any,
+  def: PropTypes.object.isRequired
 })
 
 function Attribute({value, def}) {

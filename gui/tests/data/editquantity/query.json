@@ -1,0 +1,495 @@
+{
+  "afa783d98e040c74b68e5cfd3d82f3f0": [
+    {
+      "request": {
+        "url": "http://localhost:8000/fairdi/nomad/latest/api/v1/entries/query",
+        "method": "POST",
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "aggregations": {},
+          "pagination": {
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "page_size": 20
+          },
+          "required": {
+            "exclude": [
+              "quantities",
+              "sections",
+              "files"
+            ]
+          }
+        },
+        "headers": {
+          "accept": "application/json, text/plain, */*",
+          "content-type": "application/json",
+          "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJSWFFIV1YxSEJ6cmh5U3h3UmRDdkhCcUF1WVNKRzZWSEJSZXg0TW5oX293In0.eyJleHAiOjE3MTkwMTA0MTMsImlhdCI6MTcxODk3NDQyNiwianRpIjoiMWE5ZDcyMjItYzI0Ni00NjdjLTgyZTUtYTMyMTBlMjVmZTIxIiwiaXNzIjoiaHR0cHM6Ly9ub21hZC1sYWIuZXUvZmFpcmRpL2tleWNsb2FrL2F1dGgvcmVhbG1zL2ZhaXJkaV9ub21hZF90ZXN0IiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjY4ODc4YWY3LTY4NDUtNDZjMC1iMmMxLTI1MGQ0ZDhlYjQ3MCIsInR5cCI6IkJlYXJlciIsImF6cCI6Im5vbWFkX2d1aV9kZXYiLCJzZXNzaW9uX3N0YXRlIjoiZDIyNjc5MzUtNTZiNS00NzU5LWFlNzktOTA0NTg3Yjg2NDdiIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6ImVtYWlsIHByb2ZpbGUiLCJzaWQiOiJkMjI2NzkzNS01NmI1LTQ3NTktYWU3OS05MDQ1ODdiODY0N2IiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwibmFtZSI6Ik1hcmt1cyBTY2hlaWRnZW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0IiwiZ2l2ZW5fbmFtZSI6Ik1hcmt1cyIsImZhbWlseV9uYW1lIjoiU2NoZWlkZ2VuIiwiZW1haWwiOiJtYXJrdXMuc2NoZWlkZ2VuQGZoaS1iZXJsaW4uZGUifQ.hiDY95D_2Ti4UXmirl88lIiPjVtLOddaP9QyGLdqDE2OM2jgnMT7QdnjBpBARrhVAuq78OOinwGDqXnh4gPzlIF4AEeLw06vFSpWqoKOKY5WN9I25jqXzC6AvsfDGmQKRSQfxeULFH4g1KbYYBE9GWArBvtkLq6BwkMYMDUB-Qz3MC5YcrA1sBIhKYQO3zvN2Mt5q7RuTWQqcS_ueLVQ9WhIpoDFumHBxWA1XHSHL8NxcxF4enku1SkEXeOfw26FEyruMMFx6cxm_htrqbkdkeNwf8WqfLIhPgrO6J4Sm-OIt1YiyqpdnVFyt8e_Wabm6qQ3SGBMrR2DSdVof_sJWg",
+          "cookie": null
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "owner": "visible",
+          "query": {},
+          "pagination": {
+            "page_size": 20,
+            "order_by": "upload_create_time",
+            "order": "desc",
+            "total": 2
+          },
+          "required": {
+            "exclude": [
+              "quantities",
+              "sections",
+              "files"
+            ]
+          },
+          "data": [
+            {
+              "upload_id": "eln_upload_id",
+              "references": [],
+              "origin": "Markus Scheidgen",
+              "text_search_contents": [
+                "ELN example sample",
+                "001",
+                "PVDProcess.csv",
+                "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).",
+                "SLG",
+                "project"
+              ],
+              "datasets": [],
+              "n_quantities": 68,
+              "nomad_version": "1.3.3.dev67+g6dbdb317b",
+              "upload_create_time": "2024-06-21T12:53:41.020000+00:00",
+              "nomad_commit": "",
+              "section_defs": [
+                {
+                  "used_directly": true,
+                  "definition_id": "7e0331d2df29682413535f00d4aad156783fee2e",
+                  "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Process"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "030133d881170f0d9e31da6086ed5641f0c4403c",
+                  "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "f0086b987424b1001666c6f5df9ad1071164a27e",
+                  "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "d39f4397900226398e6c17eb00467e874e5955c4",
+                  "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "c640c9585e8d4549f248582763427a7dd7c417a0",
+                  "definition_qualified_name": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                  "definition_qualified_name": "nomad.datamodel.data.ArchiveSection"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "538f52fd8d52b29372066f878319c6aeb03b74d2",
+                  "definition_qualified_name": "nomad.datamodel.data.EntryData"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "1067a7855c86bc74d57bfbe3c95e7b5ca97cc403",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "08e24de48352035bcc932ed9934875ed9b10188e",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp"
+                },
+                {
+                  "used_directly": false,
+                  "definition_id": "fc2735d177bf36f9718ca66a764a56fc0c6200a0",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Activity"
+                },
+                {
+                  "used_directly": false,
+                  "definition_id": "add2edfa25a61ff3bbfdebacc870181f64f41634",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.basesections.BaseSection"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "c7254c9b461a4baec86cb3179e2f84513f5c9053",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.basesections.CompositeSystem"
+                },
+                {
+                  "used_directly": false,
+                  "definition_id": "7ce6bdcaa183a9685582b275e1c2b2ea3139c74d",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Entity"
+                },
+                {
+                  "used_directly": false,
+                  "definition_id": "8d81e1f95c60f39a6a8c9f954143a55e6f4c984c",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.basesections.Process"
+                },
+                {
+                  "used_directly": false,
+                  "definition_id": "3ab3a09d615ab58aefbaa3acdd8d6af4e73aaae5",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.basesections.System"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "55ef08f33dcf9fb374aea217458bd34a23bec57b",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.plot.Figure"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "7bb17e35ed91dca88bf6238fc51ed212693593d0",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotSection"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "491cdc3c5ea21cdc576275a5c1e600cdaa4256c1",
+                  "definition_qualified_name": "nomad.datamodel.metainfo.plot.PlotlyFigure"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "eeed330bd18d40f3a2a00cc35ba6f58808d0c543",
+                  "definition_qualified_name": "nomad.datamodel.results.ELN"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "f6d62b2664a0c37e0c82d4cb570e5e177e445e05",
+                  "definition_qualified_name": "nomad.datamodel.results.Properties"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "2820e376005366caae1a7662ad21cfacefc34abb",
+                  "definition_qualified_name": "nomad.datamodel.results.Results"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "4408b02aafbcd5a196e33346021b9da4e64a84e8",
+                  "definition_qualified_name": "nomad.parsing.tabular.TableData"
+                }
+              ],
+              "processing_errors": [],
+              "results": {
+                "eln": {
+                  "names": [
+                    "ELN example sample"
+                  ],
+                  "methods": [
+                    "PvdEvaporation",
+                    "HotplateAnnealing"
+                  ],
+                  "descriptions": [
+                    "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>"
+                  ],
+                  "sections": [
+                    "PvdEvaporation",
+                    "HotplateAnnealing",
+                    "Sample"
+                  ],
+                  "lab_ids": [
+                    "001"
+                  ],
+                  "tags": [
+                    "project"
+                  ]
+                },
+                "properties": {
+                  "available_properties": []
+                }
+              },
+              "entry_name": "ELN example sample",
+              "last_processing_time": "2024-06-21T12:53:41.238000+00:00",
+              "parser_name": "parsers/archive",
+              "calc_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
+              "published": false,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                {
+                  "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                  "name": "Sheldon Cooper"
+                }
+              ],
+              "writer_groups": [],
+              "processed": true,
+              "mainfile": "sample.archive.json",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                {
+                  "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                  "name": "Sheldon Cooper"
+                },
+                {
+                  "user_id": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+                  "name": "Test Tester"
+                }
+              ],
+              "viewer_groups": [],
+              "entry_create_time": "2024-06-21T12:53:41.108000+00:00",
+              "with_embargo": false,
+              "search_quantities": [
+                {
+                  "path_archive": "data.name",
+                  "str_value": "ELN example sample",
+                  "definition": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.name",
+                  "id": "data.name#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.lab_id",
+                  "str_value": "001",
+                  "definition": "nomad.datamodel.metainfo.basesections.BaseSection.lab_id",
+                  "id": "data.lab_id#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.description",
+                  "str_value": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
+                  "definition": "nomad.datamodel.metainfo.basesections.BaseSection.description",
+                  "id": "data.description#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.substrate_type",
+                  "str_value": "SLG",
+                  "definition": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.substrate_type",
+                  "id": "data.substrate_type#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.processes.pvd_evaporation.datetime",
+                  "datetime_value": "2022-05-10T07:20:00+00:00",
+                  "definition": "nomad.datamodel.metainfo.basesections.Activity.datetime",
+                  "id": "data.processes.pvd_evaporation.datetime#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.processes.pvd_evaporation.data_file",
+                  "str_value": "PVDProcess.csv",
+                  "definition": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.PvdEvaporation.data_file",
+                  "id": "data.processes.pvd_evaporation.data_file#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.processes.pvd_evaporation.fill_archive_from_datafile",
+                  "bool_value": false,
+                  "definition": "nomad.parsing.tabular.TableData.fill_archive_from_datafile",
+                  "id": "data.processes.pvd_evaporation.fill_archive_from_datafile#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.processes.hotplate_annealing.datetime",
+                  "datetime_value": "2022-05-10T07:22:00+00:00",
+                  "definition": "nomad.datamodel.metainfo.basesections.Activity.datetime",
+                  "id": "data.processes.hotplate_annealing.datetime#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.processes.hotplate_annealing.set_temperature",
+                  "definition": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing.set_temperature",
+                  "float_value": 373.15,
+                  "id": "data.processes.hotplate_annealing.set_temperature#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.processes.hotplate_annealing.duration",
+                  "definition": "entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample.Processes.HotplateAnnealing.duration",
+                  "float_value": 60,
+                  "id": "data.processes.hotplate_annealing.duration#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                },
+                {
+                  "path_archive": "data.datetime",
+                  "datetime_value": "2024-06-21T14:53:41.294628+00:00",
+                  "definition": "nomad.datamodel.metainfo.basesections.BaseSection.datetime",
+                  "id": "data.datetime#entry_id:83DS7AzwqTKFVwlrdVeaL3kMSLU_.Sample"
+                }
+              ],
+              "entry_type": "Sample",
+              "entry_id": "bC7byHvWJp62Sn9uiuJUB38MT5j-",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                {
+                  "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                  "name": "Sheldon Cooper"
+                }
+              ],
+              "license": "CC BY 4.0",
+              "data": {
+                "name": "ELN example sample",
+                "lab_id": "001",
+                "description": "<p>A simple example for an \"sample\" that demonstrates how to combine different data entities.</p>\n<p>The sample it-self defines a few properties (involved chemicals, used substrate) and uses inherited default properties (formula, name, lab id, ...)</p>\n<p>But the sample also contains sub-sections that prodivde inforamtion about proccessed that were applied to this sample (PVD evaporation, hotplate annealing).&nbsp;</p>\n<p>The sample also show references to other entries (chemicals, instruments).</p>\n<p>&nbsp;</p>",
+                "substrate_type": "SLG",
+                "processes": {
+                  "pvd_evaporation": {
+                    "datetime": "2022-05-10T07:20:00+00:00",
+                    "data_file": "PVDProcess.csv",
+                    "fill_archive_from_datafile": false
+                  },
+                  "hotplate_annealing": {
+                    "datetime": "2022-05-10T07:22:00+00:00",
+                    "set_temperature": 373.15,
+                    "duration": 60
+                  }
+                },
+                "datetime": "2024-06-21T14:53:41.294628+00:00"
+              }
+            },
+            {
+              "upload_id": "eln_upload_id",
+              "references": [],
+              "origin": "Markus Scheidgen",
+              "text_search_contents": [],
+              "datasets": [],
+              "n_quantities": 155,
+              "nomad_version": "1.3.3.dev67+g6dbdb317b",
+              "upload_create_time": "2024-06-21T12:53:41.020000+00:00",
+              "nomad_commit": "",
+              "section_defs": [
+                {
+                  "used_directly": true,
+                  "definition_id": "7047cbff9980abff17cce4b1b6b0d1c783505b7f",
+                  "definition_qualified_name": "nomad.datamodel.data.ArchiveSection"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "1067a7855c86bc74d57bfbe3c95e7b5ca97cc403",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryArchive"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "08e24de48352035bcc932ed9934875ed9b10188e",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.EntryMetadata"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "265ae33dbc9ace82b50260c1050d30c59ef9cb3c",
+                  "definition_qualified_name": "nomad.datamodel.datamodel.RFC3161Timestamp"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "f6d62b2664a0c37e0c82d4cb570e5e177e445e05",
+                  "definition_qualified_name": "nomad.datamodel.results.Properties"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "2820e376005366caae1a7662ad21cfacefc34abb",
+                  "definition_qualified_name": "nomad.datamodel.results.Results"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "f6617f133366ffb8cd1bde4bf643ca5bae1db7f8",
+                  "definition_qualified_name": "nomad.metainfo.metainfo.Definition"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "0c6464110f52fa3f556ae8e95e2f0272e201525a",
+                  "definition_qualified_name": "nomad.metainfo.metainfo.Package"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "28f841a88474d266eded1141318ea4c42d3aff3f",
+                  "definition_qualified_name": "nomad.metainfo.metainfo.Property"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "d12b9e6f4aed521dc6feeb67239a929542f78b8d",
+                  "definition_qualified_name": "nomad.metainfo.metainfo.Quantity"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "f293173ca54be29603fb12b9b138f8a76130a25c",
+                  "definition_qualified_name": "nomad.metainfo.metainfo.Section"
+                },
+                {
+                  "used_directly": true,
+                  "definition_id": "19bf6b5bf2ffa69e6585a1fb1c6b0961d4a89738",
+                  "definition_qualified_name": "nomad.metainfo.metainfo.SubSection"
+                }
+              ],
+              "processing_errors": [],
+              "results": {
+                "properties": {
+                  "available_properties": []
+                }
+              },
+              "entry_name": "Electronic Lab Notebook example schema",
+              "last_processing_time": "2024-06-21T12:53:41.242000+00:00",
+              "parser_name": "parsers/archive",
+              "calc_id": "83DS7AzwqTKFVwlrdVeaL3kMSLU_",
+              "published": false,
+              "writers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                {
+                  "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                  "name": "Sheldon Cooper"
+                }
+              ],
+              "writer_groups": [],
+              "processed": true,
+              "mainfile": "schema.archive.yaml",
+              "main_author": {
+                "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                "name": "Markus Scheidgen"
+              },
+              "viewers": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                {
+                  "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                  "name": "Sheldon Cooper"
+                },
+                {
+                  "user_id": "54cb1f64-f84e-4815-9ade-440ce0b5430f",
+                  "name": "Test Tester"
+                }
+              ],
+              "viewer_groups": [],
+              "entry_create_time": "2024-06-21T12:53:41.111000+00:00",
+              "with_embargo": false,
+              "entry_type": "Schema",
+              "entry_id": "83DS7AzwqTKFVwlrdVeaL3kMSLU_",
+              "authors": [
+                {
+                  "user_id": "68878af7-6845-46c0-b2c1-250d4d8eb470",
+                  "name": "Markus Scheidgen"
+                },
+                {
+                  "user_id": "a03af8b6-3aa7-428a-b3b1-4a6317e576b6",
+                  "name": "Sheldon Cooper"
+                }
+              ],
+              "license": "CC BY 4.0"
+            }
+          ]
+        },
+        "headers": {
+          "connection": "close",
+          "content-length": "18373",
+          "content-type": "application/json",
+          "server": "uvicorn"
+        }
+      }
+    }
+  ]
+}

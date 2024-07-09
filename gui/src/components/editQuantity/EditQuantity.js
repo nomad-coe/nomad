@@ -16,17 +16,18 @@
  * limitations under the License.
  */
 
-import {DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity} from '../editQuantity/DateTimeEditQuantity'
-import { StringEditQuantity, URLEditQuantity } from '../editQuantity/StringEditQuantity'
-import {NumberEditQuantity} from '../editQuantity/NumberEditQuantity'
-import {EnumEditQuantity} from '../editQuantity/EnumEditQuantity'
-import {AutocompleteEditQuantity} from '../editQuantity/AutocompleteEditQuantity'
-import {BoolEditQuantity} from '../editQuantity/BoolEditQuantity'
-import FileEditQuantity from '../editQuantity/FileEditQuantity'
-import RichTextEditQuantity from '../editQuantity/RichTextEditQuantity'
-import ReferenceEditQuantity from '../editQuantity/ReferenceEditQuantity'
-import AuthorEditQuantity from '../editQuantity/AuthorEditQuantity'
-import { RadioEnumEditQuantity } from '../editQuantity/RadioEnumEditQuantity'
+import {DateEditQuantity, DateTimeEditQuantity, TimeEditQuantity} from './DateTimeEditQuantity'
+import { StringEditQuantity, URLEditQuantity } from './StringEditQuantity'
+import {NumberEditQuantity} from './NumberEditQuantity'
+import {EnumEditQuantity} from './EnumEditQuantity'
+import {AutocompleteEditQuantity} from './AutocompleteEditQuantity'
+import {BoolEditQuantity} from './BoolEditQuantity'
+import FileEditQuantity from './FileEditQuantity'
+import RichTextEditQuantity from './RichTextEditQuantity'
+import ReferenceEditQuantity from './ReferenceEditQuantity'
+import AuthorEditQuantity from './AuthorEditQuantity'
+import { RadioEnumEditQuantity } from './RadioEnumEditQuantity'
+import QueryEditQuantity from "./QueryEditQuantity"
 
 export const editQuantityComponents = {
   NumberEditQuantity: NumberEditQuantity,
@@ -43,5 +44,6 @@ export const editQuantityComponents = {
   TimeEditQuantity: TimeEditQuantity,
   RichTextEditQuantity: RichTextEditQuantity,
   ReferenceEditQuantity: ReferenceEditQuantity,
-  AuthorEditQuantity: AuthorEditQuantity
+  AuthorEditQuantity: AuthorEditQuantity,
+  QueryEditQuantity: QueryEditQuantity
 }
