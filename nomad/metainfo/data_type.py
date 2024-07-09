@@ -1055,6 +1055,11 @@ def normalize_type(value):
         if value.endswith('json'):
             return JSON()
 
+        if value.endswith('query'):
+            from nomad.datamodel.data import Query
+
+            return Query()
+
         if value.endswith('datetime'):
             return Datetime()
 

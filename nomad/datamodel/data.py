@@ -20,6 +20,9 @@ import os.path
 
 from cachetools import TTLCache, cached
 
+from typing import Dict, Any, Optional
+from pydantic import Field
+
 from nomad.config import config
 from nomad.metainfo.elasticsearch_extension import Elasticsearch, material_entry_type
 from nomad.metainfo.metainfo import (
@@ -32,6 +35,7 @@ from nomad.metainfo.metainfo import (
     Section,
     Datetime,
     Reference,
+    JSON,
 )
 from nomad.metainfo.pydantic_extension import PydanticModel
 
@@ -230,4 +234,25 @@ class AuthorReference(Reference):
 
 
 author_reference = AuthorReference()
+
+
+class Query(JSON):
+    """
+    To represent a search query, including the applied filters and the results.
+
+    filters : dict
+        A dictionary of filters applied to the search. Keys are filter names, and values are the filter values.
+    query : MetadataResponse
+        A dictionary of the used query in the current search.
+    """
+
+    def _normalize_impl(self, value, **kwargs):
+        from nomad.app.v1.models import MetadataResponse
+
+        class QueryResult(MetadataResponse):
+            filters: Optional[Dict[str, Any]] = Field(None)
+
+        return QueryResult().parse_obj(value).dict()
+
+
 Schema = EntryData

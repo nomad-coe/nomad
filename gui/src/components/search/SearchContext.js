@@ -1806,6 +1806,15 @@ export function useSearchContext() {
   return useContext(searchContext)
 }
 
+export const ManualSearchContext = withFilters(SearchContextRaw)
+
+/**
+ * Hook to control the current SearchContext manually.
+ */
+export function useManualSearchContext() {
+  return useContext(ManualSearchContext)
+}
+
 /**
  * Parses a single filter value into a form that is supported by the GUI. This includes:
  * - Arrays are are transformed into Sets

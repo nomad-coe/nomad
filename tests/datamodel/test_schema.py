@@ -22,7 +22,7 @@ import pytest
 from nomad.metainfo import MetainfoError
 from nomad.datamodel.context import ServerContext
 from nomad.datamodel.datamodel import EntryArchive, EntryMetadata
-from nomad.datamodel.data import UserReference, AuthorReference
+from nomad.datamodel.data import UserReference, AuthorReference, Query
 from nomad.datamodel.metainfo.annotations import valid_eln_types, valid_eln_components
 from nomad.metainfo.data_type import Datatype
 from nomad.parsing.parser import ArchiveParser
@@ -162,3 +162,27 @@ def test_user_author_yaml_deserialization():
     assert des_my_author.name == 'my_author'
     assert isinstance(des_my_user.type, UserReference)
     assert isinstance(des_my_author.type, AuthorReference)
+
+
+def test_query_yaml_deserialization():
+    des_m_package = yaml_to_package(
+        strip(
+            """
+        m_def: 'nomad.metainfo.metainfo.Package'
+        sections:
+            Sample:
+                base_section: 'nomad.datamodel.metainfo.measurements.Sample'
+                quantities:
+                    my_query:
+                        type: Query
+                        m_annotations:
+                            eln:
+                                component: QueryEditQuantity
+    """
+        )
+    )
+    des_sample = des_m_package['section_definitions'][0]
+    des_my_query = des_sample.quantities[0]
+
+    assert des_my_query.name == 'my_query'
+    assert isinstance(des_my_query.type, Query)

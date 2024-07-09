@@ -31,6 +31,7 @@ import ListEditQuantity from './ListEditQuantity'
 import { Code } from '../buttons/SourceDialogButton'
 import { stripIndent } from '../../utils'
 import AuthorEditQuantity from './AuthorEditQuantity'
+import QueryEditQuantity from "./QueryEditQuantity"
 
 const enumValues = [
   'Vapor deposition', 'Chemical vapor deposition', 'Metalorganic vapour phase epitaxy', 'Electrostatic spray assisted vapour deposition (ESAVD)', 'Sherardizing',
@@ -71,6 +72,7 @@ export function EditQuantityExamples() {
       propsRef.current[name] = {
         quantityDef: {
           name: name,
+          _qualifiedName: `${name}-qualifiedName`,
           description: `
             This is **MARKDOWN** help text.
           `,
@@ -438,6 +440,21 @@ export function EditQuantityExamples() {
                           component: AuthorEditQuantity`}
                   >
                     <AuthorEditQuantity {...createDefaultProps('Author')} />
+                  </Example>
+                </Grid>
+                <Grid item>
+                  <Example
+                    code={`
+                    query:
+                      type: Query
+                      m_annotations:
+                        eln:
+                          component: QueryEditQuantity`}
+                  >
+                    <QueryEditQuantity
+                      {...createDefaultProps('myQuery', {value: {}})}
+                      storeInArchive={true}
+                    />
                   </Example>
                 </Grid>
               </Grid>
