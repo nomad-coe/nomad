@@ -3,7 +3,7 @@ definitions:
   sections:
     MPES:
       base_sections:
-        - "nomad.datamodel.metainfo.eln.ElnYamlConverter"
+        - "pynxtools.nomad.dataconverter.ElnYamlConverter"
         - "nomad.datamodel.data.EntryData"
       m_annotations:
         template:
@@ -129,7 +129,7 @@ definitions:
                                 defaultDisplayUnit: "kilohertz"
                           photon_energy:
                             type: np.float64
-                            unit: joule 
+                            unit: joule
                             m_annotations:
                               eln:
                                 component: NumberEditQuantity

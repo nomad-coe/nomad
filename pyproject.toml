@@ -66,7 +66,6 @@ parsing = [
     'h5py==3.11.0',
     'netCDF4==1.6.5',
     'nomad-openbis',
-    'pynxtools[convert]==0.3.1',
     'quippy-ase==0.9.14',
     'rdkit==2023.9.5',
 ]

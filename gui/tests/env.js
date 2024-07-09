@@ -3633,12 +3633,6 @@ window.nomadEnv = {
           "name": "parsers/namd",
           "plugin_source_code_url": "https://github.com/nomad-coe/atomistic-parsers/tree/develop/atomisticparsers/namd"
         },
-        "parsers/nexus": {
-          "plugin_type": "parser",
-          "id": "parsers/nexus",
-          "name": "parsers/nexus",
-          "plugin_source_code_url": "https://gitlab.mpcdf.mpg.de/nomad-lab/nomad-FAIR/-/tree/develop/nomad/parsing/nexus"
-        },
         "parsers/nwchem": {
           "plugin_type": "parser",
           "id": "parsers/nwchem",
@@ -4479,6 +4473,32 @@ window.nomadEnv = {
           "description": "Schema package defined for the perovskite solar cells database.",
           "plugin_package": "perovskite_solar_cell_database"
         },
+        "pynxtools.nomad.entrypoints:nexus_data_converter": {
+          "id": "pynxtools.nomad.entrypoints:nexus_data_converter",
+          "entry_point_type": "schema_package",
+          "name": "NeXus Dataconverter",
+          "description": "The NeXus dataconverter to convert data into the NeXus format.",
+          "plugin_package": "pynxtools"
+        },
+        "pynxtools.nomad.entrypoints:nexus_parser": {
+          "id": "pynxtools.nomad.entrypoints:nexus_parser",
+          "entry_point_type": "parser",
+          "name": "pynxtools parser",
+          "description": "A parser for nexus files.",
+          "plugin_package": "pynxtools",
+          "level": 0,
+          "mainfile_name_re": ".*\\.nxs",
+          "mainfile_mime_re": "application/x-hdf5",
+          "mainfile_alternative": false,
+          "supported_compressions": []
+        },
+        "pynxtools.nomad.entrypoints:nexus_schema": {
+          "id": "pynxtools.nomad.entrypoints:nexus_schema",
+          "entry_point_type": "schema_package",
+          "name": "NeXus",
+          "description": "The NeXus metainfo package.",
+          "plugin_package": "pynxtools"
+        },
         "schema/simulation/run": {
           "plugin_type": "schema",
           "id": "schema/simulation/run",
@@ -4540,6 +4560,19 @@ window.nomadEnv = {
         "name": "perovskite_solar_cell_database",
         "repository": "https://github.com/FAIRmat-NFDI/nomad-perovskite-solar-cells-database",
         "version": "0.0.0"
+      },
+      "pynxtools": {
+        "description": "Extend NeXus for experiments and characterization in Materials Science and Materials Engineering and serve as a NOMAD parser implementation for NeXus.",
+        "documentation": null,
+        "entry_points": [
+          "pynxtools.nomad.entrypoints:nexus_data_converter",
+          "pynxtools.nomad.entrypoints:nexus_parser",
+          "pynxtools.nomad.entrypoints:nexus_schema"
+        ],
+        "homepage": "https://github.com/FAIRmat-NFDI/pynxtools",
+        "name": "pynxtools",
+        "repository": null,
+        "version": "0.5.0"
       }
     }
   }

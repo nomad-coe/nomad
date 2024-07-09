@@ -864,7 +864,7 @@ class EntryMetadata(MSection):
     )
 
     domain = Quantity(
-        type=MEnum('dft', 'ems'),
+        type=MEnum('dft', 'ems', 'nexus'),
         description='The material science domain',
         a_elasticsearch=Elasticsearch(material_entry_type),
     )

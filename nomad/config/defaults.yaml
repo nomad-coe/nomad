@@ -1790,15 +1790,6 @@ plugins:
         python_package: atomisticparsers.namd
         mainfile_contents_re: \s*Info:\s*NAMD\s*[0-9.]+\s*for\s*
         mainfile_mime_re: text/.*
-      parsers/nexus:
-        plugin_type: parser
-        python_package: nomad.parsing.nexus
-        mainfile_mime_re: (application/.*)|(text/.*)
-        mainfile_name_re: .*\.nxs
-        supported_compressions:
-        - gz
-        - bz2
-        - xz
       parsers/nwchem:
         plugin_type: parser
         python_package: electronicparsers.nwchem

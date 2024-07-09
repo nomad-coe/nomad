@@ -15,13 +15,13 @@ definitions:
   sections:
     ElectronMicroscopy:
       base_sections:
-        - 'nomad.datamodel.metainfo.eln.NexusDataConverter'
+        - 'pynxtools.nomad.dataconverter.NexusDataConverter'
         - 'nomad.datamodel.data.EntryData'
       m_annotations:
-        template: 
+        template:
           reader: em
           nxdl: NXem.nxdl
-        eln: 
+        eln:
           hide: []
       sub_sections:
         entry:
@@ -81,7 +81,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: RadioEnumEditQuantity
-              name: 
+              name:
                 type: str
                 description: |
                   An alias used to refer to the specimen to please readability for humans.
@@ -101,7 +101,7 @@ definitions:
                 type: str
                 description: |
                   List of comma-separated elements from the periodic
-                  table that are contained in the sample. 
+                  table that are contained in the sample.
                 m_annotations:
                   eln:
                     component: StringEditQuantity

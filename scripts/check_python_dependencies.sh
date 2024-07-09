@@ -15,7 +15,7 @@ project_dir=$(dirname $(dirname $(realpath $0)))
 cd $project_dir
 
 # do no support git install for pynxtools
-grep pynxtools pyproject.toml | grep "@git+" 1>&2
+grep pynxtools scripts/install_default_plugins.sh | grep "@git+" 1>&2
 
 # backup
 cp requirements.txt requirements.txt.tmp

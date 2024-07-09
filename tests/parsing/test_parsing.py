@@ -17,14 +17,15 @@
 #
 
 import json
-import pytest
 import os
 from shutil import copyfile
 
-from nomad import utils, files
+import pytest
+
+from nomad import files, utils
 from nomad.datamodel import EntryArchive
 from nomad.parsing import BrokenParser, MatchingParserInterface
-from nomad.parsing.parsers import parser_dict, match_parser, run_parser, parsers
+from nomad.parsing.parsers import match_parser, parser_dict, parsers, run_parser
 from nomad.utils import dump_json
 
 parser_examples = [
@@ -89,8 +90,6 @@ parser_examples = [
         'tests/data/parsers/yambo/hBN/r-10b_1Ry_HF_and_locXC_gw0_em1d_ppa',
     ),
     ('parsers/archive', 'tests/data/parsers/archive.json'),
-    ('parsers/nexus', 'tests/data/parsers/nexus/201805_WSe2_arpes.nxs'),
-    ('parsers/nexus', 'tests/data/parsers/nexus/SiO2onSi.ellips.nxs'),
 ]
 
 # We need to remove some cases with external mainfiles, which might not exist
@@ -323,8 +322,8 @@ def parser_in_dir(dir):
 
 
 if __name__ == '__main__':
-    import sys
     import os
+    import sys
 
     assert len(sys.argv) == 2 and os.path.isdir(
         sys.argv[1]
