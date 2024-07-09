@@ -3,7 +3,7 @@ definitions:
   sections:
     IV_TEMP:
       base_sections:
-        - "nomad.datamodel.metainfo.eln.NexusDataConverter"
+        - "pynxtools.nomad.dataconverter.NexusDataConverter"
         - "nomad.datamodel.data.EntryData"
       m_annotations:
         template:

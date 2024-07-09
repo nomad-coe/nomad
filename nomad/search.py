@@ -32,116 +32,94 @@ update the v1 materials index according to the performed changes. TODO this is o
 partially implemented.
 """
 
+import fnmatch
+import json
+import math
+import re
+import sys
+from enum import Enum
 from typing import (
-    Union,
-    List,
-    Tuple,
-    Iterable,
     Any,
-    cast,
-    Dict,
-    Iterator,
-    Generator,
     Callable,
+    Dict,
+    Generator,
+    Iterable,
+    Iterator,
+    List,
     Optional,
     Sequence,
+    Tuple,
+    Union,
+    cast,
 )
-import sys
-import re
-import fnmatch
-import math
-import json
-from enum import Enum
-import elasticsearch.helpers
-from elasticsearch.exceptions import TransportError, RequestError
-from elasticsearch_dsl import Q, A, Search
-from elasticsearch_dsl.query import Query as EsQuery
-from pydantic.error_wrappers import ErrorWrapper
-from pydantic import ValidationError
 
-from nomad import infrastructure, utils
-from nomad.config import config
-from nomad import datamodel
+import elasticsearch.helpers
+from elasticsearch.exceptions import RequestError, TransportError
+from elasticsearch_dsl import A, Q, Search
+from elasticsearch_dsl.query import Query as EsQuery
+from pydantic import ValidationError
+from pydantic.error_wrappers import ErrorWrapper
+
+from nomad import datamodel, infrastructure, utils
 from nomad.app.v1.models import models
-from nomad.datamodel import (
-    EntryArchive,
-    EntryMetadata,
-    user_reference,
-    author_reference,
-)
-from nomad.groups import UserGroup
-from nomad.metainfo import Quantity, Datetime, Package
 from nomad.app.v1.models.models import (
+    Aggregation,
+    AggregationBase,
     AggregationPagination,
+    AggregationResponse,
+    AutoDateHistogramAggregation,
+    AutoDateHistogramAggregationResponse,
+    Bucket,
+    BucketAggregation,
     Criteria,
+    DateHistogramAggregation,
+    DateHistogramAggregationResponse,
+    HistogramAggregation,
+    HistogramAggregationResponse,
     MetadataPagination,
+    MetadataRequired,
+    MetadataResponse,
+    MinMaxAggregation,
+    MinMaxAggregationResponse,
     Pagination,
     PaginationResponse,
     QuantityAggregation,
     Query,
-    MetadataRequired,
-    MetadataResponse,
-    Aggregation,
     StatisticsAggregation,
     StatisticsAggregationResponse,
-    Value,
-    AggregationBase,
     TermsAggregation,
-    BucketAggregation,
-    HistogramAggregation,
-    DateHistogramAggregation,
-    AutoDateHistogramAggregation,
-    MinMaxAggregation,
-    Bucket,
-    MinMaxAggregationResponse,
     TermsAggregationResponse,
-    HistogramAggregationResponse,
-    DateHistogramAggregationResponse,
-    AutoDateHistogramAggregationResponse,
-    AggregationResponse,
+    Value,
 )
+from nomad.config import config
+from nomad.datamodel import (
+    EntryArchive,
+    EntryMetadata,
+    author_reference,
+    user_reference,
+)
+from nomad.groups import UserGroup
+from nomad.metainfo import Datetime, Package, Quantity
 from nomad.metainfo.elasticsearch_extension import (
-    index_entries,
-    entry_type,
-    entry_index,
     DocumentType,
-    material_type,
-    entry_type,
-    material_entry_type,
-    entry_index,
     Elasticsearch,
     Index,
-    DocumentType,
     SearchQuantity,
     create_dynamic_quantity_annotation,
-    update_materials,
+    entry_index,
+    entry_type,
     get_searchable_quantity_value_field,
-    schema_separator,
-    yaml_prefix,
+    index_entries,
+    material_entry_type,
+    material_type,
     nexus_prefix,
     parse_quantity_name,
+    schema_separator,
+    update_materials,
+    yaml_prefix,
 )
 
-
 _metainfo_initialized = False
-
-
-def _import_nexus_metainfo():
-    """The nexus metainfo may not have been imported, and needs to be loaded
-    here."""
-    global _metainfo_initialized
-    if _metainfo_initialized:
-        return
-
-    from nomad.parsing import nexus
-
-    module = sys.modules.get('pynxtools')
-    if module:
-        pkg: Package = getattr(module, 'm_package', None)
-        if pkg is not None and isinstance(pkg, Package):
-            if pkg.name not in Package.registry:
-                pkg.__init_metainfo__()
-    _metainfo_initialized = True
 
 
 class AggType(str, Enum):
@@ -1781,10 +1759,6 @@ def search(
     user_id: str = None,
     index: Index = entry_index,
 ) -> MetadataResponse:
-    # Lazy-loading of the the metainfo definitions. When done in this manner,
-    # the definitions do not slow down other parts unnecessarily.
-    _import_nexus_metainfo()
-
     # If histogram aggregations only provide the number of buckets, we need to
     # separately query the min/max values before forming the histogram
     # aggregation

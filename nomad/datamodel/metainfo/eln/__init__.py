@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-import numpy as np
 import datetime
 import re
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List
 
+import numpy as np
 from unidecode import unidecode
 
 from nomad.datamodel.metainfo.plot import PlotSection
@@ -29,66 +29,62 @@ if TYPE_CHECKING:
     from structlog.stdlib import (
         BoundLogger,
     )
+from ase.data import atomic_masses, atomic_numbers, chemical_symbols
+
 from nomad import utils
-from nomad.units import ureg
 from nomad.datamodel.data import (
-    EntryData,
     ArchiveSection,
-    author_reference,
     BasicElnCategory,
+    EntryData,
+    author_reference,
 )
-from nomad.metainfo.metainfo import MSection, MProxy, MEnum, Category, MCategory
+from nomad.datamodel.metainfo.annotations import (
+    ELNAnnotation,
+)
+from nomad.datamodel.metainfo.basesections import (
+    Activity,
+    Analysis,
+    AnalysisResult,
+    Collection,
+    CompositeSystem,
+    ElementalComposition,
+    Entity,
+    Experiment,
+    HDF5Normalizer,
+    Instrument,
+    Measurement,
+    MeasurementResult,
+    Process,
+    PublicationReference,
+    PureSubstance,
+    ReadableIdentifiers,
+    SynthesisMethod,
+    System,
+)
+from nomad.datamodel.metainfo.basesections import (
+    CompositeSystem as Ensemble,  # For legacy support
+)
+from nomad.datamodel.metainfo.basesections import (
+    SystemComponent as Component,
+)
 from nomad.datamodel.metainfo.common import ProvenanceTracker
-from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
+from nomad.datamodel.metainfo.eln.eqe_parser import EQEAnalyzer
 from nomad.datamodel.results import (
+    ELN,
     BandGap,
     BandGapDeprecated,
     BandStructureElectronic,
     ElectronicProperties,
+    Material,
     OptoelectronicProperties,
     Properties,
     Results,
-    ELN,
-    Material,
     SolarCell,
 )
-
-
-from nomad.metainfo import Package, Quantity, Datetime, Reference, Section, SubSection
-from ase.data import chemical_symbols, atomic_numbers, atomic_masses
-
-from nomad.datamodel.metainfo.eln.nexus_data_converter import (
-    NexusDataConverter,
-    ElnYamlConverter,
-)
-from nomad.datamodel.metainfo.eln.eqe_parser import EQEAnalyzer
-
-from nomad.datamodel.metainfo.basesections import (
-    Entity,
-    Activity,
-    ElementalComposition,
-    System,
-    Instrument,
-    Process,
-    Measurement,
-    SynthesisMethod,
-    SystemComponent as Component,
-    CompositeSystem,
-    CompositeSystem as Ensemble,  # For legacy support
-    PublicationReference,
-    ReadableIdentifiers,
-    PureSubstance,
-    Experiment,
-    Collection,
-    Analysis,
-    AnalysisResult,
-    MeasurementResult,
-    HDF5Normalizer,
-)
-
-from nomad.datamodel.metainfo.annotations import (
-    ELNAnnotation,
-)
+from nomad.datamodel.results import ElementalComposition as ResultsElementalComposition
+from nomad.metainfo import Datetime, Package, Quantity, Reference, Section, SubSection
+from nomad.metainfo.metainfo import Category, MCategory, MEnum, MProxy, MSection
+from nomad.units import ureg
 
 
 def add_band_gap(archive, band_gap):
@@ -1034,8 +1030,9 @@ class ElnWithStructureFile(ArchiveSection):
 
         if self.structure_file:
             from ase.io import read
-            from nomad.normalizing.results import ResultsNormalizer
+
             from nomad.normalizing import normalizers
+            from nomad.normalizing.results import ResultsNormalizer
 
             system_normalizer_cls = None
             for normalizer in normalizers:
@@ -1043,8 +1040,8 @@ class ElnWithStructureFile(ArchiveSection):
                     system_normalizer_cls = normalizer
                     break
 
-            from nomad.normalizing.optimade import OptimadeNormalizer
             from nomad.datamodel.metainfo import runschema
+            from nomad.normalizing.optimade import OptimadeNormalizer
 
             with archive.m_context.raw_file(self.structure_file) as f:
                 try:

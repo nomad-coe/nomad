@@ -16,39 +16,42 @@
 # limitations under the License.
 #
 
-from typing import List, Dict, Any, Sequence, Union, Iterable
-import pytest
 import json
 from datetime import datetime
+from typing import Any, Dict, Iterable, List, Sequence, Union
 
-from nomad.utils import deep_get
-from nomad import utils, infrastructure
-from nomad.config import config
+import pytest
+
+from nomad import infrastructure, utils
 from nomad.app.v1.models import (
-    WithQuery,
-    MetadataRequired,
-    MetadataPagination,
     Direction,
+    MetadataPagination,
+    MetadataRequired,
+    WithQuery,
 )
+from nomad.config import config
 from nomad.datamodel.datamodel import EntryArchive, EntryData, EntryMetadata
+from nomad.metainfo.elasticsearch_extension import (
+    dtype_separator,
+    entry_index,
+    entry_type,
+    material_index,
+    schema_separator,
+)
 from nomad.metainfo.metainfo import Datetime, Quantity
 from nomad.metainfo.util import MEnum
 from nomad.search import (
     AuthenticationRequiredError as ARE,
+)
+from nomad.search import (
     quantity_values,
+    refresh,
     search,
     update_by_query,
-    refresh,
 )
-from nomad.metainfo.elasticsearch_extension import (
-    entry_type,
-    entry_index,
-    material_index,
-    schema_separator,
-    dtype_separator,
-)
+from nomad.utils import deep_get
 from nomad.utils.exampledata import ExampleData
-from tests.config import yaml_schema_name, python_schema_name
+from tests.config import python_schema_name, yaml_schema_name
 
 
 def split(path):
@@ -468,23 +471,6 @@ def test_quantity_values(indices, example_data):
 )
 def test_search_quantities(indices, example_eln_data, api_query, total):
     """Tests that search queries targeting search_quantities work for different data types."""
-    results = search(owner='all', query=WithQuery(query=api_query).query)
-    assert results.pagination.total == total  # pylint: disable=no-member
-
-
-@pytest.mark.parametrize(
-    'api_query, total',
-    [
-        pytest.param(
-            {'nexus.NXiv_temp.ENTRY.DATA.temperature__field:gt': 0}, 1, id='nexus float'
-        ),
-        pytest.param(
-            {'nexus.NXiv_temp.ENTRY.definition__field': 'NXiv_temp'}, 1, id='nexus str'
-        ),
-    ],
-)
-def test_search_query_nexus(indices, example_data_nexus, api_query, total):
-    """Tests that search queries targeting nexus works correctly."""
     results = search(owner='all', query=WithQuery(query=api_query).query)
     assert results.pagination.total == total  # pylint: disable=no-member
 

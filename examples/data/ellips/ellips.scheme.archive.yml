@@ -3,7 +3,7 @@ definitions:
   sections:
     Ellips:
       base_sections:
-        - "nomad.datamodel.metainfo.eln.NexusDataConverter"
+        - "pynxtools.nomad.dataconverter.NexusDataConverter"
         - "nomad.datamodel.data.EntryData"
       m_annotations:
         template:
@@ -169,7 +169,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              software_RC2/@url: 
+              software_RC2/@url:
                 type: str
                 m_annotations:
                   eln:
@@ -292,7 +292,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              
+
               layer_structure:
                 type: str
                 m_annotations:

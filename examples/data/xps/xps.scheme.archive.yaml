@@ -3,7 +3,7 @@ definitions:
   sections:
     XPS:
       base_sections:
-      - nomad.datamodel.metainfo.eln.NexusDataConverter
+      - pynxtools.nomad.dataconverter.NexusDataConverter
       - nomad.datamodel.data.EntryData
       m_annotations:
         template:
@@ -156,7 +156,7 @@ definitions:
                     eln:
                       overview: true
                   description: 'Overall energy resolution of the MPES instrument.
-                          This concept is related to term 10.7 ff. of the ISO 18115-1:2023 standard.'  
+                          This concept is related to term 10.7 ff. of the ISO 18115-1:2023 standard.'
                   quantities:
                     type:
                         type: str
@@ -339,7 +339,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: 'Energy dispersion scheme employed, 
+                            description: 'Energy dispersion scheme employed,
                                           for example: tof, hemispherical, cylindrical, mirror, retarding grid, etc.'
                           diameter:
                             type: np.float64
@@ -433,7 +433,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: 'Company name of the manufacturer.'                                
+                            description: 'Company name of the manufacturer.'
                           model:
                             type: str
                             m_annotations:
@@ -445,7 +445,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the manipulator.'                    
+                            description: 'Ideally, (globally) unique persistent identifier, i.e. a serial number or hash identifier of the manipulator.'
                     Temperature_sensor:
                       section:
                         m_annotations:
@@ -513,7 +513,7 @@ definitions:
                               eln:
                                 component: NumberEditQuantity
                                 defaultDisplayUnit: 'watt'
-                            description: 'In case of a fixed or averaged heating power, this is the scalar heater power. 
+                            description: 'In case of a fixed or averaged heating power, this is the scalar heater power.
                                           It can also be a 1D array of heater powers (without time stamps).'
                         sub_sections:
                           Pid:
@@ -567,7 +567,7 @@ definitions:
                                     eln:
                                       component: NumberEditQuantity
                                       defaultDisplayUnit: 'kelvin'
-                                  description: 'In case of a fixed or averaged cooling temperature, this is the scalar temperature setpoint. 
+                                  description: 'In case of a fixed or averaged cooling temperature, this is the scalar temperature setpoint.
                                                 It can also be a 1D array of temperature setpoints (without time stamps).'
                     Drain_current_amperemeter:
                       section:
@@ -618,7 +618,7 @@ definitions:
                             m_annotations:
                               eln:
                                 component: StringEditQuantity
-                            description: 'Name for measured signal. Obligatory value: voltage'          
+                            description: 'Name for measured signal. Obligatory value: voltage'
                           attached_to:
                             type: str
                             m_annotations:
@@ -744,7 +744,7 @@ definitions:
                           component: StringEditQuantity
                       description: 'Obligatory value: current'
                     type:
-                      type: str                      
+                      type: str
                       m_annotations:
                         eln:
                           component: StringEditQuantity
@@ -795,7 +795,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-                description: 'List of comma-separated elements from the periodic table that are contained in the sample. 
+                description: 'List of comma-separated elements from the periodic table that are contained in the sample.
                               If the sample substance has multiple components, all elements from each component must be
                               included in `atom_types`.'
               physical_form:
@@ -856,7 +856,7 @@ definitions:
                               eln:
                                 component: NumberEditQuantity
                                 defaultDisplayUnit: 'g/mol'
-                            description: 'Molecular mass of the substance.'  
+                            description: 'Molecular mass of the substance.'
               History:
                 section:
                   m_annotations:

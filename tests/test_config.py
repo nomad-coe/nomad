@@ -16,15 +16,15 @@
 # limitations under the License.
 #
 
-import pytest
-import yaml
 import os
 
-from nomad.utils import flatten_dict
-from nomad.config import load_config
-from nomad.config.models.plugins import Schema, Parser
-
+import pytest
+import yaml
 from pydantic import ValidationError
+
+from nomad.config import load_config
+from nomad.config.models.plugins import Parser, Schema
+from nomad.utils import flatten_dict
 
 from .utils import assert_log
 
@@ -328,7 +328,7 @@ def test_parser_plugins():
         for entry_point in config.plugins.entry_points.options.values()
         if isinstance(entry_point, Parser)
     ]
-    assert len(parsers) == 71
+    assert len(parsers) == 70
 
 
 def test_plugin_polymorphism(mockopen, monkeypatch):

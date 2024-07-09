@@ -4,7 +4,7 @@ definitions:
   sections:
     AtomProbe:
       base_sections:
-        - 'nomad.datamodel.metainfo.eln.NexusDataConverter'
+        - 'pynxtools.nomad.dataconverter.NexusDataConverter'
         - 'nomad.datamodel.data.EntryData'
       m_annotations:
         template:
@@ -13,7 +13,7 @@ definitions:
         # Listing quantities in the hide component will not show them in the ELN.
         # This would be useful to make the default values set in `template` fixed.
         # Leave the hide key even if you want to pass an empty list like in this example.
-        eln: 
+        eln:
           hide: []
       sub_sections:
         entry:
@@ -143,13 +143,13 @@ definitions:
                   One string for each element with statements separated via a
                   single space. The string is expected to have the following format:
                   Symbol value unit +- stdev
-                  
+
                   An example: B 1. +- 0.2, means
                   composition of boron 1. at.-% +- 0.2 at.%.
                   If a string contains only a symbol this is interpreted
                   that the symbol specifies the matrix or remainder element
                   for the composition table.
-                  
+
                   If unit is omitted or named % this is interpreted as at.-%.
                   Unit can be at% or wt% but all strings have to use either atom
                   or weight percent but no mixtures.
@@ -158,7 +158,7 @@ definitions:
                 m_annotations:
                   eln:
                     component: StringEditQuantity
-              grain_diameter: 
+              grain_diameter:
                 type: np.float64
                 unit: micrometer
                 description: |
