@@ -196,7 +196,7 @@ RUN pip install nomad-lab-*.tar.gz
 # Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
 COPY default_plugins.txt .
-RUN pip install -r default_plugins.txt
+RUN pip install -r default_plugins.txt -c requirements.txt
 
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
