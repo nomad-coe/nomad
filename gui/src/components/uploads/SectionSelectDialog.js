@@ -23,7 +23,7 @@ import {
 import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import PropTypes from 'prop-types'
-import {SearchContext, useSearchContext} from "../search/SearchContext"
+import {FreeformSearchContext, useSearchContext} from "../search/SearchContext"
 import {ui, searchQuantities, apiBase} from "../../config"
 import SearchBar from '../search/SearchBar'
 import {useApi} from '../api'
@@ -201,6 +201,12 @@ const Details = React.memo(({data}) => {
 Details.propTypes = {
   data: PropTypes.object.isRequired
 }
+
+const columns = context?.columns
+const rows = context?.rows
+columns.selected = shownColumns
+rows.details = {enabled: true, render: Details}
+rows.actions = {enabled: false}
 
 function SearchBox({open, onCancel, onSelectedChanged, selected}) {
   const classes = useStyles()
@@ -401,15 +407,10 @@ SearchBox.propTypes = {
 
 function SectionSelectDialog(props) {
   const {open, onSelectedChanged, selected, onCancel, filtersLocked} = props
-  const columns = context?.columns
-  const rows = context?.rows
-  columns.selected = shownColumns
-  rows.details = {enabled: true, render: Details}
-  rows.actions = {enabled: false}
 
   if (!open) return null
 
-  return <SearchContext
+  return <FreeformSearchContext
     resource={context?.resource}
     initialPagination={context?.pagination}
     initialColumns={columns}
@@ -420,7 +421,7 @@ function SectionSelectDialog(props) {
     id='sectionselect'
   >
     <SearchBox open={open} onCancel={onCancel} onSelectedChanged={onSelectedChanged} selected={selected}/>
-  </SearchContext>
+  </FreeformSearchContext>
 }
 SectionSelectDialog.propTypes = {
   open: PropTypes.bool,

@@ -170,7 +170,7 @@ export const withQueryString = (WrappedComponent) => {
     </WrappedComponent>
   }
 
-  WithQueryString.displayName = `withFilter(${WrappedComponent.displayName || WrappedComponent.name})`
+  WithQueryString.displayName = `withQueryString(${WrappedComponent.displayName || WrappedComponent.name})`
   WithQueryString.propTypes = {
     initialFilterValues: PropTypes.object, // Determines which filters are available
     children: PropTypes.node // Determines which filters are available
@@ -1797,6 +1797,7 @@ SearchContextRaw.defaultProps = {
   suggestionHistorySize: 20
 }
 
+export const FreeformSearchContext = withFilters(SearchContextRaw)
 export const SearchContext = compose(withQueryString, withFilters)(SearchContextRaw)
 
 /**
@@ -1804,15 +1805,6 @@ export const SearchContext = compose(withQueryString, withFilters)(SearchContext
  */
 export function useSearchContext() {
   return useContext(searchContext)
-}
-
-export const ManualSearchContext = withFilters(SearchContextRaw)
-
-/**
- * Hook to control the current SearchContext manually.
- */
-export function useManualSearchContext() {
-  return useContext(ManualSearchContext)
 }
 
 /**
