@@ -219,7 +219,7 @@ COPY --chown=nomad:1000 scripts/run.sh .
 COPY --chown=nomad:1000 scripts/run-worker.sh .
 COPY --chown=nomad:1000 nomad/jupyterhub_config.py ./nomad/jupyterhub_config.py
 
-COPY --chown=nomad:1000 examples/data/uploads /app/examples/data/uploads
+COPY --chown=nomad:1000 --from=dev_package /app/examples/data/uploads /app/examples/data/uploads
 COPY --chown=nomad:1000 --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyterhub /usr/local/share/jupyterhub
 COPY --chown=nomad:1000 --from=builder /usr/local/share/jupyter /usr/local/share/jupyter
