@@ -22,7 +22,7 @@ import {
   Chip,
   Dialog, DialogContent, IconButton, TextField, Tooltip
 } from "@material-ui/core"
-import {ManualSearchContext, useSearchContext} from "../search/SearchContext"
+import {FreeformSearchContext, useSearchContext} from "../search/SearchContext"
 import {ui} from "../../config"
 import DialogActions from "@material-ui/core/DialogActions"
 import Button from "@material-ui/core/Button"
@@ -266,7 +266,7 @@ function QueryEditQuantity({quantityDef, onChange, value, storeInArchive, index,
         />
       )}
     />
-    <ManualSearchContext
+    <FreeformSearchContext
       resource={context?.resource}
       initialPagination={context?.pagination}
       initialColumns={columns}
@@ -284,7 +284,7 @@ function QueryEditQuantity({quantityDef, onChange, value, storeInArchive, index,
         onQueryChanged={handleQueryChanged}
         pageSize={maxData || 100}
       />
-    </ManualSearchContext>
+    </FreeformSearchContext>
   </React.Fragment>
 }
 QueryEditQuantity.propTypes = {
