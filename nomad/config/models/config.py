@@ -16,16 +16,16 @@
 # limitations under the License.
 #
 
-import warnings
-import sys
-import os
 import logging
-from importlib.metadata import version, metadata
+import os
+import pkgutil
+import sys
+import warnings
+from importlib.metadata import metadata, version
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
-from typing import List, Union, Optional, Dict, Any
 from pydantic import Field, root_validator, validator
-import pkgutil
 
 try:
     __version__ = version('nomad-lab')
@@ -43,8 +43,8 @@ from .common import (
     ConfigBaseModel,
     Options,
 )
-from .plugins import Plugins, EntryPointType, PluginPackage
 from .north import NORTH
+from .plugins import EntryPointType, PluginPackage, Plugins
 from .ui import UI
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
@@ -298,7 +298,7 @@ class Oasis(ConfigBaseModel):
         False,
         description='Set to `True` to indicate that this deployment is a NOMAD Oasis.',
     )
-    allowed_users: str = Field(
+    allowed_users: List[str] = Field(
         None,
         description="""
         A list of usernames or user account emails. These represent a white-list of
@@ -1032,8 +1032,8 @@ class Config(ConfigBaseModel):
         cached_property decorator to the 'plugins' field instead of using this
         function.
         """
-        from nomad.config import _plugins, _merge
-        from nomad.config.models.plugins import Parser, Normalizer, Schema
+        from nomad.config import _merge, _plugins
+        from nomad.config.models.plugins import Normalizer, Parser, Schema
 
         if self.plugins is None:
 
