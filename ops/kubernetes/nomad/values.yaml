@@ -561,7 +561,7 @@ jupyterhub:
         tag: latest
       ellips:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter
-        tag: main
+        tag: latest
       mpes:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/mpes/webtop
         tag: latest
