@@ -405,7 +405,6 @@ install tests:
       --install
       --namespace nomad-prod-${TARGET_ENV}
       --values ops/kubernetes/values.yaml
-      --values plugins-values.yaml
       --values ops/kubernetes/nomad-prod-${TARGET_ENV}.yaml
       --set nomad.image.tag=${TARGET_ENV}
       --set roll=true
