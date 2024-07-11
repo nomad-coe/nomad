@@ -21,7 +21,7 @@ pip install -e ".[infrastructure,parsing,dev]"
 
 # Install "default" plugins. TODO: This can be removed once we have proper
 # distributions projects.
-pip install -r default_plugins.txt
+pip install -r default_plugins.txt -c requirements-dev.txt
 
 # Build documentation
 sh scripts/generate_docs_artifacts.sh
