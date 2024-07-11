@@ -311,7 +311,7 @@ north:
         - ipynb
         - nxs
         icon: jupyter_logo.svg
-        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/ellips-jupyter
+        image: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter:main
         image_pull_policy: Always
         maintainer:
         - email: florian.dobener@physik.hu-berlin.de

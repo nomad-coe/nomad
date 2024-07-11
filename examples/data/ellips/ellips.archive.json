@@ -2,7 +2,7 @@
     "data": {
         "m_def": "../upload/raw/ellips.scheme.archive.yml#/definitions/section_definitions/0",
         "reader": "ellips",
-        "nxdl": "NXellipsometry.nxdl",
+        "nxdl": "NXellipsometry",
         "input_files": [
             "test-data.data",
             "eln_data.yaml"
@@ -41,7 +41,7 @@
             "is_persistent": "false"
         },
         "Instrument": {
-             "software_RC2": "CompleteEASE",
+            "software_RC2": "CompleteEASE",
             "software_RC2/@version": "6.37",
             "software_RC2/@url": "https://www.jawoollam.com/ellipsometry-software/completeease",
             "ellipsometer_type": "dual compensator",
@@ -50,27 +50,33 @@
                 "source_type": "arc lamp"
             },
             "Detector": {
-                "detector_type": "CCD spectrometer",
+                "detector_type": "CCD",
+                "detector_channel_type": "multichannel",
                 "count_time": 1
             },
-            "Sample_stage": {
-                "stage_type": " manual stage"
+            "beam_source": {
+                "parameter_reliability": "nominal",
+                "associated_source": "entry/instrument/source_light",
+                "incident_wavelength": [193, 1700]
+            },
+            "sample_stage": {
+                "stage_type": "manual stage"
             },
             "focussing_probes": {
                 "data_correction": false,
-                "angular_spread": 0.2
+                "angular_spread": 0.2,
+                "type": "objective"
             },
             "rotating_element": {
                 "revolutions": 50,
                 "revolutions/@Units": "NX_COUNT"
             },
             "instrument_calibration_RC2": {
-                "calibration_status": " no calibration"
+                "calibration_status": "no calibration"
             },
             "device_information": {
                 "vendor": "J. A. Woollam Co.",
-                "model": "RC2",
-                "model/@version": "0.0.1"
+                "model": "RC2 (Vers. 0.0.1)"
             }
         },
         "Sample": {
@@ -85,7 +91,9 @@
                 "sample_medium": "air"
             },
             "history": {
-                "notes": "Commercially purchased sample"
+                "notes": {
+                     "description":"Commercially purchased sample"
+                }
             }
         },
         "Data": {
