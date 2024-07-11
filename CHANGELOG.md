@@ -1,4 +1,43 @@
 
+## 1.3.4 (2024-07-11)
+
+### Fixed (16 changes)
+
+- [Fixed the type of allowed_users in the config.](nomad-lab/nomad-FAIR@db004396296d0cace553117acd104d39a704d052) ([merge request](nomad-lab/nomad-FAIR!1960))
+- [Resolve "Section reference dialog filters not resetting"](nomad-lab/nomad-FAIR@1892378ab615974350b7f4649ee631d2eaf425d6) ([merge request](nomad-lab/nomad-FAIR!1952))
+- [Removed polyfill.io from the GUI.](nomad-lab/nomad-FAIR@075c43d369c565a43fcc4b2fab2a9ab672e99f98) ([merge request](nomad-lab/nomad-FAIR!1951))
+- [Resolve "ASAP parser issue"](nomad-lab/nomad-FAIR@70ccc79fa44be7e70e6af14919f12509451c6c23) ([merge request](nomad-lab/nomad-FAIR!1948))
+- [Fixed missing horizontal scroll ability on file preview lanes.](nomad-lab/nomad-FAIR@a1599e8923925467333300ba99493d6a497d685f) ([merge request](nomad-lab/nomad-FAIR!1934))
+- [Fixed some broken links and missing examples in the docs.](nomad-lab/nomad-FAIR@410154e32b057319d8e4288bda9f66cc4c1d7d7b) ([merge request](nomad-lab/nomad-FAIR!1933))
+- [Fixed issue with SI-prefixed units in unit systems.](nomad-lab/nomad-FAIR@a881144b218fad436a8e172d786cd96521e7d3b7) ([merge request](nomad-lab/nomad-FAIR!1913))
+- [Resolve "DateEditQuantity and TimeEditQuantity are removed from the app"](nomad-lab/nomad-FAIR@b2db30a37b1ceba06d301bb47a64a7be99e5cf2c) ([merge request](nomad-lab/nomad-FAIR!1894))
+- [Resolve "Some datetime related tests fail at night"](nomad-lab/nomad-FAIR@a52d4ce4c800b62b42ec1818d7c35734d4308a85) ([merge request](nomad-lab/nomad-FAIR!1904))
+- [Fixed the visibility on the dataset page to show metadata of embargoed data.](nomad-lab/nomad-FAIR@ef5aa12068168488690b08c8ac9fd413b99f15aa) ([merge request](nomad-lab/nomad-FAIR!1911))
+- [Fixed an url encoding issue in the h5groove integration.](nomad-lab/nomad-FAIR@b2ae7cfbefc22b685f1dfba912b90630e94a9ebc) ([merge request](nomad-lab/nomad-FAIR!1906))
+- [Add label argument in TextFieldWithHelp](nomad-lab/nomad-FAIR@d0c45bfe8258f57b48809f309a697aff3e3ec677) ([merge request](nomad-lab/nomad-FAIR!1902))
+- [Fixed handling of missing definitions for dynamic search quantities.](nomad-lab/nomad-FAIR@4639cb233e4ec75de78b0db1388d92ce204df374) ([merge request](nomad-lab/nomad-FAIR!1903))
+- [Fixed a problem in juypterhubconfig that was preventing priveledged services.](nomad-lab/nomad-FAIR@9808e817861c9124d00498fd4f551c940b7b50cc) ([merge request](nomad-lab/nomad-FAIR!1876))
+- [Changed that uploads shared with all do not show in a users upload list.](nomad-lab/nomad-FAIR@9c135a35ca9bea64acb97da4685c3f0f2e941605) ([merge request](nomad-lab/nomad-FAIR!1876))
+- [Fixed the used request version to be compatible with current jupyterhub.](nomad-lab/nomad-FAIR@1e8eac635dfbcc047994fff540e42076fb0a9a06) ([merge request](nomad-lab/nomad-FAIR!1876))
+
+### Added (7 changes)
+
+- [Search edit quantity](nomad-lab/nomad-FAIR@19fcae353e08ad9f1a1829b5ae92862bd9868fd8) ([merge request](nomad-lab/nomad-FAIR!1877))
+- [Added jupyter based admin console to k8s deployments.](nomad-lab/nomad-FAIR@02b38910a4e7825d56017d244dd1ae229d0332fb) ([merge request](nomad-lab/nomad-FAIR!1942))
+- [Added support for "delta" units that allow comparisons between value ranges...](nomad-lab/nomad-FAIR@ab42c42631d1981a9a66703aea4fd647145a1ba8) ([merge request](nomad-lab/nomad-FAIR!1828))
+- [Added RSM to the `results.XRDMethod`](nomad-lab/nomad-FAIR@7715b08b8313c04fa97d12137c560aa2d3ebe374) ([merge request](nomad-lab/nomad-FAIR!1846))
+- [Add AI toolkit as a search app.](nomad-lab/nomad-FAIR@6105279fc2317f8e1163039a3b482574dae39189) ([merge request](nomad-lab/nomad-FAIR!1860))
+- [Added plugin tutorial to docs](nomad-lab/nomad-FAIR@a5a5d0f6b046a48d4822a9a3fd0c5a80a5f65210) ([merge request](nomad-lab/nomad-FAIR!1890))
+- [Added release documentation.](nomad-lab/nomad-FAIR@9f3eae6ceeac89186101bfeb960306a46ff9e814) ([merge request](nomad-lab/nomad-FAIR!1874))
+
+### Changed (5 changes)
+
+- [Merge branch 'migrate-to-openbis' into 'develop'](nomad-lab/nomad-FAIR@c9fc3821ab52407e76fd02b6ff10e582a30ce786) ([merge request](nomad-lab/nomad-FAIR!1924))
+- [Update sim workflow schema](nomad-lab/nomad-FAIR@8785c2b66d58a81d66d071d7911f95c2b20a1a08) ([merge request](nomad-lab/nomad-FAIR!1923))
+- [Migrated all porosity-related calculations into a separate plugin together with the MOF app.](nomad-lab/nomad-FAIR@8f90a8dbad6008c1533706f8a25694a161a4a61b) ([merge request](nomad-lab/nomad-FAIR!1850))
+- [Moved perovskite solar cell schema and app into a plugin.](nomad-lab/nomad-FAIR@0e81daeb47bbdc06cabfeebafe7e6b9e90e6a70c) ([merge request](nomad-lab/nomad-FAIR!1845))
+- [Update run schema submodule](nomad-lab/nomad-FAIR@a817baa1631519537c3183cce0b23672e0c5f753) ([merge request](nomad-lab/nomad-FAIR!1914))
+
 ## 1.3.3 (2024-06-03)
 
 ### Fixed (2 changes)
