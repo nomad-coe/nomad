@@ -65353,7 +65353,7 @@ window.nomadArtifacts = {
     "ellips": {
       "short_description": "An example for analyzing ellipsometric data.",
       "description": "This example presents the capabilities of the NOMAD platform to store and standardize ellipsometry data. It shows the generation of a NeXus file according to the [NXellipsometry](https://manual.nexusformat.org/classes/contributed_definitions/NXellipsometry.html#nxellipsometry) application definition and a successive analysis of a SiO2 on Si Psi/Delta measurement.",
-      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter:main",
+      "image": "gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter:latest",
       "cmd": null,
       "image_pull_policy": "Always",
       "privileged": false,
