@@ -8,7 +8,7 @@ definitions:
       m_annotations:
         template:
           reader: ellips
-          nxdl: NXellipsometry.nxdl
+          nxdl: NXellipsometry
         eln:
           hide: []
       quantities:
@@ -201,6 +201,11 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
+                    detector_channel_type:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity
                     count_time:
                       type: np.float64
                       unit: second
@@ -209,6 +214,27 @@ definitions:
                           component: NumberEditQuantity
                           minValue: 0
                           defaultDisplayUnit: "s"
+              beam_source:
+                section:
+                  quantities:
+                    parameter_reliability:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity
+                    associated_source:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity
+                    incident_wavelength:
+                      type: np.float64
+                      shape: ["*"]
+                      unit: nanometer
+                      m_annotations:
+                        eln:
+                          component: NumberEditQuantity
+                          defaultDisplayUnit: "nm"
               focussing_probes:
                 section:
                   quantities:
@@ -217,6 +243,11 @@ definitions:
                       m_annotations:
                         eln:
                           component: BoolEditQuantity
+                    type:
+                      type: str
+                      m_annotations:
+                        eln:
+                          component: StringEditQuantity
                     angular_spread:
                       type: np.float64
                       unit: radian
@@ -229,26 +260,14 @@ definitions:
                   quantities:
                     revolutions:
                       type: np.float64
+                      unit: radian / radian
                       m_annotations:
                         eln:
                           component: NumberEditQuantity
-                    revolutions/@unit:
-                      type: str
-                      m_annotations:
-                        eln:
-                          component: StringEditQuantity
-              Sample_stage:
+              sample_stage:
                 section:
                   quantities:
                     stage_type:
-                      type: str
-                      m_annotations:
-                        eln:
-                          component: StringEditQuantity
-              instrument_calibration_RC2:
-                section:
-                  quantities:
-                    calibration_status:
                       type: str
                       m_annotations:
                         eln:
@@ -266,7 +285,13 @@ definitions:
                       m_annotations:
                         eln:
                           component: StringEditQuantity
-                    model/@version:
+              instrument_calibration_RC2:
+                section:
+                  m_annotations:
+                    eln:
+                      overview: true
+                  quantities:
+                    calibration_status:
                       type: str
                       m_annotations:
                         eln:
@@ -330,12 +355,18 @@ definitions:
                   m_annotations:
                     eln:
                       overview: true
-                  quantities:
+                  sub_sections:
                     notes:
-                      type: str
-                      m_annotations:
-                        eln:
-                          component: StringEditQuantity
+                      section:
+                        m_annotations:
+                          eln:
+                            overview: true
+                        quantities:
+                          description:
+                            type: str
+                            m_annotations:
+                              eln:
+                                component: StringEditQuantity
         Data:
           section:
             m_annotations:

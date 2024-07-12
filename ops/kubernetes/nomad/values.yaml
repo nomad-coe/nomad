@@ -560,7 +560,7 @@ jupyterhub:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/nexus-webtop
         tag: latest
       ellips:
-        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-remote-tools-hub/ellips-jupyter
+        name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/ellips/jupyter
         tag: latest
       mpes:
         name: gitlab-registry.mpcdf.mpg.de/nomad-lab/north/mpes/webtop

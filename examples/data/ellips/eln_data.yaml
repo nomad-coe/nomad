@@ -6,17 +6,16 @@ Data:
   data_type: Psi/Delta
   spectrum_type: wavelength
   spectrum_unit: angstrom
-Instrument:
-  Detector:
+instrument:
+  detector:
     count_time:
       unit: s
       value: 1.0
-    detector_type: CCD spectrometer
-  Sample_stage:
-    stage_type: ' manual stage'
+    detector_type: CCD
+  sample_stage:
+    stage_type: 'manual stage'
   device_information:
-    model: RC2
-    model/@version: 0.0.1
+    model: 'RC2 (Vers. 0.0.1)'
     vendor: J. A. Woollam Co.
   ellipsometer_type: dual compensator
   focussing_probes:
@@ -25,7 +24,7 @@ Instrument:
       value: 0.2
     data_correction: false
   instrument_calibration_RC2:
-    calibration_status: ' no calibration'
+    calibration_status: 'no calibration'
   light_source:
     source_type: arc lamp
   rotating_element:
@@ -34,7 +33,7 @@ Instrument:
   software_RC2: CompleteEASE
   software_RC2/@url: https://www.jawoollam.com/ellipsometry-software/completeease
   software_RC2/@version: '6.37'
-Sample:
+sample:
   atom_types: Si, O
   backside_roughness: false
   chemical_formula: SiO2
@@ -46,7 +45,7 @@ Sample:
   physical_form: multi layer
   sample_name: 2nm SiO2 on Si
   substrate: Si
-User:
+user:
   address: Zum Großen Windkanal 2, 12489 Berlin, Germany
   affiliation: Humboldt-Universität zu Berlin
   email: surname.name@physik.hu-berlin.de
