@@ -206,6 +206,7 @@ const Plot = React.memo(forwardRef(({
       hovermode: false,
       showlegend: false,
       autosize: false,
+      template: 'plotly_white',
       // There is extra space reserved for the top and bottom margins so that
       // automargin does not make the plot jump around too much.
       margin: {
