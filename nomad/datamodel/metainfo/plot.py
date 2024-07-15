@@ -268,7 +268,11 @@ class PlotSection(ArchiveSection):
                             raise PlotlyError(e)
                     if total_layout:
                         try:
-                            all_traces.update_layout(**total_layout)
+                            with_default_template = {
+                                **{'template': 'plotly_white'},
+                                **total_layout,
+                            }
+                            all_traces.update_layout(**with_default_template)
                         except Exception as e:
                             raise PlotlyError(e)
                     plotly_graph_object = all_traces.to_plotly_json()
@@ -330,7 +334,13 @@ class PlotSection(ArchiveSection):
                                         )
                                         try:
                                             if sub_layout:
-                                                fig.update_layout(**sub_layout)
+                                                with_default_template = {
+                                                    **{'template': 'plotly_white'},
+                                                    **sub_layout,
+                                                }
+                                                fig.update_layout(
+                                                    **with_default_template
+                                                )
                                             figure.add_trace(
                                                 fig.data[0], row=row, col=col
                                             )
@@ -362,7 +372,11 @@ class PlotSection(ArchiveSection):
                             layout = plotly_subplots_annotation.get('layout', None)
                             if layout:
                                 try:
-                                    figure.update_layout(**layout)
+                                    with_default_template = {
+                                        **{'template': 'plotly_white'},
+                                        **layout,
+                                    }
+                                    figure.update_layout(**with_default_template)
                                 except Exception as e:
                                     raise PlotlyError(e)
                             plotly_graph_object = figure.to_plotly_json()
