@@ -166,7 +166,7 @@ class QuantityDisplayAnnotation(DisplayAnnotation):
     ```
     """
 
-    display_unit: Optional[str] = Field(
+    unit: Optional[str] = Field(
         None,
         description=strip(
             """
