@@ -171,7 +171,7 @@ def archive_dft_bulk():
                 'shear_modulus': [{'type': 'voigt_reuss_hill_average', 'value': 1}],
                 'energy_volume_curve': [
                     {
-                        'type': 'murhaghan',
+                        'type': 'murnaghan',
                         'volumes': '/workflow/1/equation_of_state/volumes',
                         'energies_fit': '/workflow/1/equation_of_state/eos_fit/0/fitted_energies',
                     }
