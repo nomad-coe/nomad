@@ -213,7 +213,7 @@
                     "mechanical": {
                       "energy_volume_curve": [
                         {
-                          "type": "murhaghan"
+                          "type": "murnaghan"
                         }
                       ],
                       "shear_modulus": [
