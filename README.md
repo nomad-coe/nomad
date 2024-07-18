@@ -11,7 +11,7 @@ customized NOMAD version and with their own compute and storage resources.
 
 ## Contributing
 
-See also the more detailed [contributing guide](https://nomad-lab.eu/docs/develop/contrib.html) in the documentation.
+See also the more detailed [contributing guide](https://nomad-lab.eu/docs/howto/develop/contrib.html) in the documentation.
 
 There are two forks of this repository, one on **GitHUB** and one on MPCDF's **GitLab**.
 
