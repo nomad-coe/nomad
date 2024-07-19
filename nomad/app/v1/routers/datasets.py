@@ -512,7 +512,7 @@ async def assign_doi(
 
     if dataset.doi is not None:
         doi = DOI.objects(doi=dataset.doi).first()
-        if type(doi) == DOI and not (doi.state == 'findable'):
+        if type(doi) is DOI and not (doi.state == 'findable'):
             _delete_dataset(user=user, dataset_id=dataset_id, dataset=dataset)
             raise HTTPException(
                 status_code=_existing_dataset_with_findable_state[0],

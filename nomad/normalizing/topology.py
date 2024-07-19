@@ -635,7 +635,7 @@ class TopologyNormalizer:
 
         spg_number = symm.get_space_group_number()
         atom_species = conv_system.get_atomic_numbers()
-        if type(conv_system) == Atoms or conv_system.wyckoff_letters is None:
+        if type(conv_system) is Atoms or conv_system.wyckoff_letters is None:
             wyckoffs = symm.get_wyckoff_letters_conventional()
         else:
             wyckoffs = conv_system.wyckoff_letters
