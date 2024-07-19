@@ -103,21 +103,35 @@ Make sure you have the most recent version of `pip`:
 pip install --upgrade pip
 ```
 
-### Install missing system libraries (e.g. on MacOS)
+### Install missing system libraries (e.g. on Windows, MacOS)
+Even though the NOMAD infrastructure is written in Python, there are C libraries 
+required by some of our Python dependencies. Specifically, the libmagic library, 
+which allows determining the MIME type of files, and the hdf5 library, which is 
+essential for handling HDF5 files, must be installed on most Unix/Linux systems. 
 
-Even though the NOMAD infrastructure is written in Python, there is a C library
-required by one of our Python dependencies. Libmagic is missing on some systems.
-Libmagic allows to determine the MIME type of files. It should be installed on most
-Unix/Linux systems. It can be installed on MacOS with homebrew:
+The absence of these libraries can lead to issues during installation or runtime.
 
-```shell
-brew install libmagic
+For macOS (using Homebrew, pre-compiled binaries for `libmagic` are included in the `pylibmagic` library):
+
+```bash
+brew install hdf5
 ```
 
-If you are using a Mac with Apple Silicon, we recommend that you use rosetta, homebrew
-for Intel, and install and use an Intel-based Python. The second answer in this
-[Stackoverflow post](https://stackoverflow.com/questions/64882584/how-to-run-the-homebrew-installer-under-rosetta-2-on-m1-macbook){:target="_blank"}
-describes how to use both the Apple and Intel homebrew simultaneously.
+For Windows (pre-compiled binaries for `hdf5` are included in the dependencies):
+
+-libmagic: We include python-magic-bin as a dependency for Windows users. 
+If you encounter an error such as NameError: name '_compressions' is not defined, try uninstalling and reinstalling the library:
+
+```bash
+pip uninstall python-magic-bin
+pip install python-magic-bin
+```
+
+You can confirm that the magic library is correctly installed by running:
+
+```bash
+python -c "import magic"
+```
 
 ### Install NOMAD
 
