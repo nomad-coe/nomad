@@ -3488,12 +3488,12 @@ class PrimitiveQuantity(Quantity):
                         f'The value {value} for quantity {self} has no shape {self.shape}'
                     )
 
-            if any(v is not None and type(v) != self._type for v in value):
+            if any(v is not None and type(v) is not self._type for v in value):
                 raise TypeError(
                     f'The value {value} with type {type(value)} for quantity {self} is not of type {self.type}'
                 )
 
-        elif type(value) != self._type:
+        elif type(value) is not self._type:
             raise TypeError(
                 f'The value {value} with type {type(value)} for quantity {self} is not of type {self.type}'
             )

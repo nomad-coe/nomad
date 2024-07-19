@@ -93,7 +93,7 @@ def get_field_type_info(field: ModelField) -> Tuple[str, Set[Any]]:
             # identification of 'Annotated' could be done with
             # `get_origin(a) is Annotated``, but this is the cleanest
             # solution with Python 3.7.
-            elif type(cls) == _AnnotatedAlias:
+            elif type(cls) is _AnnotatedAlias:
                 skip_parent = True
             else:
                 name = str(cls).split('[', 1)[0].rsplit('.')[-1]

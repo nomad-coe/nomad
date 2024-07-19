@@ -114,7 +114,7 @@ class OptimadeNormalizer(SystemBasedNormalizer):
                 value = source.m_get(quantity_def)
                 if value is None:
                     return
-                if type(value) == np.ndarray and not numpy:
+                if type(value) is np.ndarray and not numpy:
                     return value.tolist()
                 if isinstance(value, list) and numpy:
                     return np.array(value)
