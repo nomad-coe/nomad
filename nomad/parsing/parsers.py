@@ -38,6 +38,10 @@ from .tabular import TabularDataParser
 try:
     # these packages are not available without parsing extra, which is ok, if the
     # parsers are only initialized to load their metainfo definitions
+    import platform
+
+    if platform.system() == 'Darwin':
+        import pylibmagic
     import magic
     import gzip
     import bz2
