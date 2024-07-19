@@ -61,12 +61,13 @@ RUN apt-get update \
 
 WORKDIR /app
 
-ENV PIP_NO_CACHE_DIR=1
+# Install UV
+RUN pip install uv
 
 # Python environment
 COPY requirements.txt .
 
-RUN pip install --progress-bar off --prefer-binary -r requirements.txt
+RUN uv pip install -q -r requirements.txt
 
 
 FROM base_python AS dev_python
@@ -196,7 +197,7 @@ RUN pip install nomad-lab-*.tar.gz
 # Install default plugins. TODO: This can be removed once we have a proper
 # distribution project.
 COPY default_plugins.txt .
-RUN pip install -r default_plugins.txt -c requirements.txt
+RUN uv pip install -r default_plugins.txt -c requirements.txt
 
 # Reduce the size of the packages
 RUN find /usr/local/lib/python3.9/ -type d -name 'tests' ! -path '*/networkx/*' -exec rm -r '{}' + \
