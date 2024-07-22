@@ -57,7 +57,8 @@ import {
   parseQuantityName,
   rsplit,
   parseOperator,
-  getSuggestions
+  getSuggestions,
+  DType
 } from '../../utils'
 import { Quantity } from '../units/Quantity'
 import { Unit } from '../units/Unit'
@@ -246,13 +247,18 @@ export const SearchContextRaw = React.memo(({
     // Add unit information if one is defined. This unit is currently fixed and
     // not affected by global unit system.
     const config = cloneDeep(initialColumns)
-    let options = config?.options ? Object.values(config.options) : []
+    let options = config?.options
+      ? Object.entries(config.options).map(([key, value]) => ({key, ...value}))
+      : []
     options.forEach(option => {
-      const unit = option.unit
+      const storageUnit = initialFilterData[option.quantity || option.key]?.unit
+      const displayUnit = option.unit
       option.label = option.label || initialFilterData[option.quantity || option.key]?.label
-      if (unit) {
-        option.unit = new Unit(unit)
-        option.label = `${option.label} (${option.unit.label()})`
+      if (storageUnit || displayUnit) {
+        const finalUnit = displayUnit
+          ? new Unit(displayUnit)
+          : new Unit(storageUnit).toSystem(units)
+        option.label = `${option.label} (${finalUnit.label()})`
       }
     })
 
@@ -264,7 +270,6 @@ export const SearchContextRaw = React.memo(({
 
         const transform = (value) => {
           const key = option.key
-          const unit = option.unit
           const format = option.format
           const dtype = initialFilterData[key]?.dtype
 
@@ -272,11 +277,15 @@ export const SearchContextRaw = React.memo(({
             return formatTimestamp(value, format?.mode)
           }
 
-          if (unit) {
-            const originalUnit = initialFilterData[key]?.unit
-            value = new Quantity(value, originalUnit).to(unit).value()
+          const storageUnit = initialFilterData[option.quantity || option.key]?.unit
+          const displayUnit = option.unit
+          if (storageUnit || displayUnit) {
+            const finalUnit = displayUnit
+              ? new Unit(displayUnit)
+              : new Unit(storageUnit).toSystem(units)
+            value = new Quantity(value, storageUnit).to(finalUnit).value()
           }
-          if (format) {
+          if (dtype === DType.Int || dtype === DType.Float) {
             value = formatNumber(value, dtype, format?.mode, format?.decimals)
           }
           return value
@@ -359,7 +368,7 @@ export const SearchContextRaw = React.memo(({
     }))
 
     return config
-  }, [initialFilterData, initialColumns, user])
+  }, [initialFilterData, initialColumns, user, units])
 
   // The final row configuration
   const rows = useMemo(() => {

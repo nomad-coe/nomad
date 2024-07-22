@@ -23,7 +23,7 @@ import { makeStyles } from '@material-ui/core/styles'
 import FilterMainMenu from './menus/FilterMainMenu'
 import { collapsedMenuWidth } from './menus/FilterMenu'
 import SearchBar from './SearchBar'
-import SearchResults from './SearchResults'
+import { SearchResultsWithContext } from './SearchResults'
 import Dashboard from './widgets/Dashboard'
 import { useSearchContext } from './SearchContext'
 
@@ -114,7 +114,7 @@ const SearchPage = React.memo(({
           <Dashboard/>
         </Box>
         <Box position="relative" zIndex={1}>
-          <SearchResults/>
+          <SearchResultsWithContext/>
         </Box>
         <div className={clsx(styles.shadow, isMenuOpen && styles.shadowVisible)}></div>
       </Box>

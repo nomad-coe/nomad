@@ -31,7 +31,7 @@ import {useUploadPageContext} from './UploadPageContext'
 import {useEntryStore} from '../entry/EntryContext'
 import {traverse, useGlobalMetainfo} from '../archive/metainfo'
 import { defaultFilterGroups, quantityNameSearch } from '../search/FilterRegistry'
-import SearchResults from '../search/SearchResults'
+import { SearchResultsWithContext } from '../search/SearchResults'
 import {useDataStore} from '../DataStore'
 import {pluralize, resolveNomadUrlNoThrow} from "../../utils"
 import {Check} from '@material-ui/icons'
@@ -382,7 +382,7 @@ function SearchBox({open, onCancel, onSelectedChanged, selected}) {
           {definedFilters.length > 0 && <Chip label={`and ${definedFilters.length} more ${pluralize('filter', definedFilters.length, false)}`} color="primary" onDelete={() => handleResetSearch()}/>}
         </Box>
         <div className={classes.resultsTable}>
-          <SearchResults
+          <SearchResultsWithContext
             defaultUncollapsedEntryID={selected?.entry_id}
             multiSelect={false}
             noAction

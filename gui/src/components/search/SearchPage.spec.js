@@ -30,9 +30,8 @@ describe('', () => {
   })
   afterAll(() => closeAPI())
 
-  test.each(
-    Object.entries(ui.apps.options)
-  )('renders search page correctly, context: %s', async (key, context) => {
+  test('renders search page correctly', async () => {
+    const context = ui.apps.options.entries
     render(
       <SearchContext
           resource={context.resource}

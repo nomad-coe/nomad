@@ -48,18 +48,27 @@ export const ActionURL = React.memo(({action, data}) => {
   </Tooltip>
 })
 ActionURL.propTypes = {
-  // Action configuration from app config
-  action: PropTypes.object.isRequired,
-  // ES index data
-  data: PropTypes.object.isRequired
+  action: PropTypes.object.isRequired, // Action configuration from app config
+  data: PropTypes.object.isRequired // ES index data
 }
 
 /**
  * Displays the list of search results.
  */
-const SearchResults = React.memo((props) => {
-  const {noAction, onSelectedChanged, defaultUncollapsedEntryID, title, 'data-testid': testID, PaperProps, ...otherProps} = props
-  const {columns, resource, rows, useResults, useApiQuery} = useSearchContext()
+export const SearchResults = React.memo(({
+  columns,
+  resource,
+  rows,
+  useResults,
+  useApiQuery,
+  noAction,
+  onSelectedChanged,
+  defaultUncollapsedEntryID,
+  title,
+  'data-testid': testID,
+  PaperProps,
+  ...otherProps
+}) => {
   const {data, pagination, setPagination} = useResults()
   const apiQuery = useApiQuery()
   const [selected, setSelected] = useState(new Set())
@@ -148,6 +157,11 @@ const SearchResults = React.memo((props) => {
 })
 
 SearchResults.propTypes = {
+  columns: PropTypes.object,
+  resource: PropTypes.string,
+  rows: PropTypes.object,
+  useResults: PropTypes.func,
+  useApiQuery: PropTypes.func,
   noAction: PropTypes.bool,
   PaperProps: PropTypes.object,
   onSelectedChanged: PropTypes.func,
@@ -160,4 +174,18 @@ SearchResults.defaultProps = {
   'data-testid': 'search-results'
 }
 
-export default SearchResults
+/**
+ * Displays search results from the current search context.
+ */
+export const SearchResultsWithContext = React.memo((props) => {
+  const {columns, resource, rows, useResults, useApiQuery} = useSearchContext()
+
+  return <SearchResults
+    columns={columns}
+    resource={resource}
+    rows={rows}
+    useResults={useResults}
+    useApiQuery={useApiQuery}
+    {...props}
+  />
+})

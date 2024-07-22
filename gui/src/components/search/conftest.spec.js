@@ -336,7 +336,7 @@ export async function expectSearchResults(context, root = screen) {
     const columnConfig = context.columns
     const columnLabels = columnConfig.selected.map(key => {
       const config = columnConfig.options[key]
-      const unit = config.unit
+      const unit = config.unit || defaultFilterData[key]?.unit
       const label = config.label || defaultFilterData[key]?.label || getDisplayLabel({name: key.split('.').slice(-1)[0]})
       return unit
         ? `${label} (${new Unit(unit).label()})`

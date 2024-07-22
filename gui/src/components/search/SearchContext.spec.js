@@ -15,13 +15,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import React from 'react'
 import { renderHook, act } from '@testing-library/react-hooks'
 import { WrapperSearch } from './conftest.spec'
-import { useSearchContext } from './SearchContext'
+import { useSearchContext, SearchContextRaw } from './SearchContext'
 import { Quantity } from '../units/Quantity'
 import { isEqualWith } from 'lodash'
+import { Filter } from '../search/Filter'
 import { SearchSuggestion, SuggestionType } from './SearchSuggestion'
 import { WrapperDefault } from '../conftest.spec'
+
+/**
+ * Can be used to wrap the test in a specific search context.
+ */
+const Wrapper = (props) => {
+  return <WrapperDefault>
+    <SearchContextRaw
+      resource="entries"
+      id='entries'
+      {...props}
+    ></SearchContextRaw>
+  </WrapperDefault>
+}
 
 describe('parseQuery', function() {
   test.each([
@@ -107,4 +123,22 @@ describe('reading query from URL', function() {
     const query = resultUseQuery.current
     expect(query).toMatchObject(expected_query)
   })
+})
+
+describe('test that final column information is generated correctly', function() {
+  test.each([
+    ['default unit, default label', {}, new Filter({name: 'test_filter'}, {group: 'test', unit: 'joule'}), 'Test filter (eV)'],
+    ['custom label, default unit', {label: 'Testing'}, new Filter(undefined, {group: 'test', unit: 'joule'}), 'Testing (eV)'],
+    ['default label, custom unit', {}, new Filter({name: 'test_filter'}, {group: 'test', unit: 'joule'}), 'Test filter (eV)'],
+    ['custom label, custom unit', {label: 'Testing', unit: 'Ha'}, new Filter(undefined, {group: 'test', unit: 'joule'}), 'Testing (Ha)']
+  ])('%s', async (name, column, filter, label) => {
+    const key = 'test_filter'
+    const { result: resultUseSearchContext } = renderHook(() => useSearchContext(), { wrapper: (props) => <Wrapper
+      initialFilterData={{[key]: filter}}
+      initialColumns={{options: {[key]: column}}} {...props}
+    />})
+    const columns = resultUseSearchContext.current.columns
+    expect(columns.options[key].label).toBe(label)
+    }
+  )
 })

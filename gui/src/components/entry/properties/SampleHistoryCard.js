@@ -21,7 +21,7 @@ import React, { memo, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { PropertyCard } from './PropertyCard'
 import { SearchContext, useSearchContext } from "../../search/SearchContext"
-import SearchResults from "../../search/SearchResults"
+import { SearchResultsWithContext } from "../../search/SearchResults"
 import { cloneDeep } from "lodash"
 import { ui } from "../../../config"
 
@@ -55,7 +55,7 @@ const HistoryCard = memo(() => {
 
   return (
     <PropertyCard title='History'>
-      <SearchResults
+      <SearchResultsWithContext
         title='activity'
         multiSelect={false}
         PaperProps={{elevation: 0}}

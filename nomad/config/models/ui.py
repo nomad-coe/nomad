@@ -224,7 +224,7 @@ class Format(ConfigBaseModel):
     """Value formatting options."""
 
     decimals: int = Field(3, description='Number of decimals to show for numbers.')
-    mode: ModeEnum = Field('standard', description='Display mode for numbers.')
+    mode: ModeEnum = Field(ModeEnum.SCIENTIFIC, description='Display mode for numbers.')
 
 
 class AlignEnum(str, Enum):
