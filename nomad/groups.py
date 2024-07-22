@@ -73,11 +73,11 @@ class UserGroup(Document):
         """
         Returns UserGroup objects where group_name includes search_terms (no case).
         """
-        search_terms = str(search_terms).split()
-        if not search_terms:
+        split_terms = str(search_terms).split()
+        if not split_terms:
             return []
 
-        query = (Q(group_name__icontains=term) for term in search_terms)
+        query = (Q(group_name__icontains=term) for term in split_terms)
         query = reduce(operator.and_, query)
         user_groups = cls.objects(query)
         return user_groups
