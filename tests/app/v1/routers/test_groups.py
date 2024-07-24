@@ -65,16 +65,16 @@ def test_get_groups(
         pytest.param(
             {'group_id': ['group1', 'group2']}, ['group1', 'group2'], id='ids'
         ),
-        pytest.param({'search_terms': ['Uniq']}, ['uniq'], id='uniq'),
-        pytest.param({'search_terms': ['iq']}, ['uniq'], id='uniq-partial'),
-        pytest.param({'search_terms': ['Twin']}, ['twin1', 'twin2'], id='twins'),
-        pytest.param({'search_terms': ['Twin One']}, ['twin1'], id='twin1'),
+        pytest.param({'search_terms': 'Uniq'}, ['uniq'], id='uniq'),
+        pytest.param({'search_terms': 'iq'}, ['uniq'], id='uniq-partial'),
+        pytest.param({'search_terms': 'Twin'}, ['twin1', 'twin2'], id='twins'),
+        pytest.param({'search_terms': 'Twin One'}, ['twin1'], id='twin1'),
         pytest.param(
-            {'search_terms': ['One']}, ['twin1', 'numerals'], id='twin1-numerals'
+            {'search_terms': 'One'}, ['twin1', 'numerals'], id='twin1-numerals'
         ),
-        pytest.param({'search_terms': ['One Two']}, ['numerals'], id='numerals'),
+        pytest.param({'search_terms': 'One Two'}, ['numerals'], id='numerals'),
         pytest.param(
-            {'search_terms': ['Tw']}, ['twin1', 'twin2', 'numerals'], id='tw-partial'
+            {'search_terms': 'Tw'}, ['twin1', 'twin2', 'numerals'], id='tw-partial'
         ),
     ],
 )
