@@ -17,7 +17,7 @@
 #
 import operator
 from functools import reduce
-from typing import Iterable, List, Optional
+from typing import Iterable, Optional, Union
 
 from mongoengine import Document, ListField, StringField
 from mongoengine.queryset.visitor import Q
@@ -40,10 +40,12 @@ class UserGroup(Document):
     meta = {'indexes': ['group_name', 'owner', 'members']}
 
     @classmethod
-    def get_by_ids(cls, group_ids: Iterable[str]):
+    def get_by_ids(cls, group_ids: Union[str, Iterable[str]]):
         """
         Returns UserGroup objects with group_ids.
         """
+        if not isinstance(group_ids, Iterable):
+            group_ids = [group_ids]
         user_groups = cls.objects(group_id__in=group_ids)
         return user_groups
 
@@ -58,7 +60,7 @@ class UserGroup(Document):
         return user_groups
 
     @classmethod
-    def get_ids_by_user_id(cls, user_id: Optional[str], include_all=True) -> List[str]:
+    def get_ids_by_user_id(cls, user_id: Optional[str], include_all=True) -> list[str]:
         """
         Returns ids of all user groups where user_id is owner or member.
         Does include special group 'all', even if user_id is missing or not a user.
