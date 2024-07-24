@@ -74,6 +74,39 @@ file in another upload, follow the same form for
 To read a dataset, use `read_dataset` and provide a reference. This will return the value
 cast in the type of the dataset.
 
+## HDF5Normalizer
+
+A different flavor of _**reading**_ HDF5 files into NOMAD quantities is through defining a
+[custom schema](../../tutorial/custom.md) and inheriting `HDF5Normalizer` into base-sections. Two essential components
+of using `HDF5Normalizer` class is to first define a quantity that is annotated with `FileEditQuantity` field
+to enable one to drop/upload the `*.h5` file, and to define relevant quantities annotated with `path`
+attribute under `hdf5`. These quantities are then picked up by the normalizer to extract the values to be found
+denoted by the `path`.
+
+A minimum example to import your hdf5 and map it to NOMAD quantities is by using the following custom schema:
+
+```yaml
+definitions:
+  name: 'hdf5'
+  sections:
+    Test_HDF5:
+      base_sections:
+        - 'nomad.datamodel.data.EntryData'
+        - 'nomad.datamodel.metainfo.basesections.HDF5Normalizer'
+      quantities:
+        datafile:
+          type: str
+          m_annotations:
+            eln:
+              component: FileEditQuantity
+        charge_density:
+          type: np.float32
+          shape: [ '*', '*', '*' ]
+          m_annotations:
+            hdf5:
+              path: '/path/to/charge_density'
+```
+
 ## HDF5Dataset
 To use HDF5 storage for archive quantities, one should use `HDF5Dataset`.
 
