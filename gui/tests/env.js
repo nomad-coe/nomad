@@ -1637,8 +1637,9 @@ window.nomadEnv = {
                 "align": "left"
               },
               "results.properties.catalytic.catalyst.surface_area": {
-                "label": "Surface area (m^2/g)",
+                "label": "Surface area",
                 "align": "left",
+                "unit": "m^2/g",
                 "format": {
                   "decimals": 2,
                   "mode": "standard"
