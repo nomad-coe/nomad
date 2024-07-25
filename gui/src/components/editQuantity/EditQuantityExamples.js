@@ -250,6 +250,23 @@ export function EditQuantityExamples() {
                 <Grid item>
                   <Example
                     code={`
+                    bool_with_labels:
+                      type: bool
+                      m_annotations:
+                        eln:
+                          component: BoolEditQuantity
+                          boolean_labels:
+                            true: on
+                            false: off
+                            undefined: undecided`}
+                  >
+                    <BoolEditQuantity {...createDefaultProps('bool_with_labels')}
+                                      booleanLabels={{true: 'on', false: 'off', undefined: 'undecided'}}/>
+                  </Example>
+                </Grid>
+                <Grid item>
+                  <Example
+                    code={`
                     radio_enum:
                       type:
                         type_kind: enum
