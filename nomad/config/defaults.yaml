@@ -1274,7 +1274,8 @@ ui:
               format:
                 decimals: 2
                 mode: standard
-              label: Surface area (m^2/g)
+              unit: 'm^2/g'
+              label: Surface area
             results.properties.catalytic.reaction.name: {label: Reaction name}
             results.properties.catalytic.reaction.type: {label: Reaction class}
             results.properties.catalytic.reaction.reactants.name: {label: Reactants}
