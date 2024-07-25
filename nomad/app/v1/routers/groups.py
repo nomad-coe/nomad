@@ -18,19 +18,20 @@
 
 from typing import List, Optional, Set
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from nomad.datamodel import User as UserDataModel
 from nomad.groups import (
     UserGroup as MongoUserGroup,
+)
+from nomad.groups import (
     create_user_group as create_mongo_user_group,
 )
 from nomad.utils import strip
 
-from .auth import create_user_dependency
 from ..models import User
-
+from .auth import create_user_dependency
 
 router = APIRouter()
 default_tag = 'groups'
@@ -75,7 +76,7 @@ def get_mongo_user_group(group_id: str) -> MongoUserGroup:
     if user_group is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=strip(f"User group '{group_id}' was not found."),
+            detail=f"User group '{group_id}' was not found.",
         )
 
     return user_group
@@ -107,11 +108,32 @@ def check_user_may_edit_user_group(user: User, user_group: MongoUserGroup):
 
 
 @router.get(
-    '', tags=[default_tag], summary='List user groups.', response_model=UserGroups
+    '',
+    tags=[default_tag],
+    summary='List user groups. Use at most one filter.',
+    response_model=UserGroups,
 )
-async def get_user_groups():
+async def get_user_groups(
+    group_id: Optional[List[str]] = Query(
+        None, description='Search groups by their full id.'
+    ),
+    search_terms: Optional[str] = Query(
+        None, description='Search groups by parts of their name.'
+    ),
+):
     """Get data about user groups."""
-    user_groups = MongoUserGroup.objects
+    if group_id is not None and search_terms is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Only one of group_id or search_terms may be used at a time.',
+        )
+
+    if group_id is not None:
+        user_groups = MongoUserGroup.get_by_ids(group_id)
+    elif search_terms is not None:
+        user_groups = MongoUserGroup.get_by_search_terms(search_terms)
+    else:
+        user_groups = MongoUserGroup.objects
     data = [UserGroup.from_orm(user_group) for user_group in user_groups]
     return {'data': data}
 

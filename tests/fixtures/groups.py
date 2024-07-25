@@ -15,8 +15,10 @@ from tests.utils import fake_group_uuid, fake_user_uuid, generate_convert_label
 def group_molds():
     """Return a dict: group label -> group data (dict)."""
 
-    def old_group(owner, members):
-        group_str = str(owner) + ''.join(str(m) for m in members)
+    def old_group(owner, members, group_str=None):
+        if group_str is None:
+            group_str = str(owner) + ''.join(str(m) for m in members)
+
         return dict(
             group_id=fake_group_uuid(group_str),
             group_name=f'Group {group_str}',
@@ -43,6 +45,10 @@ def group_molds():
         'group18': old_group(1, [8]),
         'group19': old_group(1, [9]),
         'group123': old_group(1, [2, 3]),
+        'uniq': old_group(0, [], 'Uniq'),
+        'twin1': old_group(0, [], 'Twin One'),
+        'twin2': old_group(0, [], 'Twin Two'),
+        'numerals': old_group(0, [], 'One Two Three'),
     }
 
     new_groups = {

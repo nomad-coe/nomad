@@ -59,6 +59,48 @@ def test_get_groups(
 
 
 @pytest.mark.parametrize(
+    'filters, ref_group_labels',
+    [
+        pytest.param({'group_id': ['group1']}, ['group1'], id='id'),
+        pytest.param(
+            {'group_id': ['group1', 'group2']}, ['group1', 'group2'], id='ids'
+        ),
+        pytest.param({'search_terms': 'Uniq'}, ['uniq'], id='uniq'),
+        pytest.param({'search_terms': 'iq'}, ['uniq'], id='uniq-partial'),
+        pytest.param({'search_terms': 'Twin'}, ['twin1', 'twin2'], id='twins'),
+        pytest.param({'search_terms': 'Twin One'}, ['twin1'], id='twin1'),
+        pytest.param(
+            {'search_terms': 'One'}, ['twin1', 'numerals'], id='twin1-numerals'
+        ),
+        pytest.param({'search_terms': 'One Two'}, ['numerals'], id='numerals'),
+        pytest.param(
+            {'search_terms': 'Tw'}, ['twin1', 'twin2', 'numerals'], id='tw-partial'
+        ),
+    ],
+)
+def test_get_filtered_groups(
+    auth_headers,
+    client,
+    convert_group_labels_to_ids,
+    groups_module,
+    filters,
+    ref_group_labels,
+):
+    filters = convert_group_labels_to_ids(filters)
+    response = perform_get(client, base_url, auth_headers['user1'], **filters)
+    assert_response(response, 200)
+
+    response_groups = UserGroups.parse_raw(response.content)
+    response_ids = [group.group_id for group in response_groups.data]
+    ref_group_ids = convert_group_labels_to_ids(ref_group_labels)
+    assert_unordered_lists(response_ids, ref_group_ids)
+
+    for response_group in response_groups.data:
+        group = get_user_group(response_group.group_id)
+        assert_group(group, response_group)
+
+
+@pytest.mark.parametrize(
     'user_label, expected_status_code',
     [
         pytest.param('user1', 200, id='user1'),

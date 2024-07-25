@@ -15,9 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Iterable, List, Optional
+import operator
+from functools import reduce
+from typing import Iterable, Optional, Union
 
-from mongoengine import Document, StringField, ListField
+from mongoengine import Document, ListField, StringField
 from mongoengine.queryset.visitor import Q
 
 from nomad.utils import create_uuid
@@ -38,6 +40,16 @@ class UserGroup(Document):
     meta = {'indexes': ['group_name', 'owner', 'members']}
 
     @classmethod
+    def get_by_ids(cls, group_ids: Union[str, Iterable[str]]):
+        """
+        Returns UserGroup objects with group_ids.
+        """
+        if not isinstance(group_ids, Iterable):
+            group_ids = [group_ids]
+        user_groups = cls.objects(group_id__in=group_ids)
+        return user_groups
+
+    @classmethod
     def get_by_user_id(cls, user_id: Optional[str]):
         """
         Returns UserGroup objects where user_id is owner or member, or None.
@@ -48,7 +60,7 @@ class UserGroup(Document):
         return user_groups
 
     @classmethod
-    def get_ids_by_user_id(cls, user_id: Optional[str], include_all=True) -> List[str]:
+    def get_ids_by_user_id(cls, user_id: Optional[str], include_all=True) -> list[str]:
         """
         Returns ids of all user groups where user_id is owner or member.
         Does include special group 'all', even if user_id is missing or not a user.
@@ -57,6 +69,20 @@ class UserGroup(Document):
         if user_id is not None:
             group_ids.extend(group.group_id for group in cls.get_by_user_id(user_id))
         return group_ids
+
+    @classmethod
+    def get_by_search_terms(cls, search_terms: str):
+        """
+        Returns UserGroup objects where group_name includes search_terms (no case).
+        """
+        split_terms = str(search_terms).split()
+        if not split_terms:
+            return []
+
+        query = (Q(group_name__icontains=term) for term in split_terms)
+        query = reduce(operator.and_, query)
+        user_groups = cls.objects(query)
+        return user_groups
 
 
 def create_user_group(
