@@ -50,5 +50,5 @@ export default function UploadProgressDialog({uploading}) {
 }
 
 UploadProgressDialog.propTypes = {
-  uploading: PropTypes.number.isRequired
+  uploading: PropTypes.number
 }

@@ -26,7 +26,7 @@ import { makeStyles } from '@material-ui/core'
  */
 const useStyles = makeStyles(theme => ({
   root: {
-    dislay: 'inline-block',
+    display: 'block',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
@@ -44,7 +44,7 @@ const useStyles = makeStyles(theme => ({
 
 const Ellipsis = React.memo(({front, children}) => {
   const styles = useStyles()
-  return <div className={clsx(styles.root, front && styles.ellipsisFront)}>{children}</div>
+  return <span className={clsx(styles.root, front && styles.ellipsisFront)}>{children}</span>
 })
 
 Ellipsis.propTypes = {
