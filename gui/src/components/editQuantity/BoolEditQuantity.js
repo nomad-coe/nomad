@@ -18,7 +18,7 @@
 import React, {useCallback} from 'react'
 import {
   FormControlLabel,
-  Checkbox
+  Checkbox, FormLabel, RadioGroup, Radio, FormControl
 } from '@material-ui/core'
 import PropTypes from 'prop-types'
 import {getFieldProps, WithHelp} from './StringEditQuantity'
@@ -27,33 +27,73 @@ import {useRecoilValue} from "recoil"
 import {configState} from "../archive/ArchiveBrowser"
 
 export const BoolEditQuantity = React.memo(function BoolEditQuantity(props) {
-  const {quantityDef, value, onChange, ...otherProps} = props
+  const {quantityDef, value, onChange, booleanLabels, ...otherProps} = props
   const fieldProps = getFieldProps(quantityDef)
   const config = useRecoilValue(configState)
   const label = getDisplayLabel(quantityDef, true, config?.showMeta)
 
-  const handleChange = useCallback((event) => {
-    const value = event.target.checked
+  const handleCheckboxChange = useCallback(e => {
+    const value = e.target.checked
     if (onChange) {
       onChange(value)
     }
   }, [onChange])
 
-  return <WithHelp {...fieldProps} label={label}>
-    <FormControlLabel
-      control={(
-        <Checkbox
-          onChange={handleChange}
-          color="primary"
-          checked={!!value}
-          {...otherProps}
-        />)}
-      label={label}
-    />
-  </WithHelp>
+  const handleRadioChange = useCallback(e => {
+    const value = e.target.value === 'true' ? true : (e.target.value === 'false' ? false : undefined)
+    if (onChange) {
+      onChange(value)
+    }
+  }, [onChange])
+
+  return (
+    <WithHelp {...fieldProps} label={label}>
+      {booleanLabels ? (
+        <FormControl>
+          <FormLabel>{label}</FormLabel>
+          <RadioGroup row value={String(value)} onChange={handleRadioChange}>
+            {Object.keys(booleanLabels).map(key => (
+              <FormControlLabel
+                value={key}
+                key={key}
+                control={<Radio {...otherProps} />}
+                label={booleanLabels[key]}
+              />
+            ))}
+          </RadioGroup>
+        </FormControl>
+      ) : (
+        <FormControlLabel
+          control={
+            <Checkbox
+              onChange={handleCheckboxChange}
+              color="primary"
+              checked={value === true}
+              indeterminate={value === undefined}
+              {...otherProps}
+            />
+          }
+          label={label}
+        />
+      )}
+    </WithHelp>
+  )
 })
+
 BoolEditQuantity.propTypes = {
   quantityDef: PropTypes.object.isRequired,
-  value: PropTypes.bool,
-  onChange: PropTypes.func
+  value: PropTypes.oneOf([true, false, undefined]),
+  onChange: PropTypes.func,
+  booleanLabels: (props, propName, componentName) => {
+    const labels = props[propName]
+    if (!labels) return null
+    if (typeof labels !== 'object') {
+      return new Error(`Invalid prop \`${propName}\` supplied to \`${componentName}\`. Expected an object.`)
+    }
+    const validKeys = ['true', 'false', 'undefined']
+    if (!Object.keys(labels).every(key => validKeys.includes(key))) {
+      return new Error(`Invalid prop \`${propName}\` supplied to \`${componentName}\`. Expected keys "true", "false", "undefined".`)
+    }
+    return null
+  }
 }
