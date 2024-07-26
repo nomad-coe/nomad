@@ -21,7 +21,7 @@ grep pynxtools scripts/install_default_plugins.sh | grep "@git+" 1>&2
 cp requirements.txt requirements.txt.tmp
 cp requirements-dev.txt requirements-dev.txt.tmp
 
-uv pip compile -q -U --annotation-style=line \
+uv pip compile -q -U --universal --annotation-style=line \
     --extra=infrastructure --extra=parsing \
     --output-file=requirements.txt \
     dependencies/nomad-dos-fingerprints/pyproject.toml \
@@ -30,7 +30,7 @@ uv pip compile -q -U --annotation-style=line \
 
 diff requirements.txt.tmp requirements.txt
 
-uv pip compile -q -U --annotation-style=line \
+uv pip compile -q -U --universal --annotation-style=line \
     --extra=dev --extra=infrastructure --extra=parsing \
     --output-file=requirements-dev.txt \
     requirements.txt \

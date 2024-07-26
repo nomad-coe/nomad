@@ -424,7 +424,7 @@ cd <parser-dir>
 Either remove the installed parser and `pip install` the cloned version:
 
 ```shell
-rm -rf <path-to-your-python-env>/lib/python3.9/site-packages/<parser-module-name>
+rm -rf <path-to-your-python-env>/lib/python3.11/site-packages/<parser-module-name>
 pip install -e .
 ```
 
