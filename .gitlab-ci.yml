@@ -152,6 +152,16 @@ python linting:
       codequality: gl-code-quality-report.json
     expire_in: never
 
+python package clean up:
+  stage: test
+  image: ${CI_REGISTRY_IMAGE}/dev_python:${DOCKER_TAG}
+  script:
+    - python scripts/cleanup_packages.py
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $NIGHTLY
+    - when: manual
+      allow_failure: true
+
 check python dependencies:
   stage: test
   image: python:3.9
@@ -533,6 +543,7 @@ python package:
   rules:
     - when: manual
       allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG
 
 pypi package:
   stage: release
