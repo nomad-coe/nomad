@@ -400,31 +400,31 @@ def test_indices(path, filename, n_atoms, client, example_data_systems):
         ),
         pytest.param(
             '/run/0/system/3',
-            WrapModeEnum.original,
+            WrapModeEnum.original,  # type: ignore
             [[-15, -15, -15], [17, 17, 17]],
             id='original',
         ),
         pytest.param(
             '/run/0/system/3',
-            WrapModeEnum.wrap,
+            WrapModeEnum.wrap,  # type: ignore
             [[0, 0, 0], [2, 2, 2]],
             id='wrap, pbc=[1, 1, 1]',
         ),
         pytest.param(
             '/run/0/system/4',
-            WrapModeEnum.wrap,
+            WrapModeEnum.wrap,  # type: ignore
             [[-15, -15, -15], [17, 17, 17]],
             id='wrap, pbc=[0, 0, 0]',
         ),
         pytest.param(
             '/run/0/system/3',
-            WrapModeEnum.unwrap,
+            WrapModeEnum.unwrap,  # type: ignore
             [[1.5, 1.5, 1.5], [3.5, 3.5, 3.5]],
             id='unwrap, pbc=[1, 1, 1]',
         ),
         pytest.param(
             '/run/0/system/4',
-            WrapModeEnum.unwrap,
+            WrapModeEnum.unwrap,  # type: ignore
             [[-15, -15, -15], [17, 17, 17]],
             id='unwrap, pbc=[0, 0, 0]',
         ),

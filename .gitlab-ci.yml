@@ -375,7 +375,10 @@ build final image:
 
 install tests:
   stage: test
-  image: python:3.9
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.9", "3.10", "3.11"]
+  image: python:${PYTHON_VERSION}
   needs: ["build python package"]
   variables:
     UV_SYSTEM_PYTHON: true

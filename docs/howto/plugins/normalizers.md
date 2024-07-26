@@ -178,7 +178,7 @@ cd <normalizer-dir>
 Either remove the installed normalizer and `pip install` the cloned version:
 
 ```shell
-rm -rf <path-to-your-python-env>/lib/python3.9/site-packages/<normalizer-module-name>
+rm -rf <path-to-your-python-env>/lib/python3.11/site-packages/<normalizer-module-name>
 pip install -e .
 ```
 

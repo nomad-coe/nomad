@@ -172,7 +172,7 @@ and the "Allow GitHub Actions to create and approve pull requests" options and c
 Before we can start developing we recommend to create a virtual environment using Python 3.9
 
 ```sh
-python3.9 -m venv .pyenv
+python3.11 -m venv .pyenv
 source .pyenv/bin/activate
 ```
 

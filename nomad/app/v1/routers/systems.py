@@ -17,6 +17,7 @@
 #
 from typing import Dict, List, Union
 from io import StringIO, BytesIO
+import sys
 from collections import OrderedDict
 from enum import Enum
 
@@ -210,9 +211,15 @@ for format in format_map.values():
     )
 format_features = '\n'.join(format_features_list)
 
+if sys.version_info < (3, 11):
 
-class TempFormatEnum(str, Enum):
-    pass
+    class TempFormatEnum(str, Enum):
+        pass
+else:
+    from enum import StrEnum
+
+    class TempFormatEnum(StrEnum):
+        pass
 
 
 FormatEnum = TempFormatEnum(
@@ -239,8 +246,15 @@ wrap_mode_map: Dict[str, dict] = OrderedDict(
 )
 
 
-class TempWrapModeEnum(str, Enum):
-    pass
+if sys.version_info < (3, 11):
+
+    class TempWrapModeEnum(str, Enum):
+        pass
+else:
+    from enum import StrEnum
+
+    class TempWrapModeEnum(StrEnum):
+        pass
 
 
 WrapModeEnum = TempWrapModeEnum(
@@ -334,7 +348,7 @@ Here is a brief rundown of the different features each format supports:
 {format_features}""",
     ),
     wrap_mode: WrapModeEnum = Query(  # type: ignore
-        default=WrapModeEnum.original,
+        default=WrapModeEnum.original,  # type: ignore
         description=f"""Determines how to handle atomic positions for the requested system. The available options are:
 
 {wrap_mode_description}
@@ -437,13 +451,13 @@ Here is a brief rundown of the different features each format supports:
             pass
 
         # Handle wrap mode
-        if wrap_mode == WrapModeEnum.wrap:
+        if wrap_mode == WrapModeEnum.wrap:  # type: ignore
             atoms.positions = wrap_positions(
                 atoms.positions.magnitude,
                 atoms.lattice_vectors.magnitude,
                 atoms.periodic,
             )
-        elif wrap_mode == WrapModeEnum.unwrap:
+        elif wrap_mode == WrapModeEnum.unwrap:  # type: ignore
             atoms.positions = unwrap_positions(
                 atoms.positions.magnitude,
                 atoms.lattice_vectors.magnitude,
