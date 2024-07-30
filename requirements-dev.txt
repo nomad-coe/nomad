@@ -141,7 +141,7 @@ mypy==1.0.1               # via nomad-lab (pyproject.toml)
 mypy-extensions==1.0.0    # via mypy
 names==0.3.0              # via nomad-lab (pyproject.toml)
 netcdf4==1.6.5            # via -r requirements.txt, nomad-lab (pyproject.toml)
-networkx==2.6.3           # via matid, mdanalysis, pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
+networkx==3.2.1           # via matid, mdanalysis, pymatgen, -r requirements.txt, nomad-lab (pyproject.toml)
 nh3==0.2.18               # via readme-renderer
 nomad-openbis==1.0.0      # via -r requirements.txt, nomad-lab (pyproject.toml)
 nptyping==1.4.4           # via -r requirements.txt, nomad-lab (pyproject.toml)
