@@ -2642,10 +2642,10 @@ window.nomadEnv = {
                 "entry_id",
                 "entry_type",
                 "authors",
-                "data.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
-                "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook",
-                "data.platform#nomad_aitoolkit.schema.package.AIToolkitNotebook",
-                "data.date#nomad_aitoolkit.schema.package.AIToolkitNotebook"
+                "data.name#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "data.category#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "data.platform#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "data.date#nomad_aitoolkit.schema.AIToolkitNotebook"
               ],
               "options": {
                 "entry_id": {
@@ -2659,19 +2659,19 @@ window.nomadEnv = {
                   "label": "Authors",
                   "align": "left"
                 },
-                "data.name#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                "data.name#nomad_aitoolkit.schema.AIToolkitNotebook": {
                   "label": "Name",
                   "align": "left"
                 },
-                "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                "data.category#nomad_aitoolkit.schema.AIToolkitNotebook": {
                   "label": "Category",
                   "align": "left"
                 },
-                "data.platform#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                "data.platform#nomad_aitoolkit.schema.AIToolkitNotebook": {
                   "label": "Platform",
                   "align": "left"
                 },
-                "data.date#nomad_aitoolkit.schema.package.AIToolkitNotebook": {
+                "data.date#nomad_aitoolkit.schema.AIToolkitNotebook": {
                   "label": "Last update",
                   "align": "left",
                   "format": {
@@ -2681,10 +2681,10 @@ window.nomadEnv = {
                 }
               },
               "selected": [
-                "data.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                "data.name#nomad_aitoolkit.schema.AIToolkitNotebook",
                 "authors",
-                "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook",
-                "data.date#nomad_aitoolkit.schema.package.AIToolkitNotebook"
+                "data.category#nomad_aitoolkit.schema.AIToolkitNotebook",
+                "data.date#nomad_aitoolkit.schema.AIToolkitNotebook"
               ]
             },
             "rows": {
@@ -2726,10 +2726,7 @@ window.nomadEnv = {
             },
             "filters": {
               "include": [
-                "*#nomad_aitoolkit.schema.package.AIToolkitNotebook"
-              ],
-              "exclude": [
-                "*#nomad.datamodel.metainfo.eln.BasicEln"
+                "*#nomad_aitoolkit.schema.AIToolkitNotebook"
               ]
             },
             "dashboard": {
@@ -2778,7 +2775,7 @@ window.nomadEnv = {
                       "minW": 3
                     }
                   },
-                  "quantity": "data.category#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                  "quantity": "data.category#nomad_aitoolkit.schema.AIToolkitNotebook",
                   "scale": "linear",
                   "showinput": true
                 },
@@ -2827,7 +2824,7 @@ window.nomadEnv = {
                       "minW": 3
                     }
                   },
-                  "quantity": "data.methods.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                  "quantity": "data.methods.name#nomad_aitoolkit.schema.AIToolkitNotebook",
                   "scale": "linear",
                   "showinput": true
                 },
@@ -2876,7 +2873,7 @@ window.nomadEnv = {
                       "minW": 3
                     }
                   },
-                  "quantity": "data.systems.name#nomad_aitoolkit.schema.package.AIToolkitNotebook",
+                  "quantity": "data.systems.name#nomad_aitoolkit.schema.AIToolkitNotebook",
                   "scale": "linear",
                   "showinput": true
                 }
@@ -2884,13 +2881,13 @@ window.nomadEnv = {
             },
             "filters_locked": {
               "section_defs.definition_qualified_name": [
-                "nomad_aitoolkit.schema.package.AIToolkitNotebook"
+                "nomad_aitoolkit.schema.AIToolkitNotebook"
               ]
             }
           }
         },
-        "nomad_aitoolkit.schema:package": {
-          "id": "nomad_aitoolkit.schema:package",
+        "nomad_aitoolkit:aitoolkit": {
+          "id": "nomad_aitoolkit:aitoolkit",
           "entry_point_type": "schema_package",
           "name": "AIToolkit",
           "description": "Describes the basic schemas for AI Toolkit notebooks.",
@@ -4520,12 +4517,12 @@ window.nomadEnv = {
         "documentation": null,
         "entry_points": [
           "nomad_aitoolkit.apps:aitoolkit",
-          "nomad_aitoolkit.schema:package"
+          "nomad_aitoolkit:aitoolkit"
         ],
         "homepage": null,
         "name": "nomad_aitoolkit",
         "repository": "https://github.com/FAIRmat-NFDI/nomad-aitoolkit",
-        "version": "0.1.0"
+        "version": "0.1.1"
       },
       "nomad_porous_materials": {
         "description": "NOMAD plugin for porous materials",

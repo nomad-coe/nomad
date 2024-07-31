@@ -22,6 +22,13 @@ nomad:
     north:
       enabled: true
 
+    plugins:
+      entry_points:
+        options:
+          'nomad_aitoolkit.apps:aitoolkit':
+            upload_ids:
+              - hHA2lM5HRy2ZN_La6TPGjg
+
   image:
     tag: "prod"
 
