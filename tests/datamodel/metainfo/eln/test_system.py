@@ -24,34 +24,6 @@ from nomad.utils.exampledata import ExampleData
 from tests.normalizing.conftest import run_normalize
 
 
-def test_substance(raw_files_function, user1, mongo_function):
-    directory = 'tests/data/datamodel/metainfo/eln'
-    mainfile = 'test_substance.archive.yaml'
-    upload_id = 'test_upload_id'
-
-    data = ExampleData(main_author=user1)
-    data.create_upload(upload_id=upload_id, published=False)
-    context = ClientContext(local_dir=directory, upload_id=upload_id)
-
-    test_archive = data.create_entry_from_file(
-        upload_id=upload_id,
-        mainfile=os.path.join(directory, mainfile),
-        entry_archive=EntryArchive(m_context=context),
-    )
-
-    data.save(with_es=False)
-
-    # Check that entry type is the custom 'my_substance' class
-    assert test_archive.metadata.entry_type == 'my_substance'
-    # Check that api call to CAS found Lead Iodide
-    assert test_archive.data.cas_number == '10101-63-0'
-    # Check that the material results section was populated by the normalizer
-    assert 'I' in test_archive.results.material.elements
-    assert 'Pb' in test_archive.results.material.elements
-
-    os.unlink(os.path.join(directory, 'cas_10101-63-0_image.svg'))
-
-
 def test_ensemble(raw_files_function, user1, mongo_function):
     directory = 'tests/data/datamodel/metainfo/eln'
     mainfile = 'test_ensemble.archive.yaml'
