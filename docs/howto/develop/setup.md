@@ -59,19 +59,19 @@ git submodule update --init
 
 ### Set up a Python environment
 
-The NOMAD code currently targets Python 3.9. You should work in a Python virtual environment.
+The NOMAD code currently requires at least Python 3.9, but we recommend using Python 3.11. You should work in a Python virtual environment.
 
 #### Pyenv
 
 If your host machine has an older version installed,
-you can use [pyenv](https://github.com/pyenv/pyenv){:target="_blank"} to use Python 3.9 in parallel with your
+you can use [pyenv](https://github.com/pyenv/pyenv){:target="_blank"} to use Python 3.11 in parallel with your
 system's Python.
 
 #### Virtualenv
 
 Create a virtual environment. It allows you
 to keep NOMAD and its dependencies separate from your system's Python installation.
-Make sure that the virtual environment is based on Python 3.9.
+Make sure that the virtual environment is based on Python 3.11.
 Use either the built-in `venv` module (see example) or [virtualenv](https://pypi.org/project/virtualenv/){:target="_blank"}.
 
 ```shell
