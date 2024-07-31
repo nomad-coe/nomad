@@ -20,7 +20,6 @@ import PropTypes from 'prop-types'
 import Quantity from '../Quantity'
 import { Formula } from './properties/MaterialCard'
 import { Tooltip, IconButton, Box } from '@material-ui/core'
-import { useApi } from '../api'
 import { EntryButton } from '../nav/Routes'
 import DetailsIcon from '@material-ui/icons/ArrowForward'
 import { makeStyles } from '@material-ui/core/styles'
@@ -114,10 +113,9 @@ EntryIds.propTypes = {
   data: PropTypes.object.isRequired
 }
 
-export const VisitEntryAction = React.memo(function VisitEntryAction({data, ...props}) {
-  const {user} = useApi()
-  const hide = (data.with_embargo && !user && !data.viewers.find(viewer => viewer.user_id === user.sub)) || data.process_running
-  if (hide) {
+export const VisitEntryAction = React.memo(({data, ...props}) => {
+  // The visit button is hidden if the entry is still processing.
+  if (data.process_running) {
     return null
   }
 
