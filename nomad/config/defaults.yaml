@@ -134,7 +134,7 @@ normalize:
   angle_rounding: 10.0
   band_structure_energy_tolerance: 8.01088e-21
   cluster_threshold: 2.5
-  clustering_size_limit: 600
+  clustering_size_limit: 1000
   flat_dim_threshold: 0.1
   k_space_precision: 150000000.0
   max_2d_single_cell_size: 7
