@@ -92,7 +92,7 @@ function SearchDialog({open, filters, pageSize, onCancel, onQueryChanged}) {
     if (!data) {
       return undefined
     }
-    return data.map(entry => ({entry_id: entry.entry_id, mainfile: entry.mainfile}))
+    return data.map(entry => ({entry_id: entry.entry_id, upload_id: entry.upload_id, mainfile: entry.mainfile}))
   }, [data])
 
   const handleQueryChanged = useCallback(() => {
