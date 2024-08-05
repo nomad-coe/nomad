@@ -16,8 +16,7 @@ rm -rf nomad/app/static/gui
 rm -rf site
 
 # Install nomad
-pip install --prefer-binary -r requirements-dev.txt
-pip install -e ".[infrastructure,parsing,dev]"
+pip install -e ".[infrastructure,parsing,dev]" -c requirements-dev.txt
 
 # Install "default" plugins. TODO: This can be removed once we have proper
 # distributions projects.
