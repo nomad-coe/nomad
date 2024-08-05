@@ -17,7 +17,7 @@
  */
 import React, { useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
-import { string, number, bool, reach } from 'yup'
+import { number, bool, reach } from 'yup'
 import { cloneDeep } from 'lodash'
 import {
   TextField,
@@ -29,7 +29,7 @@ import { useSearchContext } from '../SearchContext'
 import { InputMetainfo } from '../input/InputMetainfo'
 import { InputTextField } from '../input/InputText'
 import UnitInput from '../../units/UnitInput'
-import { schemaWidget, schemaAxis } from './Widget'
+import { schemaWidget, schemaAxis, schemaAxisBase } from './Widget'
 import { WidgetEditDialog, WidgetEditGroup, WidgetEditOption } from './WidgetEdit'
 import { DType, parseJMESPath, setDeep, isEmptyString } from '../../../utils'
 import { scales } from '../../plotting/common'
@@ -150,6 +150,22 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
           />
         </WidgetEditOption>
       </WidgetEditGroup>
+      <WidgetEditGroup title="y axis">
+        <WidgetEditOption>
+          <TextField
+            select
+            fullWidth
+            label="scale"
+            variant="filled"
+            value={settings.y?.scale}
+            onChange={(event) => { handleChange('y.scale', event.target.value) }}
+          >
+            {Object.keys(scales).map((key) =>
+              <MenuItem value={key} key={key}>{key}</MenuItem>
+            )}
+          </TextField>
+        </WidgetEditOption>
+      </WidgetEditGroup>
       <WidgetEditGroup title="general">
         <WidgetEditOption>
           <InputTextField
@@ -158,20 +174,6 @@ export const WidgetHistogramEdit = React.memo(({widget}) => {
             value={settings?.title}
             onChange={(event) => handleChange('title', event.target.value)}
           />
-        </WidgetEditOption>
-        <WidgetEditOption>
-          <TextField
-            select
-            fullWidth
-            label="Statistics scaling"
-            variant="filled"
-            value={settings.scale}
-            onChange={(event) => { handleChange('scale', event.target.value) }}
-          >
-            {Object.keys(scales).map((key) =>
-              <MenuItem value={key} key={key}>{key}</MenuItem>
-            )}
-          </TextField>
         </WidgetEditOption>
         <WidgetEditOption>
           <TextField
@@ -212,8 +214,8 @@ WidgetHistogramEdit.propTypes = {
 }
 
 export const schemaWidgetHistogram = schemaWidget.shape({
-  x: schemaAxis.required('Quantity for the x axis is required.'),
-  scale: string().required('Scale is required.'),
+  x: schemaAxis.required('X-axis configuration is required.'),
+  y: schemaAxisBase.required('Y-axis configuration is required.'),
   nbins: number().integer().required(),
   autorange: bool(),
   showinput: bool()

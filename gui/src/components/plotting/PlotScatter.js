@@ -126,6 +126,7 @@ const PlotScatter = React.memo(forwardRef((
       template = template + `<extra></extra>`
       return template
     }
+    const scatterType = hasWebGL ? 'scattergl' : 'scatter'
 
     // If dealing with a quantized color, each group is separated into it's own
     // trace which has a legend as well.
@@ -155,7 +156,7 @@ const PlotScatter = React.memo(forwardRef((
           name: option,
           text: colorArray,
           mode: 'markers',
-          type: hasWebGL ? 'scattergl' : 'scatter',
+          type: scatterType,
           textposition: 'top center',
           showlegend: true,
           hovertemplate: hoverTemplate(
@@ -185,7 +186,7 @@ const PlotScatter = React.memo(forwardRef((
         text: data.color,
         entry_id: data.id,
         mode: 'markers',
-        type: 'scattergl',
+        type: scatterType,
         textposition: 'top center',
         showlegend: false,
         hoverinfo: "text",
@@ -223,7 +224,7 @@ const PlotScatter = React.memo(forwardRef((
         y: data.y,
         entry_id: data.id,
         mode: 'markers',
-        type: 'scattergl',
+        type: scatterType,
         textposition: 'top center',
         showlegend: false,
         hoverinfo: "text",
@@ -267,10 +268,12 @@ const PlotScatter = React.memo(forwardRef((
         y: 1
       },
       xaxis: {
+        type: xAxis.scale,
         fixedrange: false,
         autorange: autorange
       },
       yaxis: {
+        type: yAxis.scale,
         fixedrange: false,
         autorange: autorange
       },
@@ -288,7 +291,7 @@ const PlotScatter = React.memo(forwardRef((
   // both. This is a general problem in trying to 'reactify' a non-react library
   // like Plotly.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autorange])
+  }, [autorange, xAxis.scale, yAxis.scale])
 
   // Change dragmode
   useEffect(() => {

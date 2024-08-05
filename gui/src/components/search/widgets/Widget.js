@@ -110,15 +110,20 @@ export const schemaWidget = object({
   editing: string().strip(),
   visible: string().strip()
 })
+export const schemaAxisBase = object({
+  scale: string().nullable()
+})
 export const schemaAxis = object({
   quantity: string().required(),
   unit: string().nullable(),
-  title: string().nullable()
+  title: string().nullable(),
+  scale: string().nullable()
 })
 export const schemaAxisOptional = object({
   quantity: string().nullable(),
   unit: string().nullable(),
-  title: string().nullable()
+  title: string().nullable(),
+  scale: string().nullable()
 })
 export const schemaMarkers = object({
   color: schemaAxisOptional

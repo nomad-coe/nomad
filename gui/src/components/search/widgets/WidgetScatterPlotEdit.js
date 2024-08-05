@@ -21,7 +21,9 @@ import { number, bool, reach } from 'yup'
 import { cloneDeep } from 'lodash'
 import {
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  MenuItem,
+  TextField
 } from '@material-ui/core'
 import { InputJMESPath } from '../input/InputMetainfo'
 import { schemaWidget, schemaAxis, schemaMarkers } from './Widget'
@@ -30,6 +32,7 @@ import { useSearchContext } from '../SearchContext'
 import { autorangeDescription } from './WidgetHistogram'
 import { DType, setDeep, parseJMESPath, isEmptyString } from '../../../utils'
 import { InputTextField } from '../input/InputText'
+import { scalesLimited } from '../../plotting/common'
 import UnitInput from '../../units/UnitInput'
 
 // Predefined in order to not break memoization
@@ -157,6 +160,20 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
             disableGroup
           />
         </WidgetEditOption>
+        <WidgetEditOption>
+          <TextField
+            select
+            fullWidth
+            label="scale"
+            variant="filled"
+            value={settings.x?.scale}
+            onChange={(event) => { handleChange('x.scale', event.target.value) }}
+          >
+            {Object.keys(scalesLimited).map((key) =>
+              <MenuItem value={key} key={key}>{key}</MenuItem>
+            )}
+          </TextField>
+        </WidgetEditOption>
       </WidgetEditGroup>
       <WidgetEditGroup title="y axis">
         <WidgetEditOption>
@@ -193,6 +210,20 @@ export const WidgetScatterPlotEdit = React.memo(({widget}) => {
             optional
             disableGroup
           />
+        </WidgetEditOption>
+        <WidgetEditOption>
+          <TextField
+            select
+            fullWidth
+            label="scale"
+            variant="filled"
+            value={settings.y?.scale}
+            onChange={(event) => { handleChange('y.scale', event.target.value) }}
+          >
+            {Object.keys(scalesLimited).map((key) =>
+              <MenuItem value={key} key={key}>{key}</MenuItem>
+            )}
+          </TextField>
         </WidgetEditOption>
       </WidgetEditGroup>
       <WidgetEditGroup title="marker color">

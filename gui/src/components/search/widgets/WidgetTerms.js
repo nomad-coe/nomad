@@ -196,7 +196,7 @@ export const WidgetTerms = React.memo((
     actions={
       <ActionSelect
         value={scale}
-        options={Object.keys(scales)}
+        options={scales}
         tooltip="Statistics scaling"
         onChange={handleChangeScale}
       />

@@ -427,10 +427,18 @@ class Layout(ConfigBaseModel):
 
 
 class ScaleEnum(str, Enum):
+    LINEAR = 'linear'
+    LOG = 'log'
+    # TODO: The following should possibly be deprecated.
     POW1 = 'linear'
     POW2 = '1/2'
     POW4 = '1/4'
     POW8 = '1/8'
+
+
+class ScaleEnumPlot(str, Enum):
+    LINEAR = 'linear'
+    LOG = 'log'
 
 
 class BreakpointEnum(str, Enum):
@@ -441,7 +449,18 @@ class BreakpointEnum(str, Enum):
     XXL = 'xxl'
 
 
-class Axis(ConfigBaseModel):
+# NOTE: Once the old power scaling options (1/2, 1/4, 1/8) are deprecated, the
+# axis models here can be simplified.
+class AxisScale(ConfigBaseModel):
+    """Basic configuration for a plot axis."""
+
+    scale: Optional[ScaleEnum] = Field(
+        ScaleEnum.LINEAR,
+        description="""Defines the axis scaling. Defaults to linear scaling.""",
+    )
+
+
+class AxisQuantity(ConfigBaseModel):
     """Configuration for a plot axis."""
 
     title: Optional[str] = Field(description="""Custom title to show for the axis.""")
@@ -455,6 +474,19 @@ class Axis(ConfigBaseModel):
         becomes especially useful when dealing with repeated sections or
         statistical values.
         """
+    )
+
+
+class Axis(AxisScale, AxisQuantity):
+    """Configuration for a plot axis with limited scaling options."""
+
+
+class AxisLimitedScale(AxisQuantity):
+    """Configuration for a plot axis with limited scaling options."""
+
+    scale: Optional[ScaleEnumPlot] = Field(
+        ScaleEnumPlot.LINEAR,
+        description="""Defines the axis scaling. Defaults to linear scaling.""",
     )
 
 
@@ -504,7 +536,12 @@ class WidgetHistogram(Widget):
     x: Union[Axis, str] = Field(
         description='Configures the information source and display options for the x-axis.'
     )
-    scale: ScaleEnum = Field(description='Statistics scaling.')
+    y: Union[AxisScale, str] = Field(
+        description='Configures the information source and display options for the y-axis.'
+    )
+    scale: Optional[ScaleEnum] = Field(
+        ScaleEnum.LINEAR, description='Statistics scaling.'
+    )
     autorange: bool = Field(
         True,
         description='Whether to automatically set the range according to the data limits.',
@@ -522,14 +559,26 @@ class WidgetHistogram(Widget):
 
     @root_validator(pre=True)
     def __validate(cls, values):
-        """Ensures backwards compatibility for quantity."""
-        quantity = values.get('quantity')
-        x = values.get('x')
-        if quantity and not x:
-            values['x'] = {'quantity': quantity}
-            del values['quantity']
-        elif isinstance(x, str):
-            values['x'] = {'quantity': x}
+        """Ensures backwards compatibility for quantity and scale."""
+        # X-axis
+        x = values.get('x', {})
+        if isinstance(x, str):
+            x = {'quantity': x}
+        if isinstance(x, dict):
+            quantity = values.get('quantity')
+            if quantity and not x.get('quantity'):
+                x['quantity'] = quantity
+                del values['quantity']
+            values['x'] = x
+
+        # Y-axis
+        y = values.get('y', {})
+        if isinstance(y, dict):
+            scale = values.get('scale')
+            if scale:
+                y['scale'] = scale
+                del values['scale']
+            values['y'] = y
 
         return values
 
@@ -550,10 +599,10 @@ class WidgetScatterPlot(Widget):
     type: Literal['scatterplot'] = Field(
         'scatterplot', description='Set as `scatterplot` to get this widget type.'
     )
-    x: Union[Axis, str] = Field(
+    x: Union[AxisLimitedScale, str] = Field(
         description='Configures the information source and display options for the x-axis.'
     )
-    y: Union[Axis, str] = Field(
+    y: Union[AxisLimitedScale, str] = Field(
         description='Configures the information source and display options for the y-axis.'
     )
     markers: Optional[Markers] = Field(

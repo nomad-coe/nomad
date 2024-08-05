@@ -195,7 +195,7 @@ export const ActionSelect = React.memo(({value, options, tooltip, onChange}) => 
       onChange={(event) => onChange && onChange(event.target.value)}
     >
       {Object.entries(items).map(([key, value]) =>
-        <MenuItem key={key} value={value}>{key}</MenuItem>
+        <MenuItem key={key} value={key}>{value}</MenuItem>
       )}
     </Select>
   </Action>

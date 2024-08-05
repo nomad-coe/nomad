@@ -71,7 +71,7 @@ describe('displaying an initial widget and removing it', () => {
         type: 'histogram',
         title: 'Test title',
         x: {quantity: 'results.material.n_elements'},
-        scale: 'linear',
+        y: {scale: 'linear'},
         editing: false,
         visible: true,
         layout: {

@@ -154,11 +154,11 @@ const useStyles = makeStyles(theme => ({
 }))
 const PlotHistogram = React.memo(({
   xAxis,
+  yAxis,
   bins,
   range,
   step,
   nBins,
-  scale,
   discretization,
   dtypeY,
   disabled,
@@ -206,7 +206,7 @@ const PlotHistogram = React.memo(({
     }
   })
   const dynamicStyles = useDynamicStyles()
-  const scaler = useMemo(() => getScaler(scale), [scale])
+
   const aggIndicator = useRecoilValue(guiState('aggIndicator'))
   const oldRangeRef = useRef()
   const artificialRange = 1
@@ -230,16 +230,17 @@ const PlotHistogram = React.memo(({
     }
     const minY = 0
     const maxY = Math.max(...bins.map(item => item.count))
+    const scaler = getScaler(yAxis.scale, [minY, maxY])
     const finalBins = bins.map((bucket) => {
       return {
         ...bucket,
         start: bucket.value,
         end: bucket.value + step,
-        scale: scaler(bucket.count / maxY) || 0
+        scale: scaler(bucket.count)
       }
     })
     return [finalBins, minY, maxY]
-  }, [bins, scaler, step])
+  }, [bins, step, yAxis.scale])
 
   // Transforms the original range into an internal range used for
   // visualization.
@@ -340,20 +341,17 @@ const PlotHistogram = React.memo(({
     if (isNil(finalBins) || isNil(xAxis.min) || isNil(maxX)) {
       return null
     }
-
     let labels
-    // Automatic labelling is used for continuous values
-    if (!discretization && !isArtificial) {
-      labels = 10
+
     // One bin is shown for the artificial values
-    } else if (isArtificial) {
+    if (isArtificial) {
       const offset = discretization ? 0.5 * step : 0
       labels = [{
         label: finalBins[0].start,
         pos: finalBins[0].start + offset
       }]
     // Discrete values get label at the center of the bin.
-    } else {
+    } else if (discretization) {
       const start = step * Math.ceil(xAxis.min / step)
       const end = step * Math.floor(maxX / step)
       labels = rangeLodash(start, end).map(x => ({
@@ -487,12 +485,11 @@ const PlotHistogram = React.memo(({
       min={minY}
       max={maxY}
       mode='SI'
-      labels={5}
-      scale={scale}
+      scale={yAxis.scale}
       dtype={dtypeY}
       className={styles.yaxis}
     />
-  }, [dtypeY, maxY, minY, scale, styles.yaxis])
+  }, [dtypeY, maxY, minY, yAxis.scale, styles.yaxis])
 
   // Determine the final component to show.
   let histComp
@@ -578,6 +575,7 @@ const PlotHistogram = React.memo(({
 
 PlotHistogram.propTypes = {
   xAxis: PropTypes.object,
+  yAxis: PropTypes.object,
   /* The bins data to show. */
   bins: PropTypes.arrayOf(PropTypes.shape({
     value: PropTypes.number,
@@ -591,7 +589,6 @@ PlotHistogram.propTypes = {
   /* Discretization of the values. */
   discretization: PropTypes.number,
   dtypeY: PropTypes.string,
-  scale: PropTypes.string,
   disabled: PropTypes.bool,
   /* The label to show for the tooltips */
   tooltipLabel: PropTypes.string,

@@ -685,7 +685,7 @@ Plot.propTypes = {
 }
 Plot.defaultProps = {
   floatTitle: '',
-  fixedMargins: true,
+  fixedMargins: true, // If set to true, the margins will be fixed after first render.
   throttleResize: false
 }
 

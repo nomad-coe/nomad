@@ -71,9 +71,9 @@ const StatisticsBar = React.memo(({
   const theme = useTheme()
 
   // Calculate the approximated count and the final scaled value
-  const scaler = useMemo(() => scale ? getScaler(scale) : (value) => value, [scale])
+  const scaler = useMemo(() => scale ? getScaler(scale, [0, max]) : (value) => value, [scale, max])
   const finalCount = useMemo(() => approxInteger(value || 0), [value])
-  const finalScale = useMemo(() => scaler(value / max) || 0, [value, max, scaler])
+  const finalScale = useMemo(() => scaler(value), [value, scaler])
 
   return <div onClick={onClick} className={clsx(className, styles.root)} data-testid={testID}>
     <Tooltip placement="bottom" enterDelay={0} title={tooltip || ''}>

@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { range, size, isNil } from 'lodash'
-import { scalePow } from 'd3-scale'
+import { range, size } from 'lodash'
+import { scalePow, scaleLog } from 'd3-scale'
 import {
   format,
   getTime,
@@ -39,36 +39,64 @@ import {
   eachQuarterOfInterval
 } from 'date-fns'
 import { scale as chromaScale } from 'chroma-js'
-import { scale, add, DType, formatNumber } from '../../utils.js'
+import { scale as scaleUtils, add, DType, formatNumber } from '../../utils.js'
 
-// The available scaling options
 export const scales = {
-  'linear': 1,
-  '1/2': 0.5,
-  '1/4': 0.25,
-  '1/8': 0.125
+  'linear': 'linear',
+  'log': 'log',
+  '1/2': '1/2',
+  '1/4': '1/4',
+  '1/8': '1/8'
+}
+
+export const scalesLimited = {
+  'linear': 'linear',
+  'log': 'log'
 }
 
 /**
- * Returns a d3-scale object for the given scaling type, domain and range.
+ * Creates a scaling function based on the provided type.
  *
- * @param {str} type Type of scaling.
- * @param {array} domain The input domain.
- * @param {array} range The output range.
- * @returns A function that when given a number between [0, 1] will transform
- * it to the given output range with the given type of scaling.
+ * @param {string} type - The type of scaling function ('linear', '1/2', '1/4', '1/8', 'log').
+ * @param {number[]} [domain=[0, 1]] - The input domain for the scale.
+ * @param {number[]} [range=[0, 1]] - The output range for the scale.
+ * @returns {function} - The scaling function with added properties and methods.
+ * @throws {Error} - Throws an error if the scaling type is invalid.
  */
 export function getScaler(type, domain = [0, 1], range = [0, 1]) {
-  const scale = scales[type]
-  if (isNil(scale)) {
-    throw Error('Invalid scaling type.')
-  }
-  const scaler = scalePow()
-    .exponent(scale)
-    .domain(domain)
-    .range(range)
+  let scaler
 
-  return scaler
+  const powScales = {
+    'linear': 1,
+    '1/2': 0.5,
+    '1/4': 0.25,
+    '1/8': 0.125
+  }
+
+  const powscale = powScales[type]
+
+  if (powscale !== undefined) {
+    scaler = scalePow()
+      .exponent(powscale)
+      .domain(domain)
+      .range(range)
+  } else if (type === 'log') {
+    const adjustedDomain = [Math.max(domain[0], 1), domain[1]]
+    scaler = scaleLog()
+      .base(10)
+      .domain(adjustedDomain)
+      .range(range)
+  } else {
+    throw new Error('Invalid scaling type.')
+  }
+
+  // Invalid values are mapped to zero. Important especially for log scales.
+  const func = (value) => scaler(value) || 0
+
+  // Copy all properties and methods from scaler to func
+  Object.assign(func, scaler)
+
+  return func
 }
 
 /**
@@ -87,7 +115,7 @@ export function getInterval(value, steps, dtype, cap = true) {
   const interval = value / steps
   const degree = Math.pow(10, (Math.round(Math.log10(interval))))
   const multipliers = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10]
-  const intervals = scale(multipliers, degree).filter(x => {
+  const intervals = scaleUtils(multipliers, degree).filter(x => {
     const capped = cap ? (x >= interval) : true
     const valid = dtype === DType.Int ? x % 1 === 0 : true
     return capped && valid
@@ -116,7 +144,7 @@ export const argMin = (iMin, x, i, arr) => {
  *
  * @returns Array of tick objects containing value and tick.
  */
-export function getTicks(min, max, n, dtype, mode = 'scientific', decimals = 3) {
+export function getTicks(min, max, n, scale = 'linear', dtype, mode = 'scientific', decimals = 3) {
   if (dtype === DType.Timestamp) {
     const start = fromUnixTime(millisecondsToSeconds(min))
     const end = fromUnixTime(millisecondsToSeconds(max))
@@ -135,6 +163,13 @@ export function getTicks(min, max, n, dtype, mode = 'scientific', decimals = 3) 
         difference: (end, start) => differenceInYears(end, start) / 5,
         split: (interval) => eachYearOfInterval(interval).filter(x => {
           return !(x.getFullYear() % 5)
+        }),
+        format: 'yyyy'
+      },
+      twoyears: {
+        difference: (end, start) => differenceInYears(end, start) / 2,
+        split: (interval) => eachYearOfInterval(interval).filter(x => {
+          return !(x.getFullYear() % 2)
         }),
         format: 'yyyy'
       },
@@ -247,27 +282,39 @@ export function getTicks(min, max, n, dtype, mode = 'scientific', decimals = 3) 
     // value.
     return ticks.map(x => ({value: getTime(x), tick: format(x, setup.format)}))
   } else {
-    // Calculate minimum number of ticks for each option
-    const tickRange = max - min
-    const multipliers = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10]
-    const degree = Math.pow(10, (Math.round(Math.log10(tickRange))))
-    const closestDuration = scale(multipliers, degree)
-      .filter(x => dtype === DType.Int ? x % 1 === 0 : true) // Filter out invalid intervals
-      .map(x => [x, Math.floor(tickRange / x)]) // Calculate minimum number of ticks
-      .filter(([interval, nMin]) => nMin <= n) // Filter out values where the minimum number of ticks is beyond the target.
-      .map(([interval, nMin]) => { // Calculate actual ticks
-        const startRound = Math.ceil(min / interval)
-        const endRound = Math.floor(max / interval)
-        const ticks = range(startRound, endRound + 1).map(x => {
-          const value = (x * interval)
-          return {value, tick: formatNumber(value, dtype, mode, decimals)}
-        })
-        return ticks
+    // Log scale ticks are divided into evenly spaced intervals in the log scale
+    if (scale === 'log') {
+      const tickRange = max - min
+      const degree = Math.floor(Math.log10(tickRange))
+      const reduction = Math.ceil(degree / n)
+      const degrees = range(1, degree + 1, degree > n ? reduction : 1)
+      return degrees.map(x => {
+        const value = Math.pow(10, x)
+        return {value, tick: formatNumber(value, dtype, mode, decimals)}
       })
-      .filter((ticks) => ticks.length <= n) // Filter out options with more ticks than requested
-      .map((ticks) => [ticks, Math.abs(ticks.length - n)]) // Calculate abs difference to n
-      .reduce((prev, curr) => prev[1] < curr[1] ? prev : curr) // Select best option
-    return closestDuration[0]
+    // Calculate reasonable ticks for other scales
+    } else {
+      const tickRange = max - min
+      const multipliers = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10]
+      const degree = Math.pow(10, (Math.round(Math.log10(tickRange))))
+      const closestDuration = scaleUtils(multipliers, degree)
+        .filter(x => dtype === DType.Int ? x % 1 === 0 : true) // Filter out invalid intervals
+        .map(x => [x, Math.floor(tickRange / x)]) // Calculate minimum number of ticks
+        .filter(([interval, nMin]) => nMin <= n) // Filter out values where the minimum number of ticks is beyond the target.
+        .map(([interval, nMin]) => { // Calculate actual ticks
+          const startRound = Math.ceil(min / interval)
+          const endRound = Math.floor(max / interval)
+          const ticks = range(startRound, endRound + 1).map(x => {
+            const value = (x * interval)
+            return {value, tick: formatNumber(value, dtype, mode, decimals)}
+          })
+          return ticks
+        })
+        .filter((ticks) => ticks.length <= n) // Filter out options with more ticks than requested
+        .map((ticks) => [ticks, Math.abs(ticks.length - n)]) // Calculate abs difference to n
+        .reduce((prev, curr) => prev[1] < curr[1] ? prev : curr) // Select best option
+      return closestDuration[0]
+    }
   }
 }
 

@@ -47,9 +47,9 @@ const useStyles = makeStyles(theme => ({
 }))
 export const Range = React.memo(({
   xAxis,
+  yAxis,
   nSteps,
   visible,
-  scale,
   nBins,
   disableHistogram,
   disableXTitle,
@@ -68,7 +68,7 @@ export const Range = React.memo(({
   const [filter, setFilter] = useFilterState(xAxis.quantity)
   const [minLocal, setMinLocal] = useState()
   const [maxLocal, setMaxLocal] = useState()
-  const [plotData, setPlotData] = useState({xAxis})
+  const [plotData, setPlotData] = useState({xAxis, yAxis})
   const loading = useRef(false)
   const firstRender = useRef(true)
   const validRange = useRef()
@@ -257,10 +257,11 @@ export const Range = React.memo(({
         min: minLocal,
         max: maxLocal
       },
+      yAxis,
       step: stepHistogram,
       data: agg.data
     })
-  }, [loading, nBins, agg, minLocal, maxLocal, stepHistogram, unitStorage, xAxis.quantity, xAxis.unit, xAxis.dtype, xAxis.title])
+  }, [loading, nBins, agg, minLocal, maxLocal, stepHistogram, unitStorage, xAxis.quantity, xAxis.unit, xAxis.dtype, xAxis.title, xAxis.scale, yAxis])
 
   // Function for converting search values into the currently selected unit
   // system.
@@ -501,11 +502,11 @@ export const Range = React.memo(({
     <PlotHistogram
       bins={plotData?.data}
       xAxis={plotData?.xAxis}
+      yAxis={plotData?.yAxis}
       step={plotData?.step}
       minXInclusive={minInclusive}
       maxXInclusive={maxInclusive}
       disabled={disabled}
-      scale={scale}
       nBins={nBins}
       range={range}
       highlight={highlight}
@@ -542,6 +543,7 @@ export const Range = React.memo(({
 
 Range.propTypes = {
   xAxis: PropTypes.object,
+  yAxis: PropTypes.object,
   /* Target number of steps for the slider that is shown when statistics are
    * disabled. The actual number may vary, as the step is chosen to be a
    * human-readable value that depends on the range and the unit. */
@@ -550,8 +552,6 @@ Range.propTypes = {
    * enabled. */
   nBins: PropTypes.number,
   visible: PropTypes.bool,
-  /* The statistics scaling */
-  scale: PropTypes.string,
   /* Whether the histogram is disabled */
   disableHistogram: PropTypes.bool,
   /* Whether the x title is disabled */
@@ -613,6 +613,7 @@ const InputRange = React.memo(({
       unit: new Unit(filterData[quantity]?.unit || 'dimensionless').toSystem(units)
     }
   ), [quantity, filterData, dtype, units])
+  const y = useMemo(() => ({scale: scale}), [scale])
 
   // Determine the description and title
   const def = filterData[quantity]
@@ -639,9 +640,9 @@ const InputRange = React.memo(({
     />
     <Range
       xAxis={x}
+      yAxis={y}
       nSteps={nSteps}
       visible={visible}
-      scale={scale}
       nBins={nBins}
       disableHistogram={disableHistogram}
       disableXTitle

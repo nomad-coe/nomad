@@ -107,6 +107,8 @@ const Dashboard = React.memo(() => {
         xl: {...layout},
         xxl: {...layout}
       },
+      // x: {scale: 'linear'},
+      // y: {scale: 'linear'},
       size: 1000,
       autorange: true,
       type: 'scatterplot'
@@ -155,7 +157,7 @@ const Dashboard = React.memo(() => {
       },
       autorange: false,
       nbins: 30,
-      scale: 'linear',
+      y: {scale: 'linear'},
       type: 'histogram'
     }
     addWidget(id, value)
