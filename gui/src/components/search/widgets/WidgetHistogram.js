@@ -36,8 +36,8 @@ export const WidgetHistogram = React.memo((
   title,
   description,
   x,
+  y,
   nbins,
-  scale,
   autorange,
   showinput,
   className
@@ -68,7 +68,7 @@ export const WidgetHistogram = React.memo((
   }, [setWidget])
 
   const handleChangeScale = useCallback((value) => {
-    setWidget(old => { return {...old, scale: value} })
+    setWidget(old => { return {...old, y: {...old.y, scale: value}} })
   }, [setWidget])
 
   return <Widget
@@ -85,8 +85,8 @@ export const WidgetHistogram = React.memo((
         onChange={(value) => setWidget(old => ({...old, autorange: value}))}
       />
       <ActionSelect
-        value={scale}
-        options={Object.keys(scales)}
+        value={y.scale}
+        options={scales}
         tooltip="Statistics scaling"
         onChange={handleChangeScale}
       />
@@ -94,9 +94,9 @@ export const WidgetHistogram = React.memo((
   >
     <Range
       xAxis={xAxis}
+      yAxis={y}
       visible={true}
       nBins={nbins}
-      scale={scale}
       anchored={true}
       autorange={autorange}
       showinput={showinput}
@@ -110,8 +110,8 @@ WidgetHistogram.propTypes = {
   title: PropTypes.string,
   description: PropTypes.string,
   x: PropTypes.object,
+  y: PropTypes.object,
   nbins: PropTypes.number,
-  scale: PropTypes.string,
   autorange: PropTypes.bool,
   showinput: PropTypes.bool,
   className: PropTypes.string

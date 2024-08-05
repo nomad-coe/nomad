@@ -131,7 +131,7 @@ const InputHeader = React.memo(({
             onChange={onChangeScale ? (event, value) => onChangeScale(value) : undefined}
           >
             {Object.entries(scales).map(([key, value]) =>
-              <FormControlLabel key={key} value={key} label={key} control={<Radio/>} />
+              <FormControlLabel key={key} value={key} label={value} control={<Radio/>} />
             )}
           </RadioGroup>
         </FormControl>
@@ -139,7 +139,7 @@ const InputHeader = React.memo(({
     </>
     : <ActionSelect
       value={scale}
-      options={Object.keys(scales)}
+      options={scales}
       tooltip="Statistics scaling"
       onChange={onChangeScale}
     />

@@ -158,11 +158,18 @@ const PlotAxis = React.memo(({
       return labels.map((tick) => ({...tick, label: formatTick(tick.label), pos: scaler(tick.pos) / axisSize}))
     }
 
-    // Determine the number of ticks that fits. Calculated with formula:
-    //    axisSize - scaler(max - max/nLabels) = labelSize
-    // -> nLabels = max / (max - scaler.invert(axisHeight - labelSize)
-    const nItemsFit = Math.floor((max - min) / (max - scaler.invert(axisSize - labelSize)))
-    const nItems = Math.min(labels, Math.max(2, nItemsFit))
+    // On linear and log axes, the labels are spaced evenly, and the number of
+    // labels is calculated from the available space. On non-linearly spaced
+    // axes, we calculate the number of labels with formula:
+    // axisSize - scaler(max - (max-min) / nLabels) = labelSize
+    // -> nLabels = (max-min) / (max - scaler.invert(axisSize - labelSize)
+    const padding = 10
+    let nItems = (scale === 'linear' || scale === 'log')
+      ? Math.floor(axisSize / (labelSize + padding))
+      : Math.floor((max - min) / (max - scaler.invert(axisSize - (labelSize + padding))))
+
+    // At least two labels should be attempted to be shown
+    nItems = Math.max(2, nItems)
 
     // If the scale length is zero, show only one tick
     if (min === max) {
@@ -175,14 +182,14 @@ const PlotAxis = React.memo(({
     // Get reasonable, human-readable ticks. the .ticks function from d3-scale
     // does not guarantee an upper limit to the number of ticks, so it cannot be
     // directly used.
-    return getTicks(min, max, nItems, dtype, mode, decimals)
+    return getTicks(min, max, nItems, scale, dtype, mode, decimals)
       .map(({tick, value}) => {
         return {
           label: tick,
           pos: scaler(value) / axisSize
         }
       })
-  }, [axisSize, dtype, labelSize, labels, max, min, scaler, mode, decimals])
+  }, [axisSize, dtype, labelSize, labels, max, min, scaler, mode, decimals, scale])
 
   // Here we estimate the maximum label width. This is a relatively simple
   // approximattion calculated using the font size. A more reliable way would to
@@ -242,7 +249,7 @@ PlotAxis.propTypes = {
   scale: PropTypes.string,
   mode: PropTypes.oneOf(['scientific', 'SI', 'standard']),
   decimals: PropTypes.number,
-  labels: PropTypes.oneOfType([PropTypes.number, PropTypes.array]),
+  labels: PropTypes.array,
   placement: PropTypes.oneOf(['left', 'bottom']),
   labelHeight: PropTypes.number,
   labelWidth: PropTypes.number,

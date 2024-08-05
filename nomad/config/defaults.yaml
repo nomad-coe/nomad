@@ -973,7 +973,7 @@ ui:
               xl: {h: 11, minH: 3, minW: 3, w: 5, x: 19, y: 0}
               xxl: {h: 9, minH: 3, minW: 3, w: 6, x: 19, y: 0}
             quantity: results.material.structural_type
-            scale: 1/8
+            scale: log
             showinput: false
             type: terms
           - layout:
@@ -983,7 +983,7 @@ ui:
               xl: {h: 11, minH: 3, minW: 3, w: 5, x: 14, y: 0}
               xxl: {h: 9, minH: 3, minW: 3, w: 6, x: 13, y: 0}
             quantity: results.method.simulation.program_name
-            scale: 1/4
+            scale: log
             showinput: true
             type: terms
           - layout:
@@ -1517,7 +1517,7 @@ ui:
               quantity: results.properties.catalytic.catalyst.surface_area
               unit: 'm^2/g'
             title: 'Catalyst Surface Area'
-            scale: 1/4
+            scale: log
             showinput: false
             type: histogram
           - layout:

@@ -80,9 +80,9 @@ const Element = React.memo(({
 }) => {
   const styles = useElementStyles()
   const theme = useTheme()
-  const scaler = useMemo(() => getScaler(scale, undefined, [0.2, 1]), [scale])
+  const scaler = useMemo(() => getScaler(scale, [0, max], [0.2, 1]), [scale, max])
   const finalCount = useMemo(() => approxInteger(count || 0), [count])
-  const finalScale = useMemo(() => scaler(count / max) || 0, [count, max, scaler])
+  const finalScale = useMemo(() => scaler(count), [count, scaler])
   const disabledFinal = disabled && !selected
   const color = selected
     ? theme.palette.secondary.main

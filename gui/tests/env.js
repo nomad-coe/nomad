@@ -1049,7 +1049,7 @@ window.nomadEnv = {
                   }
                 },
                 "quantity": "results.material.structural_type",
-                "scale": "1/8",
+                "scale": "log",
                 "showinput": false
               },
               {
@@ -1097,7 +1097,7 @@ window.nomadEnv = {
                   }
                 },
                 "quantity": "results.method.simulation.program_name",
-                "scale": "1/4",
+                "scale": "log",
                 "showinput": true
               },
               {
@@ -2127,7 +2127,11 @@ window.nomadEnv = {
                 },
                 "x": {
                   "unit": "ml/(g*s)",
-                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.weight_hourly_space_velocity",
+                  "scale": "linear"
+                },
+                "y": {
+                  "scale": "linear"
                 },
                 "scale": "linear",
                 "autorange": false,
@@ -2181,14 +2185,17 @@ window.nomadEnv = {
                 },
                 "x": {
                   "title": "gas concentration (%)",
-                  "quantity": "results.properties.catalytic.reaction.reactants[*].gas_concentration_in"
+                  "quantity": "results.properties.catalytic.reaction.reactants[*].gas_concentration_in",
+                  "scale": "linear"
                 },
                 "y": {
-                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature",
+                  "scale": "linear"
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.reaction.reactants[*].name"
+                    "quantity": "results.properties.catalytic.reaction.reactants[*].name",
+                    "scale": "linear"
                   }
                 },
                 "size": 1000,
@@ -2241,7 +2248,11 @@ window.nomadEnv = {
                 },
                 "x": {
                   "unit": "bar",
-                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.pressure"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.pressure",
+                  "scale": "linear"
+                },
+                "y": {
+                  "scale": "linear"
                 },
                 "scale": "linear",
                 "autorange": false,
@@ -2294,15 +2305,18 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
-                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature",
+                  "scale": "linear"
                 },
                 "y": {
                   "title": "Conversion (%)",
-                  "quantity": "results.properties.catalytic.reaction.reactants[*].conversion"
+                  "quantity": "results.properties.catalytic.reaction.reactants[*].conversion",
+                  "scale": "linear"
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.reaction.reactants[*].name"
+                    "quantity": "results.properties.catalytic.reaction.reactants[*].name",
+                    "scale": "linear"
                   }
                 },
                 "size": 1000,
@@ -2354,15 +2368,18 @@ window.nomadEnv = {
                   }
                 },
                 "x": {
-                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature"
+                  "quantity": "results.properties.catalytic.reaction.reaction_conditions.temperature",
+                  "scale": "linear"
                 },
                 "y": {
                   "title": "Selectivity (%)",
-                  "quantity": "results.properties.catalytic.reaction.products[*].selectivity"
+                  "quantity": "results.properties.catalytic.reaction.products[*].selectivity",
+                  "scale": "linear"
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.reaction.products[*].name"
+                    "quantity": "results.properties.catalytic.reaction.products[*].name",
+                    "scale": "linear"
                   }
                 },
                 "size": 1000,
@@ -2414,15 +2431,18 @@ window.nomadEnv = {
                 },
                 "x": {
                   "title": "Oxygen Conversion (%)",
-                  "quantity": "results.properties.catalytic.reaction.reactants[? name=='molecular oxygen'].conversion"
+                  "quantity": "results.properties.catalytic.reaction.reactants[? name=='molecular oxygen'].conversion",
+                  "scale": "linear"
                 },
                 "y": {
                   "title": "Acetic Acid Selectivity (%)",
-                  "quantity": "results.properties.catalytic.reaction.products[? name=='acetic acid'].selectivity"
+                  "quantity": "results.properties.catalytic.reaction.products[? name=='acetic acid'].selectivity",
+                  "scale": "linear"
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.reaction.name"
+                    "quantity": "results.properties.catalytic.reaction.name",
+                    "scale": "linear"
                   }
                 },
                 "size": 1000,
@@ -2474,15 +2494,18 @@ window.nomadEnv = {
                 },
                 "x": {
                   "title": "Carbon Monoxide Conversion (%)",
-                  "quantity": "results.properties.catalytic.reaction.reactants[? name=='carbon monoxide'].conversion"
+                  "quantity": "results.properties.catalytic.reaction.reactants[? name=='carbon monoxide'].conversion",
+                  "scale": "linear"
                 },
                 "y": {
                   "title": "Ethanol Selectivity (%)",
-                  "quantity": "results.properties.catalytic.reaction.products[? name=='ethanol'].selectivity"
+                  "quantity": "results.properties.catalytic.reaction.products[? name=='ethanol'].selectivity",
+                  "scale": "linear"
                 },
                 "markers": {
                   "color": {
-                    "quantity": "results.properties.catalytic.catalyst.preparation_method"
+                    "quantity": "results.properties.catalytic.catalyst.preparation_method",
+                    "scale": "linear"
                   }
                 },
                 "size": 1000,
@@ -2535,9 +2558,13 @@ window.nomadEnv = {
                 },
                 "x": {
                   "unit": "m^2/g",
-                  "quantity": "results.properties.catalytic.catalyst.surface_area"
+                  "quantity": "results.properties.catalytic.catalyst.surface_area",
+                  "scale": "linear"
                 },
-                "scale": "1/4",
+                "y": {
+                  "scale": "log"
+                },
+                "scale": "linear",
                 "autorange": false,
                 "showinput": false,
                 "nbins": 30
@@ -3146,7 +3173,11 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.material.topology.pore_limiting_diameter"
+                    "quantity": "results.material.topology.pore_limiting_diameter",
+                    "scale": "linear"
+                  },
+                  "y": {
+                    "scale": "linear"
                   },
                   "scale": "linear",
                   "autorange": true,
@@ -3198,7 +3229,11 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.material.topology.largest_cavity_diameter"
+                    "quantity": "results.material.topology.largest_cavity_diameter",
+                    "scale": "linear"
+                  },
+                  "y": {
+                    "scale": "linear"
                   },
                   "scale": "linear",
                   "autorange": true,
@@ -3250,7 +3285,11 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.material.topology.accessible_surface_area"
+                    "quantity": "results.material.topology.accessible_surface_area",
+                    "scale": "linear"
+                  },
+                  "y": {
+                    "scale": "linear"
                   },
                   "scale": "linear",
                   "autorange": true,
@@ -3302,7 +3341,11 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.material.topology.void_fraction"
+                    "quantity": "results.material.topology.void_fraction",
+                    "scale": "linear"
+                  },
+                  "y": {
+                    "scale": "linear"
                   },
                   "scale": "linear",
                   "autorange": true,
@@ -4083,16 +4126,19 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+                    "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                    "scale": "linear"
                   },
                   "y": {
                     "title": "Efficiency (%)",
-                    "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+                    "quantity": "results.properties.optoelectronic.solar_cell.efficiency",
+                    "scale": "linear"
                   },
                   "markers": {
                     "color": {
                       "unit": "mA/cm^2",
-                      "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+                      "quantity": "results.properties.optoelectronic.solar_cell.short_circuit_current_density",
+                      "scale": "linear"
                     }
                   },
                   "size": 1000,
@@ -4143,15 +4189,18 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+                    "quantity": "results.properties.optoelectronic.solar_cell.open_circuit_voltage",
+                    "scale": "linear"
                   },
                   "y": {
                     "title": "Efficiency (%)",
-                    "quantity": "results.properties.optoelectronic.solar_cell.efficiency"
+                    "quantity": "results.properties.optoelectronic.solar_cell.efficiency",
+                    "scale": "linear"
                   },
                   "markers": {
                     "color": {
-                      "quantity": "results.properties.optoelectronic.solar_cell.device_architecture"
+                      "quantity": "results.properties.optoelectronic.solar_cell.device_architecture",
+                      "scale": "linear"
                     }
                   },
                   "size": 1000,
@@ -4250,9 +4299,13 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity"
+                    "quantity": "results.properties.optoelectronic.solar_cell.illumination_intensity",
+                    "scale": "linear"
                   },
-                  "scale": "1/4",
+                  "y": {
+                    "scale": "1/4"
+                  },
+                  "scale": "linear",
                   "autorange": true,
                   "showinput": true,
                   "nbins": 30
@@ -4351,9 +4404,13 @@ window.nomadEnv = {
                     }
                   },
                   "x": {
-                    "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value"
+                    "quantity": "results.properties.electronic.band_structure_electronic.band_gap.value",
+                    "scale": "linear"
                   },
-                  "scale": "1/4",
+                  "y": {
+                    "scale": "1/4"
+                  },
+                  "scale": "linear",
                   "autorange": false,
                   "showinput": false,
                   "nbins": 30

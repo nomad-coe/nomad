@@ -182,7 +182,7 @@ registerFilter(
   idStructure,
   {
     ...termQuantity,
-    scale: '1/4',
+    scale: 'log',
     label: "Dimensionality",
     options: getEnumOptions('results.material.structural_type', ['not processed', 'unavailable'])
   }
@@ -285,21 +285,21 @@ registerFilter(
     {name: 'degeneracy', ...termQuantity}
   ]
 )
-registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.method_name', idMethod, {...termQuantity, scale: 'log'})
+registerFilter('results.method.workflow_name', idMethod, {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.program_name', idMethod, {...termQuantity, scale: 'log'})
 registerFilter('results.method.simulation.program_version', idMethod, termQuantity)
 registerFilter('results.method.simulation.program_version_internal', idMethod, termQuantity)
 registerFilter('results.method.simulation.precision.native_tier', idPrecision, {...termQuantity, placeholder: "E.g. VASP - accurate", label: 'Code-specific tier'})
-registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...numberHistogramQuantity, scale: '1/2', label: 'k-line density'})
-registerFilter('results.method.simulation.precision.basis_set', idPrecision, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.precision.planewave_cutoff', idPrecision, {...numberHistogramQuantity, label: 'Plane-wave cutoff', scale: '1/2'})
-registerFilter('results.method.simulation.precision.apw_cutoff', idPrecision, {...numberHistogramQuantity, label: 'APW cutoff', scale: '1/2'})
+registerFilter('results.method.simulation.precision.k_line_density', idPrecision, {...numberHistogramQuantity, scale: 'log', label: 'k-line density'})
+registerFilter('results.method.simulation.precision.basis_set', idPrecision, {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.precision.planewave_cutoff', idPrecision, {...numberHistogramQuantity, label: 'Plane-wave cutoff', scale: 'log'})
+registerFilter('results.method.simulation.precision.apw_cutoff', idPrecision, {...numberHistogramQuantity, label: 'APW cutoff', scale: 'log'})
 registerFilter('results.method.simulation.dft.core_electron_treatment', idDFT, termQuantity)
-registerFilter('results.method.simulation.dft.jacobs_ladder', idDFT, {...termQuantity, scale: '1/2', label: 'Jacob\'s ladder'})
+registerFilter('results.method.simulation.dft.jacobs_ladder', idDFT, {...termQuantity, scale: 'log', label: 'Jacob\'s ladder'})
 registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
   ...termQuantity,
-  scale: '1/2',
+  scale: 'log',
   label: 'Jacob\'s ladder',
   options: {
     'LDA': {label: 'LDA'},
@@ -309,16 +309,16 @@ registerFilter('results.method.simulation.dft.xc_functional_type', idDFT, {
     'hybrid': {label: 'Hybrid'}
   }
 })
-registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: '1/2', label: 'XC functional names'})
-registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', idDFT, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.dft.xc_functional_names', idDFT, {...termQuantityNonExclusive, scale: 'log', label: 'XC functional names'})
+registerFilter('results.method.simulation.dft.exact_exchange_mixing_factor', idDFT, {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dft.hubbard_kanamori_model.u_effective', idDFT, {...numberHistogramQuantity, scale: 'log'})
 registerFilter('results.method.simulation.dft.relativity_method', idDFT, termQuantity)
-registerFilter('results.method.simulation.tb.type', idTB, {...termQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.tb.localization_type', idTB, {...termQuantity, scale: '1/2'})
+registerFilter('results.method.simulation.tb.type', idTB, {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.tb.localization_type', idTB, {...termQuantity, scale: 'log'})
 registerFilter('results.method.simulation.gw.type', idGW, {...termQuantity, label: 'GW type'})
 registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
   ...termQuantity,
-  scale: '1/2',
+  scale: 'log',
   options: {
     'LDA': {label: 'LDA'},
     'GGA': {label: 'GGA'},
@@ -328,12 +328,12 @@ registerFilter('results.method.simulation.gw.starting_point_type', idGW, {
     'HF': {label: 'HF'}
   }
 })
-registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: '1/4'})
+registerFilter('results.method.simulation.gw.basis_set_type', idGW, {...termQuantity, scale: 'log'})
 registerFilter('results.method.simulation.bse.type', idBSE, termQuantity)
 registerFilter('results.method.simulation.bse.solver', idBSE, termQuantity)
 registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
   ...termQuantity,
-  scale: '1/2',
+  scale: 'log',
   options: {
     'LDA': {label: 'LDA'},
     'GGA': {label: 'GGA'},
@@ -343,13 +343,13 @@ registerFilter('results.method.simulation.bse.starting_point_type', idBSE, {
     'HF': {label: 'HF'}
   }
 })
-registerFilter('results.method.simulation.bse.basis_set_type', idBSE, {...termQuantity, scale: '1/4'})
-registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: '1/4', label: `GW type`})
+registerFilter('results.method.simulation.bse.basis_set_type', idBSE, {...termQuantity, scale: 'log'})
+registerFilter('results.method.simulation.bse.gw_type', idBSE, {...termQuantity, scale: 'log', label: `GW type`})
 registerFilter('results.method.simulation.dmft.impurity_solver_type', idDMFT, {...termQuantity})
 registerFilter('results.method.simulation.dmft.magnetic_state', idDMFT, {...termQuantity})
-registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.dmft.u', idDMFT, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('results.method.simulation.dmft.jh', idDMFT, {...numberHistogramQuantity, label: `JH`, scale: '1/2'})
+registerFilter('results.method.simulation.dmft.inverse_temperature', idDMFT, {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dmft.u', idDMFT, {...numberHistogramQuantity, scale: 'log'})
+registerFilter('results.method.simulation.dmft.jh', idDMFT, {...numberHistogramQuantity, label: `JH`, scale: 'log'})
 registerFilter('results.method.simulation.dmft.analytical_continuation', idDMFT, {...termQuantity})
 registerFilter('results.eln.sections', idELN, termQuantity)
 registerFilter('results.eln.tags', idELN, termQuantity)
@@ -358,10 +358,10 @@ registerFilter('results.eln.instruments', idELN, termQuantity)
 registerFilter('results.eln.lab_ids', idELN, {...termQuantity, label: 'Lab IDs'})
 registerFilter('results.eln.names', idELN, noAggQuantity)
 registerFilter('results.eln.descriptions', idELN, noAggQuantity)
-registerFilter('external_db', idAuthor, {...termQuantity, label: 'External database', scale: '1/4'})
+registerFilter('external_db', idAuthor, {...termQuantity, label: 'External database', scale: 'log'})
 registerFilter('authors.name', idAuthor, {...termQuantityNonExclusive, label: 'Author name'})
-registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})
-registerFilter('entry_create_time', idAuthor, {...numberHistogramQuantity, scale: '1/2'})
+registerFilter('upload_create_time', idAuthor, {...numberHistogramQuantity, scale: 'log'})
+registerFilter('entry_create_time', idAuthor, {...numberHistogramQuantity, scale: 'log'})
 registerFilter('datasets.dataset_name', idAuthor, {...termQuantityLarge, label: 'Dataset name'})
 registerFilter('datasets.doi', idAuthor, {...termQuantity, label: 'Dataset DOI'})
 registerFilter('datasets.dataset_id', idAuthor, termQuantity)
@@ -442,7 +442,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
-    {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
+    {name: 'value', ...numberHistogramQuantity, scale: 'log'}
   ]
 )
 registerFilter(
@@ -451,7 +451,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'type', ...termQuantity},
-    {name: 'value', ...numberHistogramQuantity, scale: '1/4'}
+    {name: 'value', ...numberHistogramQuantity, scale: 'log'}
   ]
 )
 registerFilter('results.properties.electronic.band_gap.provenance.label', idElectronic, termQuantity)
@@ -460,12 +460,12 @@ registerFilter(
   idSolarCell,
   nestedQuantity,
   [
-    {name: 'efficiency', ...numberHistogramQuantity, scale: '1/4'},
-    {name: 'fill_factor', ...numberHistogramQuantity, scale: '1/4'},
-    {name: 'open_circuit_voltage', ...numberHistogramQuantity, scale: '1/4'},
-    {name: 'short_circuit_current_density', ...numberHistogramQuantity, scale: '1/4'},
-    {name: 'illumination_intensity', ...numberHistogramQuantity, scale: '1/4'},
-    {name: 'device_area', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'efficiency', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'fill_factor', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'open_circuit_voltage', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'short_circuit_current_density', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'illumination_intensity', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'device_area', ...numberHistogramQuantity, scale: 'log'},
     {name: 'device_architecture', ...termQuantity},
     {name: 'absorber_fabrication', ...termQuantity},
     {name: 'device_stack', ...termQuantityAllNonExclusive},
@@ -482,7 +482,7 @@ registerFilter(
   nestedQuantity,
   [
     {name: 'characterization_methods', ...termQuantity},
-    {name: 'surface_area', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'surface_area', ...numberHistogramQuantity, scale: 'log'},
     {name: 'catalyst_name', ...termQuantity},
     {name: 'catalyst_type', ...termQuantity},
     {name: 'preparation_method', ...termQuantity}
@@ -502,9 +502,9 @@ registerFilter(
   idCatalyst,
   nestedQuantity,
   [
-    {name: 'temperature', ...numberHistogramQuantity, scale: '1/4'},
+    {name: 'temperature', ...numberHistogramQuantity, scale: 'log'},
     {name: 'pressure', ...numberHistogramQuantity, scale: 'linear'},
-    {name: 'weight_hourly_space_velocity', ...numberHistogramQuantity, scale: '1/4'}
+    {name: 'weight_hourly_space_velocity', ...numberHistogramQuantity, scale: 'log'}
   ]
 )
 registerFilter(
@@ -514,7 +514,7 @@ registerFilter(
   [
     {name: 'name', ...termQuantityAllNonExclusive},
     {name: 'gas_concentration_out', ...numberHistogramQuantity, scale: 'linear'},
-    {name: 'selectivity', ...numberHistogramQuantity, scale: '1/4'}
+    {name: 'selectivity', ...numberHistogramQuantity, scale: 'log'}
   ]
 )
 registerFilter(
@@ -572,9 +572,9 @@ registerFilter(
   idGeometryOptimization,
   nestedQuantity,
   [
-    {name: 'final_energy_difference', ...numberHistogramQuantity, scale: '1/8'},
-    {name: 'final_displacement_maximum', ...numberHistogramQuantity, scale: '1/8'},
-    {name: 'final_force_maximum', ...numberHistogramQuantity, scale: '1/8'}
+    {name: 'final_energy_difference', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'final_displacement_maximum', ...numberHistogramQuantity, scale: 'log'},
+    {name: 'final_force_maximum', ...numberHistogramQuantity, scale: 'log'}
   ]
 )
 registerFilter(
@@ -632,7 +632,7 @@ registerFilter(
     widget: {
       quantity: 'results.material.elements',
       type: 'periodictable',
-      scale: '1/2',
+      scale: 'log',
       layout: {
         sm: {w: 12, h: 8, minW: 12, minH: 8},
         md: {w: 12, h: 8, minW: 12, minH: 8},
