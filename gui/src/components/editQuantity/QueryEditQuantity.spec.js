@@ -58,9 +58,9 @@ test('Test QueryEditQuantity', async () => {
     value={{
       filters: {visibility: 'visible'},
       results: [
-        {entry_id: '1', mainfile: 'a'},
-        {entry_id: '2', mainfile: 'b'},
-        {entry_id: '3', mainfile: 'c'}
+        {entry_id: '1', upload_id: '10', mainfile: 'a'},
+        {entry_id: '2', upload_id: '20', mainfile: 'b'},
+        {entry_id: '3', upload_id: '30', mainfile: 'c'}
       ]}}
     onChange={handleChange}
   />)
@@ -89,8 +89,10 @@ test('Test QueryEditQuantity', async () => {
 
   // Assert the new results
   await waitFor(() => expect(handleChange.mock.calls[0][0].data[0].entry_id).toBe('bC7byHvWJp62Sn9uiuJUB38MT5j-'))
+  await waitFor(() => expect(handleChange.mock.calls[0][0].data[0].upload_id).toBe('eln_upload_id'))
   await waitFor(() => expect(handleChange.mock.calls[0][0].data[0].mainfile).toBe('sample.archive.json'))
   await waitFor(() => expect(handleChange.mock.calls[0][0].data[1].entry_id).toBe('83DS7AzwqTKFVwlrdVeaL3kMSLU_'))
+  await waitFor(() => expect(handleChange.mock.calls[0][0].data[1].upload_id).toBe('eln_upload_id'))
   await waitFor(() => expect(handleChange.mock.calls[0][0].data[1].mainfile).toBe('schema.archive.yaml'))
 
   // Clear results
