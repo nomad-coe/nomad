@@ -264,7 +264,7 @@ class Atoms(ArchiveSection):
 
     bond_list = Quantity(
         type=np.int32,
-        shape=[],
+        shape=['*', '2'],
         description="""
         List of pairs of atom indices corresponding to bonds (e.g., as defined by a force field) within the entire system.
         """,
