@@ -122,7 +122,12 @@ export const searchQuantities = window.nomadArtifacts.searchQuantities
 export const metainfo = window.nomadArtifacts.metainfo
 export const parserMetadata = window.nomadArtifacts.parserMetadata
 export const toolkitMetadata = window.nomadArtifacts.toolkitMetadata
-export const exampleUploads = window.nomadArtifacts.exampleUploads
+export const exampleUploads = window.nomadArtifacts.exampleUploads || {}
+Object.values(entry_points?.options || [])
+  .filter(entry_point => entry_point.entry_point_type === 'example_upload')
+  .forEach(entry_point => {
+    exampleUploads[entry_point.category] = {...exampleUploads[entry_point.category], [entry_point.id]: entry_point}
+  })
 export const northTools = window.nomadArtifacts.northTools
 export const unitList = window.nomadArtifacts.unitList
 export const unitPrefixes = window.nomadArtifacts.unitPrefixes

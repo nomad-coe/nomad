@@ -17,7 +17,6 @@
 #
 
 from enum import Enum
-import inspect
 from typing import List, Dict, Union, Optional
 from typing_extensions import Literal, Annotated
 from pydantic import Field, root_validator
@@ -94,7 +93,7 @@ class UnitSystem(ConfigBaseModel):
     )
 
     @root_validator(pre=True)
-    def __validate(cls, values):  # pylint: disable=no-self-argument
+    def _validate(cls, values):  # pylint: disable=no-self-argument
         """Adds SI defaults for dimensions that are missing a unit."""
         units = values.get('units', {})
         from nomad.units import ureg
@@ -558,7 +557,7 @@ class WidgetHistogram(Widget):
     )
 
     @root_validator(pre=True)
-    def __validate(cls, values):
+    def _validate(cls, values):
         """Ensures backwards compatibility for quantity and scale."""
         # X-axis
         x = values.get('x', {})
@@ -628,7 +627,7 @@ class WidgetScatterPlot(Widget):
     )
 
     @root_validator(pre=True)
-    def __validate(cls, values):
+    def _validate(cls, values):
         """Ensures backwards compatibility of x, y, and color."""
         color = values.get('color')
         if color is not None:

@@ -36,6 +36,7 @@ nav:
     - Plugins:
       - Get started with plugins: howto/plugins/plugins.md
       - Write an app: howto/plugins/apps.md
+      - Write an example upload: howto/plugins/example_uploads.md
       - Write a normalizer: howto/plugins/normalizers.md
       - Write a parser: howto/plugins/parsers.md
       - Write a schema package: howto/plugins/schema_packages.md

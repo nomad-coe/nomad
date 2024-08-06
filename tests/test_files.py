@@ -35,6 +35,7 @@ from nomad.files import (
     PathObject,
     empty_zip_file_size,
     empty_archive_file_size,
+    is_safe_path,
 )
 from nomad.files import StagingUploadFiles, PublicUploadFiles, UploadFiles
 from nomad.processing import Upload
@@ -796,3 +797,52 @@ def test_test_upload_files(raw_files_infra):
     finally:
         if upload_files.exists():
             upload_files.delete()
+
+
+@pytest.mark.parametrize(
+    'path, safe_path, is_directory, is_safe',
+    [
+        pytest.param(
+            '/safe/a', '/safe/', True, True, id='safe absolute path to folder'
+        ),
+        pytest.param(
+            '/safe/a/../b', '/safe/', True, True, id='safe relative path to folder'
+        ),
+        pytest.param(
+            '/unsafe/../c', '/safe/', True, False, id='unsafe absolute path to folder'
+        ),
+        pytest.param(
+            '/safe/../unsafe',
+            '/safe/',
+            True,
+            False,
+            id='unsafe relative path to folder',
+        ),
+        pytest.param(
+            '/safe2/',
+            '/safe',
+            True,
+            False,
+            id='unsafe absolute path to folder with same prefix',
+        ),
+        pytest.param(
+            '/safe/safe_file.zip', '/safe/safe_file.zip', False, True, id='safe file'
+        ),
+        pytest.param(
+            '/safe2/unsafe_file.zip',
+            '/safe/safe_file.zip',
+            False,
+            False,
+            id='unsafe file',
+        ),
+        pytest.param(
+            '/safe2/safe_file.zip2',
+            '/safe/safe_file.zip',
+            False,
+            False,
+            id='unsafe file with same prefix',
+        ),
+    ],
+)
+def test_is_safe_path(path, safe_path, is_directory, is_safe):
+    assert is_safe_path(path, safe_path, is_directory) == is_safe
