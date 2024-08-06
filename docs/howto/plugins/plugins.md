@@ -43,6 +43,7 @@ In the folder structure you can see that a single plugin can contain multiple ty
 Plugin entry points represent different types of customizations that can be added to a NOMAD installation. The following plugin entry point types are currently supported:
 
  - [Apps](./apps.md)
+ - [Example uploads](./example_uploads.md)
  - [Normalizers](./parsers.md)
  - [Parsers](./parsers.md)
  - [Schema packages](./schema_packages.md)
@@ -59,7 +60,7 @@ myapp = "nomad_example.parsers:myapp"
 mypackage = "nomad_example.schema_packages:mypackage"
 ```
 
-Here it is important to use the `nomad.plugin` group name in the `project.entry-points` header. The plugin name used on the left side (`mypackage`) can be arbitrary, what matters is that the key (`"nomad_example.schema_packages:mypackage"`) is a path pointing to a plugin entry point instance inside the python code. This unique key will be used to identify the plugin entry point when e.g. accessing it to read some of it's configuration values.
+Here it is important to use the `nomad.plugin` group name in the `project.entry-points` header. The value on the right side (`"nomad_example.schema_packages:mypackage"`) must be a path pointing to a plugin entry point instance inside the python code. This unique key will be used to identify the plugin entry point when e.g. accessing it to read some of it's configuration values. The name on the left side (`mypackage`) can be set freely.
 
 You can read more about how to write different types of entry points in their dedicated documentation pages or learn more about the [Python entry point mechanism](https://setuptools.pypa.io/en/latest/userguide/entry_point.html).
 

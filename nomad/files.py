@@ -173,6 +173,29 @@ def is_safe_basename(basename: str) -> bool:
     return True
 
 
+def is_safe_path(path: str, safe_path: str, is_directory=True) -> bool:
+    """Returns whether the given path ultimately points to a known safe
+    location. Can be used to prevent path traversal attacks, such as relative
+    paths or symlinks.
+
+        Args:
+            path: The path to check
+            safe_path: A safe location. Can be a folder or a file.
+            is_directory: Whether the safe path is a directory or not. If True,
+                a trailing slash is added and only the common prefix is tested.
+                If False, the whole path must match. Otherwise users may access
+                other locations with the same name prefix (e.g. /safe2 when
+                safe_path was /safe).
+    """
+    real_path = os.path.realpath(path)
+    if is_directory:
+        if not safe_path.endswith(os.path.sep):
+            safe_path += os.path.sep
+        return os.path.commonprefix((real_path, safe_path)) == safe_path
+
+    return real_path == safe_path
+
+
 def is_safe_relative_path(path: str) -> bool:
     """
     Checks if path is a *safe* relative path. We consider it safe if it does not start with

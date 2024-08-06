@@ -18,7 +18,6 @@
 
 import logging
 import os
-import pkgutil
 import sys
 import warnings
 from importlib.metadata import metadata, version
@@ -46,6 +45,7 @@ from .common import (
 from .north import NORTH
 from .plugins import EntryPointType, PluginPackage, Plugins
 from .ui import UI
+from nomad.common import get_package_path
 
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
@@ -1084,7 +1084,7 @@ class Config(ConfigBaseModel):
                 package_metadata = metadata(package_name)
                 url_list = package_metadata.get_all('Project-URL')
                 url_dict = {}
-                for url in url_list:
+                for url in url_list or []:
                     name, value = url.split(',')
                     url_dict[name.lower()] = value.strip()
                 if package_name not in plugin_packages:
@@ -1154,28 +1154,3 @@ class Config(ConfigBaseModel):
                     )
 
             self.plugins = Plugins.parse_obj(_plugins)
-
-
-def get_package_path(package_name: str) -> str:
-    """Given a python package name, returns the filepath of the package root folder."""
-    package_path = None
-    try:
-        # We try to deduce the package path from the top-level package
-        package_path_segments = package_name.split('.')
-        root_package = package_path_segments[0]
-        package_dirs = package_path_segments[1:]
-        package_path = os.path.join(
-            os.path.dirname(
-                pkgutil.get_loader(root_package).get_filename()  # type: ignore
-            ),
-            *package_dirs,
-        )
-        if not os.path.isdir(package_path):
-            # We could not find it this way. Let's try to official way
-            package_path = os.path.dirname(
-                pkgutil.get_loader(package_name).get_filename()  # type: ignore
-            )
-    except Exception as e:
-        raise ValueError(f'The python package {package_name} cannot be loaded.', e)
-
-    return package_path

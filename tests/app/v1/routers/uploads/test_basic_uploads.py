@@ -46,6 +46,7 @@ from tests.processing.test_edit_metadata import (
 from tests.test_files import (
     assert_upload_files,
     empty_file,
+    example_directory,
     example_file_aux,
     example_file_corrupt_zip,
     example_file_mainfile_different_atoms,
@@ -231,6 +232,18 @@ def assert_file_upload_and_processing(
                                 target_path_full = os.path.join(target_path, path)
                                 assert upload_files.raw_path_exists(target_path_full)
                                 assert upload_files.raw_path_is_file(target_path_full)
+                elif os.path.isdir(source_path):
+                    for root, _, filepaths in os.walk(source_path):
+                        for filepath in filepaths:
+                            rel_dir = os.path.relpath(root, source_path)
+                            path = (
+                                filepath
+                                if rel_dir == '.'
+                                else os.path.join(rel_dir, filepath)
+                            )
+                            target_path_full = os.path.join(target_path, path)
+                            assert upload_files.raw_path_exists(target_path_full)
+                            assert upload_files.raw_path_is_file(target_path_full)
                 else:
                     if mode == 'stream':
                         # Must specify file_name
@@ -2984,7 +2997,18 @@ def test_post_upload_edit(
             False,
             True,
             200,
-            id='local_path',
+            id='local_path_file',
+        ),
+        pytest.param(
+            'local_path',
+            'tests/data/proc/example_upload',
+            dict(upload_name='test_name'),
+            'user0',
+            False,
+            False,
+            True,
+            200,
+            id='local_path_folder',
         ),
         pytest.param(
             'local_path',

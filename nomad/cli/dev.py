@@ -22,6 +22,7 @@ import os
 import click
 
 from nomad.config import config
+from nomad.config.models.plugins import ExampleUploadEntryPoint
 from nomad.metainfo.elasticsearch_extension import schema_separator
 from .cli import cli
 
@@ -209,14 +210,13 @@ def parser_metadata():
 def get_gui_config() -> str:
     """Create a simplified and stripped version of the nomad.yaml contents that
     is used by the GUI.
-
-    Args:
-        proxy: Whether the build is using a proxy. Affects whether calls to different
-          services use an explicit host+port+path as configured in the config, or whether
-          they simply use a relative path that a proxy can resolve.
     """
     from nomad.config import config
 
+    config.load_plugins()
+
+    # We need to sort the plugin entry point information, because otherwise the
+    # artifacts tests will fail.
     def _sort_dict(d):
         if isinstance(d, dict):
             return {k: _sort_dict(v) for k, v in sorted(d.items())}
@@ -224,8 +224,15 @@ def get_gui_config() -> str:
             return [_sort_dict(v) for v in d]
         return d
 
-    config.load_plugins()
     plugins = _sort_dict(config.plugins.dict(exclude_unset=True))
+
+    # We need to load the example upload entry points to get the final upload
+    # path
+    enabled_entry_points = config.plugins.entry_points.filtered_values()
+    for entry_point in enabled_entry_points:
+        if isinstance(entry_point, ExampleUploadEntryPoint):
+            entry_point.load()
+
     for key in plugins['entry_points']['options'].keys():
         plugins['entry_points']['options'][key] = config.plugins.entry_points.options[
             key

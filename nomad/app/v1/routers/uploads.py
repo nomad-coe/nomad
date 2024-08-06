@@ -41,10 +41,12 @@ from fastapi.exceptions import RequestValidationError
 
 from nomad import utils, files
 from nomad.config import config
+from nomad.config.models.plugins import example_upload_path_prefix
 from nomad.files import (
     StagingUploadFiles,
     is_safe_relative_path,
     is_safe_basename,
+    is_safe_path,
     PublicUploadFiles,
 )
 from nomad.bundles import BundleExporter, BundleImporter
@@ -58,6 +60,7 @@ from nomad.processing import (
     MetadataEditRequestHandler,
 )
 from nomad.utils import strip
+from nomad.common import get_package_path
 from nomad.search import (
     search,
     search_iterator,
@@ -1373,6 +1376,13 @@ async def put_upload_raw_path(
 
     upload = _get_upload_with_write_access(upload_id, user, include_published=False)
 
+    if local_path:
+        if not os.path.isfile(local_path):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Uploading folders with local_path is not yet supported.',
+            )
+
     if not is_safe_relative_path(path):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail='Bad path provided.'
@@ -1407,7 +1417,7 @@ async def put_upload_raw_path(
                 detail='Bad source path provided.',
             )
 
-    upload_paths, method = await _get_files_if_provided(
+    upload_paths, _, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user
     )
 
@@ -1842,7 +1852,7 @@ async def post_upload(
 
     upload_id = utils.create_uuid()
 
-    upload_paths, method = await _get_files_if_provided(
+    upload_paths, upload_folders, method = await _get_files_if_provided(
         upload_id, request, file, local_path, file_name, user
     )
 
@@ -1870,8 +1880,13 @@ async def post_upload(
     if upload_paths:
         upload.process_upload(
             file_operations=[
-                dict(op='ADD', path=upload_path, target_dir='', temporary=(method != 0))
-                for upload_path in upload_paths
+                dict(
+                    op='ADD',
+                    path=upload_path,
+                    target_dir=upload_folders[i_path],
+                    temporary=(method != 0),
+                )
+                for i_path, upload_path in enumerate(upload_paths)
             ]
         )
 
@@ -2439,11 +2454,18 @@ async def post_upload_bundle(
     bundle_path: str = None
     method = None
 
+    if local_path:
+        if not os.path.isfile(local_path):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='You can only target a single bundle file using local_path.',
+            )
+
     try:
         bundle_importer = BundleImporter(user, import_settings)
         bundle_importer.check_api_permissions()
 
-        bundle_paths, method = await _get_files_if_provided(
+        bundle_paths, _, method = await _get_files_if_provided(
             tmp_dir_prefix='bundle',
             request=request,
             file=file,
@@ -2497,7 +2519,7 @@ async def _get_files_if_provided(
     local_path: str,
     file_name: str,
     user: User,
-) -> Tuple[List[str], Union[None, int]]:
+) -> Tuple[List[str], List[str], Union[None, int]]:
     """
     If the user provides one or more files with the api call, load and save them to a temporary
     folder (or, if method 0 is used, just "forward" the file path). The method thus needs to identify
@@ -2509,22 +2531,38 @@ async def _get_files_if_provided(
     # Determine the source data stream
     sources: List[Tuple[Any, str]] = []  # List of tuples (source, filename)
     if local_path:
-        # Method 0: Local file - only for local path under /tests/data/proc/
-        if not local_path.startswith('examples') and not user.is_admin:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=strip(
-                    """
-                You are not authorized to access this path."""
-                ),
-            )
-        if not os.path.exists(local_path) or not os.path.isfile(local_path):
+        # Method 0: Local file - only for local path under examples/data, an
+        # example upload stored within a plugin package or or admin use.
+
+        # The legacy example uploads are stored as zip files under
+        # examples/data.
+        safe_path = None
+        if local_path.startswith('examples'):
+            safe_path = os.path.abspath('examples/data')
+        # The example uploads distributed through plugins are accessible
+        # through the use of a special path prefix.
+        elif local_path.startswith(example_upload_path_prefix):
+            parts = local_path.split('/')
+            package_name = parts[1]
+            safe_path = get_package_path(package_name)
+            local_path = os.path.join(safe_path, '/'.join(parts[2:]))
+
+        # Check if local path points to a safe location
+        if not user.is_admin:
+            if not safe_path or not is_safe_path(local_path, safe_path):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=strip("""
+                    You are not authorized to access this path.
+                    """),
+                )
+
+        if not os.path.exists(local_path):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=strip(
-                    """
-                The specified local_path cannot be found or is not a file."""
-                ),
+                detail=strip("""
+                The specified local_path cannot be found.
+                """),
             )
         method = 0
     elif file:
@@ -2553,15 +2591,28 @@ async def _get_files_if_provided(
 
     # Forward the file path (if method == 0) or save the file(s)
     if method == 0:
-        tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
-        # copy provided path to a temp directory
-        shutil.copy(local_path, tmp_dir)
-        upload_paths = [os.path.join(tmp_dir, os.path.basename(local_path))]
-        uploaded_bytes = os.path.getsize(local_path)
+        is_file = os.path.isfile(local_path)
+        # Single file
+        if is_file:
+            upload_paths = [local_path]
+            upload_folders = ['']
+        # Folder
+        else:
+            upload_paths = []
+            upload_folders = []
+            for root, _, filepaths in os.walk(local_path):
+                for uploaded_file in filepaths:
+                    file_path = os.path.abspath(os.path.join(root, uploaded_file))
+                    folder = os.path.relpath(root, local_path)
+                    if folder == '.':
+                        folder = ''
+                    upload_paths.append(file_path)
+                    upload_folders.append(folder)
     else:
         tmp_dir = files.create_tmp_dir(tmp_dir_prefix)
         upload_paths = []
         uploaded_bytes = 0
+        upload_folders = []
         for source_stream, source_file_name in sources:
             upload_path = os.path.join(tmp_dir, source_file_name)
             try:
@@ -2593,11 +2644,12 @@ async def _get_files_if_provided(
                         detail='Some IO went wrong, upload probably aborted/disrupted.',
                     )
             upload_paths.append(upload_path)
+            upload_folders.append('')
 
         if not uploaded_bytes and method == 2:
             # No data was provided
             shutil.rmtree(tmp_dir)
-            return [], None
+            return [], [], None
 
     logger.info(f'received uploaded file(s)')
     if method == 2 and no_file_name_info_provided:
@@ -2620,8 +2672,9 @@ async def _get_files_if_provided(
         # Add the correct extension
         shutil.move(upload_path, upload_path + ext)
         upload_paths = [upload_path + ext]
+        upload_folders = ['']
 
-    return upload_paths, method
+    return upload_paths, upload_folders, method
 
 
 async def _asyncronous_file_reader(f):
