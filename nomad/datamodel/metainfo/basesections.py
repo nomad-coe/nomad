@@ -1067,16 +1067,22 @@ class CompositeSystem(System):
                 if all(component.mass is None for component in self.components):
                     masses = [component.mass_fraction for component in self.components]
                 else:
-                    mass = next(
+
+                    def calculate_mass(component, first_nonzero_mass):
+                        if component.mass is None:
+                            if component.mass_fraction is not None:
+                                return first_nonzero_mass * component.mass_fraction
+                            return component.mass
+                        else:
+                            return component.mass.to(ureg.kilogram).magnitude
+
+                    first_nonzero_mass = next(
                         component.mass.to(ureg.kilogram).magnitude
                         for component in self.components
                         if component.mass is not None
                     )
                     masses = [
-                        mass * component.mass_fraction
-                        if component.mass is None
-                        and component.mass_fraction is not None
-                        else component.mass
+                        calculate_mass(component, first_nonzero_mass)
                         for component in self.components
                     ]
             else:
@@ -1100,7 +1106,8 @@ class CompositeSystem(System):
                 component_dict = self._atomic_to_mass(elemental_composition, mass)
                 for element, mass in component_dict.items():
                     if element in mass_dict and mass is not None:
-                        mass_dict[element] += mass
+                        if mass_dict[element] is not None:
+                            mass_dict[element] += mass
                     else:
                         mass_dict[element] = mass
             self.elemental_composition = self._mass_to_atomic(mass_dict)
@@ -1447,6 +1454,16 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
             'IsomericSMILES': 'smile',
             'CanonicalSMILES': 'canonical_smile',
         }
+        types = {  # Needed because PubChems API sometimes returns floats as strings
+            'Title': str,
+            'IUPACName': str,
+            'MolecularFormula': str,
+            'ExactMass': float,
+            'InChI': str,
+            'InChIKey': str,
+            'IsomericSMILES': str,
+            'CanonicalSMILES': str,
+        }
         response = pub_chem_api_get_properties(
             cid=self.pub_chem_cid, properties=properties
         )
@@ -1463,14 +1480,22 @@ class PubChemPureSubstanceSection(PureSubstanceSection):
         for property_name in properties:
             if getattr(self, properties[property_name], None) is None:
                 try:
+                    property_value = property_values[property_name]
+                    if not isinstance(property_value, types[property_name]):
+                        property_value = types[property_name](property_value)
                     setattr(
                         self,
                         properties[property_name],
-                        property_values[property_name],
+                        property_value,
                     )
                 except KeyError:
                     logger.warn(
                         f'Property "{property_name}" missing from PubChem response.'
+                    )
+                except ValueError:
+                    logger.warn(
+                        f'Property "{property_name}" in PubChem response is not of '
+                        f'the expected type "{types[property_name]}".'
                     )
         if self.cas_number is None:
             response = pub_chem_api_get_synonyms(cid=self.pub_chem_cid)
