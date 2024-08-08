@@ -319,10 +319,7 @@ yarn
 yarn start
 ```
 
-Note that the current codebase requires Node.js version 16.20. If you have a newer version installed on your system, you may need to downgrade or use the following workaround as described [here](https://codingbeautydev.com/blog/node-err-ossl-evp-unsupported/) before `yarn start` works properly.
-```
-export NODE_OPTIONS=--openssl-legacy-provider
-```
+Note that the current codebase requires Node.js version 20. 
 
 ### JupyterHub
 
