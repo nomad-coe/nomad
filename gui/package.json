@@ -29,7 +29,7 @@
     "fetch": "^1.1.0",
     "html-to-react": "^1.3.3",
     "jmespath": "^0.16.0",
-    "keycloak-js": "^18.0.1",
+    "keycloak-js": "^25.0.2",
     "lodash": "^4.17.15",
     "material-ui-chip-input": "^1.1.0",
     "material-ui-flat-pagination": "^4.0.0",
@@ -86,8 +86,8 @@
     "yup": "^0.32.11"
   },
   "scripts": {
-    "start": "craco start",
-    "build": "export CI=true && craco build",
+    "start": "craco --openssl-legacy-provider start",
+    "build": "export CI=true && craco --openssl-legacy-provider build",
     "test": "export WAIT_FOR_GUI=None && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --maxWorkers=4",
     "watch-test": "craco test --testPathIgnorePatterns=.*/conftest.spec.js --maxWorkers=4",
     "test-integration": "export READ_MODE=api WRITE_MODE=none && craco test --testPathIgnorePatterns=.*/conftest.spec.js --watchAll=false --runInBand",

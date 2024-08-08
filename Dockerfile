@@ -20,7 +20,7 @@
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/engine/reference/builder/
 
-FROM node:16.15 AS base_node
+FROM node:20 AS base_node
 FROM python:3.11-slim AS base_python
 # Keeps Python from buffering stdout and stderr to avoid situations where
 # the application crashes without emitting any logs due to buffering.
@@ -109,7 +109,7 @@ FROM base_node AS dev_node
 WORKDIR /app/gui
 
 ENV PATH /app/node_modules/.bin:$PATH
-ENV NODE_OPTIONS "--max_old_space_size=4096"
+ENV NODE_OPTIONS "--max_old_space_size=4096 --openssl-legacy-provider"
 
 # Fetch and cache all (but only) the dependencies
 COPY gui/yarn.lock gui/package.json ./
