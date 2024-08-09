@@ -1801,3 +1801,12 @@ export function getDisplayLabel(def, isArchive = false, technicalView = false) {
 export function isEmptyString(value) {
   return value === undefined || value === null || !value?.trim?.()?.length
 }
+
+/**
+ * Checks if upload is visible for all users (including guests)
+ * @param {Object} upload The upload object
+ * @returns {boolean|undefined} Whether the upload is visible
+ */
+export function isUploadVisibleForAll(upload) {
+  return upload?.viewer_groups?.includes('all')
+}

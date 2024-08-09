@@ -20,7 +20,7 @@ import PropTypes from 'prop-types'
 import { useApi, DoesNotExist } from './api'
 import { useErrors } from './errors'
 import { apiBase, metainfo as currentSystemMetainfoData } from '../config'
-import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl } from '../utils'
+import { refType, parseNomadUrl, createEntryUrl, systemMetainfoUrl, isUploadVisibleForAll } from '../utils'
 import { getMetainfoFromDefinition, getUrlFromDefinition, Metainfo } from './archive/metainfo'
 import YAML from 'yaml'
 
@@ -109,6 +109,7 @@ const DataStore = React.memo(({children}) => {
         isWriter: false,
         isMainAuthor: false,
         isEditable: false,
+        isVisibleForAll: false,
 
         // ReadOnly - Managed by the store
         error: undefined, // If we had an api error from the last store refresh
@@ -190,6 +191,7 @@ const DataStore = React.memo(({children}) => {
     newStoreObj.isWriter = !!(user && writers?.includes(user.sub))
     newStoreObj.isMainAuthor = user && newStoreObj.upload?.main_author === user.sub
     newStoreObj.isEditable = newStoreObj.isWriter && !newStoreObj.upload.published
+    newStoreObj.isVisibleForAll = isUploadVisibleForAll(newStoreObj.upload)
 
     // Update the store
     uploadStore.current[uploadId] = newStoreObj

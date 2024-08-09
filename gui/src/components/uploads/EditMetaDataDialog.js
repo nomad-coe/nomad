@@ -534,18 +534,18 @@ function EditMetaDataDialog({...props}) {
 
   return <React.Fragment>
     {isIcon && <IconButton onClick={() => handleOpenDialog()}>
-      <Tooltip title="Edit author metadata">
+      <Tooltip title="Edit metadata">
         <EditIcon />
       </Tooltip>
     </IconButton>}
     {!isIcon && <Button onClick={() => handleOpenDialog()} variant='contained' color='primary' disabled={isProcessing} data-testid='edit-metadata-button'>
-      {upload?.entries && (upload?.entries > 1 ? `Edit author metadata of all ${upload?.entries} entries` : `Edit author metadata of all the entries`)}
+      {upload?.entries && (upload?.entries > 1 ? `Edit metadata of all ${upload?.entries} entries` : `Edit metadata of all the entries`)}
     </Button>}
     {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='edit-metadata-dialog'>
-      <DialogTitle>Edit upload meta data</DialogTitle>
+      <DialogTitle>Edit upload metadata</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          You can add, remove or edit the meta data for the selected entries.
+          You can add, edit, or remove the metadata for the selected entries.
           <br/>
           {nSelected} of {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'} is selected.
         </DialogContentText>
