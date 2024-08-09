@@ -198,3 +198,7 @@ twine upload \
     --repository-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi \
     dist/nomad-example-plugin-*.tar.gz
 ```
+
+## Installing a plugin
+
+See our documentation on [How to install plugins into a NOMAD Oasis](../oasis/plugins_install.md).
