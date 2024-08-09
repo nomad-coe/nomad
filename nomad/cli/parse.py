@@ -39,6 +39,12 @@ from .cli import cli
     help='Print the extracted repo metadata.',
 )
 @click.option(
+    '--preview-plots',
+    is_flag=True,
+    default=False,
+    help='Preview generated plots',
+)
+@click.option(
     '--skip-normalizers', is_flag=True, default=False, help='Do not run the normalizer.'
 )
 @click.option('--not-strict', is_flag=True, help='Do also match artificial parsers.')
@@ -55,22 +61,33 @@ from .cli import cli
 )
 @click.option('--username', default=None, help='Username for authentication.')
 @click.option('--password', default=None, help='Password for authentication.')
+@click.option(
+    '--save-plot-dir',
+    type=click.Path(file_okay=False, writable=True),
+    default=None,
+    help='Directory to save the plot',
+)
 def _parse(
     mainfile,
     show_archive,
     archive_with_meta,
     show_metadata,
+    preview_plots,
     skip_normalizers,
     not_strict,
     parser,
     server_context,
     username,
     password,
+    save_plot_dir,
 ):
-    import sys
     import json
+    import sys
+    import os
 
-    from nomad.client import parse, normalize_all
+    from nomad.client import normalize_all, parse
+    from nomad.datamodel.metainfo.plot import resolve_plot_references
+    from nomad import utils
 
     kwargs = dict(
         strict=not not_strict,
@@ -98,3 +115,48 @@ def _parse(
             metadata = entry_archive.metadata
             metadata.apply_archive_metadata(entry_archive)
             json.dump(metadata.m_to_dict(), sys.stdout, indent=4)
+
+        if save_plot_dir or preview_plots:
+            if not entry_archive.data:
+                raise ValueError('The entry archive has no data.')
+            elif (
+                'figures' not in entry_archive.data or not entry_archive.data['figures']
+            ):
+                raise ValueError('The entry archive has no figures data.')
+            import plotly.io as pio
+
+            metadata = entry_archive.metadata
+
+            for i, fig in enumerate(entry_archive.data['figures']):
+                logger = utils.get_logger(__name__)
+                config = fig.figure.get('config', {})
+                fig_kwargs = {}
+
+                file_path = (
+                    os.path.join(
+                        save_plot_dir,
+                        f'{metadata.entry_name}_{i}.png',
+                    )
+                    if save_plot_dir
+                    else None
+                )
+
+                try:
+                    if preview_plots:
+                        pio.show(fig.figure, **config)
+                    if file_path:
+                        pio.write_image(fig.figure, file_path)
+                except ValueError:
+                    logger.info('Resolving references')
+                    fig_kwargs = {}
+                    for k, v in fig.figure.items():
+                        fig_kwargs[k] = (
+                            resolve_plot_references(v, entry_archive, logger) or v
+                        )
+                    if preview_plots:
+                        pio.show(fig_kwargs, **config)
+                    if file_path:
+                        pio.write_image(
+                            fig_kwargs,
+                            file_path,
+                        )

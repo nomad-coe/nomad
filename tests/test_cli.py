@@ -19,8 +19,10 @@
 import pytest
 import click.testing
 import json
+import os
 import datetime
 import time
+import tempfile
 
 from nomad import processing as proc, files
 from nomad.config import config
@@ -52,6 +54,24 @@ class TestParse:
         _, mainfile_path = example_mainfile
         result = invoke_cli(cli, ['parse', mainfile_path], catch_exceptions=False)
         assert result.exit_code == 0
+
+    def test_save_plot_dir(self):
+        directory = 'tests/data/datamodel/metainfo/plotly'
+        mainfile = 'plotly.schema.archive.yaml'
+        mainfile_path = os.path.join(directory, mainfile)
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            result = invoke_cli(
+                cli,
+                ['parse', mainfile_path, '--save-plot-dir', tmpdirname],
+                catch_exceptions=False,
+            )
+            assert result.exit_code == 0
+
+            files = os.listdir(tmpdirname)
+            files.sort()
+            assert len(files) == 4
+            for i, file in enumerate(files):
+                assert file == f'{mainfile}_{i}.png'
 
 
 @pytest.mark.usefixtures(

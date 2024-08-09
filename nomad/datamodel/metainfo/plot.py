@@ -47,21 +47,13 @@ def get_figure_layout(annotation):
     return label, index
 
 
-def express_do_plot(plotly_express_annotation, archive, logger):
-    method_name = plotly_express_annotation.pop('method')
-    layout = plotly_express_annotation.get('layout', None)
-    if layout:
-        plotly_express_annotation.pop('layout')
-    traces = plotly_express_annotation.get('traces', [])
-    if traces:
-        plotly_express_annotation.pop('traces')
-    method = getattr(px, method_name)
+def resolve_plot_references(annotations, archive, logger):
     kwargs = {}
-    for key, value in plotly_express_annotation.items():
+    for key, value in annotations.items():
         if isinstance(value, list):
             items = []
             for item in value:
-                if item.startswith('#'):
+                if isinstance(item, str) and item.startswith('#'):
                     resolved_value = None
                     try:
                         resolved_value = archive.m_resolve(f'/data/{item[1:]}')
@@ -95,6 +87,19 @@ def express_do_plot(plotly_express_annotation, archive, logger):
                 kwargs[key] = resolved_value
             else:
                 kwargs[key] = value
+    return kwargs
+
+
+def express_do_plot(plotly_express_annotation, archive, logger):
+    method_name = plotly_express_annotation.pop('method')
+    layout = plotly_express_annotation.get('layout', None)
+    if layout:
+        plotly_express_annotation.pop('layout')
+    traces = plotly_express_annotation.get('traces', [])
+    if traces:
+        plotly_express_annotation.pop('traces')
+    method = getattr(px, method_name)
+    kwargs = resolve_plot_references(plotly_express_annotation, archive, logger)
     try:
         figure = method(**kwargs)
         return figure, layout, traces

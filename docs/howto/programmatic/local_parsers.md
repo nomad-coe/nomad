@@ -15,8 +15,10 @@ You can run NOMAD parsers from the [command line interface](../../reference/cli.
 The parse command will automatically match the right parser to your file and run the parser.
 There are two output formats:
 
-- `--show-metadata` a JSON representation of the basic metadata
--  `--show-archive` a JSON representation of the full parse results
+- `--show-metadata` a json representation of the basic metadata
+- `--show-archive` a json representation of the full parse results
+- `--preview-plots`: Optionally previews the generated plots.
+- `--save-plot-dir <directory>`: Specifies a directory to save the plot images.
 
 ```
 nomad parse --show-archive <path-to-your-mainfile-code-output-file>
