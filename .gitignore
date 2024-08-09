@@ -453,3 +453,4 @@ nexus.obj
 celerybeat-schedule.dir
 celerybeat-schedule.dat
 celerybeat-schedule.bak
+celerybeat-schedule.db
