@@ -59,7 +59,7 @@ git submodule update --init
 
 ### Set up a Python environment
 
-The NOMAD code currently requires at least Python 3.9, but we recommend using Python 3.11. You should work in a Python virtual environment.
+The NOMAD code currently requires Python 3.11. You should work in a Python virtual environment.
 
 #### Pyenv
 
@@ -85,7 +85,7 @@ If you are a conda user, there is an equivalent, but you have to install `pip` a
 right Python version while creating the environment.
 
 ```shell
-conda create --name nomad_env pip python=3.9
+conda create --name nomad_env pip python=3.11
 conda activate nomad_env
 ```
 
