@@ -69,7 +69,6 @@ parsing = [
     'nomad-openbis',
     'quippy-ase==0.9.14',
     'rdkit==2023.9.5',
-    'pylibmagic; sys_platform == "darwin"',
     'python-magic-bin; sys_platform == "win32"',
 ]
 infrastructure = [

@@ -111,10 +111,10 @@ essential for handling HDF5 files, must be installed on most Unix/Linux systems.
 
 The absence of these libraries can lead to issues during installation or runtime.
 
-For macOS (using Homebrew, pre-compiled binaries for `libmagic` are included in the `pylibmagic` library):
+For macOS:
 
 ```bash
-brew install hdf5
+brew install hdf5 libmagic file-formula
 ```
 
 For Windows (pre-compiled binaries for `hdf5` are included in the dependencies):
