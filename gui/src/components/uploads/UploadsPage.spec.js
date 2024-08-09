@@ -51,7 +51,7 @@ test('Render uploads page: sort by upload create time', async () => {
     expect(within(rows[i]).queryByText(`dft_upload_${11 - i}`)).toBeInTheDocument()
     expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0
       ? 'Published and accessible by everyone'
-      : 'Unpublished, only accessible by you, coauthors and reviewers'
+      : 'Unpublished, accessible by you, coauthors and reviewers'
     ))).toBeInTheDocument()
   }
 
@@ -77,7 +77,7 @@ test('Render uploads page: sort by upload create time', async () => {
     expect(within(rows[i]).queryByText(`dft_upload_${i + 1}`)).toBeInTheDocument()
     expect(within(rows[i]).queryByTitle(((i + 1) % 2 === 0
       ? 'Published and accessible by everyone'
-      : 'Unpublished, only accessible by you, coauthors and reviewers'
+      : 'Unpublished, accessible by you, coauthors and reviewers'
     ))).toBeInTheDocument()
   }
 

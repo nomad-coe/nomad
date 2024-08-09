@@ -30,6 +30,10 @@ import userEvent from '@testing-library/user-event'
 
 afterEach(() => closeAPI())
 
+const queryVisibleForAllCheckbox = () => {
+  return screen.queryByRole('checkbox', { name: /Enabling this will allow all users/ })
+}
+
 const testShownColumnsAction = async () => {
   await screen.findByTitle('Change the shown columns')
   const processingTable = screen.getByTestId('processing-table')
@@ -74,6 +78,8 @@ const testPublishedWritePermissions = async () => {
   expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
   expect(screen.getByTestId('upload-reprocess-action')).toBeDisabled()
   expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
+
+  expect(queryVisibleForAllCheckbox()).toBeEnabled()
 }
 
 const testUnpublishedWritePermissions = async () => {
@@ -93,6 +99,8 @@ const testUnpublishedWritePermissions = async () => {
   expect(screen.getByTestId('upload-reprocess-action')).toBeEnabled()
   expect(screen.getByTestId('edit-metadata-button')).toBeEnabled()
   expect(screen.getByTestId('publish-upload-button')).toBeEnabled()
+
+  expect(queryVisibleForAllCheckbox()).toBeEnabled()
 }
 
 const testEmbargoedPublishesWritePermissions = async () => {
@@ -110,6 +118,8 @@ const testEmbargoedPublishesWritePermissions = async () => {
   expect(screen.getByTestId('upload-delete-action')).toBeDisabled()
   expect(screen.getByTestId('edit-metadata-button')).toBeEnabled()
   expect(screen.getByText('Lift Embargo')).toBeEnabled()
+
+  expect(queryVisibleForAllCheckbox()).toBeDisabled()
 }
 
 const testReadOnlyPermissions = async () => {
@@ -130,6 +140,8 @@ const testReadOnlyPermissions = async () => {
   expect(screen.queryByTestId('upload-delete-action')).toBeDisabled()
   expect(screen.queryByTestId('edit-metadata-button')).not.toBeInTheDocument()
   expect(screen.queryByTestId('publish-upload-button')).not.toBeInTheDocument()
+
+  expect(queryVisibleForAllCheckbox()).not.toBeInTheDocument()
 }
 
 test.each([
@@ -359,4 +371,54 @@ test.each([
   render(<UploadPage uploadId={uploadId}/>)
   await testEmbargoedPublishesWritePermissions()
   await testShownColumnsAction()
+})
+
+test('Toggle visible for all checkbox; check embargo, icon', async () => {
+  await startAPI(
+    'tests.states.uploads.unpublished',
+    'tests/data/uploads/uploadpage-dialog-toggle-visible',
+    'test',
+    'password'
+  )
+
+  const user = userEvent.setup()
+
+  async function testAndToggleCheckbox(initialState, { skipToggle = false } = {}) {
+    const checkbox = queryVisibleForAllCheckbox()
+    await waitFor(() => expect(checkbox.checked).toEqual(initialState))
+
+    if (skipToggle) return
+
+    user.click(checkbox)
+    await waitFor(() => expect(checkbox.checked).toEqual(!initialState))
+  }
+
+  render(<UploadPage uploadId='dft_upload'/>)
+
+  // set embargo to value
+  const embargoLabel = await screen.findByText('Embargo period', { selector: 'label' })
+  const embargoDiv = embargoLabel.closest('div')
+  const embargoButton = embargoDiv.querySelector('[role="button"]')
+  const embargoHelper = within(embargoDiv).getByText('publish without embargo')
+  expect(embargoButton).not.toHaveAttribute('aria-disabled', 'true')
+  expect(embargoButton).toHaveTextContent('No embargo')
+  await user.click(embargoButton)
+  await user.click(await screen.findByRole('option', { name: '36' }))
+  expect(embargoButton).toHaveTextContent('36')
+  expect(embargoHelper).toHaveTextContent('months before the data becomes public')
+  expect(screen.getByTooltip('Unpublished, accessible by you, coauthors and reviewers')).toBeInTheDocument()
+
+  await testAndToggleCheckbox(false)
+  expect(embargoButton).toHaveAttribute('aria-disabled', 'true')
+  expect(embargoButton).toHaveTextContent('No embargo')
+  expect(embargoHelper).toHaveTextContent('Upload is publicly visible, embargo disabled')
+  expect(screen.getByTooltip('Unpublished but accessible by everyone')).toBeInTheDocument()
+
+  await testAndToggleCheckbox(true)
+  expect(embargoButton).not.toHaveAttribute('aria-disabled', 'true')
+  expect(embargoButton).toHaveTextContent('No embargo')
+  expect(embargoHelper).toHaveTextContent('publish without embargo')
+  expect(screen.getByTooltip('Unpublished, accessible by you, coauthors and reviewers')).toBeInTheDocument()
+
+  await testAndToggleCheckbox(false, { skipToggle: true })
 })

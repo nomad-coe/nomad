@@ -21,7 +21,9 @@ import { Tooltip } from '@material-ui/core'
 import PublishedIcon from '@material-ui/icons/Public'
 import PrivateIcon from '@material-ui/icons/AccountCircle'
 import SharedIcon from '@material-ui/icons/SupervisedUserCircle'
+import VisibleIcon from '@material-ui/icons/Visibility'
 import NotVisibleIcon from '@material-ui/icons/VisibilityOff'
+import { isUploadVisibleForAll } from '../../utils'
 
 /**
  * Used to display the status of an Upload. Can work both with upload data and
@@ -30,11 +32,12 @@ import NotVisibleIcon from '@material-ui/icons/VisibilityOff'
 const UploadStatusIcon = React.memo(({data, user, ...props}) => {
   const coauthors = data?.coauthors || data?.authors?.map(user => user.user_id)
   const reviewers = data?.reviewers || data?.viewers?.map(user => user.user_id)
+  const isVisibleForAll = isUploadVisibleForAll(data)
   const shared = data?.coauthors?.length > 0 || data?.reviewers?.length > 0 || data?.viewers?.length > 1
   const isMainAuthor = user && (data.main_author?.user_id === user.sub || data.main_author === user.sub)
   const isReviewer = user && reviewers?.find(user_id => user_id === user.sub)
   const isCoauthor = user && coauthors?.find(user_id => user_id === user.sub)
-  let Icon = shared ? SharedIcon : PrivateIcon
+  let Icon = isVisibleForAll ? VisibleIcon : shared ? SharedIcon : PrivateIcon
 
   let tooltip, color, role
   if (!data) {
@@ -64,8 +67,10 @@ const UploadStatusIcon = React.memo(({data, user, ...props}) => {
         color = 'primary'
     }
   } else {
-      if (isMainAuthor) {
-        tooltip = "Unpublished, only accessible by you, coauthors and reviewers"
+      if (isVisibleForAll) {
+        tooltip = "Unpublished but accessible by everyone"
+      } else if (isMainAuthor) {
+        tooltip = "Unpublished, accessible by you, coauthors and reviewers"
       } else if (isCoauthor) {
         tooltip = "Unpublished, accessible by you as a coauthor"
       } else if (isReviewer) {

@@ -17,14 +17,11 @@
  */
 import {
   Box,
-  Checkbox,
-  CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   FormControl,
-  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem, Select,
@@ -37,137 +34,17 @@ import Button from '@material-ui/core/Button'
 import DialogActions from '@material-ui/core/DialogActions'
 import DialogContentText from '@material-ui/core/DialogContentText'
 import DeleteIcon from '@material-ui/icons/Delete'
-import MembersIcon from '@material-ui/icons/People'
 import AutoComplete from '@material-ui/lab/Autocomplete'
 import { debounce } from 'lodash'
 import PropTypes from 'prop-types'
-import React, { useCallback, useContext, useMemo, useReducer, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react'
 import { useApi } from '../api'
 import { Datatable, DatatableTable } from '../datatable/Datatable'
 import { useErrors } from '../errors'
+import { InviteUserDialog } from './InviteUserDialog'
 import { useUploadPageContext } from './UploadPageContext'
 
 export const editMembersDialogContext = React.createContext()
-
-const useInviteUserDialogStyles = makeStyles(theme => ({
-  button: {
-    marginLeft: theme.spacing(1)
-  },
-  dialog: {
-    width: '100%'
-  },
-  submitWrapper: {
-    margin: theme.spacing(1),
-    position: 'relative'
-  },
-  submitProgress: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginTop: -12,
-    marginLeft: -12
-  }
-}))
-
-const InviteUserDialog = React.memo(function InviteUserDialog(props) {
-  const classes = useInviteUserDialogStyles()
-  const [open, setOpen] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [canSubmit, setCanSubmit] = useState(false)
-  const [error, setError] = useState(null)
-  const [data, setData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    affiliation: ''
-  })
-  const {api} = useApi()
-
-  const handleClose = useCallback((event, reason) => {
-    if (reason !== 'backdropClick') {
-      setOpen(false)
-    }
-  }, [setOpen])
-
-  const handleSubmit = useCallback(() => {
-    setSubmitting(true)
-
-    api.inviteUser(data).then(() => {
-      setSubmitting(false)
-      setOpen(false)
-    }).catch(error => {
-      let message = '' + error
-      try {
-        message = JSON.parse(error.request.responseText).detail || '' + error
-      } catch (e) {}
-      setError(message)
-      setSubmitting(false)
-      setCanSubmit(false)
-    })
-  }, [data, setSubmitting, setOpen, setError, api])
-
-  const handleChange = useCallback((key, value) => {
-    const valid = value && !Object.keys(data).find(dataKey => !(key === dataKey || data[dataKey]))
-    setData({...data, [key]: value})
-    setCanSubmit(valid)
-  }, [setData, data, setCanSubmit])
-
-  const handleOpen = useCallback(() => {
-    setOpen(true)
-  }, [setOpen])
-
-  const input = (key, label) => <TextField
-    variant="filled"
-    label={label}
-    value={data[key]}
-    onChange={event => handleChange(key, event.target.value)}
-    margin="normal"
-    fullWidth
-  />
-  return <React.Fragment>
-    <Button className={classes.button}
-      onClick={handleOpen}
-      color="secondary" disabled={submitting}
-    >
-      Invite new user
-    </Button>
-    <Dialog
-      classes={{paper: classes.dialog}}
-      open={open}
-      onClose={handleClose} disableEscapeKeyDown>
-      <DialogTitle>Invite a new user to NOMAD</DialogTitle>
-      <DialogContent>
-        <DialogContentText>
-          If you want to add a user as co-author or share your data with someone that
-          is not already a NOMAD user, you can invite this person here. We need just a few
-          details about this person. After your invite, the new user will receive an
-          Email that allows her to set a password and further details. Anyhow, you will
-          be able to add the user as co-author or someone to share with immediately after the
-          invite.
-        </DialogContentText>
-        {error && <DialogContentText color="error">
-          {error}
-        </DialogContentText>}
-        {input('email', 'Email')}
-        {input('first_name', 'First name')}
-        {input('last_name', 'Last name')}
-        {input('affiliation', 'Affiliation')}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={submitting}>
-          Cancel
-        </Button>
-        <div className={classes.submitWrapper}>
-          <Button onClick={handleSubmit} color="primary" disabled={!canSubmit}>
-            Submit
-          </Button>
-          {submitting && <CircularProgress size={24} className={classes.submitProgress} />}
-        </div>
-      </DialogActions>
-    </Dialog>
-  </React.Fragment>
-})
-InviteUserDialog.propTypes = {}
 
 const useStyles = makeStyles(theme => ({
   dialog: {
@@ -350,22 +227,14 @@ DeleteAction.propTypes = {
   data: PropTypes.object.isRequired
 }
 
-function EditMembersDialog({...props}) {
+const EditMembersDialog = ({open, setOpen}) => {
   const classes = useStyles()
-  const {disabled} = props
   const {api} = useApi()
   const {raiseError} = useErrors()
   const {uploadId, upload, updateUpload} = useUploadPageContext()
-  const [open, setOpen] = useState(false)
   const [members, setMembers] = useState([])
   const [isChanged, setIsChanged] = useState(false)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
-  const [isVisibleForAll, setIsVisibleForAll] = useState(false)
-
-  const handleIsVisibleForAll = useCallback((event) => {
-    setIsVisibleForAll(event.target.checked)
-    setIsChanged(true)
-  }, [])
 
   const getUsers = useCallback((user_ids, roles) => {
     return new Promise((resolve, reject) => {
@@ -387,15 +256,17 @@ function EditMembersDialog({...props}) {
     return getUsers(user_ids, roles)
   }, [getUsers, upload])
 
-  const handleOpenDialog = () => {
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
     setMembers([])
     setIsChanged(false)
-    setIsVisibleForAll(upload.reviewer_groups?.includes('all'))
     fetchMembers()
-      .then(members => setMembers(members))
-      .catch(error => raiseError(error))
-    setOpen(true)
-  }
+      .then(setMembers)
+      .catch(raiseError)
+  }, [fetchMembers, open, raiseError])
 
   const handleDiscardChanges = () => {
     setOpenConfirmDialog(false)
@@ -406,12 +277,10 @@ function EditMembersDialog({...props}) {
     if (isChanged) {
       const newCoauthors = members.filter(member => member.role === 'Co-author').map(member => member.user_id)
       const newReviewers = members.filter(member => member.role === 'Reviewer').map(member => member.user_id)
-      const allAction = isVisibleForAll ? 'add' : 'remove'
       api.post(`/uploads/${uploadId}/edit`, {
         'metadata': {
           'coauthors': newCoauthors,
-          'reviewers': newReviewers,
-          'reviewer_groups': {[allAction]: 'all'}
+          'reviewers': newReviewers
         }
       }).then(results => {
         updateUpload({upload: results.data})
@@ -439,29 +308,14 @@ function EditMembersDialog({...props}) {
 
   return <editMembersDialogContext.Provider value={contextValue}>
     <React.Fragment>
-      <IconButton onClick={handleOpenDialog} disabled={disabled} data-testid='edit-members-action'>
-        <Tooltip title="Manage upload members">
-          <MembersIcon/>
-        </Tooltip>
-      </IconButton>
       {open && <Dialog classes={{paper: classes.dialog}} open={open} disableEscapeKeyDown data-testid='edit-members-dialog'>
-        <DialogTitle>Manage upload members</DialogTitle>
+        <DialogTitle>Edit upload members</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            You can add new members to this upload.
-            <br/>
-            The upload includes {upload?.entries} {upload?.entries === 1 ? 'entry' : 'entries'}.
+            You can add and remove members for this upload and change their access. Reviewers can view the upload, co-authors can also edit it.
           </DialogContentText>
-          <Tooltip title="If checked, the upload can be viewed before publication even by unregistered users.">
-            <FormControlLabel
-              label="Publicly visible"
-              control={
-                <Checkbox checked={isVisibleForAll} onChange={handleIsVisibleForAll} />
-              }
-            />
-          </Tooltip>
           <Divider />
-          <AddMember api={api} raiseError={raiseError} {...props}/>
+          <AddMember api={api} raiseError={raiseError} />
           <MembersTable />
         </DialogContent>
         <DialogActions>
@@ -493,7 +347,8 @@ function EditMembersDialog({...props}) {
   </editMembersDialogContext.Provider>
 }
 EditMembersDialog.propTypes = {
-  disabled: PropTypes.bool
+  open: PropTypes.bool.isRequired,
+  setOpen: PropTypes.func.isRequired
 }
 
 export default EditMembersDialog

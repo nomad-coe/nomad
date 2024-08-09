@@ -37,7 +37,7 @@ const testComment = async () => {
 
   expect(screen.queryByButtonText('Submit')).toBeDisabled()
   const dialog = screen.getByTestId('edit-metadata-dialog')
-  expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
+  expect(within(dialog).queryByText('Edit upload metadata')).toBeInTheDocument()
   expect(within(dialog).queryByText('Comments')).toBeInTheDocument()
   expect(within(dialog).queryByText('Mocked')).toBeInTheDocument()
 
@@ -56,7 +56,7 @@ const testReferences = async () => {
 
   expect(screen.queryByButtonText('Submit')).toBeDisabled()
   const dialog = screen.getByTestId('edit-metadata-dialog')
-  expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
+  expect(within(dialog).queryByText('Edit upload metadata')).toBeInTheDocument()
   expect(within(dialog).queryByText('References')).toBeInTheDocument()
   expect(within(dialog).queryByText('Datasets')).toBeInTheDocument()
   expect(within(dialog).queryByTestId('reference-add-button')).toBeDisabled()
@@ -107,7 +107,7 @@ const testDatasetForPublished = async () => {
 
   expect(screen.queryByButtonText('Submit')).toBeDisabled()
   const dialog = screen.getByTestId('edit-metadata-dialog')
-  expect(within(dialog).queryByText('Edit upload meta data')).toBeInTheDocument()
+  expect(within(dialog).queryByText('Edit upload metadata')).toBeInTheDocument()
   expect(within(dialog).queryByText('Comments')).toBeInTheDocument()
   expect(within(dialog).queryByText('Mocked')).toBeInTheDocument()
 

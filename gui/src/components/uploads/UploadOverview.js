@@ -15,43 +15,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import React, { useEffect, useState, useCallback } from 'react'
-import PropTypes from 'prop-types'
-import { makeStyles, Step, StepContent, StepLabel, Stepper, Typography, Link, Button,
-  Tooltip, Box, Grid, FormControl, InputLabel, Select, MenuItem, FormHelperText,
-  Input, DialogTitle, DialogContent, Dialog, IconButton, Accordion, AccordionSummary, AccordionDetails} from '@material-ui/core'
-import { useDropzone } from 'react-dropzone'
+import {
+  Accordion, AccordionDetails, AccordionSummary, Box, Button, Checkbox, Dialog,
+  DialogContent, DialogTitle, FormControl, FormHelperText, Grid, IconButton, Input,
+  InputLabel, Link, makeStyles, MenuItem, Select, Step, StepContent, StepLabel, Stepper,
+  Tooltip, Typography
+} from '@material-ui/core'
+import DialogActions from '@material-ui/core/DialogActions'
+import DialogContentText from '@material-ui/core/DialogContentText'
+import FormControlLabel from '@material-ui/core/FormControlLabel'
+import ReprocessIcon from '@material-ui/icons/Autorenew'
+import DownloadIcon from '@material-ui/icons/CloudDownload'
 import UploadIcon from '@material-ui/icons/CloudUpload'
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore'
+import MembersIcon from '@material-ui/icons/Group'
+import ReloadIcon from '@material-ui/icons/Replay'
+import PropTypes from 'prop-types'
+import React, { useCallback, useEffect, useState } from 'react'
+import { useDropzone } from 'react-dropzone'
 import { appBase, oasis } from '../../config'
+import { formatTimestamp } from '../../utils'
 import { CodeList } from '../About'
-import FilesBrower from './FilesBrowser'
-import { useErrors } from '../errors'
-import ProcessingTable from './ProcessingTable'
-import DownloadIcon from '@material-ui/icons/CloudDownload'
-import ReprocessIcon from '@material-ui/icons/Autorenew'
-import WithButton from '../utils/WithButton'
+import { useDataStore } from "../DataStore"
 import Markdown from '../Markdown'
-import EditMembersDialog from './EditMembersDialog'
-import EditMetaDataDialog from './EditMetaDataDialog'
 import Page from '../Page'
+import { useApi } from '../api'
+import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
 import { combinePagination } from '../datatable/Datatable'
 import Download from '../entry/Download'
-import DialogContentText from '@material-ui/core/DialogContentText'
-import DialogActions from '@material-ui/core/DialogActions'
-import { SourceApiCall, SourceApiDialogButton } from '../buttons/SourceDialogButton'
-import CreateEntry from './CreateEntry'
-import { useUploadPageContext } from './UploadPageContext'
-import { useApi } from '../api'
-import ReloadIcon from '@material-ui/icons/Replay'
-import {formatTimestamp} from '../../utils'
+import { useErrors } from '../errors'
 import DialogLink from '../utils/DialogLink'
-import UploadName from './UploadName'
-import UploadStatusIcon from './UploadStatusIcon'
+import WithButton from '../utils/WithButton'
+import CreateEntry from './CreateEntry'
 import DeleteUploadsButton from './DeleteUploadsButton'
+import EditMembersDialog from './EditMembersDialog'
+import EditMetaDataDialog from './EditMetaDataDialog'
+import FilesBrower from './FilesBrowser'
+import ProcessingTable from './ProcessingTable'
+import UploadName from './UploadName'
+import { useUploadPageContext } from './UploadPageContext'
 import UploadProgressDialog from './UploadProgressDialog'
 import UploadSearchMenu from './UploadSearchMenu'
-import {useDataStore} from "../DataStore"
+import UploadStatusIcon from './UploadStatusIcon'
 
 const useDropButtonStyles = makeStyles(theme => ({
   dropzone: {
@@ -95,7 +100,7 @@ DropButton.propTypes = {
   onDrop: PropTypes.func
 }
 
-function EmbargoSelect({embargo, onChange}) {
+function EmbargoSelect({embargo, onChange, disabledReason}) {
   return <FormControl style={{width: '100%'}}>
     <InputLabel shrink htmlFor="embargo-label-placeholder">
       Embargo period
@@ -106,6 +111,7 @@ function EmbargoSelect({embargo, onChange}) {
       input={<Input name="embargo" id="embargo-label-placeholder"/>}
       displayEmpty
       name="embargo"
+      disabled={!!disabledReason}
     >
       <MenuItem value={0}>
         <em>No embargo</em>
@@ -116,22 +122,32 @@ function EmbargoSelect({embargo, onChange}) {
       <MenuItem value={24}>24</MenuItem>
       <MenuItem value={36}>36</MenuItem>
     </Select>
-    <FormHelperText>{embargo > 0 ? 'months before the data becomes public' : 'publish without embargo'}</FormHelperText>
+    <FormHelperText>
+      {disabledReason ||
+        (embargo > 0 ? 'months before the data becomes public' : 'publish without embargo')}
+    </FormHelperText>
   </FormControl>
 }
 
 EmbargoSelect.propTypes = {
   embargo: PropTypes.number,
-  onChange: PropTypes.func
+  onChange: PropTypes.func,
+  disabledReason: PropTypes.string
 }
 
-function PublishUpload({upload, onPublish}) {
+function PublishUpload({upload, onPublish, isVisibleForAll}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
     setOpenConfirmDialog(false)
     onPublish({embargo_length: embargo, to_central_nomad: false})
   }
+
+  useEffect(() => {
+    if (isVisibleForAll) {
+      setEmbargo(0)
+    }
+  }, [isVisibleForAll])
 
   if (upload.published) {
     return <Markdown>{`
@@ -175,7 +191,11 @@ function PublishUpload({upload, onPublish}) {
     <Box marginTop={2}>
       <Grid container direction="row" spacing={2}>
         <Grid item style={{width: 300}}>
-          <EmbargoSelect embargo={embargo} onChange={setEmbargo}/>
+          <EmbargoSelect
+            embargo={embargo}
+            onChange={setEmbargo}
+            disabledReason={isVisibleForAll ? 'Upload is publicly visible, embargo disabled' : null}
+          />
         </Grid>
         <Grid item>
           <Box marginTop={2} >
@@ -196,16 +216,23 @@ function PublishUpload({upload, onPublish}) {
 }
 PublishUpload.propTypes = {
   upload: PropTypes.object,
-  onPublish: PropTypes.func
+  onPublish: PropTypes.func,
+  isVisibleForAll: PropTypes.bool
 }
 
-function PublishUploadExternally({upload, onPublish, isPublished}) {
+function PublishUploadExternally({upload, onPublish, isPublished, isVisibleForAll}) {
   const [embargo, setEmbargo] = useState(upload.embargo_length === undefined ? 0 : upload.embargo_length)
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false)
   const handlePublish = () => {
     setOpenConfirmDialog(false)
     onPublish({embargo_length: embargo, to_central_nomad: true})
   }
+
+  useEffect(() => {
+    if (isVisibleForAll) {
+      setEmbargo(0)
+    }
+  }, [isVisibleForAll])
 
   if (upload?.published_to?.find(server => server === 'https://nomad-lab.eu/prod/v1/api')) {
     return <Markdown>{`
@@ -246,7 +273,11 @@ function PublishUploadExternally({upload, onPublish, isPublished}) {
     <Box marginTop={2}>
       <Grid container direction="row" spacing={2}>
         <Grid item style={{width: 300}}>
-          <EmbargoSelect embargo={embargo} onChange={setEmbargo}/>
+          <EmbargoSelect
+            embargo={embargo}
+            onChange={setEmbargo}
+            disabledReason={isVisibleForAll ? 'Upload is publicly visible, embargo disabled' : null}
+          />
         </Grid>
         <Grid item>
           <Box marginTop={2}>
@@ -269,7 +300,8 @@ function PublishUploadExternally({upload, onPublish, isPublished}) {
 PublishUploadExternally.propTypes = {
   upload: PropTypes.object,
   onPublish: PropTypes.func,
-  isPublished: PropTypes.bool
+  isPublished: PropTypes.bool,
+  isVisibleForAll: PropTypes.bool
 }
 
 function ProcessingStatus({data}) {
@@ -304,6 +336,10 @@ const useStyles = makeStyles(theme => ({
   },
   stepContent: {
     marginBottom: theme.spacing(2)
+  },
+  mixedButtonIcon: {
+    fontSize: '150%',
+    marginRight: theme.spacing(1)
   }
 }))
 
@@ -344,11 +380,21 @@ function UploadOverview(props) {
   const {api, user} = useApi()
   const {raiseError} = useErrors()
   const {
-    uploadId, upload, entries, apiData, hasUpload, isProcessing, error,
+    uploadId, upload, entries, apiData, hasUpload, isProcessing, error, isVisibleForAll,
     isWriter, pagination, deleteRequested, updateUpload, requestRefreshUpload, isMainAuthor} = useUploadPageContext()
   const [uploading, setUploading] = useState(null)
   const [openEmbargoConfirmDialog, setOpenEmbargoConfirmDialog] = useState(false)
   const [readme, setReadme] = useState(null)
+  const [openEditMembersDialog, setOpenEditMembersDialog] = useState(false)
+
+  const handleIsVisibleForAll = useCallback((event) => {
+    const action = event.target.checked ? 'add' : 'remove'
+    api.post(`/uploads/${uploadId}/edit`, {metadata: {
+      'reviewer_groups': { [action]: 'all'}
+    }})
+    .then(requestRefreshUpload)
+    .catch(raiseError)
+  }, [api, requestRefreshUpload, raiseError, uploadId])
 
   useEffect(() => {
     if (uploading) return
@@ -446,7 +492,16 @@ function UploadOverview(props) {
         <Grid item>
           <Box display={'flex'}>
             <UploadSearchMenu uploadId={uploadId}/>
-            <EditMembersDialog disabled={!isWriter}/>
+            <IconButton
+              onClick={() => setOpenEditMembersDialog(true)}
+              disabled={!isWriter || isProcessing}
+              data-testid='edit-members-action'
+            >
+              <Tooltip title="Edit upload members">
+                <MembersIcon/>
+              </Tooltip>
+            </IconButton>
+            <EditMembersDialog open={openEditMembersDialog} setOpen={setOpenEditMembersDialog} />
             <Download
               component={IconButton} tooltip="Download files"
               url={`uploads/${uploadId}/raw/?compress=true`}
@@ -543,14 +598,40 @@ function UploadOverview(props) {
               onPaginationChanged={newPagination => updateUpload({pagination: newPagination})}/>
           </StepContent>
         </Step>
+        {(isAuthenticated && isWriter) && <Step expanded active={false}>
+          <StepLabel>Edit visibility and access</StepLabel>
+          <StepContent>
+            <FormControlLabel
+              data-testid='upload-visible-for-all-label'
+              label="Enabling this will allow all users, including guests without an account, to view the upload even before it is published."
+              control={
+                <Checkbox
+                  checked={isVisibleForAll}
+                  disabled={upload.with_embargo || isProcessing}
+                  onChange={handleIsVisibleForAll}
+                />
+              }
+            />
+            <Typography className={classes.stepContent}>
+              You can edit the access to the upload by adding or removing users as upload members.
+            </Typography>
+            <Button
+              onClick={() => setOpenEditMembersDialog(true)}
+              variant='contained'
+              color='primary'
+              disabled={isProcessing}
+            >
+              <MembersIcon className={classes.mixedButtonIcon}/> Edit upload members
+            </Button>
+          </StepContent>
+        </Step>}
         {(isAuthenticated && isWriter) && <Step expanded={!isEmpty} active={false}>
-          <StepLabel>Edit author metadata</StepLabel>
+          <StepLabel>Edit metadata</StepLabel>
           <StepContent>
             <Typography className={classes.stepContent}>
-              You can add more information about your data, like <i>comments</i>, <i>references</i> (e.g. links
-              to publications), you can create <i>datasets</i> from your entries, or <i>share</i> private data
-              with others (e.g. before publishing or after publishing with an embargo.).
-              Please note that <b>we require you to list the <i>co-authors</i></b> before publishing.
+              You can add more information about your data, like <i>comments</i>,
+              <i>references</i> (e.g. links to publications). You can also create
+              <i>datasets</i> from your entries.
             </Typography>
             <Typography className={classes.stepContent}>
               You can either select and edit individual entries from the list above, or
@@ -566,7 +647,9 @@ function UploadOverview(props) {
               {upload?.with_embargo ? `This upload has been published under embargo with a period of ${upload?.embargo_length} months from ${formatTimestamp(upload?.publish_time)}.`
                 : `This upload has already been published.`}
             </Typography>}
-            {!isPublished && <PublishUpload upload={upload} onPublish={handlePublish} />}
+            {!isPublished && <PublishUpload
+              upload={upload} onPublish={handlePublish} isVisibleForAll={isVisibleForAll}
+            />}
             {isPublished && upload?.with_embargo && upload?.embargo_length > 0 &&
               <Button onClick={() => setOpenEmbargoConfirmDialog(true)} variant='contained' color='primary' disabled={isProcessing}>
                 Lift Embargo
@@ -590,7 +673,12 @@ function UploadOverview(props) {
         {(isAuthenticated && isWriter && oasis) && <Step expanded={!isEmpty} active={false}>
           <StepLabel>Publish to central NOMAD</StepLabel>
           <StepContent>
-            <PublishUploadExternally upload={upload} onPublish={handlePublish} isPublished={isPublished}/>
+            <PublishUploadExternally
+              upload={upload}
+              onPublish={handlePublish}
+              isPublished={isPublished}
+              isVisibleForAll={isVisibleForAll}
+            />
           </StepContent>
         </Step>}
       </Stepper>
