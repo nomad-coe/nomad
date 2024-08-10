@@ -125,7 +125,7 @@ dev = [
     'mkdocs',
     'mypy==1.0.1', # bug: incompatible with derived models of pydantic v1
     'names==0.3.0',
-    'uv',
+    'uv>=0.2.35',
     'pycodestyle',
     'pytest-asyncio',
     'pytest-cov>=2.7.1',
