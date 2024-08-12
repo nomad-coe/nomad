@@ -19,7 +19,6 @@ import React, { useContext } from 'react'
 import PropTypes from 'prop-types'
 import { FilterSubMenu, filterMenuContext } from './FilterMenu'
 import { InputGrid, InputGridItem } from '../input/InputGrid'
-import InputSection from '../input/InputSection'
 import InputRange from '../input/InputRange'
 import InputField from '../input/InputField'
 
@@ -33,68 +32,62 @@ const FilterSubMenuSolarCell = React.memo(({
   return <FilterSubMenu id={id} {...rest}>
     <InputGrid>
       <InputGridItem xs={12}>
-        <InputSection
-          section="results.properties.optoelectronic.solar_cell"
-          disableHeader
+        <InputRange
+          quantity="results.properties.optoelectronic.solar_cell.efficiency"
           visible={visible}
-        >
-          <InputRange
-            quantity="results.properties.optoelectronic.solar_cell.efficiency"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.optoelectronic.solar_cell.fill_factor"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.optoelectronic.solar_cell.open_circuit_voltage"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.optoelectronic.solar_cell.short_circuit_current_density"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.optoelectronic.solar_cell.illumination_intensity"
-            visible={visible}
-          />
-          <InputRange
-            quantity="results.properties.optoelectronic.solar_cell.device_area"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.device_architecture"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.device_stack"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.absorber"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.absorber_fabrication"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.electron_transport_layer"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.hole_transport_layer"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.substrate"
-            visible={visible}
-          />
-          <InputField
-            quantity="results.properties.optoelectronic.solar_cell.back_contact"
-            visible={visible}
-          />
-        </InputSection>
+        />
+        <InputRange
+          quantity="results.properties.optoelectronic.solar_cell.fill_factor"
+          visible={visible}
+        />
+        <InputRange
+          quantity="results.properties.optoelectronic.solar_cell.open_circuit_voltage"
+          visible={visible}
+        />
+        <InputRange
+          quantity="results.properties.optoelectronic.solar_cell.short_circuit_current_density"
+          visible={visible}
+        />
+        <InputRange
+          quantity="results.properties.optoelectronic.solar_cell.illumination_intensity"
+          visible={visible}
+        />
+        <InputRange
+          quantity="results.properties.optoelectronic.solar_cell.device_area"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.device_architecture"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.device_stack"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.absorber"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.absorber_fabrication"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.electron_transport_layer"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.hole_transport_layer"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.substrate"
+          visible={visible}
+        />
+        <InputField
+          quantity="results.properties.optoelectronic.solar_cell.back_contact"
+          visible={visible}
+        />
       </InputGridItem>
     </InputGrid>
   </FilterSubMenu>
