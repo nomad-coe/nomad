@@ -2814,9 +2814,17 @@ class DefinitionReader(GeneralReader):
                     # should never reach here
                     raise  # noqa: PLE0704
 
+            def __unwrap_subsection(__archive):
+                return (
+                    __archive.sub_section.m_resolved()
+                    if isinstance(__archive, SubSection)
+                    else __archive
+                )
+
             if isinstance(value, RequestConfig):
                 # this is a leaf, resolve it according to the config
-                async def __resolve(__path, __archive):
+                async def __resolve(__path, __target):
+                    __archive = __unwrap_subsection(__target)
                     if __archive is node.archive:
                         return
                     await self._resolve(
@@ -2837,7 +2845,8 @@ class DefinitionReader(GeneralReader):
                     await __resolve(child_path, child_def)
             elif isinstance(value, dict):
                 # this is a nested query, keep walking down the tree
-                async def __walk(__path, __archive):
+                async def __walk(__path, __target):
+                    __archive = __unwrap_subsection(__target)
                     if __archive is node.archive:
                         return
                     await self._walk(
