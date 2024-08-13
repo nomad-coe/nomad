@@ -36,7 +36,6 @@ import { Matrix, Number } from './visualizations'
 import Markdown from '../Markdown'
 import { Overview } from './Overview'
 import { Quantity as Q } from '../units/Quantity'
-import {useUnitContext} from '../units/UnitContext'
 import ArrowRightIcon from '@material-ui/icons/ArrowRight'
 import ArrowDownIcon from '@material-ui/icons/ArrowDropDown'
 import DownloadIcon from '@material-ui/icons/CloudDownload'
@@ -744,9 +743,9 @@ QuantityItemPreview.propTypes = ({
   def: PropTypes.object.isRequired
 })
 
-const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
-  const {units} = useUnitContext()
-  const {uploadId} = useEntryStore()
+export const QuantityValue = React.memo(function QuantityValue({value, def}) {
+  const {uploadId} = useEntryStore() || {}
+  const displayUnit = useDisplayUnit(def)
 
   const getRenderValue = useCallback(value => {
     let finalValue
@@ -759,19 +758,14 @@ const QuantityValue = React.memo(function QuantityValue({value, def, ...more}) {
     }
     let finalUnit
     if (def.unit && typeof finalValue !== 'string') {
-      const systemUnitQ = new Q(finalValue, def.unit).toSystem(units)
+      const systemUnitQ = new Q(finalValue, def.unit).to(displayUnit)
       finalValue = systemUnitQ.value()
       finalUnit = systemUnitQ.label()
-      if (more.unit) {
-        const customUnitQ = systemUnitQ.to(more.unit)
-        finalValue = customUnitQ.value()
-        finalUnit = customUnitQ.label()
-      }
     }
     return [finalValue, finalUnit]
-  }, [def, more, units])
+  }, [def, displayUnit])
 
-  const isMathValue = def.type.type_kind === 'numpy' && typeof value !== 'string'
+  const isMathValue = (def.type.type_kind === 'numpy' || def.type.type_kind === 'python') && typeof value !== 'string'
   if (isMathValue) {
     const [finalValue, finalUnit] = getRenderValue(value)
     if (def.shape.length > 0) {
