@@ -297,7 +297,7 @@ class UploadFilesContract(UploadFilesFixtures):
 
     def test_archive_hdf5_file(self, test_upload: UploadWithFiles):
         _, _, upload_files = test_upload
-        with upload_files.archive_hdf5_file(example_entry_id) as f:
+        with open(upload_files.archive_hdf5_location(example_entry_id), 'rb') as f:
             assert len(f.read()) > 0
 
 
@@ -340,7 +340,7 @@ def create_staging_upload(
 
         upload_files.add_rawfiles(entry_file)
         upload_files.write_archive(entry.entry_id, example_archive_contents)
-        with h5py.File(upload_files.archive_hdf5_file(entry.entry_id), 'a') as f:
+        with h5py.File(upload_files.archive_hdf5_location(entry.entry_id), 'a') as f:
             f.create_dataset('value', data=1.0)
 
         entries.append(entry)

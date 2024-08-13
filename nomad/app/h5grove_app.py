@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from __future__ import annotations
 
 from fastapi import FastAPI, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,7 +24,7 @@ import traceback
 import re
 import urllib.parse
 import h5py
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, IO
 
 from h5grove import fastapi_utils as h5grove_router, utils as h5grove_utils
 
@@ -59,10 +60,11 @@ def open_zipped_h5_file(
     upload_files = files.UploadFiles.get(match['upload_id'])
     path_or_id = match['path_or_id']
     try:
+        file_object: IO | str
         if match['directory'] == 'raw':
             file_object = upload_files.raw_file(path_or_id, 'rb')
         else:
-            file_object = upload_files.archive_hdf5_file(path_or_id)
+            file_object = upload_files.archive_hdf5_location(path_or_id)
     except Exception:
         raise create_error(404, 'File not found!')
 

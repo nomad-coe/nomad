@@ -15,52 +15,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Any, cast
+
+from typing import Any
 import h5py
 import re
 
-
 import numpy as np
+import pint
 
 from nomad.metainfo.data_type import NonPrimitive
 from nomad.utils import get_logger
-from nomad.metainfo import MSection
 
 LOGGER = get_logger(__name__)
+
+
+_H5_FILE_ = re.compile(
+    r'(?:.*?/uploads/(?P<upload_id>.+?)/(?P<directory>.+?)/)*(?P<file_id>.+?)#(?P<path>.+)'
+)
 
 
 def match_hdf5_reference(reference: str):
     """
     Match reference to HDF5 upload path syntax.
     """
-    return re.match(
-        r'(?:.*?/uploads/(?P<upload_id>.+?)/(?P<directory>.+?)/)*(?P<file_id>.+?)#(?P<path>.+)',
-        reference,
-    )
+    if not (match := _H5_FILE_.match(reference)):
+        return None
 
-
-def read_hdf5_dataset(hdf5_file: h5py.File, path: str) -> h5py.Dataset:
-    """
-    Read an HDF5 dataset given by path.
-    """
-    match = match_hdf5_reference(path)
-    return (
-        hdf5_file[match['file_id']] if match['file_id'] in hdf5_file else hdf5_file
-    )[match['path']]
-
-
-def write_hdf5_dataset(value: Any, hdf5_file: h5py.File, path: str) -> None:
-    """
-    Write data to HDF5 file.
-    """
-    segments = path.rsplit('/', 1)
-    group = hdf5_file.require_group(segments[0]) if len(segments) == 2 else hdf5_file
-    dataset = group.require_dataset(
-        segments[-1],
-        shape=value.shape if hasattr(value, 'shape') else (),
-        dtype=value.dtype if hasattr(value, 'dtype') else None,
-    )
-    dataset[...] = value.magnitude if hasattr(value, 'magnitude') else value
+    return match.groupdict()
 
 
 class HDF5Reference(NonPrimitive):
@@ -76,7 +57,7 @@ class HDF5Reference(NonPrimitive):
         from nomad.datamodel.context import ServerContext
 
         upload_id, _ = ServerContext._get_ids(archive, required=True)
-        return match, files.UploadFiles.get(upload_id)
+        return file_id, match['path'], files.UploadFiles.get(upload_id)
 
     @staticmethod
     def write_dataset(archive, value: Any, path: str) -> None:
@@ -85,10 +66,14 @@ class HDF5Reference(NonPrimitive):
         filename.h5#/path/to/dataset. upload_id is resolved from archive.
         """
 
-        match, upload_files = HDF5Reference._get_upload_files(archive, path)
-        mode = 'r+b' if upload_files.raw_path_is_file(match['file_id']) else 'wb'
-        with h5py.File(upload_files.raw_file(match['file_id'], mode), 'a') as f:
-            write_hdf5_dataset(value, f, match['path'])
+        file, path, upload_files = HDF5Reference._get_upload_files(archive, path)
+        mode = 'r+b' if upload_files.raw_path_is_file(file) else 'wb'
+        with h5py.File(upload_files.raw_file(file, mode), 'a') as f:
+            f.require_dataset(
+                path,
+                shape=getattr(value, 'shape', ()),
+                dtype=getattr(value, 'dtype', None),
+            )[...] = getattr(value, 'magnitude', value)
 
     @staticmethod
     def read_dataset(archive, path: str) -> Any:
@@ -96,72 +81,67 @@ class HDF5Reference(NonPrimitive):
         Read HDF5 dataset from file specified in path following the form
         filename.h5#/path/to/dataset. upload_id is resolved from archive.
         """
-        match, upload_files = HDF5Reference._get_upload_files(archive, path)
-        with h5py.File(upload_files.raw_file(match['file_id'], 'rb')) as f:
-            return read_hdf5_dataset(f, path)[()]
+        file, path, upload_files = HDF5Reference._get_upload_files(archive, path)
+        with h5py.File(upload_files.raw_file(file, 'rb')) as f:
+            return (f[file] if file in f else f)[path][()]
 
     def _normalize_impl(self, value, **kwargs):
-        return value
+        if match_hdf5_reference(value) is not None:
+            return value
+
+        raise ValueError(f'Invalid HDF5 reference: {value}.')
 
 
 class HDF5Dataset(NonPrimitive):
     def _serialize_impl(self, value, **kwargs):
-        section = kwargs.get('section')
-
-        from nomad.datamodel.context import ServerContext, Context
-
-        if isinstance(value, h5py.Dataset):
-            return f'{value.file.filename}#{value.name}'
-
-        section_root: MSection = section.m_root()
-        if not section_root.m_context:
-            LOGGER.error(
-                'Cannot serialize HDF5 value.',
-                data=dict(quantity_definition=self._definition),
-            )
-            return None
-
-        context = cast(Context, section_root.m_context)
-
-        path = f'{section.m_path()}/{self._definition.name}'
-        upload_id, entry_id = ServerContext._get_ids(section.m_root(), required=True)
-
-        with (
-            context.open_hdf5_file(section, value, 'w') as file_object,
-            h5py.File(file_object, 'a') as hdf5_file,
-        ):
-            try:
-                write_hdf5_dataset(value, hdf5_file, path)
-                return f'/uploads/{upload_id}/archive/{entry_id}#{path}'
-            except Exception as e:
-                LOGGER.error('Cannot write HDF5 dataset', exc_info=e)
-
-    def _normalize_impl(self, value, **kwargs):
-        section = kwargs.get('section')
-
-        from nomad.datamodel.context import Context
-
-        if isinstance(value, np.ndarray):
+        if isinstance(value, str):
             return value
 
-        match = match_hdf5_reference(value)
-        if not match:
-            return None
+        section = kwargs.get('section')
 
-        section_root: MSection = section.m_root()
-        if not section_root.m_context:
-            LOGGER.error(
-                'Cannot resolve HDF5 reference.',
-                data=dict(quantity_definition=self._definition),
+        if not (section_context := section.m_root().m_context):
+            raise ValueError('Cannot normalize HDF5 value without context.')
+
+        upload_id, entry_id = section_context._get_ids(section.m_root(), required=True)
+
+        return f'/uploads/{upload_id}/archive/{entry_id}#{section.m_path()}/{self._definition.name}'
+
+    def _normalize_impl(self, value, **kwargs):
+        """
+        In memory, it is represented by either a reference string or a h5py.Dataset.
+        The h5py.Dataset handles file access and data storage under the hood for us.
+        There is no need to additionally manage file access here.
+        """
+        section = kwargs.get('section')
+
+        if not (section_context := section.m_root().m_context):
+            raise ValueError('Cannot normalize HDF5 value without context.')
+
+        if not isinstance(value, (str, np.ndarray, h5py.Dataset, pint.Quantity)):
+            raise ValueError(f'Invalid HDF5 dataset value: {value}.')
+
+        hdf5_file = section_context.open_hdf5_file(section)
+
+        if isinstance(value, str):
+            if not (match := match_hdf5_reference(value)):
+                # seems to be an illegal reference, do not try to resolve it
+                return value
+
+            file, path = match['file_id'], match['path']
+
+            target_dataset = (hdf5_file[file] if file in hdf5_file else hdf5_file)[path]
+        else:
+            if isinstance(value, pint.Quantity):
+                if self._definition.unit is not None:
+                    value = value.to(self._definition.unit).magnitude
+                else:
+                    value = value.magnitude
+
+            target_dataset = hdf5_file.require_dataset(
+                f'{section.m_path()}/{self._definition.name}',
+                shape=getattr(value, 'shape', ()),
+                dtype=getattr(value, 'dtype', None),
             )
-            return None
+            target_dataset[...] = value
 
-        context = cast(Context, section_root.m_context)
-
-        file_object = context.open_hdf5_file(section, value, 'r')
-        hdf5_file = context.file_handles.get(file_object.name)
-        if not hdf5_file:
-            hdf5_file = h5py.File(file_object)
-            context.file_handles[file_object.name] = hdf5_file
-
-        return read_hdf5_dataset(hdf5_file, value)
+        return target_dataset

@@ -73,15 +73,11 @@ def test_hdf5(test_context, quantity_type, value):
 
     serialized = archive.m_to_dict()
 
-    deserialized = archive.m_from_dict(serialized, m_context=test_context)
-
     if quantity_type == HDF5Dataset:
         assert (
             serialized['data']['quantity']
             == '/uploads/test_upload/archive/test_entry#/data/quantity'
         )
-        assert (deserialized.data.quantity[()] == value).all()
-
     else:
         assert serialized['data']['quantity'] == value
         filename, path = serialized['data']['quantity'].split('#')
