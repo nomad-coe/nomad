@@ -534,3 +534,68 @@ Here are some common problems that may occur in an OASIS installation:
 
     The underlying reason is a time difference between the two different servers (the one creating the JWT, and the one that is validating it) as these might very well be different physical machines. To fix this problem, you should ensure that the time on the servers is up to date (e.g. a network port on the server may be closed, preventing it from synchronizing the time). Note that the servers do not need to be on the same timezone, as internally everything is converted to UTC+0.
 
+ ### NOMAD in networks with restricted Internet access
+
+Some network environments do not allow direct Internet connections, and require the use of an outbound proxy.
+However, NOMAD needs to connect to the central user management or elasticsearch thus requires an active Internet
+connection (at least on Windows) to work.
+In these cases you need to configure docker to use your proxy.
+See details via this link [https://docs.docker.com/network/proxy/](https://docs.docker.com/network/proxy/).
+An example file `~/.docker/config.json` could look like this.
+
+```json
+{
+  "proxies": {
+    "default": {
+      "httpProxy": "http://<proxy>:<port>",
+      "httpsProxy": "http://<proxy>:<port>",
+      "noProxy": "127.0.0.0/8,elastic,localhost"
+    }
+  }
+}
+```
+
+Since not all used services respect proxy variables, one also has to change the docker compose config file `docker-compose.yaml` for elastic search to:   
+
+```yaml hl_lines="7 8"
+elastic:
+    restart: unless-stopped
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.1
+    container_name: nomad_oasis_elastic
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ES_JAVA_OPTS=-Djava.net.useSystemProxies=true
+      - ES_JAVA_OPTS=-Dhttps.proxyHost=<proxy> -Dhttps.proxyPort=port -Dhttps.nonProxyHosts=localhost|127.0.0.1|elastic
+      - discovery.type=single-node
+    volumes:
+      - elastic:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "--fail"
+        - "--silent"
+        - "http://elastic:9200/_cat/health"
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+```
+
+Unfortunately there is no way yet to use the NORTH tools with the central user management, since the jupyterhub spawner does not respect proxy variables.
+It has not been tested yet when using an authentication which does not require the proxy, e.g. a local keycloak server.
+
+If you have issues please contact us on discord n the [oasis channel](https://discord.com/channels/1201445470485106719/1205480348050395136).
+
+### NOMAD behind a firewall
+
+It is also possible that your docker container is not able to talk to each other.
+This could be due to restrictive settings on your server.
+The firewall shall allow both inbound and outbound HTTP and HTTPS traffic.
+The corresponding rules need to be added.
+Furthermore, inbound traffic needs to be enabled for the port used on the `nginx` service.
+
+In this case you should make sure this test runs through:
+[https://docs.docker.com/network/network-tutorial-standalone/](https://docs.docker.com/network/network-tutorial-standalone/)
+
+If not please contact your server provider for help.
