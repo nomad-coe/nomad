@@ -20,6 +20,8 @@ from typing import Dict, Any
 from urllib.parse import urlsplit, urlunsplit
 import re
 import os.path
+
+import h5py
 import requests
 
 from nomad import utils
@@ -58,7 +60,6 @@ class Context(MetainfoContext):
 
         self.archives: Dict[str, MSection] = {}
         self.urls: Dict[MSection, str] = {}
-        self.file_handles: Dict[str, Any] = {}
 
     @property
     def upload_id(self):
@@ -264,15 +265,11 @@ class Context(MetainfoContext):
     def close(self):
         pass
 
-    def open_hdf5_file(self, section: MSection, value: Any, mode: str):
-        return value
-
 
 class ServerContext(Context):
     def __init__(self, upload=None):
         super().__init__()
         self.upload = upload
-        self.file_handles = {}
 
     @property
     def upload_files(self):
@@ -415,36 +412,16 @@ class ServerContext(Context):
 
         return response.json()['data']
 
-    def open_hdf5_file(self, section: MSection, value: Any, mode='r'):
-        from nomad.datamodel.hdf5 import match_hdf5_reference
+    def open_hdf5_file(self, section: MSection):
+        upload_id, entry_id = self._get_ids(section.m_root(), required=True)
 
-        if mode == 'r':
-            match = match_hdf5_reference(value)
+        if not upload_id or not entry_id:
+            return None
 
-            upload_files = self._get_upload_files(
-                match['upload_id'] or self.upload_id, self.installation_url
-            )
-
-            file_id = match['file_id']
-            if upload_files.raw_path_is_file(file_id):
-                hdf5_file = upload_files.raw_file(file_id, 'rb')
-            else:
-                hdf5_file = upload_files.archive_hdf5_file(file_id)
-
-        else:
-            upload_id, entry_id = self._get_ids(section.m_root(), required=True)
-
-            if not upload_id or not entry_id:
-                return None
-
-            hdf5_file = self.upload_files.archive_hdf5_file(entry_id)
-
-        return hdf5_file
+        return h5py.File(self.upload_files.archive_hdf5_location(entry_id), 'a')
 
     def close(self):
-        for hdf5_file in self.file_handles.values():
-            hdf5_file.close()
-        self.file_handles = {}
+        pass
 
     def __enter__(self):
         return self

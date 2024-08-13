@@ -764,6 +764,9 @@ class Context:
                 return section.section_cls
         return None
 
+    def open_hdf5_file(self, section: MSection):
+        raise NotImplementedError
+
 
 def ensure_complete_type(value, definition):
     if inspect.isclass(value) and issubclass(value, (Datatype, Reference)):
