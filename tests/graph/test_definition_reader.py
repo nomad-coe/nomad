@@ -503,6 +503,85 @@ def assert_dict(d1, d2):
             },
             id='get-derived-resolved-with-depth',
         ),
+        pytest.param(
+            {
+                'all_sub_sections': {
+                    'm_request': {
+                        'directive': 'resolved',
+                        'resolve_depth': 1,
+                    }
+                },
+            },
+            {
+                'm_def': 'metainfo/tests.graph.test_definition_reader/section_definitions/3',
+                'metainfo': {
+                    'tests.graph.test_definition_reader': {
+                        'section_definitions': [
+                            {
+                                'name': 'Inner',
+                                'quantities': [
+                                    {
+                                        'name': 'n_impurities',
+                                        'type': {
+                                            'type_kind': 'numpy',
+                                            'type_data': 'int32',
+                                        },
+                                    }
+                                ],
+                            },
+                            {
+                                'name': 'Base',
+                                'quantities': [
+                                    {
+                                        'name': 'dimensionality',
+                                        'type': {
+                                            'type_kind': 'numpy',
+                                            'type_data': 'int32',
+                                        },
+                                    },
+                                    {
+                                        'name': 'n_points',
+                                        'type': {
+                                            'type_kind': 'numpy',
+                                            'type_data': 'int32',
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                'name': 'Derived',
+                                'base_sections': [
+                                    'metainfo/tests.graph.test_definition_reader/section_definitions/1'
+                                ],
+                                'quantities': [
+                                    {
+                                        'name': 'weights',
+                                        'type': {
+                                            'type_kind': 'numpy',
+                                            'type_data': 'float64',
+                                        },
+                                        'shape': ['*'],
+                                    },
+                                    {
+                                        'name': 'inner',
+                                        'type': {
+                                            'type_kind': 'reference',
+                                            'type_data': 'metainfo/tests.graph.test_definition_reader/section_definitions/0',
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                'all_sub_sections': {
+                                    'derived_section': 'metainfo/tests.graph.test_definition_reader/section_definitions/2'
+                                }
+                            },
+                        ]
+                    }
+                },
+            },
+            id='get-derived-subsection',
+        ),
     ],
 )
 def test_definition_reader(query, result):
