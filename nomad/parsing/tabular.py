@@ -774,8 +774,9 @@ def parse_table(pd_dataframe, section_def: Section, logger):
     for col in list(df):
         try:
             no_of_stacked_section = int(col.split('.')[1])
-            if no_of_stacked_section > max_no_of_repeated_columns:
-                max_no_of_repeated_columns = no_of_stacked_section
+            max_no_of_repeated_columns = max(
+                no_of_stacked_section, max_no_of_repeated_columns
+            )
         except ValueError as e:
             logger.error(
                 'No dot (.) is allowed in the column name.',

@@ -169,8 +169,7 @@ class ArchiveQuery:
         self._after: str = after
         self._results_max: int = results_max if results_max > 0 else 1000
         self._page_size: int = min(page_size, 9999) if page_size > 0 else 100
-        if self._page_size > self._results_max:
-            self._page_size = self._results_max
+        self._page_size = min(self._page_size, self._results_max)
         self._batch_size: int = batch_size if batch_size > 0 else 10
         self._retry: int = retry if retry >= 0 else 4
         self._sleep_time: float = sleep_time if sleep_time > 0.0 else 4.0

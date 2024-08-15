@@ -67,7 +67,6 @@ parsing = [
     'h5py==3.11.0',
     'netCDF4==1.6.5',
     'nomad-openbis',
-    'quippy-ase==0.9.14',
     'rdkit==2023.9.5',
     'python-magic-bin; sys_platform == "win32"',
 ]
