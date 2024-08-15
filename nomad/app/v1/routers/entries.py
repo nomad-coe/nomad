@@ -15,9 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import math
 from datetime import datetime
 
+from enum import Enum
 from typing import Optional, Set, Union, Dict, Iterator, Any, List
 from fastapi import (
     APIRouter,
@@ -38,20 +38,26 @@ import json
 import orjson
 from pydantic.main import create_model
 from starlette.responses import Response
+import yaml
 
 from nomad import files, utils, metainfo, processing as proc
 from nomad import datamodel
 from nomad.config import config
+from nomad.config.models.config import Reprocess
 from nomad.datamodel import EditableUserMetadata
+from nomad.datamodel.context import ServerContext
 from nomad.files import StreamedFile, create_zipstream
+from nomad.processing.data import Upload
 from nomad.utils import strip
 from nomad.archive import RequiredReader, RequiredValidationError, ArchiveQueryError
+from nomad.groups import get_group_ids
 from nomad.search import (
     AuthenticationRequiredError,
+    QueryValidationError,
     SearchError,
+    search,
     update_metadata as es_update_metadata,
 )
-from nomad.search import search, QueryValidationError
 from nomad.metainfo.elasticsearch_extension import entry_type
 
 from .auth import create_user_dependency
@@ -311,6 +317,25 @@ class EntryMetadataEditResponse(EntryMetadataEdit):
         None,
         description='A message that details the overall edit result. Only in API response.',
     )
+
+
+class ArchiveChangeAction(Enum):
+    upsert = 'upsert'
+    remove = 'remove'
+
+
+class ArchiveChange(BaseModel):
+    path: str
+    new_value: Any
+    action: ArchiveChangeAction = ArchiveChangeAction.upsert
+
+
+class EntryEdit(BaseModel):
+    changes: List[ArchiveChange]
+
+
+class EntryEditResponse(EntryEdit):
+    entry_id: str
 
 
 _bad_owner_response = (
@@ -1378,6 +1403,136 @@ def answer_entry_archive_request(
                 'archive': archive_data,
             },
         }
+
+
+@router.post(
+    '/{entry_id}/edit',
+    tags=[raw_tag],
+    summary='Edit a raw mainfile in archive format.',
+    response_model=EntryEditResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+    responses=create_responses(
+        _bad_id_response, _bad_edit_request, _bad_edit_request_authorization
+    ),
+)
+async def post_entry_edit(
+    data: EntryEdit,
+    entry_id: str = Path(
+        ...,
+        description='The unique entry id of the entry to edit.',
+    ),
+    user: User = Depends(create_user_dependency()),
+):
+    response = perform_search(
+        owner=Owner.all_,
+        query={'entry_id': entry_id},
+        required=MetadataRequired(
+            include=['writers', 'writer_groups', 'mainfile', 'upload_id', 'published']
+        ),
+        user_id=user.user_id if user is not None else None,
+    )
+
+    if response.pagination.total == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='The entry with the given id does not exist or is not visible to you.',
+        )
+
+    is_admin = user.is_admin
+    entry_data = response.data[0]
+    writers = [writer['user_id'] for writer in entry_data.get('writers', [])]
+    writer_groups = response.data[0].get('writer_groups', [])
+    is_writer = user.user_id in writers or not set(
+        get_group_ids(user.user_id)
+    ).isdisjoint(writer_groups)
+
+    if not (is_admin or is_writer):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Not enough permissions to execute edit request.',
+        )
+
+    if entry_data.get('published', False):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Editing is only allowed for non published entries.',
+        )
+
+    mainfile = entry_data.get('mainfile')
+    upload_id = entry_data.get('upload_id')
+    upload = Upload.get(upload_id)
+    context = ServerContext(upload)
+    archive_data: dict = None
+    with context.raw_file(mainfile, 'rt') as f:
+        if mainfile.endswith('.archive.json'):
+            archive_data = json.load(f)
+        elif mainfile.endswith('.archive.yaml') or mainfile.endswith('.archive.yml'):
+            archive_data = yaml.load(f, Loader=yaml.SafeLoader)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='The entry mainfile in not in archive format.',
+            )
+
+    def to_key(path_segment: str):
+        try:
+            return int(path_segment)
+        except ValueError:
+            return path_segment
+
+    # TODO this is only covers the most basic case
+    #   - no checks yet, we simply assume that the raw file and the changes
+    #     agree on the schema
+    #   - no handling of concurrent changes yet
+    for change in reversed(data.changes):
+        path = change.path.split('/')
+        section_data = archive_data
+
+        for path_index, path_segment in enumerate(path[:-1]):
+            # Usually all keys are str and indicate either a quantity or
+            # a single sub-section. If the next segment is an integer, we
+            # know that the current segment is a repeated sub-section.
+            next_key = to_key(path[path_index + 1])
+            key = to_key(path_segment)
+            repeated_sub_section = isinstance(next_key, int)
+
+            next_value = [] if repeated_sub_section else {}
+
+            if isinstance(section_data, list):
+                if section_data[key] is None:
+                    section_data[key] = next_value
+                section_data = section_data[key]
+            else:
+                section_data = section_data.setdefault(key, next_value)
+
+            # If this is a list, we might need to fill some wholes before we can
+            # update the value.
+            if isinstance(section_data, list):
+                if len(section_data) <= next_key:
+                    section_data.extend([None] * (next_key - len(section_data) + 1))
+
+        if change.action == ArchiveChangeAction.remove:
+            del section_data[next_key]
+        else:
+            section_data[next_key] = change.new_value
+
+    with context.raw_file(mainfile, 'wt') as f:
+        if mainfile.endswith('.json'):
+            json.dump(archive_data, f)
+        else:
+            yaml.dump(archive_data, f, default_flow_style=False, sort_keys=False)
+
+    reprocess_settings = Reprocess(
+        index_individual_entries=True, reprocess_existing_entries=True
+    )
+    upload.put_file_and_process_local(
+        os.path.join(context.raw_path(), mainfile),
+        os.path.dirname(mainfile),
+        reprocess_settings=reprocess_settings,
+    )
+
+    return {'entry_id': entry_id, 'changes': data.changes}
 
 
 @router.get(
