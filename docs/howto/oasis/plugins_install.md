@@ -23,8 +23,14 @@ If you already have an existing NOMAD Oasis setup, or do not wish to use the tem
 ```Dockerfile
 FROM gitlab-registry.mpcdf.mpg.de/nomad-lab/nomad-fair:latest
 
+# Switch to root user to install packages to the system with pip
+USER root
+
 # Install your plugin here, e.g.:
 RUN pip install git+https://<repository_url>
+
+# Remember to switch back to the 'nomad' user
+USER nomad
 ```
 
 Depending on how your plugin code is distributed, you have several options for the actual install steps:
@@ -47,28 +53,17 @@ Depending on how your plugin code is distributed, you have several options for t
     RUN pip install nomad-example-schema-plugin --index-url https://gitlab.mpcdf.mpg.de/api/v4/projects/2187/packages/pypi/simple
     ```
 
-4. Copy plugin code from host machine:
+4. Copy plugin folder from host machine. Note that the folder needs to be in the [Docker build context](https://docs.docker.com/build/building/context/):
 
     ```sh
-    RUN pip install build
-
-    COPY \
-        nomadschemaexample \
-        tests \
-        README.md \
-        LICENSE \
-        pyproject.toml \
-        .
-
-    RUN python -m build --sdist
-
-    RUN pip install dist/nomad-schema-plugin-example-*.tar.gz
+    COPY <nomad-plugin-folder-name> <nomad-plugin-folder-name>
+    RUN cd <nomad-plugin-folder-name> && pip install .
     ```
 
 The customized image can then be built like this:
 
 ```
-docker build -t nomad-with-plugins . --build-arg SETUPTOOLS_SCM_PRETEND_VERSION=<insert-nomad-version>
+docker build -t nomad-with-plugins .
 ```
 
 This will create a new image with the tag `nomad-with-plugins`, which you can use in your `docker-compose.yaml` file:

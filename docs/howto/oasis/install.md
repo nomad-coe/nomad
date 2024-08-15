@@ -36,9 +36,9 @@ curl localhost/nomad-oasis/alive
 
 - Open [http://localhost/nomad-oasis](http://localhost/nomad-oasis){:target="_blank"} in your browser.
 
-To run NORTH (the NOMAD Remote Tools Hub), the `hub` container needs to run docker and
+To run NORTH (the NOMAD Remote Tools Hub), the `north` container needs to run docker and
 the container has to be run under the docker group. You need to replace the default group
-id `991` in the `docker-compose.yaml`'s `hub` section with your systems docker group id.
+id `991` in the `docker-compose.yaml`'s `north` section with your systems docker group id.
 Run `id` if you are a docker user, or `getent group | grep docker` to find our your
 systems docker gid. The user id 1000 is used as the nomad user inside all containers.
 
@@ -182,7 +182,7 @@ a version tag (format is `vX.X.X`, you find all releases [here](https://gitlab.m
 - All containers will be named `nomad_oasis_*`. These names can be used later to reference the container with the `docker` cmd.
 - The services are setup to restart `always`, you might want to change this to `no` while debugging errors to prevent indefinite restarts.
 - Make sure that the `PWD` environment variable is set. NORTH needs to create bind mounts that require absolute paths and we need to pass the current working directory to the configuration from the PWD variable (see hub service in the `docker-compose.yaml`).
-- The `hub` service needs to run docker containers. We have to use the systems docker group as a group. You might need to replace `991` with your
+- The `north` service needs to run docker containers. We have to use the systems docker group as a group. You might need to replace `991` with your
 systems docker group id.
 
 #### nomad.yaml
@@ -555,7 +555,7 @@ An example file `~/.docker/config.json` could look like this.
 }
 ```
 
-Since not all used services respect proxy variables, one also has to change the docker compose config file `docker-compose.yaml` for elastic search to:   
+Since not all used services respect proxy variables, one also has to change the docker compose config file `docker-compose.yaml` for elastic search to:
 
 ```yaml hl_lines="7 8"
 elastic:
