@@ -19,7 +19,7 @@
 import importlib
 
 from nomad.config import config
-from nomad.config.models.plugins import Schema
+from nomad.config.models.plugins import Schema, SchemaPackageEntryPoint
 
 from . import (
     annotations,
@@ -32,14 +32,19 @@ from .plot import m_package
 
 
 class SchemaInterface:
-    def __init__(self, path) -> None:
+    def __init__(self, entry_point) -> None:
         self._module = None
-        self._path = path
+        self._entry_point = entry_point
 
     @property
     def module(self):
         if self._module is None:
-            self._module = importlib.import_module(self._path)
+            if isinstance(self._entry_point, SchemaPackageEntryPoint):
+                self._entry_point.load()
+                package = self._entry_point.plugin_package
+            elif isinstance(self._entry_point, Schema):
+                package = self._entry_point.python_package
+            self._module = importlib.import_module(package)
         return self._module
 
     def __getattr__(self, name: str):
@@ -49,12 +54,11 @@ class SchemaInterface:
 simulationworkflowschema, runschema = None, None
 config.load_plugins()
 for entry_point in config.plugins.entry_points.filtered_values():
-    if isinstance(entry_point, Schema):
-        if entry_point.name == 'simulationworkflowschema':
-            simulationworkflowschema = SchemaInterface(entry_point.python_package)
-        elif entry_point.name == 'runschema':
-            runschema = SchemaInterface(entry_point.python_package)
-        else:
-            importlib.import_module(entry_point.python_package)
+    if entry_point.name == 'simulationworkflowschema':
+        simulationworkflowschema = SchemaInterface(entry_point)
+    elif entry_point.name == 'RunSchema':
+        runschema = SchemaInterface(entry_point)
+    elif isinstance(entry_point, Schema):
+        importlib.import_module(entry_point.python_package)
 
 SCHEMA_IMPORT_ERROR = 'Schema not defined.'

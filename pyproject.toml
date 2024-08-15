@@ -200,13 +200,11 @@ where = [
     "dependencies/parsers/workflow",
     "dependencies/parsers/simulation",
     "dependencies/schema/simulation/workflow",
-    "dependencies/schema/simulation/run",
     "dependencies/normalizers/simulation/workflow",
     "dependencies/normalizers/simulation/dos",
     "dependencies/normalizers/simulation/band_structure",
     "dependencies/normalizers/simulation/system",
     "dependencies/normalizers/simulation/dos",
-    "dependencies/schema/simulation/run",
     "dependencies/normalizers/simulation/soap",
     "dependencies/normalizers/simulation/spectra",
 ]

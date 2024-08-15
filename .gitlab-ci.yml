@@ -203,6 +203,7 @@ check python dependencies:
   before_script:
     - scripts/check_elastic.sh
     - uv pip install -e ".[dev]"
+    - uv pip install -r default_plugins.txt -c requirements-dev.txt # required until all legacy tests are removed
 
 generate pytest timings:
   extends: .base_test
@@ -346,13 +347,13 @@ build python package:
       --build-arg SETUPTOOLS_SCM_PRETEND_VERSION
     - mkdir -p $CI_PROJECT_DIR/dist
     - cp -r /app/dist/* $CI_PROJECT_DIR/dist
-    - cp /app/tests/data/parsers/vasp/vasp.xml $CI_PROJECT_DIR/
+    - cp /app/tests/data/parsers/archive.json $CI_PROJECT_DIR/
   artifacts:
     expire_in: 1 days
     when: on_success
     paths:
       - dist/
-      - vasp.xml
+      - archive.json
 
 build final image:
   stage: test
@@ -382,8 +383,8 @@ install tests:
     - pip install dist/nomad-*.tar.gz
     - python -c 'import nomad.cli'
     - python -c 'from nomad.client import ArchiveQuery'
-    - python -m nomad.cli parse vasp.xml
-    - uv pip install git+https://github.com/nomad-coe/nomad-parser-example.git@9312f1e
+    - python -m nomad.cli parse --skip-normalizers archive.json
+    - uv pip install git+https://github.com/nomad-coe/nomad-parser-example.git@0b0035d
     - python -m exampleparser tests/data/examples/example.out
 
 .tag image:

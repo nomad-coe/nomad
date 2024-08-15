@@ -41,9 +41,6 @@
 [submodule "dependencies/normalizers/simulation/dos"]
 	path = dependencies/normalizers/simulation/dos
 	url = https://github.com/nomad-coe/nomad-normalizer-plugin-dos.git
-[submodule "dependencies/schema/simulation/run"]
-	path = dependencies/schema/simulation/run
-	url = https://github.com/nomad-coe/nomad-schema-plugin-run.git
 [submodule "dependencies/normalizers/simulation/band_structure"]
 	path = dependencies/normalizers/simulation/band_structure
 	url = https://github.com/nomad-coe/nomad-normalizer-plugin-bandstructure.git
