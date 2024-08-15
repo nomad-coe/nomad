@@ -4554,11 +4554,12 @@ window.nomadEnv = {
           "description": "The NeXus metainfo package.",
           "plugin_package": "pynxtools"
         },
-        "schema/simulation/run": {
-          "plugin_type": "schema",
-          "id": "schema/simulation/run",
-          "name": "runschema",
-          "description": "Run schema plugin for NOMAD.\n"
+        "runschema:run_schema_entry_point": {
+          "id": "runschema:run_schema_entry_point",
+          "entry_point_type": "schema_package",
+          "name": "RunSchema",
+          "description": "Schema for the nomad run section.",
+          "plugin_package": "runschema"
         },
         "schema/simulation/workflow": {
           "plugin_type": "schema",
@@ -4628,6 +4629,17 @@ window.nomadEnv = {
         "name": "pynxtools",
         "repository": null,
         "version": "0.5.0"
+      },
+      "runschema": {
+        "description": "Run schema plugin for NOMAD.",
+        "documentation": null,
+        "entry_points": [
+          "runschema:run_schema_entry_point"
+        ],
+        "homepage": "https://github.com/nomad-coe/nomad-schema-plugin-run.git",
+        "name": "runschema",
+        "repository": null,
+        "version": "1.0"
       }
     }
   }

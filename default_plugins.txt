@@ -3,3 +3,4 @@ git+https://github.com/FAIRmat-NFDI/nomad-porous-materials.git@795a53f35ffa52604
 git+https://github.com/FAIRmat-NFDI/nomad-aitoolkit.git@b203f8eb28dc4b6771a39d5c5b7ad3d9d8583ac8
 nomad-simulations==0.0.1
 pynxtools[convert]==0.5.0
+git+https://github.com/nomad-coe/nomad-schema-plugin-run.git@f5d348fec5cef89e76021b42e48ff49b1832034b

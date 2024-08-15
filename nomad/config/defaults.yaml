@@ -1948,11 +1948,6 @@ plugins:
         plugin_type: parser
         python_package: electronicparsers.yambo
         mainfile_contents_re: Build.+\s+http://www\.yambo-code\.org
-      schema/simulation/run:
-        plugin_type: schema
-        python_package: runschema
-        key: runschema
-        name: runschema
       schema/simulation/workflow:
         plugin_type: schema
         python_package: simulationworkflowschema

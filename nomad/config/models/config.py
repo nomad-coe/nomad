@@ -20,7 +20,7 @@ import logging
 import os
 import sys
 import warnings
-from importlib.metadata import metadata, version
+from importlib.metadata import version
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
@@ -1081,7 +1081,7 @@ class Config(ConfigBaseModel):
                 )
                 config_override['id'] = key
                 config_instance = entry_point.load()
-                package_metadata = metadata(package_name)
+                package_metadata = entry_point.dist.metadata
                 url_list = package_metadata.get_all('Project-URL')
                 url_dict = {}
                 for url in url_list or []:
@@ -1091,7 +1091,7 @@ class Config(ConfigBaseModel):
                     plugin_package = PluginPackage(
                         name=package_name,
                         description=package_metadata.get('Summary'),
-                        version=version(package_name),
+                        version=entry_point.dist.version,
                         homepage=url_dict.get('homepage'),
                         documentation=url_dict.get('documentation'),
                         repository=url_dict.get('repository'),
