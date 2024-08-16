@@ -6,7 +6,7 @@ This documentation shows you how to write a plugin entry point for an example up
 
 ## Getting started
 
-You can use our [template repository](https://github.com/FAIRmat-NFDI/nomad-plugin-template) to create an initial structure for a plugin containing an app. The relevant part of the repository layout will look something like this:
+You can use our [template repository](https://github.com/FAIRmat-NFDI/nomad-plugin-template) to create an initial structure for a plugin containing an example upload. The relevant part of the repository layout will look something like this:
 
 ```txt
 nomad-example
@@ -25,7 +25,7 @@ See the documentation on [plugin development guidelines](./plugins.md#plugin-dev
 
 ## Example upload entry point
 
-The entry point defines basic information about your example upload and is used to automatically load the associated data into a NOMAD distribution. It is an instance of a `ExampleUploadEntryPoint` or its subclass and it contains a `load` method which will prepare the data that should be contained in the upload. The entry point should be defined in `*/example_uploads/__init__.py` like this:
+The entry point is an instance of a `ExampleUploadEntryPoint` or its subclass. It defines basic information about your example upload and is used to automatically load the associated data into a NOMAD distribution. The entry point should be defined in `*/example_uploads/__init__.py` like this:
 
 ```python
 from nomad.config.models.plugins import ExampleUploadEntryPoint
@@ -38,7 +38,7 @@ myexampleupload = ExampleUploadEntryPoint(
 )
 ```
 
-Here we instantiate an object `myexampleupload`. This is the final entry point instance in which you specify the default parameterization and other details about the example upload. By default, it is assumed that you include the upload data in the plugin repository and use the `path` field to specify the location with respect to the package root directory. You can learn more about different data loading options in the next section. In the reference you can also see all of the available [configuration options for a `ExampleUploadEntryPoint`](../../reference/plugins.md#exampleuploadentrypoint).
+The default method for including the upload data is to place it in the plugin repository and use the `path` field to specify the location with respect to the package root. You can learn more about different data loading options in the next section. In the reference you can also see all of the available [configuration options for a `ExampleUploadEntryPoint`](../../reference/plugins.md#exampleuploadentrypoint).
 
 The entry point instance should then be added to the `[project.entry-points.'nomad.plugin']` table in `pyproject.toml` in order for the example upload to be automatically detected:
 
@@ -61,7 +61,7 @@ There are three main ways to include data in an example upload:
 
 2. Data retrieved online during app startup using `url`:
 
-    If your example uploads are very large (>100MB), storing them in Git may become unpractical. In order to deal with larger uploads, they can be stored in a separate online service. To load such external resoruces, you can instead of path specify an `url` parameter of to activate online data retrieval. This will retrieve the large online file *once* upon the first app launch and then store it for later use:
+    If your example uploads are very large (>100MB), storing them in Git may become unpractical. In order to deal with larger uploads, they can be stored in a separate online service. To load such external resources, you can specify a `url` parameter to activate online data retrieval. This will retrieve the large online file once upon the first app launch and then cache it for later use:
 
     ```python
     from nomad.config.models.plugins import ExampleUloadEntryPoint
@@ -73,7 +73,11 @@ There are three main ways to include data in an example upload:
     )
     ```
 
-3. Data retrieved with a custom method: If the above options do not suite your use case, you can also override the `load`-method of `ExampleUploadEntryPoint` to perform completely custom data loading logic.
+    Note that if the online file changes, you will need to remove the cached file for the new version to be retrieved. You can find the cached file in the package installation location, under folder `example_uploads`.
+
+3. Data retrieved with a custom method:
+
+    If the above options do not suite your use case, you can also override the `load`-method of `ExampleUploadEntryPoint` to perform completely custom data loading logic. Note that the loaded data should be saved in the package installation directory in order to be accessible. Check the default `load` function for more details.
 
     ```python
     from pydantic import Field
@@ -83,9 +87,6 @@ There are three main ways to include data in an example upload:
     class MyExampleUploadEntryPoint(ExampleUploadEntryPoint):
 
         def load(self):
-            """Add your custom loading logic here. Note that the loaded data
-            should be saved in the package installation directory in order to be
-            accessible. Check the default `load` function for more details.
-            """
+            """Add your custom loading logic here."""
             ...
     ```
