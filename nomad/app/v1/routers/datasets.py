@@ -255,7 +255,7 @@ class DatasetResponse(BaseModel):
 
 
 class DatasetType(str, enum.Enum):
-    owned = ('owned',)
+    owned = 'owned'
     foreign = 'foreign'
 
 
